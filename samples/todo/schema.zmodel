@@ -1,0 +1,150 @@
+/*
+ * A sample model for a collaborative Todo app
+ */
+
+// Datasource
+datasource db {
+    provider = 'postgresql'
+    url = env('DATABASE_URL')
+}
+
+enum SpaceUserRole {
+    USER
+    ADMIN
+}
+
+// Fragments are used to define fields shared across data models
+fragment CommonFields {
+    id String @id
+    createdAt DateTime @createdAt
+    updatedAt DateTime @updatedAt
+}
+
+model Space {
+    ...CommonFields
+
+    // @length is a field validation rule, enforced at create/update time
+    name String @length(1, 100)
+
+    // @unique denotes single field unique index
+    slug String @unique @length(1, 20)
+
+    members SpaceUser[]
+    todoLists TodoList[]
+
+    // auth() is a built-in function which returns current user identity
+    // @@allow and @@deny are for defining access policies:
+    //   - a request is denied if any @@deny rule evaluates to true
+    //   - a request is denied if there isn't any @@allow rule evaluating to true
+    // 
+    // Policies are enforced at db query/update/delete time
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // everyone can create a space
+    @@allow('create', true)
+
+    // any user in the space can read the space
+    // $this denotes current entity
+    // 'userInSpace' is a helper function defined subsequently
+    @@allow('read', userInSpace(auth(), $this))
+
+    // space admin can update and delete
+    @@allow('update,delete', userIsSpaceAdmin(auth(), $this))
+}
+
+// SpaceUser is a 'join table' which models many-to-many relationship between
+// Space and User
+model SpaceUser {
+    ...CommonFields
+
+    // @cascade indicates cascading deletion from Space
+    space Space @cascade
+    user User @cascade
+    role SpaceUserRole
+
+    // multi-field unique index
+    @@unique([user, space])
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // space admin can create/update/delete
+    @@allow('create,update,delete', userIsSpaceAdmin(auth(), space))
+
+    // user can read entries for spaces which he's a member of
+    @@allow('read', userInSpace(auth(), space))
+}
+
+model User {
+    ...CommonFields
+
+    // @email is another validation rule
+    email String @unique @email
+
+    name String? @length(1, 100)
+    todoList TodoList[]
+    spaces SpaceUser[]
+
+    // @url is another validation rule
+    image String? @url
+
+    // can be created by anyone, even not logged in
+    @@allow('create', true)
+
+    // can be read by users sharing any space
+    @@allow('read', userInAnySpace(auth(), spaces))
+
+    // can only be updated and deleted by himeself
+    @@allow('update,delete', auth() == $this) 
+}
+
+model TodoList {
+    ...CommonFields
+    space Space @cascade
+    owner User
+    title String @length(1, 20)
+    private Boolean @default(false)
+    todos Todo[]
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // can be read by owner or space members (only if not private) 
+    @@allow('read', owner == auth() || (userInSpace(auth(), space) && !private))
+
+    // can be created/updated/deleted by owner
+    @@allow('create,update,delete', owner == auth() && userInSpace(auth(), space)) 
+}
+
+model Todo {
+    ...CommonFields
+    owner User
+    todoList TodoList @cascade
+    title String
+    completedAt DateTime?
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // owner has full access, also space members have full access (if the parent TodoList is not private)
+    @@allow('all', todoList.owner == auth() || (userInSpace(auth(), todoList.space) && !todoList.private))
+}
+
+// Functions are for reusing policy rules, and are inlined during code generation
+
+// if the user is in the space
+function userInSpace(user, space) {
+    some(space.members, $.user == user)
+}
+
+// if the user is the admin of the space
+function userIsSpaceAdmin(user, space) {
+    some(space.members, $.user == user && $.role == ADMIN)
+}
+
+// if the user is a member of any of the given spaces
+function userInAnySpace(user, spaces) {
+    some(spaces, $.user == user)
+}

@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "ESNext",
+        "lib": ["ESNext"],
+        "sourceMap": true,
+        "outDir": "./lib",
+        "strict": true,
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "declaration": true
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["lib", "node_modules"]
+}
