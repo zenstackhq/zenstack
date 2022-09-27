@@ -90,8 +90,8 @@ async function handlePut(
     }
 
     const r = await client.prisma.todoList.update({
-        where: { id: path[0] },
         ...body,
+        where: { id: path[0] },
     });
 
     res.status(200).send(r);

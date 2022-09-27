@@ -1,0 +1,9 @@
+function auth() {}
+function some(collection, predicate) {}
+
+attribute id() {}
+attribute default() {}
+attribute unique() {}
+attribute cascade() {}
+attribute allow() {}
+attribute deny() {}

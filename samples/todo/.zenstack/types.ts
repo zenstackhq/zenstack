@@ -33,14 +33,14 @@ export type TodoListGetArgs<T extends TodoListGetArgsInput> = P.SelectSubset<
     TodoListGetArgsInput
 >;
 
-export type TodoListUpdateArgs = P.TodoListUpdateArgs;
+export type TodoListUpdateArgs = Omit<P.TodoListUpdateArgs, 'where'>;
 export type TodoListUpdateResult<T extends TodoListUpdateArgs> = P.CheckSelect<
     T,
     TodoList,
     P.TodoListGetPayload<T>
 >;
 
-export type TodoListDeleteArgs = P.TodoListDeleteArgs;
+export type TodoListDeleteArgs = Omit<P.TodoListDeleteArgs, 'where'>;
 export type TodoListDeleteResult<T extends TodoListDeleteArgs> = P.CheckSelect<
     T,
     TodoList,

@@ -56,12 +56,24 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
           },
           {
             "$type": "Assignment",
-            "feature": "fragments",
+            "feature": "functions",
             "operator": "+=",
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$refText": "Fragment"
+                "$refText": "Function"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "attributes",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "Attribute"
               },
               "arguments": []
             }
@@ -84,6 +96,18 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
           {
             "$type": "Keyword",
             "value": "datasource"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "ID"
+              },
+              "arguments": []
+            }
           },
           {
             "$type": "Keyword",
@@ -144,7 +168,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$refText": "SimpleExpr"
+                "$refText": "Expression"
               },
               "arguments": []
             }
@@ -160,94 +184,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "SimpleExpr",
+      "name": "Expression",
       "alternatives": {
-        "$type": "Alternatives",
-        "elements": [
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "SimpleInvocationExpr"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "LiteralExpr"
-            },
-            "arguments": []
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
-      "name": "SimpleInvocationExpr",
-      "alternatives": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "Assignment",
-            "feature": "function",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "ID"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Keyword",
-            "value": "("
-          },
-          {
-            "$type": "Group",
-            "elements": [
-              {
-                "$type": "Assignment",
-                "feature": "args",
-                "operator": "+=",
-                "terminal": {
-                  "$type": "RuleCall",
-                  "rule": {
-                    "$refText": "SimpleExpr"
-                  },
-                  "arguments": []
-                }
-              },
-              {
-                "$type": "Keyword",
-                "value": ","
-              }
-            ],
-            "cardinality": "*"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "args",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "SimpleExpr"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Keyword",
-            "value": ")"
-          }
-        ]
+        "$type": "RuleCall",
+        "rule": {
+          "$refText": "LogicalExpr"
+        },
+        "arguments": []
       },
       "definesHiddenTokens": false,
       "entry": false,
@@ -276,7 +219,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             {
               "$type": "RuleCall",
               "rule": {
-                "$refText": "INT"
+                "$refText": "NUMBER"
               },
               "arguments": []
             },
@@ -299,46 +242,57 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "Enum",
+      "name": "ArrayExpr",
       "alternatives": {
         "$type": "Group",
         "elements": [
           {
             "$type": "Keyword",
-            "value": "enum"
+            "value": "["
           },
           {
-            "$type": "Assignment",
-            "feature": "name",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "ID"
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "items",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "Expression"
+                  },
+                  "arguments": []
+                }
               },
-              "arguments": []
-            }
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Keyword",
+                    "value": ","
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "items",
+                    "operator": "+=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$refText": "Expression"
+                      },
+                      "arguments": []
+                    }
+                  }
+                ],
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
           },
           {
             "$type": "Keyword",
-            "value": "{"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "fields",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "EnumField"
-              },
-              "arguments": []
-            },
-            "cardinality": "+"
-          },
-          {
-            "$type": "Keyword",
-            "value": "}"
+            "value": "]"
           }
         ]
       },
@@ -351,22 +305,657 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "EnumField",
+      "name": "ReferenceExpr",
       "alternatives": {
         "$type": "Assignment",
-        "feature": "value",
+        "feature": "target",
         "operator": "=",
         "terminal": {
-          "$type": "RuleCall",
-          "rule": {
-            "$refText": "ID"
+          "$type": "CrossReference",
+          "type": {
+            "$refText": "ReferenceTarget"
           },
-          "arguments": []
+          "terminal": {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ID"
+            },
+            "arguments": []
+          },
+          "deprecatedSyntax": false
         }
       },
       "definesHiddenTokens": false,
       "entry": false,
       "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "InvocationExpr",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Assignment",
+            "feature": "function",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "ID"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "("
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ArgumentList"
+            },
+            "arguments": [],
+            "cardinality": "?"
+          },
+          {
+            "$type": "Keyword",
+            "value": ")"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "EnumMemberExpr",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Assignment",
+            "feature": "decl",
+            "operator": "=",
+            "terminal": {
+              "$type": "CrossReference",
+              "type": {
+                "$refText": "Enum"
+              },
+              "deprecatedSyntax": false
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "."
+          },
+          {
+            "$type": "Assignment",
+            "feature": "member",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "ID"
+              },
+              "arguments": []
+            }
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "UnaryExpr",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Assignment",
+            "feature": "operator",
+            "operator": "=",
+            "terminal": {
+              "$type": "Alternatives",
+              "elements": [
+                {
+                  "$type": "Keyword",
+                  "value": "+"
+                },
+                {
+                  "$type": "Keyword",
+                  "value": "-"
+                },
+                {
+                  "$type": "Keyword",
+                  "value": "!"
+                }
+              ]
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "arg",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "Expression"
+              },
+              "arguments": []
+            }
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "MultDivExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "PrimaryExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Action",
+                "inferredType": {
+                  "$type": "InferredType",
+                  "name": "BinaryExpr"
+                },
+                "feature": "left",
+                "operator": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "operator",
+                "operator": "=",
+                "terminal": {
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "Keyword",
+                      "value": "*"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "/"
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "right",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "PrimaryExpr"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "AddSubExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "MultDivExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Action",
+                "inferredType": {
+                  "$type": "InferredType",
+                  "name": "BinaryExpr"
+                },
+                "feature": "left",
+                "operator": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "operator",
+                "operator": "=",
+                "terminal": {
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "Keyword",
+                      "value": "+"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "-"
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "right",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "MultDivExpr"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "ComparisonExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "AddSubExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Action",
+                "inferredType": {
+                  "$type": "InferredType",
+                  "name": "BinaryExpr"
+                },
+                "feature": "left",
+                "operator": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "operator",
+                "operator": "=",
+                "terminal": {
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "Keyword",
+                      "value": ">"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "<"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": ">="
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "<="
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "right",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "AddSubExpr"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "EqualityExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ComparisonExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Action",
+                "inferredType": {
+                  "$type": "InferredType",
+                  "name": "BinaryExpr"
+                },
+                "feature": "left",
+                "operator": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "operator",
+                "operator": "=",
+                "terminal": {
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "Keyword",
+                      "value": "=="
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "!="
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "right",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "ComparisonExpr"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "LogicalExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "EqualityExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Action",
+                "inferredType": {
+                  "$type": "InferredType",
+                  "name": "BinaryExpr"
+                },
+                "feature": "left",
+                "operator": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "operator",
+                "operator": "=",
+                "terminal": {
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "Keyword",
+                      "value": "&&"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "||"
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "right",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "EqualityExpr"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "PrimaryExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Alternatives",
+        "elements": [
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "("
+              },
+              {
+                "$type": "RuleCall",
+                "rule": {
+                  "$refText": "Expression"
+                },
+                "arguments": []
+              },
+              {
+                "$type": "Keyword",
+                "value": ")"
+              }
+            ]
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "LiteralExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "InvocationExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ArrayExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "EnumMemberExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ReferenceExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "UnaryExpr"
+            },
+            "arguments": []
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "ArgumentList",
+      "fragment": true,
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Assignment",
+            "feature": "args",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "Expression"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": ","
+              },
+              {
+                "$type": "Assignment",
+                "feature": "args",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "Expression"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
       "hiddenTokens": [],
       "parameters": [],
       "wildcard": false
@@ -398,72 +987,38 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "value": "{"
           },
           {
-            "$type": "Assignment",
-            "feature": "fragments",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "FragmentExpansion"
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "fields",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "DataModelField"
+                  },
+                  "arguments": []
+                }
               },
-              "arguments": []
-            },
-            "cardinality": "*"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "fields",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "DataModelField"
-              },
-              "arguments": []
-            },
+              {
+                "$type": "Assignment",
+                "feature": "attributes",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "DataModelAttribute"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
             "cardinality": "+"
           },
           {
             "$type": "Keyword",
             "value": "}"
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
-      "name": "FragmentExpansion",
-      "alternatives": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "Keyword",
-            "value": "..."
-          },
-          {
-            "$type": "Assignment",
-            "feature": "value",
-            "operator": "=",
-            "terminal": {
-              "$type": "CrossReference",
-              "type": {
-                "$refText": "Fragment"
-              },
-              "terminal": {
-                "$type": "RuleCall",
-                "rule": {
-                  "$refText": "ID"
-                },
-                "arguments": []
-              },
-              "deprecatedSyntax": false
-            }
           }
         ]
       },
@@ -549,7 +1104,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                 "terminal": {
                   "$type": "CrossReference",
                   "type": {
-                    "$refText": "Declaration"
+                    "$refText": "TypeDeclaration"
                   },
                   "terminal": {
                     "$type": "RuleCall",
@@ -594,134 +1149,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "Declaration",
-      "alternatives": {
-        "$type": "Alternatives",
-        "elements": [
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "DataModel"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "Fragment"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "Enum"
-            },
-            "arguments": []
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
-      "name": "DataModelFieldAttribute",
+      "name": "Enum",
       "alternatives": {
         "$type": "Group",
         "elements": [
           {
             "$type": "Keyword",
-            "value": "@"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "name",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$refText": "ID"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Group",
-            "elements": [
-              {
-                "$type": "Keyword",
-                "value": "("
-              },
-              {
-                "$type": "Group",
-                "elements": [
-                  {
-                    "$type": "Group",
-                    "elements": [
-                      {
-                        "$type": "Assignment",
-                        "feature": "args",
-                        "operator": "+=",
-                        "terminal": {
-                          "$type": "RuleCall",
-                          "rule": {
-                            "$refText": "LiteralExpr"
-                          },
-                          "arguments": []
-                        }
-                      },
-                      {
-                        "$type": "Keyword",
-                        "value": ","
-                      }
-                    ],
-                    "cardinality": "*"
-                  },
-                  {
-                    "$type": "Assignment",
-                    "feature": "args",
-                    "operator": "+=",
-                    "terminal": {
-                      "$type": "RuleCall",
-                      "rule": {
-                        "$refText": "LiteralExpr"
-                      },
-                      "arguments": []
-                    }
-                  }
-                ],
-                "cardinality": "?"
-              },
-              {
-                "$type": "Keyword",
-                "value": ")"
-              }
-            ],
-            "cardinality": "?"
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
-      "name": "Fragment",
-      "alternatives": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "Keyword",
-            "value": "fragment"
+            "value": "enum"
           },
           {
             "$type": "Assignment",
@@ -746,7 +1180,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$refText": "DataModelField"
+                "$refText": "EnumField"
               },
               "arguments": []
             },
@@ -755,6 +1189,294 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
           {
             "$type": "Keyword",
             "value": "}"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "EnumField",
+      "alternatives": {
+        "$type": "Assignment",
+        "feature": "value",
+        "operator": "=",
+        "terminal": {
+          "$type": "RuleCall",
+          "rule": {
+            "$refText": "ID"
+          },
+          "arguments": []
+        }
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "Function",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "function"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "ID"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "("
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "params",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "FunctionParam"
+                  },
+                  "arguments": []
+                }
+              },
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Keyword",
+                    "value": ","
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "params",
+                    "operator": "+=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$refText": "FunctionParam"
+                      },
+                      "arguments": []
+                    }
+                  }
+                ],
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
+          },
+          {
+            "$type": "Keyword",
+            "value": ")"
+          },
+          {
+            "$type": "Keyword",
+            "value": "{"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "expression",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "Expression"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "}"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "FunctionParam",
+      "alternatives": {
+        "$type": "Assignment",
+        "feature": "name",
+        "operator": "=",
+        "terminal": {
+          "$type": "RuleCall",
+          "rule": {
+            "$refText": "ID"
+          },
+          "arguments": []
+        }
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "Attribute",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "attribute"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "ID"
+              },
+              "arguments": []
+            }
+          },
+          {
+            "$type": "Keyword",
+            "value": "{"
+          },
+          {
+            "$type": "Keyword",
+            "value": "}"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "DataModelFieldAttribute",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "@"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "decl",
+            "operator": "=",
+            "terminal": {
+              "$type": "CrossReference",
+              "type": {
+                "$refText": "Attribute"
+              },
+              "deprecatedSyntax": false
+            }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "("
+              },
+              {
+                "$type": "RuleCall",
+                "rule": {
+                  "$refText": "ArgumentList"
+                },
+                "arguments": [],
+                "cardinality": "?"
+              },
+              {
+                "$type": "Keyword",
+                "value": ")"
+              }
+            ],
+            "cardinality": "?"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "DataModelAttribute",
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "@@"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "decl",
+            "operator": "=",
+            "terminal": {
+              "$type": "CrossReference",
+              "type": {
+                "$refText": "Attribute"
+              },
+              "deprecatedSyntax": false
+            }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "("
+              },
+              {
+                "$type": "RuleCall",
+                "rule": {
+                  "$refText": "ArgumentList"
+                },
+                "arguments": [],
+                "cardinality": "?"
+              },
+              {
+                "$type": "Keyword",
+                "value": ")"
+              }
+            ],
+            "cardinality": "?"
           }
         ]
       },
@@ -855,14 +1577,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "TerminalRule",
-      "name": "INT",
+      "name": "NUMBER",
       "type": {
         "$type": "ReturnType",
         "name": "number"
       },
       "terminal": {
         "$type": "RegexToken",
-        "regex": "[0-9]+"
+        "regex": "[+-]?[0-9]+(\\\\.[0-9]+)?"
       },
       "fragment": false,
       "hidden": false
@@ -888,10 +1610,63 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
       "fragment": false
     }
   ],
+  "types": [
+    {
+      "$type": "Type",
+      "typeAlternatives": [
+        {
+          "$type": "AtomType",
+          "refType": {
+            "$refText": "FunctionParam"
+          },
+          "isArray": false,
+          "isRef": false
+        },
+        {
+          "$type": "AtomType",
+          "refType": {
+            "$refText": "Function"
+          },
+          "isArray": false,
+          "isRef": false
+        },
+        {
+          "$type": "AtomType",
+          "refType": {
+            "$refText": "DataModelField"
+          },
+          "isArray": false,
+          "isRef": false
+        }
+      ],
+      "name": "ReferenceTarget"
+    },
+    {
+      "$type": "Type",
+      "typeAlternatives": [
+        {
+          "$type": "AtomType",
+          "refType": {
+            "$refText": "DataModel"
+          },
+          "isArray": false,
+          "isRef": false
+        },
+        {
+          "$type": "AtomType",
+          "refType": {
+            "$refText": "Enum"
+          },
+          "isArray": false,
+          "isRef": false
+        }
+      ],
+      "name": "TypeDeclaration"
+    }
+  ],
   "definesHiddenTokens": false,
   "hiddenTokens": [],
   "imports": [],
   "interfaces": [],
-  "types": [],
   "usedGrammars": []
 }`));

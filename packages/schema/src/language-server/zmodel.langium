@@ -1,23 +1,107 @@
 grammar ZModel
 
 entry Model:
-    (datasources+=DataSource | models+=DataModel | enums+=Enum | fragments+=Fragment )*;
+    (
+        datasources+=DataSource | 
+        models+=DataModel | 
+        enums+=Enum |
+        functions+=Function |
+        attributes+=Attribute
+    )*;
 
 // datasource
 DataSource:
-    'datasource' '{' (fields+=DataSourceField)+ '}';
+    'datasource' name=ID '{' (fields+=DataSourceField)+ '}';
 
 DataSourceField:
-    (name=ID '=' value=SimpleExpr);
+    (name=ID '=' value=Expression);
 
-SimpleExpr:
-    SimpleInvocationExpr | LiteralExpr;
-
-SimpleInvocationExpr:
-    function=ID '(' (args+=SimpleExpr ',')* args+=SimpleExpr ')';
+// expression
+Expression:
+    LogicalExpr;
 
 LiteralExpr:
-    value=(BOOLEAN | INT | STRING);
+    value=(BOOLEAN | NUMBER | STRING);
+
+ArrayExpr:
+    '[' (items+=Expression (',' items+=Expression)*)? ']';
+
+type ReferenceTarget = FunctionParam | Function | DataModelField;
+
+ReferenceExpr:
+    target=[ReferenceTarget:ID];
+
+InvocationExpr:
+    function=ID '(' ArgumentList? ')';
+
+EnumMemberExpr:
+    decl=[Enum] '.' member=ID;
+
+UnaryExpr:
+    operator=('+'|'-'|'!') arg=Expression;
+
+MultDivExpr infers Expression:
+    PrimaryExpr (
+        {infer BinaryExpr.left=current}
+        operator=('*'|'/')
+        right=PrimaryExpr
+    )*;
+
+AddSubExpr infers Expression:
+    MultDivExpr (
+        {infer BinaryExpr.left=current}
+        operator=('+'|'-')
+        right=MultDivExpr
+    )*;
+
+ComparisonExpr infers Expression:
+    AddSubExpr (
+        {infer BinaryExpr.left=current}
+        operator=('>'|'<'|'>='|'<=')
+        right=AddSubExpr
+    )*;
+
+EqualityExpr infers Expression:
+    ComparisonExpr (
+        {infer BinaryExpr.left=current}
+        operator=('=='|'!=')
+        right=ComparisonExpr
+    )*;
+
+LogicalExpr infers Expression:
+    EqualityExpr (
+        {infer BinaryExpr.left=current}
+        operator=('&&'|'||')
+        right=EqualityExpr
+    )*;
+
+PrimaryExpr infers Expression:
+    '(' Expression ')' |
+    LiteralExpr |
+    InvocationExpr |
+    ArrayExpr|
+    EnumMemberExpr |
+    ReferenceExpr |
+    UnaryExpr;
+
+fragment ArgumentList:
+    args+=Expression (',' args+=Expression)*;
+
+// model
+DataModel:
+    'model' name=ID '{' (
+            fields+=DataModelField
+            | attributes+=DataModelAttribute
+        )+
+    '}';
+
+DataModelField:
+    name=ID fieldType=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
+
+DataModelFieldType:
+    (FieldType
+    | reference=[TypeDeclaration:ID]
+    ) (array?='[]')? (optional?='?')?;
 
 // enum
 Enum:
@@ -26,31 +110,24 @@ Enum:
 EnumField:
     value=ID;
 
-// model
-DataModel:
-    'model' name=ID '{' (fragments+=FragmentExpansion)*  (fields+=DataModelField)+ '}';
+// function
+Function:
+    'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' '{' expression=Expression '}';
 
-FragmentExpansion:
-    '...' value=[Fragment:ID];
+FunctionParam:
+    name=ID;
 
-DataModelField:
-    name=ID fieldType=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
+// attribute
+Attribute:
+    'attribute' name=ID '{' '}';
 
-DataModelFieldType:
-    (FieldType
-    | reference=[Declaration:ID]
-    ) (array?='[]')? (optional?='?')?;
-
-Declaration:
-    DataModel | Fragment | Enum;
+type TypeDeclaration = DataModel | Enum;
 
 DataModelFieldAttribute:
-    '@' name=ID 
-    ('(' ((args+=LiteralExpr ',')* args+=LiteralExpr)? ')')?;
+    '@' decl=[Attribute] ('(' ArgumentList? ')')?;
 
-// fragment
-Fragment:
-    'fragment' name=ID '{' (fields+=DataModelField)+ '}';
+DataModelAttribute:
+    '@@' decl=[Attribute] ('(' ArgumentList? ')')?;
 
 fragment FieldType:
     type=('String'|'Boolean'|'Int'|'Float'|'DateTime'|'JSON');
@@ -59,6 +136,6 @@ hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
-terminal INT returns number: /[0-9]+/;
+terminal NUMBER returns number: /[+-]?[0-9]+(\.[0-9]+)?/;
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;

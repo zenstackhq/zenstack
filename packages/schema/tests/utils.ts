@@ -2,13 +2,21 @@ import { DefaultLangiumDocumentFactory } from 'langium';
 import { createZModelServices } from '../src/language-server/zmodel-module';
 import { URI } from 'vscode-uri';
 import { v4 as uuid } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Model } from '../src/language-server/generated/ast';
 
 export async function parse(content: string) {
     const { shared } = createZModelServices();
     const factory = new DefaultLangiumDocumentFactory(shared);
+    const stdLib = factory.fromString(
+        fs.readFileSync('src/language-server/stdlib.zmodel', {
+            encoding: 'utf-8',
+        }),
+        URI.file(path.resolve('src/language-server/stdlib.zmodel'))
+    );
     const doc = factory.fromString(content, URI.parse(`zmodel://${uuid()}`));
-    await shared.workspace.DocumentBuilder.build([doc], {
+    await shared.workspace.DocumentBuilder.build([stdLib, doc], {
         validationChecks: 'all',
     });
 
