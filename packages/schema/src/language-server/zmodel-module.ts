@@ -12,6 +12,7 @@ import {
     ZModelGeneratedModule,
     ZModelGeneratedSharedModule,
 } from './generated/module';
+import { ZModelScopeComputation } from './zmodel-scope';
 import { ZModelValidationRegistry, ZModelValidator } from './zmodel-validator';
 
 /**
@@ -38,6 +39,10 @@ export const ZModelModule: Module<
     ZModelServices,
     PartialLangiumServices & ZModelAddedServices
 > = {
+    references: {
+        ScopeComputation: (services) => new ZModelScopeComputation(services),
+        // NameProvider: () => new ZModelNameProvider(),
+    },
     validation: {
         ValidationRegistry: (services) =>
             new ZModelValidationRegistry(services),

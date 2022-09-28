@@ -7,7 +7,15 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { AstNode, AstReflection, Reference, isAstNode, TypeMetaData } from 'langium';
 
-export type Expression = ArrayExpr | BinaryExpr | EnumMemberExpr | InvocationExpr | LiteralExpr | ReferenceExpr | UnaryExpr;
+export type AbstractDeclaration = Attribute | DataModel | DataSource | Enum | Function;
+
+export const AbstractDeclaration = 'AbstractDeclaration';
+
+export function isAbstractDeclaration(item: unknown): item is AbstractDeclaration {
+    return reflection.isInstance(item, AbstractDeclaration);
+}
+
+export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | ReferenceExpr | UnaryExpr;
 
 export const Expression = 'Expression';
 
@@ -15,7 +23,9 @@ export function isExpression(item: unknown): item is Expression {
     return reflection.isInstance(item, Expression);
 }
 
-export type ReferenceTarget = DataModelField | Function | FunctionParam;
+export type QualifiedName = string;
+
+export type ReferenceTarget = DataModelField | EnumField | Function | FunctionParam;
 
 export const ReferenceTarget = 'ReferenceTarget';
 
@@ -94,8 +104,8 @@ export function isDataModelAttribute(item: unknown): item is DataModelAttribute 
 export interface DataModelField extends AstNode {
     readonly $container: DataModel;
     attributes: Array<DataModelFieldAttribute>
-    fieldType: DataModelFieldType
     name: string
+    type: DataModelFieldType
 }
 
 export const DataModelField = 'DataModelField';
@@ -168,25 +178,13 @@ export function isEnum(item: unknown): item is Enum {
 
 export interface EnumField extends AstNode {
     readonly $container: Enum;
-    value: string
+    name: string
 }
 
 export const EnumField = 'EnumField';
 
 export function isEnumField(item: unknown): item is EnumField {
     return reflection.isInstance(item, EnumField);
-}
-
-export interface EnumMemberExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | UnaryExpr;
-    decl: Reference<Enum>
-    member: string
-}
-
-export const EnumMemberExpr = 'EnumMemberExpr';
-
-export function isEnumMemberExpr(item: unknown): item is EnumMemberExpr {
-    return reflection.isInstance(item, EnumMemberExpr);
 }
 
 export interface Function extends AstNode {
@@ -205,12 +203,26 @@ export function isFunction(item: unknown): item is Function {
 export interface FunctionParam extends AstNode {
     readonly $container: Function;
     name: string
+    type: FunctionParamType
 }
 
 export const FunctionParam = 'FunctionParam';
 
 export function isFunctionParam(item: unknown): item is FunctionParam {
     return reflection.isInstance(item, FunctionParam);
+}
+
+export interface FunctionParamType extends AstNode {
+    readonly $container: FunctionParam;
+    array: boolean
+    reference?: Reference<TypeDeclaration>
+    type?: 'Boolean' | 'DateTime' | 'Float' | 'Int' | 'JSON' | 'String'
+}
+
+export const FunctionParamType = 'FunctionParamType';
+
+export function isFunctionParamType(item: unknown): item is FunctionParamType {
+    return reflection.isInstance(item, FunctionParamType);
 }
 
 export interface InvocationExpr extends AstNode {
@@ -237,11 +249,7 @@ export function isLiteralExpr(item: unknown): item is LiteralExpr {
 }
 
 export interface Model extends AstNode {
-    attributes: Array<Attribute>
-    datasources: Array<DataSource>
-    enums: Array<Enum>
-    functions: Array<Function>
-    models: Array<DataModel>
+    declarations: Array<AbstractDeclaration>
 }
 
 export const Model = 'Model';
@@ -273,14 +281,14 @@ export function isUnaryExpr(item: unknown): item is UnaryExpr {
     return reflection.isInstance(item, UnaryExpr);
 }
 
-export type ZModelAstType = 'ArrayExpr' | 'Attribute' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'EnumMemberExpr' | 'Expression' | 'Function' | 'FunctionParam' | 'InvocationExpr' | 'LiteralExpr' | 'Model' | 'ReferenceExpr' | 'ReferenceTarget' | 'TypeDeclaration' | 'UnaryExpr';
+export type ZModelAstType = 'AbstractDeclaration' | 'ArrayExpr' | 'Attribute' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'Model' | 'ReferenceExpr' | 'ReferenceTarget' | 'TypeDeclaration' | 'UnaryExpr';
 
-export type ZModelAstReference = 'DataModelAttribute:decl' | 'DataModelFieldAttribute:decl' | 'DataModelFieldType:reference' | 'EnumMemberExpr:decl' | 'ReferenceExpr:target';
+export type ZModelAstReference = 'DataModelAttribute:decl' | 'DataModelFieldAttribute:decl' | 'DataModelFieldType:reference' | 'FunctionParamType:reference' | 'ReferenceExpr:target';
 
 export class ZModelAstReflection implements AstReflection {
 
     getAllTypes(): string[] {
-        return ['ArrayExpr', 'Attribute', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'EnumMemberExpr', 'Expression', 'Function', 'FunctionParam', 'InvocationExpr', 'LiteralExpr', 'Model', 'ReferenceExpr', 'ReferenceTarget', 'TypeDeclaration', 'UnaryExpr'];
+        return ['AbstractDeclaration', 'ArrayExpr', 'Attribute', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'Model', 'ReferenceExpr', 'ReferenceTarget', 'TypeDeclaration', 'UnaryExpr'];
     }
 
     isInstance(node: unknown, type: string): boolean {
@@ -294,21 +302,27 @@ export class ZModelAstReflection implements AstReflection {
         switch (subtype) {
             case ArrayExpr:
             case BinaryExpr:
-            case EnumMemberExpr:
             case InvocationExpr:
             case LiteralExpr:
             case ReferenceExpr:
             case UnaryExpr: {
                 return this.isSubtype(Expression, supertype);
             }
+            case Attribute:
+            case DataSource: {
+                return this.isSubtype(AbstractDeclaration, supertype);
+            }
             case DataModel:
             case Enum: {
-                return this.isSubtype(TypeDeclaration, supertype);
+                return this.isSubtype(AbstractDeclaration, supertype) || this.isSubtype(TypeDeclaration, supertype);
             }
             case DataModelField:
-            case Function:
+            case EnumField:
             case FunctionParam: {
                 return this.isSubtype(ReferenceTarget, supertype);
+            }
+            case Function: {
+                return this.isSubtype(AbstractDeclaration, supertype) || this.isSubtype(ReferenceTarget, supertype);
             }
             default: {
                 return false;
@@ -327,8 +341,8 @@ export class ZModelAstReflection implements AstReflection {
             case 'DataModelFieldType:reference': {
                 return TypeDeclaration;
             }
-            case 'EnumMemberExpr:decl': {
-                return Enum;
+            case 'FunctionParamType:reference': {
+                return TypeDeclaration;
             }
             case 'ReferenceExpr:target': {
                 return ReferenceTarget;
@@ -415,6 +429,14 @@ export class ZModelAstReflection implements AstReflection {
                     ]
                 };
             }
+            case 'FunctionParamType': {
+                return {
+                    name: 'FunctionParamType',
+                    mandatory: [
+                        { name: 'array', type: 'boolean' }
+                    ]
+                };
+            }
             case 'InvocationExpr': {
                 return {
                     name: 'InvocationExpr',
@@ -427,11 +449,7 @@ export class ZModelAstReflection implements AstReflection {
                 return {
                     name: 'Model',
                     mandatory: [
-                        { name: 'attributes', type: 'array' },
-                        { name: 'datasources', type: 'array' },
-                        { name: 'enums', type: 'array' },
-                        { name: 'functions', type: 'array' },
-                        { name: 'models', type: 'array' }
+                        { name: 'declarations', type: 'array' }
                     ]
                 };
             }

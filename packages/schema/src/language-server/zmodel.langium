@@ -2,12 +2,11 @@ grammar ZModel
 
 entry Model:
     (
-        datasources+=DataSource | 
-        models+=DataModel | 
-        enums+=Enum |
-        functions+=Function |
-        attributes+=Attribute
+        declarations+=AbstractDeclaration
     )*;
+
+AbstractDeclaration:
+    DataSource | DataModel | Enum | Function | Attribute;
 
 // datasource
 DataSource:
@@ -26,19 +25,22 @@ LiteralExpr:
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
 
-type ReferenceTarget = FunctionParam | Function | DataModelField;
+type ReferenceTarget = FunctionParam | Function | DataModelField | EnumField;
 
 ReferenceExpr:
-    target=[ReferenceTarget:ID];
+    target=[ReferenceTarget:QualifiedName];
 
 InvocationExpr:
     function=ID '(' ArgumentList? ')';
 
-EnumMemberExpr:
-    decl=[Enum] '.' member=ID;
+// EnumMemberExpr:
+//     decl=[Enum] '.' member=ID;
 
 UnaryExpr:
     operator=('+'|'-'|'!') arg=Expression;
+
+// operator precedence follow Javascript's rules:
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
 
 MultDivExpr infers Expression:
     PrimaryExpr (
@@ -80,7 +82,7 @@ PrimaryExpr infers Expression:
     LiteralExpr |
     InvocationExpr |
     ArrayExpr|
-    EnumMemberExpr |
+    // EnumMemberExpr |
     ReferenceExpr |
     UnaryExpr;
 
@@ -96,26 +98,27 @@ DataModel:
     '}';
 
 DataModelField:
-    name=ID fieldType=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
+    name=ID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
-    (FieldType
-    | reference=[TypeDeclaration:ID]
-    ) (array?='[]')? (optional?='?')?;
+    (BuiltinType | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
 
 // enum
 Enum:
     'enum' name=ID '{' (fields+=EnumField)+ '}';
 
 EnumField:
-    value=ID;
+    name=ID;
 
 // function
 Function:
     'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' '{' expression=Expression '}';
 
 FunctionParam:
-    name=ID;
+    name=ID type=FunctionParamType;
+
+FunctionParamType:
+    (BuiltinType | reference=[TypeDeclaration:ID]) (array?='[]')?;
 
 // attribute
 Attribute:
@@ -129,8 +132,11 @@ DataModelFieldAttribute:
 DataModelAttribute:
     '@@' decl=[Attribute] ('(' ArgumentList? ')')?;
 
-fragment FieldType:
+fragment BuiltinType:
     type=('String'|'Boolean'|'Int'|'Float'|'DateTime'|'JSON');
+
+QualifiedName returns string:
+    ID ('.' ID)*;
 
 hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;

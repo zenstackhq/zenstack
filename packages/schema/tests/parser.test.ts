@@ -1,11 +1,14 @@
 import {
     ArrayExpr,
     BinaryExpr,
-    EnumMemberExpr,
     ReferenceExpr,
     LiteralExpr,
     UnaryExpr,
     InvocationExpr,
+    DataSource,
+    Enum,
+    DataModel,
+    Function,
 } from '../src/language-server/generated/ast';
 import { parse } from './utils';
 
@@ -18,8 +21,8 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(doc.datasources).toHaveLength(1);
-        const ds = doc.datasources[0];
+        expect(doc.declarations).toHaveLength(1);
+        const ds = doc.declarations[0] as DataSource;
 
         expect(ds.name).toBe('db');
         expect(ds.fields).toHaveLength(2);
@@ -57,28 +60,28 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(doc.enums).toHaveLength(1);
-        expect(doc.enums[0]).toEqual(
+        const enumDecl = doc.declarations[0] as Enum;
+        expect(enumDecl).toEqual(
             expect.objectContaining({
                 name: 'UserRole',
                 fields: expect.arrayContaining([
                     expect.objectContaining({
-                        value: 'USER',
+                        name: 'USER',
                     }),
                     expect.objectContaining({
-                        value: 'ADMIN',
+                        name: 'ADMIN',
                     }),
                 ]),
             })
         );
 
-        expect(doc.models[0].fields[0].fieldType.reference?.ref?.name).toBe(
-            'UserRole'
-        );
+        const model = doc.declarations[1] as DataModel;
+        expect(model.fields[0].type.reference?.ref?.name).toBe('UserRole');
 
-        expect(doc.models[0].fields[0].attributes[0].args[0].$type).toBe(
-            EnumMemberExpr
-        );
+        const attrVal = model.fields[0].attributes[0].args[0] as ReferenceExpr;
+        expect(attrVal.$type).toBe(ReferenceExpr);
+        expect(attrVal.target.ref?.name).toBe('USER');
+        expect((attrVal.target.ref?.$container as Enum).name).toBe('UserRole');
     });
 
     it('model field types', async () => {
@@ -93,8 +96,9 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(doc.models[0].fields).toHaveLength(6);
-        expect(doc.models[0].fields.map((f) => f.fieldType.type)).toEqual(
+        const model = doc.declarations[0] as DataModel;
+        expect(model.fields).toHaveLength(6);
+        expect(model.fields.map((f) => f.type.type)).toEqual(
             expect.arrayContaining([
                 'String',
                 'Int',
@@ -114,8 +118,9 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(doc.models[0].fields[0].fieldType.optional).toBeTruthy();
-        expect(doc.models[0].fields[1].fieldType.array).toBeTruthy();
+        const model = doc.declarations[0] as DataModel;
+        expect(model.fields[0].type.optional).toBeTruthy();
+        expect(model.fields[1].type.array).toBeTruthy();
     });
 
     it('model field attributes', async () => {
@@ -126,17 +131,16 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(doc.models[0].fields[0].attributes[0].decl.ref?.name).toBe('id');
-        expect(doc.models[0].fields[1].attributes[0]).toEqual(
+        const model = doc.declarations[0] as DataModel;
+        expect(model.fields[0].attributes[0].decl.ref?.name).toBe('id');
+        expect(model.fields[1].attributes[0]).toEqual(
             expect.objectContaining({
                 args: expect.arrayContaining([
                     expect.objectContaining({ value: false }),
                 ]),
             })
         );
-        expect(doc.models[0].fields[1].attributes[1].decl.ref?.name).toBe(
-            'unique'
-        );
+        expect(model.fields[1].attributes[1].decl.ref?.name).toBe('unique');
     });
 
     it('model attributes', async () => {
@@ -148,10 +152,11 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(doc.models[0].attributes).toHaveLength(1);
-        expect(doc.models[0].attributes[0].decl.ref?.name).toBe('unique');
+        const model = doc.declarations[0] as DataModel;
+        expect(model.attributes).toHaveLength(1);
+        expect(model.attributes[0].decl.ref?.name).toBe('unique');
         expect(
-            (doc.models[0].attributes[0].args[0] as ArrayExpr).items.map(
+            (model.attributes[0].args[0] as ArrayExpr).items.map(
                 (item: any) => item.target?.ref?.name
             )
         ).toEqual(expect.arrayContaining(['a', 'b']));
@@ -170,12 +175,9 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        expect(
-            doc.models[0].fields[1].fieldType.reference?.ref?.name === 'Post'
-        );
-        expect(
-            doc.models[1].fields[1].fieldType.reference?.ref?.name === 'User'
-        );
+        const models = doc.declarations as DataModel[];
+        expect(models[0].fields[1].type.reference?.ref?.name === 'Post');
+        expect(models[1].fields[1].type.reference?.ref?.name === 'User');
     });
 
     it('policy expressions', async () => {
@@ -191,7 +193,8 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        const attrs = doc.models[0].attributes;
+        const model = doc.declarations[0] as DataModel;
+        const attrs = model.attributes;
 
         expect(attrs[0].args[0].$type).toBe(UnaryExpr);
         expect((attrs[0].args[0] as UnaryExpr).arg.$type).toBe(ReferenceExpr);
@@ -221,7 +224,7 @@ describe('Basic Tests', () => {
             }
         `;
         const doc = await parse(content);
-        const attrs = doc.models[0].attributes;
+        const attrs = (doc.declarations[0] as DataModel).attributes;
 
         expect(attrs[0].args[0].$type).toBe(BinaryExpr);
 
@@ -296,23 +299,76 @@ describe('Basic Tests', () => {
 
     it('function', async () => {
         const content = `
-            model Model {
+            model M {
                 a Int
                 b Int
-                @@deny(check(a, b))
+                c N[]
+                @@deny(foo(a, b))
+                @@deny(bar(c))
             }
 
-            function check(a, b) {
+            model N {
+                x Int
+            }
+
+            function foo(a Int, b Int) {
                 a > b
+            }
+
+            function bar(items N[]) {
+                true
             }
         `;
         const doc = await parse(content);
+        const model = doc.declarations[0] as DataModel;
+        const foo = doc.declarations[2] as Function;
+        const bar = doc.declarations[3] as Function;
 
-        expect(doc.functions[0].name).toBe('check');
-        expect(doc.functions[0].params).toHaveLength(2);
-        expect(doc.functions[0].expression.$type).toBe(BinaryExpr);
+        expect(foo.name).toBe('foo');
+        expect(foo.params.map((p) => p.type.type)).toEqual(
+            expect.arrayContaining(['Int', 'Int'])
+        );
+        expect(foo.expression.$type).toBe(BinaryExpr);
 
-        expect(doc.models[0].attributes[0].args[0].$type).toBe(InvocationExpr);
+        expect(bar.name).toBe('bar');
+        expect(bar.params[0].type.reference?.ref?.name).toBe('N');
+        expect(bar.params[0].type.array).toBeTruthy();
+
+        expect(model.attributes[0].args[0].$type).toBe(InvocationExpr);
+    });
+
+    it('member access', async () => {
+        const content = `
+            model M {
+                a N
+                @@deny(a.x < 0)
+                @@deny(foo(a))
+            }
+
+            model N {
+                x Int
+            }
+
+            function foo(n N) {
+                n.x < 0
+            }
+        `;
+        const doc = await parse(content);
+        const model = doc.declarations[0] as DataModel;
+        const foo = doc.declarations[2] as Function;
+        const bar = doc.declarations[3] as Function;
+
+        expect(foo.name).toBe('foo');
+        expect(foo.params.map((p) => p.type.type)).toEqual(
+            expect.arrayContaining(['Int', 'Int'])
+        );
+        expect(foo.expression.$type).toBe(BinaryExpr);
+
+        expect(bar.name).toBe('bar');
+        expect(bar.params[0].type.reference?.ref?.name).toBe('N');
+        expect(bar.params[0].type.array).toBeTruthy();
+
+        expect(model.attributes[0].args[0].$type).toBe(InvocationExpr);
     });
 
     // it('feature coverage', async () => {
