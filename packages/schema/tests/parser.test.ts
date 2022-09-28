@@ -33,18 +33,12 @@ describe('Basic Tests', () => {
                 value: expect.objectContaining({ value: 'postgresql' }),
             })
         );
-        expect(ds.fields[1]).toEqual(
-            expect.objectContaining({
-                name: 'url',
-                value: expect.objectContaining({
-                    function: 'env',
-                    args: expect.arrayContaining([
-                        expect.objectContaining({
-                            value: 'DATABASE_URL',
-                        }),
-                    ]),
-                }),
-            })
+        expect(ds.fields[1].name).toBe('url');
+        expect((ds.fields[1].value as InvocationExpr).function.ref?.name).toBe(
+            'env'
+        );
+        expect((ds.fields[1].value as InvocationExpr).args[0].$type).toBe(
+            LiteralExpr
         );
     });
 
@@ -56,7 +50,7 @@ describe('Basic Tests', () => {
             }
 
             model User {
-                role UserRole @default(UserRole.USER)
+                role UserRole @default(USER)
             }
         `;
         const doc = await parse(content);
@@ -89,7 +83,6 @@ describe('Basic Tests', () => {
             model User {
                 id String
                 age Int
-                salery Float
                 activated Boolean
                 createdAt DateTime
                 metadata JSON
@@ -97,7 +90,7 @@ describe('Basic Tests', () => {
         `;
         const doc = await parse(content);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields).toHaveLength(6);
+        expect(model.fields).toHaveLength(5);
         expect(model.fields.map((f) => f.type.type)).toEqual(
             expect.arrayContaining([
                 'String',
@@ -105,7 +98,6 @@ describe('Basic Tests', () => {
                 'Boolean',
                 'JSON',
                 'DateTime',
-                'Float',
             ])
         );
     });
@@ -341,34 +333,23 @@ describe('Basic Tests', () => {
         const content = `
             model M {
                 a N
-                @@deny(a.x < 0)
+                @@deny(a.x.y < 0)
                 @@deny(foo(a))
             }
 
             model N {
-                x Int
+                x P
+            }
+
+            model P {
+                y Int
             }
 
             function foo(n N) {
                 n.x < 0
             }
         `;
-        const doc = await parse(content);
-        const model = doc.declarations[0] as DataModel;
-        const foo = doc.declarations[2] as Function;
-        const bar = doc.declarations[3] as Function;
-
-        expect(foo.name).toBe('foo');
-        expect(foo.params.map((p) => p.type.type)).toEqual(
-            expect.arrayContaining(['Int', 'Int'])
-        );
-        expect(foo.expression.$type).toBe(BinaryExpr);
-
-        expect(bar.name).toBe('bar');
-        expect(bar.params[0].type.reference?.ref?.name).toBe('N');
-        expect(bar.params[0].type.array).toBeTruthy();
-
-        expect(model.attributes[0].args[0].$type).toBe(InvocationExpr);
+        await parse(content);
     });
 
     // it('feature coverage', async () => {

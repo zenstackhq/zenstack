@@ -13,28 +13,25 @@ DataSource:
     'datasource' name=ID '{' (fields+=DataSourceField)+ '}';
 
 DataSourceField:
-    (name=ID '=' value=Expression);
+    (name=ID '=' value=(LiteralExpr|InvocationExpr));
 
 // expression
 Expression:
     LogicalExpr;
 
 LiteralExpr:
-    value=(BOOLEAN | NUMBER | STRING);
+    value=(BOOLEAN | INT | STRING);
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
 
-type ReferenceTarget = FunctionParam | Function | DataModelField | EnumField;
+type ReferenceTarget = FunctionParam | DataModelField | EnumField;
 
 ReferenceExpr:
-    target=[ReferenceTarget:QualifiedName];
+    target=[ReferenceTarget:ID];
 
 InvocationExpr:
-    function=ID '(' ArgumentList? ')';
-
-// EnumMemberExpr:
-//     decl=[Enum] '.' member=ID;
+    function=[Function] '(' ArgumentList? ')';
 
 UnaryExpr:
     operator=('+'|'-'|'!') arg=Expression;
@@ -42,11 +39,17 @@ UnaryExpr:
 // operator precedence follow Javascript's rules:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
 
-MultDivExpr infers Expression:
+MemberAccessExpr infers Expression:
     PrimaryExpr (
+        {infer MemberAccessExpr.operand=current}
+        ('.' member=[DataModelField])
+    )*;
+
+MultDivExpr infers Expression:
+    MemberAccessExpr (
         {infer BinaryExpr.left=current}
         operator=('*'|'/')
-        right=PrimaryExpr
+        right=MemberAccessExpr
     )*;
 
 AddSubExpr infers Expression:
@@ -82,7 +85,6 @@ PrimaryExpr infers Expression:
     LiteralExpr |
     InvocationExpr |
     ArrayExpr|
-    // EnumMemberExpr |
     ReferenceExpr |
     UnaryExpr;
 
@@ -133,7 +135,7 @@ DataModelAttribute:
     '@@' decl=[Attribute] ('(' ArgumentList? ')')?;
 
 fragment BuiltinType:
-    type=('String'|'Boolean'|'Int'|'Float'|'DateTime'|'JSON');
+    type=('String'|'Boolean'|'Int'|'DateTime'|'JSON');
 
 QualifiedName returns string:
     ID ('.' ID)*;
@@ -142,6 +144,6 @@ hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
-terminal NUMBER returns number: /[+-]?[0-9]+(\.[0-9]+)?/;
+terminal INT returns number: /[+-]?[0-9]+/;
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;

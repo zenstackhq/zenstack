@@ -1,5 +1,6 @@
+function env()
 function auth() {}
-function some(collection, predicate) {}
+function some() {}
 
 attribute id() {}
 attribute default() {}

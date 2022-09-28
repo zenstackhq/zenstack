@@ -18,6 +18,8 @@ export async function parse(content: string) {
         URI.file(path.resolve('src/language-server/stdlib.zmodel'))
     );
     const doc = factory.fromString(content, URI.file(docPath));
+    shared.workspace.LangiumDocuments.addDocument(stdLib);
+    shared.workspace.LangiumDocuments.addDocument(doc);
     await shared.workspace.DocumentBuilder.build([stdLib, doc], {
         validationChecks: 'all',
     });

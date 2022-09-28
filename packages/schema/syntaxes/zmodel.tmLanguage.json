@@ -10,7 +10,7 @@
     },
     {
       "name": "keyword.control.zmodel",
-      "match": "\\b(attribute|Boolean|datasource|DateTime|enum|Float|function|Int|JSON|model|String)\\b"
+      "match": "\\b(attribute|Boolean|datasource|DateTime|enum|function|Int|JSON|model|String)\\b"
     },
     {
       "name": "string.quoted.double.zmodel",

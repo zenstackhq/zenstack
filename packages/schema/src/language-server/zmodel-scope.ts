@@ -20,31 +20,25 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
         const scopes = await super.computeScope(document, cancelToken);
 
         const model = document.parseResult.value as Model;
-        const enumDecls = model.declarations.filter((d) => isEnum(d)) as Enum[];
 
-        const qualifiedEnumFieldDescriptions = enumDecls
-            .map((enumDecl) =>
-                enumDecl.fields.map((enumField) =>
-                    this.descriptions.createDescription(
-                        enumField,
-                        enumDecl.name + '.' + enumField.name,
-                        document
-                    )
+        const enumDecls = model.declarations.filter((d) => isEnum(d)) as Enum[];
+        const enumFieldDescriptions = enumDecls
+            .map((d) =>
+                d.fields.map((f) =>
+                    this.descriptions.createDescription(f, f.name, document)
                 )
             )
             .flat();
 
-        // add enum fields' qualified names to scopes of containers of any ReferenceExpr so that
+        // add enum field names to scopes of containers of any ReferenceExpr so that
         // fully qualified references can be resolved
-        const allDecls = streamAllContents(model)
+        const refContainers = streamAllContents(model)
             .filter((node) => isReferenceExpr(node) && node.$container)
             .map((node) => node.$container!)
             .distinct();
 
-        allDecls.forEach((decl) => {
-            qualifiedEnumFieldDescriptions.forEach((desc) =>
-                scopes.add(decl, desc)
-            );
+        refContainers.forEach((c) => {
+            enumFieldDescriptions.forEach((desc) => scopes.add(c, desc));
         });
 
         return scopes;
