@@ -238,6 +238,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                 "$refText": "STRING"
               },
               "arguments": []
+            },
+            {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "NULL"
+              },
+              "arguments": []
             }
           ]
         }
@@ -304,6 +311,28 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "value": "]"
           }
         ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "ThisExpr",
+      "alternatives": {
+        "$type": "Assignment",
+        "feature": "value",
+        "operator": "=",
+        "terminal": {
+          "$type": "RuleCall",
+          "rule": {
+            "$refText": "THIS"
+          },
+          "arguments": []
+        }
       },
       "definesHiddenTokens": false,
       "entry": false,
@@ -497,7 +526,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "MultDivExpr",
+      "name": "CollectionPredicateExpr",
       "inferredType": {
         "$type": "InferredType",
         "name": "Expression"
@@ -509,6 +538,85 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "$type": "RuleCall",
             "rule": {
               "$refText": "MemberAccessExpr"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Action",
+                "inferredType": {
+                  "$type": "InferredType",
+                  "name": "BinaryExpr"
+                },
+                "feature": "left",
+                "operator": "="
+              },
+              {
+                "$type": "Assignment",
+                "feature": "operator",
+                "operator": "=",
+                "terminal": {
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "Keyword",
+                      "value": "?"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "!"
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Keyword",
+                "value": "["
+              },
+              {
+                "$type": "Assignment",
+                "feature": "right",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "Expression"
+                  },
+                  "arguments": []
+                }
+              },
+              {
+                "$type": "Keyword",
+                "value": "]"
+              }
+            ],
+            "cardinality": "*"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "MultDivExpr",
+      "inferredType": {
+        "$type": "InferredType",
+        "name": "Expression"
+      },
+      "alternatives": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "CollectionPredicateExpr"
             },
             "arguments": []
           },
@@ -549,7 +657,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$refText": "MemberAccessExpr"
+                    "$refText": "CollectionPredicateExpr"
                   },
                   "arguments": []
                 }
@@ -887,6 +995,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                 "value": ")"
               }
             ]
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ThisExpr"
+            },
+            "arguments": []
           },
           {
             "$type": "RuleCall",
@@ -1313,6 +1428,18 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "value": ")"
           },
           {
+            "$type": "Assignment",
+            "feature": "returnType",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$refText": "FunctionParamType"
+              },
+              "arguments": []
+            }
+          },
+          {
             "$type": "Keyword",
             "value": "{"
           },
@@ -1326,7 +1453,8 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                 "$refText": "Expression"
               },
               "arguments": []
-            }
+            },
+            "cardinality": "?"
           },
           {
             "$type": "Keyword",
@@ -1460,11 +1588,51 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
           },
           {
             "$type": "Keyword",
-            "value": "{"
+            "value": "("
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "params",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "FunctionParam"
+                  },
+                  "arguments": []
+                }
+              },
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Keyword",
+                    "value": ","
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "params",
+                    "operator": "+=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$refText": "FunctionParam"
+                      },
+                      "arguments": []
+                    }
+                  }
+                ],
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
           },
           {
             "$type": "Keyword",
-            "value": "}"
+            "value": ")"
           }
         ]
       },
@@ -1622,46 +1790,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
       "wildcard": false
     },
     {
-      "$type": "ParserRule",
-      "name": "QualifiedName",
-      "dataType": "string",
-      "alternatives": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "ID"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "Group",
-            "elements": [
-              {
-                "$type": "Keyword",
-                "value": "."
-              },
-              {
-                "$type": "RuleCall",
-                "rule": {
-                  "$refText": "ID"
-                },
-                "arguments": []
-              }
-            ],
-            "cardinality": "*"
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
       "$type": "TerminalRule",
       "hidden": true,
       "name": "WS",
@@ -1681,6 +1809,32 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
       "terminal": {
         "$type": "RegexToken",
         "regex": "true|false"
+      },
+      "fragment": false,
+      "hidden": false
+    },
+    {
+      "$type": "TerminalRule",
+      "name": "NULL",
+      "terminal": {
+        "$type": "CharacterRange",
+        "left": {
+          "$type": "Keyword",
+          "value": "null"
+        }
+      },
+      "fragment": false,
+      "hidden": false
+    },
+    {
+      "$type": "TerminalRule",
+      "name": "THIS",
+      "terminal": {
+        "$type": "CharacterRange",
+        "left": {
+          "$type": "Keyword",
+          "value": "this"
+        }
       },
       "fragment": false,
       "hidden": false

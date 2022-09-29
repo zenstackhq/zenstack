@@ -15,15 +15,13 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
-export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | ReferenceExpr | UnaryExpr;
+export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | ReferenceExpr | ThisExpr | UnaryExpr;
 
 export const Expression = 'Expression';
 
 export function isExpression(item: unknown): item is Expression {
     return reflection.isInstance(item, Expression);
 }
-
-export type QualifiedName = string;
 
 export type ReferenceTarget = DataModelField | EnumField | FunctionParam;
 
@@ -55,6 +53,7 @@ export function isArrayExpr(item: unknown): item is ArrayExpr {
 export interface Attribute extends AstNode {
     readonly $container: Model;
     name: string
+    params: Array<FunctionParam>
 }
 
 export const Attribute = 'Attribute';
@@ -66,7 +65,7 @@ export function isAttribute(item: unknown): item is Attribute {
 export interface BinaryExpr extends AstNode {
     readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
     left: Expression
-    operator: '!=' | '&&' | '*' | '+' | '-' | '/' | '<' | '<=' | '==' | '>' | '>=' | '||'
+    operator: '!' | '!=' | '&&' | '*' | '+' | '-' | '/' | '<' | '<=' | '==' | '>' | '>=' | '?' | '||'
     right: Expression
 }
 
@@ -189,9 +188,10 @@ export function isEnumField(item: unknown): item is EnumField {
 
 export interface Function extends AstNode {
     readonly $container: Model;
-    expression: Expression
+    expression?: Expression
     name: string
     params: Array<FunctionParam>
+    returnType: FunctionParamType
 }
 
 export const Function = 'Function';
@@ -201,7 +201,7 @@ export function isFunction(item: unknown): item is Function {
 }
 
 export interface FunctionParam extends AstNode {
-    readonly $container: Function;
+    readonly $container: Attribute | Function;
     name: string
     type: FunctionParamType
 }
@@ -213,7 +213,7 @@ export function isFunctionParam(item: unknown): item is FunctionParam {
 }
 
 export interface FunctionParamType extends AstNode {
-    readonly $container: FunctionParam;
+    readonly $container: Function | FunctionParam;
     array: boolean
     reference?: Reference<TypeDeclaration>
     type?: 'Boolean' | 'DateTime' | 'Int' | 'JSON' | 'String'
@@ -281,6 +281,17 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
     return reflection.isInstance(item, ReferenceExpr);
 }
 
+export interface ThisExpr extends AstNode {
+    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    value: string
+}
+
+export const ThisExpr = 'ThisExpr';
+
+export function isThisExpr(item: unknown): item is ThisExpr {
+    return reflection.isInstance(item, ThisExpr);
+}
+
 export interface UnaryExpr extends AstNode {
     readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
     arg: Expression
@@ -293,14 +304,14 @@ export function isUnaryExpr(item: unknown): item is UnaryExpr {
     return reflection.isInstance(item, UnaryExpr);
 }
 
-export type ZModelAstType = 'AbstractDeclaration' | 'ArrayExpr' | 'Attribute' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'ReferenceExpr' | 'ReferenceTarget' | 'TypeDeclaration' | 'UnaryExpr';
+export type ZModelAstType = 'AbstractDeclaration' | 'ArrayExpr' | 'Attribute' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
 
 export type ZModelAstReference = 'DataModelAttribute:decl' | 'DataModelFieldAttribute:decl' | 'DataModelFieldType:reference' | 'FunctionParamType:reference' | 'InvocationExpr:function' | 'MemberAccessExpr:member' | 'ReferenceExpr:target';
 
 export class ZModelAstReflection implements AstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'ArrayExpr', 'Attribute', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ReferenceExpr', 'ReferenceTarget', 'TypeDeclaration', 'UnaryExpr'];
+        return ['AbstractDeclaration', 'ArrayExpr', 'Attribute', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
     }
 
     isInstance(node: unknown, type: string): boolean {
@@ -318,6 +329,7 @@ export class ZModelAstReflection implements AstReflection {
             case LiteralExpr:
             case MemberAccessExpr:
             case ReferenceExpr:
+            case ThisExpr:
             case UnaryExpr: {
                 return this.isSubtype(Expression, supertype);
             }
@@ -377,6 +389,14 @@ export class ZModelAstReflection implements AstReflection {
                     name: 'ArrayExpr',
                     mandatory: [
                         { name: 'items', type: 'array' }
+                    ]
+                };
+            }
+            case 'Attribute': {
+                return {
+                    name: 'Attribute',
+                    mandatory: [
+                        { name: 'params', type: 'array' }
                     ]
                 };
             }

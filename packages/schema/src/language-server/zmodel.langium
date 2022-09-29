@@ -20,12 +20,15 @@ Expression:
     LogicalExpr;
 
 LiteralExpr:
-    value=(BOOLEAN | INT | STRING);
+    value=(BOOLEAN | INT | STRING | NULL);
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
 
 type ReferenceTarget = FunctionParam | DataModelField | EnumField;
+
+ThisExpr:
+    value=THIS;
 
 ReferenceExpr:
     target=[ReferenceTarget:ID];
@@ -36,7 +39,7 @@ InvocationExpr:
 UnaryExpr:
     operator=('+'|'-'|'!') arg=Expression;
 
-// operator precedence follow Javascript's rules:
+// binary operator precedence follow Javascript's rules:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
 
 MemberAccessExpr infers Expression:
@@ -45,11 +48,18 @@ MemberAccessExpr infers Expression:
         ('.' member=[DataModelField])
     )*;
 
-MultDivExpr infers Expression:
+CollectionPredicateExpr infers Expression:
     MemberAccessExpr (
         {infer BinaryExpr.left=current}
+        operator=('?'|'!')
+        '[' right=Expression ']'
+    )*;
+
+MultDivExpr infers Expression:
+    CollectionPredicateExpr (
+        {infer BinaryExpr.left=current}
         operator=('*'|'/')
-        right=MemberAccessExpr
+        right=CollectionPredicateExpr
     )*;
 
 AddSubExpr infers Expression:
@@ -82,6 +92,7 @@ LogicalExpr infers Expression:
 
 PrimaryExpr infers Expression:
     '(' Expression ')' |
+    ThisExpr |
     LiteralExpr |
     InvocationExpr |
     ArrayExpr|
@@ -114,7 +125,7 @@ EnumField:
 
 // function
 Function:
-    'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' '{' expression=Expression '}';
+    'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' returnType=FunctionParamType '{' (expression=Expression)? '}';
 
 FunctionParam:
     name=ID type=FunctionParamType;
@@ -124,7 +135,7 @@ FunctionParamType:
 
 // attribute
 Attribute:
-    'attribute' name=ID '{' '}';
+    'attribute' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')';
 
 type TypeDeclaration = DataModel | Enum;
 
@@ -137,11 +148,13 @@ DataModelAttribute:
 fragment BuiltinType:
     type=('String'|'Boolean'|'Int'|'DateTime'|'JSON');
 
-QualifiedName returns string:
-    ID ('.' ID)*;
+// QualifiedName returns string:
+//     ID ('.' ID)*;
 
 hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
+terminal NULL: 'null';
+terminal THIS: 'this';
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
 terminal INT returns number: /[+-]?[0-9]+/;

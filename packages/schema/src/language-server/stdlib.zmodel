@@ -1,10 +1,14 @@
-function env()
-function auth() {}
-function some() {}
+function env() String {}
+function auth() User {}
 
-attribute id() {}
-attribute default() {}
-attribute unique() {}
-attribute cascade() {}
-attribute allow() {}
-attribute deny() {}
+attribute id()
+attribute default()
+attribute createdAt()
+attribute updatedAt()
+attribute unique()
+attribute cascade()
+attribute allow()
+attribute deny()
+attribute email()
+attribute url()
+attribute length()
