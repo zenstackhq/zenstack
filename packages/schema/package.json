@@ -20,7 +20,11 @@
                 "extensions": [
                     ".zmodel"
                 ],
-                "configuration": "./language-configuration.json"
+                "configuration": "./language-configuration.json",
+                "icon": {
+                    "light": "./asset/logo-light.png",
+                    "dark": "./asset/logo-dark.png"
+                }
             }
         ],
         "grammars": [

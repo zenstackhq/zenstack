@@ -2,7 +2,6 @@
 * A sample model for a collaborative Todo app
 */
 
-// Datasource
 datasource db {
     provider = 'postgresql'
     url = env('DATABASE_URL')
@@ -22,7 +21,8 @@ model Space {
     members SpaceUser[]
 
     // require login
-    @@deny('all', auth() == null)       
+    @@deny('all', auth() == null)
+        
     // everyone can create a space
     @@allow('create', true)
 
