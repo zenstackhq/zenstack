@@ -5,6 +5,8 @@ import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
 import { generateJavaScript } from './generator';
+import PrismaGenerator from '../generator/prisma';
+import { Context } from '../generator/types';
 
 export const generateAction = async (
     fileName: string,
@@ -12,6 +14,17 @@ export const generateAction = async (
 ): Promise<void> => {
     const services = createZModelServices().ZModel;
     const model = await extractAstNode<Model>(fileName, services);
+
+    const generators = [new PrismaGenerator()];
+    const context: Context = {
+        schema: model,
+        outDir: opts.destination,
+    };
+
+    for (const generator of generators) {
+        await generator.generate(context);
+    }
+
     const generatedFilePath = generateJavaScript(
         model,
         fileName,
@@ -25,7 +38,7 @@ export const generateAction = async (
 };
 
 export type GenerateOptions = {
-    destination?: string;
+    destination: string;
 };
 
 export default function (): void {
@@ -44,7 +57,8 @@ export default function (): void {
         )
         .option(
             '-d, --destination <dir>',
-            'destination directory of generating'
+            'destination directory of generating',
+            '.zenstack'
         )
         .description(
             'generates JavaScript code that prints "Hello, {name}!" for each greeting in a source file'

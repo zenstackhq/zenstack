@@ -2,7 +2,7 @@
     "name": "@zenstackhq/schema",
     "displayName": "ZenStack Data Modeling Schema Language",
     "description": "Please enter a brief description here",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "engines": {
         "vscode": "^1.56.0"
     },
@@ -63,6 +63,7 @@
         "commander": "^8.0.0",
         "langium": "^0.4.0",
         "uuid": "^9.0.0",
+        "vscode-jsonrpc": "^8.0.2",
         "vscode-languageclient": "^7.0.0",
         "vscode-languageserver": "^7.0.0",
         "vscode-uri": "^3.0.2"

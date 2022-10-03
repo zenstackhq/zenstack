@@ -20,7 +20,7 @@ Expression:
     LogicalExpr;
 
 LiteralExpr:
-    value=(BOOLEAN | INT | STRING | NULL);
+    value=(BOOLEAN | INT | STRING);
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
@@ -30,8 +30,20 @@ type ReferenceTarget = FunctionParam | DataModelField | EnumField;
 ThisExpr:
     value=THIS;
 
+NullExpr:
+    value=NULL;
+
+CascadeExpr:
+    value=CASCADE;
+
 ReferenceExpr:
-    target=[ReferenceTarget:ID];
+    target=[ReferenceTarget:ID] ('(' ReferenceArgList ')')?;
+
+fragment ReferenceArgList:
+    args+=ReferenceArg (',' args+=ReferenceArg)*;
+
+ReferenceArg:
+    name=('sort') ':' value=('Asc'| 'Desc');
 
 InvocationExpr:
     function=[Function] '(' ArgumentList? ')';
@@ -93,6 +105,8 @@ LogicalExpr infers Expression:
 PrimaryExpr infers Expression:
     '(' Expression ')' |
     ThisExpr |
+    NullExpr |
+    CascadeExpr |
     LiteralExpr |
     InvocationExpr |
     ArrayExpr|
@@ -100,7 +114,10 @@ PrimaryExpr infers Expression:
     UnaryExpr;
 
 fragment ArgumentList:
-    args+=Expression (',' args+=Expression)*;
+    args+=Argument (',' args+=Argument)*;
+
+Argument:
+    (name=ID ':')? value=Expression;
 
 // model
 DataModel:
@@ -131,30 +148,40 @@ FunctionParam:
     name=ID type=FunctionParamType;
 
 FunctionParamType:
-    (BuiltinType | reference=[TypeDeclaration:ID]) (array?='[]')?;
+    (BuiltinType | reference=[TypeDeclaration]) (array?='[]')?;
 
 // attribute
 Attribute:
-    'attribute' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')';
+    'attribute' name=ID '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')';
+
+AttributeParam:
+    positional?='_' name=ID type=AttributeParamType;
+
+AttributeParamType:
+    (BuiltinType | type='FieldReference') array?='[]' optional?='?';
 
 type TypeDeclaration = DataModel | Enum;
 
 DataModelFieldAttribute:
-    '@' decl=[Attribute] ('(' ArgumentList? ')')?;
+    '@' decl=[Attribute] ('(' AttributeArgList? ')')?;
 
 DataModelAttribute:
-    '@@' decl=[Attribute] ('(' ArgumentList? ')')?;
+    '@@' decl=[Attribute] ('(' AttributeArgList? ')')?;
+
+fragment AttributeArgList:
+    args+=AttributeArg (',' args+=AttributeArg)*;
+
+AttributeArg:
+    (name=ID ':')? value=Expression;
 
 fragment BuiltinType:
     type=('String'|'Boolean'|'Int'|'DateTime'|'JSON');
-
-// QualifiedName returns string:
-//     ID ('.' ID)*;
 
 hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
 terminal NULL: 'null';
 terminal THIS: 'this';
+terminal CASCADE: 'Cascade';
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
 terminal INT returns number: /[+-]?[0-9]+/;

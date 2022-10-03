@@ -16,7 +16,6 @@ import { CancellationToken } from 'vscode-jsonrpc';
 import {
     AbstractDeclaration,
     isDataModel,
-    isEnumField,
     Function,
     FunctionParamType,
     DataModelFieldType,
@@ -29,6 +28,10 @@ import {
     ReferenceExpr,
     UnaryExpr,
     BinaryExpr,
+    EnumField,
+    DataModelField,
+    FunctionParam,
+    isCascadeExpr,
 } from './generated/ast';
 
 interface DefaultReference extends Reference {
@@ -236,15 +239,20 @@ export class ZModelLinker extends DefaultLinker {
     ) {
         this.linkReference(node, 'target', document, extraScopes);
 
+        node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
+
         if (node.target.ref) {
             // resolve type
-            if (isEnumField(node.target.ref)) {
+            if (node.target.ref.$type === EnumField) {
                 this.resolveToBuiltinTypeOrDecl(
                     node,
                     node.target.ref.$container
                 );
             } else {
-                this.resolveToDeclaredType(node, node.target.ref.type);
+                this.resolveToDeclaredType(
+                    node,
+                    (node.target.ref as DataModelField | FunctionParam).type
+                );
             }
         }
     }
@@ -274,6 +282,11 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     resolveLiteral(node: LiteralExpr) {
+        if (isCascadeExpr(node)) {
+            this.resolveToBuiltinTypeOrDecl(node, 'CASCADE');
+            return;
+        }
+
         const type =
             typeof node.value === 'string'
                 ? 'String'

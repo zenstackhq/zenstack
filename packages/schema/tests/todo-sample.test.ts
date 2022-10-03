@@ -42,8 +42,8 @@ describe('Basic Tests', () => {
                 id String @id
                 createdAt DateTime @createdAt
                 updatedAt DateTime @updatedAt
-                space Space @cascade
-                user User @cascade
+                space Space @relation(references: [id], onDelete: Cascade)
+                user User @relation(references: [id], onDelete: Cascade)
                 role SpaceUserRole
                 todoLists TodoList[]
                 
@@ -83,8 +83,8 @@ describe('Basic Tests', () => {
                 id String @id
                 createdAt DateTime @createdAt
                 updatedAt DateTime @updatedAt
-                space Space @cascade
-                owner User
+                space Space @relation(references: [id], onDelete: Cascade)
+                owner User @relation(references: [id], onDelete: Cascade)
                 title String @length(1, 20)
                 private Boolean @default(false)
                 todos Todo[]
@@ -103,8 +103,8 @@ describe('Basic Tests', () => {
                 id String @id
                 createdAt DateTime @createdAt
                 updatedAt DateTime @updatedAt
-                owner User
-                todoList TodoList @cascade
+                owner User @relation(references: [id], onDelete: Cascade)
+                todoList TodoList @relation(references: [id], onDelete: Cascade)
                 title String
                 completedAt DateTime?
         
@@ -115,6 +115,7 @@ describe('Basic Tests', () => {
                 @@allow('all', todoList.owner == auth() || (todoList.space.members?[user == auth()] && !todoList.private))
             }
         `;
+
         await parse(content);
     });
 });

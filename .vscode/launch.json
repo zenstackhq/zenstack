@@ -6,6 +6,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch CLI",
+            "program": "${workspaceFolder}/packages/schema/bin/cli",
+            "args": [
+                "generate",
+                "${workspaceFolder}/samples/todo/schema.zmodel"
+            ],
+            "request": "launch",
+            "skipFiles": ["<node_internals>/**"],
+            "type": "node"
+        },
+        {
             "name": "Attach",
             "port": 9229,
             "request": "attach",
