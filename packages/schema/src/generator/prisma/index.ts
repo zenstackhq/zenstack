@@ -31,9 +31,19 @@ import {
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
     PrismaModel,
+    ModelFieldType,
 } from './prisma-builder';
 
 const supportedProviders = ['postgresql', 'mysql', 'sqlite', 'sqlserver'];
+const supportedAttrbutes = [
+    'id',
+    'index',
+    'relation',
+    'default',
+    'createdAt',
+    'updatedAt',
+    'unique',
+];
 
 export default class PrismaGenerator implements Generator {
     async generate(context: Context) {
@@ -144,10 +154,10 @@ export default class PrismaGenerator implements Generator {
             isInvocationExpr(fieldValue) &&
             fieldValue.function.ref?.name === 'env' &&
             fieldValue.args.length === 1 &&
-            this.isStringLiteral(fieldValue.args[0])
+            this.isStringLiteral(fieldValue.args[0].value)
         ) {
             return new PrismaDataSourceUrl(
-                fieldValue.args[0].value as string,
+                fieldValue.args[0].value.value as string,
                 true
             );
         } else {
@@ -173,21 +183,23 @@ export default class PrismaGenerator implements Generator {
             this.generateModelField(model, field);
         }
 
-        for (const attr of decl.attributes) {
+        for (const attr of decl.attributes.filter((attr) =>
+            supportedAttrbutes.includes(attr.decl.ref?.name!)
+        )) {
             this.generateModelAttribute(model, attr);
         }
     }
 
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
-        const type = {
-            type: (field.type.type || field.type.reference?.ref?.name)!,
-            array: field.type.array,
-            optional: field.type.optional,
-        };
-
-        const attributes = field.attributes.map((attr) =>
-            this.makeFieldAttribute(attr)
+        const type = new ModelFieldType(
+            (field.type.type || field.type.reference?.ref?.name)!,
+            field.type.array,
+            field.type.optional
         );
+
+        const attributes = field.attributes
+            .filter((attr) => supportedAttrbutes.includes(attr.decl.ref?.name!))
+            .map((attr) => this.makeFieldAttribute(attr));
         model.addField(field.name, type, attributes);
     }
 

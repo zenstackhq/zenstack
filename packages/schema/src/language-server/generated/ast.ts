@@ -15,7 +15,7 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
-export type Expression = ArrayExpr | BinaryExpr | CascadeExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ReferenceExpr | ThisExpr | UnaryExpr;
+export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ReferenceExpr | ThisExpr | UnaryExpr;
 
 export const Expression = 'Expression';
 
@@ -123,17 +123,6 @@ export const BinaryExpr = 'BinaryExpr';
 
 export function isBinaryExpr(item: unknown): item is BinaryExpr {
     return reflection.isInstance(item, BinaryExpr);
-}
-
-export interface CascadeExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
-    value: string
-}
-
-export const CascadeExpr = 'CascadeExpr';
-
-export function isCascadeExpr(item: unknown): item is CascadeExpr {
-    return reflection.isInstance(item, CascadeExpr);
 }
 
 export interface DataModel extends AstNode {
@@ -389,14 +378,14 @@ export function isUnaryExpr(item: unknown): item is UnaryExpr {
     return reflection.isInstance(item, UnaryExpr);
 }
 
-export type ZModelAstType = 'AbstractDeclaration' | 'Argument' | 'ArrayExpr' | 'Attribute' | 'AttributeArg' | 'AttributeParam' | 'AttributeParamType' | 'BinaryExpr' | 'CascadeExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'NullExpr' | 'ReferenceArg' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
+export type ZModelAstType = 'AbstractDeclaration' | 'Argument' | 'ArrayExpr' | 'Attribute' | 'AttributeArg' | 'AttributeParam' | 'AttributeParamType' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'NullExpr' | 'ReferenceArg' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
 
 export type ZModelAstReference = 'DataModelAttribute:decl' | 'DataModelFieldAttribute:decl' | 'DataModelFieldType:reference' | 'FunctionParamType:reference' | 'InvocationExpr:function' | 'MemberAccessExpr:member' | 'ReferenceExpr:target';
 
 export class ZModelAstReflection implements AstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'CascadeExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'NullExpr', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'NullExpr', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
     }
 
     isInstance(node: unknown, type: string): boolean {
@@ -410,7 +399,6 @@ export class ZModelAstReflection implements AstReflection {
         switch (subtype) {
             case ArrayExpr:
             case BinaryExpr:
-            case CascadeExpr:
             case InvocationExpr:
             case LiteralExpr:
             case MemberAccessExpr:

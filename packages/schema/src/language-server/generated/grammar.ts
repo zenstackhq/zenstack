@@ -358,28 +358,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "CascadeExpr",
-      "alternatives": {
-        "$type": "Assignment",
-        "feature": "value",
-        "operator": "=",
-        "terminal": {
-          "$type": "RuleCall",
-          "rule": {
-            "$refText": "CASCADE"
-          },
-          "arguments": []
-        }
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
       "name": "ReferenceExpr",
       "alternatives": {
         "$type": "Group",
@@ -1165,13 +1143,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "$type": "RuleCall",
             "rule": {
               "$refText": "NullExpr"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "CascadeExpr"
             },
             "arguments": []
           },
@@ -2248,19 +2219,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
         "left": {
           "$type": "Keyword",
           "value": "this"
-        }
-      },
-      "fragment": false,
-      "hidden": false
-    },
-    {
-      "$type": "TerminalRule",
-      "name": "CASCADE",
-      "terminal": {
-        "$type": "CharacterRange",
-        "left": {
-          "$type": "Keyword",
-          "value": "Cascade"
         }
       },
       "fragment": false,

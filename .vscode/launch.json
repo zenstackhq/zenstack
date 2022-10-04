@@ -6,11 +6,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch CLI",
+            "name": "Generate for Todo Sample",
             "program": "${workspaceFolder}/packages/schema/bin/cli",
+            "cwd": "${workspaceFolder}/packages/schema",
             "args": [
                 "generate",
-                "${workspaceFolder}/samples/todo/schema.zmodel"
+                "${workspaceFolder}/samples/todo/schema.zmodel",
+                "--destination",
+                "${workspaceFolder}/samples/todo/.zenstack"
             ],
             "request": "launch",
             "skipFiles": ["<node_internals>/**"],

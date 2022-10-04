@@ -1,10 +1,8 @@
-import colors from 'colors';
 import { Command } from 'commander';
 import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
-import { generateJavaScript } from './generator';
 import PrismaGenerator from '../generator/prisma';
 import { Context } from '../generator/types';
 
@@ -24,17 +22,6 @@ export const generateAction = async (
     for (const generator of generators) {
         await generator.generate(context);
     }
-
-    const generatedFilePath = generateJavaScript(
-        model,
-        fileName,
-        opts.destination
-    );
-    console.log(
-        colors.green(
-            `JavaScript code generated successfully: ${generatedFilePath}`
-        )
-    );
 };
 
 export type GenerateOptions = {

@@ -1,11 +1,15 @@
+enum ReferentialIntegrity {
+    Cascade
+}
+
 function env() String {}
 function auth() User {}
+function now() DateTime {}
 
 attribute id()
 attribute index()
 attribute relation()
 attribute default()
-attribute createdAt()
 attribute updatedAt()
 attribute unique()
 attribute allow()

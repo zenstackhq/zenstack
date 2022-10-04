@@ -1,4 +1,4 @@
-import indentString from 'utils/indent-string';
+import indentString from '../../utils/indent-string';
 
 export class PrismaModel {
     private datasources: DataSource[] = [];
@@ -56,12 +56,15 @@ export class DataSource {
     ) {}
 
     toString() {
-        return `datasource ${this.name} {\n` +
+        return (
+            `datasource ${this.name} {\n` +
             indentString(`provider="${this.provider}"\n`) +
             indentString(`url=${this.url}\n`) +
-            this.shadowDatabaseUrl
-            ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`)
-            : '' + `}`;
+            (this.shadowDatabaseUrl
+                ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`)
+                : '') +
+            `}`
+        );
     }
 }
 
@@ -82,7 +85,7 @@ export class Generator {
 
     toString() {
         return (
-            `generator ${this.name} {` +
+            `generator ${this.name} {\n` +
             indentString(`provider = "${this.provider}"\n`) +
             indentString(`output = "${this.output}"\n`) +
             `}`
@@ -97,23 +100,29 @@ export class Model {
 
     addField(
         name: string,
-        type: ModelFieldType,
-        attributes: ModelAttribute[] = []
+        type: ModelFieldType | string,
+        attributes: FieldAttribute[] = []
     ) {
         const field = new ModelField(name, type, attributes);
         this.fields.push(field);
         return field;
     }
 
+    addAttribute(name: string, args: AttributeArg[] = []) {
+        const attr = new ModelAttribute(name, args);
+        this.attributes.push(attr);
+        return attr;
+    }
+
     toString() {
         return (
-            `model ${this.name} {` +
+            `model ${this.name} {\n` +
             indentString(
                 [...this.fields, ...this.attributes]
                     .map((d) => d.toString())
                     .join('\n')
             ) +
-            `}`
+            `\n}`
         );
     }
 }
@@ -130,16 +139,24 @@ export type ScalarTypes =
     | 'Bytes'
     | 'Unsupported';
 
-export type ModelFieldType = {
-    type: ScalarTypes | string;
-    array?: boolean;
-    optional?: boolean;
-};
+export class ModelFieldType {
+    constructor(
+        public type: ScalarTypes | string,
+        public array?: boolean,
+        public optional?: boolean
+    ) {}
+
+    toString() {
+        return `${this.type}${this.array ? '[]' : ''}${
+            this.optional ? '?' : ''
+        }`;
+    }
+}
 
 export class ModelField {
     constructor(
         public name: string,
-        public type: ModelFieldType,
+        public type: ModelFieldType | string,
         public attributes: FieldAttribute[] = []
     ) {}
 
@@ -212,14 +229,59 @@ export class AttributeArgValue {
             | FieldReference
             | FunctionCall
             | AttributeArgValue[]
-    ) {}
+    ) {
+        switch (type) {
+            case 'String':
+                if (typeof value !== 'string')
+                    throw new Error('Value must be string');
+                break;
+            case 'Number':
+                if (typeof value !== 'number')
+                    throw new Error('Value must be number');
+                break;
+            case 'Boolean':
+                if (typeof value !== 'boolean')
+                    throw new Error('Value must be boolean');
+                break;
+            case 'Array':
+                if (!Array.isArray(value))
+                    throw new Error('Value must be array');
+                break;
+            case 'FieldReference':
+                if (
+                    typeof value !== 'string' &&
+                    !(value instanceof FieldReference)
+                )
+                    throw new Error('Value must be string or FieldReference');
+                break;
+            case 'FunctionCall':
+                if (!(value instanceof FunctionCall))
+                    throw new Error('Value must be FunctionCall');
+                break;
+        }
+    }
 
     toString(): string {
         switch (this.type) {
             case 'String':
                 return `"${this.value}"`;
             case 'Number':
-            case 'FieldReference':
+                return this.value.toString();
+            case 'FieldReference': {
+                if (typeof this.value === 'string') {
+                    return this.value;
+                } else {
+                    const fr = this.value as FieldReference;
+                    let r = fr.field;
+                    if (fr.args.length > 0) {
+                        r +=
+                            '(' +
+                            fr.args.map((a) => a.toString()).join(',') +
+                            ')';
+                    }
+                    return r;
+                }
+            }
             case 'FunctionCall':
                 return this.value.toString();
             case 'Boolean':
@@ -243,11 +305,15 @@ export class FieldReference {
 }
 
 export class FieldReferenceArg {
-    constructor(public name: 'sort', value: 'Asc' | 'Desc') {}
+    constructor(public name: 'sort', public value: 'Asc' | 'Desc') {}
+
+    toString() {
+        return `${this.name}: ${this.value}`;
+    }
 }
 
 export class FunctionCall {
-    constructor(public func: string, public args: FunctionCallArg[]) {}
+    constructor(public func: string, public args: FunctionCallArg[] = []) {}
 
     toString() {
         return (
@@ -272,7 +338,9 @@ export class Enum {
 
     toString() {
         return (
-            `enum ${this.name} {\n` + indentString(this.fields.join('\n')) + '}'
+            `enum ${this.name} {\n` +
+            indentString(this.fields.join('\n')) +
+            '\n}'
         );
     }
 }

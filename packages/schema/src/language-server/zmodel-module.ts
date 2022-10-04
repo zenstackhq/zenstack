@@ -12,6 +12,7 @@ import {
     ZModelGeneratedModule,
     ZModelGeneratedSharedModule,
 } from './generated/module';
+import { ZModelDescriptionProvider } from './zmodel-index';
 import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation } from './zmodel-scope';
 import { ZModelValidationRegistry, ZModelValidator } from './zmodel-validator';
@@ -49,6 +50,10 @@ export const ZModelModule: Module<
         ValidationRegistry: (services) =>
             new ZModelValidationRegistry(services),
         ZModelValidator: () => new ZModelValidator(),
+    },
+    workspace: {
+        AstNodeDescriptionProvider: (services) =>
+            new ZModelDescriptionProvider(services),
     },
 };
 

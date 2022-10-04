@@ -31,7 +31,8 @@ import {
     EnumField,
     DataModelField,
     FunctionParam,
-    isCascadeExpr,
+    ThisExpr,
+    NullExpr,
 } from './generated/ast';
 
 interface DefaultReference extends Reference {
@@ -162,27 +163,17 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveBinary(node as BinaryExpr, document, extraScopes);
                 break;
 
+            case ThisExpr:
+                this.resolveThis(node as ThisExpr, document, extraScopes);
+                break;
+
+            case NullExpr:
+                this.resolveNull(node as NullExpr, document, extraScopes);
+                break;
+
             default:
                 this.resolveDefault(node, document, extraScopes);
                 break;
-        }
-    }
-
-    resolveDefault(
-        node: AstNode,
-        document: LangiumDocument<AstNode>,
-        extraScopes: ScopeProvider[]
-    ) {
-        for (const property of Object.keys(node)) {
-            if (!property.startsWith('$')) {
-                const value = (node as any)[property];
-                if (isReference(value)) {
-                    this.linkReference(node, property, document, extraScopes);
-                }
-            }
-        }
-        for (const child of streamContents(node)) {
-            this.resolve(child, document, extraScopes);
         }
     }
 
@@ -238,7 +229,6 @@ export class ZModelLinker extends DefaultLinker {
         extraScopes: ScopeProvider[]
     ) {
         this.linkReference(node, 'target', document, extraScopes);
-
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
 
         if (node.target.ref) {
@@ -282,11 +272,6 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     resolveLiteral(node: LiteralExpr) {
-        if (isCascadeExpr(node)) {
-            this.resolveToBuiltinTypeOrDecl(node, 'CASCADE');
-            return;
-        }
-
         const type =
             typeof node.value === 'string'
                 ? 'String'
@@ -348,6 +333,49 @@ export class ZModelLinker extends DefaultLinker {
         } else {
             // TODO: how to attach type-checking error?
             throw new Error(`Unresolved collection predicate`);
+        }
+    }
+
+    resolveThis(
+        node: ThisExpr,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        let decl: AstNode | undefined = node.$container;
+
+        while (decl && !isDataModel(decl)) {
+            decl = decl.$container;
+        }
+
+        if (decl) {
+            this.resolveToBuiltinTypeOrDecl(node, decl);
+        }
+    }
+
+    resolveNull(
+        node: NullExpr,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        // TODO: how to really resolve null?
+        this.resolveToBuiltinTypeOrDecl(node, 'Null');
+    }
+
+    resolveDefault(
+        node: AstNode,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        for (const property of Object.keys(node)) {
+            if (!property.startsWith('$')) {
+                const value = (node as any)[property];
+                if (isReference(value)) {
+                    this.linkReference(node, property, document, extraScopes);
+                }
+            }
+        }
+        for (const child of streamContents(node)) {
+            this.resolve(child, document, extraScopes);
         }
     }
 

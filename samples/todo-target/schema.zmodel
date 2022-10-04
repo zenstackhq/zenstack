@@ -2,6 +2,7 @@
 * A sample model for a collaborative Todo app
 */
 
+// Datasource
 datasource db {
     provider = 'postgresql'
     url = env('DATABASE_URL')
@@ -19,7 +20,7 @@ model Space {
     name String @length(1, 100)
     slug String @unique @length(1, 20)
     members SpaceUser[]
-    todoLists TodoList[]
+    todoList TodoList[]
 
     // require login
     @@deny('all', auth() == null)       

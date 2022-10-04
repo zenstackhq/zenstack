@@ -2,7 +2,7 @@
 
 export default function indentString(
     string: string,
-    count = 1,
+    count = 4,
     options: { indent?: string; includeEmptyLines?: boolean } = {}
 ) {
     const { indent = ' ', includeEmptyLines = false } = options;

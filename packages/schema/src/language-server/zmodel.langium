@@ -33,9 +33,6 @@ ThisExpr:
 NullExpr:
     value=NULL;
 
-CascadeExpr:
-    value=CASCADE;
-
 ReferenceExpr:
     target=[ReferenceTarget:ID] ('(' ReferenceArgList ')')?;
 
@@ -106,7 +103,6 @@ PrimaryExpr infers Expression:
     '(' Expression ')' |
     ThisExpr |
     NullExpr |
-    CascadeExpr |
     LiteralExpr |
     InvocationExpr |
     ArrayExpr|
@@ -181,7 +177,6 @@ hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
 terminal NULL: 'null';
 terminal THIS: 'this';
-terminal CASCADE: 'Cascade';
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
 terminal INT returns number: /[+-]?[0-9]+/;

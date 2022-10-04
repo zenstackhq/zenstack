@@ -11,7 +11,7 @@ import {
     ReferenceExpr,
     ArrayExpr,
 } from '../src/language-server/generated/ast';
-import { parse } from './utils';
+import { loadModel } from './utils';
 
 describe('Basic Tests', () => {
     it('data source', async () => {
@@ -21,7 +21,7 @@ describe('Basic Tests', () => {
                 url = env('DATABASE_URL')
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         expect(doc.declarations).toHaveLength(1);
         const ds = doc.declarations[0] as DataSource;
 
@@ -54,7 +54,7 @@ describe('Basic Tests', () => {
                 role UserRole @default(USER)
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const enumDecl = doc.declarations[0];
         expect(enumDecl.name).toBe('UserRole');
         expect((enumDecl as Enum).fields.map((f) => f.name)).toEqual(
@@ -78,7 +78,7 @@ describe('Basic Tests', () => {
                 metadata JSON
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const model = doc.declarations[0] as DataModel;
         expect(model.fields).toHaveLength(5);
         expect(model.fields.map((f) => f.type.type)).toEqual(
@@ -99,7 +99,7 @@ describe('Basic Tests', () => {
                 tags String[]
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const model = doc.declarations[0] as DataModel;
         expect(model.fields[0].type.optional).toBeTruthy();
         expect(model.fields[1].type.array).toBeTruthy();
@@ -112,7 +112,7 @@ describe('Basic Tests', () => {
                 activated Boolean @default(false) @unique
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const model = doc.declarations[0] as DataModel;
         expect(model.fields[0].attributes[0].decl.ref?.name).toBe('id');
         expect(model.fields[1].attributes[0].args[0].value.$type).toBe(
@@ -131,7 +131,7 @@ describe('Basic Tests', () => {
                 @@unique(b(sort: Desc))
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const model = doc.declarations[0] as DataModel;
         expect(model.attributes).toHaveLength(3);
         expect(model.attributes[0].decl.ref?.name).toBe('unique');
@@ -179,7 +179,7 @@ describe('Basic Tests', () => {
                 owner User @relation(references: [id], onDelete: Cascade, onUpdate: Cascade)
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const models = doc.declarations as DataModel[];
         expect(models[0].fields[1].type.reference?.ref?.name === 'Post');
         expect(models[1].fields[1].type.reference?.ref?.name === 'User');
@@ -197,7 +197,7 @@ describe('Basic Tests', () => {
                 @@deny(a + b < 10)
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const model = doc.declarations[0] as DataModel;
         const attrs = model.attributes;
 
@@ -240,7 +240,7 @@ describe('Basic Tests', () => {
                 @@deny(a == 0 || b != 0)
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const attrs = (doc.declarations[0] as DataModel).attributes;
 
         expect(attrs[0].args[0].value.$type).toBe(BinaryExpr);
@@ -346,7 +346,7 @@ describe('Basic Tests', () => {
             function bar(items N[]) Boolean {
             }
         `;
-        const doc = await parse(content);
+        const doc = await loadModel(content);
         const model = doc.declarations[0] as DataModel;
         const foo = doc.declarations[2] as Function;
         const bar = doc.declarations[3] as Function;
@@ -383,7 +383,7 @@ describe('Basic Tests', () => {
                 n.x < 0
             }
         `;
-        await parse(content);
+        await loadModel(content);
     });
 
     it('collection predicate', async () => {
@@ -397,6 +397,6 @@ describe('Basic Tests', () => {
                 x Int
             }
         `;
-        await parse(content);
+        await loadModel(content);
     });
 });
