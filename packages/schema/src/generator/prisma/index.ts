@@ -33,6 +33,7 @@ import {
     PrismaModel,
     ModelFieldType,
 } from './prisma-builder';
+import { execSync } from 'child_process';
 
 const supportedProviders = ['postgresql', 'mysql', 'sqlite', 'sqlserver'];
 const supportedAttrbutes = [
@@ -72,12 +73,24 @@ export default class PrismaGenerator implements Generator {
 
         this.generateGenerator(context, prisma);
 
-        await writeFile(
-            path.join(context.outDir, 'schema.prisma'),
-            prisma.toString()
-        );
+        const outFile = path.join(context.outDir, 'schema.prisma');
+        await writeFile(outFile, prisma.toString());
+        console.log(colors.blue(`Prisma schema generated`));
 
-        console.log(colors.green('Prisma schema generated successfully'));
+        // run prisma generate and install @prisma/client
+        await this.generatePrismaClient(outFile);
+    }
+
+    async generatePrismaClient(schemaFile: string) {
+        try {
+            execSync('npx prisma');
+        } catch (err) {
+            execSync(`npm i prisma @prisma/client`);
+            console.log(colors.blue('Prisma package installed'));
+        }
+
+        execSync(`npx prisma generate --schema "${schemaFile}"`);
+        console.log(colors.blue('Prisma client generated'));
     }
 
     private isStringLiteral(node: AstNode): node is LiteralExpr {

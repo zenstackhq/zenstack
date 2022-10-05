@@ -5,6 +5,8 @@ enum ReferentialIntegrity {
 function env() String {}
 function auth() User {}
 function now() DateTime {}
+function uuid() String {}
+function cuid() String {}
 
 attribute id()
 attribute index()

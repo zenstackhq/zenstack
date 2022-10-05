@@ -8,7 +8,7 @@
         {
             "name": "Generate for Todo Sample",
             "program": "${workspaceFolder}/packages/schema/bin/cli",
-            "cwd": "${workspaceFolder}/packages/schema",
+            "cwd": "${workspaceFolder}/samples/todo/",
             "args": [
                 "generate",
                 "${workspaceFolder}/samples/todo/schema.zmodel",

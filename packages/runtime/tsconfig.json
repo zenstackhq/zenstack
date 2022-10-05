@@ -2,7 +2,7 @@
     "compilerOptions": {
         "target": "ES6",
         "module": "ESNext",
-        "lib": ["ESNext"],
+        "lib": ["ESNext", "DOM"],
         "sourceMap": true,
         "outDir": "./lib",
         "strict": true,

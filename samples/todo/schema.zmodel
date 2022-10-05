@@ -13,7 +13,7 @@ enum SpaceUserRole {
 }
 
 model Space {
-    id String @id
+    id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     name String @length(1, 100)
@@ -34,7 +34,7 @@ model Space {
 }
 
 model SpaceUser {
-    id String @id
+    id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     space Space @relation(fields:[spaceId], references: [id], onDelete: Cascade)
@@ -56,15 +56,19 @@ model SpaceUser {
 }
 
 model User {
-    id String @id
+    id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique @email
+    emailVerified DateTime?
+    password String
     name String? @length(1, 100)
     spaces SpaceUser[]
     image String? @url
     todoLists TodoList[]
     todos Todo[]
+    accounts      Account[]
+    sessions      Session[]
 
     // can be created by anyone, even not logged in
     @@allow('create', true)
@@ -76,8 +80,42 @@ model User {
     @@allow('update,delete', auth() == this) 
 }
 
+model Account {
+    id                String  @id @default(uuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String?
+    access_token      String?
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String?
+    session_state     String?
+    user              User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(uuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
+
 model TodoList {
-    id String @id
+    id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
@@ -99,7 +137,7 @@ model TodoList {
 }
 
 model Todo {
-    id String @id
+    id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)

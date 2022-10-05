@@ -1,13 +1,13 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
-import { Authorize, NextAuthAdapter as Adapter } from '@zenstack/auth';
-import { client } from '@zenstack';
+import { authorize, NextAuthAdapter as Adapter } from '@zenstack/auth';
+import service from '@zenstack/service';
 
 export const authOptions: NextAuthOptions = {
     // Configure one or more authentication providers
 
-    adapter: Adapter(client),
+    adapter: Adapter(service),
 
     session: {
         strategy: 'jwt',
@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
                     placeholder: 'Your super secure password',
                 },
             },
-            authorize: Authorize(client),
+            authorize: authorize(service),
         }),
     ],
 

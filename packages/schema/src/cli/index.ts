@@ -3,8 +3,14 @@ import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
-import PrismaGenerator from '../generator/prisma';
 import { Context } from '../generator/types';
+import * as path from 'path';
+import * as fs from 'fs';
+import colors from 'colors';
+import PrismaGenerator from '../generator/prisma';
+import ServiceGenerator from '../generator/service';
+import ReactHooksGenerator from '../generator/react-hooks';
+import NextAuthGenerator from '../generator/next-auth';
 
 export const generateAction = async (
     fileName: string,
@@ -13,15 +19,31 @@ export const generateAction = async (
     const services = createZModelServices().ZModel;
     const model = await extractAstNode<Model>(fileName, services);
 
-    const generators = [new PrismaGenerator()];
     const context: Context = {
         schema: model,
-        outDir: opts.destination,
+        outDir: path.resolve(opts.destination),
     };
+
+    if (!fs.existsSync(context.outDir)) {
+        fs.mkdirSync(context.outDir);
+    }
+
+    console.log(colors.bold('⌛️ Running ZenStack generators'));
+
+    const generators = [
+        new PrismaGenerator(),
+        new ServiceGenerator(),
+        new ReactHooksGenerator(),
+        new NextAuthGenerator(),
+    ];
 
     for (const generator of generators) {
         await generator.generate(context);
     }
+
+    console.log(
+        colors.green(colors.bold('👻 All generators completed successfully!'))
+    );
 };
 
 export type GenerateOptions = {

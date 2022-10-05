@@ -25,7 +25,7 @@ export async function extractDocument(
 
     const stdLib =
         services.shared.workspace.LangiumDocuments.getOrCreateDocument(
-            URI.file(path.resolve('src/language-server/stdlib.zmodel'))
+            URI.file(path.join(__dirname, '../language-server/stdlib.zmodel'))
         );
     const document =
         services.shared.workspace.LangiumDocuments.getOrCreateDocument(
