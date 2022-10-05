@@ -2,7 +2,6 @@ import type { NextPage } from 'next';
 import LoginButton from '../components/LoginButton';
 import { useSession } from 'next-auth/react';
 import { useTodoList } from '@zenstack/hooks';
-import { inviteUser } from '@zenstack/functions';
 import { SpaceUserRole, TodoList } from '@zenstack/.prisma';
 
 const Home: NextPage = () => {
@@ -43,14 +42,6 @@ const Home: NextPage = () => {
         await deleteTodoList(todoList.id);
     }
 
-    async function onInviteUser() {
-        await inviteUser(
-            'f0c9fc5c-e6e5-4146-a540-214f6ac5701c',
-            'dadd2e5b-d278-4695-8f6a-e6389bc109c0',
-            SpaceUserRole.ADMIN
-        );
-    }
-
     function renderTodoLists() {
         return (
             <>
@@ -89,10 +80,6 @@ const Home: NextPage = () => {
                         onClick={onCreateFilledTodoList}
                     >
                         Create Filled Todo List
-                    </button>
-
-                    <button className="btn w-fit" onClick={onInviteUser}>
-                        Invite User
                     </button>
 
                     <h2 className="text-2xl">Todo Lists</h2>

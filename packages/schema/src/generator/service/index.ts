@@ -38,6 +38,6 @@ export default class ServiceGenerator implements Generator {
         sf.formatText();
         await project.save();
 
-        console.log(colors.blue(`ZenStack service generated`));
+        console.log(colors.blue(`  ✔️ ZenStack service generated`));
     }
 }

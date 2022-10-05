@@ -23,7 +23,7 @@ export default class ReactHooksGenerator implements Generator {
 
         await project.save();
 
-        console.log(colors.blue('React hooks generated'));
+        console.log(colors.blue('  ✔️ React hooks generated'));
     }
 
     private hasAllowRules(model: DataModel) {
@@ -171,7 +171,6 @@ export default class ReactHooksGenerator implements Generator {
         useFuncBody
             .addFunction({
                 name: 'find',
-                isAsync: true,
                 typeParameters: [`T extends P.${model.name}FindManyArgs`],
                 parameters: [
                     {
@@ -241,7 +240,7 @@ export default class ReactHooksGenerator implements Generator {
                 parameters: [
                     { name: 'id', type: 'String' },
                     {
-                        name: 'args',
+                        name: 'args?',
                         type: `Omit<P.${model.name}DeleteArgs, 'where'>`,
                     },
                 ],

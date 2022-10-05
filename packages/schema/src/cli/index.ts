@@ -11,6 +11,7 @@ import PrismaGenerator from '../generator/prisma';
 import ServiceGenerator from '../generator/service';
 import ReactHooksGenerator from '../generator/react-hooks';
 import NextAuthGenerator from '../generator/next-auth';
+import ServerGenerator from '../generator/server';
 
 export const generateAction = async (
     fileName: string,
@@ -34,6 +35,7 @@ export const generateAction = async (
         new PrismaGenerator(),
         new ServiceGenerator(),
         new ReactHooksGenerator(),
+        new ServerGenerator(),
         new NextAuthGenerator(),
     ];
 
