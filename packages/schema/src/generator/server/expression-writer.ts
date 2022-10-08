@@ -130,7 +130,27 @@ export default class ExpressionWriter {
             case '<=':
                 this.writeComparison(expr, expr.operator, context);
                 break;
+
+            case '?':
+            case '!':
+            case '^':
+                this.writeCollectionPredicate(expr, expr.operator, context);
+                break;
         }
+    }
+
+    private writeCollectionPredicate(
+        expr: BinaryExpr,
+        operator: string,
+        context: Context
+    ) {
+        this.writeFieldCondition(
+            expr.left,
+            () => {
+                this.write(expr.right, context);
+            },
+            operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
+        );
     }
 
     private isFieldRef(expr: Expression): expr is ReferenceExpr {
@@ -193,24 +213,31 @@ export default class ExpressionWriter {
 
         const type = (fieldAccess as TypedNode).$resolvedType?.decl;
 
-        this.writeFieldCondition(fieldAccess, () => {
-            this.writer.block(() => {
-                if (isDataModel(type)) {
-                    // comparing with an object, conver to "id" comparison instead
-                    this.writer.write('id: ');
-                    this.writer.block(() => {
+        this.writeFieldCondition(
+            fieldAccess,
+            () => {
+                this.writer.block(() => {
+                    if (isDataModel(type)) {
+                        // comparing with an object, conver to "id" comparison instead
+                        this.writer.write('id: ');
+                        this.writer.block(() => {
+                            this.writeOperator(operator, () => {
+                                this.write(operand, {
+                                    ...context,
+                                    nested: true,
+                                });
+                                this.writer.write('.id');
+                            });
+                        });
+                    } else {
                         this.writeOperator(operator, () => {
                             this.write(operand, { ...context, nested: true });
-                            this.writer.write('.id');
                         });
-                    });
-                } else {
-                    this.writeOperator(operator, () => {
-                        this.write(operand, { ...context, nested: true });
-                    });
-                }
-            });
-        });
+                    }
+                });
+            },
+            'is'
+        );
     }
 
     private writeOperator(
@@ -231,31 +258,60 @@ export default class ExpressionWriter {
 
     private writeFieldCondition(
         fieldAccess: Expression,
-        writeCondition: () => void
+        writeCondition: () => void,
+        relationOp: 'is' | 'some' | 'every' | 'none'
     ) {
+        let selector: string;
+        let operand: Expression | undefined;
+
         if (isReferenceExpr(fieldAccess)) {
-            if (this.isRelationFieldAccess(fieldAccess)) {
-                this.writer.write(fieldAccess.target.ref?.name! + ': ');
-                this.writer.block(() => {
-                    this.writer.write('is: ');
-                    writeCondition();
-                });
-            } else {
-                this.writer.write(fieldAccess.target.ref?.name! + ': ');
-                writeCondition();
-            }
+            selector = fieldAccess.target.ref?.name!;
         } else if (isMemberAccessExpr(fieldAccess)) {
-            this.writeFieldCondition(fieldAccess.operand, () => {
-                this.writer.block(() => {
-                    this.writer.write(fieldAccess.member.ref?.name! + ': ');
-                    writeCondition();
-                });
-            });
+            selector = fieldAccess.member.ref?.name!;
+            operand = fieldAccess.operand;
         } else {
             throw new GeneratorError(
                 `Unsupported expression type: ${fieldAccess.$type}`
             );
         }
+
+        if (operand) {
+            // member access expression
+            this.writeFieldCondition(
+                operand,
+                () => {
+                    this.writer.block(() => {
+                        this.writer.write(selector + ': ');
+                        if (this.isModelTyped(fieldAccess)) {
+                            // expression is resolved to a model, generate relation query
+                            this.writer.block(() => {
+                                this.writer.write(`${relationOp}: `);
+                                writeCondition();
+                            });
+                        } else {
+                            // generate plain query
+                            writeCondition();
+                        }
+                    });
+                },
+                'is'
+            );
+        } else if (this.isModelTyped(fieldAccess)) {
+            // reference resolved to a model, generate relation query
+            this.writer.write(selector + ': ');
+            this.writer.block(() => {
+                this.writer.write(`${relationOp}: `);
+                writeCondition();
+            });
+        } else {
+            // generate a plain query
+            this.writer.write(selector + ': ');
+            writeCondition();
+        }
+    }
+
+    private isModelTyped(expr: Expression) {
+        return isDataModel((expr as TypedNode).$resolvedType?.decl);
     }
 
     private isRelationFieldAccess(expr: Expression): boolean {

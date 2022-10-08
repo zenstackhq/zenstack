@@ -60,7 +60,7 @@ MemberAccessExpr infers Expression:
 CollectionPredicateExpr infers Expression:
     MemberAccessExpr (
         {infer BinaryExpr.left=current}
-        operator=('?'|'!')
+        operator=('?'|'!'|'^')
         '[' right=Expression ']'
     )*;
 

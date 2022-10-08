@@ -115,7 +115,7 @@ export function isAttributeParamType(item: unknown): item is AttributeParamType 
 export interface BinaryExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     left: Expression
-    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '||'
+    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '^' | '||'
     right: Expression
 }
 

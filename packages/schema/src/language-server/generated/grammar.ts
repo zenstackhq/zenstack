@@ -690,6 +690,10 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                     {
                       "$type": "Keyword",
                       "value": "!"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "^"
                     }
                   ]
                 }

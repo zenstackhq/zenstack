@@ -199,6 +199,8 @@ export class ZModelLinker extends DefaultLinker {
                 break;
 
             case '?':
+            case '!':
+            case '^':
                 this.resolveCollectionPredicate(node, document, extraScopes);
                 break;
 

@@ -10,7 +10,8 @@ import expressionWriter from '../../src/generator/server/expression-writer';
 
 async function check(
     schema: string,
-    getExpr: (model: DataModel) => Expression
+    getExpr: (model: DataModel) => Expression,
+    expected: string
 ) {
     const model = await loadModel(schema);
     const expr = getExpr(
@@ -25,7 +26,6 @@ async function check(
     const sf = project.createSourceFile(sourcePath, undefined, {
         overwrite: true,
     });
-    console.log(`Generated source: ${sourcePath}`);
 
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
@@ -50,12 +50,19 @@ async function check(
         for (const d of project.getPreEmitDiagnostics()) {
             console.warn(`${d.getLineNumber()}: ${d.getMessageText()}`);
         }
+        console.log(`Generated source: ${sourcePath}`);
         throw new Error('Compilation errors occurred');
     }
 
     const outExpr = sf.getVariableDeclaration('expr');
-    console.log('Generated expr:\n', outExpr?.getText());
-    return outExpr?.getInitializer();
+    // console.log('Generated expr:\n', outExpr?.getText());
+
+    if (expected) {
+        const generatedExpr = outExpr!.getInitializer()!.getText();
+        expect(generatedExpr.replace(/\s+/g, '')).toBe(
+            expected.replace(/\s+/g, '')
+        );
+    }
 }
 
 describe('Expression Writer Tests', () => {
@@ -66,7 +73,8 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', true)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{ zenstack_guard: true }`
         );
 
         await check(
@@ -75,7 +83,8 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', false)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{ zenstack_guard: false }`
         );
     });
 
@@ -87,7 +96,8 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', flag)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{ flag: true }`
         );
 
         await check(
@@ -97,7 +107,8 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', !flag)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{ NOT: { flag: true } }`
         );
     });
 
@@ -105,11 +116,16 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
-                count Int
-                @@allow('all', count > 0)
+                x Int
+                @@allow('all', x > 0)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                x: {
+                    gt: 0
+                }
+            }`
         );
 
         await check(
@@ -119,7 +135,12 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', label == 'thing')
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                label: {
+                    equals: 'thing'
+                }
+            }`
         );
     });
 
@@ -127,41 +148,133 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
-                count Int
-                @@allow('all', count > 0 && count > 1)
+                x  Int
+                @@allow('all', x  > 0 && x  > 1)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                AND:
+                    [
+                        {
+                            x : {
+                                gt: 0
+                            }
+                        }
+                        ,
+                        {
+                            x : {
+                                gt: 1
+                            }
+                        }
+                    ]
+            }`
         );
 
         await check(
             `
             model Test {
-                count Int
-                @@allow('all', count > 0 || count > 1)
+                x  Int
+                @@allow('all', x  > 0 || x  > 1)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                OR:
+                    [
+                        {
+                            x : {
+                                gt: 0
+                            }
+                        }
+                        ,
+                        {
+                            x : {
+                                gt: 1
+                            }
+                        }
+                    ]
+            }`
         );
 
         await check(
             `
             model Test {
-                count Int
-                @@allow('all', count > 0 && count > 1 || count > 2)
+                x  Int
+                @@allow('all', x  > 0 && x  > 1 || x  > 2)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                OR:
+                    [
+                        {
+                            AND:
+                                [
+                                    {
+                                        x : {
+                                            gt: 0
+                                        }
+                                    }
+                                    ,
+                                    {
+                                        x : {
+                                            gt: 1
+                                        }
+                                    }
+                                ]
+                        }
+                        ,
+                        {
+                            x : {
+                                gt: 2
+                            }
+                        }
+                    ]
+            }`
         );
 
         await check(
             `
             model Test {
-                count Int
-                @@allow('all', !(count > 0 && count > 1 || !count > 2))
+                x  Int
+                @@allow('all', !(x  > 0 && x  > 1 || !x  > 2))
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                NOT:
+                {
+                    OR:
+                        [
+                            {
+                                AND:
+                                    [
+                                        {
+                                            x : {
+                                                gt: 0
+                                            }
+                                        }
+                                        ,
+                                        {
+                                            x : {
+                                                gt: 1
+                                            }
+                                        }
+                                    ]
+                            }
+                            ,
+                            {
+                                NOT:
+                                {
+                                    x : {
+                                        gt: 2
+                                    }
+                                }
+                            }
+                        ]
+                }
+            }`
         );
     });
 
@@ -169,29 +282,183 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
-                count Int
+                x  Int
             }
 
             model Test {
                 foo Foo
-                @@deny(foo.count <= 0)
+                @@deny(foo.x  <= 0)
             }
             `,
-            (model) => model.attributes[0].args[0].value
+            (model) => model.attributes[0].args[0].value,
+            `{
+                foo: {
+                    is: {
+                        x : {
+                            le: 0
+                        }
+                    }
+                }
+            }`
         );
 
         await check(
             `
             model Foo {
-                count Int
+                x  Int
             }
 
             model Test {
                 foo Foo
-                @@deny(!(foo.count > 0))
+                @@deny(!(foo.x  > 0))
             }
             `,
-            (model) => model.attributes[0].args[0].value
+            (model) => model.attributes[0].args[0].value,
+            `{
+                NOT:
+                {
+                    foo: {
+                        is: {
+                            x : {
+                                gt: 0
+                            }
+                        }
+                    }
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Foo {
+                bar Bar
+            }
+
+            model Bar {
+                x  Int
+            }
+
+            model Test {
+                foo Foo
+                @@deny(foo.bar.x  <= 0)
+            }
+            `,
+            (model) => model.attributes[0].args[0].value,
+            `{
+                foo: {
+                    is: {
+                        bar: {
+                            is: {
+                                x : {
+                                    le: 0
+                                }
+                            }
+                        }
+                    }
+                }
+            }`
+        );
+    });
+
+    it('to-many relation query', async () => {
+        await check(
+            `
+            model Foo {
+                x Int
+            }
+
+            model Test {
+                foos Foo[]
+                @@deny(foos?[x <= 0])
+            }
+            `,
+            (model) => model.attributes[0].args[0].value,
+            `{
+                foos: {
+                    some: {
+                        x: {
+                            le: 0
+                        }
+                    }
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Foo {
+                x Int
+            }
+
+            model Test {
+                foos Foo[]
+                @@deny(foos![x <= 0])
+            }
+            `,
+            (model) => model.attributes[0].args[0].value,
+            `{
+                foos: {
+                    every: {
+                        x: {
+                            le: 0
+                        }
+                    }
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Foo {
+                x Int
+            }
+
+            model Test {
+                foos Foo[]
+                @@deny(foos^[x <= 0])
+            }
+            `,
+            (model) => model.attributes[0].args[0].value,
+            `{
+                foos: {
+                    none: {
+                        x: {
+                            le: 0
+                        }
+                    }
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Foo {
+                bars Bar[]
+            }
+            
+            model Bar {
+                x Int
+            }
+
+            model Test {
+                foo Foo
+                @@deny(foo.bars?[x <= 0])
+            }
+            `,
+            (model) => model.attributes[0].args[0].value,
+            `{
+                foo: {
+                    is: {
+                        bars: {
+                            some: {
+                                x: {
+                                    le: 0
+                                }
+                            }
+                        }
+                    }
+                }
+            }`
         );
     });
 
@@ -202,7 +469,8 @@ describe('Expression Writer Tests', () => {
                 @@deny(auth() == null)
             }
             `,
-            (model) => model.attributes[0].args[0].value
+            (model) => model.attributes[0].args[0].value,
+            `{ zenstack_guard: user == null }`
         );
 
         await check(
@@ -211,7 +479,8 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', auth() != null)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{ zenstack_guard: user != null }`
         );
     });
 
@@ -228,7 +497,16 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', auth() == owner)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                owner: {
+                    is: {
+                        id: {
+                            equals: user.id
+                        }
+                    }
+                }
+            }`
         );
 
         await check(
@@ -243,7 +521,18 @@ describe('Expression Writer Tests', () => {
                 @@deny(auth() != owner)
             }
             `,
-            (model) => model.attributes[0].args[0].value
+            (model) => model.attributes[0].args[0].value,
+            `{
+                owner: {
+                    is: {
+                        id: {
+                            not: {
+                                equals: user.id
+                            }
+                        }
+                    }
+                }
+            }`
         );
 
         await check(
@@ -258,7 +547,16 @@ describe('Expression Writer Tests', () => {
                 @@allow('all', auth().id == owner.id)
             }
             `,
-            (model) => model.attributes[0].args[1].value
+            (model) => model.attributes[0].args[1].value,
+            `{
+                owner: {
+                    is: {
+                        id: {
+                            equals: user.id
+                        }
+                    }
+                }
+            }`
         );
     });
 });
