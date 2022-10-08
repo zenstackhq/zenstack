@@ -35,25 +35,25 @@ export default class NextAuthGenerator implements Generator {
         import { Prisma } from '@zenstack/.prisma';
         
         export function NextAuthAdapter(service: ZenStackService): Adapter {
-            const p = service.prisma;
+            const db = service.db;
             return {
-                createUser: (data) => p.user.create({ data: data as Prisma.UserCreateInput }),
-                getUser: (id) => p.user.findUnique({ where: { id } }),
-                getUserByEmail: (email) => p.user.findUnique({ where: { email } }),
+                createUser: (data) => db.user.create({ data: data as Prisma.UserCreateInput }),
+                getUser: (id) => db.user.findUnique({ where: { id } }),
+                getUserByEmail: (email) => db.user.findUnique({ where: { email } }),
                 async getUserByAccount(provider_providerAccountId) {
-                    const account = await p.account.findUnique({
+                    const account = await db.account.findUnique({
                         where: { provider_providerAccountId },
                         select: { user: true },
                     });
                     return account?.user ?? null;
                 },
-                updateUser: (data) => p.user.update({ where: { id: data.id }, data: data as Prisma.UserUpdateInput }),
-                deleteUser: (id) => p.user.delete({ where: { id } }),
-                linkAccount: (data) => p.account.create({ data }) as any,
+                updateUser: (data) => db.user.update({ where: { id: data.id }, data: data as Prisma.UserUpdateInput }),
+                deleteUser: (id) => db.user.delete({ where: { id } }),
+                linkAccount: (data) => db.account.create({ data }) as any,
                 unlinkAccount: (provider_providerAccountId) =>
-                    p.account.delete({ where: { provider_providerAccountId } }) as any,
+                    db.account.delete({ where: { provider_providerAccountId } }) as any,
                 async getSessionAndUser(sessionToken) {
-                    const userAndSession = await p.session.findUnique({
+                    const userAndSession = await db.session.findUnique({
                         where: { sessionToken },
                         include: { user: true },
                     });
@@ -61,18 +61,18 @@ export default class NextAuthGenerator implements Generator {
                     const { user, ...session } = userAndSession;
                     return { user, session };
                 },
-                createSession: (data) => p.session.create({ data }),
+                createSession: (data) => db.session.create({ data }),
                 updateSession: (data) =>
-                    p.session.update({
+                    db.session.update({
                         data,
                         where: { sessionToken: data.sessionToken },
                     }),
                 deleteSession: (sessionToken) =>
-                    p.session.delete({ where: { sessionToken } }),
-                createVerificationToken: (data) => p.verificationToken.create({ data }),
+                    db.session.delete({ where: { sessionToken } }),
+                createVerificationToken: (data) => db.verificationToken.create({ data }),
                 async useVerificationToken(identifier_token) {
                     try {
-                        return await p.verificationToken.delete({
+                        return await db.verificationToken.delete({
                             where: { identifier_token },
                         });
                     } catch (error) {
@@ -119,7 +119,7 @@ export default class NextAuthGenerator implements Generator {
                 credentials: Record<'email' | 'password', string> | undefined
             ) => {
                 try {
-                    let maybeUser = await service.prisma.user.findFirst({
+                    let maybeUser = await service.db.user.findFirst({
                         where: {
                             email: credentials!.email,
                         },
@@ -136,7 +136,7 @@ export default class NextAuthGenerator implements Generator {
                             throw new Error('Invalid Credentials');
                         }
         
-                        maybeUser = await service.prisma.user.create({
+                        maybeUser = await service.db.user.create({
                             data: {
                                 email: credentials!.email,
                                 password: await hashPassword(credentials!.password),

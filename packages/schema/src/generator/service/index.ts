@@ -28,7 +28,7 @@ export default class ServiceGenerator implements Generator {
         });
 
         cls.addGetAccessor({
-            name: 'prisma',
+            name: 'db',
         })
             .addBody()
             .setBodyText('return this._prisma;');

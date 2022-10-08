@@ -22,7 +22,8 @@ model Space {
     todoLists TodoList[]
 
     // require login
-    @@deny('all', auth() == null)       
+    @@deny('all', auth() == null)
+
     // everyone can create a space
     @@allow('create', true)
 

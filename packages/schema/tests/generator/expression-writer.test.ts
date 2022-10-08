@@ -287,10 +287,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foo Foo
-                @@deny(foo.x  <= 0)
+                @@deny('all', foo.x  <= 0)
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 foo: {
                     is: {
@@ -310,10 +310,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foo Foo
-                @@deny(!(foo.x  > 0))
+                @@deny('all', !(foo.x  > 0))
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 NOT:
                 {
@@ -340,10 +340,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foo Foo
-                @@deny(foo.bar.x  <= 0)
+                @@deny('all', foo.bar.x  <= 0)
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 foo: {
                     is: {
@@ -369,10 +369,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foos Foo[]
-                @@deny(foos?[x <= 0])
+                @@deny('all', foos?[x <= 0])
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 foos: {
                     some: {
@@ -392,10 +392,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foos Foo[]
-                @@deny(foos![x <= 0])
+                @@deny('all', foos![x <= 0])
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 foos: {
                     every: {
@@ -415,10 +415,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foos Foo[]
-                @@deny(foos^[x <= 0])
+                @@deny('all', foos^[x <= 0])
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 foos: {
                     none: {
@@ -442,10 +442,10 @@ describe('Expression Writer Tests', () => {
 
             model Test {
                 foo Foo
-                @@deny(foo.bars?[x <= 0])
+                @@deny('all', foo.bars?[x <= 0])
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 foo: {
                     is: {
@@ -466,10 +466,10 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
-                @@deny(auth() == null)
+                @@deny('all', auth() == null)
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{ zenstack_guard: user == null }`
         );
 
@@ -518,10 +518,10 @@ describe('Expression Writer Tests', () => {
             model Test {
                 id String @id
                 owner User
-                @@deny(auth() != owner)
+                @@deny('all', auth() != owner)
             }
             `,
-            (model) => model.attributes[0].args[0].value,
+            (model) => model.attributes[0].args[1].value,
             `{
                 owner: {
                     is: {

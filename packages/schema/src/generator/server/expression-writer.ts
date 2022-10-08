@@ -1,66 +1,51 @@
 import {
-    ArrayExpr,
     BinaryExpr,
     Expression,
-    InvocationExpr,
     isDataModel,
     isDataModelField,
     isMemberAccessExpr,
     isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
-    NullExpr,
     ReferenceExpr,
     ThisExpr,
     UnaryExpr,
 } from '../../language-server/generated/ast';
 import { CodeBlockWriter } from 'ts-morph';
 import { GeneratorError } from '../types';
-import { TypedNode } from 'language-server/types';
+import { TypedNode } from '../../language-server/types';
+import JsExpressionBuilder from './js-expression-builder';
 
 const AUX_GUARD_FIELD = 'zenstack_guard';
-
-type Context = {
-    nested: boolean;
-};
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
 export default class ExpressionWriter {
+    private readonly jsExpr = new JsExpressionBuilder();
+
     constructor(private readonly writer: CodeBlockWriter) {}
 
-    write(expr: Expression, context: Context = { nested: false }) {
+    write(expr: Expression) {
         const _write = () => {
             switch (expr.$type) {
                 case LiteralExpr:
-                    this.writeLiteral(expr as LiteralExpr, context);
+                    this.writeLiteral(expr as LiteralExpr);
                     break;
 
                 case UnaryExpr:
-                    this.writeUnary(expr as UnaryExpr, context);
+                    this.writeUnary(expr as UnaryExpr);
                     break;
 
                 case BinaryExpr:
-                    this.writeBinary(expr as BinaryExpr, context);
+                    this.writeBinary(expr as BinaryExpr);
                     break;
 
                 case ReferenceExpr:
-                    this.writeReference(expr as ReferenceExpr, context);
-                    break;
-
-                case InvocationExpr:
-                    this.writeInvocation(expr as InvocationExpr, context);
+                    this.writeReference(expr as ReferenceExpr);
                     break;
 
                 case MemberAccessExpr:
-                    this.writeMemberAccess(expr as MemberAccessExpr, context);
-                    break;
-
-                case ArrayExpr:
-                    throw new Error('Not implemented');
-
-                case NullExpr:
-                    this.writeNull(context);
+                    this.writeMemberAccess(expr as MemberAccessExpr);
                     break;
 
                 case ThisExpr:
@@ -71,43 +56,25 @@ export default class ExpressionWriter {
             }
         };
 
-        if (context.nested) {
-            _write();
-        } else {
-            this.writer.block(_write);
-        }
+        this.writer.block(_write);
     }
 
-    private writeReference(expr: ReferenceExpr, context: Context) {
+    private writeReference(expr: ReferenceExpr) {
         if (!isDataModelField(expr.target.ref)) {
             throw new GeneratorError('must be a field in current model');
         }
         this.writer.write(`${expr.target.ref.name}: true`);
     }
 
-    private writeMemberAccess(expr: MemberAccessExpr, context: Context) {
-        this.write(expr.operand, context);
+    private writeMemberAccess(expr: MemberAccessExpr) {
+        this.write(expr.operand);
         this.writer.write('.' + expr.member.ref?.name);
     }
 
-    private writeNull(context: Context) {
-        this.writer.write('null');
-    }
-
-    private writeInvocation(expr: InvocationExpr, context: Context) {
-        if (expr.function.ref?.name !== 'auth') {
-            throw new GeneratorError(
-                `Function invocation is not supported: ${expr.function.ref?.name}`
-            );
-        }
-
-        this.writer.write('user');
-    }
-
-    private writeExprList(exprs: Expression[], context: Context) {
+    private writeExprList(exprs: Expression[]) {
         this.writer.writeLine('[');
         for (let i = 0; i < exprs.length; i++) {
-            this.write(exprs[i], context);
+            this.write(exprs[i]);
             if (i !== exprs.length - 1) {
                 this.writer.writeLine(',');
             }
@@ -115,11 +82,11 @@ export default class ExpressionWriter {
         this.writer.writeLine(']');
     }
 
-    private writeBinary(expr: BinaryExpr, context: Context) {
+    private writeBinary(expr: BinaryExpr) {
         switch (expr.operator) {
             case '&&':
             case '||':
-                this.writeLogical(expr, expr.operator, context);
+                this.writeLogical(expr, expr.operator);
                 break;
 
             case '==':
@@ -128,26 +95,22 @@ export default class ExpressionWriter {
             case '>=':
             case '<':
             case '<=':
-                this.writeComparison(expr, expr.operator, context);
+                this.writeComparison(expr, expr.operator);
                 break;
 
             case '?':
             case '!':
             case '^':
-                this.writeCollectionPredicate(expr, expr.operator, context);
+                this.writeCollectionPredicate(expr, expr.operator);
                 break;
         }
     }
 
-    private writeCollectionPredicate(
-        expr: BinaryExpr,
-        operator: string,
-        context: Context
-    ) {
+    private writeCollectionPredicate(expr: BinaryExpr, operator: string) {
         this.writeFieldCondition(
             expr.left,
             () => {
-                this.write(expr.right, context);
+                this.write(expr.right);
             },
             operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
         );
@@ -166,17 +129,11 @@ export default class ExpressionWriter {
         write();
     }
 
-    private quote(write: () => void) {
-        this.writer.write('(');
-        write();
-        this.writer.write(')');
+    private plain(expr: Expression) {
+        this.writer.write(this.jsExpr.build(expr));
     }
 
-    private writeComparison(
-        expr: BinaryExpr,
-        operator: ComparisonOperator,
-        context: Context
-    ) {
+    private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
         const leftIsFieldAccess =
             this.isFieldRef(expr.left) || this.isRelationFieldAccess(expr.left);
         const rightIsFieldAccess =
@@ -191,12 +148,12 @@ export default class ExpressionWriter {
 
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
             // compile down to a plain expression
-            const newContext = { ...context, nested: true };
             this.guard(() => {
-                this.write(expr.left, newContext);
+                this.plain(expr.left);
                 this.writer.write(' ' + operator + ' ');
-                this.write(expr.right, newContext);
+                this.plain(expr.right);
             });
+
             return;
         }
 
@@ -222,16 +179,13 @@ export default class ExpressionWriter {
                         this.writer.write('id: ');
                         this.writer.block(() => {
                             this.writeOperator(operator, () => {
-                                this.write(operand, {
-                                    ...context,
-                                    nested: true,
-                                });
+                                this.plain(operand);
                                 this.writer.write('.id');
                             });
                         });
                     } else {
                         this.writeOperator(operator, () => {
-                            this.write(operand, { ...context, nested: true });
+                            this.plain(operand);
                         });
                     }
                 });
@@ -364,48 +318,25 @@ export default class ExpressionWriter {
         }
     }
 
-    private writeLogical(
-        expr: BinaryExpr,
-        operator: '&&' | '||',
-        context: Context
-    ) {
-        if (context.nested) {
-            this.quote(() => this.write(expr.left, context));
-            this.writer.write(operator);
-            this.quote(() => this.write(expr.right, context));
-        } else {
-            this.writer.writeLine(`${operator === '&&' ? 'AND' : 'OR'}: `);
-            this.writeExprList([expr.left, expr.right], context);
-        }
+    private writeLogical(expr: BinaryExpr, operator: '&&' | '||') {
+        this.writer.writeLine(`${operator === '&&' ? 'AND' : 'OR'}: `);
+        this.writeExprList([expr.left, expr.right]);
     }
 
-    private writeUnary(expr: UnaryExpr, context: Context) {
+    private writeUnary(expr: UnaryExpr) {
         if (expr.operator !== '!') {
             throw new GeneratorError(
                 `Unary operator "${expr.operator}" is not supported`
             );
         }
 
-        if (context.nested) {
-            this.writer.write(expr.operator);
-            this.quote(() => this.write(expr.operand, context));
-        } else {
-            this.writer.writeLine('NOT: ');
-            this.write(expr.operand, context);
-        }
+        this.writer.writeLine('NOT: ');
+        this.write(expr.operand);
     }
 
-    private writeLiteral(expr: LiteralExpr, context: Context) {
-        if (context.nested) {
-            if (typeof expr.value === 'string') {
-                this.writer.write(`'${expr.value.toString()}'`);
-            } else {
-                this.writer.write(expr.value.toString());
-            }
-        } else {
-            this.guard(() => {
-                this.writer.write(expr.value.toString());
-            });
-        }
+    private writeLiteral(expr: LiteralExpr) {
+        this.guard(() => {
+            this.plain(expr);
+        });
     }
 }
