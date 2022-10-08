@@ -1,4 +1,4 @@
-import { loadModel } from './utils';
+import { loadModel } from '../utils';
 import * as fs from 'fs';
 
 describe('Basic Tests', () => {

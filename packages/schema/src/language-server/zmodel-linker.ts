@@ -34,18 +34,12 @@ import {
     ThisExpr,
     NullExpr,
 } from './generated/ast';
+import { TypedNode } from './types';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;
     _nodeDescription?: AstNodeDescription;
 }
-
-type TypedNode = AstNode & {
-    $resolvedType?: {
-        decl?: string | AbstractDeclaration;
-        array?: boolean;
-    };
-};
 
 type ScopeProvider = (name: string) => ReferenceTarget | undefined;
 
@@ -185,12 +179,13 @@ export class ZModelLinker extends DefaultLinker {
         this.resolve(node.left, document, extraScopes);
         this.resolve(node.right, document, extraScopes);
         switch (node.operator) {
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-                this.resolveToBuiltinTypeOrDecl(node, 'Int');
-                break;
+            // TODO: support arithmetics?
+            // case '+':
+            // case '-':
+            // case '*':
+            // case '/':
+            //     this.resolveToBuiltinTypeOrDecl(node, 'Int');
+            //     break;
 
             case '>':
             case '>=':
@@ -217,9 +212,9 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
-        this.resolve(node.arg, document, extraScopes);
+        this.resolve(node.operand, document, extraScopes);
         (node as TypedNode).$resolvedType = (
-            node.arg as TypedNode
+            node.operand as TypedNode
         ).$resolvedType;
     }
 

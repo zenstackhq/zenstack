@@ -1,16 +1,17 @@
 import { Project } from 'ts-morph';
 import { Context, Generator } from '../types';
 import * as path from 'path';
-import generateData from './data-generator';
-import generateFunction from './function-generator';
+import DataServerGenerator from './data-generator';
+import FunctionServerGenerator from './function-generator';
 
-export default class DataServerGenerator implements Generator {
+export default class ServerGenerator implements Generator {
     async generate(context: Context) {
         const project = new Project();
 
         this.generateIndex(project, context);
-        generateData(project, context);
-        generateFunction(project, context);
+
+        new DataServerGenerator().generate(project, context);
+        new FunctionServerGenerator().generate(project, context);
 
         await project.save();
     }

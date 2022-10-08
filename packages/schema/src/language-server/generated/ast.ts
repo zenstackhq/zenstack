@@ -115,7 +115,7 @@ export function isAttributeParamType(item: unknown): item is AttributeParamType 
 export interface BinaryExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     left: Expression
-    operator: '!' | '!=' | '&&' | '*' | '+' | '-' | '/' | '<' | '<=' | '==' | '>' | '>=' | '?' | '||'
+    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '||'
     right: Expression
 }
 
@@ -368,8 +368,8 @@ export function isThisExpr(item: unknown): item is ThisExpr {
 
 export interface UnaryExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
-    arg: Expression
-    operator: '!' | '+' | '-'
+    operand: Expression
+    operator: '!'
 }
 
 export const UnaryExpr = 'UnaryExpr';

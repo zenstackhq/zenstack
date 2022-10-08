@@ -17,8 +17,18 @@ export class PrismaModel {
         return ds;
     }
 
-    addGenerator(name: string, provider: string, output: string) {
-        const generator = new Generator(name, provider, output);
+    addGenerator(
+        name: string,
+        provider: string,
+        output: string,
+        previewFeatures?: string[]
+    ) {
+        const generator = new Generator(
+            name,
+            provider,
+            output,
+            previewFeatures
+        );
         this.generators.push(generator);
         return generator;
     }
@@ -80,7 +90,8 @@ export class Generator {
     constructor(
         public name: string,
         public provider: string,
-        public output: string
+        public output: string,
+        public previewFeatures?: string[]
     ) {}
 
     toString() {
@@ -88,6 +99,13 @@ export class Generator {
             `generator ${this.name} {\n` +
             indentString(`provider = "${this.provider}"\n`) +
             indentString(`output = "${this.output}"\n`) +
+            (this.previewFeatures
+                ? indentString(
+                      `previewFeatures = [${this.previewFeatures
+                          ?.map((f) => '"' + f + '"')
+                          .join(',')}]\n`
+                  )
+                : '') +
             `}`
         );
     }

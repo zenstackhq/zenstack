@@ -8,7 +8,7 @@ import {
     ModelFieldType,
     FieldReference,
     FieldReferenceArg,
-} from '../src/generator/prisma/prisma-builder';
+} from '../../src/generator/prisma/prisma-builder';
 import { getDMMF } from '@prisma/internals';
 
 async function validate(model: PrismaModel) {

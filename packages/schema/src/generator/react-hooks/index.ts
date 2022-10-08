@@ -2,19 +2,15 @@ import { Context, Generator } from '../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
 import { camelCase, paramCase } from 'change-case';
-import { DataModel, isDataModel } from '../../language-server/generated/ast';
+import { DataModel } from '../../language-server/generated/ast';
 import colors from 'colors';
+import { extractDataModelsWithAllowRules } from '../utils';
 
 export default class ReactHooksGenerator implements Generator {
     async generate(context: Context) {
         const project = new Project();
 
-        const models = context.schema.declarations.filter(
-            (d) =>
-                isDataModel(d) &&
-                // only generate hooks if model has at least one @@allow rule
-                this.hasAllowRules(d)
-        ) as DataModel[];
+        const models = extractDataModelsWithAllowRules(context.schema);
 
         this.generateIndex(project, context, models);
         this.generateRequestRuntime(project, context);
@@ -24,12 +20,6 @@ export default class ReactHooksGenerator implements Generator {
         await project.save();
 
         console.log(colors.blue('  ✔️ React hooks generated'));
-    }
-
-    private hasAllowRules(model: DataModel) {
-        return !!model.attributes.find(
-            (attr) => attr.decl.ref?.name === 'allow'
-        );
     }
 
     private generateRequestRuntime(project: Project, context: Context) {

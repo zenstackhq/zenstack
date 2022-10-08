@@ -182,7 +182,8 @@ export default class PrismaGenerator implements Generator {
         prisma.addGenerator(
             'client',
             'prisma-client-js',
-            path.join(context.outDir, '.prisma')
+            path.join(context.outDir, '.prisma'),
+            ['fieldReference']
         );
     }
 
@@ -195,6 +196,16 @@ export default class PrismaGenerator implements Generator {
         for (const field of decl.fields) {
             this.generateModelField(model, field);
         }
+
+        // add an "zenstack_guard" field for dealing with pure auth() related conditions
+        model.addField('zenstack_guard', 'Boolean', [
+            new PrismaFieldAttribute('default', [
+                new PrismaAttributeArg(
+                    undefined,
+                    new PrismaAttributeArgValue('Boolean', true)
+                ),
+            ]),
+        ]);
 
         for (const attr of decl.attributes.filter((attr) =>
             supportedAttrbutes.includes(attr.decl.ref?.name!)

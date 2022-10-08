@@ -560,26 +560,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
             "feature": "operator",
             "operator": "=",
             "terminal": {
-              "$type": "Alternatives",
-              "elements": [
-                {
-                  "$type": "Keyword",
-                  "value": "+"
-                },
-                {
-                  "$type": "Keyword",
-                  "value": "-"
-                },
-                {
-                  "$type": "Keyword",
-                  "value": "!"
-                }
-              ]
+              "$type": "Keyword",
+              "value": "!"
             }
           },
           {
             "$type": "Assignment",
-            "feature": "arg",
+            "feature": "operand",
             "operator": "=",
             "terminal": {
               "$type": "RuleCall",
@@ -741,148 +728,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
     },
     {
       "$type": "ParserRule",
-      "name": "MultDivExpr",
-      "inferredType": {
-        "$type": "InferredType",
-        "name": "Expression"
-      },
-      "alternatives": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "CollectionPredicateExpr"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "Group",
-            "elements": [
-              {
-                "$type": "Action",
-                "inferredType": {
-                  "$type": "InferredType",
-                  "name": "BinaryExpr"
-                },
-                "feature": "left",
-                "operator": "="
-              },
-              {
-                "$type": "Assignment",
-                "feature": "operator",
-                "operator": "=",
-                "terminal": {
-                  "$type": "Alternatives",
-                  "elements": [
-                    {
-                      "$type": "Keyword",
-                      "value": "*"
-                    },
-                    {
-                      "$type": "Keyword",
-                      "value": "/"
-                    }
-                  ]
-                }
-              },
-              {
-                "$type": "Assignment",
-                "feature": "right",
-                "operator": "=",
-                "terminal": {
-                  "$type": "RuleCall",
-                  "rule": {
-                    "$refText": "CollectionPredicateExpr"
-                  },
-                  "arguments": []
-                }
-              }
-            ],
-            "cardinality": "*"
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
-      "name": "AddSubExpr",
-      "inferredType": {
-        "$type": "InferredType",
-        "name": "Expression"
-      },
-      "alternatives": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$refText": "MultDivExpr"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "Group",
-            "elements": [
-              {
-                "$type": "Action",
-                "inferredType": {
-                  "$type": "InferredType",
-                  "name": "BinaryExpr"
-                },
-                "feature": "left",
-                "operator": "="
-              },
-              {
-                "$type": "Assignment",
-                "feature": "operator",
-                "operator": "=",
-                "terminal": {
-                  "$type": "Alternatives",
-                  "elements": [
-                    {
-                      "$type": "Keyword",
-                      "value": "+"
-                    },
-                    {
-                      "$type": "Keyword",
-                      "value": "-"
-                    }
-                  ]
-                }
-              },
-              {
-                "$type": "Assignment",
-                "feature": "right",
-                "operator": "=",
-                "terminal": {
-                  "$type": "RuleCall",
-                  "rule": {
-                    "$refText": "MultDivExpr"
-                  },
-                  "arguments": []
-                }
-              }
-            ],
-            "cardinality": "*"
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
       "name": "ComparisonExpr",
       "inferredType": {
         "$type": "InferredType",
@@ -894,7 +739,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
           {
             "$type": "RuleCall",
             "rule": {
-              "$refText": "AddSubExpr"
+              "$refText": "CollectionPredicateExpr"
             },
             "arguments": []
           },
@@ -943,7 +788,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ||(loadedZModelG
                 "terminal": {
                   "$type": "RuleCall",
                   "rule": {
-                    "$refText": "AddSubExpr"
+                    "$refText": "CollectionPredicateExpr"
                   },
                   "arguments": []
                 }

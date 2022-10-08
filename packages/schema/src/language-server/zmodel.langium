@@ -46,7 +46,7 @@ InvocationExpr:
     function=[Function] '(' ArgumentList? ')';
 
 UnaryExpr:
-    operator=('+'|'-'|'!') arg=Expression;
+    operator=('!') operand=Expression;
 
 // binary operator precedence follow Javascript's rules:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
@@ -64,25 +64,27 @@ CollectionPredicateExpr infers Expression:
         '[' right=Expression ']'
     )*;
 
-MultDivExpr infers Expression:
-    CollectionPredicateExpr (
-        {infer BinaryExpr.left=current}
-        operator=('*'|'/')
-        right=CollectionPredicateExpr
-    )*;
+// TODO: support arithmetics?
+//
+// MultDivExpr infers Expression:
+//     CollectionPredicateExpr (
+//         {infer BinaryExpr.left=current}
+//         operator=('*'|'/')
+//         right=CollectionPredicateExpr
+//     )*;
 
-AddSubExpr infers Expression:
-    MultDivExpr (
-        {infer BinaryExpr.left=current}
-        operator=('+'|'-')
-        right=MultDivExpr
-    )*;
+// AddSubExpr infers Expression:
+//     MultDivExpr (
+//         {infer BinaryExpr.left=current}
+//         operator=('+'|'-')
+//         right=MultDivExpr
+//     )*;
 
 ComparisonExpr infers Expression:
-    AddSubExpr (
+    CollectionPredicateExpr (
         {infer BinaryExpr.left=current}
         operator=('>'|'<'|'>='|'<=')
-        right=AddSubExpr
+        right=CollectionPredicateExpr
     )*;
 
 EqualityExpr infers Expression:
