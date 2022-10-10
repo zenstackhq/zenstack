@@ -12,7 +12,11 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "baseUrl": "./src"
+        "baseUrl": ".",
+        "paths": {
+            "@lang/*": ["src/language-server/*"]
+        },
+        "resolveJsonModule": true
     },
     "include": ["src/**/*.ts"],
     "exclude": ["out", "node_modules"]

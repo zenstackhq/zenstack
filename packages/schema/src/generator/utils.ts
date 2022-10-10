@@ -1,8 +1,4 @@
-import {
-    DataModel,
-    isDataModel,
-    Model,
-} from '../language-server/generated/ast';
+import { DataModel, isDataModel, Model } from '@lang/generated/ast';
 
 export function extractDataModelsWithAllowRules(model: Model) {
     return model.declarations.filter(

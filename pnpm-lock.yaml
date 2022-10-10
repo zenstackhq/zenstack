@@ -44,6 +44,8 @@ importers:
       ts-jest: ^29.0.1
       ts-morph: ^16.0.0
       ts-node: ^10.9.1
+      tsc-alias: ^1.7.0
+      tsconfig-paths-jest: ^0.0.1
       typescript: ^4.6.2
       vscode-jsonrpc: ^8.0.2
       vscode-languageclient: ^7.0.0
@@ -77,6 +79,8 @@ importers:
       tmp: 0.2.1
       ts-jest: 29.0.1_poggjixajg6vd6yquly7s7dsj4
       ts-node: 10.9.1_ck2axrxkiif44rdbzjywaqjysa
+      tsc-alias: 1.7.0
+      tsconfig-paths-jest: 0.0.1
       typescript: 4.8.3
 
   samples/todo:
@@ -2277,6 +2281,11 @@ packages:
     engines: {node: '>= 12'}
     dev: false
 
+  /commander/9.4.1:
+    resolution: {integrity: sha512-5EEkTNyHNGFPD2H+c/dXXfQZYa/scCKasxWcXJaWnNJ99pnQN9Vnmqow+p+PlFPE63Q6mThaZws1T+HxfpgtPw==}
+    engines: {node: ^12.20.0 || >=14}
+    dev: true
+
   /commondir/1.0.1:
     resolution: {integrity: sha512-W9pAhw0ja1Edb5GVdIF1mjZw/ASI0AlShXM83UUGe2DVr5TdAPEA1OA8m/g8zWp9x6On7gqufY+FatDbC3MDQg==}
     dev: true
@@ -4351,6 +4360,11 @@ packages:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
     dev: true
 
+  /mylas/2.1.13:
+    resolution: {integrity: sha512-+MrqnJRtxdF+xngFfUUkIMQrUUL0KsxbADUkn23Z/4ibGg192Q+z+CQyiYwvWTsYjJygmMR8+w3ZDa98Zh6ESg==}
+    engines: {node: '>=12.0.0'}
+    dev: true
+
   /nanoid/3.3.4:
     resolution: {integrity: sha512-MqBkQh/OHTS2egovRtLk45wEyNXwF+cokD+1YPf9u5VfJiRdAiRwB2froX5Co9Rh20xs4siNPm8naNotSD6RBw==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
@@ -4766,6 +4780,12 @@ packages:
       find-up: 4.1.0
     dev: true
 
+  /plimit-lit/1.4.0:
+    resolution: {integrity: sha512-e4VKIdzc5+vvTuNZeWDTWHCNPLZ1+jXeQ9HqZhAS+vlAodNr8A26IcTA9OudjLXj8fV+KRW/ZzsoyrTZzoWD/A==}
+    dependencies:
+      queue-lit: 1.4.0
+    dev: true
+
   /postcss-import/14.1.0_postcss@8.4.16:
     resolution: {integrity: sha512-flwI+Vgm4SElObFVPpTIT7SU7R3qk2L7PyduMcokiaVKuWv9d/U+Gm/QAd8NDLuykTWTkcrjOeD2Pp1rMeBTGw==}
     engines: {node: '>=10.0.0'}
@@ -4911,6 +4931,10 @@ packages:
   /punycode/2.1.1:
     resolution: {integrity: sha512-XRsRjdf+j5ml+y/6GKHPZbrF/8p2Yga0JPtdqTIY2Xe5ohJPD9saDJJLPvp9+NSBprVvevdXZybnj2cv8OEd0A==}
     engines: {node: '>=6'}
+    dev: true
+
+  /queue-lit/1.4.0:
+    resolution: {integrity: sha512-l1+4YHm4vHWpCnvTg8JMsnPETmPvLGWhqjvNOc8TSbqscGplHVSWXOxybA3vYeMNNIR9Z1PQt85U+S3wFJX2uQ==}
     dev: true
 
   /queue-microtask/1.2.3:
@@ -5640,6 +5664,22 @@ packages:
 
   /ts-pattern/4.0.5:
     resolution: {integrity: sha512-Bq44KCEt7JVaNLa148mBCJkcQf4l7jtLEBDuDdeuLynWDA+1a60P4D0rMkqSM9mOKLQbIWUddE9h3XKyKwBeqA==}
+    dev: true
+
+  /tsc-alias/1.7.0:
+    resolution: {integrity: sha512-n/K6g8S7Ec7Y/A2Z77Ikp2Uv1S1ERtT63ni69XV4W1YPT4rnNmz8ItgIiJYvKfFnKfqcZQ81UPjoKpMTxaC/rg==}
+    hasBin: true
+    dependencies:
+      chokidar: 3.5.3
+      commander: 9.4.1
+      globby: 11.1.0
+      mylas: 2.1.13
+      normalize-path: 3.0.0
+      plimit-lit: 1.4.0
+    dev: true
+
+  /tsconfig-paths-jest/0.0.1:
+    resolution: {integrity: sha512-YKhUKqbteklNppC2NqL7dv1cWF8eEobgHVD5kjF1y9Q4ocqpBiaDlYslQ9eMhtbqIPRrA68RIEXqknEjlxdwxw==}
     dev: true
 
   /tsconfig-paths/3.14.1:

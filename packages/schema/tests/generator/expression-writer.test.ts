@@ -6,7 +6,7 @@ import {
 } from '../../src/language-server/generated/ast';
 import { loadModel } from '../utils';
 import * as tmp from 'tmp';
-import expressionWriter from '../../src/generator/server/expression-writer';
+import expressionWriter from '../../src/generator/server/data/expression-writer';
 
 async function check(
     schema: string,
@@ -331,6 +331,29 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                x  Boolean
+            }
+
+            model Test {
+                foo Foo
+                @@deny('all', !foo.x)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                NOT: {
+                    foo: {
+                        is: {
+                            x: true
+                        }
+                    }
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Foo {
                 bar Bar
             }
 
@@ -502,7 +525,7 @@ describe('Expression Writer Tests', () => {
                 owner: {
                     is: {
                         id: {
-                            equals: user.id
+                            equals: user?.id
                         }
                     }
                 }
@@ -527,7 +550,7 @@ describe('Expression Writer Tests', () => {
                     is: {
                         id: {
                             not: {
-                                equals: user.id
+                                equals: user?.id
                             }
                         }
                     }
@@ -552,7 +575,7 @@ describe('Expression Writer Tests', () => {
                 owner: {
                     is: {
                         id: {
-                            equals: user.id
+                            equals: user?.id
                         }
                     }
                 }

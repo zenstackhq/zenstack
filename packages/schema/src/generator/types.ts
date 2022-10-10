@@ -1,4 +1,4 @@
-import { Model } from '../language-server/generated/ast';
+import { Model } from '@lang/generated/ast';
 
 export interface Context {
     schema: Model;

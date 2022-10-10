@@ -2,7 +2,7 @@ import { Context, Generator } from '../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
 import { camelCase, paramCase } from 'change-case';
-import { DataModel } from '../../language-server/generated/ast';
+import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../utils';
 
@@ -180,7 +180,7 @@ export default class ReactHooksGenerator implements Generator {
                 name: 'get',
                 isAsync: true,
                 typeParameters: [
-                    `T extends P.Subset<P.${model.name}FindManyArgs, 'select' | 'include'>`,
+                    `T extends P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>`,
                 ],
                 parameters: [
                     {
@@ -189,7 +189,7 @@ export default class ReactHooksGenerator implements Generator {
                     },
                     {
                         name: 'args?',
-                        type: `P.SelectSubset<T, P.Subset<P.${model.name}FindManyArgs, 'select' | 'include'>>`,
+                        type: `P.SelectSubset<T, P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>>`,
                     },
                 ],
             })

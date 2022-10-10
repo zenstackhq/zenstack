@@ -1,16 +1,28 @@
-import { Context } from '../types';
+import { Context, GeneratorError } from '../../types';
 import {
     CodeBlockWriter,
+    OptionalKind,
+    ParameterDeclarationStructure,
     Project,
     SourceFile,
     VariableDeclarationKind,
 } from 'ts-morph';
-import { DataModel, Expression } from '../../language-server/generated/ast';
+import {
+    DataModel,
+    Expression,
+    isInvocationExpr,
+    isLiteralExpr,
+} from '@lang/generated/ast';
 import * as path from 'path';
 import { camelCase, paramCase } from 'change-case';
-import { extractDataModelsWithAllowRules } from '../utils';
-import { ServerCodeGenerator } from './server-code-generator';
+import { extractDataModelsWithAllowRules } from '../../utils';
+import { ServerCodeGenerator } from '../server-code-generator';
 import ExpressionWriter from './expression-writer';
+import { streamAllContents } from 'langium';
+import colors from 'colors';
+
+type ServerOperation = 'get' | 'create' | 'find' | 'update' | 'del';
+type PolicyAction = 'create' | 'read' | 'update' | 'delete';
 
 export default class DataServerGenerator implements ServerCodeGenerator {
     generate(project: Project, context: Context): void {
@@ -20,7 +32,11 @@ export default class DataServerGenerator implements ServerCodeGenerator {
         models.forEach((model) =>
             this.generateForModel(model, project, context)
         );
+
+        console.log(colors.blue('  ✔️ Server-side CRUD generated'));
     }
+
+    //#region Index & Utils
 
     private generateIndex(
         models: DataModel[],
@@ -65,7 +81,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             req: NextApiRequest,
             res: NextApiResponse,
             options: RequestionHandlerOptions
-        ): Promise<{id: string}> {
+        ) {
             return await options.getServerUser(req, res);
         }
         
@@ -97,6 +113,10 @@ export default class DataServerGenerator implements ServerCodeGenerator {
                 return ${camelCase(model.name)}Handler(req, res, rest, options);
         `;
     }
+
+    //#endregion
+
+    //#region Per-Model
 
     private generateForModel(
         model: DataModel,
@@ -149,35 +169,78 @@ export default class DataServerGenerator implements ServerCodeGenerator {
 
         this.generateFind(sf, model);
         this.generateGet(sf, model);
+        this.generateCreate(sf, model);
+        this.generateUpdate(sf, model);
+        this.generateDel(sf, model);
 
         sf.formatText();
+        sf.saveSync();
     }
 
-    private generateFind(sourceFile: SourceFile, model: DataModel) {
+    private generateServeFunction(
+        sourceFile: SourceFile,
+        model: DataModel,
+        operation: ServerOperation
+    ) {
+        const parameters: OptionalKind<ParameterDeclarationStructure>[] = [];
+
+        parameters.push({
+            name: 'req',
+            type: 'NextApiRequest',
+        });
+
+        parameters.push({
+            name: 'res',
+            type: 'NextApiResponse',
+        });
+
+        if (
+            operation === 'get' ||
+            operation === 'update' ||
+            operation === 'del'
+        ) {
+            // an extra "id" parameter
+            parameters.push({
+                name: 'id',
+                type: 'string',
+            });
+        }
+
+        parameters.push({
+            name: 'options',
+            type: 'RequestionHandlerOptions',
+        });
+
         const func = sourceFile
             .addFunction({
-                name: 'find',
+                name: operation,
                 isAsync: true,
-                parameters: [
-                    {
-                        name: 'req',
-                        type: 'NextApiRequest',
-                    },
-                    {
-                        name: 'res',
-                        type: 'NextApiResponse',
-                    },
-                    {
-                        name: 'options',
-                        type: 'RequestionHandlerOptions',
-                    },
-                ],
+                parameters,
             })
             .addBody();
 
+        if (this.modelUsesAuth(model)) {
+            func.addStatements([
+                `const user = await getUser(req, res, options);`,
+            ]);
+        }
+        return func;
+    }
+
+    private modelUsesAuth(model: DataModel) {
+        return !!streamAllContents(model).find(
+            (node) =>
+                isInvocationExpr(node) && node.function.ref?.name === 'auth'
+        );
+    }
+
+    //#region Find & Get
+
+    private generateFind(sourceFile: SourceFile, model: DataModel) {
+        const func = this.generateServeFunction(sourceFile, model, 'find');
+
         func.addStatements([
-            `const user = await getUser(req, res, options);`,
-            `const condition: Prisma.${model.name}FindManyArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
+            `const query: Prisma.${model.name}FindManyArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
         ]);
 
         func.addVariableStatement({
@@ -188,12 +251,12 @@ export default class DataServerGenerator implements ServerCodeGenerator {
                     type: `Prisma.${model.name}FindManyArgs`,
                     initializer: (writer) => {
                         writer.block(() => {
-                            writer.writeLine('...condition,');
+                            writer.writeLine('...query,');
                             writer.write('where:');
                             writer.block(() => {
                                 writer.write('AND: [');
-                                writer.write('{ ...condition.where },');
-                                this.writeFindArgs(writer, model);
+                                writer.write('{ ...query.where },');
+                                this.writeFindArgs(writer, model, 'read');
                                 writer.write(']');
                             });
                         });
@@ -210,34 +273,10 @@ export default class DataServerGenerator implements ServerCodeGenerator {
     }
 
     private generateGet(sourceFile: SourceFile, model: DataModel) {
-        const func = sourceFile
-            .addFunction({
-                name: 'get',
-                isAsync: true,
-                parameters: [
-                    {
-                        name: 'req',
-                        type: 'NextApiRequest',
-                    },
-                    {
-                        name: 'res',
-                        type: 'NextApiResponse',
-                    },
-                    {
-                        name: 'id',
-                        type: 'string',
-                    },
-                    {
-                        name: 'options',
-                        type: 'RequestionHandlerOptions',
-                    },
-                ],
-            })
-            .addBody();
+        const func = this.generateServeFunction(sourceFile, model, 'get');
 
         func.addStatements([
-            `const user = await getUser(req, res, options);`,
-            `const condition: Prisma.${model.name}FindManyArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
+            `const query: Prisma.${model.name}FindFirstArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
         ]);
 
         func.addVariableStatement({
@@ -245,15 +284,15 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             declarations: [
                 {
                     name: 'args',
-                    type: `Prisma.${model.name}FindManyArgs`,
+                    type: `Prisma.${model.name}FindFirstArgs`,
                     initializer: (writer) => {
                         writer.block(() => {
-                            writer.writeLine('...condition,');
+                            writer.writeLine('...query,');
                             writer.write('where:');
                             writer.block(() => {
                                 writer.write('AND: [');
                                 writer.write('{ id },');
-                                this.writeFindArgs(writer, model);
+                                this.writeFindArgs(writer, model, 'read');
                                 writer.write(']');
                             });
                         });
@@ -264,31 +303,138 @@ export default class DataServerGenerator implements ServerCodeGenerator {
 
         func.addStatements([
             `
-            const r = await service.db.${camelCase(model.name)}.findMany(args);
-            if (r.length == 0) {
+            const r = await service.db.${camelCase(model.name)}.findFirst(args);
+            if (!r) {
                 notFound(res);
             } else {
-                res.status(200).send(r[0]);
+                res.status(200).send(r);
             }
             `,
         ]);
     }
 
-    private writeFindArgs(writer: CodeBlockWriter, model: DataModel) {
+    private writeFindArgs(
+        writer: CodeBlockWriter,
+        model: DataModel,
+        action: PolicyAction
+    ) {
         writer.block(() => {
             writer.writeLine('AND: [');
-            this.writeDenyRules(writer, model);
-            this.writeAllowRules(writer, model);
+            this.writeDenyRules(writer, model, action);
+            this.writeAllowRules(writer, model, action);
             writer.writeLine(']');
         });
     }
 
-    private writeDenyRules(writer: CodeBlockWriter, model: DataModel) {
+    //#endregion
+
+    //#region Create
+
+    private generateCreate(sourceFile: SourceFile, model: DataModel) {
+        const func = this.generateServeFunction(sourceFile, model, 'create');
+
+        func.addVariableStatement({
+            declarationKind: VariableDeclarationKind.Const,
+            declarations: [
+                {
+                    name: 'args',
+                    type: `Prisma.${model.name}CreateArgs`,
+                    initializer: 'req.body',
+                },
+            ],
+        });
+
+        // TODO: policy
+
+        func.addStatements([
+            `
+            const r = await service.db.${camelCase(model.name)}.create(args);
+            res.status(200).send(r);
+            `,
+        ]);
+    }
+
+    //#endregion
+
+    //#region Update
+
+    private generateUpdate(sourceFile: SourceFile, model: DataModel) {
+        const func = this.generateServeFunction(sourceFile, model, 'update');
+
+        func.addVariableStatement({
+            declarationKind: VariableDeclarationKind.Const,
+            declarations: [
+                {
+                    name: 'body',
+                    type: `Prisma.${model.name}UpdateArgs`,
+                    initializer: 'req.body',
+                },
+            ],
+        });
+
+        // TODO: policy
+
+        func.addStatements([
+            `
+            const r = await service.db.${camelCase(model.name)}.update({
+                ...body,
+                where: { id }
+            });
+            res.status(200).send(r);
+            `,
+        ]);
+    }
+
+    //#endregion
+
+    //#region Delete
+
+    private generateDel(sourceFile: SourceFile, model: DataModel) {
+        const func = this.generateServeFunction(sourceFile, model, 'del');
+
+        func.addStatements([
+            `const args: Prisma.${model.name}DeleteArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
+        ]);
+
+        // TODO: policy
+
+        func.addStatements([
+            `
+            const r = await service.db.${camelCase(model.name)}.delete({
+                ...args,
+                where: { id }
+            });
+            res.status(200).send(r);
+            `,
+        ]);
+    }
+
+    //#endregion
+
+    //#endregion
+
+    //#region Policy
+
+    private ruleSpecCovers(ruleSpec: Expression, action: string) {
+        if (!isLiteralExpr(ruleSpec) || typeof ruleSpec.value !== 'string') {
+            throw new GeneratorError(`Rule spec must be a string literal`);
+        }
+
+        const specs = ruleSpec.value.split(',').map((s) => s.trim());
+        return specs.includes('all') || specs.includes(action);
+    }
+
+    private writeDenyRules(
+        writer: CodeBlockWriter,
+        model: DataModel,
+        action: PolicyAction
+    ) {
         const attrs = model.attributes.filter(
             (attr) =>
                 attr.args.length > 0 &&
                 attr.decl.ref?.name === 'deny' &&
-                attr.args.length > 1
+                attr.args.length > 1 &&
+                this.ruleSpecCovers(attr.args[0].value, action)
         );
         attrs.forEach((attr) =>
             this.writeDenyRule(writer, model, attr.args[1].value)
@@ -304,9 +450,34 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             writer.writeLine('NOT: ');
             new ExpressionWriter(writer).write(rule);
         });
+        writer.write(',');
     }
 
-    private writeAllowRules(writer: CodeBlockWriter, model: DataModel) {
-        // throw new Error('private not implemented.');
+    private writeAllowRules(
+        writer: CodeBlockWriter,
+        model: DataModel,
+        action: PolicyAction
+    ) {
+        const attrs = model.attributes.filter(
+            (attr) =>
+                attr.args.length > 0 &&
+                attr.decl.ref?.name === 'allow' &&
+                attr.args.length > 1 &&
+                this.ruleSpecCovers(attr.args[0].value, action)
+        );
+        attrs.forEach((attr) =>
+            this.writeAllowRule(writer, model, attr.args[1].value)
+        );
     }
+
+    private writeAllowRule(
+        writer: CodeBlockWriter,
+        model: DataModel,
+        rule: Expression
+    ) {
+        new ExpressionWriter(writer).write(rule);
+        writer.write(',');
+    }
+
+    //#endregion
 }

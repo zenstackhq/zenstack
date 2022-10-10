@@ -1,4 +1,4 @@
-import { GeneratorError } from '../types';
+import { GeneratorError } from '../../types';
 import {
     ArrayExpr,
     Expression,
@@ -7,9 +7,9 @@ import {
     MemberAccessExpr,
     NullExpr,
     ReferenceExpr,
-} from '../../language-server/generated/ast';
+} from '@lang/generated/ast';
 
-export default class JsExpressionBuilder {
+export default class PlainExpressionBuilder {
     build(expr: Expression): string {
         switch (expr.$type) {
             case LiteralExpr:
@@ -38,7 +38,7 @@ export default class JsExpressionBuilder {
     }
 
     private memberAccess(expr: MemberAccessExpr) {
-        return `${this.build(expr.operand)}.${expr.member.ref!.name}`;
+        return `${this.build(expr.operand)}?.${expr.member.ref!.name}`;
     }
 
     private invocation(expr: InvocationExpr) {

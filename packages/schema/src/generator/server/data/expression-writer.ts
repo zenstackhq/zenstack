@@ -3,6 +3,7 @@ import {
     Expression,
     isDataModel,
     isDataModelField,
+    isEnumField,
     isMemberAccessExpr,
     isReferenceExpr,
     LiteralExpr,
@@ -10,18 +11,18 @@ import {
     ReferenceExpr,
     ThisExpr,
     UnaryExpr,
-} from '../../language-server/generated/ast';
+} from '@lang/generated/ast';
 import { CodeBlockWriter } from 'ts-morph';
-import { GeneratorError } from '../types';
-import { TypedNode } from '../../language-server/types';
-import JsExpressionBuilder from './js-expression-builder';
+import { GeneratorError } from '../../types';
+import { TypedNode } from '@lang/types';
+import PlainExpressionBuilder from './plain-expression-builder';
 
 const AUX_GUARD_FIELD = 'zenstack_guard';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
 export default class ExpressionWriter {
-    private readonly jsExpr = new JsExpressionBuilder();
+    private readonly plainExprBuilder = new PlainExpressionBuilder();
 
     constructor(private readonly writer: CodeBlockWriter) {}
 
@@ -60,15 +61,23 @@ export default class ExpressionWriter {
     }
 
     private writeReference(expr: ReferenceExpr) {
-        if (!isDataModelField(expr.target.ref)) {
-            throw new GeneratorError('must be a field in current model');
+        if (isEnumField(expr.target.ref)) {
+            throw new Error('Not implemented');
+        } else {
+            this.writer.write(`${expr.target.ref!.name}: true`);
         }
-        this.writer.write(`${expr.target.ref.name}: true`);
     }
 
     private writeMemberAccess(expr: MemberAccessExpr) {
-        this.write(expr.operand);
-        this.writer.write('.' + expr.member.ref?.name);
+        this.writeFieldCondition(
+            expr.operand,
+            () => {
+                this.writer.block(() => {
+                    this.writer.write(`${expr.member.ref?.name}: true`);
+                });
+            },
+            'is'
+        );
     }
 
     private writeExprList(exprs: Expression[]) {
@@ -130,7 +139,7 @@ export default class ExpressionWriter {
     }
 
     private plain(expr: Expression) {
-        this.writer.write(this.jsExpr.build(expr));
+        this.writer.write(this.plainExprBuilder.build(expr));
     }
 
     private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
@@ -180,7 +189,7 @@ export default class ExpressionWriter {
                         this.writer.block(() => {
                             this.writeOperator(operator, () => {
                                 this.plain(operand);
-                                this.writer.write('.id');
+                                this.writer.write('?.id');
                             });
                         });
                     } else {
@@ -290,8 +299,7 @@ export default class ExpressionWriter {
             case '==':
                 return 'equals';
             case '!=':
-                // TODO
-                return 'not_equal';
+                throw new Error('Operation != should have been compiled away');
             case '>':
                 return 'gt';
             case '>=':

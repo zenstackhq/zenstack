@@ -1,7 +1,7 @@
-import { Context } from '../types';
+import { Context } from '../../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
-import { ServerCodeGenerator } from './server-code-generator';
+import { ServerCodeGenerator } from '../server-code-generator';
 
 export default class FunctionServerGenerator implements ServerCodeGenerator {
     generate(project: Project, context: Context) {

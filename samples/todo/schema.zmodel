@@ -19,7 +19,7 @@ model Space {
     name String @length(1, 100)
     slug String @unique @length(1, 20)
     members SpaceUser[]
-    todoLists TodoList[]
+    todoCollections TodoCollection[]
 
     // require login
     @@deny('all', auth() == null)
@@ -66,7 +66,7 @@ model User {
     name String? @length(1, 100)
     spaces SpaceUser[]
     image String? @url
-    todoLists TodoList[]
+    todoCollections TodoCollection[]
     todos Todo[]
     accounts      Account[]
     sessions      Session[]
@@ -115,7 +115,7 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-model TodoList {
+model TodoCollection {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -143,14 +143,15 @@ model Todo {
     updatedAt DateTime @updatedAt
     owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId String
-    todoList TodoList @relation(fields: [todoListId], references: [id], onDelete: Cascade)
-    todoListId String
+    todoCollection TodoCollection @relation(fields: [todoCollectionId], references: [id], onDelete: Cascade)
+    todoCollectionId String
     title String
     completedAt DateTime?
 
     // require login
     @@deny('all', auth() == null)
 
-    // owner has full access, also space members have full access (if the parent TodoList is not private)
-    @@allow('all', todoList.owner == auth() || (todoList.space.members?[user == auth()] && !todoList.private))
+    // owner has full access, also space members have full access (if the parent TodoCollection is not private)
+    @@allow('all', todoCollection.owner == auth())
+    @@allow('all', todoCollection.space.members?[user == auth()] && !todoCollection.private)
 }

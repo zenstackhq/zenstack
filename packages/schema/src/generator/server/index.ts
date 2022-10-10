@@ -1,8 +1,8 @@
 import { Project } from 'ts-morph';
 import { Context, Generator } from '../types';
 import * as path from 'path';
-import DataServerGenerator from './data-generator';
-import FunctionServerGenerator from './function-generator';
+import DataServerGenerator from './data/data-generator';
+import FunctionServerGenerator from './function/function-generator';
 
 export default class ServerGenerator implements Generator {
     async generate(context: Context) {
@@ -22,11 +22,13 @@ export default class ServerGenerator implements Generator {
         import dataHandler from './data';
         import functionHandler from './function';
         
+        export type AuthUser = { id: string } & Record<string, any>;
+
         export type RequestionHandlerOptions = {
             getServerUser: (
                 req: NextApiRequest,
                 res: NextApiResponse
-            ) => Promise<{ id: string } | undefined>;
+            ) => Promise<AuthUser | undefined>;
         };
         
         export function RequestHandler(options: RequestionHandlerOptions) {

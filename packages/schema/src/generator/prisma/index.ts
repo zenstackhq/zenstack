@@ -17,7 +17,7 @@ import {
     isLiteralExpr,
     isReferenceExpr,
     LiteralExpr,
-} from '../../language-server/generated/ast';
+} from '@lang/generated/ast';
 import { Context, Generator, GeneratorError } from '../types';
 import {
     AttributeArg as PrismaAttributeArg,
