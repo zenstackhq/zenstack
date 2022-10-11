@@ -24,14 +24,14 @@ export default class ServerGenerator implements Generator {
         
         export type AuthUser = { id: string } & Record<string, any>;
 
-        export type RequestionHandlerOptions = {
+        export type RequestHandlerOptions = {
             getServerUser: (
                 req: NextApiRequest,
                 res: NextApiResponse
             ) => Promise<AuthUser | undefined>;
         };
         
-        export function RequestHandler(options: RequestionHandlerOptions) {
+        export function RequestHandler(options: RequestHandlerOptions) {
             return async (req: NextApiRequest, res: NextApiResponse) => {
                 const [route, ...rest] = req.query.path as string[];
                 switch (route) {

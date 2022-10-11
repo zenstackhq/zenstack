@@ -6,10 +6,10 @@ import {
     isEnumField,
     isMemberAccessExpr,
     isReferenceExpr,
+    isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
     ReferenceExpr,
-    ThisExpr,
     UnaryExpr,
 } from '@lang/generated/ast';
 import { CodeBlockWriter } from 'ts-morph';
@@ -49,20 +49,17 @@ export default class ExpressionWriter {
                     this.writeMemberAccess(expr as MemberAccessExpr);
                     break;
 
-                case ThisExpr:
-                    throw new Error('Not implemented');
-
                 default:
                     throw new Error(`Not implemented: ${expr.$type}`);
             }
         };
 
-        this.writer.block(_write);
+        this.block(_write);
     }
 
     private writeReference(expr: ReferenceExpr) {
         if (isEnumField(expr.target.ref)) {
-            throw new Error('Not implemented');
+            throw new Error('We should never get here');
         } else {
             this.writer.write(`${expr.target.ref!.name}: true`);
         }
@@ -72,7 +69,7 @@ export default class ExpressionWriter {
         this.writeFieldCondition(
             expr.operand,
             () => {
-                this.writer.block(() => {
+                this.block(() => {
                     this.writer.write(`${expr.member.ref?.name}: true`);
                 });
             },
@@ -125,12 +122,17 @@ export default class ExpressionWriter {
         );
     }
 
-    private isFieldRef(expr: Expression): expr is ReferenceExpr {
+    private isFieldAccess(expr: Expression): boolean {
+        if (isThisExpr(expr)) {
+            return true;
+        }
+        if (isMemberAccessExpr(expr)) {
+            return this.isFieldAccess(expr.operand);
+        }
         if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     private guard(write: () => void) {
@@ -143,11 +145,8 @@ export default class ExpressionWriter {
     }
 
     private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
-        const leftIsFieldAccess =
-            this.isFieldRef(expr.left) || this.isRelationFieldAccess(expr.left);
-        const rightIsFieldAccess =
-            this.isFieldRef(expr.right) ||
-            this.isRelationFieldAccess(expr.right);
+        const leftIsFieldAccess = this.isFieldAccess(expr.left);
+        const rightIsFieldAccess = this.isFieldAccess(expr.right);
 
         if (leftIsFieldAccess && rightIsFieldAccess) {
             throw new GeneratorError(
@@ -177,27 +176,30 @@ export default class ExpressionWriter {
             operator = this.negateOperator(operator);
         }
 
-        const type = (fieldAccess as TypedNode).$resolvedType?.decl;
-
         this.writeFieldCondition(
             fieldAccess,
             () => {
-                this.writer.block(() => {
-                    if (isDataModel(type)) {
-                        // comparing with an object, conver to "id" comparison instead
-                        this.writer.write('id: ');
-                        this.writer.block(() => {
+                this.block(
+                    () => {
+                        if (this.isModelTyped(fieldAccess)) {
+                            // comparing with an object, conver to "id" comparison instead
+                            this.writer.write('id: ');
+                            this.block(() => {
+                                this.writeOperator(operator, () => {
+                                    this.plain(operand);
+                                    this.writer.write('?.id');
+                                });
+                            });
+                        } else {
                             this.writeOperator(operator, () => {
                                 this.plain(operand);
-                                this.writer.write('?.id');
                             });
-                        });
-                    } else {
-                        this.writeOperator(operator, () => {
-                            this.plain(operand);
-                        });
-                    }
-                });
+                        }
+                    },
+                    // "this" expression is compiled away (to .id access), so we should
+                    // avoid generating a new layer
+                    !isThisExpr(fieldAccess)
+                );
             },
             'is'
         );
@@ -210,7 +212,7 @@ export default class ExpressionWriter {
         if (operator === '!=') {
             // wrap a 'not'
             this.writer.write('not: ');
-            this.writer.block(() => {
+            this.block(() => {
                 this.writeOperator('==', writeOperand);
             });
         } else {
@@ -227,7 +229,11 @@ export default class ExpressionWriter {
         let selector: string;
         let operand: Expression | undefined;
 
-        if (isReferenceExpr(fieldAccess)) {
+        if (isThisExpr(fieldAccess)) {
+            // pass on
+            writeCondition();
+            return;
+        } else if (isReferenceExpr(fieldAccess)) {
             selector = fieldAccess.target.ref?.name!;
         } else if (isMemberAccessExpr(fieldAccess)) {
             selector = fieldAccess.member.ref?.name!;
@@ -243,26 +249,31 @@ export default class ExpressionWriter {
             this.writeFieldCondition(
                 operand,
                 () => {
-                    this.writer.block(() => {
-                        this.writer.write(selector + ': ');
-                        if (this.isModelTyped(fieldAccess)) {
-                            // expression is resolved to a model, generate relation query
-                            this.writer.block(() => {
-                                this.writer.write(`${relationOp}: `);
+                    this.block(
+                        () => {
+                            this.writer.write(selector + ': ');
+                            if (this.isModelTyped(fieldAccess)) {
+                                // expression is resolved to a model, generate relation query
+                                this.block(() => {
+                                    this.writer.write(`${relationOp}: `);
+                                    writeCondition();
+                                });
+                            } else {
+                                // generate plain query
                                 writeCondition();
-                            });
-                        } else {
-                            // generate plain query
-                            writeCondition();
-                        }
-                    });
+                            }
+                        },
+                        // if operand is "this", it doesn't really generate a new layer of query,
+                        // so we should avoid generating a new block
+                        !isThisExpr(operand)
+                    );
                 },
                 'is'
             );
         } else if (this.isModelTyped(fieldAccess)) {
             // reference resolved to a model, generate relation query
             this.writer.write(selector + ': ');
-            this.writer.block(() => {
+            this.block(() => {
                 this.writer.write(`${relationOp}: `);
                 writeCondition();
             });
@@ -273,25 +284,16 @@ export default class ExpressionWriter {
         }
     }
 
-    private isModelTyped(expr: Expression) {
-        return isDataModel((expr as TypedNode).$resolvedType?.decl);
+    private block(write: () => void, condition = true) {
+        if (condition) {
+            this.writer.block(write);
+        } else {
+            write();
+        }
     }
 
-    private isRelationFieldAccess(expr: Expression): boolean {
-        if (isMemberAccessExpr(expr)) {
-            return this.isRelationFieldAccess(expr.operand);
-        }
-
-        if (
-            isReferenceExpr(expr) &&
-            isDataModelField(expr.target.ref) &&
-            expr.target.ref.type.reference &&
-            isDataModel(expr.target.ref.type.reference.ref)
-        ) {
-            return true;
-        }
-
-        return false;
+    private isModelTyped(expr: Expression) {
+        return isDataModel((expr as TypedNode).$resolvedType?.decl);
     }
 
     mapOperator(operator: '==' | '!=' | '>' | '>=' | '<' | '<=') {

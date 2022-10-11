@@ -20,8 +20,7 @@
             "@lib/*": ["lib/*"],
             "@components/*": ["lib/components/*"],
             "@components": ["lib/components/index"],
-            "@zenstack/*": [".zenstack/*"],
-            "@zenstack": [".zenstack/index"]
+            "@zenstack/*": [".zenstack/*"]
         }
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],

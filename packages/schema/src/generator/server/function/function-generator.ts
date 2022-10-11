@@ -11,13 +11,13 @@ export default class FunctionServerGenerator implements ServerCodeGenerator {
     private generateIndex(project: Project, context: Context) {
         const content = `
             import type { NextApiRequest, NextApiResponse } from 'next';
-            import { RequestionHandlerOptions } from '..';
+            import { RequestHandlerOptions } from '..';
             
             export default async function (
                 req: NextApiRequest,
                 res: NextApiResponse,
                 path: string[],
-                options: RequestionHandlerOptions
+                options: RequestHandlerOptions
             ) {
                 throw new Error('Not implemented');
             }

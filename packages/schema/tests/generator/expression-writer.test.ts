@@ -1,8 +1,10 @@
 import { Project, VariableDeclarationKind } from 'ts-morph';
 import {
     DataModel,
+    Enum,
     Expression,
     isDataModel,
+    isEnum,
 } from '../../src/language-server/generated/ast';
 import { loadModel } from '../utils';
 import * as tmp from 'tmp';
@@ -27,10 +29,32 @@ async function check(
         overwrite: true,
     });
 
+    // inject user variable
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [{ name: 'user', initializer: '{ id: "user1" }' }],
     });
+
+    // inject enums
+    model.declarations
+        .filter((d) => isEnum(d))
+        .map((e) => {
+            sf.addVariableStatement({
+                declarationKind: VariableDeclarationKind.Const,
+                declarations: [
+                    {
+                        name: e.name,
+                        initializer: `
+              {
+                ${(e as Enum).fields
+                    .map((f) => `${f.name}: "${f.name}"`)
+                    .join(',\n')}
+              }
+              `,
+                    },
+                ],
+            });
+        });
 
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
@@ -112,6 +136,23 @@ describe('Expression Writer Tests', () => {
         );
     });
 
+    it('enum', async () => {
+        await check(
+            `
+            enum Role {
+                USER
+                ADMIN
+            }
+            model Test {
+                role Role
+                @@allow('all', role == ADMIN)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{ role: { equals: Role.ADMIN } }`
+        );
+    });
+
     it('field against literal', async () => {
         await check(
             `
@@ -139,6 +180,55 @@ describe('Expression Writer Tests', () => {
             `{
                 label: {
                     equals: 'thing'
+                }
+            }`
+        );
+    });
+
+    it('this reference', async () => {
+        await check(
+            `
+            model Test {
+                id String @id
+                @@allow('all', auth() == this)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                id: {
+                    equals: user?.id
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                @@deny('all', this != auth())
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                id: {
+                    not: {
+                        equals: user?.id
+                    }
+                }
+            }`
+        );
+
+        await check(
+            `
+            model Test {
+                x Int
+                @@allow('all', this.x > 0)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                x: {
+                    gt: 0
                 }
             }`
         );
@@ -534,52 +624,52 @@ describe('Expression Writer Tests', () => {
 
         await check(
             `
-            model User {
-                id String @id
-            }
+                model User {
+                    id String @id
+                }
 
-            model Test {
-                id String @id
-                owner User
-                @@deny('all', auth() != owner)
-            }
-            `,
+                model Test {
+                    id String @id
+                    owner User
+                    @@deny('all', auth() != owner)
+                }
+                `,
             (model) => model.attributes[0].args[1].value,
             `{
-                owner: {
-                    is: {
-                        id: {
-                            not: {
-                                equals: user?.id
+                    owner: {
+                        is: {
+                            id: {
+                                not: {
+                                    equals: user?.id
+                                }
                             }
                         }
                     }
-                }
-            }`
+                }`
         );
 
         await check(
             `
-            model User {
-                id String @id
-            }
+                model User {
+                    id String @id
+                }
 
-            model Test {
-                id String @id
-                owner User
-                @@allow('all', auth().id == owner.id)
-            }
-            `,
+                model Test {
+                    id String @id
+                    owner User
+                    @@allow('all', auth().id == owner.id)
+                }
+                `,
             (model) => model.attributes[0].args[1].value,
             `{
-                owner: {
-                    is: {
-                        id: {
-                            equals: user?.id
+                    owner: {
+                        is: {
+                            id: {
+                                equals: user?.id
+                            }
                         }
                     }
-                }
-            }`
+                }`
         );
     });
 });

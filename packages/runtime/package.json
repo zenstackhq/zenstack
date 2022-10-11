@@ -6,6 +6,7 @@
     "types": "lib/index.d.ts",
     "scripts": {
         "build": "tsc",
+        "watch": "tsc --watch",
         "npm-publish": "pnpm build && pnpm publish --no-git-checks --access public"
     },
     "keywords": [],
@@ -15,9 +16,11 @@
         "lib/**/*"
     ],
     "dependencies": {
+        "deepcopy": "^2.1.0",
         "swr": "^1.3.0"
     },
     "peerDependencies": {
+        "next": "12.3.1",
         "react": "^17.0.2 || ^18",
         "react-dom": "^17.0.2 || ^18"
     },

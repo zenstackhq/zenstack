@@ -2,6 +2,7 @@ import { Context, Generator } from '../types';
 import { Project, StructureKind } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
+import { RUNTIME_PACKAGE } from '../constants';
 
 export default class ServiceGenerator implements Generator {
     async generate(context: Context) {
@@ -17,9 +18,16 @@ export default class ServiceGenerator implements Generator {
             moduleSpecifier: './.prisma',
         });
 
+        sf.addImportDeclaration({
+            namedImports: ['Service', 'PolicyOperationKind', 'QueryContext'],
+            moduleSpecifier: RUNTIME_PACKAGE,
+            isTypeOnly: true,
+        });
+
         const cls = sf.addClass({
             name: 'ZenStackService',
             isExported: true,
+            implements: ['Service<PrismaClient>'],
         });
         cls.addMember({
             kind: StructureKind.Property,
@@ -32,6 +40,31 @@ export default class ServiceGenerator implements Generator {
         })
             .addBody()
             .setBodyText('return this._prisma;');
+
+        cls
+            .addMethod({
+                name: 'buildQueryGuard',
+                isAsync: true,
+                parameters: [
+                    {
+                        name: 'model',
+                        type: 'string',
+                    },
+                    {
+                        name: 'operation',
+                        type: 'PolicyOperationKind',
+                    },
+                    {
+                        name: 'context',
+                        type: 'QueryContext',
+                    },
+                ],
+            })
+            .addBody().setBodyText(`
+                const module: any = await import('./query/guard');
+                const provider: (context: QueryContext) => any = module[model+ '_' + operation];
+                return provider(context);
+            `);
 
         sf.addStatements(['export default new ZenStackService();']);
 

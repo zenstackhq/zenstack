@@ -3,10 +3,13 @@ import {
     ArrayExpr,
     Expression,
     InvocationExpr,
+    isEnumField,
+    isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
     ReferenceExpr,
+    ThisExpr,
 } from '@lang/generated/ast';
 
 export default class PlainExpressionBuilder {
@@ -20,6 +23,9 @@ export default class PlainExpressionBuilder {
 
             case NullExpr:
                 return this.null();
+
+            case ThisExpr:
+                return this.this(expr as ThisExpr);
 
             case ReferenceExpr:
                 return this.reference(expr as ReferenceExpr);
@@ -37,8 +43,17 @@ export default class PlainExpressionBuilder {
         }
     }
 
+    private this(expr: ThisExpr) {
+        // "this" is mapped to id comparison
+        return 'id';
+    }
+
     private memberAccess(expr: MemberAccessExpr) {
-        return `${this.build(expr.operand)}?.${expr.member.ref!.name}`;
+        if (isThisExpr(expr.operand)) {
+            return expr.member.ref!.name;
+        } else {
+            return `${this.build(expr.operand)}?.${expr.member.ref!.name}`;
+        }
     }
 
     private invocation(expr: InvocationExpr) {
@@ -51,7 +66,11 @@ export default class PlainExpressionBuilder {
     }
 
     private reference(expr: ReferenceExpr) {
-        return expr.target.ref!.name;
+        if (isEnumField(expr.target.ref)) {
+            return `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
+        } else {
+            return expr.target.ref!.name;
+        }
     }
 
     private null() {

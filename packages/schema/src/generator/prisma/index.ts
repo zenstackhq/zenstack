@@ -13,6 +13,7 @@ import {
     Expression,
     InvocationExpr,
     isArrayExpr,
+    isEnum,
     isInvocationExpr,
     isLiteralExpr,
     isReferenceExpr,
@@ -34,6 +35,12 @@ import {
     ModelFieldType,
 } from './prisma-builder';
 import { execSync } from 'child_process';
+import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { RUNTIME_PACKAGE } from '../constants';
+import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
+import ExpressionWriter from '../server/data/expression-writer';
+import { extractDataModelsWithAllowRules } from '../utils';
+import { camelCase } from 'change-case';
 
 const supportedProviders = ['postgresql', 'mysql', 'sqlite', 'sqlserver'];
 const supportedAttrbutes = [
@@ -48,6 +55,19 @@ const supportedAttrbutes = [
 
 export default class PrismaGenerator implements Generator {
     async generate(context: Context) {
+        // generate prisma schema
+        const schemaFile = await this.generateSchema(context);
+
+        // run prisma generate and install @prisma/client
+        await this.generatePrismaClient(schemaFile);
+
+        // generate prisma query guard
+        await this.generateQueryGuard(context);
+
+        console.log(colors.blue(`  ✔️ Prisma schema and query code generated`));
+    }
+
+    private async generateSchema(context: Context) {
         const { schema } = context;
         const prisma = new PrismaModel();
 
@@ -75,22 +95,18 @@ export default class PrismaGenerator implements Generator {
 
         const outFile = path.join(context.outDir, 'schema.prisma');
         await writeFile(outFile, prisma.toString());
-        console.log(colors.blue(`  ✔️ Prisma schema generated`));
-
-        // run prisma generate and install @prisma/client
-        await this.generatePrismaClient(outFile);
+        return outFile;
     }
 
     async generatePrismaClient(schemaFile: string) {
         try {
-            execSync('npx prisma');
+            execSync('npx prisma -v');
         } catch (err) {
             execSync(`npm i prisma @prisma/client`);
             console.log(colors.blue('  ✔️ Prisma package installed'));
         }
 
         execSync(`npx prisma generate --schema "${schemaFile}"`);
-        console.log(colors.blue('  ✔️ Prisma client generated'));
     }
 
     private isStringLiteral(node: AstNode): node is LiteralExpr {
@@ -319,5 +335,161 @@ export default class PrismaGenerator implements Generator {
             decl.name,
             decl.fields.map((f) => f.name)
         );
+    }
+
+    private async generateQueryGuard(context: Context) {
+        const project = new Project();
+        const sf = project.createSourceFile(
+            path.join(context.outDir, 'query/guard.ts'),
+            undefined,
+            { overwrite: true }
+        );
+
+        sf.addImportDeclaration({
+            namedImports: [{ name: 'QueryContext' }],
+            moduleSpecifier: RUNTIME_PACKAGE,
+            isTypeOnly: true,
+        });
+
+        // import enums
+        for (const e of context.schema.declarations.filter((d) => isEnum(d))) {
+            sf.addImportDeclaration({
+                namedImports: [{ name: e.name }],
+                moduleSpecifier: '../.prisma',
+            });
+        }
+
+        const models = extractDataModelsWithAllowRules(context.schema);
+        models.forEach((model) =>
+            this.generateQueryGuardForModel(model as DataModel, sf)
+        );
+
+        sf.formatText({});
+        await project.save();
+    }
+
+    private getPolicyExpressions(
+        model: DataModel,
+        kind: PolicyKind,
+        operation: PolicyOperationKind
+    ) {
+        const attrs = model.attributes.filter(
+            (attr) => attr.decl.ref?.name === kind
+        );
+        return attrs
+            .filter((attr) => {
+                if (
+                    !isLiteralExpr(attr.args[0].value) ||
+                    typeof attr.args[0].value.value !== 'string'
+                ) {
+                    return false;
+                }
+                const ops = attr.args[0].value.value
+                    .split(',')
+                    .map((s) => s.trim());
+                return ops.includes(operation) || ops.includes('all');
+            })
+            .map((attr) => attr.args[1].value);
+    }
+
+    private async generateQueryGuardForModel(
+        model: DataModel,
+        sourceFile: SourceFile
+    ) {
+        for (const kind of ['create', 'update', 'read', 'delete']) {
+            const func = sourceFile
+                .addFunction({
+                    name: camelCase(model.name) + '_' + kind,
+                    returnType: 'any',
+                    parameters: [
+                        {
+                            name: 'context',
+                            type: 'QueryContext',
+                        },
+                    ],
+                    isExported: true,
+                })
+                .addBody();
+
+            func.addStatements('const { user } = context;');
+
+            // r = <guard object>;
+            func.addVariableStatement({
+                declarationKind: VariableDeclarationKind.Const,
+                declarations: [
+                    {
+                        name: 'r',
+                        initializer: (writer) => {
+                            const exprWriter = new ExpressionWriter(writer);
+                            const denies = this.getPolicyExpressions(
+                                model,
+                                'deny',
+                                kind as PolicyOperationKind
+                            );
+                            const allows = this.getPolicyExpressions(
+                                model,
+                                'allow',
+                                kind as PolicyOperationKind
+                            );
+
+                            const writeDenies = () => {
+                                writer.conditionalWrite(
+                                    denies.length > 1,
+                                    '{ AND: ['
+                                );
+                                denies.forEach((expr, i) => {
+                                    writer.block(() => {
+                                        writer.write('NOT: ');
+                                        exprWriter.write(expr);
+                                    });
+                                    writer.conditionalWrite(
+                                        i !== denies.length - 1,
+                                        ','
+                                    );
+                                });
+                                writer.conditionalWrite(
+                                    denies.length > 1,
+                                    ']}'
+                                );
+                            };
+
+                            const writeAllows = () => {
+                                writer.conditionalWrite(
+                                    allows.length > 1,
+                                    '{ OR: ['
+                                );
+                                allows.forEach((expr, i) => {
+                                    exprWriter.write(expr);
+                                    writer.conditionalWrite(
+                                        i !== allows.length - 1,
+                                        ','
+                                    );
+                                });
+                                writer.conditionalWrite(
+                                    allows.length > 1,
+                                    ']}'
+                                );
+                            };
+
+                            if (allows.length > 0 && denies.length > 0) {
+                                writer.writeLine('{ AND: [');
+                                writeDenies();
+                                writer.writeLine(',');
+                                writeAllows();
+                                writer.writeLine(']}');
+                            } else if (denies.length > 0) {
+                                writeDenies();
+                            } else if (allows.length > 0) {
+                                writeAllows();
+                            } else {
+                                writer.write('undefined');
+                            }
+                        },
+                    },
+                ],
+            });
+
+            func.addStatements('return r;');
+        }
     }
 }

@@ -45,14 +45,14 @@ export default class DataServerGenerator implements ServerCodeGenerator {
     ) {
         const content = `
         import type { NextApiRequest, NextApiResponse } from 'next';
-        import { RequestionHandlerOptions } from '..';
+        import { RequestHandlerOptions } from '..';
         ${models.map((model) => this.writeModelImport(model)).join('\n')}    
         
         export default async function (
             req: NextApiRequest,
             res: NextApiResponse,
             path: string[],
-            options: RequestionHandlerOptions
+            options: RequestHandlerOptions
         ) {
             const [type, ...rest] = path;
             switch (type) {
@@ -75,12 +75,12 @@ export default class DataServerGenerator implements ServerCodeGenerator {
     private generateUtils(project: Project, context: Context) {
         const content = `
         import type { NextApiRequest, NextApiResponse } from 'next';
-        import { RequestionHandlerOptions } from '..';
+        import { RequestHandlerOptions } from '..';
         
         export async function getUser(
             req: NextApiRequest,
             res: NextApiResponse,
-            options: RequestionHandlerOptions
+            options: RequestHandlerOptions
         ) {
             return await options.getServerUser(req, res);
         }
@@ -125,8 +125,8 @@ export default class DataServerGenerator implements ServerCodeGenerator {
     ) {
         const content = `
         import type { NextApiRequest, NextApiResponse } from 'next';
-        import type { Prisma } from '@zenstack/.prisma';
-        import { RequestionHandlerOptions } from '..';
+        import type { Prisma as P } from '@zenstack/.prisma';
+        import { RequestHandlerOptions } from '..';
         import service from '@zenstack/service';
         import { getUser, notFound } from './_utils';
     
@@ -134,7 +134,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             req: NextApiRequest,
             res: NextApiResponse,
             path: string[],
-            options: RequestionHandlerOptions
+            options: RequestHandlerOptions
         ) {
             switch (req.method) {
                 case 'GET':
@@ -208,7 +208,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
 
         parameters.push({
             name: 'options',
-            type: 'RequestionHandlerOptions',
+            type: 'RequestHandlerOptions',
         });
 
         const func = sourceFile
@@ -240,7 +240,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
         const func = this.generateServeFunction(sourceFile, model, 'find');
 
         func.addStatements([
-            `const query: Prisma.${model.name}FindManyArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
+            `const query: P.${model.name}FindManyArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
         ]);
 
         func.addVariableStatement({
@@ -248,7 +248,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             declarations: [
                 {
                     name: 'args',
-                    type: `Prisma.${model.name}FindManyArgs`,
+                    type: `P.${model.name}FindManyArgs`,
                     initializer: (writer) => {
                         writer.block(() => {
                             writer.writeLine('...query,');
@@ -276,7 +276,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
         const func = this.generateServeFunction(sourceFile, model, 'get');
 
         func.addStatements([
-            `const query: Prisma.${model.name}FindFirstArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
+            `const query: P.${model.name}FindFirstArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
         ]);
 
         func.addVariableStatement({
@@ -284,7 +284,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             declarations: [
                 {
                     name: 'args',
-                    type: `Prisma.${model.name}FindFirstArgs`,
+                    type: `P.${model.name}FindFirstArgs`,
                     initializer: (writer) => {
                         writer.block(() => {
                             writer.writeLine('...query,');
@@ -338,7 +338,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             declarations: [
                 {
                     name: 'args',
-                    type: `Prisma.${model.name}CreateArgs`,
+                    type: `P.${model.name}CreateArgs`,
                     initializer: 'req.body',
                 },
             ],
@@ -366,7 +366,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
             declarations: [
                 {
                     name: 'body',
-                    type: `Prisma.${model.name}UpdateArgs`,
+                    type: `P.${model.name}UpdateArgs`,
                     initializer: 'req.body',
                 },
             ],
@@ -393,7 +393,7 @@ export default class DataServerGenerator implements ServerCodeGenerator {
         const func = this.generateServeFunction(sourceFile, model, 'del');
 
         func.addStatements([
-            `const args: Prisma.${model.name}DeleteArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
+            `const args: P.${model.name}DeleteArgs = req.query.q? (JSON.parse(req.query.q as string)): {};`,
         ]);
 
         // TODO: policy

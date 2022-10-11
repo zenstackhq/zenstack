@@ -1,7 +1,7 @@
 {
-    "name": "@zenstackhq/schema",
-    "displayName": "ZenStack Data Modeling Schema Language",
-    "description": "Please enter a brief description here",
+    "name": "zenstack",
+    "displayName": "ZenStack CLI and Language Tools",
+    "description": "ZenStack CLI and Language Tools",
     "version": "0.1.0",
     "engines": {
         "vscode": "^1.56.0"
@@ -59,6 +59,7 @@
         "test": "jest"
     },
     "dependencies": {
+        "@zenstackhq/runtime": "workspace:0.1.1",
         "change-case": "^4.1.2",
         "chevrotain": "^9.1.0",
         "colors": "^1.4.0",
