@@ -4,7 +4,7 @@
         "module": "ESNext",
         "lib": ["ESNext", "DOM"],
         "sourceMap": true,
-        "outDir": "./lib",
+        "outDir": "lib",
         "strict": true,
         "noUnusedLocals": true,
         "noImplicitReturns": true,
@@ -12,7 +12,9 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "declaration": true
+        "declaration": true,
+        "resolveJsonModule": true,
+        "paths": {}
     },
     "include": ["src/**/*.ts"],
     "exclude": ["lib", "node_modules"]

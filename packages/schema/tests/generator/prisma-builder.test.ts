@@ -13,7 +13,6 @@ import { getDMMF } from '@prisma/internals';
 
 async function validate(model: PrismaModel) {
     const content = model.toString();
-    console.log(`Prisma content:\n${content}`);
     try {
         return await getDMMF({ datamodel: content });
     } catch (err) {

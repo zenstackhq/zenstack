@@ -1,13 +1,18 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { RequestHandlerOptions } from '../request-handler';
-import { PolicyOperationKind, QueryContext, Service } from '../types';
-import deepcopy from 'deepcopy';
+import { RequestHandlerOptions } from '../../request-handler';
+import { QueryContext, Service } from '../../types';
+import { RequestHandler } from '../types';
+import { QueryProcessor } from './query-processor';
 
-export default class DataHandler<DbClient> {
+export default class DataHandler<DbClient> implements RequestHandler {
+    private readonly queryProcessor: QueryProcessor;
+
     constructor(
         private readonly service: Service<DbClient>,
         private readonly options: RequestHandlerOptions
-    ) {}
+    ) {
+        this.queryProcessor = new QueryProcessor(service);
+    }
 
     async handle(req: NextApiRequest, res: NextApiResponse, path: string[]) {
         const [model, id] = path;
@@ -43,7 +48,12 @@ export default class DataHandler<DbClient> {
     ) {
         const db = (this.service.db as any)[model];
         const args = req.query.q ? JSON.parse(req.query.q as string) : {};
-        const processedArgs = this.processDbArgs(model, args, 'read', context);
+        const processedArgs = await this.queryProcessor.processQueryArgs(
+            model,
+            args,
+            'read',
+            context
+        );
 
         let r;
         if (id) {
@@ -55,36 +65,24 @@ export default class DataHandler<DbClient> {
                 processedArgs.where = { id };
             }
             r = await db.findFirst(processedArgs);
+            if (!r) {
+                res.status(404).send({ error: `${model} not found` });
+                return;
+            }
         } else {
             r = await db.findMany(processedArgs);
         }
 
-        this.postProcess(r);
+        await this.queryProcessor.postProcess(
+            model,
+            processedArgs,
+            r,
+            'read',
+            context
+        );
 
         res.status(200).send(r);
     }
-
-    private processDbArgs(
-        model: string,
-        args: any,
-        action: PolicyOperationKind,
-        context: QueryContext
-    ) {
-        const r = deepcopy(args);
-        const guard = this.service.buildQueryGuard(model, action, context);
-        if (guard) {
-            if (!r.where) {
-                r.where = guard;
-            } else {
-                r.where = {
-                    AND: [guard, r.where],
-                };
-            }
-        }
-        return r;
-    }
-
-    private async postProcess(r: any) {}
 
     private post(
         req: NextApiRequest,

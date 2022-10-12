@@ -16,12 +16,16 @@ export type QueryContext = {
     user?: AuthUser;
 };
 
-export interface Service<DbClient> {
+export type FieldInfo = { type: string; isArray: boolean };
+
+export interface Service<DbClient = any> {
     get db(): DbClient;
+
+    resolveField(model: string, field: string): Promise<FieldInfo | undefined>;
 
     buildQueryGuard(
         model: string,
-        spec: PolicyOperationKind,
+        operation: PolicyOperationKind,
         context: QueryContext
     ): any;
 }

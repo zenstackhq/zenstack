@@ -1,7 +1,7 @@
 import { Context, Generator } from '../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
-import { camelCase, paramCase } from 'change-case';
+import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../utils';
@@ -129,9 +129,7 @@ export default class ReactHooksGenerator implements Generator {
 
         sf.addStatements([`import * as request from './request';`]);
 
-        sf.addStatements(
-            `const endpoint = '/api/zen/data/${camelCase(model.name)}';`
-        );
+        sf.addStatements(`const endpoint = '/api/zen/data/${model.name}';`);
 
         const useFuncBody = sf
             .addFunction({

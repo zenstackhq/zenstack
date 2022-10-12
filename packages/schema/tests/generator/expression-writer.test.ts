@@ -8,6 +8,7 @@ import {
 } from '../../src/language-server/generated/ast';
 import { loadModel } from '../utils';
 import * as tmp from 'tmp';
+import { GUARD_FIELD_NAME } from '../../src/generator/constants';
 import expressionWriter from '../../src/generator/server/data/expression-writer';
 
 async function check(
@@ -98,7 +99,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: true }`
+            `{ ${GUARD_FIELD_NAME}: true }`
         );
 
         await check(
@@ -108,7 +109,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: false }`
+            `{ ${GUARD_FIELD_NAME}: false }`
         );
     });
 
@@ -583,7 +584,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: user == null }`
+            `{ ${GUARD_FIELD_NAME}: user == null }`
         );
 
         await check(
@@ -593,7 +594,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: user != null }`
+            `{ ${GUARD_FIELD_NAME}: user != null }`
         );
     });
 

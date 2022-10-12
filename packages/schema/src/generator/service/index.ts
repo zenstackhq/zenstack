@@ -43,6 +43,26 @@ export default class ServiceGenerator implements Generator {
 
         cls
             .addMethod({
+                name: 'resolveField',
+                isAsync: true,
+                parameters: [
+                    {
+                        name: 'model',
+                        type: 'string',
+                    },
+                    {
+                        name: 'field',
+                        type: 'string',
+                    },
+                ],
+            })
+            .addBody().setBodyText(`
+                const module: any = await import('./query/guard');
+                return module._fieldMapping?.[model]?.[field];
+            `);
+
+        cls
+            .addMethod({
                 name: 'buildQueryGuard',
                 isAsync: true,
                 parameters: [

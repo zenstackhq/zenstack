@@ -13,6 +13,7 @@ import {
     Expression,
     InvocationExpr,
     isArrayExpr,
+    isDataModel,
     isEnum,
     isInvocationExpr,
     isLiteralExpr,
@@ -36,11 +37,9 @@ import {
 } from './prisma-builder';
 import { execSync } from 'child_process';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
-import { RUNTIME_PACKAGE } from '../constants';
+import { GUARD_FIELD_NAME, RUNTIME_PACKAGE } from '../constants';
 import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import ExpressionWriter from '../server/data/expression-writer';
-import { extractDataModelsWithAllowRules } from '../utils';
-import { camelCase } from 'change-case';
 
 const supportedProviders = ['postgresql', 'mysql', 'sqlite', 'sqlserver'];
 const supportedAttrbutes = [
@@ -214,7 +213,7 @@ export default class PrismaGenerator implements Generator {
         }
 
         // add an "zenstack_guard" field for dealing with pure auth() related conditions
-        model.addField('zenstack_guard', 'Boolean', [
+        model.addField(GUARD_FIELD_NAME, 'Boolean', [
             new PrismaFieldAttribute('default', [
                 new PrismaAttributeArg(
                     undefined,
@@ -359,13 +358,47 @@ export default class PrismaGenerator implements Generator {
             });
         }
 
-        const models = extractDataModelsWithAllowRules(context.schema);
-        models.forEach((model) =>
-            this.generateQueryGuardForModel(model as DataModel, sf)
-        );
+        // const models = extractDataModelsWithAllowRules(context.schema);
+        const models = context.schema.declarations.filter((d) =>
+            isDataModel(d)
+        ) as DataModel[];
+
+        this.generateFieldMapping(models, sf);
+
+        models.forEach((model) => this.generateQueryGuardForModel(model, sf));
 
         sf.formatText({});
         await project.save();
+    }
+
+    private generateFieldMapping(models: DataModel[], sourceFile: SourceFile) {
+        const mapping = Object.fromEntries(
+            models.map((m) => [
+                m.name,
+                Object.fromEntries(
+                    m.fields
+                        .filter((f) => isDataModel(f.type.reference?.ref))
+                        .map((f) => [
+                            f.name,
+                            {
+                                type: f.type.reference!.ref!.name,
+                                isArray: f.type.array,
+                            },
+                        ])
+                ),
+            ])
+        );
+
+        sourceFile.addVariableStatement({
+            isExported: true,
+            declarationKind: VariableDeclarationKind.Const,
+            declarations: [
+                {
+                    name: '_fieldMapping',
+                    initializer: JSON.stringify(mapping),
+                },
+            ],
+        });
     }
 
     private getPolicyExpressions(
@@ -399,7 +432,7 @@ export default class PrismaGenerator implements Generator {
         for (const kind of ['create', 'update', 'read', 'delete']) {
             const func = sourceFile
                 .addFunction({
-                    name: camelCase(model.name) + '_' + kind,
+                    name: model.name + '_' + kind,
                     returnType: 'any',
                     parameters: [
                         {
@@ -482,7 +515,8 @@ export default class PrismaGenerator implements Generator {
                             } else if (allows.length > 0) {
                                 writeAllows();
                             } else {
-                                writer.write('undefined');
+                                // disallow any operation
+                                writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
                             }
                         },
                     },

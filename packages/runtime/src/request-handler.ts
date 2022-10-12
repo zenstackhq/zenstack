@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import DataHandler from './handler/data-handler';
+import { DataHandler } from './handler';
 import { AuthUser, Service } from './types';
 
 export type RequestHandlerOptions = {
