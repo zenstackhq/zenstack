@@ -9,7 +9,7 @@ import {
 import { loadModel } from '../utils';
 import * as tmp from 'tmp';
 import { GUARD_FIELD_NAME } from '../../src/generator/constants';
-import expressionWriter from '../../src/generator/server/data/expression-writer';
+import expressionWriter from '../../src/generator/prisma/expression-writer';
 
 async function check(
     schema: string,

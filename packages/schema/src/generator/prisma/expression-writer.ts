@@ -13,7 +13,7 @@ import {
     UnaryExpr,
 } from '@lang/generated/ast';
 import { CodeBlockWriter } from 'ts-morph';
-import { GeneratorError } from '../../types';
+import { GeneratorError } from '../types';
 import { TypedNode } from '@lang/types';
 import PlainExpressionBuilder from './plain-expression-builder';
 

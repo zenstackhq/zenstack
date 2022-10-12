@@ -8,17 +8,25 @@ export class QueryProcessor {
         model: string,
         args: any,
         operation: PolicyOperationKind,
-        context: QueryContext
+        context: QueryContext,
+        injectWhere: boolean = true
     ) {
         const r = args ? deepcopy(args) : {};
-        const guard = this.service.buildQueryGuard(model, operation, context);
-        if (guard) {
-            if (!r.where) {
-                r.where = guard;
-            } else {
-                r.where = {
-                    AND: [guard, r.where],
-                };
+
+        if (injectWhere) {
+            const guard = await this.service.buildQueryGuard(
+                model,
+                operation,
+                context
+            );
+            if (guard) {
+                if (!r.where) {
+                    r.where = guard;
+                } else {
+                    r.where = {
+                        AND: [guard, r.where],
+                    };
+                }
             }
         }
 
@@ -27,16 +35,23 @@ export class QueryProcessor {
             const selector = r.include ? 'include' : 'select';
             for (const [field, value] of Object.entries(r[selector])) {
                 const fieldInfo = await this.service.resolveField(model, field);
-                if (fieldInfo && fieldInfo.isArray) {
-                    // note that Prisma only allows to attach filter for "to-many" relation
-                    // query, so we need to handle "to-one" filter separately in post-processing
-                    const fieldGuard = await this.processQueryArgs(
-                        fieldInfo.type,
-                        value === true ? {} : value,
-                        operation,
-                        context
-                    );
-                    r[selector][field] = fieldGuard;
+                if (fieldInfo) {
+                    if (fieldInfo.isArray) {
+                        // note that Prisma only allows to attach filter for "to-many" relation
+                        // query, so we need to handle "to-one" filter separately in post-processing
+                        const fieldGuard = await this.processQueryArgs(
+                            fieldInfo.type,
+                            value === true ? {} : value,
+                            operation,
+                            context
+                        );
+                        r[selector][field] = fieldGuard;
+                    } else {
+                        // make sure "id" field is included so that we can do post-process filtering
+                        if (selector === 'select') {
+                            r[selector].id = true;
+                        }
+                    }
                 }
             }
         }

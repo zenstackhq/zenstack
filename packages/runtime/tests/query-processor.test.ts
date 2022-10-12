@@ -158,13 +158,15 @@ describe('Query Processor Tests', () => {
         );
         expect(r).toEqual(expect.objectContaining({ include: { list: true } }));
 
-        // select to-one, no processing
+        // select to-one, "id" is injected
         r = await processor.processQueryArgs(
             'Todo',
             { select: { list: true } },
             'read',
             {}
         );
-        expect(r).toEqual(expect.objectContaining({ select: { list: true } }));
+        expect(r).toEqual(
+            expect.objectContaining({ select: { id: true, list: true } })
+        );
     });
 });

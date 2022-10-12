@@ -1,4 +1,4 @@
-import { GeneratorError } from '../../types';
+import { GeneratorError } from '../types';
 import {
     ArrayExpr,
     Expression,

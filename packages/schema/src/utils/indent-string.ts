@@ -2,5 +2,5 @@
 
 export default function indentString(string: string, count = 4) {
     const indent = ' ';
-    return string.replace(/^/gm, indent.repeat(count));
+    return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
 }
