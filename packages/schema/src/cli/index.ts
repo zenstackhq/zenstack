@@ -4,13 +4,7 @@ import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
 import { Context } from '../generator/types';
-import * as path from 'path';
-import * as fs from 'fs';
-import colors from 'colors';
-import PrismaGenerator from '../generator/prisma';
-import ServiceGenerator from '../generator/service';
-import ReactHooksGenerator from '../generator/react-hooks';
-import NextAuthGenerator from '../generator/next-auth';
+import { ZenStackGenerator } from '../generator';
 
 export const generateAction = async (
     fileName: string,
@@ -21,33 +15,14 @@ export const generateAction = async (
 
     const context: Context = {
         schema: model,
-        outDir: path.resolve(opts.destination),
+        outDir: opts.destination || 'node_modules/.zenstack',
     };
 
-    if (!fs.existsSync(context.outDir)) {
-        fs.mkdirSync(context.outDir);
-    }
-
-    console.log(colors.bold('⌛️ Running ZenStack generators'));
-
-    const generators = [
-        new PrismaGenerator(),
-        new ServiceGenerator(),
-        new ReactHooksGenerator(),
-        new NextAuthGenerator(),
-    ];
-
-    for (const generator of generators) {
-        await generator.generate(context);
-    }
-
-    console.log(
-        colors.green(colors.bold('👻 All generators completed successfully!'))
-    );
+    await new ZenStackGenerator().generate(context);
 };
 
 export type GenerateOptions = {
-    destination: string;
+    destination?: string;
 };
 
 export default function (): void {
@@ -66,8 +41,7 @@ export default function (): void {
         )
         .option(
             '-d, --destination <dir>',
-            'destination directory of generating',
-            '.zenstack'
+            'destination directory of generating'
         )
         .description(
             'generates JavaScript code that prints "Hello, {name}!" for each greeting in a source file'

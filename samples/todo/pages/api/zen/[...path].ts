@@ -5,7 +5,7 @@ import {
 } from '@zenstackhq/runtime';
 import { authOptions } from '@api/auth/[...nextauth]';
 import { unstable_getServerSession } from 'next-auth';
-import service from '@zenstack/service';
+import service from '@zenstackhq/generated';
 
 const options: RequestHandlerOptions = {
     async getServerUser(req: NextApiRequest, res: NextApiResponse) {

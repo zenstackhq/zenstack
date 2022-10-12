@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/runtime",
-    "version": "0.1.1",
+    "version": "0.1.3",
     "description": "ZenStack runtime library",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",

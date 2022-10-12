@@ -153,12 +153,10 @@ export default class PrismaSchemaGenerator {
     }
 
     private generateGenerator(prisma: PrismaModel) {
-        prisma.addGenerator(
-            'client',
-            'prisma-client-js',
-            path.join(this.context.outDir, '.prisma'),
-            ['fieldReference', 'interactiveTransactions']
-        );
+        prisma.addGenerator('client', 'prisma-client-js', '.prisma', [
+            'fieldReference',
+            'interactiveTransactions',
+        ]);
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel) {

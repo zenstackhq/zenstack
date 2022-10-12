@@ -1,8 +1,8 @@
 import type { NextPage } from 'next';
 import LoginButton from '../components/LoginButton';
 import { useSession } from 'next-auth/react';
-import { useTodoCollection } from '@zenstack/hooks';
-import { SpaceUserRole, TodoCollection } from '@zenstack/.prisma';
+import { useTodoCollection } from '@zenstackhq/generated/hooks';
+import { TodoCollection } from '@zenstackhq/generated/types';
 
 const Home: NextPage = () => {
     const { data: session } = useSession();

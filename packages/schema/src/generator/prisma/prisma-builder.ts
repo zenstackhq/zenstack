@@ -103,7 +103,7 @@ export class Generator {
                 ? indentString(
                       `previewFeatures = [${this.previewFeatures
                           ?.map((f) => '"' + f + '"')
-                          .join(',')}]\n`
+                          .join(', ')}]\n`
                   )
                 : '') +
             `}`

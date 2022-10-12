@@ -49,7 +49,7 @@
     "main": "./out/extension.js",
     "scripts": {
         "vscode:prepublish": "npm run build && npm run lint",
-        "build": "tsc && tsc-alias && cp src/language-server/stdlib.zmodel ./out/language-server/",
+        "build": "tsc && tsc-alias && cp src/language-server/stdlib.zmodel ./out/language-server/ && cp src/generator/*.template.json ./out/generator/",
         "ts:watch": "tsc --watch",
         "tsc-alias:watch": "tsc-alias --watch",
         "lint": "eslint src --ext ts",
@@ -65,6 +65,7 @@
         "colors": "^1.4.0",
         "commander": "^8.0.0",
         "langium": "^0.4.0",
+        "prisma": "^4.4.0",
         "promisify": "^0.0.3",
         "ts-morph": "^16.0.0",
         "vscode-jsonrpc": "^8.0.2",

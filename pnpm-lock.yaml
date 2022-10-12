@@ -56,6 +56,7 @@ importers:
       jest: ^29.0.3
       langium: ^0.4.0
       langium-cli: ^0.4.0
+      prisma: ^4.4.0
       promisify: ^0.0.3
       tmp: ^0.2.1
       ts-jest: ^29.0.1
@@ -75,6 +76,7 @@ importers:
       colors: 1.4.0
       commander: 8.3.0
       langium: 0.4.0
+      prisma: 4.4.0
       promisify: 0.0.3
       ts-morph: 16.0.0
       vscode-jsonrpc: 8.0.2
@@ -984,7 +986,6 @@ packages:
   /@prisma/engines/4.4.0:
     resolution: {integrity: sha512-Fpykccxlt9MHrAs/QpPGpI2nOiRxuLA+LiApgA59ibbf24YICZIMWd3SI2YD+q0IAIso0jCGiHhirAIbxK3RyQ==}
     requiresBuild: true
-    dev: true
 
   /@prisma/fetch-engine/4.4.0:
     resolution: {integrity: sha512-3a+f/HPvJl9XYj8IuX57/rHM8cYZuqS+R+jXx/ZPRwvELVlvVeE81GTTSMvtXguyfHXgKW7wKjiJqZm7tGw/WA==}
@@ -3793,6 +3794,15 @@ packages:
       ansi-styles: 5.2.0
       react-is: 18.2.0
     dev: true
+
+  /prisma/4.4.0:
+    resolution: {integrity: sha512-l/QKLmLcKJQFuc+X02LyICo0NWTUVaNNZ00jKJBqwDyhwMAhboD1FWwYV50rkH4Wls0RviAJSFzkC2ZrfawpfA==}
+    engines: {node: '>=14.17'}
+    hasBin: true
+    requiresBuild: true
+    dependencies:
+      '@prisma/engines': 4.4.0
+    dev: false
 
   /process-nextick-args/2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}

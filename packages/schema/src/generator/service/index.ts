@@ -8,7 +8,7 @@ export default class ServiceGenerator implements Generator {
     async generate(context: Context) {
         const project = new Project();
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'service.ts'),
+            path.join(context.outDir, 'index.ts'),
             undefined,
             { overwrite: true }
         );

@@ -19,13 +19,6 @@ export default class PrismaGenerator implements Generator {
     }
 
     async generatePrismaClient(schemaFile: string) {
-        try {
-            execSync('npx prisma -v');
-        } catch (err) {
-            execSync(`npm i prisma @prisma/client`);
-            console.log(colors.blue('  ✔️ Prisma package installed'));
-        }
-
         execSync(`npx prisma generate --schema "${schemaFile}"`);
     }
 }

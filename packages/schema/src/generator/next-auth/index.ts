@@ -30,9 +30,9 @@ export default class NextAuthGenerator implements Generator {
 
     generateAdapter(project: Project, context: Context) {
         const content = `
-        import { ZenStackService } from '../service';
+        import { ZenStackService } from '..';
         import { Adapter } from 'next-auth/adapters';
-        import { Prisma } from '@zenstack/.prisma';
+        import { Prisma } from '../.prisma';
         
         export function NextAuthAdapter(service: ZenStackService): Adapter {
             const db = service.db;
@@ -101,7 +101,7 @@ export default class NextAuthGenerator implements Generator {
 
     generateAuthorize(project: Project, context: Context) {
         const content = `
-        import { ZenStackService } from '../service';
+        import { ZenStackService } from '..';
         import { hash, compare } from 'bcryptjs';
         
         async function hashPassword(password: string) {
