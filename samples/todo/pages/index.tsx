@@ -1,33 +1,32 @@
 import type { NextPage } from 'next';
 import LoginButton from '../components/LoginButton';
 import { useSession } from 'next-auth/react';
-import { useTodoList } from '@zenstack/hooks';
-import { inviteUser } from '@zenstack/functions';
-import { SpaceUserRole, TodoList } from '@zenstack/.prisma';
+import { useTodoCollection } from '@zenstackhq/runtime/hooks';
+import { TodoCollection } from '@zenstackhq/runtime/types';
 
 const Home: NextPage = () => {
     const { data: session } = useSession();
     const {
-        create: createTodoList,
-        find: findTodoList,
-        del: deleteTodoList,
-    } = useTodoList();
-    const { data: todoLists } = findTodoList();
+        create: createTodoCollection,
+        find: findTodoCollection,
+        del: deleteTodoCollection,
+    } = useTodoCollection();
+    const { data: todoCollections } = findTodoCollection();
 
-    async function onCreateTodoList() {
-        await createTodoList({
+    async function onCreateTodoCollection() {
+        await createTodoCollection({
             data: {
-                title: 'My Todo List',
+                title: 'My Todo Collection',
                 ownerId: session!.user.id,
                 spaceId: 'f0c9fc5c-e6e5-4146-a540-214f6ac5701c',
             },
         });
     }
 
-    async function onCreateFilledTodoList() {
-        await createTodoList({
+    async function onCreateFilledTodoCollection() {
+        await createTodoCollection({
             data: {
-                title: 'My Todo List',
+                title: 'My Todo Collection',
                 ownerId: session!.user.id,
                 spaceId: 'f0c9fc5c-e6e5-4146-a540-214f6ac5701c',
                 todos: {
@@ -39,28 +38,22 @@ const Home: NextPage = () => {
         });
     }
 
-    async function onDeleteTodoList(todoList: TodoList) {
-        await deleteTodoList(todoList.id);
+    async function onDeleteTodoCollection(todoList: TodoCollection) {
+        await deleteTodoCollection(todoList.id);
     }
 
-    async function onInviteUser() {
-        await inviteUser(
-            'f0c9fc5c-e6e5-4146-a540-214f6ac5701c',
-            'dadd2e5b-d278-4695-8f6a-e6389bc109c0',
-            SpaceUserRole.ADMIN
-        );
-    }
-
-    function renderTodoLists() {
+    function renderTodoCollections() {
         return (
             <>
                 <ul className="flex flex-col space-y-2">
-                    {todoLists?.map((todoList) => (
-                        <li key={todoList.id} className="flex space-x-2">
-                            <h3 className="text-xl">{todoList.title}</h3>
+                    {todoCollections?.map((collection) => (
+                        <li key={collection.id} className="flex space-x-2">
+                            <h3 className="text-xl">{collection.title}</h3>
                             <button
                                 className="btn btn-secondary"
-                                onClick={() => onDeleteTodoList(todoList)}
+                                onClick={() =>
+                                    onDeleteTodoCollection(collection)
+                                }
                             >
                                 Del
                             </button>
@@ -80,23 +73,22 @@ const Home: NextPage = () => {
 
             {session && (
                 <>
-                    <button className="btn w-fit" onClick={onCreateTodoList}>
+                    <button
+                        className="btn w-fit"
+                        onClick={onCreateTodoCollection}
+                    >
                         Create Todo List
                     </button>
 
                     <button
                         className="btn w-fit"
-                        onClick={onCreateFilledTodoList}
+                        onClick={onCreateFilledTodoCollection}
                     >
                         Create Filled Todo List
                     </button>
 
-                    <button className="btn w-fit" onClick={onInviteUser}>
-                        Invite User
-                    </button>
-
                     <h2 className="text-2xl">Todo Lists</h2>
-                    {renderTodoLists()}
+                    {renderTodoCollections()}
                 </>
             )}
         </div>

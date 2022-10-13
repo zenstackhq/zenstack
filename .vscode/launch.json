@@ -6,6 +6,20 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Generate for Todo Sample",
+            "program": "${workspaceFolder}/packages/schema/bin/cli",
+            "cwd": "${workspaceFolder}/samples/todo/",
+            "args": [
+                "generate",
+                "${workspaceFolder}/samples/todo/schema.zmodel",
+                "--destination",
+                "${workspaceFolder}/samples/todo/.zenstack"
+            ],
+            "request": "launch",
+            "skipFiles": ["<node_internals>/**"],
+            "type": "node"
+        },
+        {
             "name": "Attach",
             "port": 9229,
             "request": "attach",

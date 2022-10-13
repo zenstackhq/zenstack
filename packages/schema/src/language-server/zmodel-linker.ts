@@ -16,7 +16,6 @@ import { CancellationToken } from 'vscode-jsonrpc';
 import {
     AbstractDeclaration,
     isDataModel,
-    isEnumField,
     Function,
     FunctionParamType,
     DataModelFieldType,
@@ -29,19 +28,18 @@ import {
     ReferenceExpr,
     UnaryExpr,
     BinaryExpr,
+    EnumField,
+    DataModelField,
+    FunctionParam,
+    ThisExpr,
+    NullExpr,
 } from './generated/ast';
+import { TypedNode } from './types';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;
     _nodeDescription?: AstNodeDescription;
 }
-
-type TypedNode = AstNode & {
-    $resolvedType?: {
-        decl?: string | AbstractDeclaration;
-        array?: boolean;
-    };
-};
 
 type ScopeProvider = (name: string) => ReferenceTarget | undefined;
 
@@ -159,27 +157,17 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveBinary(node as BinaryExpr, document, extraScopes);
                 break;
 
+            case ThisExpr:
+                this.resolveThis(node as ThisExpr, document, extraScopes);
+                break;
+
+            case NullExpr:
+                this.resolveNull(node as NullExpr, document, extraScopes);
+                break;
+
             default:
                 this.resolveDefault(node, document, extraScopes);
                 break;
-        }
-    }
-
-    resolveDefault(
-        node: AstNode,
-        document: LangiumDocument<AstNode>,
-        extraScopes: ScopeProvider[]
-    ) {
-        for (const property of Object.keys(node)) {
-            if (!property.startsWith('$')) {
-                const value = (node as any)[property];
-                if (isReference(value)) {
-                    this.linkReference(node, property, document, extraScopes);
-                }
-            }
-        }
-        for (const child of streamContents(node)) {
-            this.resolve(child, document, extraScopes);
         }
     }
 
@@ -191,12 +179,13 @@ export class ZModelLinker extends DefaultLinker {
         this.resolve(node.left, document, extraScopes);
         this.resolve(node.right, document, extraScopes);
         switch (node.operator) {
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-                this.resolveToBuiltinTypeOrDecl(node, 'Int');
-                break;
+            // TODO: support arithmetics?
+            // case '+':
+            // case '-':
+            // case '*':
+            // case '/':
+            //     this.resolveToBuiltinTypeOrDecl(node, 'Int');
+            //     break;
 
             case '>':
             case '>=':
@@ -210,6 +199,8 @@ export class ZModelLinker extends DefaultLinker {
                 break;
 
             case '?':
+            case '!':
+            case '^':
                 this.resolveCollectionPredicate(node, document, extraScopes);
                 break;
 
@@ -223,9 +214,9 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
-        this.resolve(node.arg, document, extraScopes);
+        this.resolve(node.operand, document, extraScopes);
         (node as TypedNode).$resolvedType = (
-            node.arg as TypedNode
+            node.operand as TypedNode
         ).$resolvedType;
     }
 
@@ -235,16 +226,20 @@ export class ZModelLinker extends DefaultLinker {
         extraScopes: ScopeProvider[]
     ) {
         this.linkReference(node, 'target', document, extraScopes);
+        node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
 
         if (node.target.ref) {
             // resolve type
-            if (isEnumField(node.target.ref)) {
+            if (node.target.ref.$type === EnumField) {
                 this.resolveToBuiltinTypeOrDecl(
                     node,
                     node.target.ref.$container
                 );
             } else {
-                this.resolveToDeclaredType(node, node.target.ref.type);
+                this.resolveToDeclaredType(
+                    node,
+                    (node.target.ref as DataModelField | FunctionParam).type
+                );
             }
         }
     }
@@ -335,6 +330,49 @@ export class ZModelLinker extends DefaultLinker {
         } else {
             // TODO: how to attach type-checking error?
             throw new Error(`Unresolved collection predicate`);
+        }
+    }
+
+    resolveThis(
+        node: ThisExpr,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        let decl: AstNode | undefined = node.$container;
+
+        while (decl && !isDataModel(decl)) {
+            decl = decl.$container;
+        }
+
+        if (decl) {
+            this.resolveToBuiltinTypeOrDecl(node, decl);
+        }
+    }
+
+    resolveNull(
+        node: NullExpr,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        // TODO: how to really resolve null?
+        this.resolveToBuiltinTypeOrDecl(node, 'Null');
+    }
+
+    resolveDefault(
+        node: AstNode,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        for (const property of Object.keys(node)) {
+            if (!property.startsWith('$')) {
+                const value = (node as any)[property];
+                if (isReference(value)) {
+                    this.linkReference(node, property, document, extraScopes);
+                }
+            }
+        }
+        for (const child of streamContents(node)) {
+            this.resolve(child, document, extraScopes);
         }
     }
 

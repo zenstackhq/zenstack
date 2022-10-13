@@ -15,7 +15,7 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
-export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | ReferenceExpr | ThisExpr | UnaryExpr;
+export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ReferenceExpr | ThisExpr | UnaryExpr;
 
 export const Expression = 'Expression';
 
@@ -39,8 +39,20 @@ export function isTypeDeclaration(item: unknown): item is TypeDeclaration {
     return reflection.isInstance(item, TypeDeclaration);
 }
 
+export interface Argument extends AstNode {
+    readonly $container: InvocationExpr;
+    name?: string
+    value: Expression
+}
+
+export const Argument = 'Argument';
+
+export function isArgument(item: unknown): item is Argument {
+    return reflection.isInstance(item, Argument);
+}
+
 export interface ArrayExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     items: Array<Expression>
 }
 
@@ -53,7 +65,7 @@ export function isArrayExpr(item: unknown): item is ArrayExpr {
 export interface Attribute extends AstNode {
     readonly $container: Model;
     name: string
-    params: Array<FunctionParam>
+    params: Array<AttributeParam>
 }
 
 export const Attribute = 'Attribute';
@@ -62,10 +74,48 @@ export function isAttribute(item: unknown): item is Attribute {
     return reflection.isInstance(item, Attribute);
 }
 
+export interface AttributeArg extends AstNode {
+    readonly $container: DataModelAttribute | DataModelFieldAttribute;
+    name?: string
+    value: Expression
+}
+
+export const AttributeArg = 'AttributeArg';
+
+export function isAttributeArg(item: unknown): item is AttributeArg {
+    return reflection.isInstance(item, AttributeArg);
+}
+
+export interface AttributeParam extends AstNode {
+    readonly $container: Attribute;
+    name: string
+    positional: boolean
+    type: AttributeParamType
+}
+
+export const AttributeParam = 'AttributeParam';
+
+export function isAttributeParam(item: unknown): item is AttributeParam {
+    return reflection.isInstance(item, AttributeParam);
+}
+
+export interface AttributeParamType extends AstNode {
+    readonly $container: AttributeParam;
+    array: boolean
+    optional: boolean
+    type: 'Boolean' | 'DateTime' | 'FieldReference' | 'Int' | 'JSON' | 'String'
+}
+
+export const AttributeParamType = 'AttributeParamType';
+
+export function isAttributeParamType(item: unknown): item is AttributeParamType {
+    return reflection.isInstance(item, AttributeParamType);
+}
+
 export interface BinaryExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     left: Expression
-    operator: '!' | '!=' | '&&' | '*' | '+' | '-' | '/' | '<' | '<=' | '==' | '>' | '>=' | '?' | '||'
+    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '^' | '||'
     right: Expression
 }
 
@@ -90,7 +140,7 @@ export function isDataModel(item: unknown): item is DataModel {
 
 export interface DataModelAttribute extends AstNode {
     readonly $container: DataModel;
-    args: Array<Expression>
+    args: Array<AttributeArg>
     decl: Reference<Attribute>
 }
 
@@ -115,7 +165,7 @@ export function isDataModelField(item: unknown): item is DataModelField {
 
 export interface DataModelFieldAttribute extends AstNode {
     readonly $container: DataModelField;
-    args: Array<Expression>
+    args: Array<AttributeArg>
     decl: Reference<Attribute>
 }
 
@@ -201,7 +251,7 @@ export function isFunction(item: unknown): item is Function {
 }
 
 export interface FunctionParam extends AstNode {
-    readonly $container: Attribute | Function;
+    readonly $container: Function;
     name: string
     type: FunctionParamType
 }
@@ -226,8 +276,8 @@ export function isFunctionParamType(item: unknown): item is FunctionParamType {
 }
 
 export interface InvocationExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
-    args: Array<Expression>
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
+    args: Array<Argument>
     function: Reference<Function>
 }
 
@@ -238,7 +288,7 @@ export function isInvocationExpr(item: unknown): item is InvocationExpr {
 }
 
 export interface LiteralExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     value: boolean | number | string
 }
 
@@ -249,7 +299,7 @@ export function isLiteralExpr(item: unknown): item is LiteralExpr {
 }
 
 export interface MemberAccessExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     member: Reference<DataModelField>
     operand: Expression
 }
@@ -270,8 +320,32 @@ export function isModel(item: unknown): item is Model {
     return reflection.isInstance(item, Model);
 }
 
+export interface NullExpr extends AstNode {
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
+    value: string
+}
+
+export const NullExpr = 'NullExpr';
+
+export function isNullExpr(item: unknown): item is NullExpr {
+    return reflection.isInstance(item, NullExpr);
+}
+
+export interface ReferenceArg extends AstNode {
+    readonly $container: ReferenceExpr;
+    name: 'sort'
+    value: 'Asc' | 'Desc'
+}
+
+export const ReferenceArg = 'ReferenceArg';
+
+export function isReferenceArg(item: unknown): item is ReferenceArg {
+    return reflection.isInstance(item, ReferenceArg);
+}
+
 export interface ReferenceExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
+    args: Array<ReferenceArg>
     target: Reference<ReferenceTarget>
 }
 
@@ -282,7 +356,7 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
 }
 
 export interface ThisExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
     value: string
 }
 
@@ -293,9 +367,9 @@ export function isThisExpr(item: unknown): item is ThisExpr {
 }
 
 export interface UnaryExpr extends AstNode {
-    readonly $container: ArrayExpr | BinaryExpr | DataModelAttribute | DataModelFieldAttribute | DataSourceField | Function | InvocationExpr | MemberAccessExpr | UnaryExpr;
-    arg: Expression
-    operator: '!' | '+' | '-'
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | Function | MemberAccessExpr | UnaryExpr;
+    operand: Expression
+    operator: '!'
 }
 
 export const UnaryExpr = 'UnaryExpr';
@@ -304,14 +378,14 @@ export function isUnaryExpr(item: unknown): item is UnaryExpr {
     return reflection.isInstance(item, UnaryExpr);
 }
 
-export type ZModelAstType = 'AbstractDeclaration' | 'ArrayExpr' | 'Attribute' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
+export type ZModelAstType = 'AbstractDeclaration' | 'Argument' | 'ArrayExpr' | 'Attribute' | 'AttributeArg' | 'AttributeParam' | 'AttributeParamType' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'NullExpr' | 'ReferenceArg' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
 
 export type ZModelAstReference = 'DataModelAttribute:decl' | 'DataModelFieldAttribute:decl' | 'DataModelFieldType:reference' | 'FunctionParamType:reference' | 'InvocationExpr:function' | 'MemberAccessExpr:member' | 'ReferenceExpr:target';
 
 export class ZModelAstReflection implements AstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'ArrayExpr', 'Attribute', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'NullExpr', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
     }
 
     isInstance(node: unknown, type: string): boolean {
@@ -328,6 +402,7 @@ export class ZModelAstReflection implements AstReflection {
             case InvocationExpr:
             case LiteralExpr:
             case MemberAccessExpr:
+            case NullExpr:
             case ReferenceExpr:
             case ThisExpr:
             case UnaryExpr: {
@@ -397,6 +472,23 @@ export class ZModelAstReflection implements AstReflection {
                     name: 'Attribute',
                     mandatory: [
                         { name: 'params', type: 'array' }
+                    ]
+                };
+            }
+            case 'AttributeParam': {
+                return {
+                    name: 'AttributeParam',
+                    mandatory: [
+                        { name: 'positional', type: 'boolean' }
+                    ]
+                };
+            }
+            case 'AttributeParamType': {
+                return {
+                    name: 'AttributeParamType',
+                    mandatory: [
+                        { name: 'array', type: 'boolean' },
+                        { name: 'optional', type: 'boolean' }
                     ]
                 };
             }
@@ -487,6 +579,14 @@ export class ZModelAstReflection implements AstReflection {
                     name: 'Model',
                     mandatory: [
                         { name: 'declarations', type: 'array' }
+                    ]
+                };
+            }
+            case 'ReferenceExpr': {
+                return {
+                    name: 'ReferenceExpr',
+                    mandatory: [
+                        { name: 'args', type: 'array' }
                     ]
                 };
             }

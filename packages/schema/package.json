@@ -1,8 +1,8 @@
 {
-    "name": "@zenstackhq/schema",
-    "displayName": "ZenStack Data Modeling Schema Language",
-    "description": "Please enter a brief description here",
-    "version": "0.0.1",
+    "name": "zenstack",
+    "displayName": "ZenStack CLI and Language Tools",
+    "description": "ZenStack CLI and Language Tools",
+    "version": "0.1.22",
     "engines": {
         "vscode": "^1.56.0"
     },
@@ -40,34 +40,41 @@
     ],
     "files": [
         "bin",
-        "out",
-        "src"
+        "out"
     ],
     "bin": {
-        "zmodel-cli": "./bin/cli"
+        "zenstack": "./bin/cli"
     },
     "main": "./out/extension.js",
     "scripts": {
         "vscode:prepublish": "npm run build && npm run lint",
-        "build": "tsc -b tsconfig.json",
-        "ts:watch": "tsc -b tsconfig.json --watch",
+        "build": "tsc && tsc-alias && cp src/language-server/stdlib.zmodel ./out/language-server/ && cp src/generator/*.template.json ./out/generator/",
+        "ts:watch": "tsc --watch",
+        "tsc-alias:watch": "tsc-alias --watch",
         "lint": "eslint src --ext ts",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
-        "watch": "concurrently \"npm:langium:watch\" \"npm:ts:watch\"",
-        "test": "jest"
+        "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:ts:watch\" \"npm:tsc-alias:watch\"",
+        "test": "jest",
+        "prepublishOnly": "pnpm build"
     },
     "dependencies": {
+        "@zenstackhq/internal": "workspace:*",
+        "change-case": "^4.1.2",
         "chevrotain": "^9.1.0",
         "colors": "^1.4.0",
         "commander": "^8.0.0",
         "langium": "^0.4.0",
-        "uuid": "^9.0.0",
+        "prisma": "^4.4.0",
+        "promisify": "^0.0.3",
+        "ts-morph": "^16.0.0",
+        "vscode-jsonrpc": "^8.0.2",
         "vscode-languageclient": "^7.0.0",
         "vscode-languageserver": "^7.0.0",
         "vscode-uri": "^3.0.2"
     },
     "devDependencies": {
+        "@prisma/internals": "^4.4.0",
         "@types/jest": "^29.0.3",
         "@types/node": "^14.18.29",
         "@types/tmp": "^0.2.3",
@@ -82,6 +89,8 @@
         "tmp": "^0.2.1",
         "ts-jest": "^29.0.1",
         "ts-node": "^10.9.1",
+        "tsc-alias": "^1.7.0",
+        "tsconfig-paths-jest": "^0.0.1",
         "typescript": "^4.6.2"
     }
 }

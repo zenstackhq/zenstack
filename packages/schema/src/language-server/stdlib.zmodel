@@ -1,12 +1,19 @@
+enum ReferentialIntegrity {
+    Cascade
+}
+
 function env() String {}
 function auth() User {}
+function now() DateTime {}
+function uuid() String {}
+function cuid() String {}
 
 attribute id()
+attribute index()
+attribute relation()
 attribute default()
-attribute createdAt()
 attribute updatedAt()
 attribute unique()
-attribute cascade()
 attribute allow()
 attribute deny()
 attribute email()

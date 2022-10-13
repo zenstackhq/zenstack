@@ -1,10 +1,10 @@
-import colors from 'colors';
 import { Command } from 'commander';
 import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
-import { generateJavaScript } from './generator';
+import { Context } from '../generator/types';
+import { ZenStackGenerator } from '../generator';
 
 export const generateAction = async (
     fileName: string,
@@ -12,16 +12,13 @@ export const generateAction = async (
 ): Promise<void> => {
     const services = createZModelServices().ZModel;
     const model = await extractAstNode<Model>(fileName, services);
-    const generatedFilePath = generateJavaScript(
-        model,
-        fileName,
-        opts.destination
-    );
-    console.log(
-        colors.green(
-            `JavaScript code generated successfully: ${generatedFilePath}`
-        )
-    );
+
+    const context: Context = {
+        schema: model,
+        outDir: opts.destination || 'node_modules/.zenstack',
+    };
+
+    await new ZenStackGenerator().generate(context);
 };
 
 export type GenerateOptions = {
