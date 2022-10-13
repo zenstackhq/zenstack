@@ -2,25 +2,25 @@ import { Context, Generator } from '../types';
 import { Project, StructureKind } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
-import { RUNTIME_PACKAGE } from '../constants';
+import { INTERNAL_PACKAGE } from '../constants';
 
 export default class ServiceGenerator implements Generator {
     async generate(context: Context) {
         const project = new Project();
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'index.ts'),
+            path.join(context.outDir, 'src/index.ts'),
             undefined,
             { overwrite: true }
         );
 
         sf.addImportDeclaration({
             namedImports: ['PrismaClient'],
-            moduleSpecifier: './.prisma',
+            moduleSpecifier: '../.prisma',
         });
 
         sf.addImportDeclaration({
             namedImports: ['Service', 'PolicyOperationKind', 'QueryContext'],
-            moduleSpecifier: RUNTIME_PACKAGE,
+            moduleSpecifier: INTERNAL_PACKAGE,
             isTypeOnly: true,
         });
 

@@ -2,7 +2,7 @@
     "name": "zenstack",
     "displayName": "ZenStack CLI and Language Tools",
     "description": "ZenStack CLI and Language Tools",
-    "version": "0.1.0",
+    "version": "0.1.19",
     "engines": {
         "vscode": "^1.56.0"
     },
@@ -40,11 +40,10 @@
     ],
     "files": [
         "bin",
-        "out",
-        "src"
+        "out"
     ],
     "bin": {
-        "zmodel-cli": "./bin/cli"
+        "zenstack": "./bin/cli"
     },
     "main": "./out/extension.js",
     "scripts": {
@@ -56,10 +55,11 @@
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
         "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:ts:watch\" \"npm:tsc-alias:watch\"",
-        "test": "jest"
+        "test": "jest",
+        "prepublishOnly": "pnpm build"
     },
     "dependencies": {
-        "@zenstackhq/runtime": "workspace:0.1.1",
+        "@zenstackhq/internal": "workspace:*",
         "change-case": "^4.1.2",
         "chevrotain": "^9.1.0",
         "colors": "^1.4.0",

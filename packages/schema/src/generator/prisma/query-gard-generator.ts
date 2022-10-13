@@ -4,10 +4,10 @@ import {
     isEnum,
     isLiteralExpr,
 } from '@lang/generated/ast';
-import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
+import { PolicyKind, PolicyOperationKind } from '@zenstackhq/internal';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
-import { GUARD_FIELD_NAME, RUNTIME_PACKAGE } from '../constants';
+import { GUARD_FIELD_NAME, INTERNAL_PACKAGE } from '../constants';
 import { Context } from '../types';
 import ExpressionWriter from './expression-writer';
 
@@ -17,14 +17,14 @@ export default class QueryGuardGenerator {
     async generate() {
         const project = new Project();
         const sf = project.createSourceFile(
-            path.join(this.context.outDir, 'query/guard.ts'),
+            path.join(this.context.outDir, 'src/query/guard.ts'),
             undefined,
             { overwrite: true }
         );
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'QueryContext' }],
-            moduleSpecifier: RUNTIME_PACKAGE,
+            moduleSpecifier: INTERNAL_PACKAGE,
             isTypeOnly: true,
         });
 
@@ -34,7 +34,7 @@ export default class QueryGuardGenerator {
         )) {
             sf.addImportDeclaration({
                 namedImports: [{ name: e.name }],
-                moduleSpecifier: '../.prisma',
+                moduleSpecifier: '../../.prisma',
             });
         }
 

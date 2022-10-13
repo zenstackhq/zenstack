@@ -1,11 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import {
     type RequestHandlerOptions,
-    RequestHandler,
-} from '@zenstackhq/runtime';
+    requestHandler,
+} from '@zenstackhq/runtime/server';
 import { authOptions } from '@api/auth/[...nextauth]';
 import { unstable_getServerSession } from 'next-auth';
-import service from '@zenstackhq/generated';
+import service from '@zenstackhq/runtime';
 
 const options: RequestHandlerOptions = {
     async getServerUser(req: NextApiRequest, res: NextApiResponse) {
@@ -13,4 +13,4 @@ const options: RequestHandlerOptions = {
         return session?.user;
     },
 };
-export default RequestHandler(service, options);
+export default requestHandler(service, options);

@@ -2,8 +2,8 @@
     "name": ".zenstack",
     "version": "1.0.0",
     "description": "ZenStack generated code",
-    "main": "index.js",
-    "types": "index.d.ts",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
     "author": "ZenStack",
     "license": "MIT"
 }

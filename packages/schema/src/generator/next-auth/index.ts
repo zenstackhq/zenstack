@@ -15,7 +15,7 @@ export default class NextAuthGenerator implements Generator {
 
     generateIndex(project: Project, context: Context) {
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'auth/index.ts'),
+            path.join(context.outDir, 'src/auth/index.ts'),
             undefined,
             { overwrite: true }
         );
@@ -32,7 +32,7 @@ export default class NextAuthGenerator implements Generator {
         const content = `
         import { ZenStackService } from '..';
         import { Adapter } from 'next-auth/adapters';
-        import { Prisma } from '../.prisma';
+        import { Prisma } from '../../.prisma';
         
         export function NextAuthAdapter(service: ZenStackService): Adapter {
             const db = service.db;
@@ -91,7 +91,7 @@ export default class NextAuthGenerator implements Generator {
         `;
 
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'auth/next-auth-adapter.ts'),
+            path.join(context.outDir, 'src/auth/next-auth-adapter.ts'),
             content,
             { overwrite: true }
         );
@@ -173,7 +173,7 @@ export default class NextAuthGenerator implements Generator {
         `;
 
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'auth/authorize.ts'),
+            path.join(context.outDir, 'src/auth/authorize.ts'),
             content,
             { overwrite: true }
         );

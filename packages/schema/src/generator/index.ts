@@ -10,9 +10,10 @@ import { execSync } from 'child_process';
 
 export class ZenStackGenerator {
     async generate(context: Context) {
-        if (!fs.existsSync(context.outDir)) {
-            fs.mkdirSync(context.outDir);
+        if (fs.existsSync(context.outDir)) {
+            fs.rmSync(context.outDir, { force: true, recursive: true });
         }
+        fs.mkdirSync(context.outDir);
 
         console.log(colors.bold('⌛️ Running ZenStack generators'));
 
@@ -47,7 +48,20 @@ export class ZenStackGenerator {
             JSON.stringify(tsConfig, undefined, 4)
         );
 
-        execSync(`npx tsc -p "${path.join(context.outDir, 'tsconfig.json')}"`);
+        try {
+            execSync(
+                `npx tsc -p "${path.join(context.outDir, 'tsconfig.json')}"`,
+                { encoding: 'utf-8', stdio: 'inherit' }
+            );
+        } catch {
+            console.error(
+                colors.red(
+                    'Something went wrong, generated runtime code failed to compile...'
+                )
+            );
+            return;
+        }
+
         console.log(colors.blue('  ✔️ Typescript source files transpiled'));
 
         console.log(

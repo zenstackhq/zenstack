@@ -9,7 +9,7 @@ export type RequestHandlerOptions = {
     ) => Promise<AuthUser | undefined>;
 };
 
-export function RequestHandler<DbClient>(
+export function requestHandler<DbClient>(
     service: Service<DbClient>,
     options: RequestHandlerOptions
 ) {

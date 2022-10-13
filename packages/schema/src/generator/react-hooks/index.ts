@@ -5,6 +5,7 @@ import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../utils';
+import { API_ROUTE_NAME } from '../constants';
 
 export default class ReactHooksGenerator implements Generator {
     async generate(context: Context) {
@@ -102,7 +103,7 @@ export default class ReactHooksGenerator implements Generator {
         `;
 
         const sf = project.createSourceFile(
-            path.join(context.outDir, `hooks/request.ts`),
+            path.join(context.outDir, `src/hooks/request.ts`),
             content,
             { overwrite: true }
         );
@@ -116,7 +117,7 @@ export default class ReactHooksGenerator implements Generator {
     ) {
         const fileName = paramCase(model.name);
         const sf = project.createSourceFile(
-            path.join(context.outDir, `hooks/${fileName}.ts`),
+            path.join(context.outDir, `src/hooks/${fileName}.ts`),
             undefined,
             { overwrite: true }
         );
@@ -124,12 +125,14 @@ export default class ReactHooksGenerator implements Generator {
         sf.addImportDeclaration({
             namedImports: [{ name: 'Prisma', alias: 'P' }, model.name],
             isTypeOnly: true,
-            moduleSpecifier: '../.prisma',
+            moduleSpecifier: '../../.prisma',
         });
 
         sf.addStatements([`import * as request from './request';`]);
 
-        sf.addStatements(`const endpoint = '/api/zen/data/${model.name}';`);
+        sf.addStatements(
+            `const endpoint = '/api/${API_ROUTE_NAME}/data/${model.name}';`
+        );
 
         const useFuncBody = sf
             .addFunction({
@@ -251,7 +254,7 @@ export default class ReactHooksGenerator implements Generator {
         models: DataModel[]
     ) {
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'hooks/index.ts'),
+            path.join(context.outDir, 'src/hooks/index.ts'),
             undefined,
             { overwrite: true }
         );

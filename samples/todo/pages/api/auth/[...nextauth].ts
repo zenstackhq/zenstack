@@ -4,8 +4,8 @@ import GoogleProvider from 'next-auth/providers/google';
 import {
     authorize,
     NextAuthAdapter as Adapter,
-} from '@zenstackhq/generated/auth';
-import service from '@zenstackhq/generated';
+} from '@zenstackhq/runtime/auth';
+import service from '@zenstackhq/runtime';
 
 export const authOptions: NextAuthOptions = {
     // Configure one or more authentication providers

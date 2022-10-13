@@ -4,7 +4,7 @@
         "module": "CommonJS",
         "lib": ["ESNext", "DOM"],
         "sourceMap": true,
-        "outDir": ".",
+        "outDir": "lib",
         "strict": true,
         "moduleResolution": "node",
         "esModuleInterop": true,
@@ -13,5 +13,5 @@
         "resolveJsonModule": true
     },
     "include": ["**/*.ts"],
-    "exclude": ["node_modules", ".prisma"]
+    "exclude": ["node_modules", ".prisma", "**/*.d.ts"]
 }
