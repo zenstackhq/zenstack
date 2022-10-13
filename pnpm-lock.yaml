@@ -46,10 +46,9 @@ importers:
       '@zenstackhq/internal': ^0.1.0
       bcryptjs: ^2.4.3
     dependencies:
+      '@types/bcryptjs': 2.4.2
       '@zenstackhq/internal': link:../internal
       bcryptjs: 2.4.3
-    devDependencies:
-      '@types/bcryptjs': 2.4.2
 
   packages/schema:
     specifiers:
@@ -1157,7 +1156,6 @@ packages:
 
   /@types/bcryptjs/2.4.2:
     resolution: {integrity: sha512-LiMQ6EOPob/4yUL66SZzu6Yh77cbzJFYll+ZfaPiPPFswtIlA/Fs1MzdKYA7JApHU49zQTbJGX3PDmCpIdDBRQ==}
-    dev: true
 
   /@types/cross-spawn/6.0.2:
     resolution: {integrity: sha512-KuwNhp3eza+Rhu8IFI5HUXRP0LIhqH5cAjubUvGXXthh4YYBuP2ntwEX+Cz8GJoZUHlKo247wPWOfA9LYEq4cw==}

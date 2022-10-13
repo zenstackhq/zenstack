@@ -15,7 +15,8 @@ export class ZenStackGenerator {
         }
         fs.mkdirSync(context.outDir);
 
-        console.log(colors.bold('⌛️ Running ZenStack generators'));
+        const version = require('../../package.json').version;
+        console.log(colors.bold(`⌛️ Running ZenStack generator v${version}`));
 
         const generators = [
             new PrismaGenerator(),
