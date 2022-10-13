@@ -42,11 +42,11 @@ export default class ReactHooksGenerator implements Generator {
         };
         
         function makeUrl(url: string, args: unknown) {
-            return args ? url + \`q=\${encodeURIComponent(JSON.stringify(args))}\` : url;
+            return args ? url + \`?q=\${encodeURIComponent(JSON.stringify(args))}\` : url;
         }
         
-        export function get<Data, Error = any>(url: string, args?: unknown) {
-            return useSWR<Data, Error>(makeUrl(url, args), fetcher);
+        export function get<Data, Error = any>(url: string | null, args?: unknown) {
+            return useSWR<Data, Error>(url && makeUrl(url, args), fetcher);
         }
         
         export async function post<Data, Result>(
@@ -179,7 +179,6 @@ export default class ReactHooksGenerator implements Generator {
         useFuncBody
             .addFunction({
                 name: 'get',
-                isAsync: true,
                 typeParameters: [
                     `T extends P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>`,
                 ],
@@ -196,7 +195,7 @@ export default class ReactHooksGenerator implements Generator {
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args);`,
+                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(id ? \`\${endpoint}/\${id}\`: null, args);`,
             ]);
 
         // update

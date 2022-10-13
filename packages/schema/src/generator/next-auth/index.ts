@@ -1,6 +1,7 @@
 import { Context, Generator } from '../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
+import colors from 'colors';
 
 export default class NextAuthGenerator implements Generator {
     async generate(context: Context) {
@@ -11,6 +12,8 @@ export default class NextAuthGenerator implements Generator {
         this.generateAuthorize(project, context);
 
         await project.save();
+
+        console.log(colors.blue(`  ✔️ Next-auth adapter generated`));
     }
 
     generateIndex(project: Project, context: Context) {
@@ -118,6 +121,10 @@ export default class NextAuthGenerator implements Generator {
             return async (
                 credentials: Record<'email' | 'password', string> | undefined
             ) => {
+                if (!credentials) {
+                    throw new Error('Missing credentials');
+                }
+
                 try {
                     let maybeUser = await service.db.user.findFirst({
                         where: {
@@ -132,14 +139,14 @@ export default class NextAuthGenerator implements Generator {
                     });
         
                     if (!maybeUser) {
-                        if (!credentials!.password || !credentials!.email) {
+                        if (!credentials.password || !credentials.email) {
                             throw new Error('Invalid Credentials');
                         }
         
                         maybeUser = await service.db.user.create({
                             data: {
-                                email: credentials!.email,
-                                password: await hashPassword(credentials!.password),
+                                email: credentials.email,
+                                password: await hashPassword(credentials.password),
                             },
                             select: {
                                 id: true,
@@ -149,8 +156,12 @@ export default class NextAuthGenerator implements Generator {
                             },
                         });
                     } else {
+                        if (!maybeUser.password) {
+                            throw new Error('Invalid User Record');
+                        }
+
                         const isValid = await verifyPassword(
-                            credentials!.password,
+                            credentials.password,
                             maybeUser.password
                         );
         
