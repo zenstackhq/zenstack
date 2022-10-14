@@ -8,9 +8,10 @@ export default function AuthGuard({ children }: Props) {
     const { status } = useSession();
     if (status === 'loading') {
         return <p>Loading...</p>;
-    }
-    if (status === 'unauthenticated') {
+    } else if (status === 'unauthenticated') {
         signIn();
+        return <></>;
+    } else {
+        return <>{children}</>;
     }
-    return <>{children}</>;
 }

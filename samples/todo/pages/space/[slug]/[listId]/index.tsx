@@ -68,7 +68,7 @@ export default function TodoList() {
                         <PlusIcon className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
-                <ul className="flex flex-col space-y-4 py-8">
+                <ul className="flex flex-col space-y-4 py-8 w-11/12 md:w-auto">
                     {todos?.map((todo) => (
                         <TodoComponent
                             key={todo.id}
