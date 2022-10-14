@@ -10,20 +10,23 @@ import {
     useCurrentUser,
     UserContext,
 } from '@lib/context';
+import AuthGuard from 'components/AuthGuard';
 
 function AppContent(props: { children: JSX.Element | JSX.Element[] }) {
     const user = useCurrentUser();
     const space = useCurrentSpace();
 
     return (
-        <UserContext.Provider value={user}>
-            <SpaceContext.Provider value={space}>
-                <div className="h-screen flex flex-col">
-                    <NavBar user={user} space={space} />
-                    {props.children}
-                </div>
-            </SpaceContext.Provider>
-        </UserContext.Provider>
+        <AuthGuard>
+            <UserContext.Provider value={user}>
+                <SpaceContext.Provider value={space}>
+                    <div className="h-screen flex flex-col">
+                        <NavBar user={user} space={space} />
+                        {props.children}
+                    </div>
+                </SpaceContext.Provider>
+            </UserContext.Provider>
+        </AuthGuard>
     );
 }
 
