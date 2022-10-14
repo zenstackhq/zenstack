@@ -74,6 +74,7 @@ function CreateDialog() {
                                     required
                                     placeholder="Title of your list"
                                     className="input input-bordered w-full max-w-xs mt-2"
+                                    value={title}
                                     onChange={(
                                         e: FormEvent<HTMLInputElement>
                                     ) => setTitle(e.currentTarget.value)}
@@ -120,7 +121,7 @@ export default function SpaceHome() {
     const space = useContext(SpaceContext);
     const { find } = useList();
 
-    const lists = find({
+    const { data: lists, mutate: invalidateLists } = find({
         where: {
             space: {
                 id: space?.id,
@@ -151,9 +152,12 @@ export default function SpaceHome() {
                 </div>
 
                 <ul className="flex flex-wrap gap-6">
-                    {lists.data?.map((list) => (
+                    {lists?.map((list) => (
                         <li key={list.id}>
-                            <TodoList value={list} />
+                            <TodoList
+                                value={list}
+                                deleted={() => invalidateLists()}
+                            />
                         </li>
                     ))}
                 </ul>

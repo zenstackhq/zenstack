@@ -1,9 +1,9 @@
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { useTodo } from '@zenstackhq/runtime/hooks';
 import { Todo, User } from '@zenstackhq/runtime/types';
-import moment from 'moment';
 import { ChangeEvent, useEffect, useState } from 'react';
 import Avatar from './Avatar';
+import TimeInfo from './TimeInfo';
 
 type Props = {
     value: Todo & { owner: User };
@@ -64,13 +64,7 @@ export default function Component({ value, updated, deleted }: Props) {
                 </div>
             </div>
             <div className="flex justify-end w-full space-x-2">
-                <p className="text-sm text-gray-500">
-                    {value.completedAt
-                        ? `Completed ${moment(value.completedAt).fromNow()}`
-                        : value.createdAt === value.updatedAt
-                        ? `Created ${moment(value.createdAt).fromNow()}`
-                        : `Updated ${moment(value.updatedAt).fromNow()}`}
-                </p>
+                <TimeInfo value={value} />
                 <Avatar user={value.owner} size={18} />
             </div>
         </div>

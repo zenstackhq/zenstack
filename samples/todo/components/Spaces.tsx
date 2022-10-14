@@ -6,7 +6,7 @@ export default function Spaces() {
     const spaces = find();
 
     return (
-        <ul className="flex flex-wrap space-x-4">
+        <ul className="flex flex-wrap gap-4">
             {spaces.data?.map((space) => (
                 <li
                     className="card w-80 h-32 shadow-xl text-gray-600 cursor-pointer hover:bg-gray-50 border"
