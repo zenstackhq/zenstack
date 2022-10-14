@@ -1,7 +1,6 @@
 import { NextPage } from 'next';
 import { FormEvent, useState } from 'react';
 import { useSpace, type HooksError } from '@zenstackhq/runtime/hooks';
-import AuthGuard from 'components/AuthGuard';
 import { ServerErrorCode } from '@zenstackhq/runtime/server';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/router';
@@ -53,7 +52,6 @@ const CreateSpace: NextPage = () => {
     };
 
     return (
-        <AuthGuard>
             <div className="flex items-center justify-center h-full">
                 <form onSubmit={onSubmit}>
                     <h1 className="text-3xl mb-8">Create a space</h1>
@@ -110,7 +108,6 @@ const CreateSpace: NextPage = () => {
                     </div>
                 </form>
             </div>
-        </AuthGuard>
     );
 };
 

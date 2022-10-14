@@ -22,7 +22,7 @@ const Home: NextPage = () => {
                     Welcome {session.user.name || session.user.email}!
                 </h1>
                 <div className="w-full p-8">
-                    <h2 className="text-xl text-left mb-8 text-gray-700">
+                    <h2 className="text-lg md:text-xl text-left mb-8 text-gray-700">
                         Choose a space to start, or{' '}
                         <Link href="/create-space">
                             <a className="link link-primary">

@@ -140,10 +140,10 @@ export default function SpaceHome() {
                 <BreadCrumb />
             </div>
             <div className="p-8">
-                <div className="w-full flex justify-between">
+                <div className="w-full flex flex-col md:flex-row mb-8 space-y-4 md:space-y-0 md:space-x-4">
                     <label
                         htmlFor="create-list-modal"
-                        className="btn btn-primary btn-wide modal-button mb-8"
+                        className="btn btn-primary btn-wide modal-button"
                     >
                         Create a list
                     </label>

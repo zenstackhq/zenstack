@@ -20,7 +20,7 @@ function ManagementDialog(space?: Space) {
             />
             <div className="modal">
                 <div className="modal-box">
-                    <h3 className="font-bold text-lg">
+                    <h3 className="font-bold text-base md:text-lg">
                         Manage Members of {space.name}
                     </h3>
 

@@ -1,6 +1,5 @@
 import NextAuth, { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
 import {
     authorize,
     NextAuthAdapter as Adapter,
@@ -8,7 +7,6 @@ import {
 import service from '@zenstackhq/runtime';
 import { nanoid } from 'nanoid';
 import { SpaceUserRole } from '@zenstackhq/runtime/types';
-import { signIn } from 'next-auth/react';
 
 export const authOptions: NextAuthOptions = {
     // Configure one or more authentication providers
@@ -20,11 +18,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     providers: [
-        GoogleProvider({
-            clientId: process.env.GOOGLE_ID!,
-            clientSecret: process.env.GOOGLE_SECRET!,
-        }),
-
         CredentialsProvider({
             credentials: {
                 email: {

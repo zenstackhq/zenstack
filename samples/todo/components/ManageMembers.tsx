@@ -1,4 +1,4 @@
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ServerErrorCode } from '@zenstackhq/internal';
 import { HooksError, useSpaceUser } from '@zenstackhq/runtime/hooks';
 import { Space, SpaceUserRole } from '@zenstackhq/runtime/types';
@@ -61,7 +61,7 @@ export default function ManageMembers({ space }: Props) {
 
     return (
         <div>
-            <div className="flex items-center mb-8 w-full">
+            <div className="flex flex-wrap gap-2 items-center mb-8 w-full">
                 <input
                     type="text"
                     placeholder="Type user email and enter to invite"
@@ -95,17 +95,27 @@ export default function ManageMembers({ space }: Props) {
 
             <ul className="space-y-2">
                 {members?.map((member) => (
-                    <li key={member.id} className="flex w-full justify-between">
-                        <div className="flex items-center space-x-4">
-                            <Avatar user={member.user} size={32} />
-                            <p className="w-48 line-clamp-1">
+                    <li
+                        key={member.id}
+                        className="flex flex-wrap w-full justify-between"
+                    >
+                        <div className="flex items-center">
+                            <div className="hidden md:block mr-2">
+                                <Avatar user={member.user} size={32} />
+                            </div>
+                            <p className="w-36 md:w-48 line-clamp-1 mr-2">
                                 {member.user.name || member.user.email}
                             </p>
                             <p>{member.role}</p>
                         </div>
                         <div className="flex items-center">
                             <button className="justify-self-end btn btn-link btn-xs text-gray-500">
-                                Remove
+                                <TrashIcon
+                                    className="w-4 h-4 text-gray-500"
+                                    onClick={() => {
+                                        // TODO
+                                    }}
+                                />
                             </button>
                         </div>
                     </li>
