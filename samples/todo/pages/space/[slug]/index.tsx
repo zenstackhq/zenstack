@@ -4,6 +4,7 @@ import { useList } from '@zenstackhq/runtime/hooks';
 import { toast } from 'react-toastify';
 import TodoList from 'components/TodoList';
 import BreadCrumb from 'components/BreadCrumb';
+import SpaceMembers from 'components/SpaceMembers';
 
 function CreateDialog() {
     const user = useContext(UserContext);
@@ -139,12 +140,15 @@ export default function SpaceHome() {
                 <BreadCrumb />
             </div>
             <div className="p-8">
-                <label
-                    htmlFor="create-list-modal"
-                    className="btn btn-primary px-6 modal-button mb-8"
-                >
-                    Create a list
-                </label>
+                <div className="w-full flex justify-between">
+                    <label
+                        htmlFor="create-list-modal"
+                        className="btn btn-primary btn-wide modal-button mb-8"
+                    >
+                        Create a list
+                    </label>
+                    <SpaceMembers />
+                </div>
 
                 <ul className="flex flex-wrap gap-6">
                     {lists.data?.map((list) => (

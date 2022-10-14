@@ -29,7 +29,7 @@ export default function Component({ value, updated }: Props) {
         <div className="border rounded-lg px-8 py-4 shadow-lg flex flex-col items-center w-full lg:w-[480px]">
             <div className="flex justify-between w-full mb-4">
                 <h3
-                    className={`text-xl ${
+                    className={`text-xl line-clamp-1 ${
                         value.completedAt
                             ? 'line-through text-gray-400 italic'
                             : 'text-gray-700'

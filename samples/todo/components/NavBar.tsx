@@ -23,8 +23,11 @@ export default function NavBar({ user, space }: Props) {
                             height={32}
                         />
                         <div className="text-xl font-semibold ml-2 text-slate-700 inline-block">
-                            {space?.name}
+                            {space?.name || 'Welcome Todo App'}
                         </div>
+                        <p className="text-xs ml-2 text-gray-500 self-end">
+                            Powered by ZenStack
+                        </p>
                     </a>
                 </Link>
             </div>

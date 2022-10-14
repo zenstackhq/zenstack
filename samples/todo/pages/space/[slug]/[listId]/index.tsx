@@ -57,7 +57,6 @@ export default function TodoList() {
                         value={title}
                         onKeyUp={(e: KeyboardEvent<HTMLInputElement>) => {
                             if (e.key === 'Enter') {
-                                setTitle(e.currentTarget.value);
                                 _createTodo();
                             }
                         }}
@@ -65,7 +64,7 @@ export default function TodoList() {
                             setTitle(e.currentTarget.value);
                         }}
                     />
-                    <button>
+                    <button onClick={() => _createTodo()}>
                         <PlusIcon className="w-6 h-6 text-gray-500" />
                     </button>
                 </div>
