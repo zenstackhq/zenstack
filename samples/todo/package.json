@@ -10,8 +10,10 @@
         "db-gen": "prisma generate --schema zenstack/schema.prisma",
         "db-push": "prisma db push --schema zenstack/schema.prisma",
         "db-migrate": "prisma migrate dev --schema zenstack/schema.prisma",
+        "db-deploy": "prisma migrate deploy --schema zenstack/schema.prisma",
         "db-reset": "prisma migrate reset --schema zenstack/schema.prisma",
-        "generate": "zenstack generate ./schema.zmodel"
+        "generate": "zenstack generate ./zenstack/schema.zmodel",
+        "vercel-build": "zenstack generate ./zenstack/schema.zmodel && npm run build && npm run db-deploy"
     },
     "dependencies": {
         "@heroicons/react": "^2.0.12",
