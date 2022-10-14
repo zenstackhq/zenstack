@@ -2,7 +2,7 @@
     "name": "zenstack",
     "displayName": "ZenStack CLI and Language Tools",
     "description": "ZenStack CLI and Language Tools",
-    "version": "0.1.27",
+    "version": "0.1.32",
     "engines": {
         "vscode": "^1.56.0"
     },

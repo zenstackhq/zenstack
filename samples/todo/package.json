@@ -18,6 +18,7 @@
         "@prisma/client": "^4.4.0",
         "@zenstackhq/runtime": "latest",
         "daisyui": "^2.31.0",
+        "moment": "^2.29.4",
         "nanoid": "^4.0.0",
         "next": "12.3.1",
         "next-auth": "^4.10.3",

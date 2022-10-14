@@ -3,6 +3,7 @@ import { ChangeEvent, FormEvent, useContext, useState } from 'react';
 import { useList } from '@zenstackhq/runtime/hooks';
 import { toast } from 'react-toastify';
 import TodoList from 'components/TodoList';
+import BreadCrumb from 'components/BreadCrumb';
 
 function CreateDialog() {
     const user = useContext(UserContext);
@@ -118,39 +119,43 @@ export default function SpaceHome() {
     const space = useContext(SpaceContext);
     const { find } = useList();
 
-    if (!space) {
-        return undefined;
-    }
-
     const lists = find({
         where: {
             space: {
-                id: space.id,
+                id: space?.id,
             },
         },
         include: {
             owner: true,
         },
+        orderBy: {
+            updatedAt: 'desc',
+        },
     });
 
     return (
-        <div className="p-8">
-            <label
-                htmlFor="create-list-modal"
-                className="btn btn-primary px-6 modal-button mb-8"
-            >
-                Create a list
-            </label>
+        <>
+            <div className="px-8 py-2">
+                <BreadCrumb />
+            </div>
+            <div className="p-8">
+                <label
+                    htmlFor="create-list-modal"
+                    className="btn btn-primary px-6 modal-button mb-8"
+                >
+                    Create a list
+                </label>
 
-            <ul className="flex flex-wrap gap-6">
-                {lists.data?.map((list) => (
-                    <li key={list.id}>
-                        <TodoList value={list} />
-                    </li>
-                ))}
-            </ul>
+                <ul className="flex flex-wrap gap-6">
+                    {lists.data?.map((list) => (
+                        <li key={list.id}>
+                            <TodoList value={list} />
+                        </li>
+                    ))}
+                </ul>
 
-            <CreateDialog />
-        </div>
+                <CreateDialog />
+            </div>
+        </>
     );
 }

@@ -5,7 +5,7 @@ import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../utils';
-import { API_ROUTE_NAME } from '../constants';
+import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
 
 export default class ReactHooksGenerator implements Generator {
     async generate(context: Context) {
@@ -14,100 +14,12 @@ export default class ReactHooksGenerator implements Generator {
         const models = extractDataModelsWithAllowRules(context.schema);
 
         this.generateIndex(project, context, models);
-        this.generateRequestRuntime(project, context);
 
         models.forEach((d) => this.generateModelHooks(project, context, d));
 
         await project.save();
 
         console.log(colors.blue('  ✔️ React hooks generated'));
-    }
-
-    private generateRequestRuntime(project: Project, context: Context) {
-        const content = `
-        import useSWR, { useSWRConfig } from 'swr';
-        import type { ScopedMutator } from 'swr/dist/types';
-        
-        const fetcher = async (url: string, options?: RequestInit) => {
-            const res = await fetch(url, options);
-            if (!res.ok) {
-                const error: Error & { info?: any; status?: number } = new Error(
-                    'An error occurred while fetching the data.'
-                );
-                error.info = await res.json();
-                error.status = res.status;
-                throw error;
-            }
-            return res.json();
-        };
-        
-        function makeUrl(url: string, args: unknown) {
-            return args ? url + \`?q=\${encodeURIComponent(JSON.stringify(args))}\` : url;
-        }
-        
-        export function get<Data, Error = any>(url: string | null, args?: unknown) {
-            return useSWR<Data, Error>(url && makeUrl(url, args), fetcher);
-        }
-        
-        export async function post<Data, Result>(
-            url: string,
-            data: Data,
-            mutate: ScopedMutator<any>
-        ) {
-            const r: Result = await fetcher(url, {
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-            mutate(url);
-            return r;
-        }
-        
-        export async function put<Data, Result>(
-            url: string,
-            data: Data,
-            mutate: ScopedMutator<any>
-        ) {
-            const r: Result = await fetcher(url, {
-                method: 'PUT',
-                headers: {
-                    'content-type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-            mutate(url, r);
-            return r;
-        }
-        
-        export async function del<Result>(
-            url: string,
-            args: unknown,
-            mutate: ScopedMutator<any>
-        ) {
-            const reqUrl = makeUrl(url, args);
-            const r: Result = await fetcher(reqUrl, {
-                method: 'DELETE',
-            });
-            const path = url.split('/');
-            path.pop();
-            mutate(path.join('/'));
-            return r;
-        }
-        
-        export function getMutate() {
-            const { mutate } = useSWRConfig();
-            return mutate;
-        }
-        `;
-
-        const sf = project.createSourceFile(
-            path.join(context.outDir, `src/hooks/request.ts`),
-            content,
-            { overwrite: true }
-        );
-        sf.formatText();
     }
 
     private generateModelHooks(
@@ -127,8 +39,7 @@ export default class ReactHooksGenerator implements Generator {
             isTypeOnly: true,
             moduleSpecifier: '../../.prisma',
         });
-
-        sf.addStatements([`import * as request from './request';`]);
+        sf.addStatements(`import { request } from '${INTERNAL_PACKAGE}';`);
 
         sf.addStatements(
             `const endpoint = '/api/${API_ROUTE_NAME}/data/${model.name}';`
