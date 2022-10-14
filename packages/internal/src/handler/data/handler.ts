@@ -12,6 +12,7 @@ import { QueryProcessor } from './query-processor';
 const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
     P2002: ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
     P2003: ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION,
+    P2025: ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION,
 };
 
 export default class DataHandler<DbClient> implements RequestHandler {
@@ -125,9 +126,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             r = await db.findMany(processedArgs);
         }
 
-        console.log(
-            `Finding ${model}:\n${JSON.stringify(processedArgs, undefined, 2)}`
-        );
+        console.log(`Finding ${model}:\n${JSON.stringify(processedArgs)}`);
         await this.queryProcessor.postProcess(
             model,
             processedArgs,
@@ -163,13 +162,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         );
 
         const r = await db.$transaction(async (tx: any) => {
-            console.log(
-                `Create ${model}:\n${JSON.stringify(
-                    processedArgs,
-                    undefined,
-                    2
-                )}`
-            );
+            console.log(`Create ${model}:\n${JSON.stringify(processedArgs)}`);
             const created = await tx[model].create(processedArgs);
 
             let queryArgs = {
@@ -184,11 +177,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
                 context
             );
             console.log(
-                `Finding created ${model}:\n${JSON.stringify(
-                    queryArgs,
-                    undefined,
-                    2
-                )}`
+                `Finding created ${model}:\n${JSON.stringify(queryArgs)}`
             );
             const found = await tx[model].findFirst(queryArgs);
             if (!found) {
@@ -247,9 +236,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         updateArgs.where = { ...updateArgs.where, id };
 
         const r = await db.$transaction(async (tx: any) => {
-            console.log(
-                `Update ${model}:\n${JSON.stringify(updateArgs, undefined, 2)}`
-            );
+            console.log(`Update ${model}:\n${JSON.stringify(updateArgs)}`);
             const updated = await tx[model].update(updateArgs);
 
             // make sure after update, the entity passes policy check
@@ -265,11 +252,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
                 context
             );
             console.log(
-                `Finding post-updated ${model}:\n${JSON.stringify(
-                    queryArgs,
-                    undefined,
-                    2
-                )}`
+                `Finding post-updated ${model}:\n${JSON.stringify(queryArgs)}`
             );
             const found = await tx[model].findFirst(queryArgs);
             if (!found) {
@@ -321,9 +304,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         );
         delArgs.where = { ...delArgs.where, id };
 
-        console.log(
-            `Deleting ${model}:\n${JSON.stringify(delArgs, undefined, 2)}`
-        );
+        console.log(`Deleting ${model}:\n${JSON.stringify(delArgs)}`);
         const db = (this.service.db as any)[model];
         const r = await db.delete(delArgs);
         await this.queryProcessor.postProcess(
@@ -353,11 +334,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             context
         );
         console.log(
-            `Finding to-be-deleted ${model}:\n${JSON.stringify(
-                readArgs,
-                undefined,
-                2
-            )}`
+            `Finding to-be-deleted ${model}:\n${JSON.stringify(readArgs)}`
         );
         const read = await db.findFirst(readArgs);
         if (!read) {

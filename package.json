@@ -3,7 +3,10 @@
     "version": "1.0.0",
     "description": "",
     "main": "index.js",
-    "scripts": {},
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "pnpm -r test"
+    },
     "keywords": [],
     "author": "",
     "license": "ISC"

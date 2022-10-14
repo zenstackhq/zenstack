@@ -15,7 +15,9 @@ export default class PrismaGenerator implements Generator {
         // generate prisma query guard
         await new QueryGuardGenerator(context).generate();
 
-        console.log(colors.blue(`  ✔️ Prisma schema and query code generated`));
+        console.log(
+            colors.blue(`  ✔️ Prisma schema and query guard generated`)
+        );
     }
 
     async generatePrismaClient(schemaFile: string) {
