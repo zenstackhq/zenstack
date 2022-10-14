@@ -5,6 +5,7 @@ import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
 import { Context } from '../generator/types';
 import { ZenStackGenerator } from '../generator';
+import { GENERATED_CODE_PATH } from '../generator/constants';
 
 export const generateAction = async (
     fileName: string,
@@ -15,7 +16,9 @@ export const generateAction = async (
 
     const context: Context = {
         schema: model,
-        outDir: opts.destination || 'node_modules/.zenstack',
+        outDir: opts.destination || './zenstack',
+        // TODO: make this configurable
+        generatedCodeDir: GENERATED_CODE_PATH,
     };
 
     await new ZenStackGenerator().generate(context);

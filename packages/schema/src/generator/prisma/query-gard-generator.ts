@@ -17,7 +17,7 @@ export default class QueryGuardGenerator {
     async generate() {
         const project = new Project();
         const sf = project.createSourceFile(
-            path.join(this.context.outDir, 'src/query/guard.ts'),
+            path.join(this.context.generatedCodeDir, 'src/query/guard.ts'),
             undefined,
             { overwrite: true }
         );

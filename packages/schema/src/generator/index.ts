@@ -10,10 +10,19 @@ import { execSync } from 'child_process';
 
 export class ZenStackGenerator {
     async generate(context: Context) {
-        if (fs.existsSync(context.outDir)) {
-            fs.rmSync(context.outDir, { force: true, recursive: true });
+        // folder that stores generated prisma schema and migrations
+        if (!fs.existsSync(context.outDir)) {
+            fs.mkdirSync(context.outDir);
         }
-        fs.mkdirSync(context.outDir);
+
+        // folder that stores generated zenstack code
+        if (fs.existsSync(context.generatedCodeDir)) {
+            fs.rmSync(context.generatedCodeDir, {
+                force: true,
+                recursive: true,
+            });
+        }
+        fs.mkdirSync(context.generatedCodeDir);
 
         const version = require('../../package.json').version;
         console.log(colors.bold(`⌛️ Running ZenStack generator v${version}`));
@@ -35,7 +44,7 @@ export class ZenStackGenerator {
             'package.template.json'
         ));
         fs.writeFileSync(
-            path.join(context.outDir, 'package.json'),
+            path.join(context.generatedCodeDir, 'package.json'),
             JSON.stringify(packageJson, undefined, 4)
         );
 
@@ -45,13 +54,16 @@ export class ZenStackGenerator {
             'tsconfig.template.json'
         ));
         fs.writeFileSync(
-            path.join(context.outDir, 'tsconfig.json'),
+            path.join(context.generatedCodeDir, 'tsconfig.json'),
             JSON.stringify(tsConfig, undefined, 4)
         );
 
         try {
             execSync(
-                `npx tsc -p "${path.join(context.outDir, 'tsconfig.json')}"`,
+                `npx tsc -p "${path.join(
+                    context.generatedCodeDir,
+                    'tsconfig.json'
+                )}"`,
                 { encoding: 'utf-8', stdio: 'inherit' }
             );
         } catch {

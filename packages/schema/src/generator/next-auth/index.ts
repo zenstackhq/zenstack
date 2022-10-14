@@ -18,7 +18,7 @@ export default class NextAuthGenerator implements Generator {
 
     generateIndex(project: Project, context: Context) {
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'src/auth/index.ts'),
+            path.join(context.generatedCodeDir, 'src/auth/index.ts'),
             undefined,
             { overwrite: true }
         );
@@ -94,7 +94,10 @@ export default class NextAuthGenerator implements Generator {
         `;
 
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'src/auth/next-auth-adapter.ts'),
+            path.join(
+                context.generatedCodeDir,
+                'src/auth/next-auth-adapter.ts'
+            ),
             content,
             { overwrite: true }
         );
@@ -184,7 +187,7 @@ export default class NextAuthGenerator implements Generator {
         `;
 
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'src/auth/authorize.ts'),
+            path.join(context.generatedCodeDir, 'src/auth/authorize.ts'),
             content,
             { overwrite: true }
         );
