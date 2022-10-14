@@ -1,7 +1,7 @@
 import { useList } from '@zenstackhq/runtime/hooks';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCurrentSpace } from 'pages/context';
+import { useCurrentSpace } from '@lib/context';
 
 export default function BreadCrumb() {
     const router = useRouter();

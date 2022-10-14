@@ -1,4 +1,4 @@
-import { SpaceContext, UserContext } from '../../context';
+import { SpaceContext, UserContext } from '@lib/context';
 import { ChangeEvent, FormEvent, useContext, useState } from 'react';
 import { useList } from '@zenstackhq/runtime/hooks';
 import { toast } from 'react-toastify';

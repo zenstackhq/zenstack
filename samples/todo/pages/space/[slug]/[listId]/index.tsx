@@ -2,7 +2,7 @@ import { useList, useTodo } from '@zenstackhq/runtime/hooks';
 import { useRouter } from 'next/router';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
-import { useCurrentUser } from 'pages/context';
+import { useCurrentUser } from '@lib/context';
 import TodoComponent from 'components/Todo';
 import BreadCrumb from 'components/BreadCrumb';
 

@@ -9,7 +9,7 @@ import {
     useCurrentSpace,
     useCurrentUser,
     UserContext,
-} from './context';
+} from '@lib/context';
 
 function AppContent(props: { children: JSX.Element | JSX.Element[] }) {
     const user = useCurrentUser();

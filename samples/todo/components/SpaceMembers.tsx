@@ -1,5 +1,5 @@
 import { useSpaceUser } from '@zenstackhq/runtime/hooks';
-import { useCurrentSpace } from 'pages/context';
+import { useCurrentSpace } from '@lib/context';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import Avatar from './Avatar';
 import ManageMembers from './ManageMembers';
