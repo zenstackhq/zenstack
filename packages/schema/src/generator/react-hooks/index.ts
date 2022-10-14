@@ -29,7 +29,7 @@ export default class ReactHooksGenerator implements Generator {
     ) {
         const fileName = paramCase(model.name);
         const sf = project.createSourceFile(
-            path.join(context.outDir, `src/hooks/${fileName}.ts`),
+            path.join(context.generatedCodeDir, `src/hooks/${fileName}.ts`),
             undefined,
             { overwrite: true }
         );
@@ -164,7 +164,7 @@ export default class ReactHooksGenerator implements Generator {
         models: DataModel[]
     ) {
         const sf = project.createSourceFile(
-            path.join(context.outDir, 'src/hooks/index.ts'),
+            path.join(context.generatedCodeDir, 'src/hooks/index.ts'),
             undefined,
             { overwrite: true }
         );

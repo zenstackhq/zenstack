@@ -7,10 +7,10 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "db-gen": "prisma generate --schema node_modules/.zenstack/schema.prisma",
-        "db-push": "prisma db push --schema node_modules/.zenstack/schema.prisma",
-        "db-migrate": "prisma migrate dev --schema node_modules/.zenstack/schema.prisma",
-        "db-reset": "prisma migrate reset --schema node_modules/.zenstack/schema.prisma",
+        "db-gen": "prisma generate --schema zenstack/schema.prisma",
+        "db-push": "prisma db push --schema zenstack/schema.prisma",
+        "db-migrate": "prisma migrate dev --schema zenstack/schema.prisma",
+        "db-reset": "prisma migrate reset --schema zenstack/schema.prisma",
         "generate": "zenstack generate ./schema.zmodel"
     },
     "dependencies": {
