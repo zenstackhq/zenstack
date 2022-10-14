@@ -76,6 +76,9 @@ export default function TodoList() {
                             updated={() => {
                                 invalidateTodos();
                             }}
+                            deleted={() => {
+                                invalidateTodos();
+                            }}
                         />
                     ))}
                 </ul>

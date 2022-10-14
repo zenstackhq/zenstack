@@ -1,4 +1,5 @@
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { useCurrentUser } from '@lib/context';
 import { ServerErrorCode } from '@zenstackhq/internal';
 import { HooksError, useSpaceUser } from '@zenstackhq/runtime/hooks';
 import { Space, SpaceUserRole } from '@zenstackhq/runtime/types';
@@ -13,8 +14,9 @@ type Props = {
 export default function ManageMembers({ space }: Props) {
     const [email, setEmail] = useState('');
     const [role, setRole] = useState<SpaceUserRole>(SpaceUserRole.USER);
+    const user = useCurrentUser();
 
-    const { find, create: addMember } = useSpaceUser();
+    const { find, create: addMember, del: delMember } = useSpaceUser();
     const { data: members } = find({
         where: {
             spaceId: space.id,
@@ -59,6 +61,12 @@ export default function ManageMembers({ space }: Props) {
         }
     };
 
+    const removeMember = async (id: string) => {
+        if (confirm(`Are you sure to remove this member from space?`)) {
+            await delMember(id);
+        }
+    };
+
     return (
         <div>
             <div className="flex flex-wrap gap-2 items-center mb-8 w-full">
@@ -84,8 +92,8 @@ export default function ManageMembers({ space }: Props) {
                         setRole(e.currentTarget.value as SpaceUserRole);
                     }}
                 >
-                    <option value={SpaceUserRole.USER}>Member</option>
-                    <option value={SpaceUserRole.ADMIN}>Admin</option>
+                    <option value={SpaceUserRole.USER}>USER</option>
+                    <option value={SpaceUserRole.ADMIN}>ADMIN</option>
                 </select>
 
                 <button>
@@ -109,14 +117,14 @@ export default function ManageMembers({ space }: Props) {
                             <p>{member.role}</p>
                         </div>
                         <div className="flex items-center">
-                            <button className="justify-self-end btn btn-link btn-xs text-gray-500">
+                            {user?.id !== member.user.id && (
                                 <TrashIcon
                                     className="w-4 h-4 text-gray-500"
                                     onClick={() => {
-                                        // TODO
+                                        removeMember(member.id);
                                     }}
                                 />
-                            </button>
+                            )}
                         </div>
                     </li>
                 ))}
