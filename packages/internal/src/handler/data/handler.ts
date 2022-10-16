@@ -55,7 +55,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
                     break;
             }
         } catch (err: any) {
-            console.error(`Error handling ${method} ${model}: ${err}`);
+            console.log(`Error handling ${method} ${model}: ${err}`);
             if (err instanceof RequestHandlerError) {
                 switch (err.code) {
                     case ServerErrorCode.DENIED_BY_POLICY:
@@ -127,13 +127,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         }
 
         console.log(`Finding ${model}:\n${JSON.stringify(processedArgs)}`);
-        await this.queryProcessor.postProcess(
-            model,
-            processedArgs,
-            r,
-            'read',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'read', context);
 
         res.status(200).send(r);
     }
@@ -190,13 +184,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             return created;
         });
 
-        await this.queryProcessor.postProcess(
-            model,
-            processedArgs,
-            r,
-            'create',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'create', context);
         res.status(201).send(r);
     }
 
@@ -265,13 +253,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             return updated;
         });
 
-        await this.queryProcessor.postProcess(
-            model,
-            updateArgs,
-            r,
-            'update',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'update', context);
         res.status(200).send(r);
     }
 
@@ -307,13 +289,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         console.log(`Deleting ${model}:\n${JSON.stringify(delArgs)}`);
         const db = (this.service.db as any)[model];
         const r = await db.delete(delArgs);
-        await this.queryProcessor.postProcess(
-            model,
-            delArgs,
-            r,
-            'delete',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'delete', context);
 
         res.status(200).send(r);
     }

@@ -3,13 +3,8 @@
 */
 
 datasource db {
-    provider = 'postgresql'
-    url = env('DATABASE_URL')
-}
-
-enum SpaceUserRole {
-    USER
-    ADMIN
+    provider = 'sqlite'
+    url = 'file:./test.db'
 }
 
 model Space {
@@ -31,7 +26,7 @@ model Space {
     @@allow('read', members?[user == auth()])
 
     // space admin can update and delete
-    @@allow('update,delete', members?[user == auth() && role == ADMIN])
+    @@allow('update,delete', members?[user == auth() && role == "ADMIN"])
 }
 
 model SpaceUser {
@@ -42,7 +37,7 @@ model SpaceUser {
     spaceId String
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
-    role SpaceUserRole
+    role String
     
     @@unique([userId, spaceId])
 
@@ -50,7 +45,7 @@ model SpaceUser {
     @@deny('all', auth() == null)
 
     // space admin can create/update/delete
-    @@allow('create,update,delete', space.members?[user == auth() && role == ADMIN])
+    @@allow('create,update,delete', space.members?[user == auth() && role == "ADMIN"])
 
     // user can read entries for spaces which he's a member of
     @@allow('read', space.members?[user == auth()])
@@ -76,7 +71,7 @@ model User {
     // can be created by anyone, even not logged in
     @@allow('create', true)
 
-    // can be read by current user or users sharing any space
+    // can be read by users sharing any space
     @@allow('read', auth() == this || spaces?[auth() == user])
 
     // can only be updated and deleted by himeself

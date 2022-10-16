@@ -1,5 +1,5 @@
 import { Context, Generator } from '../types';
-import { Project, StructureKind } from 'ts-morph';
+import { Project, StructureKind, VariableDeclarationKind } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
 import { INTERNAL_PACKAGE } from '../constants';
@@ -41,6 +41,15 @@ export default class ServiceGenerator implements Generator {
             .addBody()
             .setBodyText('return this._prisma;');
 
+        sf.addVariableStatement({
+            declarationKind: VariableDeclarationKind.Let,
+            declarations: [
+                {
+                    name: 'guardModule',
+                    type: 'any',
+                },
+            ],
+        });
         cls
             .addMethod({
                 name: 'resolveField',
@@ -57,8 +66,10 @@ export default class ServiceGenerator implements Generator {
                 ],
             })
             .addBody().setBodyText(`
-                const module: any = await import('./query/guard');
-                return module._fieldMapping?.[model]?.[field];
+                if (!guardModule) {
+                    guardModule = await import('./query/guard');
+                }
+                return guardModule._fieldMapping?.[model]?.[field];
             `);
 
         cls
