@@ -328,9 +328,10 @@
             "peer": true
         },
         "node_modules/@zenstackhq/internal": {
-            "version": "0.1.19",
-            "resolved": "https://registry.npmjs.org/@zenstackhq/internal/-/internal-0.1.19.tgz",
-            "integrity": "sha512-2b4dkGq1NJRUfEoLXprqSDFKHgI2y4vHb+z0iwc/llRqTCHU/BmqneTn+W28ckq4rh6E/eRor5qRobfGLoWUYA==",
+            "version": "0.1.20",
+            "resolved": "https://registry.npmjs.org/@zenstackhq/internal/-/internal-0.1.20.tgz",
+            "integrity": "sha512-SxPHz0MjIvXc3WzLF1kLZZOIFx8PFZ7Hw6W4u8Nf6JzHxi8X2q6opRJV/jVKhKlmqiRh8EXo8S9vyz9XLiVspA==",
+            "peer": true,
             "dependencies": {
                 "bcryptjs": "^2.4.3",
                 "deepcopy": "^2.1.0",
@@ -1191,6 +1192,21 @@
             "engines": {
                 "vscode": "^1.56.0"
             }
+        },
+        "node_modules/zenstack/node_modules/@zenstackhq/internal": {
+            "version": "0.1.19",
+            "resolved": "https://registry.npmjs.org/@zenstackhq/internal/-/internal-0.1.19.tgz",
+            "integrity": "sha512-2b4dkGq1NJRUfEoLXprqSDFKHgI2y4vHb+z0iwc/llRqTCHU/BmqneTn+W28ckq4rh6E/eRor5qRobfGLoWUYA==",
+            "dependencies": {
+                "bcryptjs": "^2.4.3",
+                "deepcopy": "^2.1.0",
+                "swr": "^1.3.0"
+            },
+            "peerDependencies": {
+                "next": "12.3.1",
+                "react": "^17.0.2 || ^18",
+                "react-dom": "^17.0.2 || ^18"
+            }
         }
     },
     "dependencies": {
@@ -1369,9 +1385,10 @@
             "peer": true
         },
         "@zenstackhq/internal": {
-            "version": "0.1.19",
-            "resolved": "https://registry.npmjs.org/@zenstackhq/internal/-/internal-0.1.19.tgz",
-            "integrity": "sha512-2b4dkGq1NJRUfEoLXprqSDFKHgI2y4vHb+z0iwc/llRqTCHU/BmqneTn+W28ckq4rh6E/eRor5qRobfGLoWUYA==",
+            "version": "0.1.20",
+            "resolved": "https://registry.npmjs.org/@zenstackhq/internal/-/internal-0.1.20.tgz",
+            "integrity": "sha512-SxPHz0MjIvXc3WzLF1kLZZOIFx8PFZ7Hw6W4u8Nf6JzHxi8X2q6opRJV/jVKhKlmqiRh8EXo8S9vyz9XLiVspA==",
+            "peer": true,
             "requires": {
                 "bcryptjs": "^2.4.3",
                 "deepcopy": "^2.1.0",
@@ -2008,6 +2025,18 @@
                 "vscode-languageclient": "^7.0.0",
                 "vscode-languageserver": "^7.0.0",
                 "vscode-uri": "^3.0.2"
+            },
+            "dependencies": {
+                "@zenstackhq/internal": {
+                    "version": "0.1.19",
+                    "resolved": "https://registry.npmjs.org/@zenstackhq/internal/-/internal-0.1.19.tgz",
+                    "integrity": "sha512-2b4dkGq1NJRUfEoLXprqSDFKHgI2y4vHb+z0iwc/llRqTCHU/BmqneTn+W28ckq4rh6E/eRor5qRobfGLoWUYA==",
+                    "requires": {
+                        "bcryptjs": "^2.4.3",
+                        "deepcopy": "^2.1.0",
+                        "swr": "^1.3.0"
+                    }
+                }
             }
         }
     }

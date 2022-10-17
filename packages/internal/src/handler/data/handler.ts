@@ -76,11 +76,18 @@ export default class DataHandler<DbClient> implements RequestHandler {
                             message: err.message,
                         });
                 }
-            } else if (err.code && PRISMA_ERROR_MAPPING[err.code]) {
-                res.status(400).send({
-                    code: PRISMA_ERROR_MAPPING[err.code],
-                    message: 'database access error',
-                });
+            } else if (err.code) {
+                if (PRISMA_ERROR_MAPPING[err.code]) {
+                    res.status(400).send({
+                        code: PRISMA_ERROR_MAPPING[err.code],
+                        message: 'database access error',
+                    });
+                } else {
+                    res.status(400).send({
+                        code: 'PRISMA:' + err.code,
+                        message: 'an unhandled Prisma error occurred',
+                    });
+                }
             } else {
                 console.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
@@ -310,7 +317,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             context
         );
         console.log(
-            `Finding to-be-deleted ${model}:\n${JSON.stringify(readArgs)}`
+            `Finding pre-operation ${model}:\n${JSON.stringify(readArgs)}`
         );
         const read = await db.findFirst(readArgs);
         if (!read) {

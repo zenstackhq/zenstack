@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import { apiResolver } from 'next/dist/server/api-utils/node';
 import request from 'supertest';
 import { NextApiHandler } from 'next/types';
+import supertest from 'supertest';
 
 export function run(cmd: string) {
     execSync(cmd, { stdio: 'inherit', encoding: 'utf-8' });
@@ -15,22 +16,20 @@ export async function setup() {
     const origDir = path.resolve('.');
 
     const { name: workDir } = tmp.dirSync();
+    console.log('Work dir:', workDir);
+    process.chdir(workDir);
 
     // const workDir = '/tmp/zen';
-    // process.chdir(workDir);
-
     // if (fs.existsSync(workDir)) {
     //     fs.rmSync(workDir, { recursive: true, force: true });
     // }
     // fs.mkdirSync(workDir);
-
-    console.log('Work dir:', workDir);
-    process.chdir(workDir);
+    // process.chdir(workDir);
 
     const targetSchema = path.join(workDir, 'schema.zmodel');
     fs.copyFileSync(path.join(origDir, './tests/todo.zmodel'), targetSchema);
 
-    fs.writeFileSync('.npmrc', `cache=${origDir}/npmcache`);
+    fs.writeFileSync('.npmrc', `cache=${origDir}/.npmcache`);
     fs.copyFileSync(
         path.join(origDir, 'tests/package.template.json'),
         path.join(workDir, 'package.json')
@@ -53,7 +52,11 @@ export async function setup() {
 
             const options: RequestHandlerOptions = {
                 async getServerUser(req: NextApiRequest, res: NextApiResponse) {
-                    return { id: 'user1' };
+                    if (req.cookies.userId) {
+                        return { id: req.cookies.userId };
+                    } else {
+                        return undefined;
+                    }
                 },
             };
             export default requestHandler(service, options);
@@ -69,7 +72,7 @@ export async function setup() {
     return workDir;
 }
 
-export function makeClient(apiPath: string) {
+export function makeClient(apiPath: string, userId?: string) {
     const [api, ...pathParts] = apiPath.split('/').filter((p) => p);
     if (api !== 'api') {
         throw new Error('apiPath must start with /api');
@@ -94,5 +97,34 @@ export function makeClient(apiPath: string) {
         );
     const handler = require(path.resolve('handler.js'));
     const client = testClient(handler);
-    return client;
+
+    const proxied = new Proxy(client, {
+        get(
+            target: supertest.SuperTest<supertest.Test>,
+            prop: string | symbol,
+            receiver: any
+        ) {
+            if (!userId) {
+                return Reflect.get(target, prop, receiver);
+            }
+
+            switch (prop) {
+                case 'get':
+                case 'post':
+                case 'put':
+                case 'del':
+                case 'delete':
+                    return (url: string) => {
+                        // debugger;
+                        return target[prop](url).set('Cookie', [
+                            `userId=${userId}`,
+                        ]);
+                    };
+                default:
+                    return Reflect.get(target, prop, receiver);
+            }
+        },
+    });
+
+    return proxied;
 }

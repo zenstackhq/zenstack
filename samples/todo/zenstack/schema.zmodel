@@ -77,7 +77,7 @@ model User {
     @@allow('create', true)
 
     // can be read by current user or users sharing any space
-    @@allow('read', auth() == this || spaces?[auth() == user])
+    @@allow('read', auth() == this || spaces?[space.members?[user == auth()]])
 
     // can only be updated and deleted by himeself
     @@allow('update,delete', auth() == this) 

@@ -92,7 +92,7 @@ model List {
     // can be read by owner or space members (only if not private) 
     @@allow('read', owner == auth() || (space.members?[user == auth()] && !private))
 
-    // can be created/updated/deleted by owner
+    // can be updated/deleted by owner with a valid space
     @@allow('create,update,delete', owner == auth() && space.members?[user == auth()]) 
 }
 
