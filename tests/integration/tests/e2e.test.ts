@@ -19,7 +19,7 @@ describe('E2E Tests', () => {
     });
 
     it('user', async () => {
-        const client = makeClient('/api/data/User');
+        const userClient = makeClient('/api/data/User');
         const user1Client = makeClient('/api/data/User/user1');
         const user2Client = makeClient('/api/data/User/user2');
         const user1 = {
@@ -34,7 +34,7 @@ describe('E2E Tests', () => {
         };
 
         // create user1
-        await client
+        await userClient
             .post('/')
             .send({
                 data: user1,
@@ -45,7 +45,7 @@ describe('E2E Tests', () => {
             });
 
         // find
-        await client
+        await userClient
             .get('/')
             .expect(200)
             .expect((resp) => {
@@ -62,18 +62,56 @@ describe('E2E Tests', () => {
         await user2Client.get('/').expect(404);
 
         // create user2
-        await client.post('/').send({
+        await userClient.post('/').send({
             data: user2,
         });
 
         // find with user1 should only get user1
-        await client
+        await userClient
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body).toHaveLength(1);
                 expect(resp.body).toEqual([expect.objectContaining(user1)]);
             });
+
+        // get user2 as user1
+        await user2Client.get('/').expect(404);
+
+        // add both users into the same space
+        const spaceClient = makeClient('/api/data/Space');
+        await spaceClient
+            .post('/')
+            .send({
+                data: {
+                    name: 'Space 1',
+                    slug: 'space1',
+                    members: {
+                        create: [
+                            {
+                                user: { connect: { id: user1.id } },
+                                role: 'USER',
+                            },
+                            {
+                                user: { connect: { id: user2.id } },
+                                role: 'USER',
+                            },
+                        ],
+                    },
+                },
+            })
+            .expect(201);
+
+        // now both user1 and user2 should be visible
+        await userClient
+            .get('/')
+            .expect((resp) => expect(resp.body).toHaveLength(2));
+        await user2Client
+            .get('/')
+            .expect(200)
+            .expect((resp) =>
+                expect(resp.body).toEqual(expect.objectContaining(user2))
+            );
 
         // update user2 as user1
         await user2Client
@@ -98,7 +136,6 @@ describe('E2E Tests', () => {
 
         // delete user2 as user1
         await user2Client.delete('/').expect(403);
-        await user2Client.get('/').expect(200);
 
         // delete user1 as user1
         await user1Client.delete('/').expect(200);

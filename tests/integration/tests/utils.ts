@@ -12,22 +12,35 @@ export function run(cmd: string) {
 }
 
 export async function setup() {
+    const origDir = path.resolve('.');
+
     const { name: workDir } = tmp.dirSync();
 
-    const origDir = path.resolve('.');
-    const schema = path.resolve('./tests/todo.zmodel');
-    const tsconfig = path.resolve('./tests/tsconfig.template.json');
+    // const workDir = '/tmp/zen';
+    // process.chdir(workDir);
+
+    // if (fs.existsSync(workDir)) {
+    //     fs.rmSync(workDir, { recursive: true, force: true });
+    // }
+    // fs.mkdirSync(workDir);
 
     console.log('Work dir:', workDir);
     process.chdir(workDir);
 
     const targetSchema = path.join(workDir, 'schema.zmodel');
-    fs.copyFileSync(schema, targetSchema);
+    fs.copyFileSync(path.join(origDir, './tests/todo.zmodel'), targetSchema);
 
     fs.writeFileSync('.npmrc', `cache=${origDir}/npmcache`);
+    fs.copyFileSync(
+        path.join(origDir, 'tests/package.template.json'),
+        path.join(workDir, 'package.json')
+    );
+    fs.copyFileSync(
+        path.join(origDir, 'tests/package-lock.template.json'),
+        path.join(workDir, 'package-lock.json')
+    );
 
-    run('npm init -y');
-    run('npm i typescript next-auth zenstack @zenstackhq/runtime');
+    run('npm i typescript zenstack @zenstackhq/runtime');
     run(`npx zenstack generate ./schema.zmodel`);
     run(`npx prisma migrate dev --schema ./zenstack/schema.prisma -n init`);
 
@@ -47,7 +60,10 @@ export async function setup() {
             `
     );
 
-    fs.copyFileSync(tsconfig, path.join(workDir, 'tsconfig.json'));
+    fs.copyFileSync(
+        path.join(origDir, 'tests/tsconfig.template.json'),
+        path.join(workDir, 'tsconfig.json')
+    );
     run('npx tsc');
 
     return workDir;

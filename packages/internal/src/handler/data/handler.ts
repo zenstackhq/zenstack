@@ -110,7 +110,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         if (id) {
             if (processedArgs.where) {
                 processedArgs.where = {
-                    AND: [args.where, { id }],
+                    AND: [processedArgs.where, { id }],
                 };
             } else {
                 processedArgs.where = { id };
