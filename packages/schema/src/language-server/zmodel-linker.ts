@@ -176,14 +176,14 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
-        this.resolve(node.left, document, extraScopes);
-        this.resolve(node.right, document, extraScopes);
         switch (node.operator) {
             // TODO: support arithmetics?
             // case '+':
             // case '-':
             // case '*':
             // case '/':
+            //     this.resolve(node.left, document, extraScopes);
+            //     this.resolve(node.right, document, extraScopes);
             //     this.resolveToBuiltinTypeOrDecl(node, 'Int');
             //     break;
 
@@ -195,6 +195,8 @@ export class ZModelLinker extends DefaultLinker {
             case '!=':
             case '&&':
             case '||':
+                this.resolve(node.left, document, extraScopes);
+                this.resolve(node.right, document, extraScopes);
                 this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
                 break;
 

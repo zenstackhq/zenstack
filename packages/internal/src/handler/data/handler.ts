@@ -55,7 +55,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
                     break;
             }
         } catch (err: any) {
-            console.error(`Error handling ${method} ${model}: ${err}`);
+            console.log(`Error handling ${method} ${model}: ${err}`);
             if (err instanceof RequestHandlerError) {
                 switch (err.code) {
                     case ServerErrorCode.DENIED_BY_POLICY:
@@ -76,11 +76,18 @@ export default class DataHandler<DbClient> implements RequestHandler {
                             message: err.message,
                         });
                 }
-            } else if (err.code && PRISMA_ERROR_MAPPING[err.code]) {
-                res.status(400).send({
-                    code: PRISMA_ERROR_MAPPING[err.code],
-                    message: 'database access error',
-                });
+            } else if (err.code) {
+                if (PRISMA_ERROR_MAPPING[err.code]) {
+                    res.status(400).send({
+                        code: PRISMA_ERROR_MAPPING[err.code],
+                        message: 'database access error',
+                    });
+                } else {
+                    res.status(400).send({
+                        code: 'PRISMA:' + err.code,
+                        message: 'an unhandled Prisma error occurred',
+                    });
+                }
             } else {
                 console.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
@@ -110,7 +117,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         if (id) {
             if (processedArgs.where) {
                 processedArgs.where = {
-                    AND: [args.where, { id }],
+                    AND: [processedArgs.where, { id }],
                 };
             } else {
                 processedArgs.where = { id };
@@ -127,13 +134,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         }
 
         console.log(`Finding ${model}:\n${JSON.stringify(processedArgs)}`);
-        await this.queryProcessor.postProcess(
-            model,
-            processedArgs,
-            r,
-            'read',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'read', context);
 
         res.status(200).send(r);
     }
@@ -190,13 +191,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             return created;
         });
 
-        await this.queryProcessor.postProcess(
-            model,
-            processedArgs,
-            r,
-            'create',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'create', context);
         res.status(201).send(r);
     }
 
@@ -265,13 +260,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             return updated;
         });
 
-        await this.queryProcessor.postProcess(
-            model,
-            updateArgs,
-            r,
-            'update',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'update', context);
         res.status(200).send(r);
     }
 
@@ -307,13 +296,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         console.log(`Deleting ${model}:\n${JSON.stringify(delArgs)}`);
         const db = (this.service.db as any)[model];
         const r = await db.delete(delArgs);
-        await this.queryProcessor.postProcess(
-            model,
-            delArgs,
-            r,
-            'delete',
-            context
-        );
+        await this.queryProcessor.postProcess(model, r, 'delete', context);
 
         res.status(200).send(r);
     }
@@ -334,7 +317,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
             context
         );
         console.log(
-            `Finding to-be-deleted ${model}:\n${JSON.stringify(readArgs)}`
+            `Finding pre-operation ${model}:\n${JSON.stringify(readArgs)}`
         );
         const read = await db.findFirst(readArgs);
         if (!read) {

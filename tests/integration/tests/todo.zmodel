@@ -3,13 +3,8 @@
 */
 
 datasource db {
-    provider = 'postgresql'
-    url = env('DATABASE_URL')
-}
-
-enum SpaceUserRole {
-    USER
-    ADMIN
+    provider = 'sqlite'
+    url = 'file:./test.db'
 }
 
 model Space {
@@ -31,7 +26,7 @@ model Space {
     @@allow('read', members?[user == auth()])
 
     // space admin can update and delete
-    @@allow('update,delete', members?[user == auth() && role == ADMIN])
+    @@allow('update,delete', members?[user == auth() && role == "ADMIN"])
 }
 
 model SpaceUser {
@@ -42,7 +37,7 @@ model SpaceUser {
     spaceId String
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
-    role SpaceUserRole
+    role String
     
     @@unique([userId, spaceId])
 
@@ -50,7 +45,7 @@ model SpaceUser {
     @@deny('all', auth() == null)
 
     // space admin can create/update/delete
-    @@allow('create,update,delete', space.members?[user == auth() && role == ADMIN])
+    @@allow('create,update,delete', space.members?[user == auth() && role == "ADMIN"])
 
     // user can read entries for spaces which he's a member of
     @@allow('read', space.members?[user == auth()])
@@ -69,14 +64,10 @@ model User {
     lists List[]
     todos Todo[]
 
-    // next-auth
-    accounts      Account[]
-    sessions      Session[]
-
     // can be created by anyone, even not logged in
     @@allow('create', true)
 
-    // can be read by current user or users sharing any space
+    // can be read by users sharing any space
     @@allow('read', auth() == this || spaces?[space.members?[user == auth()]])
 
     // can only be updated and deleted by himeself
@@ -101,7 +92,7 @@ model List {
     // can be read by owner or space members (only if not private) 
     @@allow('read', owner == auth() || (space.members?[user == auth()] && !private))
 
-    // can be created/updated/deleted by owner
+    // can be updated/deleted by owner with a valid space
     @@allow('create,update,delete', owner == auth() && space.members?[user == auth()]) 
 }
 
@@ -122,40 +113,4 @@ model Todo {
     // owner has full access, also space members have full access (if the parent List is not private)
     @@allow('all', list.owner == auth())
     @@allow('all', list.space.members?[user == auth()] && !list.private)
-}
-
-// Models used by next-auth
-
-model Account {
-    id                String  @id @default(uuid())
-    userId            String
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String?
-    access_token      String?
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String?
-    session_state     String?
-    user              User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@unique([provider, providerAccountId])
-}
-
-model Session {
-    id           String   @id @default(uuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
-
-    @@unique([identifier, token])
 }

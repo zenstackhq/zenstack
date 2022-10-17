@@ -192,8 +192,8 @@ describe('Basic Tests', () => {
                 b Int
                 c Boolean
 
-                @@deny(!c)
-                @@deny(a < 0)
+                @@deny('all', !c)
+                @@deny('all', a < 0)
                 // @@deny(a + b < 10)
             }
         `;
@@ -201,24 +201,24 @@ describe('Basic Tests', () => {
         const model = doc.declarations[0] as DataModel;
         const attrs = model.attributes;
 
-        expect(attrs[0].args[0].value.$type).toBe(UnaryExpr);
-        expect((attrs[0].args[0].value as UnaryExpr).operand.$type).toBe(
+        expect(attrs[0].args[1].value.$type).toBe(UnaryExpr);
+        expect((attrs[0].args[1].value as UnaryExpr).operand.$type).toBe(
             ReferenceExpr
         );
 
-        expect(attrs[1].args[0].value.$type).toBe(BinaryExpr);
-        expect((attrs[1].args[0].value as BinaryExpr).left.$type).toBe(
+        expect(attrs[1].args[1].value.$type).toBe(BinaryExpr);
+        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(
             ReferenceExpr
         );
-        expect((attrs[1].args[0].value as BinaryExpr).right.$type).toBe(
+        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(
             LiteralExpr
         );
 
-        expect(attrs[1].args[0].value.$type).toBe(BinaryExpr);
-        expect((attrs[1].args[0].value as BinaryExpr).left.$type).toBe(
+        expect(attrs[1].args[1].value.$type).toBe(BinaryExpr);
+        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(
             ReferenceExpr
         );
-        expect((attrs[1].args[0].value as BinaryExpr).right.$type).toBe(
+        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(
             LiteralExpr
         );
 
@@ -235,9 +235,9 @@ describe('Basic Tests', () => {
                 b Int
                 // @@deny(a + b * 2 > 0)
                 // @@deny((a + b) * 2 > 0)
-                @@deny(a > 0 && b < 0)
-                @@deny(a >= 0 && b <= 0)
-                @@deny(a == 0 || b != 0)
+                @@deny('all', a > 0 && b < 0)
+                @@deny('all', a >= 0 && b <= 0)
+                @@deny('all', a == 0 || b != 0)
             }
         `;
 
@@ -335,8 +335,8 @@ describe('Basic Tests', () => {
                 a Int
                 b Int
                 c N[]
-                @@deny(foo(a, b))
-                @@deny(bar(c))
+                @@deny('all', foo(a, b))
+                @@deny('all', bar(c))
             }
 
             model N {
@@ -363,15 +363,15 @@ describe('Basic Tests', () => {
         expect(bar.params[0].type.reference?.ref?.name).toBe('N');
         expect(bar.params[0].type.array).toBeTruthy();
 
-        expect(model.attributes[0].args[0].value.$type).toBe(InvocationExpr);
+        expect(model.attributes[0].args[1].value.$type).toBe(InvocationExpr);
     });
 
     it('member access', async () => {
         const content = `
             model M {
                 a N
-                @@deny(a.x.y < 0)
-                @@deny(foo(a))
+                @@deny('all', a.x.y < 0)
+                @@deny('all', foo(a))
             }
 
             model N {
@@ -392,11 +392,29 @@ describe('Basic Tests', () => {
     it('collection predicate', async () => {
         const content = `
             model M {
-                a N[]
-                @@deny(a?[x < 0])
+                n N[]
+                @@deny('all', n?[x < 0])
             }
 
             model N {
+                x Int
+            }
+        `;
+        await loadModel(content);
+    });
+
+    it('collection predicate chained', async () => {
+        const content = `
+            model M {
+                n N[]
+                @@deny('all', n?[p?[x < 0]])
+            }
+
+            model N {
+                p P[]
+            }
+
+            model P {
                 x Int
             }
         `;
