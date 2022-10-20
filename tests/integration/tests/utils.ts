@@ -12,34 +12,34 @@ export function run(cmd: string) {
     execSync(cmd, { stdio: 'inherit', encoding: 'utf-8' });
 }
 
-export async function setup() {
+export async function setup(schemaFile: string) {
     const origDir = path.resolve('.');
 
-    const { name: workDir } = tmp.dirSync();
-    console.log('Work dir:', workDir);
+    const workDir = path.resolve('tests/test-run');
+    if (fs.existsSync(workDir)) {
+        fs.rmSync(workDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(workDir);
     process.chdir(workDir);
 
-    // const workDir = '/tmp/zen';
-    // if (fs.existsSync(workDir)) {
-    //     fs.rmSync(workDir, { recursive: true, force: true });
-    // }
-    // fs.mkdirSync(workDir);
-    // process.chdir(workDir);
-
     const targetSchema = path.join(workDir, 'schema.zmodel');
-    fs.copyFileSync(path.join(origDir, './tests/todo.zmodel'), targetSchema);
+    fs.copyFileSync(path.join(origDir, schemaFile), targetSchema);
 
+    // install dependencies
     fs.writeFileSync('.npmrc', `cache=${origDir}/.npmcache`);
-    fs.copyFileSync(
-        path.join(origDir, 'tests/package.template.json'),
-        path.join(workDir, 'package.json')
-    );
-    fs.copyFileSync(
-        path.join(origDir, 'tests/package-lock.template.json'),
-        path.join(workDir, 'package-lock.json')
-    );
+    run('npm init -y');
+    const dependencies = [
+        'typescript',
+        'swr',
+        'react',
+        'prisma',
+        '../../../../packages/schema',
+        '../../../../packages/runtime',
+        '../../../../packages/internal',
+    ];
+    run(`npm i ${dependencies.join(' ')}`);
 
-    run('npm i typescript zenstack @zenstackhq/runtime');
+    // code generation
     run(`npx zenstack generate ./schema.zmodel`);
     run(`npx prisma migrate dev --schema ./zenstack/schema.prisma -n init`);
 
@@ -72,12 +72,16 @@ export async function setup() {
     return workDir;
 }
 
-export function makeClient(apiPath: string, userId?: string) {
+export function makeClient(apiPath: string, userId?: string, queryArgs?: any) {
     const [api, ...pathParts] = apiPath.split('/').filter((p) => p);
     if (api !== 'api') {
         throw new Error('apiPath must start with /api');
     }
-    const query = { path: pathParts };
+
+    const query = {
+        path: pathParts,
+        ...(queryArgs ? { q: JSON.stringify(queryArgs) } : {}),
+    };
     const testClient = (handler: NextApiHandler) =>
         request(
             createServer(async (req, res) => {
@@ -115,7 +119,6 @@ export function makeClient(apiPath: string, userId?: string) {
                 case 'del':
                 case 'delete':
                     return (url: string) => {
-                        // debugger;
                         return target[prop](url).set('Cookie', [
                             `userId=${userId}`,
                         ]);

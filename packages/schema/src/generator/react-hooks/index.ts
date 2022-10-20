@@ -40,6 +40,7 @@ export default class ReactHooksGenerator implements Generator {
             moduleSpecifier: '../../.prisma',
         });
         sf.addStatements(`import { request } from '${INTERNAL_PACKAGE}';`);
+        sf.addStatements(`import { type SWRResponse } from 'swr'`);
 
         sf.addStatements(
             `const endpoint = '/api/${API_ROUTE_NAME}/data/${model.name}';`
@@ -74,6 +75,7 @@ export default class ReactHooksGenerator implements Generator {
             .addFunction({
                 name: 'find',
                 typeParameters: [`T extends P.${model.name}FindManyArgs`],
+                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}[], P.${model.name}GetPayload<T, keyof T>[]>, any>`,
                 parameters: [
                     {
                         name: 'args?',
@@ -93,6 +95,7 @@ export default class ReactHooksGenerator implements Generator {
                 typeParameters: [
                     `T extends P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>`,
                 ],
+                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T, keyof T>>, any>`,
                 parameters: [
                     {
                         name: 'id',

@@ -1,0 +1,69 @@
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./operations.db'
+}
+
+model EmptyPolicy {
+    id String @id @default(uuid())
+}
+
+model M1 {
+    id String @id @default(uuid())
+    m2 M2[]
+    m3 M3?
+
+    @@allow('all', true)
+}
+
+model M2 {
+    id String @id @default(uuid())
+    m1 M1 @relation(fields: [m1Id], references:[id])
+    m1Id String
+}
+
+model M3 {
+    id String @id @default(uuid())
+    m1 M1 @relation(fields: [m1Id], references:[id])
+    m1Id String @unique
+}
+
+model M4 {
+    id String @id @default(uuid())
+    value Int
+
+    @@allow('read', value > 1)
+    @@allow('create', value > 0)
+    @@allow('update', value > 1)
+    @@allow('delete', value > 2)
+}
+
+model M5 {
+    id String @id @default(uuid())
+    m6 M6?
+    m7 M7[]
+
+    @@allow('all', true)
+}
+
+model M6 {
+    id String @id @default(uuid())
+    value Int
+    m5 M5 @relation(fields: [m5Id], references:[id])
+    m5Id String @unique
+
+    @@allow('read', true)
+    @@allow('create', value > 0)
+    @@allow('update', value > 1)
+    @@allow('delete', value > 2)
+}
+
+model M7 {
+    id String @id @default(uuid())
+    value Int
+    m5 M5 @relation(fields: [m5Id], references:[id])
+    m5Id String
+
+    @@allow('create', value > 0)
+    @@allow('update', value > 1)
+    @@allow('delete', value > 2)
+}

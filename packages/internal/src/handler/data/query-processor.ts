@@ -1,8 +1,310 @@
 import deepcopy from 'deepcopy';
-import { PolicyOperationKind, QueryContext, Service } from '../../types';
+import { TRANSACTION_FIELD_NAME } from '../../constants';
+import {
+    PolicyOperationKind,
+    QueryContext,
+    ServerErrorCode,
+    Service,
+} from '../../types';
+import { RequestHandlerError } from '../types';
+import { and } from './guard-utils';
 
 export class QueryProcessor {
     constructor(private readonly service: Service) {}
+
+    async processQueryArgsForWrite(
+        model: string,
+        args: any,
+        operation: PolicyOperationKind,
+        context: QueryContext,
+        transactionId: string
+    ) {
+        const preWriteGuard = args ? deepcopy(args) : {};
+        delete preWriteGuard.data;
+        delete preWriteGuard.include;
+        delete preWriteGuard.select;
+
+        if (operation === 'update') {
+            preWriteGuard.select = { id: true };
+            await this.injectSelectForToOneRelation(
+                model,
+                preWriteGuard.select,
+                args.data,
+                operation
+            );
+        }
+
+        await this.processQueryArgs(
+            model,
+            preWriteGuard,
+            operation,
+            context,
+            true
+        );
+
+        const writeArgs = args ? deepcopy(args) : {};
+        delete writeArgs.include;
+        delete writeArgs.select;
+
+        const includedModels = new Set<string>([model]);
+        await this.collectModelsInNestedWrites(
+            model,
+            writeArgs.data,
+            operation,
+            context,
+            includedModels,
+            transactionId
+        );
+
+        return { preWriteGuard, writeArgs, includedModels };
+    }
+
+    async injectSelectForToOneRelation(
+        model: string,
+        select: any,
+        updateData: any,
+        operation: string
+    ) {
+        if (!updateData) {
+            return;
+        }
+        for (const [k, v] of Object.entries(updateData)) {
+            const fieldInfo = await this.service.resolveField(model, k);
+            if (fieldInfo) {
+                if (fieldInfo.isArray) {
+                    select[k] = { select: { ...select?.[k]?.select } };
+                    await this.injectSelectForToOneRelation(
+                        fieldInfo.type,
+                        select[k].select,
+                        (v as any)?.update,
+                        operation
+                    );
+                    if (Object.keys(select[k].select).length === 0) {
+                        delete select[k].select;
+                    }
+                } else {
+                    select[k] = {
+                        select: { ...select?.[k]?.select, id: true },
+                    };
+                    await this.injectSelectForToOneRelation(
+                        fieldInfo.type,
+                        select[k].select,
+                        v,
+                        operation
+                    );
+                }
+            }
+        }
+    }
+
+    private async collectModelsInNestedWrites(
+        model: string,
+        data: any,
+        operation: PolicyOperationKind,
+        context: QueryContext,
+        includedModels: Set<string>,
+        transactionId: string
+    ) {
+        if (!data) {
+            return;
+        }
+
+        const arr = Array.isArray(data) ? data : [data];
+
+        for (const item of arr) {
+            item[TRANSACTION_FIELD_NAME] = transactionId + ':' + operation;
+
+            for (const [k, v] of Object.entries<any>(item)) {
+                if (!v) {
+                    continue;
+                }
+                const fieldInfo = await this.service.resolveField(model, k);
+                if (fieldInfo) {
+                    includedModels.add(fieldInfo.type);
+
+                    for (const [op, payload] of Array.from(
+                        Object.entries<any>(v)
+                    )) {
+                        if (!payload) {
+                            continue;
+                        }
+                        switch (op) {
+                            case 'create':
+                                await this.collectModelsInNestedWrites(
+                                    fieldInfo.type,
+                                    payload,
+                                    'create',
+                                    context,
+                                    includedModels,
+                                    transactionId
+                                );
+                                break;
+
+                            case 'connectOrCreate':
+                                if (payload.create) {
+                                    await this.collectModelsInNestedWrites(
+                                        fieldInfo.type,
+                                        payload.create,
+                                        'create',
+                                        context,
+                                        includedModels,
+                                        transactionId
+                                    );
+                                }
+                                break;
+
+                            case 'upsert':
+                                if (payload.update) {
+                                    await this.collectModelsInNestedWrites(
+                                        fieldInfo.type,
+                                        payload.update,
+                                        'update',
+                                        context,
+                                        includedModels,
+                                        transactionId
+                                    );
+                                }
+                                if (payload.update) {
+                                    await this.collectModelsInNestedWrites(
+                                        fieldInfo.type,
+                                        payload.create,
+                                        'create',
+                                        context,
+                                        includedModels,
+                                        transactionId
+                                    );
+                                }
+                                break;
+
+                            case 'createMany':
+                                if (
+                                    payload.data &&
+                                    typeof payload.data[Symbol.iterator] ===
+                                        'function'
+                                ) {
+                                    for (const item of payload.data) {
+                                        await this.collectModelsInNestedWrites(
+                                            fieldInfo.type,
+                                            item,
+                                            'create',
+                                            context,
+                                            includedModels,
+                                            transactionId
+                                        );
+                                    }
+                                    break;
+                                }
+                                break;
+
+                            case 'update':
+                                if (fieldInfo.isArray) {
+                                    const guard =
+                                        await this.service.buildQueryGuard(
+                                            fieldInfo.type,
+                                            'update',
+                                            context
+                                        );
+
+                                    if (
+                                        guard &&
+                                        Object.keys(guard).length > 0
+                                    ) {
+                                        payload.where = and(
+                                            payload.where,
+                                            guard
+                                        );
+                                        v.updateMany = payload;
+                                        delete v.update;
+                                    }
+
+                                    // to-many updates, data is in 'data' field
+                                    await this.collectModelsInNestedWrites(
+                                        fieldInfo.type,
+                                        payload.data,
+                                        'update',
+                                        context,
+                                        includedModels,
+                                        transactionId
+                                    );
+                                } else {
+                                    // to-one update, payload is data
+                                    await this.collectModelsInNestedWrites(
+                                        fieldInfo.type,
+                                        payload,
+                                        'update',
+                                        context,
+                                        includedModels,
+                                        transactionId
+                                    );
+                                }
+                                break;
+
+                            case 'updateMany': {
+                                const guard =
+                                    await this.service.buildQueryGuard(
+                                        fieldInfo.type,
+                                        'update',
+                                        context
+                                    );
+
+                                if (guard && Object.keys(guard).length > 0) {
+                                    payload.where = and(payload.where, guard);
+                                    v.updateMany = payload;
+                                }
+                                await this.collectModelsInNestedWrites(
+                                    fieldInfo.type,
+                                    payload,
+                                    'update',
+                                    context,
+                                    includedModels,
+                                    transactionId
+                                );
+                                break;
+                            }
+
+                            case 'delete':
+                            case 'deleteMany': {
+                                if (fieldInfo.isArray) {
+                                    v[
+                                        op === 'delete'
+                                            ? 'update'
+                                            : 'updateMany'
+                                    ] = {
+                                        where: payload,
+                                        data: {
+                                            [TRANSACTION_FIELD_NAME]:
+                                                transactionId + ':delete',
+                                        },
+                                    };
+                                } else {
+                                    v[
+                                        op === 'delete'
+                                            ? 'update'
+                                            : 'updateMany'
+                                    ] = {
+                                        [TRANSACTION_FIELD_NAME]:
+                                            transactionId + ':delete',
+                                    };
+                                }
+                                delete v[op];
+                                break;
+                            }
+
+                            case 'connect':
+                                // noop
+                                break;
+
+                            default:
+                                throw new RequestHandlerError(
+                                    ServerErrorCode.INVALID_REQUEST_PARAMS,
+                                    `Unsupported nested operation '${op}'`
+                                );
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     async processQueryArgs(
         model: string,
@@ -32,7 +334,8 @@ export class QueryProcessor {
 
         if (r.include || r.select) {
             if (r.include && r.select) {
-                throw Error(
+                throw new RequestHandlerError(
+                    ServerErrorCode.INVALID_REQUEST_PARAMS,
                     'Passing both "include" and "select" at the same level of query is not supported'
                 );
             }
@@ -71,10 +374,9 @@ export class QueryProcessor {
         fieldValue: any
     ) {
         if (
-            !!fieldValue &&
-            !Array.isArray(fieldValue) &&
-            typeof fieldValue === 'object' &&
-            typeof fieldValue.id == 'string'
+            !fieldValue ||
+            Array.isArray(fieldValue) ||
+            typeof fieldValue !== 'object'
         ) {
             return null;
         }
@@ -127,7 +429,7 @@ export class QueryProcessor {
                     },
                 };
 
-                const processedArgs = this.processQueryArgs(
+                const processedArgs = await this.processQueryArgs(
                     model,
                     args,
                     operation,
@@ -151,7 +453,8 @@ export class QueryProcessor {
         model: string,
         data: any,
         validatedIds: Map<string, string[]>
-    ) {
+    ): Promise<boolean> {
+        let deleted = false;
         for (const [fieldName, fieldValue] of Object.entries(data)) {
             const fieldInfo = await this.getToOneFieldInfo(
                 model,
@@ -169,10 +472,18 @@ export class QueryProcessor {
                     `Deleting field ${fieldName} from ${model}#${data.id}, because field value #${fv.id} failed policy check`
                 );
                 delete data[fieldName];
+                deleted = true;
             }
 
-            await this.sanitizeData(fieldInfo.type, fieldValue, validatedIds);
+            const r = await this.sanitizeData(
+                fieldInfo.type,
+                fieldValue,
+                validatedIds
+            );
+            deleted = deleted || r;
         }
+
+        return deleted;
     }
 
     async postProcess(
@@ -188,6 +499,6 @@ export class QueryProcessor {
             operation,
             context
         );
-        await this.sanitizeData(model, data, validatedIds);
+        return this.sanitizeData(model, data, validatedIds);
     }
 }

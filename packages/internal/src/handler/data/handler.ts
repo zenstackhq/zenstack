@@ -8,6 +8,9 @@ import {
 } from '../../types';
 import { RequestHandler, RequestHandlerError } from '../types';
 import { QueryProcessor } from './query-processor';
+import { v4 as uuid } from 'uuid';
+import { TRANSACTION_FIELD_NAME } from '../../constants';
+import { and } from './guard-utils';
 
 const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
     P2002: ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
@@ -116,9 +119,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         let r;
         if (id) {
             if (processedArgs.where) {
-                processedArgs.where = {
-                    AND: [processedArgs.where, { id }],
-                };
+                processedArgs.where = and(processedArgs.where, { id });
             } else {
                 processedArgs.where = { id };
             }
@@ -152,47 +153,112 @@ export default class DataHandler<DbClient> implements RequestHandler {
                 'body is required'
             );
         }
+        if (!args.data) {
+            throw new RequestHandlerError(
+                ServerErrorCode.INVALID_REQUEST_PARAMS,
+                'data field is required'
+            );
+        }
 
         const db = this.service.db as any;
-        const processedArgs = await this.queryProcessor.processQueryArgs(
-            model,
-            args,
-            'create',
-            context,
-            false
-        );
+        const transactionid = uuid();
+        const { writeArgs, includedModels } =
+            await this.queryProcessor.processQueryArgsForWrite(
+                model,
+                args,
+                'create',
+                context,
+                transactionid
+            );
 
         const r = await db.$transaction(async (tx: any) => {
-            console.log(`Create ${model}:\n${JSON.stringify(processedArgs)}`);
-            const created = await tx[model].create(processedArgs);
+            console.log(`Create ${model}:\n${JSON.stringify(writeArgs)}`);
+            const created = await tx[model].create(writeArgs);
 
-            let queryArgs = {
+            await this.checkPolicyForIncludedModels(
+                includedModels,
+                transactionid,
+                tx,
+                context
+            );
+
+            const finalResultArgs = {
                 where: { id: created.id },
                 include: args.include,
                 select: args.select,
             };
-            queryArgs = await this.queryProcessor.processQueryArgs(
-                model,
-                queryArgs,
-                'create',
-                context
-            );
-            console.log(
-                `Finding created ${model}:\n${JSON.stringify(queryArgs)}`
-            );
-            const found = await tx[model].findFirst(queryArgs);
-            if (!found) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.DENIED_BY_POLICY,
-                    'denied by policy'
-                );
-            }
-
-            return created;
+            return await tx[model].findUnique(finalResultArgs);
         });
 
         await this.queryProcessor.postProcess(model, r, 'create', context);
         res.status(201).send(r);
+    }
+
+    private async checkPolicyForIncludedModels(
+        includedModels: Set<string>,
+        transactionId: string,
+        transaction: any,
+        context: QueryContext
+    ) {
+        const modelChecks = Array.from(includedModels).map(
+            async (modelToCheck) => {
+                for (const operation of ['create', 'update', 'delete']) {
+                    const queryArgs = {
+                        where: {
+                            [TRANSACTION_FIELD_NAME]: `${transactionId}:${operation}`,
+                        },
+                    };
+                    const fullCount = await transaction[modelToCheck].count(
+                        queryArgs
+                    );
+
+                    if (fullCount > 0) {
+                        const processedQueryArgs =
+                            await this.queryProcessor.processQueryArgs(
+                                modelToCheck,
+                                queryArgs,
+                                operation as PolicyOperationKind,
+                                context
+                            );
+                        console.log(
+                            `Counting ${operation} ${modelToCheck}:\n${JSON.stringify(
+                                processedQueryArgs
+                            )}`
+                        );
+                        const filteredCount = await transaction[
+                            modelToCheck
+                        ].count(processedQueryArgs);
+
+                        if (fullCount !== filteredCount) {
+                            console.log(
+                                `Model ${modelToCheck}: filtered count ${filteredCount} mismatch full count ${fullCount}, transactionId: ${transactionId}`
+                            );
+                            throw new RequestHandlerError(
+                                ServerErrorCode.DENIED_BY_POLICY,
+                                'denied by policy'
+                            );
+                        }
+                    }
+
+                    if (operation === 'delete' && fullCount > 0) {
+                        // delete was converted to update during preprocessing, we need to proceed with it now
+                        const deleteArgs = {
+                            where: {
+                                [TRANSACTION_FIELD_NAME]: `${transactionId}:delete`,
+                            },
+                        };
+                        console.log(
+                            `Deleting nested entities for ${modelToCheck}:\n${JSON.stringify(
+                                deleteArgs
+                            )}`
+                        );
+                        await transaction[modelToCheck].deleteMany(deleteArgs);
+                    }
+                }
+            }
+        );
+
+        await Promise.all(modelChecks);
     }
 
     private async put(
@@ -221,43 +287,61 @@ export default class DataHandler<DbClient> implements RequestHandler {
         }
 
         const db = this.service.db as any;
-        const updateArgs = await this.queryProcessor.processQueryArgs(
-            model,
-            args,
-            'update',
-            context,
-            false
-        );
-        updateArgs.where = { ...updateArgs.where, id };
+        const transactionid = uuid();
+        args.where = { ...args.where, id };
 
-        const r = await db.$transaction(async (tx: any) => {
-            console.log(`Update ${model}:\n${JSON.stringify(updateArgs)}`);
-            const updated = await tx[model].update(updateArgs);
-
-            // make sure after update, the entity passes policy check
-            let queryArgs = {
-                where: updateArgs.where,
-                include: args.include,
-                select: args.select,
-            };
-            queryArgs = await this.queryProcessor.processQueryArgs(
+        const { preWriteGuard, writeArgs, includedModels } =
+            await this.queryProcessor.processQueryArgsForWrite(
                 model,
-                queryArgs,
+                args,
+                'update',
+                context,
+                transactionid
+            );
+
+        // make sure target matches policy before update
+        console.log(
+            `Finding pre-write record:\n${JSON.stringify(preWriteGuard)}`
+        );
+        let preUpdate = await db[model].findFirst(preWriteGuard);
+        if (preUpdate) {
+            // run post processing to see if any field is deleted, if so, reject
+            const deleted = await this.queryProcessor.postProcess(
+                model,
+                preUpdate,
                 'update',
                 context
             );
-            console.log(
-                `Finding post-updated ${model}:\n${JSON.stringify(queryArgs)}`
-            );
-            const found = await tx[model].findFirst(queryArgs);
-            if (!found) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.DENIED_BY_POLICY,
-                    'post-update denied by policy'
-                );
+            if (deleted) {
+                preUpdate = null;
             }
+        }
 
-            return updated;
+        if (!preUpdate) {
+            console.log(`Pre-write guard check failed`);
+            throw new RequestHandlerError(
+                ServerErrorCode.DENIED_BY_POLICY,
+                'denied by policy before update'
+            );
+        }
+
+        const r = await db.$transaction(async (tx: any) => {
+            console.log(`Update ${model}:\n${JSON.stringify(writeArgs)}`);
+            await tx[model].update(writeArgs);
+
+            await this.checkPolicyForIncludedModels(
+                includedModels,
+                transactionid,
+                tx,
+                context
+            );
+
+            const finalResultArgs = {
+                where: { id },
+                include: args.include,
+                select: args.select,
+            };
+            return await tx[model].findUnique(finalResultArgs);
         });
 
         await this.queryProcessor.postProcess(model, r, 'update', context);
