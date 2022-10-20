@@ -10,4 +10,7 @@ export default {
     transform: { '^.+\\.tsx?$': 'ts-jest' },
 
     testTimeout: 30000,
+
+    // explicitly specify moduel paths so that resolution from local dependencies work
+    modulePaths: ['<rootDir>/tests/test-run/node_modules'],
 };

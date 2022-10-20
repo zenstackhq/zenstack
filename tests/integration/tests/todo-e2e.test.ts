@@ -1,17 +1,17 @@
-import * as fs from 'fs';
+import path from 'path';
 import { makeClient, run, setup } from './utils';
 
-describe('E2E Tests', () => {
+describe('Todo E2E Tests', () => {
     let workDir: string;
+    let origDir: string;
 
     beforeAll(async () => {
-        workDir = await setup();
+        origDir = path.resolve('.');
+        workDir = await setup('./tests/todo.zmodel');
     });
 
     afterAll(() => {
-        if (workDir) {
-            fs.rmSync(workDir, { recursive: true, force: true });
-        }
+        process.chdir(origDir);
     });
 
     beforeEach(() => {
@@ -88,11 +88,12 @@ describe('E2E Tests', () => {
                 data: {
                     name: 'Space 1',
                     slug: 'space1',
+                    owner: { connect: { id: user1.id } },
                     members: {
                         create: [
                             {
                                 user: { connect: { id: user1.id } },
-                                role: 'USER',
+                                role: 'ADMIN',
                             },
                             {
                                 user: { connect: { id: user2.id } },
@@ -433,6 +434,50 @@ describe('E2E Tests', () => {
                 },
             })
             .expect(403);
+    });
+
+    it('relation query', async () => {
+        await createSpaceAndUsers();
+        const listClient = makeClient('/api/data/List', user1.id);
+        await listClient.post('/').send({
+            data: {
+                id: 'list1',
+                title: 'List 1',
+                owner: { connect: { id: user1.id } },
+                space: { connect: { id: space1.id } },
+            },
+        });
+        await listClient.post('/').send({
+            data: {
+                id: 'list2',
+                title: 'List 2',
+                private: true,
+                owner: { connect: { id: user1.id } },
+                space: { connect: { id: space1.id } },
+            },
+        });
+
+        const spaceClientUser1 = makeClient(
+            `/api/data/Space/space1`,
+            user1.id,
+            {
+                include: { lists: true },
+            }
+        );
+        await spaceClientUser1.get('/').expect((resp) => {
+            expect(resp.body.lists).toHaveLength(2);
+        });
+
+        const spaceClientUser2 = makeClient(
+            `/api/data/Space/space1`,
+            user2.id,
+            {
+                include: { lists: true },
+            }
+        );
+        await spaceClientUser2.get('/').expect((resp) => {
+            expect(resp.body.lists).toHaveLength(1);
+        });
     });
 });
 

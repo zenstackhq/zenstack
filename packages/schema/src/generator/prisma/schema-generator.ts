@@ -17,7 +17,7 @@ import {
 import { writeFile } from 'fs/promises';
 import { AstNode } from 'langium';
 import path from 'path';
-import { GUARD_FIELD_NAME } from '../constants';
+import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../constants';
 import { Context, GeneratorError } from '../types';
 import {
     AttributeArg as PrismaAttributeArg,
@@ -176,6 +176,9 @@ export default class PrismaSchemaGenerator {
                 ),
             ]),
         ]);
+
+        // add an "zenstack_transaction" field for tracking records created/updated with nested writes
+        model.addField(TRANSACTION_FIELD_NAME, 'String?');
 
         for (const attr of decl.attributes.filter((attr) =>
             supportedAttrbutes.includes(attr.decl.ref?.name!)

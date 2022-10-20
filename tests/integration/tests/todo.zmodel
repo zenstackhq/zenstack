@@ -4,7 +4,7 @@
 
 datasource db {
     provider = 'sqlite'
-    url = 'file:./test.db'
+    url = 'file:./todo.db'
 }
 
 model Space {
@@ -13,6 +13,10 @@ model Space {
     updatedAt DateTime @updatedAt
     name String @length(1, 100)
     slug String @unique @length(1, 20)
+
+    owner User? @relation(fields: [ownerId], references: [id])
+    ownerId String?
+
     members SpaceUser[]
     lists List[]
 
@@ -45,7 +49,7 @@ model SpaceUser {
     @@deny('all', auth() == null)
 
     // space admin can create/update/delete
-    @@allow('create,update,delete', space.members?[user == auth() && role == "ADMIN"])
+    @@allow('create,update,delete', space.owner == auth() || space.members?[user == auth() && role == "ADMIN"])
 
     // user can read entries for spaces which he's a member of
     @@allow('read', space.members?[user == auth()])
@@ -59,6 +63,9 @@ model User {
     emailVerified DateTime?
     password String?
     name String? @length(1, 100)
+    
+    ownedSpaces Space[]
+
     spaces SpaceUser[]
     image String? @url
     lists List[]
