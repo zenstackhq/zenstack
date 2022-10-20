@@ -265,7 +265,11 @@ export class QueryProcessor {
                             case 'delete':
                             case 'deleteMany': {
                                 if (fieldInfo.isArray) {
-                                    v.update = {
+                                    v[
+                                        op === 'delete'
+                                            ? 'update'
+                                            : 'updateMany'
+                                    ] = {
                                         where: payload,
                                         data: {
                                             [TRANSACTION_FIELD_NAME]:
@@ -273,7 +277,11 @@ export class QueryProcessor {
                                         },
                                     };
                                 } else {
-                                    v.update = {
+                                    v[
+                                        op === 'delete'
+                                            ? 'update'
+                                            : 'updateMany'
+                                    ] = {
                                         [TRANSACTION_FIELD_NAME]:
                                             transactionId + ':delete',
                                     };

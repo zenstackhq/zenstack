@@ -405,13 +405,14 @@ describe('Operation Coverage Tests', () => {
                     ])
                 );
             });
+    });
 
-        // create nested entities during update
+    it('nested to-many update with create', async () => {
         await makeClient('/api/data/M5')
             .post('/')
             .send({
                 data: {
-                    id: '3',
+                    id: '1',
                     m7: {
                         create: {
                             value: 1,
@@ -421,13 +422,13 @@ describe('Operation Coverage Tests', () => {
             })
             .expect(201);
 
-        await makeClient('/api/data/M5/3')
+        await makeClient('/api/data/M5/1')
             .put('/')
             .send({
                 data: {
                     m7: {
                         create: {
-                            id: '4',
+                            id: '2',
                             value: 0,
                         },
                     },
@@ -435,7 +436,7 @@ describe('Operation Coverage Tests', () => {
             })
             .expect(403);
 
-        await makeClient('/api/data/M5/3')
+        await makeClient('/api/data/M5/1')
             .put('/')
             .send({
                 data: {
@@ -453,7 +454,7 @@ describe('Operation Coverage Tests', () => {
             })
             .expect(403);
 
-        await makeClient('/api/data/M5/3')
+        await makeClient('/api/data/M5/1')
             .put('/')
             .send({
                 include: { m7: true },
@@ -474,6 +475,88 @@ describe('Operation Coverage Tests', () => {
             .expect((resp) => {
                 expect(resp.body.m7).toHaveLength(3);
             });
+    });
+
+    it('nested to-many update with delete', async () => {
+        await makeClient('/api/data/M5')
+            .post('/')
+            .send({
+                data: {
+                    id: '1',
+                    m7: {
+                        create: [
+                            {
+                                id: '1',
+                                value: 1,
+                            },
+                            {
+                                id: '2',
+                                value: 2,
+                            },
+                            {
+                                id: '3',
+                                value: 3,
+                            },
+                            {
+                                id: '4',
+                                value: 4,
+                            },
+                            {
+                                id: '5',
+                                value: 5,
+                            },
+                        ],
+                    },
+                },
+            })
+            .expect(201);
+
+        await makeClient('/api/data/M5/1')
+            .put('/')
+            .send({
+                data: {
+                    m7: {
+                        delete: { id: '1' },
+                    },
+                },
+            })
+            .expect(403);
+
+        await makeClient('/api/data/M5/1')
+            .put('/')
+            .send({
+                data: {
+                    m7: {
+                        deleteMany: { OR: [{ id: '2' }, { id: '3' }] },
+                    },
+                },
+            })
+            .expect(403);
+
+        await makeClient('/api/data/M5/1')
+            .put('/')
+            .send({
+                data: {
+                    m7: {
+                        delete: { id: '3' },
+                    },
+                },
+            })
+            .expect(200);
+        await makeClient('/api/data/M7/3').get('/').expect(404);
+
+        await makeClient('/api/data/M5/1')
+            .put('/')
+            .send({
+                data: {
+                    m7: {
+                        deleteMany: { value: { gte: 4 } },
+                    },
+                },
+            })
+            .expect(200);
+        await makeClient('/api/data/M7/4').get('/').expect(404);
+        await makeClient('/api/data/M7/5').get('/').expect(404);
     });
 
     //#endregion
