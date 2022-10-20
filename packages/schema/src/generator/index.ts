@@ -1,4 +1,4 @@
-import { Context } from './types';
+import { Context, GeneratorError } from './types';
 import * as fs from 'fs';
 import colors from 'colors';
 import PrismaGenerator from './prisma';
@@ -6,7 +6,7 @@ import ServiceGenerator from './service';
 import ReactHooksGenerator from './react-hooks';
 import NextAuthGenerator from './next-auth';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSync } from '../utils/exec-utils';
 
 export class ZenStackGenerator {
     async generate(context: Context) {
@@ -38,7 +38,9 @@ export class ZenStackGenerator {
             generators.push(new NextAuthGenerator());
         } catch {
             console.warn(
-                'Next-auth module is not installed, skipping generating adapter.'
+                colors.yellow(
+                    'Next-auth module is not installed, skipping generating adapter.'
+                )
             );
         }
 
@@ -71,16 +73,12 @@ export class ZenStackGenerator {
                 `npx tsc -p "${path.join(
                     context.generatedCodeDir,
                     'tsconfig.json'
-                )}"`,
-                { encoding: 'utf-8', stdio: 'inherit' }
+                )}"`
             );
         } catch {
-            console.error(
-                colors.red(
-                    'Something went wrong, generated runtime code failed to compile...'
-                )
+            throw new GeneratorError(
+                'Something went wrong, generated runtime code failed to compile...\nPlease check errors above.'
             );
-            return;
         }
 
         console.log(colors.blue('  ✔️ Typescript source files transpiled'));
