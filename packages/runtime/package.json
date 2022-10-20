@@ -1,13 +1,15 @@
 {
     "name": "@zenstackhq/runtime",
-    "version": "0.1.18",
+    "version": "0.1.19",
     "description": "ZenStack generated runtime code",
     "main": "index.js",
     "types": "index.d.ts",
+    "dependencies": {
+        "@zenstackhq/internal": "latest"
+    },
     "peerDependencies": {
-        "@zenstackhq/internal": "^0.1.0",
-        "bcryptjs": "^2.4.3",
-        "@types/bcryptjs": "^2.4.2"
+        "@types/bcryptjs": "^2.4.2",
+        "bcryptjs": "^2.4.3"
     },
     "author": "ZenStack",
     "license": "MIT"

@@ -47,7 +47,7 @@ importers:
   packages/runtime:
     specifiers:
       '@types/bcryptjs': ^2.4.2
-      '@zenstackhq/internal': ^0.1.0
+      '@zenstackhq/internal': latest
       bcryptjs: ^2.4.3
     dependencies:
       '@types/bcryptjs': 2.4.2
