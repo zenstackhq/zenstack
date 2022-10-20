@@ -3,9 +3,10 @@ import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { extractAstNode } from './cli-util';
-import { Context } from '../generator/types';
+import { Context, GeneratorError } from '../generator/types';
 import { ZenStackGenerator } from '../generator';
 import { GENERATED_CODE_PATH } from '../generator/constants';
+import colors from 'colors';
 
 export const generateAction = async (
     fileName: string,
@@ -21,7 +22,14 @@ export const generateAction = async (
         generatedCodeDir: GENERATED_CODE_PATH,
     };
 
-    await new ZenStackGenerator().generate(context);
+    try {
+        await new ZenStackGenerator().generate(context);
+    } catch (err) {
+        if (err instanceof GeneratorError) {
+            console.error(colors.red(err.message));
+            process.exit(-1);
+        }
+    }
 };
 
 export type GenerateOptions = {
@@ -29,25 +37,26 @@ export type GenerateOptions = {
 };
 
 export default function (): void {
-    const program = new Command();
+    const program = new Command('zenstack');
 
-    program
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        .version(require('../../package.json').version);
+    program.version(
+        require('../../package.json').version,
+        '-v --version',
+        'display CLI version'
+    );
+
+    program.description(
+        `${colors.bold.blue(
+            'ζ'
+        )} ZenStack simplifies fullstack development by generating backend services and Typescript clients from a data model.\n\nDocumentation: https://zenstack.dev/doc.`
+    );
 
     const fileExtensions = ZModelLanguageMetaData.fileExtensions.join(', ');
     program
         .command('generate')
-        .argument(
-            '<file>',
-            `source file (possible file extensions: ${fileExtensions})`
-        )
-        .option(
-            '-d, --destination <dir>',
-            'destination directory of generating'
-        )
+        .argument('<file>', `source file (with extension ${fileExtensions})`)
         .description(
-            'generates JavaScript code that prints "Hello, {name}!" for each greeting in a source file'
+            'generates RESTful API and Typescript client for your data model'
         )
         .action(generateAction);
 

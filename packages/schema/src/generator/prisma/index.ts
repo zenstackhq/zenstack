@@ -1,6 +1,6 @@
 import colors from 'colors';
-import { Context, Generator } from '../types';
-import { execSync } from 'child_process';
+import { Context, Generator, GeneratorError } from '../types';
+import { execSync } from '../../utils/exec-utils';
 import PrismaSchemaGenerator from './schema-generator';
 import QueryGuardGenerator from './query-gard-generator';
 
@@ -21,6 +21,12 @@ export default class PrismaGenerator implements Generator {
     }
 
     async generatePrismaClient(schemaFile: string) {
-        execSync(`npx prisma generate --schema "${schemaFile}"`);
+        try {
+            execSync(`npx prisma generate --schema "${schemaFile}"`);
+        } catch {
+            throw new GeneratorError(
+                `Failed to generate client code with Prisma. Check errors above for clues.\nThis normally shouldn't happen. Please file an issue at: http://go.zenstack.dev/bug.`
+            );
+        }
     }
 }
