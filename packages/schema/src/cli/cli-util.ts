@@ -11,9 +11,7 @@ export async function extractDocument(
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
         console.error(
-            colors.yellow(
-                `Please choose a file with one of these extensions: ${extensions}.`
-            )
+            colors.yellow(`Please choose a file with extension: ${extensions}.`)
         );
         process.exit(1);
     }
