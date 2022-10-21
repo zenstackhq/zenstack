@@ -105,6 +105,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 @@allow('all', true)
             }
             `,
@@ -115,6 +116,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 @@allow('all', false)
             }
             `,
@@ -127,6 +129,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 flag Boolean
                 @@allow('all', flag)
             }
@@ -138,6 +141,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 flag Boolean
                 @@allow('all', !flag)
             }
@@ -154,7 +158,9 @@ describe('Expression Writer Tests', () => {
                 USER
                 ADMIN
             }
+
             model Test {
+                id String @id
                 role Role
                 @@allow('all', role == ADMIN)
             }
@@ -168,6 +174,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 x Int
                 @@allow('all', x > 0)
             }
@@ -183,6 +190,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 label String
                 @@allow('all', label == 'thing')
             }
@@ -232,6 +240,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 x Int
                 @@allow('all', this.x > 0)
             }
@@ -249,6 +258,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 x  Int
                 @@allow('all', x  > 0 && x  > 1)
             }
@@ -275,6 +285,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 x  Int
                 @@allow('all', x  > 0 || x  > 1)
             }
@@ -301,6 +312,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 x  Int
                 @@allow('all', x  > 0 && x  > 1 || x  > 2)
             }
@@ -338,6 +350,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 x  Int
                 @@allow('all', !(x  > 0 && x  > 1 || !x  > 2))
             }
@@ -383,10 +396,12 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 x  Int
             }
 
             model Test {
+                id String @id
                 foo Foo
                 @@deny('all', foo.x  <= 0)
             }
@@ -406,10 +421,12 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 x  Int
             }
 
             model Test {
+                id String @id
                 foo Foo
                 @@deny('all', !(foo.x  > 0))
             }
@@ -432,10 +449,12 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 x  Boolean
             }
 
             model Test {
+                id String @id
                 foo Foo
                 @@deny('all', !foo.x)
             }
@@ -455,14 +474,17 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 bar Bar
             }
 
             model Bar {
+                id String @id
                 x  Int
             }
 
             model Test {
+                id String @id
                 foo Foo
                 @@deny('all', foo.bar.x  <= 0)
             }
@@ -488,10 +510,12 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 x Int
             }
 
             model Test {
+                id String @id
                 foos Foo[]
                 @@deny('all', foos?[x <= 0])
             }
@@ -511,10 +535,12 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 x Int
             }
 
             model Test {
+                id String @id
                 foos Foo[]
                 @@deny('all', foos![x <= 0])
             }
@@ -534,10 +560,12 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 x Int
             }
 
             model Test {
+                id String @id
                 foos Foo[]
                 @@deny('all', foos^[x <= 0])
             }
@@ -557,14 +585,17 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Foo {
+                id String @id
                 bars Bar[]
             }
             
             model Bar {
+                id String @id
                 x Int
             }
 
             model Test {
+                id String @id
                 foo Foo
                 @@deny('all', foo.bars?[x <= 0])
             }
@@ -590,6 +621,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 @@deny('all', auth() == null)
             }
             `,
@@ -600,6 +632,7 @@ describe('Expression Writer Tests', () => {
         await check(
             `
             model Test {
+                id String @id
                 @@allow('all', auth() != null)
             }
             `,

@@ -3,7 +3,7 @@ import { AstValidator } from '@lang/types';
 import { ValidationAcceptor } from 'langium';
 import { validateDuplicatedDeclarations } from './utils';
 
-export default class ModelValidator implements AstValidator<Model> {
+export default class SchemaValidator implements AstValidator<Model> {
     validate(model: Model, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(model.declarations, accept);
         this.validateDataSources(model, accept);

@@ -228,7 +228,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             {
               "$type": "RuleCall",
               "rule": {
-                "$refText": "INT"
+                "$refText": "NUMBER"
               },
               "arguments": []
             },
@@ -2008,11 +2008,27 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             },
             {
               "$type": "Keyword",
+              "value": "BigInt"
+            },
+            {
+              "$type": "Keyword",
+              "value": "Float"
+            },
+            {
+              "$type": "Keyword",
+              "value": "Decimal"
+            },
+            {
+              "$type": "Keyword",
               "value": "DateTime"
             },
             {
               "$type": "Keyword",
-              "value": "JSON"
+              "value": "Json"
+            },
+            {
+              "$type": "Keyword",
+              "value": "Bytes"
             }
           ]
         }
@@ -2095,14 +2111,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "TerminalRule",
-      "name": "INT",
+      "name": "NUMBER",
       "type": {
         "$type": "ReturnType",
         "name": "number"
       },
       "definition": {
         "$type": "RegexToken",
-        "regex": "[+-]?[0-9]+"
+        "regex": "[+-]?[0-9]+(\\\\.[0-9]+)?"
       },
       "fragment": false,
       "hidden": false

@@ -15,8 +15,11 @@ attribute relation()
 attribute default()
 attribute updatedAt()
 attribute unique()
+attribute map()
+
 attribute allow()
 attribute deny()
+
 attribute email()
 attribute url()
 attribute length()

@@ -51,6 +51,7 @@ describe('Parsing Tests', () => {
             }
 
             model User {
+                id String @id
                 role UserRole @default(USER)
             }
         `;
@@ -62,32 +63,39 @@ describe('Parsing Tests', () => {
         );
 
         const model = doc.declarations[1] as DataModel;
-        expect(model.fields[0].type.reference?.ref?.name).toBe('UserRole');
+        expect(model.fields[1].type.reference?.ref?.name).toBe('UserRole');
 
-        const attrVal = model.fields[0].attributes[0].args[0] as AttributeArg;
+        const attrVal = model.fields[1].attributes[0].args[0] as AttributeArg;
         expect((attrVal.value as ReferenceExpr).target.ref?.name).toBe('USER');
     });
 
     it('model field types', async () => {
         const content = `
             model User {
-                id String
+                id String @id
                 age Int
+                serial BigInt
+                height Float
+                salary Decimal
                 activated Boolean
                 createdAt DateTime
-                metadata JSON
+                metadata Json
+                content Bytes
             }
         `;
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields).toHaveLength(5);
         expect(model.fields.map((f) => f.type.type)).toEqual(
             expect.arrayContaining([
                 'String',
                 'Int',
+                'BigInt',
+                'Float',
+                'Decimal',
                 'Boolean',
-                'JSON',
+                'Json',
                 'DateTime',
+                'Bytes',
             ])
         );
     });
@@ -95,14 +103,15 @@ describe('Parsing Tests', () => {
     it('model field modifiers', async () => {
         const content = `
             model User {
+                id String @id
                 name String?
                 tags String[]
             }
         `;
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields[0].type.optional).toBeTruthy();
-        expect(model.fields[1].type.array).toBeTruthy();
+        expect(model.fields[1].type.optional).toBeTruthy();
+        expect(model.fields[2].type.array).toBeTruthy();
     });
 
     it('model field attributes', async () => {
@@ -124,6 +133,7 @@ describe('Parsing Tests', () => {
     it('model attributes', async () => {
         const content = `
             model Model {
+                id String @id
                 a String
                 b String
                 @@unique([a, b])
@@ -170,12 +180,12 @@ describe('Parsing Tests', () => {
     it('model relation', async () => {
         const content = `
             model User {
-                id String
+                id String @id
                 posts Post[]
             }
 
             model Post {
-                id String
+                id String @id
                 owner User @relation(references: [id], onDelete: Cascade, onUpdate: Cascade)
             }
         `;
@@ -188,6 +198,7 @@ describe('Parsing Tests', () => {
     it('policy expressions', async () => {
         const content = `
             model Model {
+                id String @id
                 a Int
                 b Int
                 c Boolean
@@ -231,6 +242,7 @@ describe('Parsing Tests', () => {
     it('policy expression precedence', async () => {
         const content = `
             model Model {
+                id String @id
                 a Int
                 b Int
                 // @@deny(a + b * 2 > 0)
@@ -332,6 +344,7 @@ describe('Parsing Tests', () => {
     it('function', async () => {
         const content = `
             model M {
+                id String @id
                 a Int
                 b Int
                 c N[]
@@ -340,6 +353,7 @@ describe('Parsing Tests', () => {
             }
 
             model N {
+                id String @id
                 x Int
             }
 
@@ -369,16 +383,19 @@ describe('Parsing Tests', () => {
     it('member access', async () => {
         const content = `
             model M {
+                id String @id
                 a N
                 @@deny('all', a.x.y < 0)
                 @@deny('all', foo(a))
             }
 
             model N {
+                id String @id
                 x P
             }
 
             model P {
+                id String @id
                 y Int
             }
 
@@ -392,11 +409,13 @@ describe('Parsing Tests', () => {
     it('collection predicate', async () => {
         const content = `
             model M {
+                id String @id
                 n N[]
                 @@deny('all', n?[x < 0])
             }
 
             model N {
+                id String @id
                 x Int
             }
         `;

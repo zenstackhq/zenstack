@@ -111,6 +111,8 @@ export default function (): void {
         )
         .addOption(schemaOption)
         .option('--create-only', 'Create a migration without applying it')
+        .option('-n --name <name>', 'Name the migration')
+        .option('--skip-seed', 'Skip triggering seed')
         .action(prismaAction('migrate'));
 
     migrate

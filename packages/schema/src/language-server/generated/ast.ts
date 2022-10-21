@@ -103,7 +103,7 @@ export interface AttributeParamType extends AstNode {
     readonly $container: AttributeParam;
     array: boolean
     optional: boolean
-    type: 'Boolean' | 'DateTime' | 'FieldReference' | 'Int' | 'JSON' | 'String'
+    type: 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'FieldReference' | 'Float' | 'Int' | 'Json' | 'String'
 }
 
 export const AttributeParamType = 'AttributeParamType';
@@ -180,7 +180,7 @@ export interface DataModelFieldType extends AstNode {
     array: boolean
     optional: boolean
     reference?: Reference<TypeDeclaration>
-    type?: 'Boolean' | 'DateTime' | 'Int' | 'JSON' | 'String'
+    type?: 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String'
 }
 
 export const DataModelFieldType = 'DataModelFieldType';
@@ -266,7 +266,7 @@ export interface FunctionParamType extends AstNode {
     readonly $container: Function | FunctionParam;
     array: boolean
     reference?: Reference<TypeDeclaration>
-    type?: 'Boolean' | 'DateTime' | 'Int' | 'JSON' | 'String'
+    type?: 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String'
 }
 
 export const FunctionParamType = 'FunctionParamType';
