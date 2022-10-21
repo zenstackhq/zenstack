@@ -1,4 +1,5 @@
 import { Command, Option } from 'commander';
+import { NodeFileSystem } from 'langium/node';
 import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
@@ -14,7 +15,7 @@ import path from 'path';
 export const generateAction = async (options: {
     schema: string;
 }): Promise<void> => {
-    const services = createZModelServices().ZModel;
+    const services = createZModelServices(NodeFileSystem).ZModel;
     const model = await extractAstNode<Model>(options.schema, services);
 
     const context: Context = {

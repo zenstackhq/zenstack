@@ -1,4 +1,4 @@
-import { AstNode } from 'langium';
+import { AstNode, ValidationAcceptor } from 'langium';
 import { AbstractDeclaration } from './generated/ast';
 
 export type TypedNode = AstNode & {
@@ -7,3 +7,7 @@ export type TypedNode = AstNode & {
         array?: boolean;
     };
 };
+
+export interface AstValidator<T extends AstNode> {
+    validate(node: T, accept: ValidationAcceptor): void;
+}

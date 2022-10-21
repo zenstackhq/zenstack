@@ -10,7 +10,7 @@ AbstractDeclaration:
 
 // datasource
 DataSource:
-    'datasource' name=ID '{' (fields+=DataSourceField)+ '}';
+    'datasource' name=ID '{' (fields+=DataSourceField)* '}';
 
 DataSourceField:
     (name=ID '=' value=(LiteralExpr|InvocationExpr));

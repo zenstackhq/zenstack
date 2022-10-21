@@ -15,7 +15,10 @@ import {
 import { ZModelDescriptionProvider } from './zmodel-index';
 import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation } from './zmodel-scope';
-import { ZModelValidationRegistry, ZModelValidator } from './zmodel-validator';
+import {
+    ZModelValidationRegistry,
+    ZModelValidator,
+} from './validator/zmodel-validator';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -44,7 +47,6 @@ export const ZModelModule: Module<
     references: {
         ScopeComputation: (services) => new ZModelScopeComputation(services),
         Linker: (services) => new ZModelLinker(services),
-        // NameProvider: () => new ZModelNameProvider(),
     },
     validation: {
         ValidationRegistry: (services) =>
@@ -72,7 +74,7 @@ export const ZModelModule: Module<
  * @param context Optional module context with the LSP connection
  * @returns An object wrapping the shared services and the language-specific services
  */
-export function createZModelServices(context?: DefaultSharedModuleContext): {
+export function createZModelServices(context: DefaultSharedModuleContext): {
     shared: LangiumSharedServices;
     ZModel: ZModelServices;
 } {

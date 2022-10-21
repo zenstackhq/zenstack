@@ -16,6 +16,16 @@ async function check(
     getExpr: (model: DataModel) => Expression,
     expected: string
 ) {
+    if (!schema.includes('datasource ')) {
+        schema =
+            `
+    datasource db {
+        provider = 'postgresql'
+        url = 'dummy'
+    }
+    ` + schema;
+    }
+
     const model = await loadModel(schema);
     const expr = getExpr(
         model.declarations.find(
