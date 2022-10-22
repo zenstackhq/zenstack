@@ -123,11 +123,11 @@ describe('Parsing Tests', () => {
         `;
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields[0].attributes[0].decl.ref?.name).toBe('id');
+        expect(model.fields[0].attributes[0].decl.ref?.name).toBe('@id');
         expect(model.fields[1].attributes[0].args[0].value.$type).toBe(
             LiteralExpr
         );
-        expect(model.fields[1].attributes[1].decl.ref?.name).toBe('unique');
+        expect(model.fields[1].attributes[1].decl.ref?.name).toBe('@unique');
     });
 
     it('model attributes', async () => {
@@ -144,7 +144,7 @@ describe('Parsing Tests', () => {
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
         expect(model.attributes).toHaveLength(3);
-        expect(model.attributes[0].decl.ref?.name).toBe('unique');
+        expect(model.attributes[0].decl.ref?.name).toBe('@@unique');
         expect(
             (model.attributes[0].args[0].value as ArrayExpr).items.map(
                 (item) => (item as ReferenceExpr).target.ref?.name

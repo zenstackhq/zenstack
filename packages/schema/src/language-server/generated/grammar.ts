@@ -1268,11 +1268,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "$type": "Alternatives",
             "elements": [
               {
-                "$type": "RuleCall",
-                "rule": {
-                  "$refText": "BuiltinType"
-                },
-                "arguments": []
+                "$type": "Assignment",
+                "feature": "type",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "BuiltinType"
+                  },
+                  "arguments": []
+                }
               },
               {
                 "$type": "Assignment",
@@ -1469,6 +1474,10 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "value": ")"
           },
           {
+            "$type": "Keyword",
+            "value": ":"
+          },
+          {
             "$type": "Assignment",
             "feature": "returnType",
             "operator": "=",
@@ -1529,6 +1538,10 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             }
           },
           {
+            "$type": "Keyword",
+            "value": ":"
+          },
+          {
             "$type": "Assignment",
             "feature": "type",
             "operator": "=",
@@ -1559,11 +1572,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "$type": "Alternatives",
             "elements": [
               {
-                "$type": "RuleCall",
-                "rule": {
-                  "$refText": "BuiltinType"
-                },
-                "arguments": []
+                "$type": "Assignment",
+                "feature": "type",
+                "operator": "=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$refText": "ExpressionType"
+                  },
+                  "arguments": []
+                }
               },
               {
                 "$type": "Assignment",
@@ -1600,6 +1618,90 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "ParserRule",
+      "name": "DataModelAttributeName",
+      "dataType": "string",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "@@"
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ID"
+            },
+            "arguments": []
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "DataModelFieldAttributeName",
+      "dataType": "string",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "@"
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "ID"
+            },
+            "arguments": []
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "AttributeName",
+      "dataType": "string",
+      "definition": {
+        "$type": "Alternatives",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "DataModelAttributeName"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$refText": "DataModelFieldAttributeName"
+            },
+            "arguments": []
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
       "name": "Attribute",
       "definition": {
         "$type": "Group",
@@ -1615,7 +1717,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "terminal": {
               "$type": "RuleCall",
               "rule": {
-                "$refText": "ID"
+                "$refText": "AttributeName"
               },
               "arguments": []
             }
@@ -1685,12 +1787,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "elements": [
           {
             "$type": "Assignment",
-            "feature": "positional",
+            "feature": "default",
             "operator": "?=",
             "terminal": {
               "$type": "Keyword",
               "value": "_"
-            }
+            },
+            "cardinality": "?"
           },
           {
             "$type": "Assignment",
@@ -1703,6 +1806,10 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
               },
               "arguments": []
             }
+          },
+          {
+            "$type": "Keyword",
+            "value": ":"
           },
           {
             "$type": "Assignment",
@@ -1735,19 +1842,47 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "$type": "Alternatives",
             "elements": [
               {
-                "$type": "RuleCall",
-                "rule": {
-                  "$refText": "BuiltinType"
-                },
-                "arguments": []
-              },
-              {
                 "$type": "Assignment",
                 "feature": "type",
                 "operator": "=",
                 "terminal": {
-                  "$type": "Keyword",
-                  "value": "FieldReference"
+                  "$type": "Alternatives",
+                  "elements": [
+                    {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$refText": "ExpressionType"
+                      },
+                      "arguments": []
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "FieldReference"
+                    },
+                    {
+                      "$type": "Keyword",
+                      "value": "ContextType"
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "reference",
+                "operator": "=",
+                "terminal": {
+                  "$type": "CrossReference",
+                  "type": {
+                    "$refText": "TypeDeclaration"
+                  },
+                  "terminal": {
+                    "$type": "RuleCall",
+                    "rule": {
+                      "$refText": "ID"
+                    },
+                    "arguments": []
+                  },
+                  "deprecatedSyntax": false
                 }
               }
             ]
@@ -1759,7 +1894,8 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "terminal": {
               "$type": "Keyword",
               "value": "[]"
-            }
+            },
+            "cardinality": "?"
           },
           {
             "$type": "Assignment",
@@ -1768,7 +1904,8 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "terminal": {
               "$type": "Keyword",
               "value": "?"
-            }
+            },
+            "cardinality": "?"
           }
         ]
       },
@@ -1786,10 +1923,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
-            "$type": "Keyword",
-            "value": "@"
-          },
-          {
             "$type": "Assignment",
             "feature": "decl",
             "operator": "=",
@@ -1797,6 +1930,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
               "$type": "CrossReference",
               "type": {
                 "$refText": "Attribute"
+              },
+              "terminal": {
+                "$type": "RuleCall",
+                "rule": {
+                  "$refText": "DataModelFieldAttributeName"
+                },
+                "arguments": []
               },
               "deprecatedSyntax": false
             }
@@ -1839,10 +1979,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
-            "$type": "Keyword",
-            "value": "@@"
-          },
-          {
             "$type": "Assignment",
             "feature": "decl",
             "operator": "=",
@@ -1850,6 +1986,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
               "$type": "CrossReference",
               "type": {
                 "$refText": "Attribute"
+              },
+              "terminal": {
+                "$type": "RuleCall",
+                "rule": {
+                  "$refText": "DataModelAttributeName"
+                },
+                "arguments": []
               },
               "deprecatedSyntax": false
             }
@@ -1985,56 +2128,96 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "ParserRule",
-      "name": "BuiltinType",
-      "fragment": true,
+      "name": "ExpressionType",
+      "dataType": "string",
       "definition": {
-        "$type": "Assignment",
-        "feature": "type",
-        "operator": "=",
-        "terminal": {
-          "$type": "Alternatives",
-          "elements": [
-            {
-              "$type": "Keyword",
-              "value": "String"
-            },
-            {
-              "$type": "Keyword",
-              "value": "Boolean"
-            },
-            {
-              "$type": "Keyword",
-              "value": "Int"
-            },
-            {
-              "$type": "Keyword",
-              "value": "BigInt"
-            },
-            {
-              "$type": "Keyword",
-              "value": "Float"
-            },
-            {
-              "$type": "Keyword",
-              "value": "Decimal"
-            },
-            {
-              "$type": "Keyword",
-              "value": "DateTime"
-            },
-            {
-              "$type": "Keyword",
-              "value": "Json"
-            },
-            {
-              "$type": "Keyword",
-              "value": "Bytes"
-            }
-          ]
-        }
+        "$type": "Alternatives",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "String"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Int"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Float"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Boolean"
+          },
+          {
+            "$type": "Keyword",
+            "value": "DateTime"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Null"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Any"
+          }
+        ]
       },
       "definesHiddenTokens": false,
       "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
+      "name": "BuiltinType",
+      "dataType": "string",
+      "definition": {
+        "$type": "Alternatives",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "String"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Boolean"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Int"
+          },
+          {
+            "$type": "Keyword",
+            "value": "BigInt"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Float"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Decimal"
+          },
+          {
+            "$type": "Keyword",
+            "value": "DateTime"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Json"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Bytes"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
       "hiddenTokens": [],
       "parameters": [],
       "wildcard": false

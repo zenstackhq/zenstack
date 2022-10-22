@@ -11,95 +11,6 @@ import * as tmp from 'tmp';
 import { GUARD_FIELD_NAME } from '../../src/generator/constants';
 import expressionWriter from '../../src/generator/prisma/expression-writer';
 
-async function check(
-    schema: string,
-    getExpr: (model: DataModel) => Expression,
-    expected: string
-) {
-    if (!schema.includes('datasource ')) {
-        schema =
-            `
-    datasource db {
-        provider = 'postgresql'
-        url = 'dummy'
-    }
-    ` + schema;
-    }
-
-    const model = await loadModel(schema);
-    const expr = getExpr(
-        model.declarations.find(
-            (d) => isDataModel(d) && d.name === 'Test'
-        ) as DataModel
-    );
-
-    const project = new Project();
-
-    const { name: sourcePath } = tmp.fileSync({ postfix: '.ts' });
-    const sf = project.createSourceFile(sourcePath, undefined, {
-        overwrite: true,
-    });
-
-    // inject user variable
-    sf.addVariableStatement({
-        declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'user', initializer: '{ id: "user1" }' }],
-    });
-
-    // inject enums
-    model.declarations
-        .filter((d) => isEnum(d))
-        .map((e) => {
-            sf.addVariableStatement({
-                declarationKind: VariableDeclarationKind.Const,
-                declarations: [
-                    {
-                        name: e.name,
-                        initializer: `
-              {
-                ${(e as Enum).fields
-                    .map((f) => `${f.name}: "${f.name}"`)
-                    .join(',\n')}
-              }
-              `,
-                    },
-                ],
-            });
-        });
-
-    sf.addVariableStatement({
-        declarationKind: VariableDeclarationKind.Const,
-        declarations: [
-            {
-                name: 'expr',
-                initializer: (writer) =>
-                    new expressionWriter(writer).write(expr),
-            },
-        ],
-    });
-    sf.formatText();
-
-    await project.save();
-
-    if (project.getPreEmitDiagnostics().length > 0) {
-        for (const d of project.getPreEmitDiagnostics()) {
-            console.warn(`${d.getLineNumber()}: ${d.getMessageText()}`);
-        }
-        console.log(`Generated source: ${sourcePath}`);
-        throw new Error('Compilation errors occurred');
-    }
-
-    const outExpr = sf.getVariableDeclaration('expr');
-    // console.log('Generated expr:\n', outExpr?.getText());
-
-    if (expected) {
-        const generatedExpr = outExpr!.getInitializer()!.getText();
-        expect(generatedExpr.replace(/\s+/g, '')).toBe(
-            expected.replace(/\s+/g, '')
-        );
-    }
-}
-
 describe('Expression Writer Tests', () => {
     it('boolean literal', async () => {
         await check(
@@ -717,3 +628,92 @@ describe('Expression Writer Tests', () => {
         );
     });
 });
+
+async function check(
+    schema: string,
+    getExpr: (model: DataModel) => Expression,
+    expected: string
+) {
+    if (!schema.includes('datasource ')) {
+        schema =
+            `
+    datasource db {
+        provider = 'postgresql'
+        url = 'dummy'
+    }
+    ` + schema;
+    }
+
+    const model = await loadModel(schema);
+    const expr = getExpr(
+        model.declarations.find(
+            (d) => isDataModel(d) && d.name === 'Test'
+        ) as DataModel
+    );
+
+    const project = new Project();
+
+    const { name: sourcePath } = tmp.fileSync({ postfix: '.ts' });
+    const sf = project.createSourceFile(sourcePath, undefined, {
+        overwrite: true,
+    });
+
+    // inject user variable
+    sf.addVariableStatement({
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [{ name: 'user', initializer: '{ id: "user1" }' }],
+    });
+
+    // inject enums
+    model.declarations
+        .filter((d) => isEnum(d))
+        .map((e) => {
+            sf.addVariableStatement({
+                declarationKind: VariableDeclarationKind.Const,
+                declarations: [
+                    {
+                        name: e.name,
+                        initializer: `
+              {
+                ${(e as Enum).fields
+                    .map((f) => `${f.name}: "${f.name}"`)
+                    .join(',\n')}
+              }
+              `,
+                    },
+                ],
+            });
+        });
+
+    sf.addVariableStatement({
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [
+            {
+                name: 'expr',
+                initializer: (writer) =>
+                    new expressionWriter(writer).write(expr),
+            },
+        ],
+    });
+    sf.formatText();
+
+    await project.save();
+
+    if (project.getPreEmitDiagnostics().length > 0) {
+        for (const d of project.getPreEmitDiagnostics()) {
+            console.warn(`${d.getLineNumber()}: ${d.getMessageText()}`);
+        }
+        console.log(`Generated source: ${sourcePath}`);
+        throw new Error('Compilation errors occurred');
+    }
+
+    const outExpr = sf.getVariableDeclaration('expr');
+    // console.log('Generated expr:\n', outExpr?.getText());
+
+    if (expected) {
+        const generatedExpr = outExpr!.getInitializer()!.getText();
+        expect(generatedExpr.replace(/\s+/g, '')).toBe(
+            expected.replace(/\s+/g, '')
+        );
+    }
+}

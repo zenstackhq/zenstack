@@ -12,7 +12,11 @@ export class SchemaLoadingError extends Error {
     }
 }
 
-export async function loadModel(content: string, validate = true) {
+export async function loadModel(
+    content: string,
+    validate = true,
+    verbose = true
+) {
     const { name: docPath } = tmp.fileSync({ postfix: '.zmodel' });
     fs.writeFileSync(docPath, content);
     const { shared } = createZModelServices(NodeFileSystem);
@@ -31,12 +35,14 @@ export async function loadModel(content: string, validate = true) {
     );
     if (validationErrors.length > 0) {
         for (const validationError of validationErrors) {
-            const range = doc.textDocument.getText(validationError.range);
-            console.error(
-                `line ${validationError.range.start.line + 1}: ${
-                    validationError.message
-                }${range ? ' [' + range + ']' : ''}`
-            );
+            if (verbose) {
+                const range = doc.textDocument.getText(validationError.range);
+                console.error(
+                    `line ${validationError.range.start.line + 1}: ${
+                        validationError.message
+                    }${range ? ' [' + range + ']' : ''}`
+                );
+            }
         }
         throw new SchemaLoadingError(validationErrors.map((e) => e.message));
     }
@@ -45,9 +51,9 @@ export async function loadModel(content: string, validate = true) {
     return model;
 }
 
-export async function loadModelWithError(content: string) {
+export async function loadModelWithError(content: string, verbose = false) {
     try {
-        await loadModel(content);
+        await loadModel(content, true, verbose);
     } catch (err) {
         expect(err).toBeInstanceOf(SchemaLoadingError);
         return (err as SchemaLoadingError).errors;

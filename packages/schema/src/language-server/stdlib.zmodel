@@ -1,25 +1,23 @@
-enum ReferentialIntegrity {
+enum ReferentialAction {
     Cascade
 }
 
-function env() String {}
-function auth() User {}
-function now() DateTime {}
-function uuid() String {}
-function cuid() String {}
+function env(): String {}
+function auth(): User {}
+function now(): DateTime {}
+function uuid(): String {}
+function cuid(): String {}
 function autoincrement() Int {}
 
-attribute id()
-attribute index()
-attribute relation()
-attribute default()
-attribute updatedAt()
-attribute unique()
-attribute map()
+attribute @id(map: String?)
+attribute @default(_ value: ContextType)
+attribute @unique(map: String?)
+attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
+attribute @@index(_ fields: FieldReference[], map: String?)
+attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
+attribute @map(_ name: String)
+attribute @@map(_ name: String)
+attribute @updatedAt()
 
-attribute allow()
-attribute deny()
-
-attribute email()
-attribute url()
-attribute length()
+attribute @@allow(_ operation: String, _ condition: Boolean)
+attribute @@deny(_ operation: String, _ condition: Boolean)

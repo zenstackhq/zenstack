@@ -15,6 +15,14 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
+export type AttributeName = string;
+
+export type BuiltinType = 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String';
+
+export type DataModelAttributeName = string;
+
+export type DataModelFieldAttributeName = string;
+
 export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ReferenceExpr | ThisExpr | UnaryExpr;
 
 export const Expression = 'Expression';
@@ -22,6 +30,8 @@ export const Expression = 'Expression';
 export function isExpression(item: unknown): item is Expression {
     return reflection.isInstance(item, Expression);
 }
+
+export type ExpressionType = 'Any' | 'Boolean' | 'DateTime' | 'Float' | 'Int' | 'Null' | 'String';
 
 export type ReferenceTarget = DataModelField | EnumField | FunctionParam;
 
@@ -64,7 +74,7 @@ export function isArrayExpr(item: unknown): item is ArrayExpr {
 
 export interface Attribute extends AstNode {
     readonly $container: Model;
-    name: string
+    name: AttributeName
     params: Array<AttributeParam>
 }
 
@@ -88,8 +98,8 @@ export function isAttributeArg(item: unknown): item is AttributeArg {
 
 export interface AttributeParam extends AstNode {
     readonly $container: Attribute;
+    default: boolean
     name: string
-    positional: boolean
     type: AttributeParamType
 }
 
@@ -103,7 +113,8 @@ export interface AttributeParamType extends AstNode {
     readonly $container: AttributeParam;
     array: boolean
     optional: boolean
-    type: 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'FieldReference' | 'Float' | 'Int' | 'Json' | 'String'
+    reference?: Reference<TypeDeclaration>
+    type?: 'ContextType' | 'FieldReference' | ExpressionType
 }
 
 export const AttributeParamType = 'AttributeParamType';
@@ -180,7 +191,7 @@ export interface DataModelFieldType extends AstNode {
     array: boolean
     optional: boolean
     reference?: Reference<TypeDeclaration>
-    type?: 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String'
+    type?: BuiltinType
 }
 
 export const DataModelFieldType = 'DataModelFieldType';
@@ -266,7 +277,7 @@ export interface FunctionParamType extends AstNode {
     readonly $container: Function | FunctionParam;
     array: boolean
     reference?: Reference<TypeDeclaration>
-    type?: 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String'
+    type?: ExpressionType
 }
 
 export const FunctionParamType = 'FunctionParamType';
@@ -429,6 +440,9 @@ export class ZModelAstReflection implements AstReflection {
     getReferenceType(refInfo: ReferenceInfo): string {
         const referenceId = `${refInfo.container.$type}:${refInfo.property}`;
         switch (referenceId) {
+            case 'AttributeParamType:reference': {
+                return TypeDeclaration;
+            }
             case 'DataModelAttribute:decl': {
                 return Attribute;
             }
@@ -478,7 +492,7 @@ export class ZModelAstReflection implements AstReflection {
                 return {
                     name: 'AttributeParam',
                     mandatory: [
-                        { name: 'positional', type: 'boolean' }
+                        { name: 'default', type: 'boolean' }
                     ]
                 };
             }

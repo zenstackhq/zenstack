@@ -59,6 +59,7 @@ importers:
       '@prisma/internals': ^4.5.0
       '@types/jest': ^29.2.0
       '@types/node': ^14.18.32
+      '@types/pluralize': ^0.0.29
       '@types/tmp': ^0.2.3
       '@types/uuid': ^8.3.4
       '@types/vscode': ^1.72.0
@@ -74,6 +75,7 @@ importers:
       jest: ^29.2.1
       langium: ^0.5.0
       langium-cli: ^0.5.0
+      pluralize: ^8.0.0
       prisma: ^4.5.0
       promisify: ^0.0.3
       tmp: ^0.2.1
@@ -95,6 +97,7 @@ importers:
       colors: 1.4.0
       commander: 8.3.0
       langium: 0.5.0
+      pluralize: 8.0.0
       prisma: 4.5.0
       promisify: 0.0.3
       ts-morph: 16.0.0
@@ -107,6 +110,7 @@ importers:
       '@prisma/internals': 4.5.0
       '@types/jest': 29.2.0
       '@types/node': 14.18.32
+      '@types/pluralize': 0.0.29
       '@types/tmp': 0.2.3
       '@types/uuid': 8.3.4
       '@types/vscode': 1.72.0
@@ -1687,6 +1691,10 @@ packages:
 
   /@types/normalize-package-data/2.4.1:
     resolution: {integrity: sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==}
+    dev: true
+
+  /@types/pluralize/0.0.29:
+    resolution: {integrity: sha512-BYOID+l2Aco2nBik+iYS4SZX0Lf20KPILP5RGmM1IgzdwNdTs0eebiFriOPcej1sX9mLnSoiNte5zcFxssgpGA==}
     dev: true
 
   /@types/prettier/2.7.0:
@@ -4908,6 +4916,11 @@ packages:
     dependencies:
       queue-lit: 1.4.0
     dev: true
+
+  /pluralize/8.0.0:
+    resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
+    engines: {node: '>=4'}
+    dev: false
 
   /postcss/8.4.14:
     resolution: {integrity: sha512-E398TUmfAYFPBSdzgeieK2Y1+1cpdxJx8yXbK/m57nRhKSmk1GB2tO4lbLBtlkfPQTDKfe4Xqv1ASWPpayPEig==}

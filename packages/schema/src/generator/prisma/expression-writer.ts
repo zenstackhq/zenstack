@@ -14,7 +14,6 @@ import {
 } from '@lang/generated/ast';
 import { CodeBlockWriter } from 'ts-morph';
 import { GeneratorError } from '../types';
-import { TypedNode } from '@lang/types';
 import PlainExpressionBuilder from './plain-expression-builder';
 
 const AUX_GUARD_FIELD = 'zenstack_guard';
@@ -293,7 +292,7 @@ export default class ExpressionWriter {
     }
 
     private isModelTyped(expr: Expression) {
-        return isDataModel((expr as TypedNode).$resolvedType?.decl);
+        return isDataModel(expr.$resolvedType?.decl);
     }
 
     mapOperator(operator: '==' | '!=' | '>' | '>=' | '<' | '<=') {

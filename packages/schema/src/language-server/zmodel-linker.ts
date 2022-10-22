@@ -14,7 +14,6 @@ import {
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
 import {
-    AbstractDeclaration,
     isDataModel,
     Function,
     FunctionParamType,
@@ -33,8 +32,10 @@ import {
     FunctionParam,
     ThisExpr,
     NullExpr,
+    AttributeArg,
 } from './generated/ast';
-import { TypedNode } from './types';
+import { ResolvedShape } from './types';
+import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;
@@ -116,6 +117,10 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument,
         extraScopes: ScopeProvider[] = []
     ) {
+        if (node.$resolvedType) {
+            return;
+        }
+
         switch (node.$type) {
             case LiteralExpr:
                 this.resolveLiteral(node as LiteralExpr);
@@ -165,13 +170,21 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveNull(node as NullExpr, document, extraScopes);
                 break;
 
+            case AttributeArg:
+                this.resolveAttributeArg(
+                    node as AttributeArg,
+                    document,
+                    extraScopes
+                );
+                break;
+
             default:
                 this.resolveDefault(node, document, extraScopes);
                 break;
         }
     }
 
-    resolveBinary(
+    private resolveBinary(
         node: BinaryExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
@@ -211,18 +224,16 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    resolveUnary(
+    private resolveUnary(
         node: UnaryExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
         this.resolve(node.operand, document, extraScopes);
-        (node as TypedNode).$resolvedType = (
-            node.operand as TypedNode
-        ).$resolvedType;
+        node.$resolvedType = node.operand.$resolvedType;
     }
 
-    resolveReference(
+    private resolveReference(
         node: ReferenceExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
@@ -246,20 +257,20 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    resolveArray(
+    private resolveArray(
         node: ArrayExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
         node.items.forEach((item) => this.resolve(item, document, extraScopes));
 
-        const itemType = (node.items[0] as TypedNode).$resolvedType;
+        const itemType = node.items[0].$resolvedType;
         if (itemType?.decl) {
             this.resolveToBuiltinTypeOrDecl(node, itemType.decl, true);
         }
     }
 
-    resolveInvocation(
+    private resolveInvocation(
         node: InvocationExpr,
         document: LangiumDocument,
         extraScopes: ScopeProvider[]
@@ -270,7 +281,7 @@ export class ZModelLinker extends DefaultLinker {
         this.resolveToDeclaredType(node, funcDecl.returnType);
     }
 
-    resolveLiteral(node: LiteralExpr) {
+    private resolveLiteral(node: LiteralExpr) {
         const type =
             typeof node.value === 'string'
                 ? 'String'
@@ -285,13 +296,13 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    resolveMemberAccess(
+    private resolveMemberAccess(
         node: MemberAccessExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
         this.resolve(node.operand, document, extraScopes);
-        const operandResolved = (node.operand as TypedNode).$resolvedType;
+        const operandResolved = node.operand.$resolvedType;
 
         if (
             operandResolved &&
@@ -310,14 +321,14 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    resolveCollectionPredicate(
+    private resolveCollectionPredicate(
         node: BinaryExpr,
         document: LangiumDocument,
         extraScopes: ScopeProvider[]
     ) {
         this.resolve(node.left, document, extraScopes);
 
-        const resolvedType = this.getResolvedType(node.left);
+        const resolvedType = node.left.$resolvedType;
         if (
             resolvedType &&
             isDataModel(resolvedType.decl) &&
@@ -335,7 +346,7 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    resolveThis(
+    private resolveThis(
         node: ThisExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
@@ -351,7 +362,7 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    resolveNull(
+    private resolveNull(
         node: NullExpr,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
@@ -360,7 +371,16 @@ export class ZModelLinker extends DefaultLinker {
         this.resolveToBuiltinTypeOrDecl(node, 'Null');
     }
 
-    resolveDefault(
+    private resolveAttributeArg(
+        node: AttributeArg,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        this.resolve(node.value, document, extraScopes);
+        node.$resolvedType = node.value.$resolvedType;
+    }
+
+    private resolveDefault(
         node: AstNode,
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
@@ -380,30 +400,26 @@ export class ZModelLinker extends DefaultLinker {
 
     // utils
 
-    getResolvedType(node: AstNode) {
-        return (node as TypedNode).$resolvedType;
-    }
-
-    resolveToDeclaredType(
+    private resolveToDeclaredType(
         node: AstNode,
         type: FunctionParamType | DataModelFieldType
     ) {
-        const _node: TypedNode = node;
         if (type.type) {
-            _node.$resolvedType = { decl: type.type, array: type.array };
+            const mappedType = mapBuiltinTypeToExpressionType(type.type);
+            node.$resolvedType = { decl: mappedType, array: type.array };
         } else if (type.reference) {
-            _node.$resolvedType = {
+            node.$resolvedType = {
                 decl: type.reference.ref,
                 array: type.array,
             };
         }
     }
 
-    resolveToBuiltinTypeOrDecl(
+    private resolveToBuiltinTypeOrDecl(
         node: AstNode,
-        type: string | AbstractDeclaration,
+        type: ResolvedShape,
         array = false
     ) {
-        (node as TypedNode).$resolvedType = { decl: type, array };
+        node.$resolvedType = { decl: type, array };
     }
 }

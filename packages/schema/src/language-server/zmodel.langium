@@ -129,7 +129,7 @@ DataModelField:
     name=ID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
-    (BuiltinType | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
+    (type=BuiltinType | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
 
 // enum
 Enum:
@@ -140,31 +140,39 @@ EnumField:
 
 // function
 Function:
-    'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' returnType=FunctionParamType '{' (expression=Expression)? '}';
+    'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
 
 FunctionParam:
-    name=ID type=FunctionParamType;
+    name=ID ':' type=FunctionParamType;
 
 FunctionParamType:
-    (BuiltinType | reference=[TypeDeclaration]) (array?='[]')?;
+    (type=ExpressionType | reference=[TypeDeclaration]) (array?='[]')?;
+
+DataModelAttributeName returns string:
+    '@@' ID;
+DataModelFieldAttributeName returns string:
+    '@' ID;
+
+AttributeName returns string:
+    DataModelAttributeName | DataModelFieldAttributeName;
 
 // attribute
 Attribute:
-    'attribute' name=ID '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')';
+    'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')';
 
 AttributeParam:
-    positional?='_' name=ID type=AttributeParamType;
+    (default?='_')? name=ID ':' type=AttributeParamType;
 
 AttributeParamType:
-    (BuiltinType | type='FieldReference') array?='[]' optional?='?';
+    (type=(ExpressionType | 'FieldReference' | 'ContextType') | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
 
 type TypeDeclaration = DataModel | Enum;
 
 DataModelFieldAttribute:
-    '@' decl=[Attribute] ('(' AttributeArgList? ')')?;
+    decl=[Attribute:DataModelFieldAttributeName] ('(' AttributeArgList? ')')?;
 
 DataModelAttribute:
-    '@@' decl=[Attribute] ('(' AttributeArgList? ')')?;
+    decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
 
 fragment AttributeArgList:
     args+=AttributeArg (',' args+=AttributeArg)*;
@@ -172,8 +180,11 @@ fragment AttributeArgList:
 AttributeArg:
     (name=ID ':')? value=Expression;
 
-fragment BuiltinType:
-    type=('String'|'Boolean'|'Int'|'BigInt'|'Float'|'Decimal'|'DateTime'|'Json'|'Bytes');
+ExpressionType returns string:
+    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Any';
+
+BuiltinType returns string:
+    'String'|'Boolean'|'Int'|'BigInt'|'Float'|'Decimal'|'DateTime'|'Json'|'Bytes';
 
 hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
