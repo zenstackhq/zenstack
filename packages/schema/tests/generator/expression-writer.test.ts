@@ -309,11 +309,13 @@ describe('Expression Writer Tests', () => {
             model Foo {
                 id String @id
                 x  Int
+                t Test?
             }
 
             model Test {
                 id String @id
-                foo Foo
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId String
                 @@deny('all', foo.x  <= 0)
             }
             `,
@@ -333,12 +335,14 @@ describe('Expression Writer Tests', () => {
             `
             model Foo {
                 id String @id
+                t Test?
                 x  Int
             }
 
             model Test {
                 id String @id
-                foo Foo
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId String
                 @@deny('all', !(foo.x  > 0))
             }
             `,
@@ -361,12 +365,14 @@ describe('Expression Writer Tests', () => {
             `
             model Foo {
                 id String @id
+                t Test?
                 x  Boolean
             }
 
             model Test {
                 id String @id
-                foo Foo
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId String
                 @@deny('all', !foo.x)
             }
             `,
@@ -386,17 +392,21 @@ describe('Expression Writer Tests', () => {
             `
             model Foo {
                 id String @id
-                bar Bar
+                bar Bar?
+                t Test?
             }
 
             model Bar {
                 id String @id
                 x  Int
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId String
             }
 
             model Test {
                 id String @id
-                foo Foo
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId String
                 @@deny('all', foo.bar.x  <= 0)
             }
             `,
@@ -422,6 +432,8 @@ describe('Expression Writer Tests', () => {
             `
             model Foo {
                 id String @id
+                t Test @relation(fields: [tId], references: [id])
+                tId String
                 x Int
             }
 
@@ -447,6 +459,8 @@ describe('Expression Writer Tests', () => {
             `
             model Foo {
                 id String @id
+                t Test @relation(fields: [tId], references: [id])
+                tId String
                 x Int
             }
 
@@ -472,6 +486,8 @@ describe('Expression Writer Tests', () => {
             `
             model Foo {
                 id String @id
+                t Test @relation(fields: [tId], references: [id])
+                tId String
                 x Int
             }
 
@@ -498,16 +514,20 @@ describe('Expression Writer Tests', () => {
             model Foo {
                 id String @id
                 bars Bar[]
+                t Test @relation(fields: [tId], references: [id])
+                tId String
             }
             
             model Bar {
                 id String @id
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId String
                 x Int
             }
 
             model Test {
                 id String @id
-                foo Foo
+                foo Foo?
                 @@deny('all', foo.bars?[x <= 0])
             }
             `,
@@ -557,11 +577,13 @@ describe('Expression Writer Tests', () => {
             `
             model User {
                 id String @id
+                t Test?
             }
 
             model Test {
                 id String @id
-                owner User
+                owner User @relation(fields: [ownerId], references: [id])
+                ownerId String
                 @@allow('all', auth() == owner)
             }
             `,
@@ -581,11 +603,13 @@ describe('Expression Writer Tests', () => {
             `
                 model User {
                     id String @id
+                    t Test?
                 }
 
                 model Test {
                     id String @id
-                    owner User
+                    owner User @relation(fields: [ownerId], references: [id])
+                    ownerId String
                     @@deny('all', auth() != owner)
                 }
                 `,
@@ -607,11 +631,13 @@ describe('Expression Writer Tests', () => {
             `
                 model User {
                     id String @id
+                    t Test?
                 }
 
                 model Test {
                     id String @id
-                    owner User
+                    owner User @relation(fields: [ownerId], references: [id])
+                    ownerId String
                     @@allow('all', auth().id == owner.id)
                 }
                 `,

@@ -199,7 +199,7 @@ export class FieldAttribute {
 
     toString() {
         return (
-            `@${this.name}(` +
+            `${this.name}(` +
             this.args.map((a) => a.toString()).join(', ') +
             `)`
         );
@@ -211,7 +211,7 @@ export class ModelAttribute {
 
     toString() {
         return (
-            `@@${this.name}(` +
+            `${this.name}(` +
             this.args.map((a) => a.toString()).join(', ') +
             `)`
         );
