@@ -6,7 +6,7 @@ datasource db {
 generator client {
     provider = "prisma-client-js"
     output = "../node_modules/.zenstack/.prisma"
-    previewFeatures = ["fieldReference", "interactiveTransactions"]
+    previewFeatures = ["fieldReference", "interactiveTransactions", "referentialIntegrity"]
 }
 
 enum SpaceUserRole {
@@ -118,7 +118,7 @@ model Session {
 
 model VerificationToken {
     identifier String
-    token String @unique()
+    token String @id()
     expires DateTime
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?

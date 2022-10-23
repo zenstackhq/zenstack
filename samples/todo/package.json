@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "next build",
+        "build": "npm run generate && next build",
         "start": "next start",
         "lint": "next lint",
         "db-push": "zenstack db push",
@@ -12,7 +12,7 @@
         "db-deploy": "zenstack migrate deploy",
         "db-reset": "zenstack migrate reset",
         "generate": "zenstack generate",
-        "vercel-build": "zenstack generate && npm run build && npm run db-deploy"
+        "vercel-build": "npm run build && npm run db-deploy"
     },
     "dependencies": {
         "@heroicons/react": "^2.0.12",
