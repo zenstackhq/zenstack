@@ -58,9 +58,9 @@ describe('Prisma Builder Tests', () => {
     it('model', async () => {
         let model = new PrismaModel();
         const dm = model.addModel('User');
-        dm.addField('id', 'String', [new FieldAttribute('id')]);
+        dm.addField('id', 'String', [new FieldAttribute('@id')]);
         dm.addField('createdAt', 'DateTime', [
-            new FieldAttribute('default', [
+            new FieldAttribute('@default', [
                 new AttributeArg(
                     undefined,
                     new AttributeArgValue(
@@ -76,13 +76,13 @@ describe('Prisma Builder Tests', () => {
     it('relation', async () => {
         let model = new PrismaModel();
         const user = model.addModel('User');
-        user.addField('id', 'String', [new FieldAttribute('id')]);
+        user.addField('id', 'String', [new FieldAttribute('@id')]);
         user.addField('posts', new ModelFieldType('Post', true));
 
         const post = model.addModel('Post');
-        post.addField('id', 'String', [new FieldAttribute('id')]);
+        post.addField('id', 'String', [new FieldAttribute('@id')]);
         post.addField('user', 'User', [
-            new FieldAttribute('relation', [
+            new FieldAttribute('@relation', [
                 new AttributeArg(
                     'fields',
                     new AttributeArgValue('Array', [
@@ -112,10 +112,10 @@ describe('Prisma Builder Tests', () => {
     it('model attribute', async () => {
         let model = new PrismaModel();
         const post = model.addModel('Post');
-        post.addField('id', 'String', [new FieldAttribute('id')]);
+        post.addField('id', 'String', [new FieldAttribute('@id')]);
         post.addField('slug', 'String');
         post.addField('space', 'String');
-        post.addAttribute('unique', [
+        post.addAttribute('@@unique', [
             new AttributeArg(
                 'fields',
                 new AttributeArgValue('Array', [

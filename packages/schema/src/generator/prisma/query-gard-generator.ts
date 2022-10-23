@@ -86,7 +86,7 @@ export default class QueryGuardGenerator {
         operation: PolicyOperationKind
     ) {
         const attrs = model.attributes.filter(
-            (attr) => attr.decl.ref?.name === kind
+            (attr) => attr.decl.ref?.name === `@@${kind}`
         );
         return attrs
             .filter((attr) => {

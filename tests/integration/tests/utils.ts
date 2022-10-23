@@ -19,10 +19,10 @@ export async function setup(schemaFile: string) {
     if (fs.existsSync(workDir)) {
         fs.rmSync(workDir, { recursive: true, force: true });
     }
-    fs.mkdirSync(workDir);
+    fs.mkdirSync(path.join(workDir, 'zenstack'), { recursive: true });
     process.chdir(workDir);
 
-    const targetSchema = path.join(workDir, 'schema.zmodel');
+    const targetSchema = path.join(workDir, 'zenstack', 'schema.zmodel');
     fs.copyFileSync(path.join(origDir, schemaFile), targetSchema);
 
     // install dependencies
@@ -40,8 +40,8 @@ export async function setup(schemaFile: string) {
     run(`npm i ${dependencies.join(' ')}`);
 
     // code generation
-    run(`npx zenstack generate ./schema.zmodel`);
-    run(`npx prisma migrate dev --schema ./zenstack/schema.prisma -n init`);
+    run(`npx zenstack generate`);
+    run(`npx zenstack migrate dev -n init`);
 
     fs.writeFileSync(
         'handler.ts',

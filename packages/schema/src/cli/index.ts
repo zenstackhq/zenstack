@@ -1,4 +1,5 @@
 import { Command, Option } from 'commander';
+import { NodeFileSystem } from 'langium/node';
 import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
@@ -14,7 +15,7 @@ import path from 'path';
 export const generateAction = async (options: {
     schema: string;
 }): Promise<void> => {
-    const services = createZModelServices().ZModel;
+    const services = createZModelServices(NodeFileSystem).ZModel;
     const model = await extractAstNode<Model>(options.schema, services);
 
     const context: Context = {
@@ -110,6 +111,8 @@ export default function (): void {
         )
         .addOption(schemaOption)
         .option('--create-only', 'Create a migration without applying it')
+        .option('-n --name <name>', 'Name the migration')
+        .option('--skip-seed', 'Skip triggering seed')
         .action(prismaAction('migrate'));
 
     migrate

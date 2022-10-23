@@ -13,7 +13,7 @@ import {
 } from '../../src/language-server/generated/ast';
 import { loadModel } from '../utils';
 
-describe('Basic Tests', () => {
+describe('Parsing Tests', () => {
     it('data source', async () => {
         const content = `
             datasource db {
@@ -21,7 +21,7 @@ describe('Basic Tests', () => {
                 url = env('DATABASE_URL')
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         expect(doc.declarations).toHaveLength(1);
         const ds = doc.declarations[0] as DataSource;
 
@@ -51,10 +51,11 @@ describe('Basic Tests', () => {
             }
 
             model User {
+                id String @id
                 role UserRole @default(USER)
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const enumDecl = doc.declarations[0];
         expect(enumDecl.name).toBe('UserRole');
         expect((enumDecl as Enum).fields.map((f) => f.name)).toEqual(
@@ -62,32 +63,39 @@ describe('Basic Tests', () => {
         );
 
         const model = doc.declarations[1] as DataModel;
-        expect(model.fields[0].type.reference?.ref?.name).toBe('UserRole');
+        expect(model.fields[1].type.reference?.ref?.name).toBe('UserRole');
 
-        const attrVal = model.fields[0].attributes[0].args[0] as AttributeArg;
+        const attrVal = model.fields[1].attributes[0].args[0] as AttributeArg;
         expect((attrVal.value as ReferenceExpr).target.ref?.name).toBe('USER');
     });
 
     it('model field types', async () => {
         const content = `
             model User {
-                id String
+                id String @id
                 age Int
+                serial BigInt
+                height Float
+                salary Decimal
                 activated Boolean
                 createdAt DateTime
-                metadata JSON
+                metadata Json
+                content Bytes
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields).toHaveLength(5);
         expect(model.fields.map((f) => f.type.type)).toEqual(
             expect.arrayContaining([
                 'String',
                 'Int',
+                'BigInt',
+                'Float',
+                'Decimal',
                 'Boolean',
-                'JSON',
+                'Json',
                 'DateTime',
+                'Bytes',
             ])
         );
     });
@@ -95,14 +103,15 @@ describe('Basic Tests', () => {
     it('model field modifiers', async () => {
         const content = `
             model User {
+                id String @id
                 name String?
                 tags String[]
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields[0].type.optional).toBeTruthy();
-        expect(model.fields[1].type.array).toBeTruthy();
+        expect(model.fields[1].type.optional).toBeTruthy();
+        expect(model.fields[2].type.array).toBeTruthy();
     });
 
     it('model field attributes', async () => {
@@ -112,18 +121,19 @@ describe('Basic Tests', () => {
                 activated Boolean @default(false) @unique
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        expect(model.fields[0].attributes[0].decl.ref?.name).toBe('id');
+        expect(model.fields[0].attributes[0].decl.ref?.name).toBe('@id');
         expect(model.fields[1].attributes[0].args[0].value.$type).toBe(
             LiteralExpr
         );
-        expect(model.fields[1].attributes[1].decl.ref?.name).toBe('unique');
+        expect(model.fields[1].attributes[1].decl.ref?.name).toBe('@unique');
     });
 
     it('model attributes', async () => {
         const content = `
             model Model {
+                id String @id
                 a String
                 b String
                 @@unique([a, b])
@@ -131,10 +141,10 @@ describe('Basic Tests', () => {
                 @@unique(b(sort: Desc))
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
         expect(model.attributes).toHaveLength(3);
-        expect(model.attributes[0].decl.ref?.name).toBe('unique');
+        expect(model.attributes[0].decl.ref?.name).toBe('@@unique');
         expect(
             (model.attributes[0].args[0].value as ArrayExpr).items.map(
                 (item) => (item as ReferenceExpr).target.ref?.name
@@ -170,16 +180,16 @@ describe('Basic Tests', () => {
     it('model relation', async () => {
         const content = `
             model User {
-                id String
+                id String @id
                 posts Post[]
             }
 
             model Post {
-                id String
+                id String @id
                 owner User @relation(references: [id], onDelete: Cascade, onUpdate: Cascade)
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const models = doc.declarations as DataModel[];
         expect(models[0].fields[1].type.reference?.ref?.name === 'Post');
         expect(models[1].fields[1].type.reference?.ref?.name === 'User');
@@ -188,6 +198,7 @@ describe('Basic Tests', () => {
     it('policy expressions', async () => {
         const content = `
             model Model {
+                id String @id
                 a Int
                 b Int
                 c Boolean
@@ -197,7 +208,7 @@ describe('Basic Tests', () => {
                 // @@deny(a + b < 10)
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
         const attrs = model.attributes;
 
@@ -231,6 +242,7 @@ describe('Basic Tests', () => {
     it('policy expression precedence', async () => {
         const content = `
             model Model {
+                id String @id
                 a Int
                 b Int
                 // @@deny(a + b * 2 > 0)
@@ -241,9 +253,9 @@ describe('Basic Tests', () => {
             }
         `;
 
-        await loadModel(content);
+        await loadModel(content, false);
 
-        // const doc = await loadModel(content);
+        // const doc = await loadModel(content, false);
         // const attrs = (doc.declarations[0] as DataModel).attributes;
 
         // expect(attrs[0].args[0].value.$type).toBe(BinaryExpr);
@@ -332,6 +344,7 @@ describe('Basic Tests', () => {
     it('function', async () => {
         const content = `
             model M {
+                id String @id
                 a Int
                 b Int
                 c N[]
@@ -340,6 +353,7 @@ describe('Basic Tests', () => {
             }
 
             model N {
+                id String @id
                 x Int
             }
 
@@ -349,7 +363,7 @@ describe('Basic Tests', () => {
             function bar(items N[]) Boolean {
             }
         `;
-        const doc = await loadModel(content);
+        const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
         const foo = doc.declarations[2] as Function;
         const bar = doc.declarations[3] as Function;
@@ -369,16 +383,19 @@ describe('Basic Tests', () => {
     it('member access', async () => {
         const content = `
             model M {
+                id String @id
                 a N
                 @@deny('all', a.x.y < 0)
                 @@deny('all', foo(a))
             }
 
             model N {
+                id String @id
                 x P
             }
 
             model P {
+                id String @id
                 y Int
             }
 
@@ -386,21 +403,23 @@ describe('Basic Tests', () => {
                 n.x < 0
             }
         `;
-        await loadModel(content);
+        await loadModel(content, false);
     });
 
     it('collection predicate', async () => {
         const content = `
             model M {
+                id String @id
                 n N[]
                 @@deny('all', n?[x < 0])
             }
 
             model N {
+                id String @id
                 x Int
             }
         `;
-        await loadModel(content);
+        await loadModel(content, false);
     });
 
     it('collection predicate chained', async () => {
@@ -418,6 +437,6 @@ describe('Basic Tests', () => {
                 x Int
             }
         `;
-        await loadModel(content);
+        await loadModel(content, false);
     });
 });

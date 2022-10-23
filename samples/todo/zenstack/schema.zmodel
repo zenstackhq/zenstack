@@ -16,8 +16,8 @@ model Space {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    name String @length(1, 100)
-    slug String @unique @length(1, 20)
+    name String
+    slug String @unique
     members SpaceUser[]
     lists List[]
 
@@ -60,12 +60,12 @@ model User {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    email String @unique @email
+    email String @unique
     emailVerified DateTime?
     password String?
-    name String? @length(1, 100)
+    name String?
     spaces SpaceUser[]
-    image String? @url
+    image String?
     lists List[]
     todos Todo[]
 
@@ -91,7 +91,7 @@ model List {
     spaceId String
     owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId String
-    title String @length(1, 20)
+    title String
     private Boolean @default(false)
     todos Todo[]
 
@@ -154,7 +154,7 @@ model Session {
 
 model VerificationToken {
     identifier String
-    token      String   @unique
+    token      String   @id
     expires    DateTime
 
     @@unique([identifier, token])

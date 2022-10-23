@@ -13,11 +13,9 @@ import {
     UnaryExpr,
 } from '@lang/generated/ast';
 import { CodeBlockWriter } from 'ts-morph';
+import { GUARD_FIELD_NAME } from '../constants';
 import { GeneratorError } from '../types';
-import { TypedNode } from '@lang/types';
 import PlainExpressionBuilder from './plain-expression-builder';
-
-const AUX_GUARD_FIELD = 'zenstack_guard';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
@@ -136,7 +134,7 @@ export default class ExpressionWriter {
     }
 
     private guard(write: () => void) {
-        this.writer.write(`${AUX_GUARD_FIELD}: `);
+        this.writer.write(`${GUARD_FIELD_NAME}: `);
         write();
     }
 
@@ -293,7 +291,7 @@ export default class ExpressionWriter {
     }
 
     private isModelTyped(expr: Expression) {
-        return isDataModel((expr as TypedNode).$resolvedType?.decl);
+        return isDataModel(expr.$resolvedType?.decl);
     }
 
     mapOperator(operator: '==' | '!=' | '>' | '>=' | '<' | '<=') {

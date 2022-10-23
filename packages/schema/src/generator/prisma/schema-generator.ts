@@ -34,16 +34,7 @@ import {
     ModelFieldType,
 } from './prisma-builder';
 
-const supportedProviders = ['postgresql', 'mysql', 'sqlite', 'sqlserver'];
-const supportedAttrbutes = [
-    'id',
-    'index',
-    'relation',
-    'default',
-    'createdAt',
-    'updatedAt',
-    'unique',
-];
+const excludedAttributes = ['@@allow', '@@deny'];
 
 export default class PrismaSchemaGenerator {
     constructor(private readonly context: Context) {}
@@ -88,13 +79,6 @@ export default class PrismaSchemaGenerator {
                     } else {
                         throw new GeneratorError(
                             'Datasource provider must be set to a string'
-                        );
-                    }
-                    if (!supportedProviders.includes(provider)) {
-                        throw new GeneratorError(
-                            `Provider ${provider} is not supported. Supported providers: ${supportedProviders.join(
-                                ', '
-                            )}`
                         );
                     }
                     break;
@@ -157,7 +141,11 @@ export default class PrismaSchemaGenerator {
             'client',
             'prisma-client-js',
             path.join('../', this.context.generatedCodeDir, '.prisma'),
-            ['fieldReference', 'interactiveTransactions']
+            [
+                'fieldReference',
+                'interactiveTransactions',
+                'referentialIntegrity',
+            ]
         );
     }
 
@@ -169,7 +157,7 @@ export default class PrismaSchemaGenerator {
 
         // add an "zenstack_guard" field for dealing with pure auth() related conditions
         model.addField(GUARD_FIELD_NAME, 'Boolean', [
-            new PrismaFieldAttribute('default', [
+            new PrismaFieldAttribute('@default', [
                 new PrismaAttributeArg(
                     undefined,
                     new PrismaAttributeArgValue('Boolean', true)
@@ -180,8 +168,8 @@ export default class PrismaSchemaGenerator {
         // add an "zenstack_transaction" field for tracking records created/updated with nested writes
         model.addField(TRANSACTION_FIELD_NAME, 'String?');
 
-        for (const attr of decl.attributes.filter((attr) =>
-            supportedAttrbutes.includes(attr.decl.ref?.name!)
+        for (const attr of decl.attributes.filter(
+            (attr) => !excludedAttributes.includes(attr.decl.ref?.name!)
         )) {
             this.generateModelAttribute(model, attr);
         }
@@ -195,7 +183,9 @@ export default class PrismaSchemaGenerator {
         );
 
         const attributes = field.attributes
-            .filter((attr) => supportedAttrbutes.includes(attr.decl.ref?.name!))
+            .filter(
+                (attr) => !excludedAttributes.includes(attr.decl.ref?.name!)
+            )
             .map((attr) => this.makeFieldAttribute(attr));
         model.addField(field.name, type, attributes);
     }
