@@ -1,4 +1,6 @@
 import {
+    AstNode,
+    LangiumDocument,
     ValidationAcceptor,
     ValidationChecks,
     ValidationRegistry,
@@ -40,23 +42,43 @@ export class ZModelValidationRegistry extends ValidationRegistry {
  * Implementation of custom validations.
  */
 export class ZModelValidator {
+    private shouldCheck(node: AstNode) {
+        let doc: LangiumDocument | undefined;
+        let currNode: AstNode | undefined = node;
+        while (currNode) {
+            if (currNode.$document) {
+                doc = currNode.$document;
+                break;
+            }
+            currNode = currNode.$container;
+        }
+
+        return (
+            doc?.parseResult.lexerErrors.length === 0 &&
+            doc?.parseResult.parserErrors.length === 0
+        );
+    }
+
     checkModel(node: Model, accept: ValidationAcceptor) {
-        new SchemaValidator().validate(node, accept);
+        this.shouldCheck(node) && new SchemaValidator().validate(node, accept);
     }
 
     checkDataSource(node: DataSource, accept: ValidationAcceptor) {
-        new DataSourceValidator().validate(node, accept);
+        this.shouldCheck(node) &&
+            new DataSourceValidator().validate(node, accept);
     }
 
     checkDataModel(node: DataModel, accept: ValidationAcceptor) {
-        new DataModelValidator().validate(node, accept);
+        this.shouldCheck(node) &&
+            new DataModelValidator().validate(node, accept);
     }
 
     checkEnum(node: Enum, accept: ValidationAcceptor) {
-        new EnumValidator().validate(node, accept);
+        this.shouldCheck(node) && new EnumValidator().validate(node, accept);
     }
 
     checkAttribute(node: Attribute, accept: ValidationAcceptor) {
-        new AttributeValidator().validate(node, accept);
+        this.shouldCheck(node) &&
+            new AttributeValidator().validate(node, accept);
     }
 }

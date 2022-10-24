@@ -1,10 +1,26 @@
 {
     "name": "zenstack",
-    "displayName": "ZenStack CLI and Language Tools",
-    "description": "ZenStack CLI and Language Tools",
-    "version": "0.1.47",
+    "publisher": "zenstack",
+    "displayName": "ZenStack Language Tools",
+    "description": "ZenStack is a toolkit that simplifies full-stack development",
+    "version": "0.1.49",
+    "author": {
+        "name": "ymc9"
+    },
+    "keywords": [
+        "fullstack",
+        "react",
+        "typescript",
+        "data modeling"
+    ],
+    "preview": true,
+    "icon": "asset/logo-light.png",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
     "engines": {
-        "vscode": "^1.56.0"
+        "vscode": "^1.72.0"
     },
     "categories": [
         "Programming Languages"
@@ -40,23 +56,27 @@
     ],
     "files": [
         "bin",
-        "out"
+        "src",
+        "bundle"
     ],
     "bin": {
         "zenstack": "./bin/cli"
     },
-    "main": "./out/extension.js",
+    "main": "./bundle/extension.js",
     "scripts": {
-        "vscode:prepublish": "npm run build && npm run lint",
-        "build": "npm run langium:generate && tsc && tsc-alias && cp src/language-server/stdlib.zmodel ./out/language-server/ && cp src/generator/*.template.json ./out/generator/",
-        "ts:watch": "tsc --watch",
+        "vscode:publish": "vsce publish --no-dependencies",
+        "vscode:prepublish": "pnpm lint && pnpm build && pnpm bundle",
+        "vscode:package": "vsce package --no-dependencies",
+        "build": "pnpm langium:generate && tsc --noEmit",
+        "bundle": "node build/bundle.js",
+        "ts:watch": "tsc --watch --noEmit",
         "tsc-alias:watch": "tsc-alias --watch",
         "lint": "eslint src --ext ts",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
         "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:ts:watch\" \"npm:tsc-alias:watch\"",
         "test": "jest",
-        "prepublishOnly": "pnpm build"
+        "prepublishOnly": "pnpm build && pnpm bundle"
     },
     "dependencies": {
         "@zenstackhq/internal": "workspace:*",
@@ -73,6 +93,7 @@
         "vscode-jsonrpc": "^8.0.2",
         "vscode-languageclient": "^8.0.2",
         "vscode-languageserver": "^8.0.2",
+        "vscode-languageserver-textdocument": "^1.0.7",
         "vscode-uri": "^3.0.6"
     },
     "devDependencies": {
@@ -86,6 +107,7 @@
         "@typescript-eslint/eslint-plugin": "^4.33.0",
         "@typescript-eslint/parser": "^4.33.0",
         "concurrently": "^7.4.0",
+        "esbuild": "^0.15.12",
         "eslint": "^7.32.0",
         "jest": "^29.2.1",
         "langium-cli": "^0.5.0",
@@ -94,6 +116,7 @@
         "ts-node": "^10.9.1",
         "tsc-alias": "^1.7.0",
         "tsconfig-paths-jest": "^0.0.1",
-        "typescript": "^4.8.4"
+        "typescript": "^4.8.4",
+        "vsce": "^2.13.0"
     }
 }

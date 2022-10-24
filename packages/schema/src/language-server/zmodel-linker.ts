@@ -277,8 +277,10 @@ export class ZModelLinker extends DefaultLinker {
     ) {
         this.linkReference(node, 'function', document, extraScopes);
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
-        const funcDecl = node.function.ref as Function;
-        this.resolveToDeclaredType(node, funcDecl.returnType);
+        if (node.function.ref) {
+            const funcDecl = node.function.ref as Function;
+            this.resolveToDeclaredType(node, funcDecl.returnType);
+        }
     }
 
     private resolveLiteral(node: LiteralExpr) {
@@ -341,8 +343,8 @@ export class ZModelLinker extends DefaultLinker {
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
         } else {
-            // TODO: how to attach type-checking error?
-            throw new Error(`Unresolved collection predicate`);
+            // TODO: handle this during validation
+            console.warn(`Unresolved collection predicate`);
         }
     }
 

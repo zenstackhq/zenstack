@@ -1,2 +1,4 @@
 /out/
 /tests/coverage/
+/bundle
+*.vsix

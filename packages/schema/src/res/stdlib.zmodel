@@ -2,12 +2,13 @@ enum ReferentialAction {
     Cascade
 }
 
-function env(): String {}
-function auth(): User {}
+function env(name: String): String {}
+function auth(): Any {}
 function now(): DateTime {}
 function uuid(): String {}
 function cuid(): String {}
-function autoincrement() Int {}
+function autoincrement(): Int {}
+function dbgenerated(expr: String): Any {}
 
 attribute @id(map: String?)
 attribute @default(_ value: ContextType)

@@ -325,6 +325,40 @@ describe('Data Model Validation Tests', () => {
         `);
     });
 
+    it('attribute function coverage', async () => {
+        await loadModel(`
+            ${prelude}
+            model A {
+                id String @id @default(uuid())
+                id1 String @default(cuid())
+                created DateTime @default(now())
+                serial Int @default(autoincrement())
+                foo String @default(dbgenerated("gen_random_uuid()"))
+                @@allow('all', auth() != null)
+            }
+        `);
+    });
+
+    it('attribute function check', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id @default(foo())
+            }
+        `)
+        ).toContain(`Could not resolve reference to Function named 'foo'.`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id Int @id @default(uuid())
+            }
+        `)
+        ).toContain(`Value is not assignable to parameter`);
+    });
+
     it('relation', async () => {
         // one-to-one
         await loadModel(`
@@ -389,7 +423,7 @@ describe('Data Model Validation Tests', () => {
             }
         `)
         ).toContain(
-            `Fields "a", "a1" on model B refer to the same relation to model "A"`
+            `Fields "a", "a1" on model "B" refer to the same relation to model "A"`
         );
 
         // one-to-one inconsistent attribute

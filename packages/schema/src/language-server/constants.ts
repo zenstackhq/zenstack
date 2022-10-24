@@ -15,3 +15,5 @@ export const SCALAR_TYPES = [
     'Bytes',
     'DateTime',
 ];
+
+export const STD_LIB_MODULE_NAME = 'stdlib.zmodel';

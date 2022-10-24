@@ -1,11 +1,20 @@
 import {
     createDefaultModule,
-    createDefaultSharedModule,
+    DefaultConfigurationProvider,
+    DefaultDocumentBuilder,
+    DefaultIndexManager,
+    DefaultLangiumDocumentFactory,
+    DefaultLangiumDocuments,
+    DefaultLanguageServer,
+    DefaultServiceRegistry,
     DefaultSharedModuleContext,
+    DefaultTextDocumentFactory,
     inject,
+    LangiumDefaultSharedServices,
     LangiumServices,
     LangiumSharedServices,
     Module,
+    MutexLock,
     PartialLangiumServices,
 } from 'langium';
 import {
@@ -18,6 +27,10 @@ import {
     ZModelValidationRegistry,
     ZModelValidator,
 } from './validator/zmodel-validator';
+import { TextDocuments } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import ZModelWorkspaceManager from './zmodel-workspace-manager';
+import ZModelDefinitionProvider from './lsp/zmodel-definition-provider';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -52,7 +65,42 @@ export const ZModelModule: Module<
             new ZModelValidationRegistry(services),
         ZModelValidator: () => new ZModelValidator(),
     },
+    lsp: {
+        DefinitionProvider: (services) =>
+            new ZModelDefinitionProvider(services),
+    },
 };
+
+// this duplicates createDefaultSharedModule except that a custom WorkspaceManager is used
+export function createSharedModule(
+    context: DefaultSharedModuleContext
+): Module<LangiumSharedServices, LangiumDefaultSharedServices> {
+    return {
+        ServiceRegistry: () => new DefaultServiceRegistry(),
+        lsp: {
+            Connection: () => context.connection,
+            LanguageServer: (services) => new DefaultLanguageServer(services),
+        },
+        workspace: {
+            LangiumDocuments: (services) =>
+                new DefaultLangiumDocuments(services),
+            LangiumDocumentFactory: (services) =>
+                new DefaultLangiumDocumentFactory(services),
+            DocumentBuilder: (services) => new DefaultDocumentBuilder(services),
+            TextDocuments: () => new TextDocuments(TextDocument),
+            TextDocumentFactory: (services) =>
+                new DefaultTextDocumentFactory(services),
+            IndexManager: (services) => new DefaultIndexManager(services),
+            WorkspaceManager: (services) =>
+                new ZModelWorkspaceManager(services),
+            FileSystemProvider: (services) =>
+                context.fileSystemProvider(services),
+            MutexLock: () => new MutexLock(),
+            ConfigurationProvider: (services) =>
+                new DefaultConfigurationProvider(services),
+        },
+    };
+}
 
 /**
  * Create the full set of services required by Langium.
@@ -74,9 +122,10 @@ export function createZModelServices(context: DefaultSharedModuleContext): {
     ZModel: ZModelServices;
 } {
     const shared = inject(
-        createDefaultSharedModule(context),
+        createSharedModule(context),
         ZModelGeneratedSharedModule
     );
+
     const ZModel = inject(
         createDefaultModule({ shared }),
         ZModelGeneratedModule,

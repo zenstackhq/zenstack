@@ -99,7 +99,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     ) {
         const decl = attr.decl.ref;
         if (!decl) {
-            throw new Error(`Reference unresolved: ${attr.decl.$refText}`);
+            return;
         }
 
         const filledParams = new Set<AttributeParam>();
@@ -245,9 +245,9 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     'error',
                     `Fields ${oppositeFields
                         .map((f) => '"' + f.name + '"')
-                        .join(', ')} on model ${
+                        .join(', ')} on model "${
                         oppositeModel.name
-                    } refer to the same relation to model "${
+                    }" refer to the same relation to model "${
                         field.$container.name
                     }"`,
                     { node: f }

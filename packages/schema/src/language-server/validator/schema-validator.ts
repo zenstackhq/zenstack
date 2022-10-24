@@ -1,3 +1,4 @@
+import { STD_LIB_MODULE_NAME } from '@lang/constants';
 import { isDataSource, Model } from '@lang/generated/ast';
 import { AstValidator } from '@lang/types';
 import { ValidationAcceptor } from 'langium';
@@ -6,7 +7,10 @@ import { validateDuplicatedDeclarations } from './utils';
 export default class SchemaValidator implements AstValidator<Model> {
     validate(model: Model, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(model.declarations, accept);
-        this.validateDataSources(model, accept);
+
+        if (!model.$document?.uri.path.endsWith(STD_LIB_MODULE_NAME)) {
+            this.validateDataSources(model, accept);
+        }
     }
 
     private validateDataSources(model: Model, accept: ValidationAcceptor) {

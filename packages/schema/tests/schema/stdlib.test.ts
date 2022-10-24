@@ -8,10 +8,10 @@ describe('Stdlib Tests', () => {
     it('stdlib', async () => {
         const { shared } = createZModelServices(NodeFileSystem);
         const stdLib = shared.workspace.LangiumDocuments.getOrCreateDocument(
-            URI.file(path.resolve('src/language-server/stdlib.zmodel'))
+            URI.file(path.resolve('src/res/stdlib.zmodel'))
         );
         await shared.workspace.DocumentBuilder.build([stdLib], {
-            validationChecks: 'none',
+            validationChecks: 'all',
         });
 
         const validationErrors = (stdLib.diagnostics ?? []).filter(
