@@ -51,6 +51,7 @@ export class ZenStackGenerator {
         // generate package.json
         const packageJson = require(path.join(
             __dirname,
+            '../res',
             'package.template.json'
         ));
         fs.writeFileSync(
@@ -61,6 +62,7 @@ export class ZenStackGenerator {
         // compile ts sources
         const tsConfig = require(path.join(
             __dirname,
+            '../res',
             'tsconfig.template.json'
         ));
         fs.writeFileSync(

@@ -25,8 +25,8 @@ describe('Toplevel Schema Validation Tests', () => {
     it('duplicated declaration names', async () => {
         expect(
             await loadModelWithError(`
-                model X {}
-                model X {}
+                model X {id String @id }
+                model X { id String @id }
         `)
         ).toContain('Duplicated declaration name "X"');
     });

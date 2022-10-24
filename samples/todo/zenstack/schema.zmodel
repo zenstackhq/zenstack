@@ -2,16 +2,25 @@
 * Sample model for a collaborative Todo app
 */
 
+/*
+ * Data soruce definition
+ */
 datasource db {
     provider = 'postgresql'
     url = env('DATABASE_URL')
 }
 
+/*
+ * Enum for user's role in a space
+ */
 enum SpaceUserRole {
     USER
     ADMIN
 }
 
+/*
+ * Model for a space in which users can collaborate on Lists and Todos
+ */
 model Space {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
@@ -34,6 +43,9 @@ model Space {
     @@allow('update,delete', members?[user == auth() && role == ADMIN])
 }
 
+/*
+ * Model representing membership of a user in a space
+ */
 model SpaceUser {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
@@ -56,6 +68,9 @@ model SpaceUser {
     @@allow('read', space.members?[user == auth()])
 }
 
+/*
+ * Model for a user
+ */
 model User {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
@@ -83,6 +98,9 @@ model User {
     @@allow('update,delete', auth() == this) 
 }
 
+/*
+ * Model for a Todo list
+ */
 model List {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
@@ -105,6 +123,9 @@ model List {
     @@allow('create,update,delete', owner == auth() && space.members?[user == auth()]) 
 }
 
+/*
+ * Model for a single Todo
+ */
 model Todo {
     id String @id @default(uuid())
     createdAt DateTime @default(now())

@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { AstNode, LangiumDocument, LangiumServices } from 'langium';
 import { URI } from 'vscode-uri';
+import { STD_LIB_MODULE_NAME } from '@lang/constants';
 
 export async function extractDocument(
     fileName: string,
@@ -23,8 +24,13 @@ export async function extractDocument(
 
     const stdLib =
         services.shared.workspace.LangiumDocuments.getOrCreateDocument(
-            URI.file(path.join(__dirname, '../language-server/stdlib.zmodel'))
+            URI.file(
+                path.resolve(
+                    path.join(__dirname, '../res', STD_LIB_MODULE_NAME)
+                )
+            )
         );
+
     const document =
         services.shared.workspace.LangiumDocuments.getOrCreateDocument(
             URI.file(path.resolve(fileName))

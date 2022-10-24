@@ -47,9 +47,13 @@ export function typeAssignable(
         case 'Any':
             return true;
         case 'Float':
-            return sourceType === 'Int' || sourceType === 'Float';
+            return (
+                sourceType === 'Any' ||
+                sourceType === 'Int' ||
+                sourceType === 'Float'
+            );
         default:
-            return sourceType === destType;
+            return sourceType === 'Any' || sourceType === destType;
     }
 }
 

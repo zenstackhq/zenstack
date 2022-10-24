@@ -21,7 +21,7 @@ export async function loadModel(
     fs.writeFileSync(docPath, content);
     const { shared } = createZModelServices(NodeFileSystem);
     const stdLib = shared.workspace.LangiumDocuments.getOrCreateDocument(
-        URI.file(path.resolve('src/language-server/stdlib.zmodel'))
+        URI.file(path.resolve('src/res/stdlib.zmodel'))
     );
     const doc = shared.workspace.LangiumDocuments.getOrCreateDocument(
         URI.file(docPath)

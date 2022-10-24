@@ -1,4 +1,10 @@
 .vscode/**
 .vscode-test/**
 .gitignore
-langium-quickstart.md
+src
+tests
+node_modules
+bin
+build
+jest.config.ts
+tsconfig.json
