@@ -1,18 +1,25 @@
 {
     "name": "@zenstackhq/internal",
     "version": "0.1.21",
-    "description": "ZenStack internal runtime library",
+    "description": "ZenStack internal runtime library. This package is for supporting runtime functionality of ZenStack and not supposed to be used directly.",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
         "test": "jest",
+        "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "author": {
+        "name": "ymc9"
+    },
+    "license": "MIT",
     "files": [
         "lib/**/*"
     ],
@@ -23,11 +30,13 @@
         "uuid": "^9.0.0"
     },
     "peerDependencies": {
+        "@prisma/client": "^4.4.0",
         "next": "12.3.1",
         "react": "^17.0.2 || ^18",
         "react-dom": "^17.0.2 || ^18"
     },
     "devDependencies": {
+        "@prisma/client": "^4.4.0",
         "@types/bcryptjs": "^2.4.2",
         "@types/jest": "^29.0.3",
         "@types/node": "^14.18.29",

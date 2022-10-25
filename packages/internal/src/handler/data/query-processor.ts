@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import deepcopy from 'deepcopy';
 import { TRANSACTION_FIELD_NAME } from '../../constants';
 import {
@@ -18,7 +20,11 @@ export class QueryProcessor {
         operation: PolicyOperationKind,
         context: QueryContext,
         transactionId: string
-    ) {
+    ): Promise<{
+        preWriteGuard: any;
+        writeArgs: any;
+        includedModels: Set<string>;
+    }> {
         const preWriteGuard = args ? deepcopy(args) : {};
         delete preWriteGuard.data;
         delete preWriteGuard.include;
@@ -311,7 +317,7 @@ export class QueryProcessor {
         args: any,
         operation: PolicyOperationKind,
         context: QueryContext,
-        injectWhere: boolean = true
+        injectWhere = true
     ) {
         const r = args ? deepcopy(args) : {};
 
@@ -408,7 +414,7 @@ export class QueryProcessor {
             if (!map.has(fieldInfo.type)) {
                 map.set(fieldInfo.type, []);
             }
-            map.get(fieldInfo.type)!.push(val.id);
+            map.get(fieldInfo.type)?.push(val.id);
 
             // recurse into field value
             this.collectRelationFields(fieldInfo.type, val, map);
