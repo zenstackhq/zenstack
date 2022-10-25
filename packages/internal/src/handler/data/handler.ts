@@ -1,16 +1,19 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { v4 as uuid } from 'uuid';
+import { TRANSACTION_FIELD_NAME } from '../../constants';
 import { RequestHandlerOptions } from '../../request-handler';
 import {
+    DbClientContract,
+    DbOperations,
     PolicyOperationKind,
     QueryContext,
     ServerErrorCode,
     Service,
 } from '../../types';
 import { RequestHandler, RequestHandlerError } from '../types';
-import { QueryProcessor } from './query-processor';
-import { v4 as uuid } from 'uuid';
-import { TRANSACTION_FIELD_NAME } from '../../constants';
 import { and } from './guard-utils';
+import { QueryProcessor } from './query-processor';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 
 const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
     P2002: ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
@@ -18,7 +21,12 @@ const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
     P2025: ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION,
 };
 
-export default class DataHandler<DbClient> implements RequestHandler {
+/**
+ * Request handler for /data endpoint which processes data CRUD requests.
+ */
+export default class DataHandler<DbClient extends DbClientContract>
+    implements RequestHandler
+{
     private readonly queryProcessor: QueryProcessor;
 
     constructor(
@@ -28,7 +36,11 @@ export default class DataHandler<DbClient> implements RequestHandler {
         this.queryProcessor = new QueryProcessor(service);
     }
 
-    async handle(req: NextApiRequest, res: NextApiResponse, path: string[]) {
+    async handle(
+        req: NextApiRequest,
+        res: NextApiResponse,
+        path: string[]
+    ): Promise<void> {
         const [model, id] = path;
         const method = req.method;
 
@@ -57,9 +69,11 @@ export default class DataHandler<DbClient> implements RequestHandler {
                     res.status(200).send({});
                     break;
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.log(`Error handling ${method} ${model}: ${err}`);
+
             if (err instanceof RequestHandlerError) {
+                // in case of errors thrown directly by ZenStack
                 switch (err.code) {
                     case ServerErrorCode.DENIED_BY_POLICY:
                         res.status(403).send({
@@ -79,7 +93,8 @@ export default class DataHandler<DbClient> implements RequestHandler {
                             message: err.message,
                         });
                 }
-            } else if (err.code) {
+            } else if (err instanceof PrismaClientKnownRequestError) {
+                // errors thrown by Prisma, try mapping to a known error
                 if (PRISMA_ERROR_MAPPING[err.code]) {
                     res.status(400).send({
                         code: PRISMA_ERROR_MAPPING[err.code],
@@ -92,6 +107,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
                     });
                 }
             } else {
+                // generic errors
                 console.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
                 );
@@ -107,8 +123,13 @@ export default class DataHandler<DbClient> implements RequestHandler {
         id: string,
         context: QueryContext
     ) {
-        const db = (this.service.db as any)[model];
+        // model specific db client
+        const db = this.service.db[model];
+
+        // parse additional query args from "q" parameter
         const args = req.query.q ? JSON.parse(req.query.q as string) : {};
+
+        // get updated query args with policy checks injected
         const processedArgs = await this.queryProcessor.processQueryArgs(
             model,
             args,
@@ -116,28 +137,30 @@ export default class DataHandler<DbClient> implements RequestHandler {
             context
         );
 
-        let r;
+        let result;
         if (id) {
+            // GET <model>/:id, make sure "id" is injected
             if (processedArgs.where) {
                 processedArgs.where = and(processedArgs.where, { id });
             } else {
                 processedArgs.where = { id };
             }
-            r = await db.findFirst(processedArgs);
-            if (!r) {
+            result = await db.findFirst(processedArgs);
+            if (!result) {
                 throw new RequestHandlerError(
                     ServerErrorCode.ENTITY_NOT_FOUND,
                     'not found'
                 );
             }
         } else {
-            r = await db.findMany(processedArgs);
+            // GET <model>/, get list
+            result = await db.findMany(processedArgs);
         }
 
         console.log(`Finding ${model}:\n${JSON.stringify(processedArgs)}`);
-        await this.queryProcessor.postProcess(model, r, 'read', context);
+        await this.queryProcessor.postProcess(model, result, 'read', context);
 
-        res.status(200).send(r);
+        res.status(200).send(result);
     }
 
     private async post(
@@ -146,6 +169,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
         model: string,
         context: QueryContext
     ) {
+        // validate args
         const args = req.body;
         if (!args) {
             throw new RequestHandlerError(
@@ -160,8 +184,32 @@ export default class DataHandler<DbClient> implements RequestHandler {
             );
         }
 
-        const db = this.service.db as any;
+        const db = this.service.db;
+
+        // POST creates an entity for a model.
+        //
+        // Here we cannot exaustively validate the created entity fulfills policies
+        // by only inspecting the input payload, because of default values, nested
+        // creates/updates, relations, and maybe other reasons.
+        //
+        // Instead a safer approach is used. For create and update operations, an
+        // interactive transaction is employed to conduct the write. After the write
+        // completes (without closing the transaction), the affected entities are
+        // fetched (in the transaction context) and checked against policies, and roll
+        // back the transaction in case of any failure.
+        //
+        // With operations like upsert and nested updateMany, etc., it's not always
+        // possible to identify what entities are affected during the write. An auxiliary
+        // field zenstack_transaction is used for tracking this. The value of the
+        // field is set like:
+        //     zenstack_transaction = <transaction_id>:<operation>
+        // , where <transaction_id> is a UUID shared by the entire transaction, and <operation>
+        // is the action taken to the specific entity.
+
         const transactionid = uuid();
+
+        // inject update args with policy checks, and collect what model types are affected,
+        // either directly or via nested writes
         const { writeArgs, includedModels } =
             await this.queryProcessor.processQueryArgsForWrite(
                 model,
@@ -171,48 +219,76 @@ export default class DataHandler<DbClient> implements RequestHandler {
                 transactionid
             );
 
-        const r = await db.$transaction(async (tx: any) => {
-            console.log(`Create ${model}:\n${JSON.stringify(writeArgs)}`);
-            const created = await tx[model].create(writeArgs);
+        // start an interactive transaction
+        const result = await db.$transaction(
+            async (tx: Record<string, DbOperations>) => {
+                console.log(`Create ${model}:\n${JSON.stringify(writeArgs)}`);
 
-            await this.checkPolicyForIncludedModels(
-                includedModels,
-                transactionid,
-                tx,
-                context
-            );
+                // conduct the create
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const created: any = await tx[model].create(writeArgs);
 
-            const finalResultArgs = {
-                where: { id: created.id },
-                include: args.include,
-                select: args.select,
-            };
-            return await tx[model].findUnique(finalResultArgs);
-        });
+                // ensure all affected entities still pass policy checks
+                await this.checkPolicyForIncludedModels(
+                    includedModels,
+                    transactionid,
+                    tx,
+                    context
+                );
 
-        await this.queryProcessor.postProcess(model, r, 'create', context);
-        res.status(201).send(r);
+                // re-read the created entity, respecting the "include" and "select" directives
+                // in the original query
+
+                // TODO: shouldn't we inject 'read' guard so that select/include can't leak data?
+                const finalResultArgs = {
+                    where: { id: created.id },
+                    include: args.include,
+                    select: args.select,
+                };
+                return await tx[model].findUnique(finalResultArgs);
+            }
+        );
+
+        // While the transaction track-and-check approach ensures that all update results
+        // are still valid, it doesn't guarantee that only "visible" data is returned.
+        // We make a final post-processing pass to trim the data before returning.
+        await this.queryProcessor.postProcess(model, result, 'create', context);
+
+        res.status(201).send(result);
     }
 
+    /**
+     * In a transaction context, check entities affected by the transaction (marked by transactionId)
+     * satisfies policy checks. If not, throw an error.
+     *
+     * @param includedModels Model types for narrowing down the search for entities
+     * @param transactionId The transaction id
+     * @param transaction The transaction client
+     * @param context The query context
+     */
     private async checkPolicyForIncludedModels(
         includedModels: Set<string>,
         transactionId: string,
-        transaction: any,
+        transaction: Record<string, DbOperations>,
         context: QueryContext
     ) {
         const modelChecks = Array.from(includedModels).map(
             async (modelToCheck) => {
                 for (const operation of ['create', 'update', 'delete']) {
+                    // find entities involved by the transaction for the operation
                     const queryArgs = {
                         where: {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:${operation}`,
                         },
                     };
+
+                    // get a full count without any policy-check filtering
                     const fullCount = await transaction[modelToCheck].count(
                         queryArgs
                     );
 
                     if (fullCount > 0) {
+                        // get a count with policy-check filtering
                         const processedQueryArgs =
                             await this.queryProcessor.processQueryArgs(
                                 modelToCheck,
@@ -230,6 +306,7 @@ export default class DataHandler<DbClient> implements RequestHandler {
                         ].count(processedQueryArgs);
 
                         if (fullCount !== filteredCount) {
+                            // counts don't match, meaning that some of the affected entities failed policy checks
                             console.log(
                                 `Model ${modelToCheck}: filtered count ${filteredCount} mismatch full count ${fullCount}, transactionId: ${transactionId}`
                             );
@@ -286,7 +363,9 @@ export default class DataHandler<DbClient> implements RequestHandler {
             );
         }
 
-        const db = this.service.db as any;
+        const db = this.service.db;
+
+        // See comments in "post" method for the approach used for policy checking
         const transactionid = uuid();
         args.where = { ...args.where, id };
 
@@ -325,24 +404,27 @@ export default class DataHandler<DbClient> implements RequestHandler {
             );
         }
 
-        const r = await db.$transaction(async (tx: any) => {
-            console.log(`Update ${model}:\n${JSON.stringify(writeArgs)}`);
-            await tx[model].update(writeArgs);
+        const r = await db.$transaction(
+            async (tx: Record<string, DbOperations>) => {
+                console.log(`Update ${model}:\n${JSON.stringify(writeArgs)}`);
+                await tx[model].update(writeArgs);
 
-            await this.checkPolicyForIncludedModels(
-                includedModels,
-                transactionid,
-                tx,
-                context
-            );
+                await this.checkPolicyForIncludedModels(
+                    includedModels,
+                    transactionid,
+                    tx,
+                    context
+                );
 
-            const finalResultArgs = {
-                where: { id },
-                include: args.include,
-                select: args.select,
-            };
-            return await tx[model].findUnique(finalResultArgs);
-        });
+                // TODO: shouldn't we inject 'read' guard so that select/include can't leak data?
+                const finalResultArgs = {
+                    where: { id },
+                    include: args.include,
+                    select: args.select,
+                };
+                return await tx[model].findUnique(finalResultArgs);
+            }
+        );
 
         await this.queryProcessor.postProcess(model, r, 'update', context);
         res.status(200).send(r);
@@ -378,22 +460,25 @@ export default class DataHandler<DbClient> implements RequestHandler {
         delArgs.where = { ...delArgs.where, id };
 
         console.log(`Deleting ${model}:\n${JSON.stringify(delArgs)}`);
-        const db = (this.service.db as any)[model];
+        const db = this.service.db[model];
         const r = await db.delete(delArgs);
         await this.queryProcessor.postProcess(model, r, 'delete', context);
 
         res.status(200).send(r);
     }
 
+    /**
+     * Ensures entity of a specified "id" satisfies policies for a given "operation".
+     */
     private async ensureEntityPolicy(
         id: string,
         model: string,
         operation: PolicyOperationKind,
         context: QueryContext
     ) {
-        const db = (this.service.db as any)[model];
+        const db = this.service.db[model];
 
-        // check if the record is readable concerning "delete" policy
+        // check if the record is readable concerning policy for the operation
         const readArgs = await this.queryProcessor.processQueryArgs(
             model,
             { where: { id } },

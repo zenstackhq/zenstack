@@ -7,6 +7,7 @@ importers:
 
   packages/internal:
     specifiers:
+      '@prisma/client': ^4.4.0
       '@types/bcryptjs': ^2.4.2
       '@types/jest': ^29.0.3
       '@types/node': ^14.18.29
@@ -33,6 +34,7 @@ importers:
       swr: 1.3.0_react@18.2.0
       uuid: 9.0.0
     devDependencies:
+      '@prisma/client': 4.5.0
       '@types/bcryptjs': 2.4.2
       '@types/jest': 29.0.3
       '@types/node': 14.18.29
@@ -1418,6 +1420,19 @@ packages:
     engines: {node: '>=14'}
     dev: true
 
+  /@prisma/client/4.5.0:
+    resolution: {integrity: sha512-B2cV0OPI1smhdYUxsJoLYQLoMlLH06MUxgFUWQnHodGMX98VRVXKmQE/9OcrTNkqtke5RC+YU24Szxd04tZA2g==}
+    engines: {node: '>=14.17'}
+    requiresBuild: true
+    peerDependencies:
+      prisma: '*'
+    peerDependenciesMeta:
+      prisma:
+        optional: true
+    dependencies:
+      '@prisma/engines-version': 4.5.0-43.0362da9eebca54d94c8ef5edd3b2e90af99ba452
+    dev: true
+
   /@prisma/debug/4.5.0:
     resolution: {integrity: sha512-zTBisqSCipBN7veltdhuHU89t98BHQWH4qb6rJAla39AulLtsjCOUu5QEBUmXEuND5SChjYP/S9rJ4mVHkcTdg==}
     dependencies:
@@ -1447,6 +1462,10 @@ packages:
       undici: 5.10.0
     transitivePeerDependencies:
       - supports-color
+    dev: true
+
+  /@prisma/engines-version/4.5.0-43.0362da9eebca54d94c8ef5edd3b2e90af99ba452:
+    resolution: {integrity: sha512-o7LyVx8PPJBLrEzLl6lpxxk2D5VnlM4Fwmrbq0NoT6pr5aa1OuHD9ZG+WJY6TlR/iD9bhmo2LNcxddCMr5Rv2A==}
     dev: true
 
   /@prisma/engines/4.5.0:
