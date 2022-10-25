@@ -1,6 +1,7 @@
 {
     "name": "@zenstackhq/internal",
-    "version": "0.1.25",
+    "version": "0.1.26",
+    "displayName": "ZenStack Internal Library",
     "description": "ZenStack internal runtime library. This package is for supporting runtime functionality of ZenStack and not supposed to be used directly.",
     "repository": {
         "type": "git",
@@ -17,7 +18,7 @@
     },
     "keywords": [],
     "author": {
-        "name": "ymc9"
+        "name": "ZenStack Team"
     },
     "license": "MIT",
     "files": [
