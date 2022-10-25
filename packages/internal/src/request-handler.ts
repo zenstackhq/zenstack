@@ -24,11 +24,14 @@ export type RequestHandlerOptions = {
  * @param options Options for initialization
  * @returns An API endpoint request handler
  */
-export function requestHandler<DbClient extends DbClientContract>(
+export function requestHandler<DbClient>(
     service: Service<DbClient>,
     options: RequestHandlerOptions
 ): (req: NextApiRequest, res: NextApiResponse) => Promise<void> {
-    const dataHandler = new DataHandler<DbClient>(service, options);
+    const dataHandler = new DataHandler(
+        service as Service<DbClientContract>,
+        options
+    );
     return async (req: NextApiRequest, res: NextApiResponse) => {
         const [route, ...rest] = req.query.path as string[];
         switch (route) {

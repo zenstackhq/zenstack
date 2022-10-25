@@ -4,8 +4,11 @@ import { execSync } from '../../utils/exec-utils';
 import PrismaSchemaGenerator from './schema-generator';
 import QueryGuardGenerator from './query-gard-generator';
 
+/**
+ * Generates Prisma schema and db client
+ */
 export default class PrismaGenerator implements Generator {
-    async generate(context: Context) {
+    async generate(context: Context): Promise<void> {
         // generate prisma schema
         const schemaFile = await new PrismaSchemaGenerator(context).generate();
 
@@ -20,7 +23,7 @@ export default class PrismaGenerator implements Generator {
         );
     }
 
-    async generatePrismaClient(schemaFile: string) {
+    private async generatePrismaClient(schemaFile: string) {
         try {
             execSync(`npx prisma generate --schema "${schemaFile}"`);
         } catch {

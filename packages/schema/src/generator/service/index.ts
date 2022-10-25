@@ -4,8 +4,11 @@ import * as path from 'path';
 import colors from 'colors';
 import { INTERNAL_PACKAGE } from '../constants';
 
+/**
+ * Generates ZenStack service code
+ */
 export default class ServiceGenerator implements Generator {
-    async generate(context: Context) {
+    async generate(context: Context): Promise<void> {
         const project = new Project();
         const sf = project.createSourceFile(
             path.join(context.generatedCodeDir, 'src/index.ts'),

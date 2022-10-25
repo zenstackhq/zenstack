@@ -9,12 +9,16 @@ import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { GUARD_FIELD_NAME, INTERNAL_PACKAGE } from '../constants';
 import { Context } from '../types';
+import { resolved } from '../utils';
 import ExpressionWriter from './expression-writer';
 
+/**
+ * Generates source file that contains Prisma query guard objects used for injecting database queries
+ */
 export default class QueryGuardGenerator {
     constructor(private readonly context: Context) {}
 
-    async generate() {
+    async generate(): Promise<void> {
         const project = new Project();
         const sf = project.createSourceFile(
             path.join(this.context.generatedCodeDir, 'src/query/guard.ts'),
@@ -60,7 +64,8 @@ export default class QueryGuardGenerator {
                         .map((f) => [
                             f.name,
                             {
-                                type: f.type.reference!.ref!.name,
+                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                type: resolved(f.type.reference!).name,
                                 isArray: f.type.array,
                             },
                         ])

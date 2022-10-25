@@ -7,8 +7,11 @@ import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../utils';
 import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
 
+/**
+ * Generate react data query hooks code
+ */
 export default class ReactHooksGenerator implements Generator {
-    async generate(context: Context) {
+    async generate(context: Context): Promise<void> {
         const project = new Project();
 
         const models = extractDataModelsWithAllowRules(context.schema);
@@ -39,7 +42,9 @@ export default class ReactHooksGenerator implements Generator {
             isTypeOnly: true,
             moduleSpecifier: '../../.prisma',
         });
-        sf.addStatements(`import { request } from '${INTERNAL_PACKAGE}';`);
+        sf.addStatements(
+            `import { request } from '${INTERNAL_PACKAGE}/lib/client';`
+        );
         sf.addStatements(`import { type SWRResponse } from 'swr'`);
 
         sf.addStatements(

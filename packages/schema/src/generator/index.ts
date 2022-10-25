@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { Context, GeneratorError } from './types';
 import * as fs from 'fs';
 import colors from 'colors';
@@ -8,8 +9,14 @@ import NextAuthGenerator from './next-auth';
 import path from 'path';
 import { execSync } from '../utils/exec-utils';
 
+/**
+ * ZenStack code generator
+ */
 export class ZenStackGenerator {
-    async generate(context: Context) {
+    /**
+     * Runs a series of nested generators
+     */
+    async generate(context: Context): Promise<void> {
         // folder that stores generated prisma schema and migrations
         if (!fs.existsSync(context.outDir)) {
             fs.mkdirSync(context.outDir);
@@ -27,6 +34,7 @@ export class ZenStackGenerator {
         const version = require('../../package.json').version;
         console.log(colors.bold(`⌛️ Running ZenStack generator v${version}`));
 
+        // TODO: plugin mechanism
         const generators = [
             new PrismaGenerator(),
             new ServiceGenerator(),

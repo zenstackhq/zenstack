@@ -12,8 +12,16 @@ import {
     ThisExpr,
 } from '@lang/generated/ast';
 
-export default class PlainExpressionBuilder {
-    build(expr: Expression): string {
+/**
+ * Transforms ZModel expression to plain TypeScript expression.
+ */
+export default class TypeScriptExpressionTransformer {
+    /**
+     *
+     * @param expr
+     * @returns
+     */
+    transform(expr: Expression): string {
         switch (expr.$type) {
             case LiteralExpr:
                 return this.literal(expr as LiteralExpr);
@@ -43,16 +51,21 @@ export default class PlainExpressionBuilder {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private this(expr: ThisExpr) {
         // "this" is mapped to id comparison
         return 'id';
     }
 
     private memberAccess(expr: MemberAccessExpr) {
+        if (!expr.member.ref) {
+            throw new GeneratorError(`Unresolved MemberAccessExpr`);
+        }
+
         if (isThisExpr(expr.operand)) {
-            return expr.member.ref!.name;
+            return expr.member.ref.name;
         } else {
-            return `${this.build(expr.operand)}?.${expr.member.ref!.name}`;
+            return `${this.transform(expr.operand)}?.${expr.member.ref.name}`;
         }
     }
 
@@ -66,10 +79,14 @@ export default class PlainExpressionBuilder {
     }
 
     private reference(expr: ReferenceExpr) {
+        if (!expr.target.ref) {
+            throw new GeneratorError(`Unresolved ReferenceExpr`);
+        }
+
         if (isEnumField(expr.target.ref)) {
             return `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
         } else {
-            return expr.target.ref!.name;
+            return expr.target.ref.name;
         }
     }
 
@@ -78,7 +95,7 @@ export default class PlainExpressionBuilder {
     }
 
     private array(expr: ArrayExpr) {
-        return `[${expr.items.map((item) => this.build(item)).join(', ')}]`;
+        return `[${expr.items.map((item) => this.transform(item)).join(', ')}]`;
     }
 
     private literal(expr: LiteralExpr) {

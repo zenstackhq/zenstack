@@ -1,9 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Command, Option } from 'commander';
 import { NodeFileSystem } from 'langium/node';
-import { Model } from '../language-server/generated/ast';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import { createZModelServices } from '../language-server/zmodel-module';
-import { extractAstNode } from './cli-util';
 import { Context, GeneratorError } from '../generator/types';
 import { ZenStackGenerator } from '../generator';
 import { GENERATED_CODE_PATH } from '../generator/constants';
@@ -11,12 +10,13 @@ import colors from 'colors';
 import { execSync } from '../utils/exec-utils';
 import { paramCase } from 'change-case';
 import path from 'path';
+import { loadDocument } from './cli-util';
 
 export const generateAction = async (options: {
     schema: string;
 }): Promise<void> => {
     const services = createZModelServices(NodeFileSystem).ZModel;
-    const model = await extractAstNode<Model>(options.schema, services);
+    const model = await loadDocument(options.schema, services);
 
     const context: Context = {
         schema: model,
@@ -37,7 +37,7 @@ export const generateAction = async (options: {
 
 function prismaAction(prismaCmd: string): (...args: any[]) => Promise<void> {
     return async (options: any, command: Command) => {
-        let optStr = Array.from(Object.entries<any>(options))
+        const optStr = Array.from(Object.entries<any>(options))
             .map(([k, v]) => {
                 let optVal = v;
                 if (k === 'schema') {
@@ -69,6 +69,7 @@ export default function (): void {
     const program = new Command('zenstack');
 
     program.version(
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         require('../../package.json').version,
         '-v --version',
         'display CLI version'
@@ -89,6 +90,8 @@ export default function (): void {
         '--schema <file>',
         `schema file (with extension ${schemaExtensions})`
     ).default('./zenstack/schema.zmodel');
+
+    //#region wraps Prisma commands
 
     program
         .command('generate')
@@ -159,6 +162,21 @@ export default function (): void {
         .addOption(schemaOption)
         .option('--accept-data-loss', 'Ignore data loss warnings')
         .action(prismaAction('db'));
+
+    program
+        .command('studio')
+        .description(
+            `wraps Prisma's ${colors.cyan(
+                'studio'
+            )} command. Browse your data with Prisma Studio.`
+        )
+        .addOption(schemaOption)
+        .option('-p --port <port>', 'Port to start Studio in')
+        .option('-b --browser <browser>', 'Browser to open Studio in')
+        .option('-n --hostname', 'Hostname to bind the Express server to')
+        .action(prismaAction(''));
+
+    //#endregion
 
     program.parse(process.argv);
 }

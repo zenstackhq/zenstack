@@ -11,9 +11,7 @@
             "cwd": "${workspaceFolder}/samples/todo/",
             "args": [
                 "generate",
-                "${workspaceFolder}/samples/todo/schema.zmodel",
-                "--destination",
-                "${workspaceFolder}/samples/todo/.zenstack"
+                "${workspaceFolder}/samples/todo/schema.zmodel"
             ],
             "request": "launch",
             "skipFiles": ["<node_internals>/**"],
@@ -25,13 +23,6 @@
             "request": "attach",
             "skipFiles": ["<node_internals>/**"],
             "type": "node"
-        },
-        {
-            "name": "Sample-todo: debug server-side",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "npm run dev",
-            "cwd": "${workspaceFolder}/samples/todo"
         },
         {
             "name": "Run Extension",
@@ -48,7 +39,7 @@
             "request": "attach",
             "skipFiles": ["<node_internals>/**"],
             "sourceMaps": true,
-            "outFiles": ["${workspaceFolder}/out/**/*.js"]
+            "outFiles": ["${workspaceFolder}/bundle/**/*.js"]
         }
     ]
 }

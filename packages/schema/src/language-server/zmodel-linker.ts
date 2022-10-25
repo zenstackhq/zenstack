@@ -14,25 +14,25 @@ import {
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
 import {
-    isDataModel,
-    Function,
-    FunctionParamType,
-    DataModelFieldType,
-    ReferenceTarget,
-    MemberAccessExpr,
-    DataModel,
-    LiteralExpr,
-    InvocationExpr,
     ArrayExpr,
-    ReferenceExpr,
-    UnaryExpr,
-    BinaryExpr,
-    EnumField,
-    DataModelField,
-    FunctionParam,
-    ThisExpr,
-    NullExpr,
     AttributeArg,
+    BinaryExpr,
+    DataModel,
+    DataModelField,
+    DataModelFieldType,
+    EnumField,
+    Function,
+    FunctionParam,
+    FunctionParamType,
+    InvocationExpr,
+    isDataModel,
+    LiteralExpr,
+    MemberAccessExpr,
+    NullExpr,
+    ReferenceExpr,
+    ReferenceTarget,
+    ThisExpr,
+    UnaryExpr,
 } from './generated/ast';
 import { ResolvedShape } from './types';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
@@ -44,6 +44,9 @@ interface DefaultReference extends Reference {
 
 type ScopeProvider = (name: string) => ReferenceTarget | undefined;
 
+/**
+ * Langium linker implementation which links references and resolves expression types
+ */
 export class ZModelLinker extends DefaultLinker {
     private readonly descriptions: AstNodeDescriptionProvider;
 
@@ -51,6 +54,8 @@ export class ZModelLinker extends DefaultLinker {
         super(services);
         this.descriptions = services.workspace.AstNodeDescriptionProvider;
     }
+
+    //#region Reference linking
 
     async link(
         document: LangiumDocument,
@@ -70,7 +75,7 @@ export class ZModelLinker extends DefaultLinker {
         document.state = DocumentState.Linked;
     }
 
-    linkReference(
+    private linkReference(
         container: AstNode,
         property: string,
         document: LangiumDocument,
@@ -84,17 +89,23 @@ export class ZModelLinker extends DefaultLinker {
                 extraScopes
             )
         ) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const reference: Reference<AstNode> = (container as any)[property];
             this.doLink({ reference, container, property }, document);
         }
     }
 
-    resolveFromScopeProviders(
+    //#endregion
+
+    //#region Expression type resolving
+
+    private resolveFromScopeProviders(
         node: AstNode,
         property: string,
         document: LangiumDocument,
         providers: ScopeProvider[]
     ) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const reference: DefaultReference = (node as any)[property];
         for (const provider of providers) {
             const target = provider(reference.$refText);
@@ -112,7 +123,7 @@ export class ZModelLinker extends DefaultLinker {
         return null;
     }
 
-    resolve(
+    private resolve(
         node: AstNode,
         document: LangiumDocument,
         extraScopes: ScopeProvider[] = []
@@ -278,6 +289,7 @@ export class ZModelLinker extends DefaultLinker {
         this.linkReference(node, 'function', document, extraScopes);
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
         if (node.function.ref) {
+            // eslint-disable-next-line @typescript-eslint/ban-types
             const funcDecl = node.function.ref as Function;
             this.resolveToDeclaredType(node, funcDecl.returnType);
         }
@@ -350,7 +362,9 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolveThis(
         node: ThisExpr,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         document: LangiumDocument<AstNode>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         extraScopes: ScopeProvider[]
     ) {
         let decl: AstNode | undefined = node.$container;
@@ -366,7 +380,9 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolveNull(
         node: NullExpr,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         document: LangiumDocument<AstNode>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         extraScopes: ScopeProvider[]
     ) {
         // TODO: how to really resolve null?
@@ -387,9 +403,8 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
-        for (const property of Object.keys(node)) {
+        for (const [property, value] of Object.entries(node)) {
             if (!property.startsWith('$')) {
-                const value = (node as any)[property];
                 if (isReference(value)) {
                     this.linkReference(node, property, document, extraScopes);
                 }
@@ -400,7 +415,9 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    // utils
+    //#endregion
+
+    //#region Utils
 
     private resolveToDeclaredType(
         node: AstNode,
@@ -424,4 +441,6 @@ export class ZModelLinker extends DefaultLinker {
     ) {
         node.$resolvedType = { decl: type, array };
     }
+
+    //#endregion
 }

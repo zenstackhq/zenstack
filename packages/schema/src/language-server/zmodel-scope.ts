@@ -1,5 +1,6 @@
 import {
     AstNode,
+    AstNodeDescription,
     DefaultScopeComputation,
     interruptAndCheck,
     LangiumDocument,
@@ -9,6 +10,9 @@ import {
 import { CancellationToken } from 'vscode-jsonrpc';
 import { isEnumField } from './generated/ast';
 
+/**
+ * Custom Langium ScopeComputation implementation which adds enum fields into global scope
+ */
 export class ZModelScopeComputation extends DefaultScopeComputation {
     constructor(private readonly services: LangiumServices) {
         super(services);
@@ -17,7 +21,7 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
     async computeExports(
         document: LangiumDocument<AstNode>,
         cancelToken?: CancellationToken | undefined
-    ) {
+    ): Promise<AstNodeDescription[]> {
         const result = await super.computeExports(document, cancelToken);
 
         // add enum fields so they can be globally resolved across modules

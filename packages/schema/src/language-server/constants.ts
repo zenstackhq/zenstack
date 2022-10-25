@@ -1,3 +1,6 @@
+/**
+ * Supported Prisma db providers
+ */
 export const SUPPORTED_PROVIDERS = [
     'postgresql',
     'mysql',
@@ -5,6 +8,9 @@ export const SUPPORTED_PROVIDERS = [
     'sqlserver',
 ];
 
+/**
+ * All scalar types
+ */
 export const SCALAR_TYPES = [
     'String',
     'Int',
@@ -16,4 +22,7 @@ export const SCALAR_TYPES = [
     'DateTime',
 ];
 
+/**
+ * Name of standard library module
+ */
 export const STD_LIB_MODULE_NAME = 'stdlib.zmodel';

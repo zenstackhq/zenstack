@@ -54,7 +54,7 @@ export type DbClientContract = Record<string, DbOperations> & {
  * The main service of ZenStack. Implementation of this interface is automatically generated.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface Service<DbClient extends DbClientContract = any> {
+export interface Service<DbClient = any> {
     /**
      * Returns the wrapped Prisma db client
      */

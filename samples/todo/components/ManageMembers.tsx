@@ -1,8 +1,8 @@
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useCurrentUser } from '@lib/context';
-import { ServerErrorCode } from '@zenstackhq/internal';
 import { HooksError, useSpaceUser } from '@zenstackhq/runtime/hooks';
 import { Space, SpaceUserRole } from '@zenstackhq/runtime/types';
+import { ServerErrorCode } from '@zenstackhq/runtime/client';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
 import Avatar from './Avatar';

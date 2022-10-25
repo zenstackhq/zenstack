@@ -18,6 +18,9 @@ import {
 } from './utils';
 import pluralize from 'pluralize';
 
+/**
+ * Validates data model declarations.
+ */
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(dm.fields, accept);
@@ -222,6 +225,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
         let oppositeFields = oppositeModel.fields.filter(

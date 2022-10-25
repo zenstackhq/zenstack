@@ -4,6 +4,9 @@ import { AstValidator } from '@lang/types';
 import { ValidationAcceptor } from 'langium';
 import { validateDuplicatedDeclarations } from './utils';
 
+/**
+ * Validates toplevel schema.
+ */
 export default class SchemaValidator implements AstValidator<Model> {
     validate(model: Model, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(model.declarations, accept);
