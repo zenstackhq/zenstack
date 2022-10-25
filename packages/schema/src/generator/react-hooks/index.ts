@@ -42,7 +42,9 @@ export default class ReactHooksGenerator implements Generator {
             isTypeOnly: true,
             moduleSpecifier: '../../.prisma',
         });
-        sf.addStatements(`import { request } from '${INTERNAL_PACKAGE}';`);
+        sf.addStatements(
+            `import { request } from '${INTERNAL_PACKAGE}/lib/client';`
+        );
         sf.addStatements(`import { type SWRResponse } from 'swr'`);
 
         sf.addStatements(

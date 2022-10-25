@@ -1,4 +1,4 @@
-import { ServerErrorCode } from '@zenstackhq/internal';
+import { ServerErrorCode } from './client';
 
 export * from '.zenstack/lib/hooks';
 export type HooksError = {
