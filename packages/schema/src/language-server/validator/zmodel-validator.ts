@@ -59,25 +59,25 @@ export class ZModelValidator {
         );
     }
 
-    checkModel(node: Model, accept: ValidationAcceptor) {
+    checkModel(node: Model, accept: ValidationAcceptor): void {
         this.shouldCheck(node) && new SchemaValidator().validate(node, accept);
     }
 
-    checkDataSource(node: DataSource, accept: ValidationAcceptor) {
+    checkDataSource(node: DataSource, accept: ValidationAcceptor): void {
         this.shouldCheck(node) &&
             new DataSourceValidator().validate(node, accept);
     }
 
-    checkDataModel(node: DataModel, accept: ValidationAcceptor) {
+    checkDataModel(node: DataModel, accept: ValidationAcceptor): void {
         this.shouldCheck(node) &&
             new DataModelValidator().validate(node, accept);
     }
 
-    checkEnum(node: Enum, accept: ValidationAcceptor) {
+    checkEnum(node: Enum, accept: ValidationAcceptor): void {
         this.shouldCheck(node) && new EnumValidator().validate(node, accept);
     }
 
-    checkAttribute(node: Attribute, accept: ValidationAcceptor) {
+    checkAttribute(node: Attribute, accept: ValidationAcceptor): void {
         this.shouldCheck(node) &&
             new AttributeValidator().validate(node, accept);
     }

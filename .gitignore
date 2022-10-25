@@ -1,5 +1,4 @@
 node_modules
 dist
-build
 .vercel
 .DS_Store

@@ -15,16 +15,22 @@ import {
 import { CodeBlockWriter } from 'ts-morph';
 import { GUARD_FIELD_NAME } from '../constants';
 import { GeneratorError } from '../types';
-import PlainExpressionBuilder from './plain-expression-builder';
+import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
+/**
+ * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer
+ */
 export default class ExpressionWriter {
-    private readonly plainExprBuilder = new PlainExpressionBuilder();
+    private readonly plainExprBuilder = new TypeScriptExpressionTransformer();
 
     constructor(private readonly writer: CodeBlockWriter) {}
 
-    write(expr: Expression) {
+    /**
+     * Writes the given ZModel expression.
+     */
+    write(expr: Expression): void {
         const _write = () => {
             switch (expr.$type) {
                 case LiteralExpr:
@@ -59,7 +65,7 @@ export default class ExpressionWriter {
         if (isEnumField(expr.target.ref)) {
             throw new Error('We should never get here');
         } else {
-            this.writer.write(`${expr.target.ref!.name}: true`);
+            this.writer.write(`${expr.target.ref?.name}: true`);
         }
     }
 
@@ -139,7 +145,7 @@ export default class ExpressionWriter {
     }
 
     private plain(expr: Expression) {
-        this.writer.write(this.plainExprBuilder.build(expr));
+        this.writer.write(this.plainExprBuilder.transform(expr));
     }
 
     private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
@@ -224,7 +230,7 @@ export default class ExpressionWriter {
         writeCondition: () => void,
         relationOp: 'is' | 'some' | 'every' | 'none'
     ) {
-        let selector: string;
+        let selector: string | undefined;
         let operand: Expression | undefined;
 
         if (isThisExpr(fieldAccess)) {
@@ -232,14 +238,18 @@ export default class ExpressionWriter {
             writeCondition();
             return;
         } else if (isReferenceExpr(fieldAccess)) {
-            selector = fieldAccess.target.ref?.name!;
+            selector = fieldAccess.target.ref?.name;
         } else if (isMemberAccessExpr(fieldAccess)) {
-            selector = fieldAccess.member.ref?.name!;
+            selector = fieldAccess.member.ref?.name;
             operand = fieldAccess.operand;
         } else {
             throw new GeneratorError(
                 `Unsupported expression type: ${fieldAccess.$type}`
             );
+        }
+
+        if (!selector) {
+            throw new GeneratorError(`Failed to write FieldAccess expression`);
         }
 
         if (operand) {
@@ -294,7 +304,7 @@ export default class ExpressionWriter {
         return isDataModel(expr.$resolvedType?.decl);
     }
 
-    mapOperator(operator: '==' | '!=' | '>' | '>=' | '<' | '<=') {
+    private mapOperator(operator: '==' | '!=' | '>' | '>=' | '<' | '<=') {
         switch (operator) {
             case '==':
                 return 'equals';

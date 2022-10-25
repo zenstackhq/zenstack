@@ -11,6 +11,9 @@ const supportedFields = [
     'relationMode',
 ];
 
+/**
+ * Validates data source declarations.
+ */
 export default class DataSourceValidator implements AstValidator<DataSource> {
     validate(ds: DataSource, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(ds.fields, accept);

@@ -12,11 +12,16 @@ import {
 } from '@lang/generated/ast';
 import { AstNode, ValidationAcceptor } from 'langium';
 
+/**
+ * Checks if the given declarations have duplicated names
+ */
 export function validateDuplicatedDeclarations(
     decls: Array<AstNode & { name: string }>,
     accept: ValidationAcceptor
-) {
-    const groupByName = decls.reduce<any>((group, decl) => {
+): void {
+    const groupByName = decls.reduce<
+        Record<string, Array<AstNode & { name: string }>>
+    >((group, decl) => {
         group[decl.name] = group[decl.name] ?? [];
         group[decl.name].push(decl);
         return group;
@@ -31,7 +36,10 @@ export function validateDuplicatedDeclarations(
     }
 }
 
-export function getStringLiteral(node: AstNode) {
+/**
+ * Try getting string value from a potential string literal expression
+ */
+export function getStringLiteral(node: AstNode): string | undefined {
     if (isLiteralExpr(node) && typeof node.value === 'string') {
         return node.value;
     } else {
@@ -39,10 +47,13 @@ export function getStringLiteral(node: AstNode) {
     }
 }
 
+/**
+ * Determines if the given sourceType is assignable to a destination of destType
+ */
 export function typeAssignable(
     destType: ExpressionType,
     sourceType: ExpressionType
-) {
+): boolean {
     switch (destType) {
         case 'Any':
             return true;
@@ -57,6 +68,9 @@ export function typeAssignable(
     }
 }
 
+/**
+ * Maps a ZModel builtin type to expression type
+ */
 export function mapBuiltinTypeToExpressionType(
     type: BuiltinType | 'Any' | 'Null'
 ): ExpressionType | 'Any' {
@@ -79,11 +93,14 @@ export function mapBuiltinTypeToExpressionType(
     }
 }
 
+/**
+ * Determines if the given attribute argument is assignable to the given attribute parameter
+ */
 export function assignableToAttributeParam(
     arg: AttributeArg,
     param: AttributeParam,
     attr: DataModelAttribute | DataModelFieldAttribute
-) {
+): boolean {
     const argResolvedType = arg.$resolvedType;
     if (!argResolvedType) {
         return false;
@@ -134,7 +151,7 @@ export function assignableToAttributeParam(
         );
     } else {
         return (
-            dstRef!.ref === argResolvedType.decl &&
+            dstRef?.ref === argResolvedType.decl &&
             dstIsArray === argResolvedType.array
         );
     }

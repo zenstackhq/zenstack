@@ -13,6 +13,9 @@ import { GrammarConfig } from 'langium/lib/grammar/grammar-config';
 import { References } from 'langium/lib/references/references';
 import { DefinitionParams, LocationLink } from 'vscode-languageserver';
 
+/**
+ * Custom Langium DefinitionProvider implementation
+ */
 export default class ZModelDefinitionProvider implements DefinitionProvider {
     protected readonly nameProvider: NameProvider;
     protected readonly references: References;
@@ -45,11 +48,14 @@ export default class ZModelDefinitionProvider implements DefinitionProvider {
 
     protected collectLocationLinks(
         sourceCstNode: CstNode,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         _params: DefinitionParams
     ): MaybePromise<LocationLink[] | undefined> {
         const goToLink = this.findLink(sourceCstNode);
         if (goToLink) {
             if (
+                // this condition is for working around a potential Langium bug
+                // https://github.com/langium/langium/discussions/732
                 !goToLink.targetDocument.textDocument.uri.endsWith(
                     'stdlib.zmodel'
                 )

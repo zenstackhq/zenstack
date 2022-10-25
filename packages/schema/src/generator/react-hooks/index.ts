@@ -7,8 +7,11 @@ import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../utils';
 import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
 
+/**
+ * Generate react data query hooks code
+ */
 export default class ReactHooksGenerator implements Generator {
-    async generate(context: Context) {
+    async generate(context: Context): Promise<void> {
         const project = new Project();
 
         const models = extractDataModelsWithAllowRules(context.schema);

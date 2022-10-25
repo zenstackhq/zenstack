@@ -19,6 +19,7 @@ import { AstNode } from 'langium';
 import path from 'path';
 import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../constants';
 import { Context, GeneratorError } from '../types';
+import { resolved } from '../utils';
 import {
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
@@ -36,10 +37,13 @@ import {
 
 const excludedAttributes = ['@@allow', '@@deny'];
 
+/**
+ * Generates Prisma schema file
+ */
 export default class PrismaSchemaGenerator {
     constructor(private readonly context: Context) {}
 
-    async generate() {
+    async generate(): Promise<string> {
         const { schema } = this.context;
         const prisma = new PrismaModel();
 
@@ -169,22 +173,33 @@ export default class PrismaSchemaGenerator {
         model.addField(TRANSACTION_FIELD_NAME, 'String?');
 
         for (const attr of decl.attributes.filter(
-            (attr) => !excludedAttributes.includes(attr.decl.ref?.name!)
+            (attr) =>
+                attr.decl.ref?.name &&
+                !excludedAttributes.includes(attr.decl.ref.name)
         )) {
             this.generateModelAttribute(model, attr);
         }
     }
 
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
+        const fieldType = field.type.type || field.type.reference?.ref?.name;
+        if (!fieldType) {
+            throw new GeneratorError(
+                `Field type is not resolved: ${field.$container.name}.${field.name}`
+            );
+        }
+
         const type = new ModelFieldType(
-            (field.type.type || field.type.reference?.ref?.name)!,
+            fieldType,
             field.type.array,
             field.type.optional
         );
 
         const attributes = field.attributes
             .filter(
-                (attr) => !excludedAttributes.includes(attr.decl.ref?.name!)
+                (attr) =>
+                    attr.decl.ref?.name &&
+                    !excludedAttributes.includes(attr.decl.ref.name)
             )
             .map((attr) => this.makeFieldAttribute(attr));
         model.addField(field.name, type, attributes);
@@ -192,7 +207,7 @@ export default class PrismaSchemaGenerator {
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
         return new PrismaFieldAttribute(
-            attr.decl.ref?.name!,
+            resolved(attr.decl).name,
             attr.args.map((arg) => this.makeAttributeArg(arg))
         );
     }
@@ -231,7 +246,7 @@ export default class PrismaSchemaGenerator {
             return new PrismaAttributeArgValue(
                 'FieldReference',
                 new PrismaFieldReference(
-                    node.target.ref?.name!,
+                    resolved(node.target).name,
                     node.args.map(
                         (arg) =>
                             new PrismaFieldReferenceArg(arg.name, arg.value)
@@ -253,7 +268,7 @@ export default class PrismaSchemaGenerator {
 
     makeFunctionCall(node: InvocationExpr): PrismaFunctionCall {
         return new PrismaFunctionCall(
-            node.function.ref?.name!,
+            resolved(node.function).name,
             node.args.map((arg) => {
                 if (!isLiteralExpr(arg.value)) {
                     throw new GeneratorError(
@@ -271,7 +286,7 @@ export default class PrismaSchemaGenerator {
     ) {
         model.attributes.push(
             new PrismaModelAttribute(
-                attr.decl.ref?.name!,
+                resolved(attr.decl).name,
                 attr.args.map((arg) => this.makeAttributeArg(arg))
             )
         );

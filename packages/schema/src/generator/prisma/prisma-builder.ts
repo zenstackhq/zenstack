@@ -1,5 +1,8 @@
 import indentString from '../../utils/indent-string';
 
+/**
+ * Prisma schema builder
+ */
 export class PrismaModel {
     private datasources: DataSource[] = [];
     private generators: Generator[] = [];
@@ -11,7 +14,7 @@ export class PrismaModel {
         provider: string,
         url: DataSourceUrl,
         shadowDatabaseUrl?: DataSourceUrl
-    ) {
+    ): DataSource {
         const ds = new DataSource(name, provider, url, shadowDatabaseUrl);
         this.datasources.push(ds);
         return ds;
@@ -22,7 +25,7 @@ export class PrismaModel {
         provider: string,
         output: string,
         previewFeatures?: string[]
-    ) {
+    ): Generator {
         const generator = new Generator(
             name,
             provider,
@@ -33,19 +36,19 @@ export class PrismaModel {
         return generator;
     }
 
-    addModel(name: string) {
+    addModel(name: string): Model {
         const model = new Model(name);
         this.models.push(model);
         return model;
     }
 
-    addEnum(name: string, fields: string[]) {
+    addEnum(name: string, fields: string[]): Enum {
         const e = new Enum(name, fields);
         this.enums.push(e);
         return e;
     }
 
-    toString() {
+    toString(): string {
         return [
             ...this.datasources,
             ...this.generators,
@@ -65,7 +68,7 @@ export class DataSource {
         public shadowDatabaseUrl?: DataSourceUrl
     ) {}
 
-    toString() {
+    toString(): string {
         return (
             `datasource ${this.name} {\n` +
             indentString(`provider="${this.provider}"\n`) +
@@ -81,7 +84,7 @@ export class DataSource {
 export class DataSourceUrl {
     constructor(public value: string, public isEnv: boolean) {}
 
-    toString() {
+    toString(): string {
         return this.isEnv ? `env("${this.value}")` : `"${this.value}"`;
     }
 }
@@ -94,7 +97,7 @@ export class Generator {
         public previewFeatures?: string[]
     ) {}
 
-    toString() {
+    toString(): string {
         return (
             `generator ${this.name} {\n` +
             indentString(`provider = "${this.provider}"\n`) +
@@ -120,19 +123,19 @@ export class Model {
         name: string,
         type: ModelFieldType | string,
         attributes: FieldAttribute[] = []
-    ) {
+    ): ModelField {
         const field = new ModelField(name, type, attributes);
         this.fields.push(field);
         return field;
     }
 
-    addAttribute(name: string, args: AttributeArg[] = []) {
+    addAttribute(name: string, args: AttributeArg[] = []): ModelAttribute {
         const attr = new ModelAttribute(name, args);
         this.attributes.push(attr);
         return attr;
     }
 
-    toString() {
+    toString(): string {
         return (
             `model ${this.name} {\n` +
             indentString(
@@ -164,7 +167,7 @@ export class ModelFieldType {
         public optional?: boolean
     ) {}
 
-    toString() {
+    toString(): string {
         return `${this.type}${this.array ? '[]' : ''}${
             this.optional ? '?' : ''
         }`;
@@ -178,13 +181,13 @@ export class ModelField {
         public attributes: FieldAttribute[] = []
     ) {}
 
-    addAttribute(name: string, args: AttributeArg[] = []) {
+    addAttribute(name: string, args: AttributeArg[] = []): FieldAttribute {
         const attr = new FieldAttribute(name, args);
         this.attributes.push(attr);
         return attr;
     }
 
-    toString() {
+    toString(): string {
         return (
             `${this.name} ${this.type}` +
             (this.attributes.length > 0
@@ -197,7 +200,7 @@ export class ModelField {
 export class FieldAttribute {
     constructor(public name: string, public args: AttributeArg[] = []) {}
 
-    toString() {
+    toString(): string {
         return (
             `${this.name}(` +
             this.args.map((a) => a.toString()).join(', ') +
@@ -209,7 +212,7 @@ export class FieldAttribute {
 export class ModelAttribute {
     constructor(public name: string, public args: AttributeArg[] = []) {}
 
-    toString() {
+    toString(): string {
         return (
             `${this.name}(` +
             this.args.map((a) => a.toString()).join(', ') +
@@ -224,7 +227,7 @@ export class AttributeArg {
         public value: AttributeArgValue
     ) {}
 
-    toString() {
+    toString(): string {
         return this.name
             ? `${this.name}: ${this.value}`
             : this.value.toString();
@@ -325,7 +328,7 @@ export class FieldReference {
 export class FieldReferenceArg {
     constructor(public name: 'sort', public value: 'Asc' | 'Desc') {}
 
-    toString() {
+    toString(): string {
         return `${this.name}: ${this.value}`;
     }
 }
@@ -333,7 +336,7 @@ export class FieldReferenceArg {
 export class FunctionCall {
     constructor(public func: string, public args: FunctionCallArg[] = []) {}
 
-    toString() {
+    toString(): string {
         return (
             `${this.func}` +
             '(' +
@@ -344,9 +347,10 @@ export class FunctionCall {
 }
 
 export class FunctionCallArg {
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
     constructor(public name: string | undefined, public value: any) {}
 
-    toString() {
+    toString(): string {
         return this.name ? `${this.name}: ${this.value}` : this.value;
     }
 }
@@ -354,7 +358,7 @@ export class FunctionCallArg {
 export class Enum {
     constructor(public name: string, public fields: EnumField[]) {}
 
-    toString() {
+    toString(): string {
         return (
             `enum ${this.name} {\n` +
             indentString(this.fields.join('\n')) +
@@ -363,4 +367,4 @@ export class Enum {
     }
 }
 
-type EnumField = String;
+type EnumField = string;

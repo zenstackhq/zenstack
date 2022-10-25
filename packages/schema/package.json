@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "ZenStack is a toolkit that simplifies full-stack development",
-    "version": "0.1.49",
+    "version": "0.1.50",
     "author": {
         "name": "ymc9"
     },
@@ -14,7 +14,7 @@
         "data modeling"
     ],
     "preview": true,
-    "icon": "asset/logo-light.png",
+    "icon": "asset/logo-light-256.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/zenstackhq/zenstack"
@@ -38,8 +38,8 @@
                 ],
                 "configuration": "./language-configuration.json",
                 "icon": {
-                    "light": "./asset/logo-light.png",
-                    "dark": "./asset/logo-dark.png"
+                    "light": "./asset/logo-light-256.png",
+                    "dark": "./asset/logo-dark-256.png"
                 }
             }
         ],
@@ -68,13 +68,14 @@
         "vscode:prepublish": "pnpm lint && pnpm build && pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
         "build": "pnpm langium:generate && tsc --noEmit",
-        "bundle": "node build/bundle.js",
+        "bundle": "node build/bundle.js --minify",
+        "bundle-watch": "node build/bundle.js --watch",
         "ts:watch": "tsc --watch --noEmit",
         "tsc-alias:watch": "tsc-alias --watch",
         "lint": "eslint src --ext ts",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
-        "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:ts:watch\" \"npm:tsc-alias:watch\"",
+        "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:bundle-watch\"",
         "test": "jest",
         "prepublishOnly": "pnpm build && pnpm bundle"
     },

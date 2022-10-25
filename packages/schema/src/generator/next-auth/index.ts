@@ -3,8 +3,11 @@ import { Project } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
 
+/**
+ * Generates NextAuth adaptor code
+ */
 export default class NextAuthGenerator implements Generator {
-    async generate(context: Context) {
+    async generate(context: Context): Promise<void> {
         const project = new Project();
 
         this.generateIndex(project, context);
@@ -16,7 +19,7 @@ export default class NextAuthGenerator implements Generator {
         console.log(colors.blue(`  ✔️ Next-auth adapter generated`));
     }
 
-    generateIndex(project: Project, context: Context) {
+    private generateIndex(project: Project, context: Context) {
         const sf = project.createSourceFile(
             path.join(context.generatedCodeDir, 'src/auth/index.ts'),
             undefined,
@@ -31,7 +34,7 @@ export default class NextAuthGenerator implements Generator {
         sf.formatText();
     }
 
-    generateAdapter(project: Project, context: Context) {
+    private generateAdapter(project: Project, context: Context) {
         const content = `
         import { ZenStackService } from '..';
         import { Adapter } from 'next-auth/adapters';
@@ -105,7 +108,7 @@ export default class NextAuthGenerator implements Generator {
         sf.formatText();
     }
 
-    generateAuthorize(project: Project, context: Context) {
+    private generateAuthorize(project: Project, context: Context) {
         const content = `
         import { ZenStackService } from '..';
         import { hash, compare } from 'bcryptjs';

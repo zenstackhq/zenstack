@@ -1,14 +1,21 @@
-import colors from 'colors';
-import path from 'path';
-import fs from 'fs';
-import { AstNode, LangiumDocument, LangiumServices } from 'langium';
-import { URI } from 'vscode-uri';
 import { STD_LIB_MODULE_NAME } from '@lang/constants';
+import { Model } from '@lang/generated/ast';
+import colors from 'colors';
+import fs from 'fs';
+import { LangiumServices } from 'langium';
+import path from 'path';
+import { URI } from 'vscode-uri';
 
-export async function extractDocument(
+/**
+ * Loads a zmodel document from a file.
+ * @param fileName File name
+ * @param services Language services
+ * @returns Parsed and validated AST
+ */
+export async function loadDocument(
     fileName: string,
     services: LangiumServices
-): Promise<LangiumDocument> {
+): Promise<Model> {
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
         console.error(
@@ -22,6 +29,7 @@ export async function extractDocument(
         process.exit(1);
     }
 
+    // load standard library
     const stdLib =
         services.shared.workspace.LangiumDocuments.getOrCreateDocument(
             URI.file(
@@ -31,10 +39,13 @@ export async function extractDocument(
             )
         );
 
+    // load the document
     const document =
         services.shared.workspace.LangiumDocuments.getOrCreateDocument(
             URI.file(path.resolve(fileName))
         );
+
+    // build the document together with standard library
     await services.shared.workspace.DocumentBuilder.build([stdLib, document], {
         validationChecks: 'all',
     });
@@ -56,29 +67,5 @@ export async function extractDocument(
         process.exit(1);
     }
 
-    return document;
-}
-
-export async function extractAstNode<T extends AstNode>(
-    fileName: string,
-    services: LangiumServices
-): Promise<T> {
-    return (await extractDocument(fileName, services)).parseResult?.value as T;
-}
-
-interface FilePathData {
-    destination: string;
-    name: string;
-}
-
-export function extractDestinationAndName(
-    filePath: string,
-    destination: string | undefined
-): FilePathData {
-    filePath = filePath.replace(/\..*$/, '').replace(/[.-]/g, '');
-    return {
-        destination:
-            destination ?? path.join(path.dirname(filePath), 'generated'),
-        name: path.basename(filePath),
-    };
+    return document.parseResult.value as Model;
 }
