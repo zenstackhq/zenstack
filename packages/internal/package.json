@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/internal",
-    "version": "0.1.21",
+    "version": "0.1.22",
     "description": "ZenStack internal runtime library. This package is for supporting runtime functionality of ZenStack and not supposed to be used directly.",
     "repository": {
         "type": "git",
