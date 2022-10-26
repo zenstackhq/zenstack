@@ -27,6 +27,16 @@ export default class ServiceGenerator implements Generator {
             isTypeOnly: true,
         });
 
+        sf.addVariableStatement({
+            declarationKind: VariableDeclarationKind.Let,
+            declarations: [
+                {
+                    name: 'guardModule',
+                    type: 'any',
+                },
+            ],
+        });
+
         const cls = sf.addClass({
             name: 'ZenStackService',
             isExported: true,
@@ -44,15 +54,6 @@ export default class ServiceGenerator implements Generator {
             .addBody()
             .setBodyText('return this._prisma;');
 
-        sf.addVariableStatement({
-            declarationKind: VariableDeclarationKind.Let,
-            declarations: [
-                {
-                    name: 'guardModule',
-                    type: 'any',
-                },
-            ],
-        });
         cls
             .addMethod({
                 name: 'resolveField',
@@ -100,7 +101,14 @@ export default class ServiceGenerator implements Generator {
                 return provider(context);
             `);
 
-        sf.addStatements(['export default new ZenStackService();']);
+        // Recommended by Prisma for Next.js
+        // https://www.prisma.io/docs/guides/database/troubleshooting-orm/help-articles/nextjs-prisma-client-dev-practices#problem
+        sf.addStatements([
+            'declare global { var zenstackService: ZenStackService | undefined}',
+            'const service = global.zenstackService || new ZenStackService();',
+            'export default service;',
+            `if (process.env.NODE_ENV !== 'production') global.zenstackService = service;`,
+        ]);
 
         sf.formatText();
         await project.save();
