@@ -31,7 +31,7 @@ export const authOptions: NextAuthOptions = {
                     placeholder: 'Your super secure password',
                 },
             },
-            authorize: authorize(service),
+            authorize: authorize(service, true),
         }),
     ],
 
