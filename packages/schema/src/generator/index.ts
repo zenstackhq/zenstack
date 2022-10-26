@@ -39,18 +39,8 @@ export class ZenStackGenerator {
             new PrismaGenerator(),
             new ServiceGenerator(),
             new ReactHooksGenerator(),
+            new NextAuthGenerator(),
         ];
-
-        try {
-            require('next-auth');
-            generators.push(new NextAuthGenerator());
-        } catch {
-            console.warn(
-                colors.yellow(
-                    'Next-auth module is not installed, skipping generating adapter.'
-                )
-            );
-        }
 
         for (const generator of generators) {
             await generator.generate(context);
