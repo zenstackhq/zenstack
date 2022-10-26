@@ -14,7 +14,7 @@ ZenStack is a toolkit for simplifying full-stack development with Node.js web fr
 
 Thanks to the increasing power of frameworks, it's becoming more and more practical to build a complex web app all within one unified framework. However, you'll still need to spend significantly amout of engergy to design and build up the backend part of your app.
 
-Things to consider inlcude:
+Things that make you stressful include:
 
 -   What kind of API to use? RESTful or GraphQL?
 -   How to model your data and map the model to both source code and database (ORM)?
@@ -22,7 +22,11 @@ Things to consider inlcude:
 -   How to evolve your data model?
 -   How to authenticate users and authorize their requests?
 
-ZenStack aims to simplify these tasks by providing an intuitive data modeling language to define data types and access policies, integrated with user authentication. It generates RESTful services as well as a client-side library, allowing flexible and painless CRUD operations. Typescript types are generated for data models, CRUD input, filters, etc., so that you get great coding experiences in IDE and have much fewer chances to make mistakes.
+ZenStack aims to simplify these tasks by providing an intuitive data modeling language to define data types and access policies, integrated with user authentication. It maps your data model to a relational database schema, generates RESTful services as well as a client-side library, allowing flexible and painless CRUD operations.
+
+Typescript types are generated for data models, CRUD input, filters, etc., so that you get great coding experiences in IDE and have much fewer chances to make mistakes.
+
+![Diagram here]
 
 Since CRUD APIs are automatically generated with access policies injected, you can implement most of your business logic in your front-end code safely. Read operations never return data that's not supposed to be visible for the current user, and writes will be rejected if unauthorized. The data-access client library also supports nested writes, which allows you to make a batch of creates/updates atomically, eliminating the needs for explicitly using a transaction.
 
@@ -81,12 +85,35 @@ Checkout [the starter's documentation](https://github.com/zenstackhq/nextjs-auth
 
 ## How does it work?
 
-## Client-side usage
+ZenStack has four essential responsibilities:
 
-## Server-side usage
+1. Mapping data model to db schema and program types (ORM)
+1. Integrating with authentication
+1. Generating CRUD APIs and enforcing data access policy checks
+1. Providing type-safe client CRUD library
+
+We'll briefly go through each of them in this section.
+
+### ORM
+
+### Authentication
+
+### Data access policy checking
+
+### Type-safe client library
+
+## Developing with the generated code
+
+### Client-side
+
+### Server-side usage
 
 ## Development workflow
 
+## Database considerations
+
 ## What's next?
 
-## Reach out to us for any issue, feedback or ideas!
+## Reach out to us for issues, feedback and ideas!
+
+[Discussions](../discussions) [Issues](../issues) [Discord]() [Twitter]()
