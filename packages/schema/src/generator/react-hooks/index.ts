@@ -97,9 +97,7 @@ export default class ReactHooksGenerator implements Generator {
         useFuncBody
             .addFunction({
                 name: 'get',
-                typeParameters: [
-                    `T extends P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>`,
-                ],
+                typeParameters: [`T extends P.${model.name}FindFirstArgs`],
                 returnType: `SWRResponse<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T, keyof T>>, any>`,
                 parameters: [
                     {
