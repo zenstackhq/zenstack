@@ -53,18 +53,32 @@ npm i @zenstackhq/runtime @zenstackhq/internal
 
 2. Install [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack) for authoring the model file
 
-3. Create a "zenstack" folder at your project root, and add a "schema.zmodel" file in it
+3. Create a "zenstack" folder under your project root, and add a "schema.zmodel" file in it
 
 4. Configure database connection in "schema.model"
 
-5. Add models and define access policies as needed by your requirements, and then generate code
+    Here's an example for using a Postgres database with connection string specified in `DATABASE_URL` environment variable:
+
+```prisma
+datasource db {
+    provider = 'postgresql'
+    url = env('DATABASE_URL')
+}
+```
+
+5. Add models and define access policies as needed
+
+You can use the [sample model](https://github.com/zenstackhq/nextjs-auth-starter/blob/main/zenstack/schema.zmodel) in the start project as a reference.
+
+6. Generate server and client code from your model
 
 ```bash
 npx zenstack generate
 ```
 
-5. Mount data-access API to endpoint
-   Create file `pages/api/zenstack/[...path].ts`, with content:
+7. Mount data-access API to endpoint
+
+    Create file `pages/api/zenstack/[...path].ts`, with content:
 
 ```ts
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -72,25 +86,26 @@ import {
     type RequestHandlerOptions,
     requestHandler,
 } from '@zenstackhq/runtime/server';
-import { authOptions } from '@api/auth/[...nextauth]';
-import { unstable_getServerSession } from 'next-auth';
 import service from '@zenstackhq/runtime';
 
 const options: RequestHandlerOptions = {
     async getServerUser(req: NextApiRequest, res: NextApiResponse) {
-        // return User object for current session, the concrete logic depends on how you authenticate users and maintain sessions
+        // return User object for current session, the concrete logic
+        // depends on how you authenticate users and maintain sessions
+        //
+        // database can be accessed with "service.db"
     },
 };
 export default requestHandler(service, options);
 ```
 
-6. Initialize your local db and creates the first migration
+7. Initialize your local db and creates the first migration
 
 ```bash
 npm run db:migrate -- -n init
 ```
 
-7. Start building your app by using the generated React hooks
+8. Start building your app by using the generated React hooks
    E.g.:
 
 ```ts
