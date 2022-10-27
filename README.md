@@ -82,13 +82,14 @@ The value returned by `auth()` is provided by your auth solution, via the `getSe
 
 ### Data access policy
 
-The main value that ZenStack adds over a traditional ORM is the built-in data access policy engine. This allows most business logic to be safely implemented in front-end code. Since ZenStack delegates database access to Prisma, it enforces access policies through analyzing queries sent to Prisma and injecting guarding conditions. For example, a policy saying "a post can only be seen by its owner if it's not published", expressed in ZModel as:
+The main value that ZenStack adds over a traditional ORM is the built-in data access policy engine. This allows most business logic to be safely implemented in front-end code. Since ZenStack delegates database access to Prisma, it enforces access policies through analyzing queries sent to Prisma and injecting guarding conditions. Suppose we have a policy saying "a post can only be seen by its owner if it's not published", expressed in ZModel as:
 
-````
+```
 @@deny('all', auth() != owner && !published)
-```.
+```
 
 When client code sends a query to list all `Post`s, ZenStack's generated code intercepts it and injects a `where` clause before passing it through to Prisma (conceptually):
+
 ```js
 {
     where: {
@@ -99,14 +100,14 @@ When client code sends a query to list all `Post`s, ZenStack's generated code in
                 NOT: {
                     AND: [
                         { owner: { not: { id: user.id } } },
-                        { NOT: { published: true } }
-                    ]
-                }
-            }
-        ]
+                        { NOT: { published: true } },
+                    ],
+                },
+            },
+        ];
     }
 }
-````
+```
 
 Similar procedures are applied to write operations, as well as more complex queries that involve nested reads and writes.
 
