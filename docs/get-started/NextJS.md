@@ -90,10 +90,9 @@ import service from '@zenstackhq/runtime';
 
 const options: RequestHandlerOptions = {
     async getServerUser(req: NextApiRequest, res: NextApiResponse) {
-        // return User object for current session, the concrete logic
-        // depends on how you authenticate users and maintain sessions
-        //
-        // database can be accessed with "service.db"
+        // TODO: return User object for current session, the concrete logic
+        // depends on how you authenticate users and maintain sessions.
+        // Database can be accessed with "service.db"
     },
 };
 export default requestHandler(service, options);
@@ -116,5 +115,5 @@ import { usePost } from '@zenstackhq/runtime/hooks';
 const { get } = usePost();
 const posts = get({ where: { public: true } });
 
-return <>{posts.map(post => (<Post post={post} />))}</>
+return <>{posts?.map(post => (<Post key={post.id} post={post} />))}</>
 ```
