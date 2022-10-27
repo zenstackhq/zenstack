@@ -49,9 +49,9 @@ ZenStack has four essential responsibilities:
 1. Generating CRUD APIs and enforcing data access policy checks
 1. Providing type-safe client CRUD library
 
-We'll briefly go through each of them in this section.
+Let's briefly go through each of them in this section.
 
-### Data Modeling
+### Data modeling
 
 ZenStack uses a schema language called `ZModel` to define data types and their relationship. The `zenstack` CLI takes a schema file as input and generates database client client code automatically. Such client code allows you program against database in server-side code in a fully typed way, without writing any SQL. It also provides commands for synchronizing data model with database schema, as well generating "migration reords" when your data model evolves.
 
@@ -81,6 +81,36 @@ model Post {
 The value returned by `auth()` is provided by your auth solution, via the `getServerUser` hook function you provide when mounting ZenStack APIs. Check [this code](https://github.com/zenstackhq/nextjs-auth-starter/blob/main/pages/api/zenstack/%5B...path%5D.ts) for an example.
 
 ### Data access policy
+
+The main value that ZenStack adds over a traditional ORM is the built-in data access policy engine. This allows most business logic to be safely implemented in front-end code. Since ZenStack delegates database access to Prisma, it enforces access policies through analyzing queries sent to Prisma and injecting guarding conditions. For example, a policy saying "a post can only be seen by its owner if it's not published", expressed in ZModel as:
+
+````
+@@deny('all', auth() != owner && !published)
+```.
+
+When client code sends a query to list all `Post`s, ZenStack's generated code intercepts it and injects a `where` clause before passing it through to Prisma (conceptually):
+```js
+{
+    where: {
+        AND: [
+            { ...userProvidedFilter },
+            {
+                // injected by ZenStack, "user" object is fetched from context
+                NOT: {
+                    AND: [
+                        { owner: { not: { id: user.id } } },
+                        { NOT: { published: true } }
+                    ]
+                }
+            }
+        ]
+    }
+}
+````
+
+Similar procedures are applied to write operations, as well as more complex queries that involve nested reads and writes.
+
+To ensure good performance, ZenStack generates conditions statically so it doesn't need to introspect ZModel at runtime.
 
 ### Type-safe client library
 
