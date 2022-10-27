@@ -34,54 +34,11 @@ ZenStack is both heavily inspired and built above [Prisma ORM](https://www.prism
 
 ## Getting started
 
-### With Next.js
+### [For Next.js](docs/get-started/NextJS.md)
 
-The easiest way to start using ZenStack is by creating a new Next.js project from a preconfigured starter template.
+### For Nuxt.js <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">
 
-Here we demonstrate the process with a simple Blog starter using [Next-Auth](https://next-auth.js.org/) for user authentication.
-
-1. Make sure you have Node.js 16 or above and NPM 8 or above installed
-
-2. Create a new Next.js project from ZenStack starter
-
-```bash
-npx create-next-app [project name] --use-npm -e https://github.com/zenstackhq/nextjs-auth-starter
-
-cd [project name]
-```
-
-3. Run ZenStack generator to generate data services, auth adapter, and the client library
-
-```bash
-npm run generate
-```
-
-4. Initialize your local db and creates the first migration
-   The starter is preconfigured with a local sqlite database. Run the following command to populate its schema and generates a migration history:
-
-```bash
-npm run db:migrate -- -n init
-```
-
-5. Start the app
-
-```bash
-npm run dev
-```
-
-If everything worked correctly, you should have a blog site where you can signup, author drafts and publish them.
-
-You can also try signing up multiple accounts and verify that drafts created by different users are isolated.
-
-Checkout [the starter's documentation](https://github.com/zenstackhq/nextjs-auth-starter#readme) for more details.
-
-### With Nuxt.js
-
-![](https://img.shields.io/badge/-Coming%20Soon-lightgray)
-
-### With SvelteKit
-
-![](https://img.shields.io/badge/-Coming%20Soon-lightgray)
+### For SvelteKit <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">
 
 ## How does it work?
 
@@ -102,11 +59,11 @@ We'll briefly go through each of them in this section.
 
 ### Type-safe client library
 
-## Developing with the generated code
+## Programming with the generated code
 
 ### Client-side
 
-### Server-side usage
+### Server-side
 
 ## Development workflow
 
