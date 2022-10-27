@@ -88,7 +88,7 @@ The main value that ZenStack adds over a traditional ORM is the built-in data ac
 @@deny('all', auth() != owner && !published)
 ```
 
-When client code sends a query to list all `Post`s, ZenStack's generated code intercepts it and injects a `where` clause before passing it through to Prisma (conceptually):
+When client code sends a query to list all `Post`s, ZenStack's generated code intercepts it and injects int the `where` clause before passing it through to Prisma (conceptually):
 
 ```js
 {
@@ -109,11 +109,19 @@ When client code sends a query to list all `Post`s, ZenStack's generated code in
 }
 ```
 
-Similar procedures are applied to write operations, as well as more complex queries that involve nested reads and writes.
+Similar procedures are applied to write operations, as well as more complex queries that involve nested reads and writes. To ensure good performance, ZenStack generates conditions statically so it doesn't need to introspect ZModel at runtime. The engine also makes best effort to push down policy constaints to the database to avoid fetching data unnecessarily.
 
-To ensure good performance, ZenStack generates conditions statically so it doesn't need to introspect ZModel at runtime.
+Please **beware** that policy checking is only applied when data access is done using the generated React hooks or equivalently the RESTful API. If you use `service.db` to access database directly from server-side code, policies are bypassed and you have to do all necessary checking by yourself. We've planned to add helper functions for "injecting" the policy checking on the server side in the future.
 
 ### Type-safe client library
+
+Thanks to Prisma's power, ZenStack generates accurate Typescript types for your data models:
+
+-   The model itself
+-   Argument types for listing models, including filtering, sorting, pagination, and nested reads for related models
+-   Argument for creating and updating models, including nested writes for related models
+
+The cool thing is that, the generated types are shared between client-side and server-side code, so no matter which side of code you're writing, you can always enjoy the pleasant IDE intellisense and typescript compiler's error checking.
 
 ## Programming with the generated code
 
