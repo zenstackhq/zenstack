@@ -129,11 +129,15 @@ The cool thing is that, the generated types are shared between client-side and s
 
 ### Server-side
 
-## Development workflow
-
-## Database considerations
-
 ## What's next?
+
+### [Learning the ZModel language](/docs/ref/learning-the-zmodel-language)
+
+### [Learning the zenstack cli](/docs/ref/learning-the-zmodel-language)
+
+### [Evolving data model with migration](/docs/ref/evolving-data-model-with-migration)
+
+### [Database hosting considerations](/docs/ref/database-hosting-considerations)
 
 ## Reach out to us for issues, feedback and ideas!
 
