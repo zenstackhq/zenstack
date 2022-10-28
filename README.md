@@ -4,8 +4,18 @@
         <img src="https://user-images.githubusercontent.com/104139426/197796006-52d8d334-413b-4eda-8094-4024c0eaf9b3.png" height="128">
     </picture>
     <h1>ZenStack</h1>
-    <a href="https://www.npmjs.com/package/zenstack"><img src="https://img.shields.io/npm/v/zenstack"></a>
-    <a href="https://github.com/zenstackhq/zenstack/blob/dev/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green"></a>
+    <a href="https://www.npmjs.com/package/zenstack">
+        <img src="https://img.shields.io/npm/v/zenstack">
+    </a>
+    <a href="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
+        <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
+    </a>
+    <a href="https://discord.gg/6HhebQynfz">
+        <img src="https://img.shields.io/discord/1035538056146595961">
+    </a> 
+    <a href="https://github.com/zenstackhq/zenstack/blob/dev/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-green">
+    </a>
 </div>
 
 ## What is ZenStack?
@@ -267,4 +277,4 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ## Reach out to us for issues, feedback and ideas!
 
-[Discussions](../discussions) [Issues](../issues) [Discord]() [Twitter]()
+[Discussions](../discussions) [Issues](../issues) [Discord](https://discord.gg/dbuC9ZWc) [Twitter](https://twitter.com/zenstackhq)
