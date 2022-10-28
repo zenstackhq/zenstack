@@ -274,19 +274,27 @@ In most cases when you use a "to-many" relation in policy rule, you'll use "Coll
 Collection predicate are boolean expressions used to express condition over a list. It's mainly designed for building policy rules for "to-many" relations. It has three forms of syntaxes:
 
 1. Any
+
     ```
     <collection>?[condition]
     ```
+
     Any element in `collection` matches `condition`
+
 2. All
+
     ```
     <collection>![condition]
     ```
+
     All elements in `collection` match `condition`
+
 3. None
+
     ```
     <collection>^[condition]
     ```
+
     None element in `collection` matches `condition`
 
 The `condition` expression has direct access to fields defined in the model of `collection`. E.g.:
