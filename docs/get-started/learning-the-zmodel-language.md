@@ -160,7 +160,7 @@ model User {
 
 Access policies use `@@allow` and `@@deny` rules to specify eligibility of an operation over a model entity. The signature of the attbutes are:
 
-```
+```prisma
 @@allow(operation, condition)
 @@deny(operation, condition)
 ```
@@ -273,12 +273,21 @@ In most cases when you use a "to-many" relation in policy rule, you'll use "Coll
 
 Collection predicate are boolean expressions used to express condition over a list. It's mainly designed for building policy rules for "to-many" relations. It has three forms of syntaxes:
 
-1. <collection>?[condition]
-   Any element in `collection` matches `condition`
-2. <collection>![condition]
-   All elements in `collection` match `condition`
-3. <collection>^[condition]
-   None element in `collection` matches `condition`
+1. Any
+    ```
+    <collection>?[condition]
+    ```
+    Any element in `collection` matches `condition`
+2. All
+    ```
+    <collection>![condition]
+    ```
+    All elements in `collection` match `condition`
+3. None
+    ```
+    <collection>^[condition]
+    ```
+    None element in `collection` matches `condition`
 
 The `condition` expression has direct access to fields defined in the model of `collection`. E.g.:
 
@@ -295,6 +304,10 @@ Also, collection predicates can be nested to express complex condition involving
 ```
 
 In this example, `user` refers to `user` field of `Membership` model because `space.members` is resolved to `Membership` model.
+
+### A complete example
+
+Please checkout the [Collaborative Todo](../../samples/todo) for a complete example on using access policy.
 
 ## Summary
 
