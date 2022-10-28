@@ -58,6 +58,6 @@ If you've always been taking the "migrate dev" and "migrate deploy" loop during 
 
 ## Summary
 
-ZenStack is built over Prisma and it internally delegates all ORM tasks to Prisma. The migration workflow is exactly the same as Prisma's workflow, with the only exception that the source of input is schema.zmodel, and a Prisma schema is generated on the fly. The set of migration commands that ZModel CLI offers, like "migrate dev" and "migrate deploy", are simple wrappers around Prisma commands.
+ZenStack is built over [Prisma](https://www.prisma.io) and it internally delegates all ORM tasks to Prisma. The migration workflow is exactly the same as Prisma's workflow, with the only exception that the source of input is schema.zmodel, and a Prisma schema is generated on the fly. The set of migration commands that ZModel CLI offers, like "migrate dev" and "migrate deploy", are simple wrappers around Prisma commands.
 
 Prisma has [excellent documentation](https://www.prisma.io/docs/concepts/components/prisma-migrate) about migration. Make sure you look into those for a more thorough understanding.
