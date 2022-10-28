@@ -8,7 +8,7 @@ Here we demonstrate the process with a simple Blog starter using [Next-Auth](htt
 
 1. Make sure you have Node.js 16 or above and NPM 8 or above installed
 
-2. Create a new Next.js project from ZenStack starter
+2. Create a new Next.js project from the ZenStack starter
 
 ```bash
 npx create-next-app [project name] --use-npm -e https://github.com/zenstackhq/nextjs-auth-starter
@@ -22,7 +22,7 @@ cd [project name]
 npm run generate
 ```
 
-4. Initialize your local db and creates the first migration
+4. Initialize your local DB and create the first migration
    The starter is preconfigured with a local sqlite database. Run the following command to populate its schema and generates a migration history:
 
 ```bash
@@ -35,7 +35,7 @@ npm run db:migrate -- -n init
 npm run dev
 ```
 
-If everything worked correctly, you should have a blog site where you can signup, author drafts and publish them. Congratulations! In case anything broke, [reach out to us](#reach-out-to-us-for-issues-feedback-and-ideas) and we'll help.
+If everything worked correctly, you should have a blog site where you can signup, author drafts, and publish them. Congratulations! In case anything broke, [reach out to us](#reach-out-to-us-for-issues-feedback-and-ideas), and we'll help.
 
 You can also try signing up multiple accounts and verify that drafts created by different users are isolated.
 
@@ -57,7 +57,7 @@ npm i @zenstackhq/runtime @zenstackhq/internal
 
 4. Configure database connection in "schema.model"
 
-    Here's an example for using a Postgres database with connection string specified in `DATABASE_URL` environment variable:
+    Here's an example of using a Postgres database with connection string specified in `DATABASE_URL` environment variable:
 
 ```prisma
 datasource db {

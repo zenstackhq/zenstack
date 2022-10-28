@@ -1,13 +1,13 @@
 # Learning the ZModel Language
 
 ZModel is a declarative language for defining data models, relations and access policies.
-ZModel is a superset of [Prisma's Schema Language](https://www.prisma.io/docs/concepts/components/prisma-schema), so if you're already familar with Prisma, feel free to jump directly to the [Access Policies](#access-policies) section. Otherwise, don't worry, the syntax is intuitive and easy to learn.
+ZModel is a superset of [Prisma's Schema Language](https://www.prisma.io/docs/concepts/components/prisma-schema), so if you're already familiar with Prisma, feel free to jump directly to the [Access Policies](#access-policies) section. Otherwise, don't worry. The syntax is intuitive and easy to learn.
 
 ## Data source
 
 Every model needs to include exactly one `datasource` declaration, providing information on how to connect to the underlying databases.
 
-The recommended way is to load connection string from an environment variable, like:
+The recommended way is to load the connection string from an environment variable, like:
 
 ```prisma
 datasource db {
@@ -16,13 +16,13 @@ datasource db {
 }
 ```
 
-Do not commit the `DATABASE_URL` value in source code, instead configure it in your deployment as an environment variable.
+Do not commit the `DATABASE_URL` value in source code; instead configure it in your deployment as an environment variable.
 
 ## Data models
 
-Data models define shapes of entities in your application domain. They include fields and attributes for attaching additional metadata. Data models are mapped to your database schema, also used for generating CRUD services and front-end library code.
+Data models define the shapes of entities in your application domain. They include fields and attributes for attaching additional metadata. Data models are mapped to your database schema and used to generate CRUD services and front-end library code.
 
-Here's an example of a `Post` model:
+Here's an example of a blog post model:
 
 ```prisma
 model Post {
@@ -47,21 +47,21 @@ model Post {
 }
 ```
 
-As you can see, fields are typed, and can be a list or optional. Default values can be attached with the `@default` attribute. You can find all built-in types [here](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#model-field-scalar-types).
+As you can see, fields are typed and can be a list or optional. Default values can be attached with the `@default` attribute. You can find all built-in types [here](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#model-field-scalar-types).
 
-Model's fields can also be typed as other Models. We'll cover this in the [Relations](#relations) section.
+Model fields can also be typed as other Models. We'll cover this in the [Relations](#relations) section.
 
 ## Attributes
 
-Attributes attach additional metadata to models and fields. Some attributes take input parameters, and you can provide values by giving either literal expressions or calling attribute functions.
+Attributes attach additional metadata to models and fields. Some attributes take input parameters, and you can provide values by using literal expressions or calling attribute functions.
 
 Attributes attached to fields are prefixed with '@', and those to models are prefixed with '@@'.
 
-Here're some examples for commonly used attributes:
+Here're some examples of commonly used attributes:
 
 ```prisma
 model Post {
-    // @id is field attribute, marking the field as a primary key
+    // @id is a field attribute, marking the field as a primary key
     // @default is another field attribute for specifying a default value for the field if it's not given at creation time
     // uuid() is a function for generating a UUID
     id String @id @default(uuid())
@@ -69,7 +69,7 @@ model Post {
     // now() is a function that returns current time
     createdAt DateTime @default(now())
 
-    // @updatedAt is a field attibute indicating its value should be updated to current time whenever the model entity is updated
+    // @updatedAt is a field attribute indicating its value should be updated to the current time whenever the model entity is updated
     updatedAt DateTime @updatedAt
 
     // @unique adds uniqueness constraint to field
@@ -89,11 +89,11 @@ model Post {
 }
 ```
 
-For an exaustive list of attributes and functions, please refer to [Prisma's documentation](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#attributes).
+Please refer to [Prisma's documentation](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#attributes) for an exhaustive list of attributes and functions.
 
 ## Relations
 
-Relations are expressed by the special @relation attribute. Here're some examples.
+The special `@relation` attribute expresses relations between data models. Here're some examples.
 
 -   One-to-one
 
@@ -158,21 +158,46 @@ model User {
 
 ## Access policies
 
-Access policies use `@@allow` and `@@deny` rules to specify eligibility of an operation over a model entity. The signature of the attbutes are:
+Access policies use `@@allow` and `@@deny` rules to specify the eligibility of an operation over a model entity. The signatures of the attributes are:
 
 ```prisma
 @@allow(operation, condition)
 @@deny(operation, condition)
 ```
 
-, where `operation` can be of: "all", "read", "create", "update" and "delete" (or comma-separated string of multiple values, like "create,update"), and `condition` must be a boolean expression.
+, where `operation` can be of: "all", "read", "create", "update" and "delete" (or a comma-separated string of multiple values, like "create,update"), and `condition` must be a boolean expression.
 
-The logic of permitting/rejecting an operation is:
+The logic of permitting/rejecting an operation is as follows:
 
 -   By default, all operations are rejected if there isn't any @@allow rule in a model
--   The operation is rejected if any of the conditions in @@deny rules evaluates to `true`
--   Otherwise, the operation is permitted if any of the conditions in @@allow rules evaluates to `true`
+-   The operation is rejected if any of the conditions in @@deny rules evaluate to `true`
+-   Otherwise, the operation is permitted if any of the conditions in @@allow rules evaluate to `true`
 -   Otherwise, the operation is rejected
+
+### Using authentication in policy rules
+
+It's very common to use the current login user to verdict if an operation should be permitted. Therefore, ZenStack provides a built-in `auth()` attribute function that evaluates to the `User` entity corresponding to the current user. To use the function, your ZModel file must define a `User` data model.
+
+You can use `auth()` to:
+
+-   Check if a user is logged in
+
+```prisma
+deny('all', auth() == null)
+```
+
+-   Access user's fields
+
+```prisma
+allow('update', auth().role == 'ADMIN')
+```
+
+-   Compare user identity
+
+```prisma
+// owner is a relation field to User model
+allow('update', auth() == owner)
+```
 
 ### A simple example with Post model
 
@@ -181,7 +206,7 @@ model Post {
     // reject all operations if user's not logged in
     @@deny('all', auth() == null)
 
-    // allow all operations if the entity's owner matches current user
+    // allow all operations if the entity's owner matches the current user
     @@allow('all', auth() == owner)
 
     // posts are readable to anyone
@@ -249,8 +274,8 @@ model User {
     // allow signup
     @@allow('create', true)
 
-    // user can do everything to herself, note that "this" represents
-    // current entity
+    // user can do everything to herself; note that "this" represents
+    // the current entity
     @@allow('all', auth() == this)
 
     // can be read by users sharing a space
@@ -261,17 +286,17 @@ model User {
 
 ### Accessing relation fields in policy
 
-As you've seen in the examples above, in policy expressions you can access fields from relations. For example, to express "a user can be read by any user sharing a space" in the `User` model, you can directly read into its `membership` field.
+As you've seen in the examples above, you can access fields from relations in policy expressions. For example, to express "a user can be read by any user sharing a space" in the `User` model, you can directly read into its `membership` field.
 
 ```prisma
     @@allow('read', membership?[space.members?[user == auth()]])
 ```
 
-In most cases when you use a "to-many" relation in policy rule, you'll use "Collection Predicate" to expression a condition. See [next section](#collection-predicate-expressions) for details.
+In most cases, when you use a "to-many" relation in a policy rule, you'll use "Collection Predicate" to express a condition. See [next section](#collection-predicate-expressions) for details.
 
 ### Collection predicate expressions
 
-Collection predicate are boolean expressions used to express condition over a list. It's mainly designed for building policy rules for "to-many" relations. It has three forms of syntaxes:
+Collection predicate expressions are boolean expressions used to express conditions over a list. It's mainly designed for building policy rules for "to-many" relations. It has three forms of syntaxes:
 
 1. Any
 
@@ -305,7 +330,7 @@ The `condition` expression has direct access to fields defined in the model of `
 
 , in condition `user == auth()`, `user` refers to the `user` field in model `Membership`, because the collection `members` is resolved to `Membership` model.
 
-Also, collection predicates can be nested to express complex condition involving multi-level relation lookup. E.g.:
+Also, collection predicates can be nested to express complex conditions involving multi-level relation lookup. E.g.:
 
 ```prisma
     @@allow('read', membership?[space.members?[user == auth()]])
@@ -315,8 +340,8 @@ In this example, `user` refers to `user` field of `Membership` model because `sp
 
 ### A complete example
 
-Please checkout the [Collaborative Todo](../../samples/todo) for a complete example on using access policy.
+Please check out the [Collaborative Todo](../../samples/todo) for a complete example on using access policies.
 
 ## Summary
 
-This document serves as a quick overview for starting with the ZModel language. For more thorough explainations about data modeling, please checkout [Prisma's schema references](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference).
+This document serves as a quick overview for starting with the ZModel language. For more thorough explanations about data modeling, please check out [Prisma's schema references](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference).
