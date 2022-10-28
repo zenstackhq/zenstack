@@ -261,7 +261,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ### [Learning the ZModel language](/docs/get-started/learning-the-zmodel-language.md)
 
-### [Learning the zenstack cli](/docs/get-started/learning-the-zenstack-cli.md)
+### [Using the zenstack cli](/docs/get-started/using-the-zenstack-cli.md)
 
 ### [Evolving data model with migration](/docs/ref/evolving-data-model-with-migration.md)
 

@@ -128,23 +128,24 @@ model Post {
 -   Many-to-many
 
 ```prisma
-enum UserRole {
-    USER
-    ADMIN
-}
-
 model Space {
     id String @id
     members Membership[]
 }
 
+// Membership is the "join-model" between User and Space
 model Membership {
     id String @id()
+
+    // one-to-many from Space
     space Space @relation(fields: [spaceId], references: [id])
     spaceId String
+
+    // one-to-many from User
     user User @relation(fields: [userId], references: [id])
     userId String
-    role UserRole
+
+    // a user can be member of a space for only once
     @@unique([userId, spaceId])
 }
 
@@ -173,11 +174,127 @@ The logic of permitting/rejecting an operation is:
 -   Otherwise, the operation is permitted if any of the conditions in @@allow rules evaluates to `true`
 -   Otherwise, the operation is rejected
 
-Here're some examples:
+### A simple example with Post model
 
 ```prisma
+model Post {
+    // reject all operations if user's not logged in
+    @@deny('all', auth() == null)
+
+    // allow all operations if the entity's owner matches current user
+    @@allow('all', auth() == owner)
+
+    // posts are readable to anyone
+    @allow('read', true)
+}
+```
+
+### A more complex example with multi-user spaces
+
+```prisma
+model Space {
+    id String @id
+    members Membership[]
+    owner User @relation(fields: [ownerId], references: [id])
+    ownerId String
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // everyone can create a space
+    @@allow('create', true)
+
+    // owner can do everything
+    @@allow('all', auth() == owner)
+
+    // any user in the space can read the space
+    //
+    // Here the <collection>?[condition] syntax is called
+    // "Collection Predicate", used to check if any element
+    // in the "collection" matches the "condition"
+    @@allow('read', members?[user == auth()])
+}
+
+// Membership is the "join-model" between User and Space
+model Membership {
+    id String @id()
+
+    // one-to-many from Space
+    space Space @relation(fields: [spaceId], references: [id])
+    spaceId String
+
+    // one-to-many from User
+    user User @relation(fields: [userId], references: [id])
+    userId String
+
+    // a user can be member of a space for only once
+    @@unique([userId, spaceId])
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // space owner can create/update/delete
+    @@allow('create,update,delete', space.owner == auth())
+
+    // user can read entries for spaces which he's a member of
+    @@allow('read', space.members?[user == auth()])
+}
+
+model User {
+    id String @id
+    email String @unique
+    membership Membership[]
+    ownedSpaces Space[]
+
+    // allow signup
+    @@allow('create', true)
+
+    // user can do everything to herself, note that "this" represents
+    // current entity
+    @@allow('all', auth() == this)
+
+    // can be read by users sharing a space
+    @@allow('read', membership?[space.members?[user == auth()]])
+}
 
 ```
+
+### Accessing relation fields in policy
+
+As you've seen in the examples above, in policy expressions you can access fields from relations. For example, to express "a user can be read by any user sharing a space" in the `User` model, you can directly read into its `membership` field.
+
+```prisma
+    @@allow('read', membership?[space.members?[user == auth()]])
+```
+
+In most cases when you use a "to-many" relation in policy rule, you'll use "Collection Predicate" to expression a condition. See [next section](#collection-predicate-expressions) for details.
+
+### Collection predicate expressions
+
+Collection predicate are boolean expressions used to express condition over a list. It's mainly designed for building policy rules for "to-many" relations. It has three forms of syntaxes:
+
+1. <collection>?[condition]
+   Any element in `collection` matches `condition`
+2. <collection>![condition]
+   All elements in `collection` match `condition`
+3. <collection>^[condition]
+   None element in `collection` matches `condition`
+
+The `condition` expression has direct access to fields defined in the model of `collection`. E.g.:
+
+```prisma
+    @@allow('read', members?[user == auth()])
+```
+
+, in condition `user == auth()`, `user` refers to the `user` field in model `Membership`, because the collection `members` is resolved to `Membership` model.
+
+Also, collection predicates can be nested to express complex condition involving multi-level relation lookup. E.g.:
+
+```prisma
+    @@allow('read', membership?[space.members?[user == auth()]])
+```
+
+In this example, `user` refers to `user` field of `Membership` model because `space.members` is resolved to `Membership` model.
 
 ## Summary
 
