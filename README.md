@@ -80,7 +80,7 @@ ZenStack is both heavily inspired and built above [Prisma ORM](https://www.prism
 
 ## Getting started
 
-### [For Next.js](docs/get-started/NextJS.md)
+### [For Next.js](docs/get-started/next-js)
 
 ### For Nuxt.js <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">
 
