@@ -1,0 +1,4 @@
+node_modules
+dist
+.vercel
+.DS_Store

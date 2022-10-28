@@ -1,0 +1,13 @@
+{
+    "name": "zenstack-monorepo",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "build": "pnpm -r build",
+        "test": "pnpm -r test",
+        "lint": "pnpm -r lint"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT"
+}

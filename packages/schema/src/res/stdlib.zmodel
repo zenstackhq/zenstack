@@ -1,0 +1,101 @@
+/*
+ * Enum representing referential integrity related actions
+ */
+enum ReferentialAction {
+    /*
+     * Used with "onDelete": deleting a referenced record will trigger the deletion of referencing record.
+     * Used with "onUpdate": updates the relation scalar fields if the referenced scalar fields of the dependent record are updated.
+     */
+    Cascade
+}
+
+/*
+ * Reads value from an environment variable
+ */
+function env(name: String): String {}
+
+/*
+ * Gets thec current login user
+ */
+function auth(): Any {}
+
+/*
+ * Gets current date-time (as DateTime type)
+ */
+function now(): DateTime {}
+
+/*
+ * Generate a globally unique identifier based on the UUID spec
+ */
+function uuid(): String {}
+
+/*
+ * Generate a globally unique identifier based on the CUID spec
+ */
+function cuid(): String {}
+
+/*
+ * Create a sequence of integers in the underlying database and assign the incremented 
+ * values to the ID values of the created records based on the sequence
+ */
+function autoincrement(): Int {}
+
+/*
+ * Represents default values that cannot be expressed in the Prisma schema (such as random()).
+ */
+function dbgenerated(expr: String): Any {}
+
+/*
+ * Defines an ID on the model
+ */
+attribute @id(map: String?)
+
+/*
+ * Defines a default value for a field
+ */
+attribute @default(_ value: ContextType)
+
+/*
+ * Defines a unique constraint for this field
+ */
+attribute @unique(map: String?)
+
+/*
+ * Defines a compound unique constraint for the specified fields
+ */
+attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
+
+/*
+ * Defines an index in the database
+ */
+attribute @@index(_ fields: FieldReference[], map: String?)
+
+/*
+ * Defines meta information about the relation
+ */
+attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
+
+/*
+ * Maps a field name or enum value from the schema to a column with a different name in the database
+ */
+attribute @map(_ name: String)
+
+/*
+ * Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database
+ */
+attribute @@map(_ name: String)
+
+/*
+ * Automatically stores the time when a record was last updated
+ */
+attribute @updatedAt()
+
+/*
+ * Defines an access policy that allows a set of operations when the given condition is true
+ */
+attribute @@allow(_ operation: String, _ condition: Boolean)
+
+/*
+ * Defines an access policy that denies a set of operations when the given condition is true
+ */
+attribute @@deny(_ operation: String, _ condition: Boolean)

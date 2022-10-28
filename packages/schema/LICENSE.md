@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022 ZenStack Full-stack Development Toolkit
+Copyright (c) 2022 ZenStack Language Tools
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
