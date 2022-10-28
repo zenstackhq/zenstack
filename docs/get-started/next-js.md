@@ -90,9 +90,13 @@ import service from '@zenstackhq/runtime';
 
 const options: RequestHandlerOptions = {
     async getServerUser(req: NextApiRequest, res: NextApiResponse) {
-        // TODO: return User object for current session, the concrete logic
-        // depends on how you authenticate users and maintain sessions.
-        // Database can be accessed with "service.db"
+        // If you're using next-auth, current user can be fetched like:
+        //     import { authOptions } from '@api/auth/[...nextauth]';
+        //     const session = await unstable_getServerSession(req, res, authOptions);
+        //     return session?.user;
+        //
+        // Otherwise implement logic to return the user object for the current
+        // session. Database can be accessed with: "service.db".
     },
 };
 export default requestHandler(service, options);

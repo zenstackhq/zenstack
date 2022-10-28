@@ -24,7 +24,7 @@ Things that make you stressful include:
 
 ZenStack aims to simplify these tasks by providing:
 
--   An intuitive data modeling language for defining data types, relationships and access policies
+-   An intuitive data modeling language for defining data types, relations and access policies
 
 ```prisma
 model User {
@@ -95,7 +95,7 @@ Let's briefly go through each of them in this section.
 
 ### Data modeling
 
-ZenStack uses a schema language called `ZModel` to define data types and their relationship. The `zenstack` CLI takes a schema file as input and generates database client client code automatically. Such client code allows you program against database in server-side code in a fully typed way, without writing any SQL. It also provides commands for synchronizing data model with database schema, as well generating "migration reords" when your data model evolves.
+ZenStack uses a schema language called `ZModel` to define data types and their relations. The `zenstack` CLI takes a schema file as input and generates database client client code automatically. Such client code allows you program against database in server-side code in a fully typed way, without writing any SQL. It also provides commands for synchronizing data model with database schema, as well generating "migration reords" when your data model evolves.
 
 Internally, ZenStack completely relies on Prisma for ORM tasks. The ZModel language is a superset of Prisma's schema language. When `zenstack generate` is run, a Prisma schema named 'schema.prisma' is generated beside your ZModel schema file. You don't need to commit schema.prisma to source control. The recommended practice is to run `zenstack generate` during deployment, so Prisma schema is regenerated on the fly.
 
@@ -124,7 +124,7 @@ The value returned by `auth()` is provided by your auth solution, via the `getSe
 
 The main value that ZenStack adds over a traditional ORM is the built-in data access policy engine. This allows most business logic to be safely implemented in front-end code. Since ZenStack delegates database access to Prisma, it enforces access policies through analyzing queries sent to Prisma and injecting guarding conditions. Suppose we have a policy saying "a post can only be accessed by its author if it's not published", expressed in ZModel as:
 
-```
+```prisma
 @@deny('all', auth() != author && !published)
 ```
 
@@ -259,13 +259,13 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ## What's next?
 
-### [Learning the ZModel language](/docs/get-started/learning-the-zmodel-language)
+### [Learning the ZModel language](/docs/get-started/learning-the-zmodel-language.md)
 
-### [Learning the zenstack cli](/docs/get-started/learning-the-zenstack-cli)
+### [Learning the zenstack cli](/docs/get-started/learning-the-zenstack-cli.md)
 
-### [Evolving data model with migration](/docs/ref/evolving-data-model-with-migration)
+### [Evolving data model with migration](/docs/ref/evolving-data-model-with-migration.md)
 
-### [Database hosting considerations](/docs/ref/database-hosting-considerations)
+### [Database hosting considerations](/docs/ref/database-hosting-considerations.md)
 
 ## Reach out to us for issues, feedback and ideas!
 
