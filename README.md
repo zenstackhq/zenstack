@@ -277,4 +277,5 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ## Reach out to us for issues, feedback and ideas!
 
-[Discussions](../discussions) [Issues](../issues) [Discord](https://discord.gg/dbuC9ZWc) [Twitter](https://twitter.com/zenstackhq)
+[Discord](https://discord.gg/dbuC9ZWc) [Twitter](https://twitter.com/zenstackhq)
+[Discussions](../discussions) [Issues](../issues)
