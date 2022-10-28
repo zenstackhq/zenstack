@@ -101,7 +101,7 @@ export class Generator {
         return (
             `generator ${this.name} {\n` +
             indentString(`provider = "${this.provider}"\n`) +
-            indentString(`output = "${this.output}"\n`) +
+            indentString(`output = ${JSON.stringify(this.output)}\n`) +
             (this.previewFeatures
                 ? indentString(
                       `previewFeatures = [${this.previewFeatures
