@@ -144,7 +144,7 @@ export default class PrismaSchemaGenerator {
         prisma.addGenerator(
             'client',
             'prisma-client-js',
-            path.join('../', this.context.generatedCodeDir, '.prisma'),
+            path.join('..', this.context.generatedCodeDir, '.prisma'),
             [
                 'fieldReference',
                 'interactiveTransactions',
