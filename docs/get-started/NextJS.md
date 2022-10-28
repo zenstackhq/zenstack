@@ -107,13 +107,18 @@ npm run db:migrate -- -n init
 8. Start building your app by using the generated React hooks
    E.g.:
 
-```ts
+```jsx
 import { usePost } from '@zenstackhq/runtime/hooks';
 
 ...
 
 const { get } = usePost();
 const posts = get({ where: { public: true } });
-
-return <>{posts?.map(post => (<Post key={post.id} post={post} />))}</>
+return (
+    <>
+        {posts?.map((post) => (
+            <Post key={post.id} post={post} />
+        ))}
+    </>
+);
 ```

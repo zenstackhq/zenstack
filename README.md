@@ -22,7 +22,53 @@ Things that make you stressful include:
 -   How to evolve your data model?
 -   How to authenticate users and authorize their requests?
 
-ZenStack aims to simplify these tasks by providing an intuitive data modeling language to define data types and access policies, integrated with user authentication. It maps your data model to a relational database schema, generates RESTful services as well as a client-side library, allowing flexible and painless CRUD operations.
+ZenStack aims to simplify these tasks by providing:
+
+-   An intuitive data modeling language for defining data types, relationship and access policies
+
+```prisma
+model User {
+    id String @id @default(cuid())
+    email String @unique
+
+    // one-to-many relation to Post
+    posts Post[]
+}
+
+model Post {
+    id String @id @default(cuid())
+    title String
+    content String
+    published Boolean @default(false)
+
+    // one-to-many relation from User
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+
+    // must signin to CRUD any post
+    @@deny('all', auth() == null)
+
+    // allow CRUD by author
+    @@allow('all', author == auth())
+}
+```
+
+-   Data access services and strongly typed front-end library
+
+```jsx
+// React example
+
+const { find } = usePost();
+const posts = get({ where: { public: true } });
+// only posts owned by current login user are returned
+return (
+    <>
+        {posts?.map((post) => (
+            <Post key={post.id} post={post} />
+        ))}
+    </>
+);
+```
 
 Typescript types are generated for data models, CRUD input, filters, etc., so that you get great coding experiences in IDE and have much fewer chances to make mistakes.
 
@@ -54,8 +100,6 @@ Let's briefly go through each of them in this section.
 ### Data modeling
 
 ZenStack uses a schema language called `ZModel` to define data types and their relationship. The `zenstack` CLI takes a schema file as input and generates database client client code automatically. Such client code allows you program against database in server-side code in a fully typed way, without writing any SQL. It also provides commands for synchronizing data model with database schema, as well generating "migration reords" when your data model evolves.
-
-Please checkout [Data Modeling Cheatsheet](/docs/get-started/data-modeling-cheatsheet) on how to carry out common tasks.
 
 Internally, ZenStack completely relies on Prisma for ORM tasks. The ZModel language is a superset of Prisma's schema language. When `zenstack generate` is run, a Prisma schema named 'schema.prisma' is generated beside your ZModel schema file. You don't need to commit schema.prisma to source control. The recommended practice is to run `zenstack generate` during deployment, so Prisma schema is regenerated on the fly.
 
@@ -131,9 +175,9 @@ The cool thing is that, the generated types are shared between client-side and s
 
 ## What's next?
 
-### [Learning the ZModel language](/docs/ref/learning-the-zmodel-language)
+### [Learning the `ZModel` language](/docs/get-started/learning-the-zmodel-language)
 
-### [Learning the zenstack cli](/docs/ref/learning-the-zmodel-language)
+### [Learning the `zenstack` cli](/docs/get-started/learning-the-zenstack-cli)
 
 ### [Evolving data model with migration](/docs/ref/evolving-data-model-with-migration)
 
