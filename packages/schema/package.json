@@ -65,7 +65,7 @@
     "main": "./bundle/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
-        "vscode:prepublish": "pnpm lint && pnpm build && pnpm bundle",
+        "vscode:prepublish": "cp ../../README.md ./ && pnpm lint && pnpm build && pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
         "build": "pnpm langium:generate && tsc --noEmit",
         "bundle": "node build/bundle.js --minify",
