@@ -10,7 +10,7 @@
     <a href="https://discord.gg/6HhebQynfz">
         <img src="https://img.shields.io/discord/1035538056146595961">
     </a>
-    <a href="https://github.com/zenstackhq/zenstack/blob/dev/LICENSE">
+    <a href="https://github.com/zenstackhq/zenstack/blob/main/LICENSE">
         <img src="https://img.shields.io/badge/license-MIT-green">
     </a>
 </div>
