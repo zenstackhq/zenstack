@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "ZenStack is a toolkit that simplifies full-stack development",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "author": {
         "name": "ZenStack Team"
     },
@@ -77,7 +77,7 @@
         "langium:watch": "langium generate --watch",
         "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:bundle-watch\"",
         "test": "jest",
-        "prepublishOnly": "pnpm build && pnpm bundle"
+        "prepublishOnly": "cp ../../README.md ./ && pnpm build && pnpm bundle"
     },
     "dependencies": {
         "@zenstackhq/internal": "workspace:*",

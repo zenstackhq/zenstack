@@ -2,3 +2,4 @@
 /tests/coverage/
 /bundle
 *.vsix
+/README.md
