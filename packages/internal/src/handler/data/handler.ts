@@ -1,19 +1,36 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextApiRequest, NextApiResponse } from 'next';
-import { v4 as uuid } from 'uuid';
 import { TRANSACTION_FIELD_NAME } from '../../constants';
 import { RequestHandlerOptions } from '../../request-handler';
 import {
     DbClientContract,
     DbOperations,
+    FieldInfo,
     PolicyOperationKind,
     QueryContext,
     ServerErrorCode,
     Service,
 } from '../../types';
-import { RequestHandler, RequestHandlerError } from '../types';
-import { and } from './guard-utils';
+import {
+    PrismaWriteActionType,
+    RequestHandler,
+    RequestHandlerError,
+} from '../types';
+import {
+    and,
+    checkPolicyForIds,
+    ensureArray,
+    preUpdateCheck,
+    queryIds,
+    readCheck,
+} from './guard-utils';
 import { QueryProcessor } from './query-processor';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import {
+    NestedWriteVisitor,
+    NestedWriterVisitorAction,
+} from './nested-write-vistor';
+import cuid from 'cuid';
 
 const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
     P2002: ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
@@ -206,7 +223,7 @@ export default class DataHandler<DbClient extends DbClientContract>
         // , where <transaction_id> is a UUID shared by the entire transaction, and <operation>
         // is the action taken to the specific entity.
 
-        const transactionid = uuid();
+        const transactionid = cuid();
 
         // inject update args with policy checks, and collect what model types are affected,
         // either directly or via nested writes
@@ -338,6 +355,101 @@ export default class DataHandler<DbClient extends DbClientContract>
         await Promise.all(modelChecks);
     }
 
+    // private async putOld(
+    //     req: NextApiRequest,
+    //     res: NextApiResponse,
+    //     model: string,
+    //     id: string,
+    //     context: QueryContext
+    // ) {
+    //     if (!id) {
+    //         throw new RequestHandlerError(
+    //             ServerErrorCode.INVALID_REQUEST_PARAMS,
+    //             'missing "id" parameter'
+    //         );
+    //     }
+
+    //     // ensure entity passes policy check
+    //     await this.ensureEntityPolicy(id, model, 'update', context);
+
+    //     const args = req.body;
+    //     if (!args) {
+    //         throw new RequestHandlerError(
+    //             ServerErrorCode.INVALID_REQUEST_PARAMS,
+    //             'body is required'
+    //         );
+    //     }
+
+    //     const db = this.service.db;
+
+    //     // See comments in "post" method for the approach used for policy checking
+    //     const transactionid = uuid();
+    //     args.where = { ...args.where, id };
+
+    //     const { preWriteGuard, writeArgs, includedModels } =
+    //         await this.queryProcessor.processQueryArgsForWrite(
+    //             model,
+    //             args,
+    //             'update',
+    //             context,
+    //             transactionid
+    //         );
+
+    //     // make sure target matches policy before update
+    //     console.log(
+    //         `Finding pre-write record:\n${JSON.stringify(preWriteGuard)}`
+    //     );
+    //     let preUpdate = await db[model].findFirst(preWriteGuard);
+    //     if (preUpdate) {
+    //         // run post processing to see if any field is deleted, if so, reject
+    //         const deleted = await this.queryProcessor.postProcess(
+    //             model,
+    //             preUpdate,
+    //             'update',
+    //             context
+    //         );
+    //         if (deleted) {
+    //             preUpdate = null;
+    //             console.log(
+    //                 `pre-write check failed because of nested writes failing policy checks`
+    //             );
+    //         }
+    //     }
+
+    //     if (!preUpdate) {
+    //         console.log(`Pre-write guard check failed`);
+    //         throw new RequestHandlerError(
+    //             ServerErrorCode.DENIED_BY_POLICY,
+    //             'denied by policy before update'
+    //         );
+    //     }
+
+    //     const r = await db.$transaction(
+    //         async (tx: Record<string, DbOperations>) => {
+    //             console.log(`Update ${model}:\n${JSON.stringify(writeArgs)}`);
+    //             await tx[model].update(writeArgs);
+
+    //             await this.checkPolicyForIncludedModels(
+    //                 includedModels,
+    //                 transactionid,
+    //                 tx,
+    //                 context
+    //             );
+
+    //             // TODO: shouldn't we inject 'read' guard so that select/include can't leak data?
+    //             const finalResultArgs = {
+    //                 where: { id },
+    //                 include: args.include,
+    //                 select: args.select,
+    //             };
+    //             return await tx[model].findUnique(finalResultArgs);
+    //         }
+    //     );
+
+    //     await this.queryProcessor.postProcess(model, r, 'update', context);
+    //     res.status(200).send(r);
+    // }
+
     private async put(
         req: NextApiRequest,
         res: NextApiResponse,
@@ -352,9 +464,6 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        // ensure entity passes policy check
-        await this.ensureEntityPolicy(id, model, 'update', context);
-
         const args = req.body;
         if (!args) {
             throw new RequestHandlerError(
@@ -363,71 +472,174 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        const db = this.service.db;
+        const transactionId = cuid();
 
-        // See comments in "post" method for the approach used for policy checking
-        const transactionid = uuid();
-        args.where = { ...args.where, id };
-
-        const { preWriteGuard, writeArgs, includedModels } =
-            await this.queryProcessor.processQueryArgsForWrite(
-                model,
-                args,
-                'update',
-                context,
-                transactionid
-            );
-
-        // make sure target matches policy before update
-        console.log(
-            `Finding pre-write record:\n${JSON.stringify(preWriteGuard)}`
-        );
-        let preUpdate = await db[model].findFirst(preWriteGuard);
-        if (preUpdate) {
-            // run post processing to see if any field is deleted, if so, reject
-            const deleted = await this.queryProcessor.postProcess(
-                model,
-                preUpdate,
-                'update',
-                context
-            );
-            if (deleted) {
-                preUpdate = null;
-            }
-        }
-
-        if (!preUpdate) {
-            console.log(`Pre-write guard check failed`);
-            throw new RequestHandlerError(
-                ServerErrorCode.DENIED_BY_POLICY,
-                'denied by policy before update'
-            );
-        }
-
-        const r = await db.$transaction(
+        const r = await this.service.db.$transaction(
             async (tx: Record<string, DbOperations>) => {
-                console.log(`Update ${model}:\n${JSON.stringify(writeArgs)}`);
-                await tx[model].update(writeArgs);
-
-                await this.checkPolicyForIncludedModels(
-                    includedModels,
-                    transactionid,
-                    tx,
-                    context
+                // make sure the entity (including ones involved in nested write) pass policy check
+                await preUpdateCheck(
+                    model,
+                    id,
+                    args,
+                    this.service,
+                    context,
+                    tx
                 );
 
-                // TODO: shouldn't we inject 'read' guard so that select/include can't leak data?
-                const finalResultArgs = {
-                    where: { id },
-                    include: args.include,
-                    select: args.select,
-                };
-                return await tx[model].findUnique(finalResultArgs);
+                // inject transaction id into update/create payload (direct and nested)
+                const { createdModels } = await this.injectTransactionId(
+                    model,
+                    args,
+                    'update',
+                    transactionId
+                );
+
+                // conduct the update
+                args.where = { id };
+                console.log(
+                    `Conducting update: ${model}:\n${JSON.stringify(args)}`
+                );
+                await tx[model].update(args);
+
+                // verify that nested creates pass policy check
+                await Promise.all(
+                    createdModels.map(async (model) => {
+                        const createdIds = await queryIds(model, tx, {
+                            [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
+                        });
+                        console.log(
+                            `Validating nestedly created entities: ${model}#[${createdIds.join(
+                                ', '
+                            )}]`
+                        );
+                        await checkPolicyForIds(
+                            model,
+                            createdIds,
+                            'create',
+                            this.service,
+                            context,
+                            tx
+                        );
+                    })
+                );
+
+                // verify that return data requested by query args pass policy check
+                const readArgs = { ...args };
+                delete readArgs.data;
+
+                try {
+                    const result = await readCheck(
+                        model,
+                        readArgs,
+                        this.service,
+                        context,
+                        tx
+                    );
+                    return result[0];
+                } catch (err) {
+                    if (
+                        err instanceof RequestHandlerError &&
+                        err.code === ServerErrorCode.DENIED_BY_POLICY
+                    ) {
+                        throw new RequestHandlerError(
+                            ServerErrorCode.READ_BACK_AFTER_WRITE_REJECTED,
+                            `update result cannot be read back`
+                        );
+                    } else {
+                        throw err;
+                    }
+                }
             }
         );
 
-        await this.queryProcessor.postProcess(model, r, 'update', context);
         res.status(200).send(r);
+    }
+
+    private async injectTransactionId(
+        model: string,
+        args: any,
+        operation: PolicyOperationKind,
+        transactionId: string
+    ) {
+        const updatedModels = new Set<string>();
+        const createdModels = new Set<string>();
+
+        if (args.data) {
+            args.data[TRANSACTION_FIELD_NAME] = `${transactionId}:${operation}`;
+            updatedModels.add(model);
+        }
+
+        const visitAction: NestedWriterVisitorAction = async (
+            fieldInfo: FieldInfo,
+            action: PrismaWriteActionType,
+            writeData: any
+        ) => {
+            if (fieldInfo.isDataModel && writeData) {
+                switch (action) {
+                    case 'update':
+                    case 'updateMany':
+                        ensureArray(writeData).forEach((item) => {
+                            if (fieldInfo.isArray && item.data) {
+                                item.data[
+                                    TRANSACTION_FIELD_NAME
+                                ] = `${transactionId}:update`;
+                            } else {
+                                item[
+                                    TRANSACTION_FIELD_NAME
+                                ] = `${transactionId}:update`;
+                            }
+                            updatedModels.add(fieldInfo.type);
+                        });
+                        break;
+
+                    case 'upsert':
+                        ensureArray(writeData).forEach((item) => {
+                            item.create[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:create`;
+                            createdModels.add(fieldInfo.type);
+                            item.update[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:update`;
+                            updatedModels.add(fieldInfo.type);
+                        });
+                        break;
+
+                    case 'create':
+                    case 'createMany':
+                        ensureArray(writeData).forEach((item) => {
+                            item[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:create`;
+                            createdModels.add(fieldInfo.type);
+                        });
+                        break;
+
+                    case 'connectOrCreate':
+                        ensureArray(writeData).forEach((item) => {
+                            item.create[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:create`;
+                            createdModels.add(fieldInfo.type);
+                        });
+                        break;
+                }
+            }
+        };
+
+        const visitor = new NestedWriteVisitor(this.service);
+        await visitor.visit(
+            model,
+            args.data,
+            ['update'],
+            undefined,
+            visitAction
+        );
+
+        return {
+            createdModels: Array.from(createdModels),
+            updatedModels: Array.from(updatedModels),
+        };
     }
 
     private async del(

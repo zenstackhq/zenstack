@@ -1,9 +1,4 @@
-import {
-    FieldInfo,
-    PolicyOperationKind,
-    QueryContext,
-    type Service,
-} from '../src/types';
+import { FieldInfo, PolicyOperationKind, type Service } from '../src/types';
 import { QueryProcessor } from '../src/handler/data/query-processor';
 
 class MockService implements Service {
@@ -19,34 +14,48 @@ class MockService implements Service {
         return this.fieldMapping[model]?.[field];
     }
 
-    buildQueryGuard(
-        model: string,
-        operation: PolicyOperationKind,
-        context: QueryContext
-    ) {
+    async buildQueryGuard(model: string, operation: PolicyOperationKind) {
         return { [`${model}_${operation}`]: true };
     }
 }
 
 describe('Query Processor Tests', () => {
-    it('arg processor', async () => {
-        const svc = new MockService({
-            List: {
-                todos: {
-                    type: 'Todo',
-                    isArray: true,
-                },
+    const svc = new MockService({
+        User: {
+            password: {
+                name: 'password',
+                type: 'String',
+                isArray: false,
+                isOptional: false,
+                isDataModel: false,
+                attributes: [],
             },
-            Todo: {
-                list: {
-                    type: 'List',
-                    isArray: false,
-                },
+        },
+        List: {
+            todos: {
+                name: 'todos',
+                type: 'Todo',
+                isArray: true,
+                isOptional: false,
+                isDataModel: true,
+                attributes: [],
             },
-        });
+        },
+        Todo: {
+            list: {
+                name: 'list',
+                type: 'List',
+                isArray: false,
+                isOptional: false,
+                isDataModel: true,
+                attributes: [],
+            },
+        },
+    });
 
-        const processor = new QueryProcessor(svc);
+    const processor = new QueryProcessor(svc);
 
+    it('process query args', async () => {
         // empty args
         let r = await processor.processQueryArgs('List', {}, 'read', {});
         expect(r).toEqual(
@@ -167,6 +176,22 @@ describe('Query Processor Tests', () => {
         );
         expect(r).toEqual(
             expect.objectContaining({ select: { id: true, list: true } })
+        );
+    });
+
+    it('process write args', async () => {
+        const { preWriteGuard } = await processor.processQueryArgsForWrite(
+            'List',
+            { data: {} },
+            'create',
+            {},
+            ''
+        );
+
+        expect(preWriteGuard).toEqual(
+            expect.objectContaining({
+                where: { List_create: true },
+            })
         );
     });
 });

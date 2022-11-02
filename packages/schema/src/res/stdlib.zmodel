@@ -99,3 +99,20 @@ attribute @@allow(_ operation: String, _ condition: Boolean)
  * Defines an access policy that denies a set of operations when the given condition is true
  */
 attribute @@deny(_ operation: String, _ condition: Boolean)
+
+/*
+ * Indicates that the field is a password field and needs to be hashed before persistence.
+ * 
+ * ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter
+ * to configure length of salt, or use parameter to provide an explicit salt. By default, 12-byte
+ * long salt is used.
+ *
+ * @saltLength: length of salt to use
+ * @salt: salt to use
+ */
+attribute @password(saltLength: Int?, salt: String?)
+
+/*
+ * Indicates that the field should be omitted when queried with the CRUD services
+ */
+attribute @omit()

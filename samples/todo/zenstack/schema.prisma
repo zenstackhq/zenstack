@@ -24,6 +24,7 @@ model Space {
     lists List[]
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
 }
 
 model SpaceUser {
@@ -37,6 +38,7 @@ model SpaceUser {
     role SpaceUserRole
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
     @@unique([userId, spaceId])
 }
 
@@ -56,6 +58,7 @@ model User {
     sessions Session[]
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
 }
 
 model List {
@@ -71,6 +74,7 @@ model List {
     todos Todo[]
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
 }
 
 model Todo {
@@ -85,6 +89,7 @@ model Todo {
     completedAt DateTime?
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
 }
 
 model Account {
@@ -103,6 +108,7 @@ model Account {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
     @@unique([provider, providerAccountId])
 }
 
@@ -114,6 +120,7 @@ model Session {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
 }
 
 model VerificationToken {
@@ -122,5 +129,6 @@ model VerificationToken {
     expires DateTime
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
+    @@index([zenstack_transaction])
     @@unique([identifier, token])
 }

@@ -31,3 +31,20 @@ export class RequestHandlerError extends Error {
         return `Request handler error: ${this.code}, ${this.message}`;
     }
 }
+
+/**
+ * All write actions supported by Prisma
+ */
+export const PrismaWriteActions = [
+    'create',
+    'createMany',
+    'connectOrCreate',
+    'update',
+    'updateMany',
+    'upsert',
+    'delete',
+    'deleteMany',
+    'connect',
+] as const;
+
+export type PrismaWriteActionType = typeof PrismaWriteActions[number];

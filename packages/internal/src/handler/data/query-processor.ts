@@ -8,7 +8,7 @@ import {
     ServerErrorCode,
     Service,
 } from '../../types';
-import { RequestHandlerError } from '../types';
+import { PrismaWriteActionType, RequestHandlerError } from '../types';
 import { and } from './guard-utils';
 
 export class QueryProcessor {
@@ -25,12 +25,14 @@ export class QueryProcessor {
         writeArgs: any;
         includedModels: Set<string>;
     }> {
-        const preWriteGuard = args ? deepcopy(args) : {};
+        // preWriteGuard is for validating data being updated satisfies policies before update
+        let preWriteGuard = args ? deepcopy(args) : {};
         delete preWriteGuard.data;
         delete preWriteGuard.include;
         delete preWriteGuard.select;
 
         if (operation === 'update') {
+            // make sure 'id' field is included
             preWriteGuard.select = { id: true };
             await this.injectSelectForToOneRelation(
                 model,
@@ -40,7 +42,8 @@ export class QueryProcessor {
             );
         }
 
-        await this.processQueryArgs(
+        // inject regular guard to preWriteGuard
+        preWriteGuard = await this.processQueryArgs(
             model,
             preWriteGuard,
             operation,
@@ -65,7 +68,7 @@ export class QueryProcessor {
         return { preWriteGuard, writeArgs, includedModels };
     }
 
-    async injectSelectForToOneRelation(
+    private async injectSelectForToOneRelation(
         model: string,
         select: any,
         updateData: any,
@@ -76,7 +79,7 @@ export class QueryProcessor {
         }
         for (const [k, v] of Object.entries(updateData)) {
             const fieldInfo = await this.service.resolveField(model, k);
-            if (fieldInfo) {
+            if (fieldInfo && fieldInfo.isDataModel) {
                 if (fieldInfo.isArray) {
                     select[k] = { select: { ...select?.[k]?.select } };
                     await this.injectSelectForToOneRelation(
@@ -105,17 +108,17 @@ export class QueryProcessor {
 
     private async collectModelsInNestedWrites(
         model: string,
-        data: any,
+        updateData: any,
         operation: PolicyOperationKind,
         context: QueryContext,
         includedModels: Set<string>,
         transactionId: string
     ) {
-        if (!data) {
+        if (!updateData) {
             return;
         }
 
-        const arr = Array.isArray(data) ? data : [data];
+        const arr = Array.isArray(updateData) ? updateData : [updateData];
 
         for (const item of arr) {
             item[TRANSACTION_FIELD_NAME] = transactionId + ':' + operation;
@@ -125,15 +128,17 @@ export class QueryProcessor {
                     continue;
                 }
                 const fieldInfo = await this.service.resolveField(model, k);
-                if (fieldInfo) {
+                if (fieldInfo && fieldInfo.isDataModel) {
                     includedModels.add(fieldInfo.type);
 
-                    for (const [op, payload] of Array.from(
+                    for (const [key, payload] of Array.from(
                         Object.entries<any>(v)
                     )) {
                         if (!payload) {
                             continue;
                         }
+
+                        const op = key as PrismaWriteActionType;
                         switch (op) {
                             case 'create':
                                 await this.collectModelsInNestedWrites(
@@ -170,7 +175,7 @@ export class QueryProcessor {
                                         transactionId
                                     );
                                 }
-                                if (payload.update) {
+                                if (payload.create) {
                                     await this.collectModelsInNestedWrites(
                                         fieldInfo.type,
                                         payload.create,
@@ -350,7 +355,7 @@ export class QueryProcessor {
             const selector = r.include ? 'include' : 'select';
             for (const [field, value] of Object.entries(r[selector])) {
                 const fieldInfo = await this.service.resolveField(model, field);
-                if (fieldInfo) {
+                if (fieldInfo && fieldInfo.isDataModel) {
                     if (fieldInfo.isArray) {
                         // note that Prisma only allows to attach filter for "to-many" relation
                         // query, so we need to handle "to-one" filter separately in post-processing
@@ -388,7 +393,7 @@ export class QueryProcessor {
         }
 
         const fieldInfo = await this.service.resolveField(model, fieldName);
-        if (!fieldInfo || fieldInfo.isArray) {
+        if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray) {
             return null;
         }
 
@@ -455,38 +460,63 @@ export class QueryProcessor {
         return new Map<string, string[]>(await Promise.all(promises));
     }
 
+    private async shouldFieldBeOmitted(model: string, fieldName: string) {
+        const fieldInfo = await this.service.resolveField(model, fieldName);
+        return (
+            fieldInfo &&
+            !!fieldInfo.attributes.find((attr) => attr.name === '@omit')
+        );
+    }
+
     private async sanitizeData(
         model: string,
         data: any,
         validatedIds: Map<string, string[]>
     ): Promise<boolean> {
         let deleted = false;
-        for (const [fieldName, fieldValue] of Object.entries(data)) {
-            const fieldInfo = await this.getToOneFieldInfo(
-                model,
-                fieldName,
-                fieldValue
-            );
-            if (!fieldInfo) {
-                continue;
-            }
-            const fv = fieldValue as { id: string };
-            const valIds = validatedIds.get(fieldInfo.type);
+        const items = Array.isArray(data) ? data : [data];
 
-            if (!valIds || !valIds.includes(fv.id)) {
-                console.log(
-                    `Deleting field ${fieldName} from ${model}#${data.id}, because field value #${fv.id} failed policy check`
+        for (const item of items) {
+            for (const [fieldName, fieldValue] of Object.entries(item)) {
+                if (await this.shouldFieldBeOmitted(model, fieldName)) {
+                    // field is password, just exclude
+                    console.log(
+                        `Deleting field ${fieldName} from ${model}#${item.id}, because it's marked as omitted`
+                    );
+                    delete item[fieldName];
+                    deleted = true;
+                    continue;
+                }
+
+                const fieldInfo = await this.getToOneFieldInfo(
+                    model,
+                    fieldName,
+                    fieldValue
                 );
-                delete data[fieldName];
-                deleted = true;
-            }
+                if (!fieldInfo) {
+                    continue;
+                }
 
-            const r = await this.sanitizeData(
-                fieldInfo.type,
-                fieldValue,
-                validatedIds
-            );
-            deleted = deleted || r;
+                const fv = fieldValue as { id: string };
+                const valIds = validatedIds.get(fieldInfo.type);
+
+                if (!valIds || !valIds.includes(fv.id)) {
+                    console.log(
+                        `Deleting field ${fieldName} from ${model}#${item.id}, because field value #${fv.id} failed policy check`
+                    );
+                    delete item[fieldName];
+                    deleted = true;
+                    continue;
+                }
+
+                // recurse into field value
+                const r = await this.sanitizeData(
+                    fieldInfo.type,
+                    fieldValue,
+                    validatedIds
+                );
+                deleted = deleted || r;
+            }
         }
 
         return deleted;
@@ -498,6 +528,7 @@ export class QueryProcessor {
         operation: PolicyOperationKind,
         context: QueryContext
     ) {
+        // a mapping from model type to ids involved in to-one relations
         const relationFieldMap = new Map<string, string[]>();
         await this.collectRelationFields(model, data, relationFieldMap);
         const validatedIds = await this.checkIdsAgainstPolicy(

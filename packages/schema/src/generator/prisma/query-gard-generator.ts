@@ -1,10 +1,16 @@
 import {
     DataModel,
+    DataModelField,
     isDataModel,
     isEnum,
     isLiteralExpr,
 } from '@lang/generated/ast';
-import { PolicyKind, PolicyOperationKind } from '@zenstackhq/internal';
+import {
+    FieldInfo,
+    PolicyKind,
+    PolicyOperationKind,
+    RuntimeAttribute,
+} from '@zenstackhq/internal';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { GUARD_FIELD_NAME, INTERNAL_PACKAGE } from '../constants';
@@ -59,16 +65,21 @@ export default class QueryGuardGenerator {
             models.map((m) => [
                 m.name,
                 Object.fromEntries(
-                    m.fields
-                        .filter((f) => isDataModel(f.type.reference?.ref))
-                        .map((f) => [
-                            f.name,
-                            {
-                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                type: resolved(f.type.reference!).name,
-                                isArray: f.type.array,
-                            },
-                        ])
+                    m.fields.map((f) => {
+                        const fieldInfo: FieldInfo = {
+                            name: f.name,
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            type: f.type.reference
+                                ? f.type.reference.$refText
+                                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                  f.type.type!,
+                            isDataModel: isDataModel(f.type.reference?.ref),
+                            isArray: f.type.array,
+                            isOptional: f.type.optional,
+                            attributes: this.getFieldAttributes(f),
+                        };
+                        return [f.name, fieldInfo];
+                    })
                 ),
             ])
         );
@@ -83,6 +94,22 @@ export default class QueryGuardGenerator {
                 },
             ],
         });
+    }
+
+    private getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
+        return field.attributes
+            .map((attr) => {
+                const args: Array<{ name?: string; value: unknown }> = [];
+                for (const arg of attr.args) {
+                    if (!isLiteralExpr(arg.value)) {
+                        // attributes with non-literal args are skipped
+                        return undefined;
+                    }
+                    args.push({ name: arg.name, value: arg.value.value });
+                }
+                return { name: resolved(attr.decl).name, args };
+            })
+            .filter((d): d is RuntimeAttribute => !!d);
     }
 
     private getPolicyExpressions(

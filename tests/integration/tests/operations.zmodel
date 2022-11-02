@@ -63,7 +63,36 @@ model M7 {
     m5 M5 @relation(fields: [m5Id], references:[id])
     m5Id String
 
+    @@allow('read', true)
     @@allow('create', value > 0)
     @@allow('update', value > 1)
     @@allow('delete', value > 2)
+}
+
+model M8 {
+    id String @id @default(uuid())
+    m9 M9?
+    m10 M10[]
+
+    @@allow('all', true)
+}
+
+model M9 {
+    id String @id @default(uuid())
+    value Int
+    m8 M8 @relation(fields: [m8Id], references:[id])
+    m8Id String @unique
+
+    @@allow('read', value > 1)
+    @@allow('create,update', true)
+}
+
+model M10 {
+    id String @id @default(uuid())
+    value Int
+    m8 M8 @relation(fields: [m8Id], references:[id])
+    m8Id String
+
+    @@allow('read', value > 1)
+    @@allow('create,update', true)
 }
