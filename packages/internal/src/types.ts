@@ -57,9 +57,9 @@ export type FieldInfo = {
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: (
-        action: (tx: Record<string, DbOperations>) => Promise<unknown>
-    ) => Promise<unknown>;
+    $transaction: <T>(
+        action: (tx: Record<string, DbOperations>) => Promise<T>
+    ) => Promise<T>;
 };
 
 /**
@@ -127,7 +127,7 @@ export enum ServerErrorCode {
     /**
      * A write operation succeeded but the result cannot be read back due to policy control
      */
-    READ_BACK_AFTER_WRITE_REJECTED = 'READ_BACK_AFTER_WRITE_REJECTED',
+    READ_BACK_AFTER_WRITE_DENIED = 'READ_BACK_AFTER_WRITE_DENIED',
 
     /**
      * Unknown error

@@ -235,7 +235,7 @@ function collectLeafIds(selectionPath: SelectionPath, data: any): string[] {
         : [curr.id as string];
 }
 
-export async function readCheck(
+export async function readWithCheck(
     model: string,
     readArgs: any,
     service: Service,
@@ -243,7 +243,13 @@ export async function readCheck(
     db: Record<string, DbOperations>
 ) {
     const args = deepcopy(readArgs);
-    await injectReadConditions(model, args, service, context);
+    args.where = and(
+        args.where,
+        await service.buildQueryGuard(model, 'read', context)
+    );
+
+    await injectNestedReadConditions(model, args, service, context);
+
     console.log(
         `Reading with validation for ${model}: ${JSON.stringify(args)}`
     );
@@ -267,7 +273,7 @@ export async function queryIds(
     return (r as { id: string }[]).map((item) => item.id);
 }
 
-async function injectReadConditions(
+async function injectNestedReadConditions(
     model: string,
     args: any,
     service: Service,
@@ -304,7 +310,7 @@ async function injectReadConditions(
             }
         }
 
-        await injectReadConditions(
+        await injectNestedReadConditions(
             fieldInfo.type,
             injectTarget[field],
             service,

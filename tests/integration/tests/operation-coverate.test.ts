@@ -1,5 +1,6 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
+import { ServerErrorCode } from '../../../packages/internal/src/types';
 
 describe('Operation Coverage Tests', () => {
     let workDir: string;
@@ -69,7 +70,12 @@ describe('Operation Coverage Tests', () => {
                     value: 1,
                 },
             })
-            .expect(201);
+            .expect(403)
+            .expect((resp) =>
+                expect(resp.body.code).toBe(
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
+                )
+            );
 
         await makeClient('/api/data/M4')
             .get('/')
@@ -110,6 +116,20 @@ describe('Operation Coverage Tests', () => {
                 data: {
                     id: '1',
                     value: 1,
+                },
+            })
+            .expect(403)
+            .expect((resp) =>
+                expect(resp.body.code).toBe(
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
+                )
+            );
+
+        await makeClient('/api/data/M4')
+            .post('/')
+            .send({
+                data: {
+                    value: 2,
                 },
             })
             .expect(201);
@@ -638,7 +658,12 @@ describe('Operation Coverage Tests', () => {
                     },
                 },
             })
-            .expect(403);
+            .expect(403)
+            .expect((resp) =>
+                expect(resp.body.code).toBe(
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
+                )
+            );
 
         // m9 can be returned now, m10 should be filtered out because of 'read' rule
         await makeClient('/api/data/M8/1')

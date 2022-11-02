@@ -13,7 +13,11 @@ import {
 } from '@zenstackhq/internal';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
-import { GUARD_FIELD_NAME, INTERNAL_PACKAGE } from '../constants';
+import {
+    GUARD_FIELD_NAME,
+    INTERNAL_PACKAGE,
+    UNKNOWN_USER_ID,
+} from '../constants';
 import { Context } from '../types';
 import { resolved } from '../utils';
 import ExpressionWriter from './expression-writer';
@@ -155,7 +159,9 @@ export default class QueryGuardGenerator {
                 })
                 .addBody();
 
-            func.addStatements('const { user } = context;');
+            func.addStatements(
+                `const user = context.user ?? { id: '${UNKNOWN_USER_ID}' };`
+            );
 
             // r = <guard object>;
             func.addVariableStatement({

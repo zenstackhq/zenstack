@@ -77,7 +77,7 @@ export default class ReactHooksGenerator implements Generator {
                 try {
                     return request.post<P.${model.name}CreateArgs, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(endpoint, args, mutate);
                 } catch (err: any) {
-                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_REJECTED) {
+                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
                     } else {
                         throw err;
@@ -148,7 +148,7 @@ export default class ReactHooksGenerator implements Generator {
                 try {
                     return request.put<Omit<P.${model.name}UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
                 } catch (err: any) {
-                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_REJECTED) {
+                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
                     } else {
                         throw err;
@@ -179,7 +179,7 @@ export default class ReactHooksGenerator implements Generator {
                 try {
                     return request.del<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
                 } catch (err: any) {
-                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_REJECTED) {
+                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
                     } else {
                         throw err;
