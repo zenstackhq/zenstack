@@ -4,6 +4,7 @@ import { hashSync } from 'bcryptjs';
 import deepcopy from 'deepcopy';
 import {
     DEFAULT_PASSWORD_SALT_LENGTH,
+    GUARD_FIELD_NAME,
     TRANSACTION_FIELD_NAME,
 } from '../../constants';
 import {
@@ -106,11 +107,9 @@ export async function readWithCheck(
     );
     const result = await db[model].findMany(args);
 
-    // to-one relation data cannot be trimmed by injected guards, we have to
-    // post-check them
     await Promise.all(
         result.map((item) =>
-            checkToOneRelation(item, model, args, service, context, db, 'read')
+            postProcessForRead(item, model, args, service, context, db, 'read')
         )
     );
 
@@ -165,8 +164,14 @@ async function injectNestedReadConditions(
     }
 }
 
-async function checkToOneRelation(
-    modelData: any,
+/**
+ * Post processing checks for read model entities.
+ * Validates to-one relations (which can't be trimmed
+ * at query time) and removes fields that should be
+ * omitted.
+ */
+async function postProcessForRead(
+    entityData: any,
     model: string,
     args: any,
     service: Service,
@@ -174,8 +179,14 @@ async function checkToOneRelation(
     db: Record<string, DbOperations>,
     operation: PolicyOperationKind
 ) {
-    if (!modelData?.id) {
+    if (!entityData?.id) {
         return;
+    }
+
+    for (const field of Object.keys(entityData)) {
+        if (await shouldOmit(service, model, field)) {
+            delete entityData[field];
+        }
     }
 
     const injectTarget = args.select ?? args.include;
@@ -183,24 +194,26 @@ async function checkToOneRelation(
         return;
     }
 
+    // to-one relation data cannot be trimmed by injected guards, we have to
+    // post-check them
     for (const field of Object.keys(injectTarget)) {
         const fieldInfo = await service.resolveField(model, field);
         if (
             !fieldInfo ||
             !fieldInfo.isDataModel ||
             fieldInfo.isArray ||
-            !modelData?.[field]?.id
+            !entityData?.[field]?.id
         ) {
             continue;
         }
 
         console.log(
-            `Validating read of to-one relation: ${fieldInfo.type}#${modelData[field].id}`
+            `Validating read of to-one relation: ${fieldInfo.type}#${entityData[field].id}`
         );
 
         await checkPolicyForIds(
             fieldInfo.type,
-            [modelData[field].id],
+            [entityData[field].id],
             operation,
             service,
             context,
@@ -208,8 +221,8 @@ async function checkToOneRelation(
         );
 
         // recurse
-        await checkToOneRelation(
-            modelData[field],
+        await postProcessForRead(
+            entityData[field],
             fieldInfo.type,
             injectTarget[field],
             service,
@@ -609,6 +622,16 @@ export async function preprocessWritePayload(
     const visitor = new NestedWriteVisitor(service);
 
     await visitor.visit(model, args.data, undefined, undefined, visitAction);
+}
+
+async function shouldOmit(service: Service, model: string, field: string) {
+    if ([TRANSACTION_FIELD_NAME, GUARD_FIELD_NAME].includes(field)) {
+        return true;
+    }
+    const fieldInfo = await service.resolveField(model, field);
+    return !!(
+        fieldInfo && fieldInfo.attributes.find((attr) => attr.name === '@omit')
+    );
 }
 
 //#endregion
