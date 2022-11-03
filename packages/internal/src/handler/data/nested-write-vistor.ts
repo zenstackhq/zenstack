@@ -3,7 +3,21 @@
 import { FieldInfo, Service } from '../../types';
 import { PrismaWriteActions, PrismaWriteActionType } from '../types';
 
-export type NestedWriterVisitorAction<State = unknown> = (
+/**
+ * Visitor callback function type
+ *
+ * @fieldInfo current visiting field
+ * @action prisma action for this field, e.g., update, create, etc.
+ * @fieldData data attached to the field, a scalar type for simple field
+ * and nested structure for model field
+ * @parentData parent data of @see fieldData, can be used to replace current field data
+ * @state a custom state
+ *
+ * @return if a truethy value is returned, recursive visiting will continue and the return
+ * value will be used as the new state passed to visiting of the direct child level; otherwise
+ * visiting is stopped at this level
+ */
+export type NestedWriterVisitorCallback<State = unknown> = (
     fieldInfo: FieldInfo,
     action: PrismaWriteActionType,
     fieldData: any,
@@ -11,6 +25,9 @@ export type NestedWriterVisitorAction<State = unknown> = (
     state: State
 ) => Promise<State | undefined>;
 
+/**
+ * Recursive visitor for nested write (create/update) payload
+ */
 export class NestedWriteVisitor<State> {
     constructor(private readonly service: Service) {}
 
@@ -18,12 +35,17 @@ export class NestedWriteVisitor<State> {
         return PrismaWriteActions.includes(value as PrismaWriteActionType);
     }
 
+    /**
+     * Start visiting
+     *
+     * @see NestedWriterVisitorCallback
+     */
     async visit(
         model: string,
         fieldData: any,
         parentData: any,
         state: State,
-        action: NestedWriterVisitorAction<State>
+        callback: NestedWriterVisitorCallback<State>
     ): Promise<void> {
         if (!fieldData) {
             return;
@@ -40,16 +62,21 @@ export class NestedWriteVisitor<State> {
             }
 
             if (!fieldInfo.isDataModel) {
-                await action(fieldInfo, 'none', payload, fieldData, state);
+                // simple field, just call action
+                await callback(fieldInfo, 'none', payload, fieldData, state);
             } else {
-                // deal with nested write of other data model
-                for (const [subkey, subPayload] of Object.entries<any>(
+                // deal with nested write of other model, here payload is a
+                // potentially nested structure like:
+                //
+                //     { update: { field: {...} } }
+                //
+                for (const [subKey, subPayload] of Object.entries<any>(
                     payload
                 )) {
-                    if (this.isPrismaWriteAction(subkey) && subPayload) {
-                        const newState = await action(
+                    if (this.isPrismaWriteAction(subKey) && subPayload) {
+                        const newState = await callback(
                             fieldInfo,
-                            subkey,
+                            subKey,
                             subPayload,
                             payload,
                             state
@@ -61,7 +88,7 @@ export class NestedWriteVisitor<State> {
                                 subPayload,
                                 payload,
                                 newState,
-                                action
+                                callback
                             );
                         }
                     }

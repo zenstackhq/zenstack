@@ -17,6 +17,8 @@ import {
 import { PrismaWriteActionType, RequestHandlerError } from '../types';
 import { NestedWriteVisitor } from './nested-write-vistor';
 
+//#region General helpers
+
 /**
  * Creates a conjunction of a list of query conditions.
  */
@@ -45,243 +47,16 @@ export function or(...conditions: unknown[]): any {
     }
 }
 
-export function ensureArray<T>(data: T): Array<T> {
-    return Array.isArray(data) ? data : [data];
+/**
+ * Wraps a value into array if it's not already one
+ */
+export function ensureArray<T>(value: T): Array<T> {
+    return Array.isArray(value) ? value : [value];
 }
 
-type SelectionPath = Array<{ field: FieldInfo; where: any }>;
-
-export async function preUpdateCheck(
-    model: string,
-    id: string,
-    updateArgs: any,
-    service: Service,
-    context: QueryContext,
-    transaction: Record<string, DbOperations>
-): Promise<void> {
-    // check the entity directly under update first
-    await checkPolicyForIds(
-        model,
-        [id],
-        'update',
-        service,
-        context,
-        transaction
-    );
-
-    const visitor = new NestedWriteVisitor<SelectionPath>(service);
-    const state: SelectionPath = [];
-    const checks: Array<Promise<void>> = [];
-
-    const visitAction = async (
-        fieldInfo: FieldInfo,
-        action: PrismaWriteActionType,
-        fieldData: any,
-        parentData: any,
-        state: SelectionPath
-    ) => {
-        if (!fieldInfo.isDataModel) {
-            return state;
-        }
-
-        if (
-            ![
-                'update',
-                'updateMany',
-                'upsert',
-                'delete',
-                'deleteMany',
-            ].includes(action)
-        ) {
-            return undefined;
-        }
-
-        let condition: any = undefined;
-        if (fieldInfo.isArray) {
-            switch (action) {
-                case 'update':
-                case 'updateMany':
-                case 'upsert':
-                    // condition is wrapped in 'where'
-                    condition = or(
-                        ...ensureArray(fieldData).map((d) => d.where)
-                    );
-                    break;
-                case 'delete':
-                case 'deleteMany':
-                    // condition is not wrapped
-                    condition = or(...ensureArray(fieldData));
-                    break;
-            }
-        }
-
-        const selectionPath = [
-            ...state,
-            { field: fieldInfo, where: condition },
-        ];
-
-        const operation: PolicyOperationKind = [
-            'update',
-            'updateMany',
-            'upsert',
-        ].includes(action)
-            ? 'update'
-            : 'delete';
-
-        checks.push(
-            checkPolicyForSelectionPath(
-                model,
-                id,
-                selectionPath,
-                operation,
-                transaction,
-                service,
-                context
-            )
-        );
-
-        return selectionPath;
-    };
-
-    await visitor.visit(model, updateArgs.data, undefined, state, visitAction);
-
-    await Promise.all(checks);
-}
-
-export async function checkPolicyForIds(
-    model: string,
-    ids: string[],
-    operation: PolicyOperationKind,
-    service: Service,
-    context: QueryContext,
-    db: Record<string, DbOperations>
-) {
-    console.log(
-        `Checking policy for ${model}#[${ids.join(', ')}] for ${operation}`
-    );
-    const idCondition = ids.length > 1 ? { id: { in: ids } } : { id: ids[0] };
-    const query = {
-        where: and(
-            idCondition,
-            await service.buildQueryGuard(model, operation, context)
-        ),
-        select: { id: true },
-    };
-    const filteredResult = (await db[model].findMany(query)) as Array<{
-        id: string;
-    }>;
-
-    const filteredIds = filteredResult.map((item) => item.id);
-    if (filteredIds.length < ids.length) {
-        const gap = ids.filter((id) => !filteredIds.includes(id));
-        throw new RequestHandlerError(
-            ServerErrorCode.DENIED_BY_POLICY,
-            `denied by policy before update: entities failed '${operation}' check, ${model}#[${gap.join(
-                ', '
-            )}]`
-        );
-    }
-}
-
-async function checkPolicyForSelectionPath(
-    model: string,
-    id: string,
-    selectionPath: SelectionPath,
-    operation: PolicyOperationKind,
-    db: Record<string, DbOperations>,
-    service: Service,
-    context: QueryContext
-): Promise<void> {
-    const targetField = selectionPath[selectionPath.length - 1].field;
-    const query = buildChainedSelectQuery(id, selectionPath);
-
-    console.log(
-        `Query for selection path: model ${model}, path ${JSON.stringify(
-            selectionPath
-        )}, query ${JSON.stringify(query)}`
-    );
-    const r = await db[model].findUnique(query);
-
-    const ids: string[] = collectLeafIds(selectionPath, r);
-    console.log(`Collected leaf ids: ${JSON.stringify(ids)}`);
-
-    if (ids.length === 0) {
-        return;
-    }
-
-    // check policies against entities at the end of the selection path
-    await checkPolicyForIds(
-        targetField.type,
-        ids,
-        operation,
-        service,
-        context,
-        db
-    );
-}
-
-function buildChainedSelectQuery(id: string, selectionPath: SelectionPath) {
-    const query = { where: { id }, select: { id: true } };
-    let currSelect: any = query.select;
-    for (const path of selectionPath) {
-        const nextSelect = { select: { id: true } };
-        currSelect[path.field.name] = nextSelect;
-        if (path.where) {
-            currSelect[path.field.name].where = path.where;
-        }
-        currSelect = nextSelect.select;
-    }
-
-    return query;
-}
-
-function collectLeafIds(selectionPath: SelectionPath, data: any): string[] {
-    let curr = data;
-    for (const path of selectionPath) {
-        curr = curr[path.field.name];
-    }
-
-    if (!curr) {
-        throw new RequestHandlerError(
-            ServerErrorCode.UNKNOWN,
-            'an unexpected error occurred'
-        );
-    }
-
-    return Array.isArray(curr)
-        ? curr.map((item) => item.id as string)
-        : [curr.id as string];
-}
-
-export async function readWithCheck(
-    model: string,
-    readArgs: any,
-    service: Service,
-    context: QueryContext,
-    db: Record<string, DbOperations>
-) {
-    const args = deepcopy(readArgs);
-    args.where = and(
-        args.where,
-        await service.buildQueryGuard(model, 'read', context)
-    );
-
-    await injectNestedReadConditions(model, args, service, context);
-
-    console.log(
-        `Reading with validation for ${model}: ${JSON.stringify(args)}`
-    );
-    const result = await db[model].findMany(args);
-
-    await Promise.all(
-        result.map((item) =>
-            checkToOneRelation(item, model, args, service, context, db, 'read')
-        )
-    );
-
-    return result;
-}
-
+/**
+ * Given a where condition, queries db and returns IDs of result entities
+ */
 export async function queryIds(
     model: string,
     db: Record<string, DbOperations>,
@@ -289,6 +64,57 @@ export async function queryIds(
 ): Promise<string[]> {
     const r = await db[model].findMany({ select: { id: true }, where });
     return (r as { id: string }[]).map((item) => item.id);
+}
+
+//#endregion
+
+//#region Policy enforcement helpers
+
+/**
+ * Read model entities w.r.t the given query args. The result list
+ * are guaranteed to fully satisfy 'read' policy rules recursively.
+ *
+ * For to-many relations involved, items not satisfying policy are
+ * silently trimmed. For to-one relation, if relation data fails policy
+ * an RequestHandlerError is thrown.
+ *
+ * @param model the model to query for
+ * @param queryArgs the Prisma query args
+ * @param service the ZenStack service
+ * @param context the query context
+ * @param db the db (or transaction)
+ * @returns
+ */
+export async function readWithCheck(
+    model: string,
+    queryArgs: any,
+    service: Service,
+    context: QueryContext,
+    db: Record<string, DbOperations>
+): Promise<unknown[]> {
+    const args = deepcopy(queryArgs);
+    args.where = and(
+        args.where,
+        await service.buildQueryGuard(model, 'read', context)
+    );
+
+    // recursively inject read guard conditions into the query args
+    await injectNestedReadConditions(model, args, service, context);
+
+    console.log(
+        `Reading with validation for ${model}: ${JSON.stringify(args)}`
+    );
+    const result = await db[model].findMany(args);
+
+    // to-one relation data cannot be trimmed by injected guards, we have to
+    // post-check them
+    await Promise.all(
+        result.map((item) =>
+            checkToOneRelation(item, model, args, service, context, db, 'read')
+        )
+    );
+
+    return result;
 }
 
 async function injectNestedReadConditions(
@@ -305,6 +131,7 @@ async function injectNestedReadConditions(
     for (const field of Object.keys(injectTarget)) {
         const fieldInfo = await service.resolveField(model, field);
         if (!fieldInfo || !fieldInfo.isDataModel) {
+            // only care about relation fields
             continue;
         }
 
@@ -328,6 +155,7 @@ async function injectNestedReadConditions(
             }
         }
 
+        // recurse
         await injectNestedReadConditions(
             fieldInfo.type,
             injectTarget[field],
@@ -338,7 +166,7 @@ async function injectNestedReadConditions(
 }
 
 async function checkToOneRelation(
-    data: any,
+    modelData: any,
     model: string,
     args: any,
     service: Service,
@@ -346,7 +174,7 @@ async function checkToOneRelation(
     db: Record<string, DbOperations>,
     operation: PolicyOperationKind
 ) {
-    if (!data?.id) {
+    if (!modelData?.id) {
         return;
     }
 
@@ -361,26 +189,27 @@ async function checkToOneRelation(
             !fieldInfo ||
             !fieldInfo.isDataModel ||
             fieldInfo.isArray ||
-            !data?.[field]?.id
+            !modelData?.[field]?.id
         ) {
             continue;
         }
 
         console.log(
-            `Validating read of to-one relation: ${fieldInfo.type}#${data[field].id}`
+            `Validating read of to-one relation: ${fieldInfo.type}#${modelData[field].id}`
         );
 
         await checkPolicyForIds(
             fieldInfo.type,
-            [data[field].id],
+            [modelData[field].id],
             operation,
             service,
             context,
             db
         );
 
+        // recurse
         await checkToOneRelation(
-            data[field],
+            modelData[field],
             fieldInfo.type,
             injectTarget[field],
             service,
@@ -391,13 +220,278 @@ async function checkToOneRelation(
     }
 }
 
+type SelectionPath = Array<{ field: FieldInfo; where: any }>;
+
+/**
+ * Validates that a model entity satisfies 'update' policy rules
+ * before conducting an update
+ *
+ * @param model model under update
+ * @param id id of entity under update
+ * @param updateArgs Prisma update args
+ * @param service the ZenStack service
+ * @param context the query context
+ * @param transaction the db transaction context
+ */
+export async function preUpdateCheck(
+    model: string,
+    id: string,
+    updateArgs: any,
+    service: Service,
+    context: QueryContext,
+    transaction: Record<string, DbOperations>
+): Promise<void> {
+    // check the entity directly under update first
+    await checkPolicyForIds(
+        model,
+        [id],
+        'update',
+        service,
+        context,
+        transaction
+    );
+
+    // We need to ensure that all nested updates respect policy rules of
+    // the corresponding model.
+    //
+    // Here we use a visitor to collect all necessary
+    // checkes. During visiting, for every update we meet agains a relation,
+    // we collect its path (starting from the root object). If the relation
+    // is a to-many one, it can carry filter condition that we collect as well.
+    //
+    // After the visiting, we validate that each collected path satisfies
+    // corresponding policy rules by making separate queries.
+
+    const visitor = new NestedWriteVisitor<SelectionPath>(service);
+    const state: SelectionPath = [];
+    const checks: Array<Promise<void>> = [];
+
+    const visitAction = async (
+        fieldInfo: FieldInfo,
+        action: PrismaWriteActionType,
+        fieldData: any,
+        _parentData: any,
+        state: SelectionPath
+    ) => {
+        if (!fieldInfo.isDataModel) {
+            return state;
+        }
+
+        if (
+            ![
+                'update',
+                'updateMany',
+                'upsert',
+                'delete',
+                'deleteMany',
+            ].includes(action)
+        ) {
+            // no more nested writes inside, stop recursion
+            return undefined;
+        }
+
+        // for to-many relation, a filter condition can be attached
+        let condition: any = undefined;
+        if (fieldInfo.isArray) {
+            switch (action) {
+                case 'update':
+                case 'updateMany':
+                case 'upsert':
+                    // condition is wrapped in 'where'
+                    condition = or(
+                        ...ensureArray(fieldData).map((d) => d.where)
+                    );
+                    break;
+                case 'delete':
+                case 'deleteMany':
+                    // condition is not wrapped
+                    condition = or(...ensureArray(fieldData));
+                    break;
+            }
+        }
+
+        // build up a new segment of path
+        const selectionPath = [
+            ...state,
+            { field: fieldInfo, where: condition },
+        ];
+
+        const operation: PolicyOperationKind = [
+            'update',
+            'updateMany',
+            'upsert',
+        ].includes(action)
+            ? 'update'
+            : 'delete';
+
+        // collect an asynchronous check action
+        checks.push(
+            checkPolicyForSelectionPath(
+                model,
+                id,
+                selectionPath,
+                operation,
+                transaction,
+                service,
+                context
+            )
+        );
+
+        // recurse down with the current path as the new state
+        return selectionPath;
+    };
+
+    await visitor.visit(model, updateArgs.data, undefined, state, visitAction);
+
+    await Promise.all(checks);
+}
+
+/**
+ * Given a list of ids for a model, check if they all match policy rules, and if not,
+ * throw a RequestHandlerError.
+ *
+ * @param model the model
+ * @param ids the entity ids
+ * @param operation the operation to check for
+ * @param service the ZenStack service
+ * @param context the query context
+ * @param db the db or transaction
+ */
+export async function checkPolicyForIds(
+    model: string,
+    ids: string[],
+    operation: PolicyOperationKind,
+    service: Service,
+    context: QueryContext,
+    db: Record<string, DbOperations>
+) {
+    console.log(
+        `Checking policy for ${model}#[${ids.join(', ')}] for ${operation}`
+    );
+
+    // build a query condition with policy injected
+    const idCondition = ids.length > 1 ? { id: { in: ids } } : { id: ids[0] };
+    const query = {
+        where: and(
+            idCondition,
+            await service.buildQueryGuard(model, operation, context)
+        ),
+        select: { id: true },
+    };
+
+    // query with policy injected
+    const filteredResult = (await db[model].findMany(query)) as Array<{
+        id: string;
+    }>;
+
+    // see if we get fewer items with policy, if so, reject with an throw
+    const filteredIds = filteredResult.map((item) => item.id);
+    if (filteredIds.length < ids.length) {
+        const gap = ids.filter((id) => !filteredIds.includes(id));
+        throw new RequestHandlerError(
+            ServerErrorCode.DENIED_BY_POLICY,
+            `denied by policy before update: entities failed '${operation}' check, ${model}#[${gap.join(
+                ', '
+            )}]`
+        );
+    }
+}
+
+/**
+ * Given a selection path, check if the entities at the end of path satisfy
+ * policy rules. If not, throw an error.
+ */
+async function checkPolicyForSelectionPath(
+    model: string,
+    id: string,
+    selectionPath: SelectionPath,
+    operation: PolicyOperationKind,
+    db: Record<string, DbOperations>,
+    service: Service,
+    context: QueryContext
+): Promise<void> {
+    const targetField = selectionPath[selectionPath.length - 1].field;
+    // build a Prisma query for the path
+    const query = buildChainedSelectQuery(id, selectionPath);
+
+    console.log(
+        `Query for selection path: model ${model}, path ${JSON.stringify(
+            selectionPath
+        )}, query ${JSON.stringify(query)}`
+    );
+    const r = await db[model].findUnique(query);
+
+    // collect ids at the end of the path
+    const ids: string[] = collectTerminalEntityIds(selectionPath, r);
+    console.log(`Collected leaf ids: ${JSON.stringify(ids)}`);
+
+    if (ids.length === 0) {
+        return;
+    }
+
+    // check policies for the collected ids
+    await checkPolicyForIds(
+        targetField.type,
+        ids,
+        operation,
+        service,
+        context,
+        db
+    );
+}
+
+/**
+ * Builds a Prisma query for the given selection path
+ */
+function buildChainedSelectQuery(id: string, selectionPath: SelectionPath) {
+    const query = { where: { id }, select: { id: true } };
+    let currSelect: any = query.select;
+    for (const path of selectionPath) {
+        const nextSelect = { select: { id: true } };
+        currSelect[path.field.name] = nextSelect;
+        if (path.where) {
+            currSelect[path.field.name].where = path.where;
+        }
+        currSelect = nextSelect.select;
+    }
+    return query;
+}
+
+function collectTerminalEntityIds(
+    selectionPath: SelectionPath,
+    data: any
+): string[] {
+    let curr = data;
+    for (const path of selectionPath) {
+        curr = curr[path.field.name];
+    }
+
+    if (!curr) {
+        throw new RequestHandlerError(
+            ServerErrorCode.UNKNOWN,
+            'an unexpected error occurred'
+        );
+    }
+
+    return Array.isArray(curr)
+        ? curr.map((item) => item.id as string)
+        : [curr.id as string];
+}
+
+/**
+ * Injects assignment of zenstack_transaction field for all nested
+ * update/create in a Prisma update args recursively.
+ *
+ * @return a tuple containing all model types that are involved in
+ * creation or updating, respectively
+ */
 export async function injectTransactionId(
     model: string,
     args: any,
     operation: PolicyOperationKind,
     transactionId: string,
     service: Service
-) {
+): Promise<{ createdModels: string[]; updatedModels: string[] }> {
     const updatedModels = new Set<string>();
     const createdModels = new Set<string>();
 
@@ -474,6 +568,10 @@ export async function injectTransactionId(
     };
 }
 
+/**
+ * Preprocesses the given write args to modify field values (in place) based on
+ * attributes like @password
+ */
 export async function preprocessWritePayload(
     model: string,
     args: any,
@@ -492,6 +590,7 @@ export async function preprocessWritePayload(
             (attr) => attr.name === '@password'
         );
         if (pwdAttr) {
+            // hash password value
             let salt: string | number | undefined = pwdAttr.args.find(
                 (arg) => arg.name === 'salt'
             )?.value as string;
@@ -511,3 +610,5 @@ export async function preprocessWritePayload(
 
     await visitor.visit(model, args.data, undefined, undefined, visitAction);
 }
+
+//#endregion
