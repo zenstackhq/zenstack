@@ -3,12 +3,11 @@ import { makeClient, run, setup } from './utils';
 import { ServerErrorCode } from '../../../packages/internal/src/types';
 
 describe('Operation Coverage Tests', () => {
-    let workDir: string;
     let origDir: string;
 
     beforeAll(async () => {
         origDir = path.resolve('.');
-        workDir = await setup('./tests/operations.zmodel');
+        await setup('./tests/operations.zmodel');
     });
 
     beforeEach(() => {
@@ -702,6 +701,422 @@ describe('Operation Coverage Tests', () => {
             .expect((resp) => {
                 expect(resp.body.m10).toHaveLength(1);
             });
+    });
+
+    //#endregion
+
+    //#region Deep nesting
+
+    it('deep nested create', async () => {
+        // deep create success
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    id: '1',
+                    m12: {
+                        create: {
+                            id: 'm12-1',
+                            value: 1,
+                            m13: {
+                                create: {
+                                    id: 'm13-1',
+                                    value: 11,
+                                },
+                            },
+                            m14: {
+                                create: [
+                                    { id: 'm14-1', value: 21 },
+                                    { id: 'm14-2', value: 22 },
+                                ],
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(201);
+
+        // deep connect success
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                include: { m12: { include: { m13: true, m14: true } } },
+                data: {
+                    id: '2',
+                    m12: {
+                        create: {
+                            value: 2,
+                            m13: {
+                                connect: {
+                                    id: 'm13-1',
+                                },
+                            },
+                            m14: {
+                                connect: [{ id: 'm14-1' }],
+                                connectOrCreate: [
+                                    {
+                                        where: { id: 'm14-2' },
+                                        create: { id: 'm14-new', value: 22 },
+                                    },
+                                    {
+                                        where: { id: 'm14-3' },
+                                        create: { id: 'm14-3', value: 23 },
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(201)
+            .expect((resp) => {
+                expect(resp.body.m12.m13.id).toBe('m13-1');
+                expect(resp.body.m12.m14[0].id).toBe('m14-1');
+                expect(resp.body.m12.m14[1].id).toBe('m14-2');
+                expect(resp.body.m12.m14[2].id).toBe('m14-3');
+            });
+
+        // deep create violation
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    m12: {
+                        create: {
+                            value: 1,
+                            m14: {
+                                create: [{ value: 20 }, { value: 22 }],
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+
+        // deep create violation via deep policy: @@deny('create', m12.m14?[value == 100])
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    m12: {
+                        create: {
+                            value: 1,
+                            m14: {
+                                create: { value: 100 },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+
+        // deep connect violation via deep policy: @@deny('create', m12.m14?[value == 100])
+        await makeClient('/api/data/M14')
+            .post('/')
+            .send({
+                data: {
+                    id: 'm14-value-100',
+                    value: 100,
+                },
+            })
+            .expect(201);
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    m12: {
+                        create: {
+                            value: 1,
+                            m14: {
+                                connect: { id: 'm14-value-100' },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+
+        // create read-back filter: M14 @@deny('read', value == 200)
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                include: { m12: { include: { m14: true } } },
+                data: {
+                    m12: {
+                        create: {
+                            value: 1,
+                            m14: {
+                                create: [{ value: 200 }, { value: 201 }],
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(201)
+            .expect((resp) => {
+                expect(resp.body.m12.m14).toHaveLength(1);
+            });
+
+        // create read-back rejection: M13 @@deny('read', value == 200)
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                include: { m12: { include: { m13: true } } },
+                data: {
+                    m12: {
+                        create: {
+                            value: 1,
+                            m13: {
+                                create: { value: 200 },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+    });
+
+    it('deep nested update', async () => {
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    id: '1',
+                },
+            })
+            .expect(201);
+
+        // deep update with create success
+        await makeClient('/api/data/M11/1')
+            .put('/')
+            .send({
+                include: { m12: { include: { m13: true, m14: true } } },
+                data: {
+                    m12: {
+                        create: {
+                            id: 'm12-1',
+                            value: 2,
+                            m13: {
+                                create: {
+                                    id: 'm13-1',
+                                    value: 11,
+                                },
+                            },
+                            m14: {
+                                create: [
+                                    { id: 'm14-1', value: 22 },
+                                    { id: 'm14-2', value: 23 },
+                                ],
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.m12.m13.id).toBe('m13-1');
+                expect(resp.body.m12.m14).toHaveLength(2);
+            });
+
+        // deep update with connect/disconnect/delete success
+        await makeClient('/api/data/M14')
+            .post('/')
+            .send({
+                data: {
+                    id: 'm14-3',
+                    value: 23,
+                },
+            })
+            .expect(201);
+        await makeClient('/api/data/M11/1')
+            .put('/')
+            .send({
+                include: { m12: { include: { m14: true } } },
+                data: {
+                    m12: {
+                        update: {
+                            m14: {
+                                connect: [{ id: 'm14-3' }],
+                                disconnect: { id: 'm14-1' },
+                                delete: { id: 'm14-2' },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.m12.m14).toHaveLength(1);
+                expect(resp.body.m12.m14[0].id).toBe('m14-3');
+            });
+
+        // reconnect m14-1, create m14-2
+        await makeClient('/api/data/M11/1')
+            .put('/')
+            .send({
+                include: { m12: { include: { m14: true } } },
+                data: {
+                    m12: {
+                        update: {
+                            m14: {
+                                connect: [{ id: 'm14-1' }],
+                                create: { id: 'm14-2', value: 23 },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(200);
+
+        // deep update violation
+        await makeClient('/api/data/M11/1')
+            .put('/')
+            .send({
+                data: {
+                    m12: {
+                        update: {
+                            m14: {
+                                create: { value: 20 },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+
+        // deep update violation via deep policy: @@deny('update', m12.m14?[value == 101])
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    id: '2',
+                    m12: {
+                        create: {
+                            value: 2,
+                            m14: {
+                                create: {
+                                    id: 'm14-101',
+                                    value: 101,
+                                },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(201);
+        await makeClient('/api/data/M11/2')
+            .put('/')
+            .send({
+                data: {
+                    m12: {
+                        update: {
+                            m14: {
+                                updateMany: {
+                                    where: { value: { gt: 0 } },
+                                    data: { value: 102 },
+                                },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+
+        // update read-back filter: M14 @@deny('read', value == 200)
+        await makeClient('/api/data/M11/1')
+            .put('/')
+            .send({
+                include: { m12: { include: { m14: true } } },
+                data: {
+                    m12: {
+                        update: {
+                            m14: {
+                                update: {
+                                    where: { id: 'm14-1' },
+                                    data: { value: 200 },
+                                },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.m12.m14).toHaveLength(2);
+                expect(resp.body.m12.m14.map((d: any) => d.id)).not.toContain(
+                    'm14-1'
+                );
+            });
+
+        // update read-back rejection: M13 @@deny('read', value == 200)
+        await makeClient('/api/data/M11/1')
+            .put('/')
+            .send({
+                include: { m12: { include: { m13: true } } },
+                data: {
+                    m12: {
+                        update: {
+                            m13: {
+                                update: { value: 200 },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(403);
+    });
+
+    it('deep nested delete', async () => {
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    id: '1',
+                    m12: {
+                        create: {
+                            value: 1,
+                            m14: {
+                                create: [{ value: 200 }, { value: 22 }],
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(201);
+
+        // delete read-back filter: M14 @@deny('read', value == 200)
+        await makeClient(`/api/data/M11/1`, undefined, {
+            include: { m12: { select: { m14: true } } },
+        })
+            .delete('/')
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.m12.m14).toHaveLength(1);
+            });
+
+        await makeClient('/api/data/M11')
+            .post('/')
+            .send({
+                data: {
+                    id: '2',
+                    m12: {
+                        create: {
+                            value: 1,
+                            m13: {
+                                create: { value: 200 },
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(201);
+
+        // delete read-back reject: M13 @@deny('read', value == 200)
+        await makeClient(`/api/data/M11/1`, undefined, {
+            include: { m12: { select: { m13: { id: true } } } },
+        })
+            .delete('/')
+            .expect(403);
     });
 
     //#endregion

@@ -96,3 +96,55 @@ model M10 {
     @@allow('read', value > 1)
     @@allow('create,update', true)
 }
+
+// M11 - M12 -  M13
+//           -* M14
+model M11 {
+    id String @id @default(cuid())
+    m12 M12?
+
+    @@allow('all', true)
+    @@deny('create', m12.m14?[value == 100])
+    @@deny('update', m12.m14?[value == 101])
+}
+
+model M12 {
+    id String @id @default(cuid())
+    value Int
+    m11 M11 @relation(fields: [m11Id], references: [id], onDelete: Cascade)
+    m11Id String @unique
+
+    m13 M13?
+    m14 M14[]
+
+    @@allow('read', true)
+    @@allow('create', value > 0)
+    @@allow('update', value > 1)
+    @@allow('delete', value > 2)
+}
+
+model M13 {
+    id String @id @default(cuid())
+    value Int
+    m12 M12 @relation(fields: [m12Id], references: [id], onDelete: Cascade)
+    m12Id String @unique
+
+    @@allow('read', true)
+    @@allow('create', value > 10)
+    @@allow('update', value > 11)
+    @@allow('delete', value > 12)
+    @@deny('read', value == 200)
+}
+
+model M14 {
+    id String @id @default(cuid())
+    value Int
+    m12 M12? @relation(fields: [m12Id], references: [id], onDelete: Cascade)
+    m12Id String?
+
+    @@allow('read', true)
+    @@allow('create', value > 20)
+    @@allow('update', value > 21)
+    @@allow('delete', value > 22)
+    @@deny('read', value == 200)
+}

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import deepcopy from 'deepcopy';
+import { TRANSACTION_FIELD_NAME } from '../../constants';
 import {
     DbOperations,
     FieldInfo,
@@ -13,7 +14,7 @@ import { PrismaWriteActionType, RequestHandlerError } from '../types';
 import { NestedWriteVisitor } from './nested-write-vistor';
 
 /**
- * Utility for creating a conjunction of two query conditions
+ * Creates a conjunction of a list of query conditions.
  */
 export function and(...conditions: unknown[]): any {
     const filtered = conditions.filter((c) => !!c);
@@ -26,6 +27,9 @@ export function and(...conditions: unknown[]): any {
     }
 }
 
+/**
+ * Creates a disjunction of a list of query conditions.
+ */
 export function or(...conditions: unknown[]): any {
     const filtered = conditions.filter((c) => !!c);
     if (filtered.length === 0) {
@@ -134,7 +138,7 @@ export async function preUpdateCheck(
         return selectionPath;
     };
 
-    await visitor.visit(model, updateArgs.data, ['update'], state, visitAction);
+    await visitor.visit(model, updateArgs.data, state, visitAction);
 
     await Promise.all(checks);
 }
@@ -213,13 +217,14 @@ async function checkPolicyForSelectionPath(
 
 function buildChainedSelectQuery(id: string, selectionPath: SelectionPath) {
     const query = { where: { id }, select: { id: true } };
-    let curr: any = query.select;
+    let currSelect: any = query.select;
     for (const path of selectionPath) {
-        curr[path.field.name] = { select: { id: true } };
+        const nextSelect = { select: { id: true } };
+        currSelect[path.field.name] = nextSelect;
         if (path.where) {
-            curr[path.field.name].where = path.where;
+            currSelect[path.field.name].where = path.where;
         }
-        curr = curr.select;
+        currSelect = nextSelect.select;
     }
 
     return query;
@@ -228,8 +233,16 @@ function buildChainedSelectQuery(id: string, selectionPath: SelectionPath) {
 function collectLeafIds(selectionPath: SelectionPath, data: any): string[] {
     let curr = data;
     for (const path of selectionPath) {
-        curr = data[path.field.name];
+        curr = curr[path.field.name];
     }
+
+    if (!curr) {
+        throw new RequestHandlerError(
+            ServerErrorCode.UNKNOWN,
+            'an unexpected error occurred'
+        );
+    }
+
     return Array.isArray(curr)
         ? curr.map((item) => item.id as string)
         : [curr.id as string];
@@ -371,4 +384,87 @@ async function checkToOneRelation(
             operation
         );
     }
+}
+
+export async function injectTransactionId(
+    model: string,
+    args: any,
+    operation: PolicyOperationKind,
+    transactionId: string,
+    service: Service
+) {
+    const updatedModels = new Set<string>();
+    const createdModels = new Set<string>();
+
+    if (args.data) {
+        args.data[TRANSACTION_FIELD_NAME] = `${transactionId}:${operation}`;
+        updatedModels.add(model);
+    }
+
+    const visitAction = async (
+        fieldInfo: FieldInfo,
+        action: PrismaWriteActionType,
+        writeData: any
+    ) => {
+        if (fieldInfo.isDataModel && writeData) {
+            switch (action) {
+                case 'update':
+                case 'updateMany':
+                    ensureArray(writeData).forEach((item) => {
+                        if (fieldInfo.isArray && item.data) {
+                            item.data[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:update`;
+                        } else {
+                            item[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:update`;
+                        }
+                        updatedModels.add(fieldInfo.type);
+                    });
+                    break;
+
+                case 'upsert':
+                    ensureArray(writeData).forEach((item) => {
+                        item.create[
+                            TRANSACTION_FIELD_NAME
+                        ] = `${transactionId}:create`;
+                        createdModels.add(fieldInfo.type);
+                        item.update[
+                            TRANSACTION_FIELD_NAME
+                        ] = `${transactionId}:update`;
+                        updatedModels.add(fieldInfo.type);
+                    });
+                    break;
+
+                case 'create':
+                case 'createMany':
+                    ensureArray(writeData).forEach((item) => {
+                        item[
+                            TRANSACTION_FIELD_NAME
+                        ] = `${transactionId}:create`;
+                        createdModels.add(fieldInfo.type);
+                    });
+                    break;
+
+                case 'connectOrCreate':
+                    ensureArray(writeData).forEach((item) => {
+                        item.create[
+                            TRANSACTION_FIELD_NAME
+                        ] = `${transactionId}:create`;
+                        createdModels.add(fieldInfo.type);
+                    });
+                    break;
+            }
+        }
+        return true;
+    };
+
+    const visitor = new NestedWriteVisitor(service);
+    await visitor.visit(model, args.data, undefined, visitAction);
+
+    return {
+        createdModels: Array.from(createdModels),
+        updatedModels: Array.from(updatedModels),
+    };
 }

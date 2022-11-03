@@ -1,50 +1,17 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FieldInfo, PolicyOperationKind, Service } from '../../types';
+import { FieldInfo, Service } from '../../types';
 import { PrismaWriteActions, PrismaWriteActionType } from '../types';
 
 export type NestedWriterVisitorAction<State = unknown> = (
     fieldInfo: FieldInfo,
     action: PrismaWriteActionType,
     writeData: any,
-    state: State,
-    ops: PolicyOperationKind[]
+    state: State
 ) => Promise<State | undefined>;
 
 export class NestedWriteVisitor<State> {
     constructor(private readonly service: Service) {}
-
-    private mapActionToOperationKind(
-        action: PrismaWriteActionType,
-        writeData: any
-    ): PolicyOperationKind[] {
-        switch (action) {
-            case 'create':
-            case 'createMany':
-                return ['create'];
-            case 'connectOrCreate':
-                return writeData.create ? ['create'] : [];
-            case 'update':
-            case 'updateMany':
-                return ['update'];
-            case 'upsert': {
-                const ops: PolicyOperationKind[] = [];
-                if (writeData.create) {
-                    ops.push('create');
-                }
-                if (writeData.update) {
-                    ops.push('update');
-                }
-                return ops;
-            }
-            case 'delete':
-            case 'deleteMany':
-                return ['delete'];
-            default:
-                console.warn(`Unsupported Prisma write action: ${action}`);
-                return [];
-        }
-    }
 
     private isPrismaWriteAction(value: string): value is PrismaWriteActionType {
         return PrismaWriteActions.includes(value as PrismaWriteActionType);
@@ -53,7 +20,6 @@ export class NestedWriteVisitor<State> {
     async visit(
         model: string,
         writeData: any,
-        operations: PolicyOperationKind[],
         state: State,
         action: NestedWriterVisitorAction<State>
     ): Promise<void> {
@@ -72,35 +38,27 @@ export class NestedWriteVisitor<State> {
             }
 
             if (!fieldInfo.isDataModel) {
-                await action(fieldInfo, value, writeData, state, operations);
+                await action(fieldInfo, value, writeData, state);
             } else {
                 // deal with nested write of other data model
                 for (const [subkey, subWriteData] of Object.entries<any>(
                     value
                 )) {
                     if (this.isPrismaWriteAction(subkey) && subWriteData) {
-                        const ops = this.mapActionToOperationKind(
+                        const newState = await action(
+                            fieldInfo,
                             subkey,
-                            subWriteData
+                            subWriteData,
+                            state
                         );
-                        if (ops.length > 0) {
-                            const newState = await action(
-                                fieldInfo,
-                                subkey,
+                        if (newState) {
+                            // recurse into content
+                            await this.visit(
+                                fieldInfo.type,
                                 subWriteData,
-                                state,
-                                ops
+                                newState,
+                                action
                             );
-                            if (newState) {
-                                // recurse into content
-                                await this.visit(
-                                    fieldInfo.type,
-                                    subWriteData,
-                                    ops,
-                                    newState,
-                                    action
-                                );
-                            }
                         }
                     }
                 }

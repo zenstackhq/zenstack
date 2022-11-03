@@ -1,36 +1,25 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import cuid from 'cuid';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { TRANSACTION_FIELD_NAME } from '../../constants';
 import { RequestHandlerOptions } from '../../request-handler';
 import {
     DbClientContract,
     DbOperations,
-    FieldInfo,
-    PolicyOperationKind,
     QueryContext,
     ServerErrorCode,
     Service,
 } from '../../types';
-import {
-    PrismaWriteActionType,
-    RequestHandler,
-    RequestHandlerError,
-} from '../types';
+import { RequestHandler, RequestHandlerError } from '../types';
 import {
     and,
     checkPolicyForIds,
-    ensureArray,
+    injectTransactionId,
     preUpdateCheck,
     queryIds,
     readWithCheck,
-} from './guard-utils';
-import { QueryProcessor } from './query-processor';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
-import {
-    NestedWriteVisitor,
-    NestedWriterVisitorAction,
-} from './nested-write-vistor';
-import cuid from 'cuid';
+} from './policy-utils';
 
 const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
     P2002: ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
@@ -44,14 +33,10 @@ const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
 export default class DataHandler<DbClient extends DbClientContract>
     implements RequestHandler
 {
-    private readonly queryProcessor: QueryProcessor;
-
     constructor(
         private readonly service: Service<DbClient>,
         private readonly options: RequestHandlerOptions
-    ) {
-        this.queryProcessor = new QueryProcessor(service);
-    }
+    ) {}
 
     async handle(
         req: NextApiRequest,
@@ -129,6 +114,9 @@ export default class DataHandler<DbClient extends DbClientContract>
                 console.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
                 );
+                if (err instanceof Error) {
+                    console.error(err.stack);
+                }
                 res.status(500).send({ error: ServerErrorCode.UNKNOWN });
             }
         }
@@ -197,39 +185,18 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        // const db = this.service.db;
-
-        // POST creates an entity for a model.
-        //
-        // Here we cannot exaustively validate the created entity fulfills policies
-        // by only inspecting the input payload, because of default values, nested
-        // creates/updates, relations, and maybe other reasons.
-        //
-        // Instead a safer approach is used. For create and update operations, an
-        // interactive transaction is employed to conduct the write. After the write
-        // completes (without closing the transaction), the affected entities are
-        // fetched (in the transaction context) and checked against policies, and roll
-        // back the transaction in case of any failure.
-        //
-        // With operations like upsert and nested updateMany, etc., it's not always
-        // possible to identify what entities are affected during the write. An auxiliary
-        // field zenstack_transaction is used for tracking this. The value of the
-        // field is set like:
-        //     zenstack_transaction = <transaction_id>:<operation>
-        // , where <transaction_id> is a UUID shared by the entire transaction, and <operation>
-        // is the action taken to the specific entity.
-
         const transactionId = cuid();
 
         // start an interactive transaction
         const r = await this.service.db.$transaction(
             async (tx: Record<string, DbOperations>) => {
                 // inject transaction id into update/create payload (direct and nested)
-                const { createdModels } = await this.injectTransactionId(
+                const { createdModels } = await injectTransactionId(
                     model,
                     args,
                     'create',
-                    transactionId
+                    transactionId,
+                    this.service
                 );
 
                 // conduct the create
@@ -332,7 +299,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        args.where = { id };
+        args.where = { ...args.where, id };
         const transactionId = cuid();
 
         await this.service.db.$transaction(
@@ -348,11 +315,12 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // inject transaction id into update/create payload (direct and nested)
-                const { createdModels } = await this.injectTransactionId(
+                const { createdModels } = await injectTransactionId(
                     model,
                     args,
                     'update',
-                    transactionId
+                    transactionId,
+                    this.service
                 );
 
                 // conduct the update
@@ -419,93 +387,6 @@ export default class DataHandler<DbClient extends DbClientContract>
         }
     }
 
-    private async injectTransactionId(
-        model: string,
-        args: any,
-        operation: PolicyOperationKind,
-        transactionId: string
-    ) {
-        const updatedModels = new Set<string>();
-        const createdModels = new Set<string>();
-
-        if (args.data) {
-            args.data[TRANSACTION_FIELD_NAME] = `${transactionId}:${operation}`;
-            updatedModels.add(model);
-        }
-
-        const visitAction: NestedWriterVisitorAction = async (
-            fieldInfo: FieldInfo,
-            action: PrismaWriteActionType,
-            writeData: any
-        ) => {
-            if (fieldInfo.isDataModel && writeData) {
-                switch (action) {
-                    case 'update':
-                    case 'updateMany':
-                        ensureArray(writeData).forEach((item) => {
-                            if (fieldInfo.isArray && item.data) {
-                                item.data[
-                                    TRANSACTION_FIELD_NAME
-                                ] = `${transactionId}:update`;
-                            } else {
-                                item[
-                                    TRANSACTION_FIELD_NAME
-                                ] = `${transactionId}:update`;
-                            }
-                            updatedModels.add(fieldInfo.type);
-                        });
-                        break;
-
-                    case 'upsert':
-                        ensureArray(writeData).forEach((item) => {
-                            item.create[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:create`;
-                            createdModels.add(fieldInfo.type);
-                            item.update[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:update`;
-                            updatedModels.add(fieldInfo.type);
-                        });
-                        break;
-
-                    case 'create':
-                    case 'createMany':
-                        ensureArray(writeData).forEach((item) => {
-                            item[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:create`;
-                            createdModels.add(fieldInfo.type);
-                        });
-                        break;
-
-                    case 'connectOrCreate':
-                        ensureArray(writeData).forEach((item) => {
-                            item.create[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:create`;
-                            createdModels.add(fieldInfo.type);
-                        });
-                        break;
-                }
-            }
-        };
-
-        const visitor = new NestedWriteVisitor(this.service);
-        await visitor.visit(
-            model,
-            args.data,
-            ['update'],
-            undefined,
-            visitAction
-        );
-
-        return {
-            createdModels: Array.from(createdModels),
-            updatedModels: Array.from(updatedModels),
-        };
-    }
-
     private async del(
         req: NextApiRequest,
         res: NextApiResponse,
@@ -520,57 +401,60 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        // ensure entity passes policy check
-        await this.ensureEntityPolicy(id, model, 'delete', context);
+        // ensures the item under deletion passes policy check
+        await checkPolicyForIds(
+            model,
+            [id],
+            'delete',
+            this.service,
+            context,
+            this.service.db
+        );
 
         const args = req.query.q ? JSON.parse(req.query.q as string) : {};
+        args.where = { ...args.where, id };
 
-        // proceed with deleting
-        const delArgs = await this.queryProcessor.processQueryArgs(
-            model,
-            args,
-            'delete',
-            context,
-            false
+        const r = await this.service.db.$transaction(
+            async (tx: Record<string, DbOperations>) => {
+                // first fetch the data that needs to be returned after deletion
+                let readResult: any;
+                try {
+                    const items = await readWithCheck(
+                        model,
+                        args,
+                        this.service,
+                        context,
+                        tx
+                    );
+                    readResult = items[0];
+                } catch (err) {
+                    if (
+                        err instanceof RequestHandlerError &&
+                        err.code === ServerErrorCode.DENIED_BY_POLICY
+                    ) {
+                        // can't read back, just return undefined, outer logic handles it
+                    } else {
+                        throw err;
+                    }
+                }
+
+                // conduct the deletion
+                console.log(
+                    `Conducting delete ${model}:\n${JSON.stringify(args)}`
+                );
+                await tx[model].delete(args);
+
+                return readResult;
+            }
         );
-        delArgs.where = { ...delArgs.where, id };
 
-        console.log(`Deleting ${model}:\n${JSON.stringify(delArgs)}`);
-        const db = this.service.db[model];
-        const r = await db.delete(delArgs);
-        await this.queryProcessor.postProcess(model, r, 'delete', context);
-
-        res.status(200).send(r);
-    }
-
-    /**
-     * Ensures entity of a specified "id" satisfies policies for a given "operation".
-     */
-    private async ensureEntityPolicy(
-        id: string,
-        model: string,
-        operation: PolicyOperationKind,
-        context: QueryContext
-    ) {
-        const db = this.service.db[model];
-
-        // check if the record is readable concerning policy for the operation
-        const readArgs = await this.queryProcessor.processQueryArgs(
-            model,
-            { where: { id } },
-            operation,
-            context
-        );
-        console.log(
-            `Finding pre-operation ${model}:\n${JSON.stringify(readArgs)}`
-        );
-        const read = await db.findFirst(readArgs);
-        if (!read) {
+        if (r) {
+            res.status(200).send(r);
+        } else {
             throw new RequestHandlerError(
-                ServerErrorCode.DENIED_BY_POLICY,
-                'denied by policy'
+                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
+                `delete result could not be read back due to policy check`
             );
         }
-        return read;
     }
 }
