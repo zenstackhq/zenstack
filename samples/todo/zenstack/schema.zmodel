@@ -77,16 +77,12 @@ model User {
     updatedAt DateTime @updatedAt
     email String @unique
     emailVerified DateTime?
-    password String?
+    password String @password @omit
     name String?
     spaces SpaceUser[]
     image String?
     lists List[]
     todos Todo[]
-
-    // next-auth
-    accounts      Account[]
-    sessions      Session[]
 
     // can be created by anyone, even not logged in
     @@allow('create', true)
@@ -143,40 +139,4 @@ model Todo {
     // owner has full access, also space members have full access (if the parent List is not private)
     @@allow('all', list.owner == auth())
     @@allow('all', list.space.members?[user == auth()] && !list.private)
-}
-
-// Models used by next-auth
-
-model Account {
-    id                String  @id @default(uuid())
-    userId            String
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String?
-    access_token      String?
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String?
-    session_state     String?
-    user              User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@unique([provider, providerAccountId])
-}
-
-model Session {
-    id           String   @id @default(uuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-    identifier String
-    token      String   @id
-    expires    DateTime
-
-    @@unique([identifier, token])
 }
