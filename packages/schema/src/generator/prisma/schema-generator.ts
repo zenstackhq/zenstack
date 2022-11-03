@@ -35,7 +35,7 @@ import {
     ModelFieldType,
 } from './prisma-builder';
 
-const excludedAttributes = ['@@allow', '@@deny'];
+const excludedAttributes = ['@@allow', '@@deny', '@password'];
 
 /**
  * Generates Prisma schema file

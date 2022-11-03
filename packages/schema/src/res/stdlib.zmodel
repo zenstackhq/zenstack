@@ -113,6 +113,6 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
 attribute @password(saltLength: Int?, salt: String?)
 
 /*
- * Indicates that the field should be omitted when queried with the CRUD services
+ * Indicates that the field should be omitted when read from the generated services
  */
 attribute @omit()

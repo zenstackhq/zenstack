@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { hashSync } from 'bcryptjs';
 import deepcopy from 'deepcopy';
-import { TRANSACTION_FIELD_NAME } from '../../constants';
+import {
+    DEFAULT_PASSWORD_SALT_LENGTH,
+    TRANSACTION_FIELD_NAME,
+} from '../../constants';
 import {
     DbOperations,
     FieldInfo,
@@ -72,7 +76,8 @@ export async function preUpdateCheck(
     const visitAction = async (
         fieldInfo: FieldInfo,
         action: PrismaWriteActionType,
-        writeData: any,
+        fieldData: any,
+        parentData: any,
         state: SelectionPath
     ) => {
         if (!fieldInfo.isDataModel) {
@@ -99,13 +104,13 @@ export async function preUpdateCheck(
                 case 'upsert':
                     // condition is wrapped in 'where'
                     condition = or(
-                        ...ensureArray(writeData).map((d) => d.where)
+                        ...ensureArray(fieldData).map((d) => d.where)
                     );
                     break;
                 case 'delete':
                 case 'deleteMany':
                     // condition is not wrapped
-                    condition = or(...ensureArray(writeData));
+                    condition = or(...ensureArray(fieldData));
                     break;
             }
         }
@@ -138,7 +143,7 @@ export async function preUpdateCheck(
         return selectionPath;
     };
 
-    await visitor.visit(model, updateArgs.data, state, visitAction);
+    await visitor.visit(model, updateArgs.data, undefined, state, visitAction);
 
     await Promise.all(checks);
 }
@@ -404,13 +409,13 @@ export async function injectTransactionId(
     const visitAction = async (
         fieldInfo: FieldInfo,
         action: PrismaWriteActionType,
-        writeData: any
+        fieldData: any
     ) => {
-        if (fieldInfo.isDataModel && writeData) {
+        if (fieldInfo.isDataModel && fieldData) {
             switch (action) {
                 case 'update':
                 case 'updateMany':
-                    ensureArray(writeData).forEach((item) => {
+                    ensureArray(fieldData).forEach((item) => {
                         if (fieldInfo.isArray && item.data) {
                             item.data[
                                 TRANSACTION_FIELD_NAME
@@ -425,7 +430,7 @@ export async function injectTransactionId(
                     break;
 
                 case 'upsert':
-                    ensureArray(writeData).forEach((item) => {
+                    ensureArray(fieldData).forEach((item) => {
                         item.create[
                             TRANSACTION_FIELD_NAME
                         ] = `${transactionId}:create`;
@@ -439,7 +444,7 @@ export async function injectTransactionId(
 
                 case 'create':
                 case 'createMany':
-                    ensureArray(writeData).forEach((item) => {
+                    ensureArray(fieldData).forEach((item) => {
                         item[
                             TRANSACTION_FIELD_NAME
                         ] = `${transactionId}:create`;
@@ -448,7 +453,7 @@ export async function injectTransactionId(
                     break;
 
                 case 'connectOrCreate':
-                    ensureArray(writeData).forEach((item) => {
+                    ensureArray(fieldData).forEach((item) => {
                         item.create[
                             TRANSACTION_FIELD_NAME
                         ] = `${transactionId}:create`;
@@ -461,10 +466,48 @@ export async function injectTransactionId(
     };
 
     const visitor = new NestedWriteVisitor(service);
-    await visitor.visit(model, args.data, undefined, visitAction);
+    await visitor.visit(model, args.data, undefined, undefined, visitAction);
 
     return {
         createdModels: Array.from(createdModels),
         updatedModels: Array.from(updatedModels),
     };
+}
+
+export async function preprocessWritePayload(
+    model: string,
+    args: any,
+    service: Service
+) {
+    const visitAction = async (
+        fieldInfo: FieldInfo,
+        _action: PrismaWriteActionType,
+        fieldData: any,
+        parentData: any
+    ) => {
+        if (fieldInfo.type !== 'String') {
+            return true;
+        }
+        const pwdAttr = fieldInfo.attributes?.find(
+            (attr) => attr.name === '@password'
+        );
+        if (pwdAttr) {
+            let salt: string | number | undefined = pwdAttr.args.find(
+                (arg) => arg.name === 'salt'
+            )?.value as string;
+            if (!salt) {
+                salt = pwdAttr.args.find((arg) => arg.name === 'saltLength')
+                    ?.value as number;
+            }
+            if (!salt) {
+                salt = DEFAULT_PASSWORD_SALT_LENGTH;
+            }
+            parentData[fieldInfo.name] = hashSync(fieldData, salt);
+        }
+        return true;
+    };
+
+    const visitor = new NestedWriteVisitor(service);
+
+    await visitor.visit(model, args.data, undefined, undefined, visitAction);
 }

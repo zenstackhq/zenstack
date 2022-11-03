@@ -16,6 +16,7 @@ import {
     and,
     checkPolicyForIds,
     injectTransactionId,
+    preprocessWritePayload,
     preUpdateCheck,
     queryIds,
     readWithCheck,
@@ -185,6 +186,9 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
+        // preprocess payload to modify fields as required by attribute like @password
+        await preprocessWritePayload(model, args, this.service);
+
         const transactionId = cuid();
 
         // start an interactive transaction
@@ -299,7 +303,11 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
+        // preprocess payload to modify fields as required by attribute like @password
+        await preprocessWritePayload(model, args, this.service);
+
         args.where = { ...args.where, id };
+
         const transactionId = cuid();
 
         await this.service.db.$transaction(
