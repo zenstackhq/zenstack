@@ -20,7 +20,7 @@ export default function Component({ value, updated, deleted }: Props) {
             update(value.id, {
                 data: { completedAt: completed ? new Date() : null },
             }).then((newValue) => {
-                if (updated) {
+                if (updated && newValue) {
                     updated(newValue);
                 }
             });

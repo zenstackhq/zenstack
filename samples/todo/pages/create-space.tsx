@@ -36,7 +36,9 @@ const CreateSpace: NextPage = () => {
             toast.success("Space created successfull! You'll be redirected.");
 
             setTimeout(() => {
-                router.push(`/space/${space.slug}`);
+                if (space) {
+                    router.push(`/space/${space.slug}`);
+                }
             }, 2000);
         } catch (err) {
             console.error(err);
