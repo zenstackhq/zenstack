@@ -75,7 +75,7 @@ export default class ReactHooksGenerator implements Generator {
             .addStatements([
                 `
                 try {
-                    return request.post<P.${model.name}CreateArgs, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(endpoint, args, mutate);
+                    return await request.post<P.${model.name}CreateArgs, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(endpoint, args, mutate);
                 } catch (err: any) {
                     if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
@@ -146,7 +146,7 @@ export default class ReactHooksGenerator implements Generator {
             .addStatements([
                 `
                 try {
-                    return request.put<Omit<P.${model.name}UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
+                    return await request.put<Omit<P.${model.name}UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
                 } catch (err: any) {
                     if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
@@ -177,7 +177,7 @@ export default class ReactHooksGenerator implements Generator {
             .addStatements([
                 `
                 try {
-                    return request.del<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
+                    return await request.del<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
                 } catch (err: any) {
                     if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
