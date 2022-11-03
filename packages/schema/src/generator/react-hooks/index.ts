@@ -42,10 +42,11 @@ export default class ReactHooksGenerator implements Generator {
             isTypeOnly: true,
             moduleSpecifier: '../../.prisma',
         });
-        sf.addStatements(
-            `import { request } from '${INTERNAL_PACKAGE}/lib/client';`
-        );
-        sf.addStatements(`import { type SWRResponse } from 'swr'`);
+        sf.addStatements([
+            `import { request } from '${INTERNAL_PACKAGE}/lib/client';`,
+            `import { ServerErrorCode } from '@zenstackhq/runtime/client';`,
+            `import { type SWRResponse } from 'swr'`,
+        ]);
 
         sf.addStatements(
             `const endpoint = '/api/${API_ROUTE_NAME}/data/${model.name}';`
@@ -72,7 +73,17 @@ export default class ReactHooksGenerator implements Generator {
             })
             .addBody()
             .addStatements([
-                `return request.post<P.${model.name}CreateArgs, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(endpoint, args, mutate);`,
+                `
+                try {
+                    return await request.post<P.${model.name}CreateArgs, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(endpoint, args, mutate);
+                } catch (err: any) {
+                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
+                        return undefined;
+                    } else {
+                        throw err;
+                    }
+                }
+                `,
             ]);
 
         // find
@@ -133,7 +144,17 @@ export default class ReactHooksGenerator implements Generator {
             })
             .addBody()
             .addStatements([
-                `return request.put<Omit<P.${model.name}UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);`,
+                `
+                try {
+                    return await request.put<Omit<P.${model.name}UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
+                } catch (err: any) {
+                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
+                        return undefined;
+                    } else {
+                        throw err;
+                    }
+                }
+                `,
             ]);
 
         // del
@@ -154,7 +175,17 @@ export default class ReactHooksGenerator implements Generator {
             })
             .addBody()
             .addStatements([
-                `return request.del<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);`,
+                `
+                try {
+                    return await request.del<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
+                } catch (err: any) {
+                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
+                        return undefined;
+                    } else {
+                        throw err;
+                    }
+                }
+                `,
             ]);
 
         useFuncBody.addStatements([

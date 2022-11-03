@@ -183,20 +183,20 @@ You can use `auth()` to:
 -   Check if a user is logged in
 
 ```prisma
-deny('all', auth() == null)
+@@deny('all', auth() == null)
 ```
 
 -   Access user's fields
 
 ```prisma
-allow('update', auth().role == 'ADMIN')
+@@allow('update', auth().role == 'ADMIN')
 ```
 
 -   Compare user identity
 
 ```prisma
 // owner is a relation field to User model
-allow('update', auth() == owner)
+@@allow('update', auth() == owner)
 ```
 
 ### A simple example with Post model

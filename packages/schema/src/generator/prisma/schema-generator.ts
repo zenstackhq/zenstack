@@ -35,7 +35,7 @@ import {
     ModelFieldType,
 } from './prisma-builder';
 
-const excludedAttributes = ['@@allow', '@@deny'];
+const excludedAttributes = ['@@allow', '@@deny', '@password', '@omit'];
 
 /**
  * Generates Prisma schema file
@@ -171,6 +171,19 @@ export default class PrismaSchemaGenerator {
 
         // add an "zenstack_transaction" field for tracking records created/updated with nested writes
         model.addField(TRANSACTION_FIELD_NAME, 'String?');
+
+        // create an index for "zenstack_transaction" field
+        model.addAttribute('@@index', [
+            new PrismaAttributeArg(
+                undefined,
+                new PrismaAttributeArgValue('Array', [
+                    new PrismaAttributeArgValue(
+                        'FieldReference',
+                        TRANSACTION_FIELD_NAME
+                    ),
+                ])
+            ),
+        ]);
 
         for (const attr of decl.attributes.filter(
             (attr) =>

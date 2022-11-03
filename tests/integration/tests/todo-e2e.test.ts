@@ -1,5 +1,6 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
+import { ServerErrorCode } from '../../../packages/internal/src/types';
 
 describe('Todo E2E Tests', () => {
     let workDir: string;
@@ -39,9 +40,11 @@ describe('Todo E2E Tests', () => {
             .send({
                 data: user1,
             })
-            .expect(201)
+            .expect(403)
             .expect((resp) => {
-                expect(resp.body).toEqual(expect.objectContaining(user1));
+                expect(resp.body.code).toBe(
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
+                );
             });
 
         const credClient = makeClient('/api/data/User', user1.id);
@@ -401,6 +404,8 @@ describe('Todo E2E Tests', () => {
                 },
             })
             .expect(201);
+
+        // reject because list2 is private
         await todoClientUser2
             .post('/')
             .send({
@@ -514,24 +519,15 @@ const space2 = {
 async function createSpaceAndUsers() {
     const userClient = makeClient('/api/data/User');
     // create users
-    await userClient
-        .post('/')
-        .send({
-            data: user1,
-        })
-        .expect(201);
-    await userClient
-        .post('/')
-        .send({
-            data: user2,
-        })
-        .expect(201);
-    await userClient
-        .post('/')
-        .send({
-            data: user3,
-        })
-        .expect(201);
+    await userClient.post('/').send({
+        data: user1,
+    });
+    await userClient.post('/').send({
+        data: user2,
+    });
+    await userClient.post('/').send({
+        data: user3,
+    });
 
     // add user1 and user2 into space1
     const spaceClientUser1 = makeClient('/api/data/Space', user1.id);

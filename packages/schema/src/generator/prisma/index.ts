@@ -2,7 +2,7 @@ import colors from 'colors';
 import { Context, Generator, GeneratorError } from '../types';
 import { execSync } from '../../utils/exec-utils';
 import PrismaSchemaGenerator from './schema-generator';
-import QueryGuardGenerator from './query-gard-generator';
+import QueryGuardGenerator from './query-guard-generator';
 
 /**
  * Generates Prisma schema and db client

@@ -39,15 +39,27 @@ export type QueryContext = {
     user?: AuthUser;
 };
 
+export type RuntimeAttribute = {
+    name: string;
+    args: Array<{ name?: string; value: unknown }>;
+};
+
 /**
  * Runtime information of a data model field
  */
-export type FieldInfo = { type: string; isArray: boolean };
+export type FieldInfo = {
+    name: string;
+    type: string;
+    isDataModel: boolean;
+    isArray: boolean;
+    isOptional: boolean;
+    attributes: RuntimeAttribute[];
+};
 
 export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: (
-        action: (tx: Record<string, DbOperations>) => Promise<unknown>
-    ) => Promise<unknown>;
+    $transaction: <T>(
+        action: (tx: Record<string, DbOperations>) => Promise<T>
+    ) => Promise<T>;
 };
 
 /**
@@ -80,7 +92,7 @@ export interface Service<DbClient = any> {
         model: string,
         operation: PolicyOperationKind,
         context: QueryContext
-    ): unknown;
+    ): Promise<unknown>;
 }
 
 /**
@@ -111,6 +123,11 @@ export enum ServerErrorCode {
      * Violation of database reference constraint (aka. foreign key constraints)
      */
     REFERENCE_CONSTRAINT_VIOLATION = 'REFERENCE_CONSTRAINT_VIOLATION',
+
+    /**
+     * A write operation succeeded but the result cannot be read back due to policy control
+     */
+    READ_BACK_AFTER_WRITE_DENIED = 'READ_BACK_AFTER_WRITE_DENIED',
 
     /**
      * Unknown error

@@ -54,7 +54,7 @@ export async function loadDocument(
         (e) => e.severity === 1
     );
     if (validationErrors.length > 0) {
-        console.error(colors.red('There are validation errors:'));
+        console.error(colors.red('Validation errors:'));
         for (const validationError of validationErrors) {
             console.error(
                 colors.red(
