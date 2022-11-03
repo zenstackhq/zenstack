@@ -1,4 +1,13 @@
 {
     "npm.packageManager": "pnpm",
-    "eslint.packageManager": "pnpm"
+    "eslint.packageManager": "pnpm",
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "todo-int-test",
+            "database": "${workspaceFolder:zenstack}/tests/integration/tests/test-run/zenstack/todo.db"
+        }
+    ]
 }
