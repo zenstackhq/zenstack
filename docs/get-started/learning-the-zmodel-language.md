@@ -89,7 +89,39 @@ model Post {
 }
 ```
 
-Please refer to [Prisma's documentation](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#attributes) for an exhaustive list of attributes and functions.
+ZenStack inherits most attributes and functions from Prisma, and added a number of new ones:
+
+-   `@password`
+
+    A field attribute that marks a field as a password. Before storing such a field, ZenStack hashes its value with [bcryptjs](https://github.com/dcodeIO/bcrypt.js), with a default salt length of 12.
+
+    You can override the default setting with the `saltLength` or `salt` named parameters, like:
+
+```prisma
+model User {
+    password String @password(saltLength: 16)
+}
+
+model User {
+    password String @password(salt: "mysalt")
+}
+```
+
+If both `saltLength` and `salt` parameters are provided, `salt` is used.
+
+-   `@omit`
+
+    A field attribute that marks a field to be excluded when model entities are read from the generated service. This is often used to prevent sensitive information from being returned to the front-end code (e.g., password, even hashed).
+
+    E.g.:
+
+```prisma
+model User {
+    password String @password @omit
+}
+```
+
+For attributes and functions inherited from Prisma, please refer to [Prisma's documentation](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#attributes) for details.
 
 ## Relations
 
