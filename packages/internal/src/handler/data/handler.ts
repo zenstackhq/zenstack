@@ -68,12 +68,12 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
 
                 default:
-                    console.warn(`Unhandled method: ${method}`);
+                    this.service.warn(`Unhandled method: ${method}`);
                     res.status(200).send({});
                     break;
             }
         } catch (err: unknown) {
-            console.log(`Error handling ${method} ${model}: ${err}`);
+            this.service.info(`Error handling ${method} ${model}: ${err}`);
 
             if (err instanceof RequestHandlerError) {
                 // in case of errors thrown directly by ZenStack
@@ -112,11 +112,11 @@ export default class DataHandler<DbClient extends DbClientContract>
                 }
             } else {
                 // generic errors
-                console.error(
+                this.service.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
                 );
-                if (err instanceof Error) {
-                    console.error(err.stack);
+                if (err instanceof Error && err.stack) {
+                    this.service.error(err.stack);
                 }
                 res.status(500).send({ error: ServerErrorCode.UNKNOWN });
             }
@@ -204,7 +204,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // conduct the create
-                console.log(
+                this.service.verbose(
                     `Conducting create: ${model}:\n${JSON.stringify(args)}`
                 );
                 const createResult = (await tx[model].create(args)) as {
@@ -227,7 +227,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                         const createdIds = await queryIds(model, tx, {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
                         });
-                        console.log(
+                        this.service.verbose(
                             `Validating nestedly created entities: ${model}#[${createdIds.join(
                                 ', '
                             )}]`
@@ -332,7 +332,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // conduct the update
-                console.log(
+                this.service.verbose(
                     `Conducting update: ${model}:\n${JSON.stringify(args)}`
                 );
                 await tx[model].update(args);
@@ -343,7 +343,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                         const createdIds = await queryIds(model, tx, {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
                         });
-                        console.log(
+                        this.service.verbose(
                             `Validating nestedly created entities: ${model}#[${createdIds.join(
                                 ', '
                             )}]`
@@ -447,7 +447,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 }
 
                 // conduct the deletion
-                console.log(
+                this.service.verbose(
                     `Conducting delete ${model}:\n${JSON.stringify(args)}`
                 );
                 await tx[model].delete(args);

@@ -93,6 +93,26 @@ export interface Service<DbClient = any> {
         operation: PolicyOperationKind,
         context: QueryContext
     ): Promise<unknown>;
+
+    /**
+     * Generates a log message with verbose level.
+     */
+    verbose(message: string): void;
+
+    /**
+     * Generates a log message with info level.
+     */
+    info(message: string): void;
+
+    /**
+     * Generates a log message with warn level.
+     */
+    warn(message: string): void;
+
+    /**
+     * Generates a log message with error level.
+     */
+    error(message: string): void;
 }
 
 /**

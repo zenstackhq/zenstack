@@ -102,7 +102,7 @@ export async function readWithCheck(
     // recursively inject read guard conditions into the query args
     await injectNestedReadConditions(model, args, service, context);
 
-    console.log(
+    service.verbose(
         `Reading with validation for ${model}: ${JSON.stringify(args)}`
     );
     const result = await db[model].findMany(args);
@@ -207,7 +207,7 @@ async function postProcessForRead(
             continue;
         }
 
-        console.log(
+        service.verbose(
             `Validating read of to-one relation: ${fieldInfo.type}#${entityData[field].id}`
         );
 
@@ -378,7 +378,7 @@ export async function checkPolicyForIds(
     context: QueryContext,
     db: Record<string, DbOperations>
 ) {
-    console.log(
+    service.verbose(
         `Checking policy for ${model}#[${ids.join(', ')}] for ${operation}`
     );
 
@@ -427,7 +427,7 @@ async function checkPolicyForSelectionPath(
     // build a Prisma query for the path
     const query = buildChainedSelectQuery(id, selectionPath);
 
-    console.log(
+    service.verbose(
         `Query for selection path: model ${model}, path ${JSON.stringify(
             selectionPath
         )}, query ${JSON.stringify(query)}`
@@ -436,7 +436,7 @@ async function checkPolicyForSelectionPath(
 
     // collect ids at the end of the path
     const ids: string[] = collectTerminalEntityIds(selectionPath, r);
-    console.log(`Collected leaf ids: ${JSON.stringify(ids)}`);
+    service.verbose(`Collected leaf ids: ${JSON.stringify(ids)}`);
 
     if (ids.length === 0) {
         return;

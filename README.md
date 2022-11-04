@@ -264,7 +264,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 **Please note** that server-side database access is not protected by access policies. This is by-design so as to provide a way of bypassing the policies. Please make sure you implement authorization properly.
 
-## What's next?
+## Learning more
 
 ### [Learning the ZModel language](/docs/get-started/learning-the-zmodel-language.md)
 
