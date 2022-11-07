@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/internal",
-    "version": "0.2.4",
+    "version": "0.2.8",
     "displayName": "ZenStack Internal Library",
     "description": "ZenStack internal runtime library. This package is for supporting runtime functionality of ZenStack and not supposed to be used directly.",
     "repository": {
@@ -12,7 +12,6 @@
     "scripts": {
         "build": "tsc",
         "watch": "tsc --watch",
-        "test": "jest",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
     },

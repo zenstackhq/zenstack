@@ -1,6 +1,6 @@
 {
     "name": "todo",
-    "version": "0.2.4",
+    "version": "0.2.8",
     "private": true,
     "scripts": {
         "dev": "next dev",
