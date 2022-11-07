@@ -1,6 +1,6 @@
 datasource db {
     provider = 'sqlite'
-    url = 'file:./password.db'
+    url = 'file:./omit.db'
 }
 
 model User {
