@@ -1,24 +1,24 @@
-# Setup Logging
+# Setting Up Logging
 
 ZenStack uses the following levels to control server-side logging:
 
-1. error
+-   error
 
     Error level logging
 
-1. warn
+-   warn
 
     Warning level logging
 
-1. info
+-   info
 
     Info level logging
 
-1. verbose
+-   verbose
 
     Verbose level logging
 
-1. query
+-   query
 
     Detailed database query logging
 
@@ -28,7 +28,24 @@ You can turn log levels on and off in `zenstack.config.json`:
 
 ```json
 {
-    "log": ["verbose", "info", "warn"]
+    "log": ["verbose", "info"]
+}
+```
+
+The settings shown above is an shorthand for:
+
+```json
+{
+    "log": [
+        {
+            "level": "verbose",
+            "emit": "stdout"
+        },
+        {
+            "level": "info",
+            "emit": "stdout"
+        }
+    ]
 }
 ```
 

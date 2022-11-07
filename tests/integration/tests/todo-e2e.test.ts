@@ -298,6 +298,26 @@ describe('Todo E2E Tests', () => {
         await list1CredClientUser1.get('/').expect(404);
     });
 
+    it('todo list with empty user id', async () => {
+        await createSpaceAndUsers();
+
+        await makeClient('/api/data/List', user1.id)
+            .post('/')
+            .send({
+                data: {
+                    id: 'list1',
+                    title: 'List 1',
+                    owner: { connect: { id: user1.id } },
+                    space: { connect: { id: space1.id } },
+                },
+            })
+            .expect(201);
+
+        await makeClient('/api/data/List', '')
+            .get('/')
+            .expect((resp) => expect(resp.body).toHaveLength(0));
+    });
+
     it('todo', async () => {
         await createSpaceAndUsers();
 
