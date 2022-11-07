@@ -49,6 +49,11 @@ export default class DataHandler<DbClient extends DbClientContract>
 
         const context = { user: await this.options.getServerUser(req, res) };
 
+        this.service.info(`Handling data request: ${method} ${path}`);
+        if (req.body) {
+            this.service.verbose(`Request body: ${JSON.stringify(req.body)}`);
+        }
+
         try {
             switch (method) {
                 case 'GET':
@@ -73,7 +78,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
             }
         } catch (err: unknown) {
-            this.service.info(`Error handling ${method} ${model}: ${err}`);
+            this.service.error(`${method} ${model}: ${err}`);
 
             if (err instanceof RequestHandlerError) {
                 // in case of errors thrown directly by ZenStack
@@ -85,12 +90,14 @@ export default class DataHandler<DbClient extends DbClientContract>
                             message: err.message,
                         });
                         break;
+
                     case ServerErrorCode.ENTITY_NOT_FOUND:
                         res.status(404).send({
                             code: err.code,
                             message: err.message,
                         });
                         break;
+
                     default:
                         res.status(400).send({
                             code: err.code,
@@ -112,6 +119,14 @@ export default class DataHandler<DbClient extends DbClientContract>
                         message: 'an unhandled Prisma error occurred',
                     });
                 }
+            } else if (this.isPrismaClientValidationError(err)) {
+                // prisma validation error
+                res.status(400).send({
+                    code: ServerErrorCode.INVALID_REQUEST_PARAMS,
+                    message: getServerErrorMessage(
+                        ServerErrorCode.INVALID_REQUEST_PARAMS
+                    ),
+                });
             } else {
                 // generic errors
                 this.service.error(
@@ -463,8 +478,17 @@ export default class DataHandler<DbClient extends DbClientContract>
         }
     }
 
-    private isPrismaClientKnownRequestError(err: any): err is { code: string } {
-        // we can't reference Prisma generated types so need to weakly check error type
-        return !!err.clientVersion && typeof err.code === 'string';
+    private isPrismaClientKnownRequestError(
+        err: any
+    ): err is { code: string; message: string } {
+        return (
+            err.__proto__.constructor.name === 'PrismaClientKnownRequestError'
+        );
+    }
+
+    private isPrismaClientValidationError(
+        err: any
+    ): err is { message: string } {
+        return err.__proto__.constructor.name === 'PrismaClientValidationError';
     }
 }

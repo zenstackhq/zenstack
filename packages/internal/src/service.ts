@@ -1,33 +1,58 @@
 import * as fs from 'fs';
 import { EventEmitter } from 'stream';
-import { LogLevel, ServiceConfig } from './config';
-import { FieldInfo, PolicyOperationKind, QueryContext, Service } from './types';
+import { ServiceConfig } from './config';
+import {
+    FieldInfo,
+    LogEvent,
+    LogLevel,
+    PolicyOperationKind,
+    QueryContext,
+    Service,
+} from './types';
 import colors from 'colors';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type EventHandler = (eventType: any, handler: (event: unknown) => void) => void;
-
-export abstract class DefaultService<DbClient extends { $on: EventHandler }>
-    implements Service<DbClient>
+export abstract class DefaultService<
+    DbClient extends {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        $on: (eventType: any, handler: (event: any) => void) => void;
+    }
+> implements Service<DbClient>
 {
-    protected readonly config: ServiceConfig;
-    private readonly prisma: DbClient;
+    protected config: ServiceConfig;
+    private prisma: DbClient;
     protected readonly logEmitter = new EventEmitter();
     private readonly logSettings = {
         query: { stdout: false, emit: false },
         verbose: { stdout: false, emit: false },
-        info: { stdout: false, emit: false },
-        warn: { stdout: false, emit: false },
-        error: { stdout: false, emit: false },
+        info: { stdout: true, emit: false },
+        warn: { stdout: true, emit: false },
+        error: { stdout: true, emit: false },
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private guardModule: any;
 
+    private readonly prismaLogLevels: LogLevel[] = [
+        'query',
+        'info',
+        'warn',
+        'error',
+    ];
+
     constructor() {
+        this.initialize();
+    }
+
+    private initialize() {
         this.config = this.loadConfig();
 
         // initialize log sink mapping
         if (this.config.log) {
+            // reset all levels
+            for (const key of Object.keys(this.logSettings)) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (this.logSettings as any)[key] = { stdout: false, emit: false };
+            }
+
             for (const entry of this.config.log) {
                 const level = typeof entry === 'string' ? entry : entry.level;
                 if (!Object.keys(this.logSettings).includes(level)) {
@@ -51,31 +76,39 @@ export abstract class DefaultService<DbClient extends { $on: EventHandler }>
 
         this.prisma = this.initializePrisma();
 
-        this.prisma.$on('query', (e) => this.logEmitter.emit('query', e));
-        this.prisma.$on('info', (e) => this.logEmitter.emit('info', e));
-        this.prisma.$on('warn', (e) => this.logEmitter.emit('warn', e));
-        this.prisma.$on('error', (e) => this.logEmitter.emit('error', e));
+        for (const level of this.prismaLogLevels) {
+            if (this.logSettings[level].emit) {
+                this.verbose(`Hooking prisma log level ${level}`);
+                this.prisma.$on(level, (e) => {
+                    this.logEmitter.emit(level, e);
+                });
+            }
+        }
     }
 
-    private handleEvent(eventType: LogLevel, event: unknown): void {
-        if (this.logSettings[eventType].stdout) {
-            switch (eventType) {
+    $on(level: LogLevel, callback: (event: LogEvent) => void): void {
+        this.logEmitter.on(level, callback);
+    }
+
+    private handleLog(level: LogLevel, message: string): void {
+        if (this.logSettings[level].stdout) {
+            switch (level) {
                 case 'verbose':
-                    console.log(colors.blue(`zenstack:${eventType}`), event);
+                    console.log(colors.blue(`zenstack:${level}`), message);
                     break;
                 case 'info':
-                    console.log(colors.cyan(`zenstack:${eventType}`), event);
+                    console.log(colors.cyan(`zenstack:${level}`), message);
                     break;
                 case 'warn':
-                    console.warn(colors.yellow(`zenstack:${eventType}`), event);
+                    console.warn(colors.yellow(`zenstack:${level}`), message);
                     break;
                 case 'error':
-                    console.error(colors.red(`zenstack:${eventType}`), event);
+                    console.error(colors.red(`zenstack:${level}`), message);
                     break;
             }
         }
-        if (this.logSettings[eventType].emit) {
-            this.logEmitter.emit(eventType, event);
+        if (this.logSettings[level].emit) {
+            this.logEmitter.emit(level, { timestamp: new Date(), message });
         }
     }
 
@@ -123,19 +156,23 @@ export abstract class DefaultService<DbClient extends { $on: EventHandler }>
     }
 
     verbose(message: string): void {
-        this.handleEvent('verbose', message);
+        this.handleLog('verbose', message);
     }
 
     info(message: string): void {
-        this.handleEvent('info', message);
+        this.handleLog('info', message);
     }
 
     warn(message: string): void {
-        this.handleEvent('warn', message);
+        this.handleLog('warn', message);
     }
 
     error(message: string): void {
-        this.handleEvent('error', message);
+        this.handleLog('error', message);
+    }
+
+    reinitialize(): void {
+        this.initialize();
     }
 
     protected abstract initializePrisma(): DbClient;

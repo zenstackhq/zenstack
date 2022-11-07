@@ -1,7 +1,4 @@
-/**
- * Logging levels
- */
-export type LogLevel = 'verbose' | 'info' | 'query' | 'warn' | 'error';
+import { LogLevel } from './types';
 
 /**
  * Logging config definition
