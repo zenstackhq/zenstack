@@ -52,7 +52,10 @@ export async function setup(schemaFile: string) {
 
             const options: RequestHandlerOptions = {
                 async getServerUser(req: NextApiRequest, res: NextApiResponse) {
-                    if (req.cookies.userId) {
+                    if (req.cookies.userId === '') {
+                        // simulate "undefined" user id
+                        return {} as { id: string};
+                    } else if (req.cookies.userId) {
                         return { id: req.cookies.userId };
                     } else {
                         return undefined;
@@ -108,7 +111,7 @@ export function makeClient(apiPath: string, userId?: string, queryArgs?: any) {
             prop: string | symbol,
             receiver: any
         ) {
-            if (!userId) {
+            if (userId === undefined) {
                 return Reflect.get(target, prop, receiver);
             }
 
@@ -119,6 +122,7 @@ export function makeClient(apiPath: string, userId?: string, queryArgs?: any) {
                 case 'del':
                 case 'delete':
                     return (url: string) => {
+                        // use userId cookie to simulate a logged in user
                         return target[prop](url).set('Cookie', [
                             `userId=${userId}`,
                         ]);

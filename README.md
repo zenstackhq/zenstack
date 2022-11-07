@@ -272,7 +272,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ### [Database hosting considerations](/docs/ref/database-hosting-considerations.md)
 
-### [Setup logging](/docs/ref/setup-logging.md)
+### [Setting up logging](/docs/ref/setup-logging.md)
 
 ## Reach out to us for issues, feedback and ideas!
 
