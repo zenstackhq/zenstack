@@ -49,7 +49,7 @@ export default class DataHandler<DbClient extends DbClientContract>
 
         const context = { user: await this.options.getServerUser(req, res) };
 
-        this.service.info(`Handling data request: ${method} ${path}`);
+        this.service.verbose(`Data request: ${method} ${path}`);
         if (req.body) {
             this.service.verbose(`Request body: ${JSON.stringify(req.body)}`);
         }
