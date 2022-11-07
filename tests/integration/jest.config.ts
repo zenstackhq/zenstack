@@ -12,7 +12,7 @@ export default {
     // A map from regular expressions to paths to transformers
     transform: { '^.+\\.tsx?$': 'ts-jest' },
 
-    testTimeout: 120000,
+    testTimeout: 300000,
 
     // explicitly specify moduel paths so that resolution from local dependencies work
     modulePaths: ['<rootDir>/tests/test-run/node_modules'],
