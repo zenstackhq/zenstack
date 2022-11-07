@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "ZenStack is a toolkit that simplifies full-stack development",
-    "version": "0.2.8",
+    "version": "0.2.9",
     "author": {
         "name": "ZenStack Team"
     },
