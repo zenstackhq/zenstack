@@ -3,6 +3,7 @@ import { Project } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
 import { DataModel, isDataModel, Model } from '@lang/generated/ast';
+import { execSync } from 'child_process';
 
 /**
  * Generates NextAuth adaptor code
@@ -20,7 +21,7 @@ export default class NextAuthGenerator implements Generator {
 
     async generate(context: Context): Promise<void> {
         try {
-            require('next-auth');
+            execSync('npm ls next-auth');
         } catch (err) {
             console.warn(
                 colors.yellow(

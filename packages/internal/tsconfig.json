@@ -14,6 +14,7 @@
         "forceConsistentCasingInFileNames": true,
         "declaration": true,
         "resolveJsonModule": true,
+        "strictPropertyInitialization": false,
         "paths": {}
     },
     "include": ["src/**/*.ts"],

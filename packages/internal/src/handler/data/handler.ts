@@ -49,6 +49,11 @@ export default class DataHandler<DbClient extends DbClientContract>
 
         const context = { user: await this.options.getServerUser(req, res) };
 
+        this.service.verbose(`Data request: ${method} ${path}`);
+        if (req.body) {
+            this.service.verbose(`Request body: ${JSON.stringify(req.body)}`);
+        }
+
         try {
             switch (method) {
                 case 'GET':
@@ -68,12 +73,12 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
 
                 default:
-                    console.warn(`Unhandled method: ${method}`);
+                    this.service.warn(`Unhandled method: ${method}`);
                     res.status(200).send({});
                     break;
             }
         } catch (err: unknown) {
-            console.log(`Error handling ${method} ${model}: ${err}`);
+            this.service.error(`${method} ${model}: ${err}`);
 
             if (err instanceof RequestHandlerError) {
                 // in case of errors thrown directly by ZenStack
@@ -85,12 +90,14 @@ export default class DataHandler<DbClient extends DbClientContract>
                             message: err.message,
                         });
                         break;
+
                     case ServerErrorCode.ENTITY_NOT_FOUND:
                         res.status(404).send({
                             code: err.code,
                             message: err.message,
                         });
                         break;
+
                     default:
                         res.status(400).send({
                             code: err.code,
@@ -112,13 +119,21 @@ export default class DataHandler<DbClient extends DbClientContract>
                         message: 'an unhandled Prisma error occurred',
                     });
                 }
+            } else if (this.isPrismaClientValidationError(err)) {
+                // prisma validation error
+                res.status(400).send({
+                    code: ServerErrorCode.INVALID_REQUEST_PARAMS,
+                    message: getServerErrorMessage(
+                        ServerErrorCode.INVALID_REQUEST_PARAMS
+                    ),
+                });
             } else {
                 // generic errors
-                console.error(
+                this.service.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
                 );
-                if (err instanceof Error) {
-                    console.error(err.stack);
+                if (err instanceof Error && err.stack) {
+                    this.service.error(err.stack);
                 }
                 res.status(500).send({
                     error: ServerErrorCode.UNKNOWN,
@@ -206,7 +221,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // conduct the create
-                console.log(
+                this.service.verbose(
                     `Conducting create: ${model}:\n${JSON.stringify(args)}`
                 );
                 const createResult = (await tx[model].create(args)) as {
@@ -229,7 +244,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                         const createdIds = await queryIds(model, tx, {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
                         });
-                        console.log(
+                        this.service.verbose(
                             `Validating nestedly created entities: ${model}#[${createdIds.join(
                                 ', '
                             )}]`
@@ -332,7 +347,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // conduct the update
-                console.log(
+                this.service.verbose(
                     `Conducting update: ${model}:\n${JSON.stringify(args)}`
                 );
                 await tx[model].update(args);
@@ -343,7 +358,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                         const createdIds = await queryIds(model, tx, {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
                         });
-                        console.log(
+                        this.service.verbose(
                             `Validating nestedly created entities: ${model}#[${createdIds.join(
                                 ', '
                             )}]`
@@ -445,7 +460,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 }
 
                 // conduct the deletion
-                console.log(
+                this.service.verbose(
                     `Conducting delete ${model}:\n${JSON.stringify(args)}`
                 );
                 await tx[model].delete(args);
@@ -463,8 +478,17 @@ export default class DataHandler<DbClient extends DbClientContract>
         }
     }
 
-    private isPrismaClientKnownRequestError(err: any): err is { code: string } {
-        // we can't reference Prisma generated types so need to weakly check error type
-        return !!err.clientVersion && typeof err.code === 'string';
+    private isPrismaClientKnownRequestError(
+        err: any
+    ): err is { code: string; message: string } {
+        return (
+            err.__proto__.constructor.name === 'PrismaClientKnownRequestError'
+        );
+    }
+
+    private isPrismaClientValidationError(
+        err: any
+    ): err is { message: string } {
+        return err.__proto__.constructor.name === 'PrismaClientValidationError';
     }
 }

@@ -1,5 +1,5 @@
 import { Context, Generator } from '../types';
-import { Project, StructureKind, VariableDeclarationKind } from 'ts-morph';
+import { Project } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
 import { INTERNAL_PACKAGE } from '../constants';
@@ -16,90 +16,31 @@ export default class ServiceGenerator implements Generator {
             { overwrite: true }
         );
 
-        sf.addImportDeclaration({
-            namedImports: ['PrismaClient'],
-            moduleSpecifier: '../.prisma',
-        });
-
-        sf.addImportDeclaration({
-            namedImports: ['Service', 'PolicyOperationKind', 'QueryContext'],
-            moduleSpecifier: INTERNAL_PACKAGE,
-            isTypeOnly: true,
-        });
-
-        sf.addVariableStatement({
-            declarationKind: VariableDeclarationKind.Let,
-            declarations: [
-                {
-                    name: 'guardModule',
-                    type: 'any',
-                },
-            ],
-        });
+        sf.addStatements([
+            `import { PrismaClient } from "../.prisma";`,
+            `import { DefaultService } from "${INTERNAL_PACKAGE}";`,
+        ]);
 
         const cls = sf.addClass({
             name: 'ZenStackService',
             isExported: true,
-            implements: ['Service<PrismaClient>'],
-        });
-        cls.addMember({
-            kind: StructureKind.Property,
-            name: 'private readonly _prisma',
-            initializer: 'new PrismaClient()',
+            extends: 'DefaultService<PrismaClient>',
         });
 
-        cls.addGetAccessor({
-            name: 'db',
-        })
-            .addBody()
-            .setBodyText('return this._prisma;');
+        cls.addMethod({
+            name: 'initializePrisma',
+        }).setBodyText(`
+            const logConfig = (this.config.log || [])
+                .filter(item => typeof item === 'string' ? ['info', 'warn', 'error', 'query'].includes(item): ['info', 'warn', 'error', 'query'].includes(item.level));
+            return new PrismaClient({log: logConfig as any });
+        `);
 
-        cls
-            .addMethod({
-                name: 'resolveField',
-                isAsync: true,
-                parameters: [
-                    {
-                        name: 'model',
-                        type: 'string',
-                    },
-                    {
-                        name: 'field',
-                        type: 'string',
-                    },
-                ],
-            })
-            .addBody().setBodyText(`
-                if (!guardModule) {
-                    guardModule = await import('./query/guard');
-                }
-                return guardModule._fieldMapping?.[model]?.[field];
-            `);
-
-        cls
-            .addMethod({
-                name: 'buildQueryGuard',
-                isAsync: true,
-                parameters: [
-                    {
-                        name: 'model',
-                        type: 'string',
-                    },
-                    {
-                        name: 'operation',
-                        type: 'PolicyOperationKind',
-                    },
-                    {
-                        name: 'context',
-                        type: 'QueryContext',
-                    },
-                ],
-            })
-            .addBody().setBodyText(`
-                const module: any = await import('./query/guard');
-                const provider: (context: QueryContext) => any = module[model+ '_' + operation];
-                return provider(context);
-            `);
+        cls.addMethod({
+            name: 'loadGuardModule',
+            isAsync: true,
+        }).setBodyText(`
+            return import('./query/guard');
+        `);
 
         // Recommended by Prisma for Next.js
         // https://www.prisma.io/docs/guides/database/troubleshooting-orm/help-articles/nextjs-prisma-client-dev-practices#problem

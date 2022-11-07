@@ -63,6 +63,11 @@ export type DbClientContract = Record<string, DbOperations> & {
 };
 
 /**
+ * Logging levels
+ */
+export type LogLevel = 'verbose' | 'info' | 'query' | 'warn' | 'error';
+
+/**
  * The main service of ZenStack. Implementation of this interface is automatically generated.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,6 +98,31 @@ export interface Service<DbClient = any> {
         operation: PolicyOperationKind,
         context: QueryContext
     ): Promise<unknown>;
+
+    /**
+     * Generates a log message with verbose level.
+     */
+    verbose(message: string): void;
+
+    /**
+     * Generates a log message with info level.
+     */
+    info(message: string): void;
+
+    /**
+     * Generates a log message with warn level.
+     */
+    warn(message: string): void;
+
+    /**
+     * Generates a log message with error level.
+     */
+    error(message: string): void;
+
+    /**
+     * Registers a listener to log events.
+     */
+    $on(level: LogLevel, callback: (event: LogEvent) => void): void;
 }
 
 /**
@@ -162,3 +192,18 @@ export function getServerErrorMessage(code: ServerErrorCode): string {
             return `generic error: ${code}`;
     }
 }
+
+export type LogEventHandler = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    LogEvent: any,
+    handler: (event: LogEvent) => void
+) => void;
+
+export type LogEvent = {
+    timestamp: Date;
+    query?: string;
+    params?: string;
+    duration?: number;
+    target?: string;
+    message?: string;
+};

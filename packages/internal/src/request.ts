@@ -113,7 +113,6 @@ export function getMutate(): Mutator {
         const keys = Array.from(cache.keys()).filter(
             (k) => typeof k === 'string' && k.startsWith(key)
         ) as string[];
-        console.log('Mutating keys:', JSON.stringify(keys));
         const mutations = keys.map((key) => mutate(key, data, opts));
         return Promise.all(mutations);
     };
