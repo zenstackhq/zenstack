@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import cuid from 'cuid';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { TRANSACTION_FIELD_NAME } from '../../constants';
@@ -7,6 +6,7 @@ import { RequestHandlerOptions } from '../../request-handler';
 import {
     DbClientContract,
     DbOperations,
+    getServerErrorMessage,
     QueryContext,
     ServerErrorCode,
     Service,
@@ -97,12 +97,14 @@ export default class DataHandler<DbClient extends DbClientContract>
                             message: err.message,
                         });
                 }
-            } else if (err instanceof PrismaClientKnownRequestError) {
+            } else if (this.isPrismaClientKnownRequestError(err)) {
                 // errors thrown by Prisma, try mapping to a known error
                 if (PRISMA_ERROR_MAPPING[err.code]) {
                     res.status(400).send({
                         code: PRISMA_ERROR_MAPPING[err.code],
-                        message: 'database access error',
+                        message: getServerErrorMessage(
+                            PRISMA_ERROR_MAPPING[err.code]
+                        ),
                     });
                 } else {
                     res.status(400).send({
@@ -118,7 +120,10 @@ export default class DataHandler<DbClient extends DbClientContract>
                 if (err instanceof Error && err.stack) {
                     this.service.error(err.stack);
                 }
-                res.status(500).send({ error: ServerErrorCode.UNKNOWN });
+                res.status(500).send({
+                    error: ServerErrorCode.UNKNOWN,
+                    message: getServerErrorMessage(ServerErrorCode.UNKNOWN),
+                });
             }
         }
     }
@@ -146,10 +151,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
 
             if (result.length === 0) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.ENTITY_NOT_FOUND,
-                    'not found'
-                );
+                throw new RequestHandlerError(ServerErrorCode.ENTITY_NOT_FOUND);
             }
             res.status(200).send(result[0]);
         } else {
@@ -261,8 +263,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
             if (result.length === 0) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `create result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             }
             res.status(201).send(result[0]);
@@ -272,8 +273,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 err.code === ServerErrorCode.DENIED_BY_POLICY
             ) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `create result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             } else {
                 throw err;
@@ -375,8 +375,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
             if (result.length === 0) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `update result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             }
             res.status(200).send(result[0]);
@@ -386,8 +385,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 err.code === ServerErrorCode.DENIED_BY_POLICY
             ) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `update result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             } else {
                 throw err;
@@ -460,9 +458,13 @@ export default class DataHandler<DbClient extends DbClientContract>
             res.status(200).send(r);
         } else {
             throw new RequestHandlerError(
-                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                `delete result could not be read back due to policy check`
+                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
             );
         }
+    }
+
+    private isPrismaClientKnownRequestError(err: any): err is { code: string } {
+        // we can't reference Prisma generated types so need to weakly check error type
+        return !!err.clientVersion && typeof err.code === 'string';
     }
 }
