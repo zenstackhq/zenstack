@@ -13,7 +13,7 @@
         "db:reset": "zenstack migrate reset",
         "generate": "zenstack generate",
         "build-deps": "pushd ../.. && npx -y pnpm i --prod=false && npx -y pnpm build && popd",
-        "vercel-build": "npm run build-deps && npm i && npm run build && npm run db:deploy"
+        "vercel-build": "npm i && npm run build && npm run db:deploy"
     },
     "dependencies": {
         "@heroicons/react": "^2.0.12",
