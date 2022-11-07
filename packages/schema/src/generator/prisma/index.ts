@@ -8,6 +8,10 @@ import QueryGuardGenerator from './query-guard-generator';
  * Generates Prisma schema and db client
  */
 export default class PrismaGenerator implements Generator {
+    get name() {
+        return 'prisma';
+    }
+
     async generate(context: Context): Promise<void> {
         // generate prisma schema
         const schemaFile = await new PrismaSchemaGenerator(context).generate();

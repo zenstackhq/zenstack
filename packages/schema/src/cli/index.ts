@@ -1,38 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Command, Option } from 'commander';
-import { NodeFileSystem } from 'langium/node';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
-import { createZModelServices } from '../language-server/zmodel-module';
-import { Context, GeneratorError } from '../generator/types';
-import { ZenStackGenerator } from '../generator';
-import { GENERATED_CODE_PATH } from '../generator/constants';
 import colors from 'colors';
 import { execSync } from '../utils/exec-utils';
 import { paramCase } from 'change-case';
 import path from 'path';
-import { loadDocument } from './cli-util';
+import { runGenerator } from './cli-util';
 
 export const generateAction = async (options: {
     schema: string;
 }): Promise<void> => {
-    const services = createZModelServices(NodeFileSystem).ZModel;
-    const model = await loadDocument(options.schema, services);
-
-    const context: Context = {
-        schema: model,
-        outDir: path.dirname(options.schema),
-        // TODO: make this configurable
-        generatedCodeDir: GENERATED_CODE_PATH,
-    };
-
-    try {
-        await new ZenStackGenerator().generate(context);
-    } catch (err) {
-        if (err instanceof GeneratorError) {
-            console.error(colors.red(err.message));
-            process.exit(1);
-        }
-    }
+    await runGenerator(options);
 };
 
 function prismaAction(prismaCmd: string): (...args: any[]) => Promise<void> {
@@ -50,6 +28,10 @@ function prismaAction(prismaCmd: string): (...args: any[]) => Promise<void> {
                 );
             })
             .join(' ');
+
+        // regenerate prisma schema first
+        await runGenerator(options, ['prisma'], false);
+
         const prismaExec = `npx prisma ${prismaCmd} ${command.name()} ${optStr}`;
         console.log(prismaExec);
         try {

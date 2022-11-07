@@ -9,6 +9,10 @@ import { execSync } from 'child_process';
  * Generates NextAuth adaptor code
  */
 export default class NextAuthGenerator implements Generator {
+    get name() {
+        return 'next-auth';
+    }
+
     private findModel(schema: Model, name: string) {
         return schema.declarations.find(
             (d) => isDataModel(d) && d.name === name

@@ -1,10 +1,15 @@
 import { STD_LIB_MODULE_NAME } from '@lang/constants';
 import { Model } from '@lang/generated/ast';
+import { createZModelServices } from '@lang/zmodel-module';
 import colors from 'colors';
 import fs from 'fs';
 import { LangiumServices } from 'langium';
+import { NodeFileSystem } from 'langium/node';
 import path from 'path';
+import { ZenStackGenerator } from '../generator';
 import { URI } from 'vscode-uri';
+import { GENERATED_CODE_PATH } from '../generator/constants';
+import { Context, GeneratorError } from '../generator/types';
 
 /**
  * Loads a zmodel document from a file.
@@ -68,4 +73,33 @@ export async function loadDocument(
     }
 
     return document.parseResult.value as Model;
+}
+
+export async function runGenerator(
+    options: { schema: string },
+    includedGenerators?: string[],
+    clearOutput = true
+) {
+    const services = createZModelServices(NodeFileSystem).ZModel;
+    const model = await loadDocument(options.schema, services);
+
+    const context: Context = {
+        schema: model,
+        outDir: path.dirname(options.schema),
+        // TODO: make this configurable
+        generatedCodeDir: GENERATED_CODE_PATH,
+    };
+
+    try {
+        await new ZenStackGenerator().generate(
+            context,
+            includedGenerators,
+            clearOutput
+        );
+    } catch (err) {
+        if (err instanceof GeneratorError) {
+            console.error(colors.red(err.message));
+            process.exit(1);
+        }
+    }
 }

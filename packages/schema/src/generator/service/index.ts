@@ -8,6 +8,10 @@ import { INTERNAL_PACKAGE } from '../constants';
  * Generates ZenStack service code
  */
 export default class ServiceGenerator implements Generator {
+    get name() {
+        return 'service';
+    }
+
     async generate(context: Context): Promise<void> {
         const project = new Project();
         const sf = project.createSourceFile(

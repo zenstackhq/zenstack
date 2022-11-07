@@ -1,6 +1,6 @@
 {
     "name": "todo",
-    "version": "0.2.10",
+    "version": "0.2.11",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -11,8 +11,11 @@
         "db:migrate": "zenstack migrate dev",
         "db:deploy": "zenstack migrate deploy",
         "db:reset": "zenstack migrate reset",
+        "db:browse": "zenstack studio",
         "generate": "zenstack generate",
-        "vercel-build": "npm run build && npm run db:deploy"
+        "vercel-build": "npm run build && npm run db:deploy",
+        "deps-local": "npm i -D ../../packages/schema && npm i ../../packages/internal ../../packages/runtime",
+        "deps-npm": "npm i -D zenstack@latest && npm i @zenstackhq/internal@latest @zenstackhq/runtime@latest"
     },
     "dependencies": {
         "@heroicons/react": "^2.0.12",
