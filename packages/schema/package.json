@@ -67,7 +67,7 @@
         "vscode:publish": "vsce publish --no-dependencies",
         "vscode:prepublish": "cp ../../README.md ./ && pnpm lint && pnpm build",
         "vscode:package": "vsce package --no-dependencies",
-        "build": "cp -r src/res/* bundle/res/ && pnpm langium:generate && tsc --noEmit && pnpm bundle",
+        "build": "pnpm langium:generate && tsc --noEmit && pnpm bundle && cp -r src/res/* bundle/res/",
         "bundle": "node build/bundle.js --minify",
         "bundle-watch": "node build/bundle.js --watch",
         "ts:watch": "tsc --watch --noEmit",
