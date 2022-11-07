@@ -1,7 +1,7 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
 import * as fs from 'fs';
-import type { DefaultService, Service } from '../../../packages/runtime/server';
+import type { DefaultService } from '../../../packages/runtime/server';
 
 describe('Logging tests', () => {
     let origDir: string;
@@ -38,17 +38,17 @@ describe('Logging tests', () => {
             if (msg.includes('prisma:query')) {
                 gotQueryStd = true;
             }
-            if (msg.includes('zenstack:verbose')) {
+            if (msg.includes(':verbose')) {
                 gotVerboseStd = true;
             }
-            if (msg.includes('zenstack:info')) {
+            if (msg.includes(':info')) {
                 gotInfoStd = true;
             }
         });
 
         console.error = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes('zenstack:error')) {
+            if (msg.includes(':error')) {
                 gotErrorStd = true;
             }
         });
@@ -79,7 +79,7 @@ describe('Logging tests', () => {
 
         expect(gotQueryStd).toBeFalsy();
         expect(gotVerboseStd).toBeFalsy();
-        expect(gotInfoStd).toBeTruthy();
+        expect(gotInfoStd).toBeFalsy();
         expect(gotErrorStd).toBeTruthy();
 
         expect(gotInfoEmit).toBeFalsy();
@@ -113,20 +113,20 @@ describe('Logging tests', () => {
 
         console.log = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes('prisma:query')) {
+            if (msg.includes(':query')) {
                 gotQueryStd = true;
             }
-            if (msg.includes('zenstack:verbose')) {
+            if (msg.includes(':verbose')) {
                 gotVerboseStd = true;
             }
-            if (msg.includes('zenstack:info')) {
+            if (msg.includes(':info')) {
                 gotInfoStd = true;
             }
         });
 
         console.error = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes('zenstack:error')) {
+            if (msg.includes(':error')) {
                 gotErrorStd = true;
             }
         });
@@ -196,13 +196,13 @@ describe('Logging tests', () => {
 
         console.log = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes('prisma:query')) {
+            if (msg.includes(':query')) {
                 gotQueryStd = true;
             }
-            if (msg.includes('zenstack:verbose')) {
+            if (msg.includes(':verbose')) {
                 gotVerboseStd = true;
             }
-            if (msg.includes('zenstack:info')) {
+            if (msg.includes(':info')) {
                 gotInfoStd = true;
             }
         });
