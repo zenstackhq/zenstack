@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { ServerErrorCode } from '../types';
+import { getServerErrorMessage, ServerErrorCode } from '../types';
 
 /**
  * Defines contract for a Next.js API endpoint handler.
@@ -23,7 +23,10 @@ export interface RequestHandler {
  * Error thrown during request handling
  */
 export class RequestHandlerError extends Error {
-    constructor(public readonly code: ServerErrorCode, message: string) {
+    constructor(public readonly code: ServerErrorCode, message?: string) {
+        message = message
+            ? `${getServerErrorMessage(code)}: ${message}`
+            : getServerErrorMessage(code);
         super(message);
     }
 

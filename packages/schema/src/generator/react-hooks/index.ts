@@ -11,6 +11,10 @@ import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
  * Generate react data query hooks code
  */
 export default class ReactHooksGenerator implements Generator {
+    get name() {
+        return 'react-hooks';
+    }
+
     async generate(context: Context): Promise<void> {
         const project = new Project();
 

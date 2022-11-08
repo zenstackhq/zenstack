@@ -160,7 +160,8 @@ export default class QueryGuardGenerator {
                 .addBody();
 
             func.addStatements(
-                `const user = context.user ?? { id: '${UNKNOWN_USER_ID}' };`
+                // make suer user id is always available
+                `const user = context.user?.id ? context.user : { ...context.user, id: '${UNKNOWN_USER_ID}' };`
             );
 
             // r = <guard object>;

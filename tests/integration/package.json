@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "@types/node": "^14.18.29",
-        "bcryptjs": "^2.4.3"
+        "bcryptjs": "^2.4.3",
+        "sleep-promise": "^9.1.0"
     }
 }

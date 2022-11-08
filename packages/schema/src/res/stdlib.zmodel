@@ -10,33 +10,33 @@ enum ReferentialAction {
 }
 
 /*
- * Reads value from an environment variable
+ * Reads value from an environment variable.
  */
 function env(name: String): String {}
 
 /*
- * Gets thec current login user
+ * Gets thec current login user.
  */
 function auth(): Any {}
 
 /*
- * Gets current date-time (as DateTime type)
+ * Gets current date-time (as DateTime type).
  */
 function now(): DateTime {}
 
 /*
- * Generate a globally unique identifier based on the UUID spec
+ * Generates a globally unique identifier based on the UUID specs.
  */
 function uuid(): String {}
 
 /*
- * Generate a globally unique identifier based on the CUID spec
+ * Generates a globally unique identifier based on the CUID spec.
  */
 function cuid(): String {}
 
 /*
- * Create a sequence of integers in the underlying database and assign the incremented 
- * values to the ID values of the created records based on the sequence
+ * Creates a sequence of integers in the underlying database and assign the incremented 
+ * values to the ID values of the created records based on the sequence.
  */
 function autoincrement(): Int {}
 
@@ -46,57 +46,57 @@ function autoincrement(): Int {}
 function dbgenerated(expr: String): Any {}
 
 /*
- * Defines an ID on the model
+ * Defines an ID on the model.
  */
 attribute @id(map: String?)
 
 /*
- * Defines a default value for a field
+ * Defines a default value for a field.
  */
 attribute @default(_ value: ContextType)
 
 /*
- * Defines a unique constraint for this field
+ * Defines a unique constraint for this field.
  */
 attribute @unique(map: String?)
 
 /*
- * Defines a compound unique constraint for the specified fields
+ * Defines a compound unique constraint for the specified fields.
  */
 attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
 
 /*
- * Defines an index in the database
+ * Defines an index in the database.
  */
 attribute @@index(_ fields: FieldReference[], map: String?)
 
 /*
- * Defines meta information about the relation
+ * Defines meta information about the relation.
  */
 attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
 
 /*
- * Maps a field name or enum value from the schema to a column with a different name in the database
+ * Maps a field name or enum value from the schema to a column with a different name in the database.
  */
 attribute @map(_ name: String)
 
 /*
- * Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database
+ * Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database.
  */
 attribute @@map(_ name: String)
 
 /*
- * Automatically stores the time when a record was last updated
+ * Automatically stores the time when a record was last updated.
  */
 attribute @updatedAt()
 
 /*
- * Defines an access policy that allows a set of operations when the given condition is true
+ * Defines an access policy that allows a set of operations when the given condition is true.
  */
 attribute @@allow(_ operation: String, _ condition: Boolean)
 
 /*
- * Defines an access policy that denies a set of operations when the given condition is true
+ * Defines an access policy that denies a set of operations when the given condition is true.
  */
 attribute @@deny(_ operation: String, _ condition: Boolean)
 
@@ -104,15 +104,17 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
  * Indicates that the field is a password field and needs to be hashed before persistence.
  * 
  * ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter
- * to configure length of salt, or use parameter to provide an explicit salt. By default, 12-byte
- * long salt is used.
+ * to configure the cost of hashing, or use `salt` parameter to provide an explicit salt.
+ * By default, salt length of 12 is used.
  *
- * @saltLength: length of salt to use
- * @salt: salt to use
+ * @see https://www.npmjs.com/package/bcryptjs for details
+ * 
+ * @saltLength: length of salt to use (cost factor for the hash function)
+ * @salt: salt to use (a pregenerated valid salt)
  */
 attribute @password(saltLength: Int?, salt: String?)
 
 /*
- * Indicates that the field should be omitted when read from the generated services
+ * Indicates that the field should be omitted when read from the generated services.
  */
 attribute @omit()

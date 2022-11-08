@@ -7,6 +7,7 @@ export interface Context {
 }
 
 export interface Generator {
+    get name(): string;
     generate(context: Context): Promise<void>;
 }
 

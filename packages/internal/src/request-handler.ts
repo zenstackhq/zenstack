@@ -40,7 +40,8 @@ export function requestHandler<DbClient>(
                 return dataHandler.handle(req, res, rest);
 
             default:
-                res.status(404).json({ error: 'Unknown route: ' + route });
+                service.warn(`Unknown route: ${route}`);
+                res.status(404).json({ error: `Unknown route: ${route}` });
         }
     };
 }

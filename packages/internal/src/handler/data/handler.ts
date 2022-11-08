@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import cuid from 'cuid';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { TRANSACTION_FIELD_NAME } from '../../constants';
@@ -7,6 +6,7 @@ import { RequestHandlerOptions } from '../../request-handler';
 import {
     DbClientContract,
     DbOperations,
+    getServerErrorMessage,
     QueryContext,
     ServerErrorCode,
     Service,
@@ -49,6 +49,11 @@ export default class DataHandler<DbClient extends DbClientContract>
 
         const context = { user: await this.options.getServerUser(req, res) };
 
+        this.service.verbose(`Data request: ${method} ${path}`);
+        if (req.body) {
+            this.service.verbose(`Request body: ${JSON.stringify(req.body)}`);
+        }
+
         try {
             switch (method) {
                 case 'GET':
@@ -68,14 +73,14 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
 
                 default:
-                    console.warn(`Unhandled method: ${method}`);
+                    this.service.warn(`Unhandled method: ${method}`);
                     res.status(200).send({});
                     break;
             }
         } catch (err: unknown) {
-            console.log(`Error handling ${method} ${model}: ${err}`);
-
             if (err instanceof RequestHandlerError) {
+                this.service.warn(`${method} ${model}: ${err}`);
+
                 // in case of errors thrown directly by ZenStack
                 switch (err.code) {
                     case ServerErrorCode.DENIED_BY_POLICY:
@@ -85,24 +90,30 @@ export default class DataHandler<DbClient extends DbClientContract>
                             message: err.message,
                         });
                         break;
+
                     case ServerErrorCode.ENTITY_NOT_FOUND:
                         res.status(404).send({
                             code: err.code,
                             message: err.message,
                         });
                         break;
+
                     default:
                         res.status(400).send({
                             code: err.code,
                             message: err.message,
                         });
                 }
-            } else if (err instanceof PrismaClientKnownRequestError) {
+            } else if (this.isPrismaClientKnownRequestError(err)) {
+                this.service.warn(`${method} ${model}: ${err}`);
+
                 // errors thrown by Prisma, try mapping to a known error
                 if (PRISMA_ERROR_MAPPING[err.code]) {
                     res.status(400).send({
                         code: PRISMA_ERROR_MAPPING[err.code],
-                        message: 'database access error',
+                        message: getServerErrorMessage(
+                            PRISMA_ERROR_MAPPING[err.code]
+                        ),
                     });
                 } else {
                     res.status(400).send({
@@ -110,15 +121,28 @@ export default class DataHandler<DbClient extends DbClientContract>
                         message: 'an unhandled Prisma error occurred',
                     });
                 }
+            } else if (this.isPrismaClientValidationError(err)) {
+                this.service.warn(`${method} ${model}: ${err}`);
+
+                // prisma validation error
+                res.status(400).send({
+                    code: ServerErrorCode.INVALID_REQUEST_PARAMS,
+                    message: getServerErrorMessage(
+                        ServerErrorCode.INVALID_REQUEST_PARAMS
+                    ),
+                });
             } else {
                 // generic errors
-                console.error(
+                this.service.error(
                     `An unknown error occurred: ${JSON.stringify(err)}`
                 );
-                if (err instanceof Error) {
-                    console.error(err.stack);
+                if (err instanceof Error && err.stack) {
+                    this.service.error(err.stack);
                 }
-                res.status(500).send({ error: ServerErrorCode.UNKNOWN });
+                res.status(500).send({
+                    error: ServerErrorCode.UNKNOWN,
+                    message: getServerErrorMessage(ServerErrorCode.UNKNOWN),
+                });
             }
         }
     }
@@ -146,10 +170,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
 
             if (result.length === 0) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.ENTITY_NOT_FOUND,
-                    'not found'
-                );
+                throw new RequestHandlerError(ServerErrorCode.ENTITY_NOT_FOUND);
             }
             res.status(200).send(result[0]);
         } else {
@@ -204,7 +225,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // conduct the create
-                console.log(
+                this.service.verbose(
                     `Conducting create: ${model}:\n${JSON.stringify(args)}`
                 );
                 const createResult = (await tx[model].create(args)) as {
@@ -227,7 +248,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                         const createdIds = await queryIds(model, tx, {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
                         });
-                        console.log(
+                        this.service.verbose(
                             `Validating nestedly created entities: ${model}#[${createdIds.join(
                                 ', '
                             )}]`
@@ -261,8 +282,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
             if (result.length === 0) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `create result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             }
             res.status(201).send(result[0]);
@@ -272,8 +292,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 err.code === ServerErrorCode.DENIED_BY_POLICY
             ) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `create result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             } else {
                 throw err;
@@ -332,7 +351,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 );
 
                 // conduct the update
-                console.log(
+                this.service.verbose(
                     `Conducting update: ${model}:\n${JSON.stringify(args)}`
                 );
                 await tx[model].update(args);
@@ -343,7 +362,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                         const createdIds = await queryIds(model, tx, {
                             [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
                         });
-                        console.log(
+                        this.service.verbose(
                             `Validating nestedly created entities: ${model}#[${createdIds.join(
                                 ', '
                             )}]`
@@ -375,8 +394,7 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
             if (result.length === 0) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `update result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             }
             res.status(200).send(result[0]);
@@ -386,8 +404,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 err.code === ServerErrorCode.DENIED_BY_POLICY
             ) {
                 throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                    `update result could not be read back due to policy check`
+                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             } else {
                 throw err;
@@ -447,7 +464,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                 }
 
                 // conduct the deletion
-                console.log(
+                this.service.verbose(
                     `Conducting delete ${model}:\n${JSON.stringify(args)}`
                 );
                 await tx[model].delete(args);
@@ -460,9 +477,22 @@ export default class DataHandler<DbClient extends DbClientContract>
             res.status(200).send(r);
         } else {
             throw new RequestHandlerError(
-                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED,
-                `delete result could not be read back due to policy check`
+                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
             );
         }
+    }
+
+    private isPrismaClientKnownRequestError(
+        err: any
+    ): err is { code: string; message: string } {
+        return (
+            err.__proto__.constructor.name === 'PrismaClientKnownRequestError'
+        );
+    }
+
+    private isPrismaClientValidationError(
+        err: any
+    ): err is { message: string } {
+        return err.__proto__.constructor.name === 'PrismaClientValidationError';
     }
 }

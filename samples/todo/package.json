@@ -1,6 +1,6 @@
 {
     "name": "todo",
-    "version": "0.2.4",
+    "version": "0.3.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -11,19 +11,23 @@
         "db:migrate": "zenstack migrate dev",
         "db:deploy": "zenstack migrate deploy",
         "db:reset": "zenstack migrate reset",
+        "db:browse": "zenstack studio",
         "generate": "zenstack generate",
-        "vercel-build": "npm run build && npm run db:deploy"
+        "vercel-build": "npm run build && npm run db:deploy",
+        "deps-local": "npm i -D ../../packages/schema && npm i ../../packages/internal ../../packages/runtime",
+        "deps-npm": "npm i -D zenstack@latest && npm i @zenstackhq/internal@latest @zenstackhq/runtime@latest"
     },
     "dependencies": {
         "@heroicons/react": "^2.0.12",
         "@prisma/client": "^4.4.0",
-        "@zenstackhq/internal": "^0.2.4",
-        "@zenstackhq/runtime": "^0.2.4",
+        "@zenstackhq/internal": "~0.3.0",
+        "@zenstackhq/runtime": "~0.3.0",
+        "bcryptjs": "^2.4.3",
         "daisyui": "^2.31.0",
         "moment": "^2.29.4",
         "nanoid": "^4.0.0",
         "next": "12.3.1",
-        "next-auth": "^4.10.3",
+        "next-auth": "^4.15.1",
         "react": "18.2.0",
         "react-dom": "18.2.0",
         "react-toastify": "^9.0.8",
@@ -31,6 +35,7 @@
     },
     "devDependencies": {
         "@tailwindcss/line-clamp": "^0.4.2",
+        "@types/bcryptjs": "^2.4.2",
         "@types/node": "^14.17.3",
         "@types/react": "18.0.21",
         "@types/react-dom": "18.0.6",
@@ -40,6 +45,6 @@
         "postcss": "^8.4.16",
         "tailwindcss": "^3.1.8",
         "typescript": "^4.6.2",
-        "zenstack": "^0.2.4"
+        "zenstack": "~0.3.0"
     }
 }

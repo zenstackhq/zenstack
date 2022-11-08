@@ -20,9 +20,9 @@
             "@lib/*": ["lib/*"],
             "@components/*": ["lib/components/*"],
             "@components": ["lib/components/index"],
-            "@zenstack/*": [".zenstack/*"]
+            ".zenstack/*": ["node_modules/.zenstack/*"]
         }
     },
-    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "zenstack.config.json"],
     "exclude": ["node_modules"]
 }

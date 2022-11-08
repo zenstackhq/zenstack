@@ -102,7 +102,7 @@ export async function readWithCheck(
     // recursively inject read guard conditions into the query args
     await injectNestedReadConditions(model, args, service, context);
 
-    console.log(
+    service.verbose(
         `Reading with validation for ${model}: ${JSON.stringify(args)}`
     );
     const result = await db[model].findMany(args);
@@ -187,6 +187,40 @@ async function postProcessForRead(
         if (await shouldOmit(service, model, field)) {
             delete entityData[field];
         }
+
+        const fieldValue = entityData[field];
+
+        if (typeof fieldValue === 'bigint') {
+            // serialize BigInt with typing info
+            entityData[field] = {
+                type: 'BigInt',
+                data: fieldValue.toString(),
+            };
+        }
+
+        if (fieldValue instanceof Date) {
+            // serialize Date with typing info
+            entityData[field] = {
+                type: 'Date',
+                data: fieldValue.toISOString(),
+            };
+        }
+
+        if (typeof fieldValue === 'object') {
+            const fieldInfo = await service.resolveField(model, field);
+            if (fieldInfo?.type === 'Decimal') {
+                // serialize Decimal with typing info
+                entityData[field] = {
+                    type: 'Decimal',
+                    data: fieldValue.toString(),
+                };
+            } else if (fieldInfo?.type === 'Bytes') {
+                entityData[field] = {
+                    type: 'Bytes',
+                    data: Array.from(fieldValue as Buffer),
+                };
+            }
+        }
     }
 
     const injectTarget = args.select ?? args.include;
@@ -207,7 +241,7 @@ async function postProcessForRead(
             continue;
         }
 
-        console.log(
+        service.verbose(
             `Validating read of to-one relation: ${fieldInfo.type}#${entityData[field].id}`
         );
 
@@ -378,7 +412,7 @@ export async function checkPolicyForIds(
     context: QueryContext,
     db: Record<string, DbOperations>
 ) {
-    console.log(
+    service.verbose(
         `Checking policy for ${model}#[${ids.join(', ')}] for ${operation}`
     );
 
@@ -427,7 +461,7 @@ async function checkPolicyForSelectionPath(
     // build a Prisma query for the path
     const query = buildChainedSelectQuery(id, selectionPath);
 
-    console.log(
+    service.verbose(
         `Query for selection path: model ${model}, path ${JSON.stringify(
             selectionPath
         )}, query ${JSON.stringify(query)}`
@@ -436,7 +470,7 @@ async function checkPolicyForSelectionPath(
 
     // collect ids at the end of the path
     const ids: string[] = collectTerminalEntityIds(selectionPath, r);
-    console.log(`Collected leaf ids: ${JSON.stringify(ids)}`);
+    service.verbose(`Collected leaf ids: ${JSON.stringify(ids)}`);
 
     if (ids.length === 0) {
         return;
@@ -596,13 +630,11 @@ export async function preprocessWritePayload(
         fieldData: any,
         parentData: any
     ) => {
-        if (fieldInfo.type !== 'String') {
-            return true;
-        }
+        // process @password field
         const pwdAttr = fieldInfo.attributes?.find(
             (attr) => attr.name === '@password'
         );
-        if (pwdAttr) {
+        if (pwdAttr && fieldInfo.type === 'String') {
             // hash password value
             let salt: string | number | undefined = pwdAttr.args.find(
                 (arg) => arg.name === 'salt'
@@ -616,6 +648,17 @@ export async function preprocessWritePayload(
             }
             parentData[fieldInfo.name] = hashSync(fieldData, salt);
         }
+
+        // deserialize Buffer field
+        if (fieldInfo.type === 'Bytes' && Array.isArray(fieldData.data)) {
+            parentData[fieldInfo.name] = Buffer.from(fieldData.data);
+        }
+
+        // deserialize BigInt field
+        if (fieldInfo.type === 'BigInt' && typeof fieldData === 'string') {
+            parentData[fieldInfo.name] = BigInt(fieldData);
+        }
+
         return true;
     };
 

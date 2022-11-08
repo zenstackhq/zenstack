@@ -1,9 +1,70 @@
+import Decimal from 'decimal.js';
 import useSWR, { useSWRConfig } from 'swr';
 import type {
     MutatorCallback,
     MutatorOptions,
     SWRResponse,
 } from 'swr/dist/types';
+
+type BufferShape = { type: 'Buffer'; data: number[] };
+function isBuffer(value: unknown): value is BufferShape {
+    return (
+        !!value &&
+        (value as BufferShape).type === 'Buffer' &&
+        Array.isArray((value as BufferShape).data)
+    );
+}
+
+type BigIntShape = { type: 'BigInt'; data: string };
+function isBigInt(value: unknown): value is BigIntShape {
+    return (
+        !!value &&
+        (value as BigIntShape).type === 'BigInt' &&
+        typeof (value as BigIntShape).data === 'string'
+    );
+}
+
+type DateShape = { type: 'Date'; data: string };
+function isDate(value: unknown): value is BigIntShape {
+    return (
+        !!value &&
+        (value as DateShape).type === 'Date' &&
+        typeof (value as DateShape).data === 'string'
+    );
+}
+
+type DecmalShape = { type: 'Decimal'; data: string };
+function isDecimal(value: unknown): value is DecmalShape {
+    return (
+        !!value &&
+        (value as DecmalShape).type === 'Decimal' &&
+        typeof (value as DateShape).data === 'string'
+    );
+}
+
+const dataReviver = (key: string, value: unknown) => {
+    // Buffer
+    if (isBuffer(value)) {
+        return Buffer.from(value.data);
+    }
+
+    // BigInt
+    if (isBigInt(value)) {
+        return BigInt(value.data);
+    }
+
+    // Date
+    if (isDate(value)) {
+        return new Date(value.data);
+    }
+
+    // Decimal
+    if (isDecimal(value)) {
+        return new Decimal(value.data);
+    }
+
+    return value;
+};
 
 const fetcher = async (url: string, options?: RequestInit) => {
     const res = await fetch(url, options);
@@ -15,7 +76,15 @@ const fetcher = async (url: string, options?: RequestInit) => {
         error.status = res.status;
         throw error;
     }
-    return res.json();
+
+    const textResult = await res.text();
+    console.log;
+    try {
+        return JSON.parse(textResult, dataReviver);
+    } catch (err) {
+        console.error(`Unable to deserialize data:`, textResult);
+        throw err;
+    }
 };
 
 function makeUrl(url: string, args: unknown) {
@@ -113,7 +182,6 @@ export function getMutate(): Mutator {
         const keys = Array.from(cache.keys()).filter(
             (k) => typeof k === 'string' && k.startsWith(key)
         ) as string[];
-        console.log('Mutating keys:', JSON.stringify(keys));
         const mutations = keys.map((key) => mutate(key, data, opts));
         return Promise.all(mutations);
     };
