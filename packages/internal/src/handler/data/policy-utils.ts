@@ -634,7 +634,7 @@ export async function preprocessWritePayload(
         const pwdAttr = fieldInfo.attributes?.find(
             (attr) => attr.name === '@password'
         );
-        if (pwdAttr && fieldInfo.type !== 'String') {
+        if (pwdAttr && fieldInfo.type === 'String') {
             // hash password value
             let salt: string | number | undefined = pwdAttr.args.find(
                 (arg) => arg.name === 'salt'

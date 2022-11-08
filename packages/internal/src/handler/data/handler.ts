@@ -78,9 +78,9 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
             }
         } catch (err: unknown) {
-            this.service.error(`${method} ${model}: ${err}`);
-
             if (err instanceof RequestHandlerError) {
+                this.service.warn(`${method} ${model}: ${err}`);
+
                 // in case of errors thrown directly by ZenStack
                 switch (err.code) {
                     case ServerErrorCode.DENIED_BY_POLICY:
@@ -105,6 +105,8 @@ export default class DataHandler<DbClient extends DbClientContract>
                         });
                 }
             } else if (this.isPrismaClientKnownRequestError(err)) {
+                this.service.warn(`${method} ${model}: ${err}`);
+
                 // errors thrown by Prisma, try mapping to a known error
                 if (PRISMA_ERROR_MAPPING[err.code]) {
                     res.status(400).send({
@@ -120,6 +122,8 @@ export default class DataHandler<DbClient extends DbClientContract>
                     });
                 }
             } else if (this.isPrismaClientValidationError(err)) {
+                this.service.warn(`${method} ${model}: ${err}`);
+
                 // prisma validation error
                 res.status(400).send({
                     code: ServerErrorCode.INVALID_REQUEST_PARAMS,
