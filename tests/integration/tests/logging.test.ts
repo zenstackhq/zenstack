@@ -26,12 +26,12 @@ describe('Logging tests', () => {
         let gotInfoEmit = false;
         let gotQueryEmit = false;
         let gotVerboseEmit = false;
-        let gotErrorEmit = false;
+        let gotWarnEmit = false;
 
         let gotInfoStd = false;
         let gotQueryStd = false;
         let gotVerboseStd = false;
-        let gotErrorStd = false;
+        let gotWarnStd = false;
 
         console.log = jest.fn((...args) => {
             const msg = args?.[0] as string;
@@ -46,10 +46,10 @@ describe('Logging tests', () => {
             }
         });
 
-        console.error = jest.fn((...args) => {
+        console.warn = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes(':error')) {
-                gotErrorStd = true;
+            if (msg.includes(':warn')) {
+                gotWarnStd = true;
             }
         });
 
@@ -68,9 +68,9 @@ describe('Logging tests', () => {
             gotVerboseEmit = true;
         });
 
-        service.$on('error', (event) => {
-            console.log('Got error', event);
-            gotErrorEmit = true;
+        service.$on('warn', (event) => {
+            console.log('Got warn', event);
+            gotWarnEmit = true;
         });
 
         await makeClient('/api/data/User').post('/').send({
@@ -80,12 +80,12 @@ describe('Logging tests', () => {
         expect(gotQueryStd).toBeFalsy();
         expect(gotVerboseStd).toBeFalsy();
         expect(gotInfoStd).toBeFalsy();
-        expect(gotErrorStd).toBeTruthy();
+        expect(gotWarnStd).toBeTruthy();
 
         expect(gotInfoEmit).toBeFalsy();
         expect(gotQueryEmit).toBeFalsy();
         expect(gotVerboseEmit).toBeFalsy();
-        expect(gotErrorEmit).toBeFalsy();
+        expect(gotWarnEmit).toBeFalsy();
     });
 
     it('logging with stdout', async () => {
@@ -93,7 +93,7 @@ describe('Logging tests', () => {
             './zenstack.config.json',
             `
                 {
-                    "log": ["query", "verbose", "info", "error"]
+                    "log": ["query", "verbose", "info", "warn"]
                 }
             `
         );
@@ -104,12 +104,12 @@ describe('Logging tests', () => {
         let gotInfoEmit = false;
         let gotQueryEmit = false;
         let gotVerboseEmit = false;
-        let gotErrorEmit = false;
+        let gotWarnEmit = false;
 
         let gotInfoStd = false;
         let gotQueryStd = false;
         let gotVerboseStd = false;
-        let gotErrorStd = false;
+        let gotWarnStd = false;
 
         console.log = jest.fn((...args) => {
             const msg = args?.[0] as string;
@@ -124,10 +124,10 @@ describe('Logging tests', () => {
             }
         });
 
-        console.error = jest.fn((...args) => {
+        console.warn = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes(':error')) {
-                gotErrorStd = true;
+            if (msg.includes(':warn')) {
+                gotWarnStd = true;
             }
         });
 
@@ -146,9 +146,9 @@ describe('Logging tests', () => {
             gotVerboseEmit = true;
         });
 
-        service.$on('error', (event) => {
-            console.log('Got error', event);
-            gotErrorEmit = true;
+        service.$on('warn', (event) => {
+            console.log('Got warn', event);
+            gotWarnEmit = true;
         });
 
         await makeClient('/api/data/User').post('/').send({
@@ -158,12 +158,12 @@ describe('Logging tests', () => {
         expect(gotQueryStd).toBeTruthy();
         expect(gotVerboseStd).toBeTruthy();
         expect(gotInfoStd).toBeTruthy();
-        expect(gotErrorStd).toBeTruthy();
+        expect(gotWarnStd).toBeTruthy();
 
         expect(gotInfoEmit).toBeFalsy();
         expect(gotQueryEmit).toBeFalsy();
         expect(gotVerboseEmit).toBeFalsy();
-        expect(gotErrorEmit).toBeFalsy();
+        expect(gotWarnEmit).toBeFalsy();
     });
 
     it('logging with event', async () => {
@@ -175,7 +175,7 @@ describe('Logging tests', () => {
                         { "level": "query", "emit": "event" },
                         { "level": "verbose", "emit": "event" },
                         { "level": "info", "emit": "event" },
-                        { "level": "error", "emit": "event" }
+                        { "level": "warn", "emit": "event" }
                     ]
                 }
             `
@@ -187,12 +187,12 @@ describe('Logging tests', () => {
         let gotInfoEmit = false;
         let gotQueryEmit = false;
         let gotVerboseEmit = false;
-        let gotErrorEmit = false;
+        let gotWarnEmit = false;
 
         let gotInfoStd = false;
         let gotQueryStd = false;
         let gotVerboseStd = false;
-        let gotErrorStd = false;
+        let gotWarnStd = false;
 
         console.log = jest.fn((...args) => {
             const msg = args?.[0] as string;
@@ -207,10 +207,10 @@ describe('Logging tests', () => {
             }
         });
 
-        console.error = jest.fn((...args) => {
+        console.warn = jest.fn((...args) => {
             const msg = args?.[0] as string;
-            if (msg.includes('zenstack:error')) {
-                gotErrorStd = true;
+            if (msg.includes('zenstack:warn')) {
+                gotWarnStd = true;
             }
         });
 
@@ -233,10 +233,10 @@ describe('Logging tests', () => {
             gotVerboseEmit = true;
         });
 
-        service.$on('error', (event) => {
+        service.$on('warn', (event) => {
             expect(event.timestamp).not.toBeUndefined();
             expect(event.message).not.toBeUndefined();
-            gotErrorEmit = true;
+            gotWarnEmit = true;
         });
 
         await makeClient('/api/data/User').post('/').send({
@@ -246,11 +246,11 @@ describe('Logging tests', () => {
         expect(gotInfoEmit).toBeTruthy();
         expect(gotQueryEmit).toBeTruthy();
         expect(gotVerboseEmit).toBeTruthy();
-        expect(gotErrorEmit).toBeTruthy();
+        expect(gotWarnEmit).toBeTruthy();
 
         expect(gotInfoStd).toBeFalsy();
         expect(gotQueryStd).toBeFalsy();
         expect(gotVerboseStd).toBeFalsy();
-        expect(gotErrorStd).toBeFalsy();
+        expect(gotWarnStd).toBeFalsy();
     });
 });

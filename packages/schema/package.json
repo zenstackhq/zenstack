@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "ZenStack is a toolkit that simplifies full-stack development",
-    "version": "0.2.12",
+    "version": "0.2.15",
     "author": {
         "name": "ZenStack Team"
     },
@@ -67,8 +67,9 @@
         "vscode:publish": "vsce publish --no-dependencies",
         "vscode:prepublish": "cp ../../README.md ./ && pnpm lint && pnpm build",
         "vscode:package": "vsce package --no-dependencies",
+        "clean": "rimraf bundle",
         "build": "pnpm langium:generate && tsc --noEmit && pnpm bundle && cp -r src/res/* bundle/res/",
-        "bundle": "node build/bundle.js --minify",
+        "bundle": "npm run clean && node build/bundle.js --minify",
         "bundle-watch": "node build/bundle.js --watch",
         "ts:watch": "tsc --watch --noEmit",
         "tsc-alias:watch": "tsc-alias --watch",
@@ -77,7 +78,7 @@
         "langium:watch": "langium generate --watch",
         "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:bundle-watch\"",
         "test": "jest",
-        "prepublishOnly": "cp ../../README.md ./ && pnpm build && pnpm bundle"
+        "prepublishOnly": "cp ../../README.md ./ && pnpm build"
     },
     "dependencies": {
         "@zenstackhq/internal": "workspace:*",
@@ -112,6 +113,7 @@
         "eslint": "^8.27.0",
         "jest": "^29.2.1",
         "langium-cli": "^0.5.0",
+        "rimraf": "^3.0.2",
         "tmp": "^0.2.1",
         "ts-jest": "^29.0.3",
         "ts-node": "^10.9.1",

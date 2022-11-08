@@ -28,7 +28,7 @@ describe('Password attribute tests', () => {
                 },
             })
             .expect(async (resp) =>
-                expect(compareSync('abc123', resp.body.password))
+                expect(compareSync('abc123', resp.body.password)).toBeTruthy()
             );
 
         await makeClient('/api/data/User/1')
@@ -39,7 +39,7 @@ describe('Password attribute tests', () => {
                 },
             })
             .expect(async (resp) =>
-                expect(compareSync('abc456', resp.body.password))
+                expect(compareSync('abc456', resp.body.password)).toBeTruthy()
             );
     });
 
@@ -71,7 +71,9 @@ describe('Password attribute tests', () => {
                 },
             })
             .expect(async (resp) =>
-                expect(compareSync('abc456', resp.body.user.password))
+                expect(
+                    compareSync('abc456', resp.body.user.password)
+                ).toBeTruthy()
             );
     });
 });
