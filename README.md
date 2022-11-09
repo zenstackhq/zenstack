@@ -15,11 +15,15 @@
     </a>
 </div>
 
+## 📣 Our Discord Server is Live
+
+[Join us](https://discord.gg/6HhebQynfz) to chat about questions, bugs, plans, or anything off the top of your head.
+
 ## What is ZenStack?
 
-ZenStack is a toolkit for simplifying full-stack development with Node.js web frameworks like [Next.js](https://nextjs.org/), [Nuxt.js](https://nuxtjs.org/) <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">, and [SvelteKit](https://kit.svelte.dev/) <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">, using Typescript language.
+ZenStack is a toolkit for simplifying full-stack development with [Next.js](https://nextjs.org/), using Typescript.
 
-Thanks to the increasing power of frameworks, building a complex web app within one unified framework is becoming more practical than ever. However, you'll still need to spend a significant amount of energy designing and building up your app's server-side part.
+Thanks to the increasing power of Next.js, building a complex web app within one unified framework is becoming more practical than ever. However, you'll still need to spend a significant amount of energy designing and building up your app's server-side part.
 
 Things that make you stressed include:
 
@@ -60,7 +64,7 @@ model Post {
 }
 ```
 
--   Auto-generated CRUD services and strongly typed front-end library
+-   Auto-generated CRUD services and strongly typed React hooks
 
 ```jsx
 // React example
@@ -77,26 +81,22 @@ return (
 );
 ```
 
-Since CRUD APIs are automatically generated with access policies injected, you can safely implement most of your business logic in your front-end code. Read operations never return data that's not supposed to be visible to the current user, and writes will be rejected if unauthorized. The generated front-end library also supports nested writes, allowing you to make a batch of creates/updates atomically, eliminating the need for explicitly using a transaction.
+Since CRUD APIs are automatically generated with access policies injected, you can safely implement most of your business logic in your front-end code. Read operations never return data that's not supposed to be visible to the current user, and writes will be rejected if unauthorized.
 
-ZenStack is heavily inspired and built over [Prisma](https://www.prisma.io) ORM, which is, in our opinion, the best ORM toolkit in the market. Familiarity with Prisma should make it easy to pick up ZenStack, but it's not a prerequisite since the modeling language is intuitive and the development workflow is straightforward.
+ZenStack is heavily inspired and built above [Prisma](https://www.prisma.io) ORM, which is, in our opinion, the best ORM toolkit in the market. Familiarity with Prisma should make it easy to pick up ZenStack, but it's not a prerequisite since the modeling language is intuitive and the development workflow is straightforward.
 
 ## Getting started
 
-### [For Next.js](docs/get-started/next-js.md)
-
-### For Nuxt.js <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">
-
-### For SvelteKit <img src="https://img.shields.io/badge/-Coming%20Soon-lightgray" height="12" align="top">
+[A step by step guide for getting started](docs/get-started/next-js.md)
 
 ## How does it work?
 
 ZenStack has four essential responsibilities:
 
-1. Modeling data and mapping the model to DB schema and program types
+1. Modeling data and mapping the model to DB schema and programmable client library
 1. Integrating with authentication
 1. Generating CRUD APIs and enforcing data access policies
-1. Providing type-safe client CRUD library
+1. Providing type-safe React hooks
 
 Let's briefly go through each of them in this section.
 
@@ -158,9 +158,11 @@ When client code sends a query to list all `Post`s, ZenStack's generated code in
 
 Similar procedures are applied to write operations and more complex queries involving nested reads and writes. To ensure good performance, ZenStack generates conditions statically, so it doesn't need to introspect ZModel at runtime. The engine also makes the best effort to push down policy constraints to the database to avoid fetching data unnecessarily and discarding afterward.
 
-Please **beware** that policy checking is only applied when data access is done using the generated client-side hooks or, equivalently, the RESTful API. If you use `service.db` to access the database directly from server-side code, policies are bypassed, and you have to do all necessary checking by yourself. We've planned to add helper functions for "injecting" the policy checking on the server side in the future.
+Please **BEWARE** that policy checking is only applied when data access is done using the generated client-side hooks or, equivalently, the RESTful API. If you use `service.db` to access the database directly from server-side code, policies are bypassed, and you have to do all necessary checking by yourself. We've planned to add helper functions for "injecting" the policy checking on the server side in the future.
 
-### Type-safe client library
+### Type-safe React hooks
+
+Strongly-typed React hooks are generated for CRUD operations, saving the need to write boilerplate code.
 
 Thanks to Prisma's power, ZenStack generates accurate Typescript types for your data models:
 
@@ -174,11 +176,7 @@ The cool thing is that the generated types are shared between client-side and se
 
 ### Client-side
 
-#### For Next.js
-
-The generated CRUD services should be mounted at `/api/zenstack` route. React hooks are generated for calling these services without explicitly writing Http requests.
-
-The following hooks methods are generated:
+The generated CRUD services should be mounted at `/api/zenstack` route. The following React hooks are generated for each data model:
 
 -   find: listing entities with filtering, ordering, pagination, and nested relations
 
