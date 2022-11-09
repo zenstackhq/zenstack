@@ -437,7 +437,7 @@ export async function checkPolicyForIds(
         const gap = ids.filter((id) => !filteredIds.includes(id));
         throw new RequestHandlerError(
             ServerErrorCode.DENIED_BY_POLICY,
-            `denied by policy before update: entities failed '${operation}' check, ${model}#[${gap.join(
+            `denied by policy: entities failed '${operation}' check, ${model}#[${gap.join(
                 ', '
             )}]`
         );
