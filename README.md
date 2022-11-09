@@ -87,7 +87,7 @@ ZenStack is heavily inspired and built above [Prisma](https://www.prisma.io) ORM
 
 ## Getting started
 
-[A step by step guide for getting started](docs/get-started/next-js.md).
+[A step by step guide for getting started](docs/get-started/next-js.md)
 
 ## How does it work?
 
