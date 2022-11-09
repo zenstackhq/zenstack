@@ -26,7 +26,7 @@
     ],
     "dependencies": {
         "bcryptjs": "^2.4.3",
-        "colors": "^1.4.0",
+        "colors": "1.4.0",
         "cuid": "^2.1.8",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
