@@ -7,7 +7,7 @@
     <a href="https://twitter.com/intent/tweet?text=Wow%20%40zenstackhq">
         <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
     </a>
-    <a href="https://discord.gg/6HhebQynfz">
+    <a href="https://go.zenstack.dev/chat">
         <img src="https://img.shields.io/discord/1035538056146595961">
     </a>
     <a href="https://github.com/zenstackhq/zenstack/blob/main/LICENSE">
@@ -17,7 +17,7 @@
 
 ## 📣 Our Discord Server is Live
 
-[Join us](https://discord.gg/6HhebQynfz) to chat about questions, bugs, plans, or anything off the top of your head.
+[Join us](https://go.zenstack.dev/chat) to chat about questions, bugs, plans, or anything off the top of your head.
 
 ## What is ZenStack?
 
@@ -274,5 +274,5 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ## Reach out to us for issues, feedback and ideas!
 
-[Discord](https://discord.gg/dbuC9ZWc) [Twitter](https://twitter.com/zenstackhq)
+[Discord](https://go.zenstack.dev/chat) [Twitter](https://twitter.com/zenstackhq)
 [Discussions](../discussions) [Issues](../issues)
