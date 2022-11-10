@@ -63,7 +63,7 @@ export default function (): void {
         .description(
             `${colors.bold.blue(
                 'ζ'
-            )} ZenStack simplifies fullstack development by generating backend services and Typescript clients from a data model.\n\nDocumentation: https://zenstack.dev/doc.`
+            )} ZenStack simplifies fullstack development by generating backend services and Typescript clients from a data model.\n\nDocumentation: https://go.zenstack.dev/doc.`
         )
         .showHelpAfterError()
         .showSuggestionAfterError();
