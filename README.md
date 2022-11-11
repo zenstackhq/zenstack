@@ -21,7 +21,9 @@
 
 ## What is ZenStack?
 
-ZenStack is a toolkit for simplifying full-stack development with [Next.js](https://nextjs.org/), using Typescript.
+[![ZenStack Full-stack Development Toolkit Introduction](https://cdn.loom.com/sessions/thumbnails/3af0cc4dbce74ab89b1d9503c264b5eb-1668163526140-with-play.gif)](https://www.loom.com/share/3af0cc4dbce74ab89b1d9503c264b5eb)
+
+ZenStack is a toolkit for modeling data and access policies in full-stack development with [Next.js](https://nextjs.org/) and Typescript.
 
 Thanks to the increasing power of Next.js, building a complex web app within one unified framework is becoming more practical than ever. However, you'll still need to spend a significant amount of energy designing and building up your app's server-side part.
 
