@@ -83,6 +83,8 @@ ZenStack is heavily inspired and built above [Prisma](https://www.prisma.io) ORM
 
 [A step by step guide for getting started](docs/get-started/next-js.md)
 
+[A complete sample with a collaborative todo app](https://github.com/zenstackhq/zenstack/tree/main/samples/todo)
+
 ## How does it work?
 
 ZenStack has four essential responsibilities:
