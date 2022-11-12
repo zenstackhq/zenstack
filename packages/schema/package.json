@@ -2,11 +2,12 @@
     "name": "zenstack",
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
-    "description": "ZenStack is a toolkit that simplifies full-stack development",
+    "description": "A toolkit for modeling data and access policies in full-stack development with Next.js and Typescript",
     "version": "0.3.0",
     "author": {
         "name": "ZenStack Team"
     },
+    "license": "MIT",
     "keywords": [
         "fullstack",
         "react",
