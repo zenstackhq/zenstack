@@ -17,25 +17,17 @@
 
 ## 📣 Our Discord Server is Live
 
-[Join us](https://go.zenstack.dev/chat) to chat about questions, bugs, plans, or anything off the top of your head.
+[JOIN US](https://go.zenstack.dev/chat) to chat about questions, bugs, plans, or anything off the top of your head.
 
 ## What is ZenStack?
 
-[![ZenStack Full-stack Development Toolkit Introduction](https://cdn.loom.com/sessions/thumbnails/3af0cc4dbce74ab89b1d9503c264b5eb-1668163526140-with-play.gif)](https://www.loom.com/share/3af0cc4dbce74ab89b1d9503c264b5eb)
+[![ZenStack Full-stack Development Toolkit Introduction](https://cdn.loom.com/sessions/thumbnails/76ba1308fb734af993765a6696b62c96-1668251534738-with-play.gif)](https://www.loom.com/share/76ba1308fb734af993765a6696b62c96)
 
 ZenStack is a toolkit for modeling data and access policies in full-stack development with [Next.js](https://nextjs.org/) and Typescript.
 
-Thanks to the increasing power of Next.js, building a complex web app within one unified framework is becoming more practical than ever. However, you'll still need to spend a significant amount of energy designing and building up your app's server-side part.
+Next.js is an excellent full-stack framework. However, building the backend part of a web app is still quite challenging. For example, implementing CRUD services efficiently and securely is tricky and not fun.
 
-Things that make you stressed include:
-
--   What kind of API to use? RESTful or GraphQL?
--   How to model your data and map the model to both source code and database (ORM)?
--   How to implement CRUD operations? Manually construct it or use a generator?
--   How to evolve your data model?
--   How to authenticate users and authorize their requests?
-
-ZenStack aims to simplify these tasks by providing:
+ZenStack simplifies it by providing:
 
 -   An intuitive data modeling language for defining data types, relations, and access policies
 
@@ -276,5 +268,5 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ## Reach out to us for issues, feedback and ideas!
 
-[Discord](https://go.zenstack.dev/chat) [Twitter](https://twitter.com/zenstackhq)
-[Discussions](../discussions) [Issues](../issues)
+[Discord](https://go.zenstack.dev/chat) | [Twitter](https://twitter.com/zenstackhq) |
+[Discussions](../discussions) | [Issues](../issues)
