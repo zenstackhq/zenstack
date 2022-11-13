@@ -15,7 +15,7 @@
         "data modeling"
     ],
     "preview": true,
-    "icon": "asset/logo-light-256.png",
+    "icon": "asset/logo-256-bg.png",
     "repository": {
         "type": "git",
         "url": "https://github.com/zenstackhq/zenstack"

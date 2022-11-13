@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/104139426/197796006-52d8d334-413b-4eda-8094-4024c0eaf9b3.png" height="128">
+    <img src="https://user-images.githubusercontent.com/104139426/201514191-9509b0fa-a9bb-4d7b-92f8-7220026048e9.png" height="128">
     <h1>ZenStack</h1>
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/v/zenstack">
