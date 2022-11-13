@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/104139426/197796006-52d8d334-413b-4eda-8094-4024c0eaf9b3.png" height="128">
+    <img src="https://user-images.githubusercontent.com/104139426/201514191-9509b0fa-a9bb-4d7b-92f8-7220026048e9.png" height="128">
     <h1>ZenStack</h1>
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/v/zenstack">
@@ -23,7 +23,7 @@
 
 [![ZenStack Full-stack Development Toolkit Introduction](https://cdn.loom.com/sessions/thumbnails/76ba1308fb734af993765a6696b62c96-1668251534738-with-play.gif)](https://www.loom.com/share/76ba1308fb734af993765a6696b62c96)
 
-ZenStack is a toolkit for modeling data and access policies in full-stack development with [Next.js](https://nextjs.org/) and Typescript.
+ZenStack is a toolkit for modeling data and access policies in full-stack development with [Next.js](https://nextjs.org/) and Typescript. It takes a schema-first approach to simplify the construction of CRUD services.
 
 Next.js is an excellent full-stack framework. However, building the backend part of a web app is still quite challenging. For example, implementing CRUD services efficiently and securely is tricky and not fun.
 
@@ -76,8 +76,6 @@ return (
 ```
 
 Since CRUD APIs are automatically generated with access policies injected, you can safely implement most of your business logic in your front-end code. Read operations never return data that's not supposed to be visible to the current user, and writes will be rejected if unauthorized.
-
-ZenStack is heavily inspired and built above [Prisma](https://www.prisma.io) ORM, which is, in our opinion, the best ORM toolkit in the market. Familiarity with Prisma should make it easy to pick up ZenStack, but it's not a prerequisite since the modeling language is intuitive and the development workflow is straightforward.
 
 ## Getting started
 
