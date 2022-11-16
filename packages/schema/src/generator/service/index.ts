@@ -46,6 +46,13 @@ export default class ServiceGenerator implements Generator {
             return import('./query/guard');
         `);
 
+        cls.addMethod({
+            name: 'loadFieldConstraintModule',
+            isAsync: true,
+        }).setBodyText(`
+            return import('./field-constraint');
+        `);
+
         // Recommended by Prisma for Next.js
         // https://www.prisma.io/docs/guides/database/troubleshooting-orm/help-articles/nextjs-prisma-client-dev-practices#problem
         sf.addStatements([

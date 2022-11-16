@@ -7,6 +7,7 @@ import ServiceGenerator from './service';
 import ReactHooksGenerator from './react-hooks';
 import NextAuthGenerator from './next-auth';
 import { TypescriptCompilation } from './tsc';
+import FieldConstraintGenerator from './field-constraint';
 
 /**
  * ZenStack code generator
@@ -45,6 +46,7 @@ export class ZenStackGenerator {
             new ServiceGenerator(),
             new ReactHooksGenerator(),
             new NextAuthGenerator(),
+            new FieldConstraintGenerator(),
             new TypescriptCompilation(),
         ];
 

@@ -10,6 +10,8 @@ import {
     Service,
 } from './types';
 import colors from 'colors';
+import { validate } from './validation';
+import { z } from 'zod';
 
 export abstract class DefaultService<
     DbClient extends {
@@ -30,6 +32,9 @@ export abstract class DefaultService<
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private guardModule: any;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private fieldConstraintModule: any;
 
     private readonly prismaLogLevels: LogLevel[] = [
         'query',
@@ -155,6 +160,22 @@ export abstract class DefaultService<
         return provider(context);
     }
 
+    async validateModelPayload(
+        model: string,
+        mode: 'create' | 'update',
+        payload: unknown
+    ) {
+        if (!this.fieldConstraintModule) {
+            this.fieldConstraintModule = await this.loadFieldConstraintModule();
+        }
+        const validator = this.fieldConstraintModule[
+            `${model}_${mode}_validator`
+        ] as z.ZodType;
+        if (validator) {
+            validate(validator, payload);
+        }
+    }
+
     verbose(message: string): void {
         this.handleLog('verbose', message);
     }
@@ -179,4 +200,7 @@ export abstract class DefaultService<
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected abstract loadGuardModule(): Promise<any>;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    protected abstract loadFieldConstraintModule(): Promise<any>;
 }

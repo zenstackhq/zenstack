@@ -33,6 +33,7 @@ export async function setup(schemaFile: string) {
         'swr',
         'react',
         'prisma',
+        'zod',
         '../../../../packages/schema',
         '../../../../packages/runtime',
         '../../../../packages/internal',

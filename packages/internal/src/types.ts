@@ -99,6 +99,12 @@ export interface Service<DbClient = any> {
         context: QueryContext
     ): Promise<unknown>;
 
+    validateModelPayload(
+        model: string,
+        mode: 'create' | 'update',
+        payload: unknown
+    ): Promise<void>;
+
     /**
      * Generates a log message with verbose level.
      */

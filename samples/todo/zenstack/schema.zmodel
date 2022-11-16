@@ -25,8 +25,8 @@ model Space {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    name String
-    slug String @unique
+    name String @length(4, 50)
+    slug String @unique @length(4, 16)
     members SpaceUser[]
     lists List[]
 
@@ -75,23 +75,23 @@ model User {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    email String @unique
+    email String @unique @email
     emailVerified DateTime?
     password String @password @omit
     name String?
     spaces SpaceUser[]
-    image String?
+    image String? @url
     lists List[]
     todos Todo[]
 
     // can be created by anyone, even not logged in
     @@allow('create', true)
 
-    // can be read by current user or users sharing any space
-    @@allow('read', auth() == this || spaces?[space.members?[user == auth()]])
+    // can be read by users sharing any space
+    @@allow('read', spaces?[space.members?[user == auth()]])
 
-    // can only be updated and deleted by himeself
-    @@allow('update,delete', auth() == this) 
+    // full access by oneself
+    @@allow('all', auth() == this) 
 }
 
 /*
@@ -105,7 +105,7 @@ model List {
     spaceId String
     owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     ownerId String
-    title String
+    title String @length(1, 100)
     private Boolean @default(false)
     todos Todo[]
 
@@ -115,8 +115,11 @@ model List {
     // can be read by owner or space members (only if not private) 
     @@allow('read', owner == auth() || (space.members?[user == auth()] && !private))
 
-    // can be created/updated/deleted by owner
-    @@allow('create,update,delete', owner == auth() && space.members?[user == auth()]) 
+    // when create/udpate, owner must be set to current user, and user must be in the space
+    @@allow('create,update', owner == auth() && space.members?[user == auth()])
+
+    // can be deleted by owner
+    @@allow('delete', owner == auth()) 
 }
 
 /*
@@ -130,7 +133,7 @@ model Todo {
     ownerId String
     list List @relation(fields: [listId], references: [id], onDelete: Cascade)
     listId String
-    title String
+    title String @length(1, 100)
     completedAt DateTime?
 
     // require login

@@ -148,17 +148,19 @@ FunctionParam:
 FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration]) (array?='[]')?;
 
+AttributeAttributeName returns string:
+    '@@@' ID;
 DataModelAttributeName returns string:
     '@@' ID;
 DataModelFieldAttributeName returns string:
     '@' ID;
 
 AttributeName returns string:
-    DataModelAttributeName | DataModelFieldAttributeName;
+    DataModelAttributeName | DataModelFieldAttributeName | AttributeAttributeName;
 
 // attribute
 Attribute:
-    'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')';
+    'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=AttributeAttribute)*;
 
 AttributeParam:
     (default?='_')? name=ID ':' type=AttributeParamType;
@@ -173,6 +175,9 @@ DataModelFieldAttribute:
 
 DataModelAttribute:
     decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
+
+AttributeAttribute:
+    decl=[Attribute:AttributeAttributeName] ('(' AttributeArgList? ')')?;
 
 fragment AttributeArgList:
     args+=AttributeArg (',' args+=AttributeArg)*;
