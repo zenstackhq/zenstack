@@ -9,6 +9,9 @@ enum ReferentialAction {
     Cascade
 }
 
+/*
+ * Enum representing all possible field types
+ */
 enum AttributeTargetField {
     StringField
     IntField
@@ -140,28 +143,52 @@ attribute @omit()
  */
 attribute @length(_ min: Int?, _ max: Int?) @@@targetField([StringField])
 
+/*
+ * Validates a string field value matches a regex.
+ */
 attribute @regex(_ regex: String) @@@targetField([StringField])
 
+/*
+ * Validates a string field value starts with the given text.
+ */
 attribute @startsWith(_ text: String) @@@targetField([StringField])
 
+/*
+ * Validates a string field value ends with the given text.
+ */
 attribute @endsWith(_ text: String) @@@targetField([StringField])
 
 /*
- * Validates if a string field value is a valid email address.
+ * Validates a string field value is a valid email address.
  */
 attribute @email() @@@targetField([StringField])
 
+/*
+ * Validates a string field value is a valid ISO datetime.
+ */
 attribute @datetime() @@@targetField([StringField])
 
 /*
- * Validates if a string field value is a valid url.
+ * Validates a string field value is a valid url.
  */
 attribute @url() @@@targetField([StringField])
 
+/*
+ * Validates a number field is greater than the given value.
+ */
 attribute @gt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
+/*
+ * Validates a number field is greater than or equal to the given value.
+ */
 attribute @gte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
+/*
+ * Validates a number field is less than the given value.
+ */
 attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
+/*
+ * Validates a number field is less than or equal to the given value.
+ */
 attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])

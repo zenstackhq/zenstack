@@ -16,7 +16,7 @@ import {
  */
 export default class FieldConstraintGenerator implements Generator {
     get name() {
-        return 'zod';
+        return 'field-constraint';
     }
 
     async generate(context: Context): Promise<void> {
@@ -83,6 +83,7 @@ export default class FieldConstraintGenerator implements Generator {
         const baseSchema = this.makeZodSchema(field, mode);
         let zodSchema = baseSchema;
 
+        // translate field constraint attributes to zod schema
         for (const attr of field.attributes) {
             switch (attr.decl.ref?.name) {
                 case '@length': {
@@ -164,6 +165,7 @@ export default class FieldConstraintGenerator implements Generator {
             !isDataModel(field.type.reference?.ref) &&
             zodSchema === baseSchema
         ) {
+            // empty schema, skip
             return undefined;
         }
 
@@ -194,6 +196,9 @@ export default class FieldConstraintGenerator implements Generator {
             const modelType = type.reference.ref.name;
             const create = this.validator(modelType, 'create');
             const update = this.validator(modelType, 'update');
+
+            // list all possible action fields in write playload:
+            //   create/createMany/connectOrCreate/update/updateMany/upsert
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let fields: any = {

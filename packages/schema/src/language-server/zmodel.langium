@@ -148,10 +148,15 @@ FunctionParam:
 FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration]) (array?='[]')?;
 
+// attribute-level attribute
 AttributeAttributeName returns string:
     '@@@' ID;
+
+// model-level attribute
 DataModelAttributeName returns string:
     '@@' ID;
+
+// field-level attribute
 DataModelFieldAttributeName returns string:
     '@' ID;
 

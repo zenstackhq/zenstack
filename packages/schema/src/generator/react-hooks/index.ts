@@ -89,7 +89,9 @@ export default class ReactHooksGenerator implements Generator {
             .addBody()
             .addStatements([
                 `
+                // validate field-level constraints
                 validate(${this.getValidator(model, 'create')}, args.data);
+
                 try {
                     return await request.post<P.${
                         model.name
@@ -165,7 +167,9 @@ export default class ReactHooksGenerator implements Generator {
             .addBody()
             .addStatements([
                 `
+                // validate field-level constraints
                 validate(${this.getValidator(model, 'update')}, args.data);
+                
                 try {
                     return await request.put<Omit<P.${
                         model.name
