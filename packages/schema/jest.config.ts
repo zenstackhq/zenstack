@@ -28,5 +28,7 @@ export default {
     // A map from regular expressions to paths to transformers
     transform: { '^.+\\.tsx?$': 'ts-jest' },
 
+    testTimeout: 300000,
+
     moduleNameMapper,
 };
