@@ -136,10 +136,10 @@ export default class FieldConstraintGenerator implements Generator {
                     }
                     break;
                 }
-                case '@ge': {
+                case '@gte': {
                     const value = this.getAttrLiteralArg<number>(attr, 'value');
                     if (value !== undefined) {
-                        zodSchema += `.ge(${value})`;
+                        zodSchema += `.gte(${value})`;
                     }
                     break;
                 }
@@ -150,10 +150,10 @@ export default class FieldConstraintGenerator implements Generator {
                     }
                     break;
                 }
-                case '@le': {
+                case '@lte': {
                     const value = this.getAttrLiteralArg<number>(attr, 'value');
                     if (value !== undefined) {
-                        zodSchema += `.le(${value})`;
+                        zodSchema += `.lte(${value})`;
                     }
                     break;
                 }
@@ -208,7 +208,9 @@ export default class FieldConstraintGenerator implements Generator {
                 fields = {
                     ...fields,
                     update: this.optional(
-                        this.enumerable(this.object({ data: update }))
+                        this.enumerable(
+                            type.array ? this.object({ data: update }) : update
+                        )
                     ),
                     updateMany: this.optional(
                         this.enumerable(this.object({ data: update }))
@@ -224,7 +226,7 @@ export default class FieldConstraintGenerator implements Generator {
                 };
             }
 
-            schema = this.object(fields);
+            schema = this.optional(this.object(fields));
         } else {
             switch (type.type) {
                 case 'Int':

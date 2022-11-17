@@ -11,6 +11,7 @@ import {
     ServerErrorCode,
     Service,
 } from '../../types';
+import { ValidationError } from '../../validation';
 import { RequestHandler, RequestHandlerError } from '../types';
 import {
     and,
@@ -131,6 +132,14 @@ export default class DataHandler<DbClient extends DbClientContract>
                         ServerErrorCode.INVALID_REQUEST_PARAMS
                     ),
                 });
+            } else if (err instanceof ValidationError) {
+                this.service.warn(
+                    `Field constraint validation error for model "${model}": ${err.message}`
+                );
+                res.status(400).send({
+                    code: ServerErrorCode.INVALID_REQUEST_PARAMS,
+                    message: err.message,
+                });
             } else {
                 // generic errors
                 this.service.error(
@@ -140,7 +149,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                     this.service.error(err.stack);
                 }
                 res.status(500).send({
-                    error: ServerErrorCode.UNKNOWN,
+                    code: ServerErrorCode.UNKNOWN,
                     message: getServerErrorMessage(ServerErrorCode.UNKNOWN),
                 });
             }
@@ -206,6 +215,8 @@ export default class DataHandler<DbClient extends DbClientContract>
                 'data field is required'
             );
         }
+
+        await this.service.validateModelPayload(model, 'create', args.data);
 
         // preprocess payload to modify fields as required by attribute like @password
         await preprocessWritePayload(model, args, this.service);
@@ -321,6 +332,8 @@ export default class DataHandler<DbClient extends DbClientContract>
                 'body is required'
             );
         }
+
+        await this.service.validateModelPayload(model, 'update', args.data);
 
         // preprocess payload to modify fields as required by attribute like @password
         await preprocessWritePayload(model, args, this.service);

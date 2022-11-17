@@ -138,7 +138,7 @@ attribute @omit()
 /*
  * Validates length of a string field.
  */
-attribute @length(_ min: Int, _ max: Int?) @@@targetField([StringField])
+attribute @length(_ min: Int?, _ max: Int?) @@@targetField([StringField])
 
 attribute @regex(_ regex: String) @@@targetField([StringField])
 
@@ -160,8 +160,8 @@ attribute @url() @@@targetField([StringField])
 
 attribute @gt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
-attribute @ge(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @gte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
 attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
-attribute @le(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
