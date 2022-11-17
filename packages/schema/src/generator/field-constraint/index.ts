@@ -216,12 +216,17 @@ export default class FieldConstraintGenerator implements Generator {
                         this.enumerable(this.object({ data: update }))
                     ),
                     upsert: this.optional(
-                        this.enumerable(
-                            this.object({
-                                create,
-                                update,
-                            })
-                        )
+                        type.array
+                            ? this.enumerable(
+                                  this.object({
+                                      create,
+                                      update,
+                                  })
+                              )
+                            : this.object({
+                                  create,
+                                  update,
+                              })
                     ),
                 };
             }

@@ -357,9 +357,11 @@ describe('Field validation server-side tests', () => {
 
         const tasks = [
             {
+                id: '1',
                 slug: 'abcabc',
             },
             {
+                id: '2',
                 slug: 'abcdef',
             },
         ];
@@ -468,6 +470,73 @@ describe('Field validation server-side tests', () => {
                             where: { id: '1' },
                             data: {
                                 slug: 'defdef',
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(200);
+
+        await client
+            .put('/')
+            .send({
+                where: { id: '1' },
+                data: {
+                    userData: {
+                        upsert: {
+                            create: {
+                                a: 0,
+                            },
+                            update: {
+                                a: 0,
+                            },
+                        },
+                    },
+                    tasks: {
+                        updateMany: {
+                            where: { id: '1' },
+                            data: {
+                                slug: 'abc',
+                            },
+                        },
+                    },
+                },
+            })
+            .expect(400)
+            .expect((resp) => {
+                expect(resp.body.code).toBe(
+                    ServerErrorCode.INVALID_REQUEST_PARAMS
+                );
+                expect(resp.body.message).toContain(
+                    'Number must be greater than 0 at "userData.upsert.create.a"'
+                );
+                expect(resp.body.message).toContain(
+                    'Number must be greater than 0 at "userData.upsert.update.a"'
+                );
+                expect(resp.body.message).toContain(
+                    'Invalid at "tasks.updateMany.data.slug"'
+                );
+            });
+
+        await client
+            .put('/')
+            .send({
+                data: {
+                    userData: {
+                        upsert: {
+                            create: {
+                                ...userData,
+                            },
+                            update: {
+                                a: 1,
+                            },
+                        },
+                    },
+                    tasks: {
+                        updateMany: {
+                            where: { id: '1' },
+                            data: {
+                                slug: 'xxxyyy',
                             },
                         },
                     },
