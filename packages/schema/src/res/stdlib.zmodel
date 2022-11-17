@@ -10,6 +10,21 @@ enum ReferentialAction {
 }
 
 /*
+ * Enum representing all possible field types
+ */
+enum AttributeTargetField {
+    StringField
+    IntField
+    FloatField
+    DecimalField
+    BooleanField
+    DateTimeField
+    JsonField
+    BytesField
+    ModelField
+}
+
+/*
  * Reads value from an environment variable.
  */
 function env(name: String): String {}
@@ -45,50 +60,54 @@ function autoincrement(): Int {}
  */
 function dbgenerated(expr: String): Any {}
 
+attribute @@@targetField(targetField: AttributeTargetField[])
+
+attribute @@@prisma()
+
 /*
  * Defines an ID on the model.
  */
-attribute @id(map: String?)
+attribute @id(map: String?) @@@prisma
 
 /*
  * Defines a default value for a field.
  */
-attribute @default(_ value: ContextType)
+attribute @default(_ value: ContextType) @@@prisma
 
 /*
  * Defines a unique constraint for this field.
  */
-attribute @unique(map: String?)
+attribute @unique(map: String?) @@@prisma
 
 /*
  * Defines a compound unique constraint for the specified fields.
  */
-attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
+attribute @@unique(_ fields: FieldReference[], name: String?, map: String?) @@@prisma
 
 /*
  * Defines an index in the database.
  */
-attribute @@index(_ fields: FieldReference[], map: String?)
+attribute @@index(_ fields: FieldReference[], map: String?) @@@prisma
 
 /*
  * Defines meta information about the relation.
  */
-attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
+attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?) @@@prisma
 
 /*
  * Maps a field name or enum value from the schema to a column with a different name in the database.
  */
-attribute @map(_ name: String)
+attribute @map(_ name: String) @@@prisma
 
 /*
  * Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database.
  */
-attribute @@map(_ name: String)
+attribute @@map(_ name: String) @@@prisma
 
 /*
  * Automatically stores the time when a record was last updated.
  */
-attribute @updatedAt()
+attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma
 
 /*
  * Defines an access policy that allows a set of operations when the given condition is true.
@@ -112,9 +131,64 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
  * @saltLength: length of salt to use (cost factor for the hash function)
  * @salt: salt to use (a pregenerated valid salt)
  */
-attribute @password(saltLength: Int?, salt: String?)
+attribute @password(saltLength: Int?, salt: String?) @@@targetField([StringField])
 
 /*
  * Indicates that the field should be omitted when read from the generated services.
  */
 attribute @omit()
+
+/*
+ * Validates length of a string field.
+ */
+attribute @length(_ min: Int?, _ max: Int?) @@@targetField([StringField])
+
+/*
+ * Validates a string field value matches a regex.
+ */
+attribute @regex(_ regex: String) @@@targetField([StringField])
+
+/*
+ * Validates a string field value starts with the given text.
+ */
+attribute @startsWith(_ text: String) @@@targetField([StringField])
+
+/*
+ * Validates a string field value ends with the given text.
+ */
+attribute @endsWith(_ text: String) @@@targetField([StringField])
+
+/*
+ * Validates a string field value is a valid email address.
+ */
+attribute @email() @@@targetField([StringField])
+
+/*
+ * Validates a string field value is a valid ISO datetime.
+ */
+attribute @datetime() @@@targetField([StringField])
+
+/*
+ * Validates a string field value is a valid url.
+ */
+attribute @url() @@@targetField([StringField])
+
+/*
+ * Validates a number field is greater than the given value.
+ */
+attribute @gt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+
+/*
+ * Validates a number field is greater than or equal to the given value.
+ */
+attribute @gte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+
+/*
+ * Validates a number field is less than the given value.
+ */
+attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+
+/*
+ * Validates a number field is less than or equal to the given value.
+ */
+attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])

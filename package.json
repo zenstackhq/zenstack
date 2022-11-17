@@ -1,10 +1,10 @@
 {
     "name": "zenstack-monorepo",
-    "version": "0.3.2",
+    "version": "0.3.4",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
-        "test": "pnpm -r test",
+        "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish"
     },

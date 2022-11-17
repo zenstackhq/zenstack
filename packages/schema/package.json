@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for modeling data and access policies in full-stack development with Next.js and Typescript",
-    "version": "0.3.2",
+    "version": "0.3.4",
     "author": {
         "name": "ZenStack Team"
     },
@@ -70,7 +70,7 @@
         "vscode:package": "vsce package --no-dependencies",
         "clean": "rimraf bundle",
         "build": "pnpm langium:generate && tsc --noEmit && pnpm bundle && cp -r src/res/* bundle/res/",
-        "bundle": "npm run clean && node build/bundle.js --minify",
+        "bundle": "npm run clean && node build/bundle.js",
         "bundle-watch": "node build/bundle.js --watch",
         "ts:watch": "tsc --watch --noEmit",
         "tsc-alias:watch": "tsc-alias --watch",

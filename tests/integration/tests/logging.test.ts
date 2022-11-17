@@ -151,9 +151,13 @@ describe('Logging tests', () => {
             gotWarnEmit = true;
         });
 
-        await makeClient('/api/data/User').post('/').send({
-            data: {},
-        });
+        await makeClient('/api/data/User')
+            .post('/')
+            .send({
+                data: {
+                    email: 'abc@def.com',
+                },
+            });
 
         expect(gotQueryStd).toBeTruthy();
         expect(gotVerboseStd).toBeTruthy();
@@ -239,9 +243,13 @@ describe('Logging tests', () => {
             gotWarnEmit = true;
         });
 
-        await makeClient('/api/data/User').post('/').send({
-            data: {},
-        });
+        await makeClient('/api/data/User')
+            .post('/')
+            .send({
+                data: {
+                    email: 'abc@def.com',
+                },
+            });
 
         expect(gotInfoEmit).toBeTruthy();
         expect(gotQueryEmit).toBeTruthy();

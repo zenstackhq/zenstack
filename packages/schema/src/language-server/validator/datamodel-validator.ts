@@ -1,12 +1,15 @@
 import { SCALAR_TYPES } from '@lang/constants';
 import {
     ArrayExpr,
+    Attribute,
     AttributeParam,
     DataModel,
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    isAttribute,
     isDataModel,
+    isDataModelField,
     isLiteralExpr,
     ReferenceExpr,
 } from '@lang/generated/ast';
@@ -105,6 +108,27 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         }
 
+        const targetDecl = attr.$container;
+        if (decl.name === '@@@targetField' && !isAttribute(targetDecl)) {
+            accept(
+                'error',
+                `attribute "${decl.name}" can only be used on attribute declarations`,
+                { node: attr }
+            );
+            return;
+        }
+
+        if (
+            isDataModelField(targetDecl) &&
+            !this.isValidAttributeTarget(decl, targetDecl)
+        ) {
+            accept(
+                'error',
+                `attribute "${decl.name}" cannot be used on this type of field`,
+                { node: attr }
+            );
+        }
+
         const filledParams = new Set<AttributeParam>();
 
         for (const arg of attr.args) {
@@ -149,6 +173,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 return false;
             }
             filledParams.add(paramDecl);
+            arg.$resolvedParam = paramDecl;
         }
 
         const missingParams = decl.params.filter(
@@ -169,6 +194,64 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         return true;
+    }
+
+    private isValidAttributeTarget(
+        attrDecl: Attribute,
+        targetDecl: DataModelField
+    ) {
+        const targetField = attrDecl.attributes.find(
+            (attr) => attr.decl.ref?.name === '@@@targetField'
+        );
+        if (!targetField) {
+            // no field type constraint
+            return true;
+        }
+
+        const fieldTypes = (targetField.args[0].value as ArrayExpr).items.map(
+            (item) => (item as ReferenceExpr).target.ref?.name
+        );
+
+        let allowed = false;
+        for (const allowedType of fieldTypes) {
+            switch (allowedType) {
+                case 'StringField':
+                    allowed = allowed || targetDecl.type.type === 'String';
+                    break;
+                case 'IntField':
+                    allowed = allowed || targetDecl.type.type === 'Int';
+                    break;
+                case 'FloatField':
+                    allowed = allowed || targetDecl.type.type === 'Float';
+                    break;
+                case 'DecimalField':
+                    allowed = allowed || targetDecl.type.type === 'Decimal';
+                    break;
+                case 'BooleanField':
+                    allowed = allowed || targetDecl.type.type === 'Boolean';
+                    break;
+                case 'DateTimeField':
+                    allowed = allowed || targetDecl.type.type === 'DateTime';
+                    break;
+                case 'JsonField':
+                    allowed = allowed || targetDecl.type.type === 'Json';
+                    break;
+                case 'BytesField':
+                    allowed = allowed || targetDecl.type.type === 'Bytes';
+                    break;
+                case 'ModelField':
+                    allowed =
+                        allowed || isDataModel(targetDecl.type.reference?.ref);
+                    break;
+                default:
+                    break;
+            }
+            if (allowed) {
+                break;
+            }
+        }
+
+        return allowed;
     }
 
     private parseRelation(field: DataModelField, accept?: ValidationAcceptor) {
