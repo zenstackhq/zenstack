@@ -11,7 +11,7 @@ Here we demonstrate the process with a simple Blog starter using [Next-Auth](htt
 2. Create a new Next.js project from the ZenStack starter
 
 ```bash
-npx create-next-app [project name] --use-npm -e https://github.com/zenstackhq/nextjs-auth-starter
+npx create-next-app --use-npm -e https://github.com/zenstackhq/nextjs-auth-starter [project name]
 
 cd [project name]
 ```
