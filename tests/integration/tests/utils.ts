@@ -9,7 +9,7 @@ import { NextApiHandler } from 'next/types';
 import supertest from 'supertest';
 
 export function run(cmd: string) {
-    execSync(cmd, { stdio: 'inherit', encoding: 'utf-8' });
+    execSync(cmd, { stdio: 'pipe', encoding: 'utf-8' });
 }
 
 export async function setup(schemaFile: string) {

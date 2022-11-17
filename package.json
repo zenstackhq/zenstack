@@ -4,7 +4,7 @@
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
-        "test": "pnpm -r test",
+        "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish"
     },

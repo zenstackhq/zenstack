@@ -105,6 +105,7 @@ describe('Field validation server-side tests', () => {
                     id: '1',
                     password: 'abc123!@#',
                     email: 'who@myorg.com',
+                    handle: 'user1',
                 },
             })
             .expect(201);
