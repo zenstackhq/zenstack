@@ -52,7 +52,7 @@ module.exports = {
             }
 
             return {
-                contents: JSON.stringify({ ...process.env, ...config }),
+                contents: JSON.stringify({ ...config, ...process.env }),
                 loader: 'json',
             };
         });
