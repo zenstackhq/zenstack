@@ -6,159 +6,206 @@ import { execSync } from '../utils/exec-utils';
 import { paramCase } from 'change-case';
 import path from 'path';
 import { runGenerator } from './cli-util';
+import telemetry from '../telemetry';
+import { CliError } from './cli-error';
 
 export const generateAction = async (options: {
     schema: string;
 }): Promise<void> => {
-    await runGenerator(options);
+    await telemetry.trackSpan(
+        'cli:command:start',
+        'cli:command:complete',
+        'cli:command:error',
+        { command: 'generate' },
+        () => runGenerator(options)
+    );
 };
 
 function prismaAction(prismaCmd: string): (...args: any[]) => Promise<void> {
     return async (options: any, command: Command) => {
-        const optStr = Array.from(Object.entries<any>(options))
-            .map(([k, v]) => {
-                let optVal = v;
-                if (k === 'schema') {
-                    optVal = path.join(path.dirname(v), 'schema.prisma');
+        await telemetry.trackSpan(
+            'cli:command:start',
+            'cli:command:complete',
+            'cli:command:error',
+            {
+                command: prismaCmd
+                    ? +(prismaCmd + ' ' + command.name())
+                    : command.name(),
+            },
+            async () => {
+                const optStr = Array.from(Object.entries<any>(options))
+                    .map(([k, v]) => {
+                        let optVal = v;
+                        if (k === 'schema') {
+                            optVal = path.join(
+                                path.dirname(v),
+                                'schema.prisma'
+                            );
+                        }
+                        return (
+                            '--' +
+                            paramCase(k) +
+                            (typeof optVal === 'string' ? ` ${optVal}` : '')
+                        );
+                    })
+                    .join(' ');
+
+                // regenerate prisma schema first
+                await runGenerator(options, ['prisma'], false);
+
+                const prismaExec = `npx prisma ${prismaCmd} ${command.name()} ${optStr}`;
+                console.log(prismaExec);
+                try {
+                    execSync(prismaExec);
+                } catch {
+                    telemetry.track('cli:command:error', {
+                        command: prismaCmd,
+                    });
+                    console.error(
+                        colors.red(
+                            'Prisma command failed to execute. See errors above.'
+                        )
+                    );
+                    throw new CliError('prisma command run error');
                 }
-                return (
-                    '--' +
-                    paramCase(k) +
-                    (typeof optVal === 'string' ? ` ${optVal}` : '')
-                );
-            })
-            .join(' ');
-
-        // regenerate prisma schema first
-        await runGenerator(options, ['prisma'], false);
-
-        const prismaExec = `npx prisma ${prismaCmd} ${command.name()} ${optStr}`;
-        console.log(prismaExec);
-        try {
-            execSync(prismaExec);
-        } catch {
-            console.error(
-                colors.red(
-                    'Prisma command failed to execute. See errors above.'
-                )
-            );
-            process.exit(1);
-        }
+            }
+        );
     };
 }
 
-export default function (): void {
-    const program = new Command('zenstack');
+export default async function (): Promise<void> {
+    // try {
+    await telemetry.trackSpan(
+        'cli:start',
+        'cli:complete',
+        'cli:error',
+        { args: process.argv },
+        async () => {
+            const program = new Command('zenstack');
 
-    program.version(
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        require('../../package.json').version,
-        '-v --version',
-        'display CLI version'
+            program.version(
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                require('../../package.json').version,
+                '-v --version',
+                'display CLI version'
+            );
+
+            const schemaExtensions =
+                ZModelLanguageMetaData.fileExtensions.join(', ');
+
+            program
+                .description(
+                    `${colors.bold.blue(
+                        'ζ'
+                    )} ZenStack simplifies fullstack development by generating backend services and Typescript clients from a data model.\n\nDocumentation: https://go.zenstack.dev/doc.`
+                )
+                .showHelpAfterError()
+                .showSuggestionAfterError();
+
+            const schemaOption = new Option(
+                '--schema <file>',
+                `schema file (with extension ${schemaExtensions})`
+            ).default('./zenstack/schema.zmodel');
+
+            //#region wraps Prisma commands
+
+            program
+                .command('generate')
+                .description(
+                    'generates RESTful API and Typescript client for your data model'
+                )
+                .addOption(schemaOption)
+                .action(generateAction);
+
+            const migrate = program
+                .command('migrate')
+                .description(
+                    `wraps Prisma's ${colors.cyan('migrate')} command`
+                );
+
+            migrate
+                .command('dev')
+                .description(
+                    `alias for ${colors.cyan(
+                        'prisma migrate dev'
+                    )}\nCreate a migration, apply it to the database, generate db client.`
+                )
+                .addOption(schemaOption)
+                .option(
+                    '--create-only',
+                    'Create a migration without applying it'
+                )
+                .option('-n --name <name>', 'Name the migration')
+                .option('--skip-seed', 'Skip triggering seed')
+                .action(prismaAction('migrate'));
+
+            migrate
+                .command('reset')
+                .description(
+                    `alias for ${colors.cyan(
+                        'prisma migrate reset'
+                    )}\nReset your database and apply all migrations.`
+                )
+                .addOption(schemaOption)
+                .option('--force', 'Skip the confirmation prompt')
+                .action(prismaAction('migrate'));
+
+            migrate
+                .command('deploy')
+                .description(
+                    `alias for ${colors.cyan(
+                        'prisma migrate deploy'
+                    )}\nApply pending migrations to the database in production/staging.`
+                )
+                .addOption(schemaOption)
+                .action(prismaAction('migrate'));
+
+            migrate
+                .command('status')
+                .description(
+                    `alias for ${colors.cyan(
+                        'prisma migrate status'
+                    )}\nCheck the status of migrations in the production/staging database.`
+                )
+                .addOption(schemaOption)
+                .action(prismaAction('migrate'));
+
+            const db = program
+                .command('db')
+                .description(`wraps Prisma's ${colors.cyan('db')} command`);
+
+            db.command('push')
+                .description(
+                    `alias for ${colors.cyan(
+                        'prisma db push'
+                    )}\nPush the Prisma schema state to the database.`
+                )
+                .addOption(schemaOption)
+                .option('--accept-data-loss', 'Ignore data loss warnings')
+                .action(prismaAction('db'));
+
+            program
+                .command('studio')
+                .description(
+                    `wraps Prisma's ${colors.cyan(
+                        'studio'
+                    )} command. Browse your data with Prisma Studio.`
+                )
+                .addOption(schemaOption)
+                .option('-p --port <port>', 'Port to start Studio in')
+                .option('-b --browser <browser>', 'Browser to open Studio in')
+                .option(
+                    '-n --hostname',
+                    'Hostname to bind the Express server to'
+                )
+                .action(prismaAction(''));
+
+            //#endregion
+
+            // handle errors explicitly to ensure telemetry
+            program.exitOverride();
+
+            await program.parseAsync(process.argv);
+        }
     );
-
-    const schemaExtensions = ZModelLanguageMetaData.fileExtensions.join(', ');
-
-    program
-        .description(
-            `${colors.bold.blue(
-                'ζ'
-            )} ZenStack simplifies fullstack development by generating backend services and Typescript clients from a data model.\n\nDocumentation: https://go.zenstack.dev/doc.`
-        )
-        .showHelpAfterError()
-        .showSuggestionAfterError();
-
-    const schemaOption = new Option(
-        '--schema <file>',
-        `schema file (with extension ${schemaExtensions})`
-    ).default('./zenstack/schema.zmodel');
-
-    //#region wraps Prisma commands
-
-    program
-        .command('generate')
-        .description(
-            'generates RESTful API and Typescript client for your data model'
-        )
-        .addOption(schemaOption)
-        .action(generateAction);
-
-    const migrate = program
-        .command('migrate')
-        .description(`wraps Prisma's ${colors.cyan('migrate')} command`);
-
-    migrate
-        .command('dev')
-        .description(
-            `alias for ${colors.cyan(
-                'prisma migrate dev'
-            )}\nCreate a migration, apply it to the database, generate db client.`
-        )
-        .addOption(schemaOption)
-        .option('--create-only', 'Create a migration without applying it')
-        .option('-n --name <name>', 'Name the migration')
-        .option('--skip-seed', 'Skip triggering seed')
-        .action(prismaAction('migrate'));
-
-    migrate
-        .command('reset')
-        .description(
-            `alias for ${colors.cyan(
-                'prisma migrate reset'
-            )}\nReset your database and apply all migrations.`
-        )
-        .addOption(schemaOption)
-        .option('--force', 'Skip the confirmation prompt')
-        .action(prismaAction('migrate'));
-
-    migrate
-        .command('deploy')
-        .description(
-            `alias for ${colors.cyan(
-                'prisma migrate deploy'
-            )}\nApply pending migrations to the database in production/staging.`
-        )
-        .addOption(schemaOption)
-        .action(prismaAction('migrate'));
-
-    migrate
-        .command('status')
-        .description(
-            `alias for ${colors.cyan(
-                'prisma migrate status'
-            )}\nCheck the status of migrations in the production/staging database.`
-        )
-        .addOption(schemaOption)
-        .action(prismaAction('migrate'));
-
-    const db = program
-        .command('db')
-        .description(`wraps Prisma's ${colors.cyan('db')} command`);
-
-    db.command('push')
-        .description(
-            `alias for ${colors.cyan(
-                'prisma db push'
-            )}\nPush the Prisma schema state to the database.`
-        )
-        .addOption(schemaOption)
-        .option('--accept-data-loss', 'Ignore data loss warnings')
-        .action(prismaAction('db'));
-
-    program
-        .command('studio')
-        .description(
-            `wraps Prisma's ${colors.cyan(
-                'studio'
-            )} command. Browse your data with Prisma Studio.`
-        )
-        .addOption(schemaOption)
-        .option('-p --port <port>', 'Port to start Studio in')
-        .option('-b --browser <browser>', 'Browser to open Studio in')
-        .option('-n --hostname', 'Hostname to bind the Express server to')
-        .action(prismaAction(''));
-
-    //#endregion
-
-    program.parse(process.argv);
 }

@@ -10,6 +10,7 @@ import { ZenStackGenerator } from '../generator';
 import { URI } from 'vscode-uri';
 import { GENERATED_CODE_PATH } from '../generator/constants';
 import { Context, GeneratorError } from '../generator/types';
+import { CliError } from './cli-error';
 
 /**
  * Loads a zmodel document from a file.
@@ -26,12 +27,12 @@ export async function loadDocument(
         console.error(
             colors.yellow(`Please choose a file with extension: ${extensions}.`)
         );
-        process.exit(1);
+        throw new CliError('invalid schema file');
     }
 
     if (!fs.existsSync(fileName)) {
         console.error(colors.red(`File ${fileName} does not exist.`));
-        process.exit(1);
+        throw new CliError('schema file does not exist');
     }
 
     // load standard library
@@ -69,7 +70,7 @@ export async function loadDocument(
                 )
             );
         }
-        process.exit(1);
+        throw new CliError('schema validation errors');
     }
 
     return document.parseResult.value as Model;
@@ -99,7 +100,7 @@ export async function runGenerator(
     } catch (err) {
         if (err instanceof GeneratorError) {
             console.error(colors.red(err.message));
-            process.exit(1);
+            throw new CliError(err.message);
         }
     }
 }

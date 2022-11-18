@@ -267,6 +267,8 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 ### [Setting up logging](/docs/ref/setup-logging.md)
 
+### [Telemetry](/docs/ref/telemetry.md)
+
 ## Reach out to us for issues, feedback and ideas!
 
 [Discord](https://go.zenstack.dev/chat) | [Twitter](https://twitter.com/zenstackhq) |
