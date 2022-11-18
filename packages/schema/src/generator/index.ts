@@ -8,6 +8,7 @@ import ReactHooksGenerator from './react-hooks';
 import NextAuthGenerator from './next-auth';
 import { TypescriptCompilation } from './tsc';
 import FieldConstraintGenerator from './field-constraint';
+import telemetry from '../telemetry';
 
 /**
  * ZenStack code generator
@@ -57,7 +58,16 @@ export class ZenStackGenerator {
             ) {
                 continue;
             }
-            await generator.generate(context);
+
+            await telemetry.trackSpan(
+                'cli:generator:start',
+                'cli:generator:complete',
+                'cli:generator:error',
+                {
+                    generator: generator.name,
+                },
+                () => generator.generate(context)
+            );
         }
 
         console.log(

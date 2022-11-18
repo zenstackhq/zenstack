@@ -2,6 +2,7 @@ const watch = process.argv.includes('--watch');
 const minify = process.argv.includes('--minify');
 const success = watch ? 'Watch build succeeded' : 'Build succeeded';
 const fs = require('fs');
+const envFilePlugin = require('./env-plugin');
 
 require('esbuild')
     .build({
@@ -24,6 +25,7 @@ require('esbuild')
               }
             : false,
         minify,
+        plugins: [envFilePlugin],
     })
     .then(() => {
         fs.cpSync('./src/res', 'bundle/res', { force: true, recursive: true });
