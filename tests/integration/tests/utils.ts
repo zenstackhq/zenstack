@@ -9,7 +9,11 @@ import { NextApiHandler } from 'next/types';
 import supertest from 'supertest';
 
 export function run(cmd: string) {
-    execSync(cmd, { stdio: 'pipe', encoding: 'utf-8' });
+    execSync(cmd, {
+        stdio: 'pipe',
+        encoding: 'utf-8',
+        env: { ...process.env, DO_NOT_TRACK: '1' },
+    });
 }
 
 export async function setup(schemaFile: string) {

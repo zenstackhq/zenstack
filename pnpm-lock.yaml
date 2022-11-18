@@ -71,6 +71,7 @@ importers:
   packages/schema:
     specifiers:
       '@prisma/internals': ^4.5.0
+      '@types/async-exit-hook': ^2.0.0
       '@types/jest': ^29.2.0
       '@types/node': ^14.18.32
       '@types/pluralize': ^0.0.29
@@ -80,20 +81,26 @@ importers:
       '@typescript-eslint/eslint-plugin': ^5.42.0
       '@typescript-eslint/parser': ^5.42.0
       '@zenstackhq/internal': workspace:*
+      async-exit-hook: ^2.0.1
       change-case: ^4.1.2
       chevrotain: ^9.1.0
       colors: 1.4.0
       commander: ^8.3.0
       concurrently: ^7.4.0
+      cuid: ^2.1.8
+      dotenv: ^16.0.3
       esbuild: ^0.15.12
       eslint: ^8.27.0
       jest: ^29.2.1
       langium: ^0.5.0
       langium-cli: ^0.5.0
+      mixpanel: ^0.17.0
+      node-machine-id: ^1.1.12
       pluralize: ^8.0.0
       prisma: ^4.5.0
       promisify: ^0.0.3
       rimraf: ^3.0.2
+      sleep-promise: ^9.1.0
       tmp: ^0.2.1
       ts-jest: ^29.0.3
       ts-morph: ^16.0.0
@@ -110,14 +117,19 @@ importers:
       vscode-uri: ^3.0.6
     dependencies:
       '@zenstackhq/internal': link:../internal
+      async-exit-hook: 2.0.1
       change-case: 4.1.2
       chevrotain: 9.1.0
       colors: 1.4.0
       commander: 8.3.0
+      cuid: 2.1.8
       langium: 0.5.0
+      mixpanel: 0.17.0
+      node-machine-id: 1.1.12
       pluralize: 8.0.0
       prisma: 4.5.0
       promisify: 0.0.3
+      sleep-promise: 9.1.0
       ts-morph: 16.0.0
       uuid: 9.0.0
       vscode-jsonrpc: 8.0.2
@@ -127,6 +139,7 @@ importers:
       vscode-uri: 3.0.6
     devDependencies:
       '@prisma/internals': 4.5.0
+      '@types/async-exit-hook': 2.0.0
       '@types/jest': 29.2.0
       '@types/node': 14.18.32
       '@types/pluralize': 0.0.29
@@ -136,6 +149,7 @@ importers:
       '@typescript-eslint/eslint-plugin': 5.42.0_ofgjrzjuekeo7s3hdyz2yuzw34
       '@typescript-eslint/parser': 5.42.0_rmayb2veg2btbq6mbmnyivgasy
       concurrently: 7.4.0
+      dotenv: 16.0.3
       esbuild: 0.15.12
       eslint: 8.27.0
       jest: 29.2.1_4f2ldd7um3b3u4eyvetyqsphze
@@ -1644,6 +1658,10 @@ packages:
     resolution: {integrity: sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==}
     dev: true
 
+  /@types/async-exit-hook/2.0.0:
+    resolution: {integrity: sha512-RNjIyjnVZdcP5a1zeIPb5c0hq2nbJc/NOCLNKUAqeCw+J5z2zMcINISn9wybCWhczHnUu3VSUFy7ZCO6ir4ZRw==}
+    dev: true
+
   /@types/babel__core/7.1.19:
     resolution: {integrity: sha512-WEOTgRsbYkvA/KCsDwVEGkd7WAr1e3g31VHQ8zy5gul/V1qKullU/BU5I68X5v7V3GnB9eotmom4v5a5gjxorw==}
     dependencies:
@@ -1977,7 +1995,6 @@ packages:
       debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
-    dev: true
 
   /aggregate-error/3.1.0:
     resolution: {integrity: sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==}
@@ -2094,6 +2111,11 @@ packages:
     resolution: {integrity: sha512-Z7tMw1ytTXt5jqMcOP+OQteU1VuNK9Y02uuJtKQ1Sv69jXQKKg5cibLwGJow8yzZP+eAc18EmLGPal0bp36rvQ==}
     engines: {node: '>=8'}
     dev: true
+
+  /async-exit-hook/2.0.1:
+    resolution: {integrity: sha512-NW2cX8m1Q7KPA7a5M2ULQeZ2wR5qI5PAbw5L0UOMxdioVk9PMZ0h1TmyZEkPYrCvYjDlFICusOu1dlEKAAeXBw==}
+    engines: {node: '>=0.12.0'}
+    dev: false
 
   /async/3.2.4:
     resolution: {integrity: sha512-iAB+JbDEGXhyIUavoDl9WP/Jj106Kz9DEn1DPgYw5ruDn0e3Wgi3sKFm55sASdGBNOQB8F59d9qQ7deqrHA8wQ==}
@@ -2877,6 +2899,11 @@ packages:
     engines: {node: '>=12'}
     dev: true
 
+  /dotenv/16.0.3:
+    resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
+    dev: true
+
   /electron-to-chromium/1.4.284:
     resolution: {integrity: sha512-M8WEXFuKXMYMVr45fo8mq0wUrrJHheiKZf6BArTKk9ZBYCKJEOU5H8cdWgDT+qCVZf7Na4lVUaZsA+h6uA9+PA==}
 
@@ -3655,6 +3682,16 @@ packages:
     transitivePeerDependencies:
       - supports-color
     dev: true
+
+  /https-proxy-agent/5.0.0:
+    resolution: {integrity: sha512-EkYm5BcKUGiduxzSt3Eppko+PiNWNEpa4ySk9vTC6wDsQJW9rHSa+UhGNJoRYp7bz6Ht1eaRIa6QaJqO5rCFbA==}
+    engines: {node: '>= 6'}
+    dependencies:
+      agent-base: 6.0.2
+      debug: 4.3.4
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
 
   /https-proxy-agent/5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
@@ -5044,6 +5081,15 @@ packages:
     resolution: {integrity: sha512-bzfL1YUZsP41gmu/qjrEk0Q6i2ix/cVeAhbCbqH9u3zYutS1cLg00qhrD0M2MVdCcx4Sc0UpP2eBWo9rotpq6g==}
     dev: true
 
+  /mixpanel/0.17.0:
+    resolution: {integrity: sha512-DY5WeOy/hmkPrNiiZugJpWR0iMuOwuj1a3u0bgwB2eUFRV6oIew/pIahhpawdbNjb+Bye4a8ID3gefeNPvL81g==}
+    engines: {node: '>=10.0'}
+    dependencies:
+      https-proxy-agent: 5.0.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /mkdirp-classic/0.5.3:
     resolution: {integrity: sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==}
     dev: true
@@ -5169,6 +5215,10 @@ packages:
   /node-int64/0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
     dev: true
+
+  /node-machine-id/1.1.12:
+    resolution: {integrity: sha512-QNABxbrPa3qEIfrE6GOJ7BYIuignnJw7iQ2YPbc3Nla1HzRJjXzZOiikfF8m7eAMfichLt3M4VgLOetqgDmgGQ==}
+    dev: false
 
   /node-releases/2.0.6:
     resolution: {integrity: sha512-PiVXnNuFm5+iYkLBNeq5211hvO38y63T0i2KKh2KnUs3RpzJ+JtODFjkD8yjLwnDkTYF1eKXheUwdssR+NRZdg==}

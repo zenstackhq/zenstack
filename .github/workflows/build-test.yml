@@ -3,6 +3,9 @@
 
 name: CI
 
+env:
+    TELEMETRY_TRACKING_TOKEN: ${{ secrets.TELEMETRY_TRACKING_TOKEN }}
+
 on:
     push:
         branches: ['dev', 'main']
