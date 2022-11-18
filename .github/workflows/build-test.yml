@@ -33,6 +33,5 @@ jobs:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
-            - run: echo "TELEMETRY_TRACKING_TOKEN:" $TELEMETRY_TRACKING_TOKEN
             - run: pnpm run build
             - run: pnpm run test
