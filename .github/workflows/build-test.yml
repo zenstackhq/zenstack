@@ -3,6 +3,9 @@
 
 name: CI
 
+env:
+    TELEMETRY_TRACKING_TOKEN: ${{ secrets.TELEMETRY_TRACKING_TOKEN }}
+
 on:
     push:
         branches: ['dev', 'main']
@@ -30,5 +33,6 @@ jobs:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
+            - run: echo "TELEMETRY_TRACKING_TOKEN:" $TELEMETRY_TRACKING_TOKEN
             - run: pnpm run build
             - run: pnpm run test
