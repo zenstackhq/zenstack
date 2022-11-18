@@ -29,7 +29,7 @@ function prismaAction(prismaCmd: string): (...args: any[]) => Promise<void> {
             'cli:command:error',
             {
                 command: prismaCmd
-                    ? +(prismaCmd + ' ' + command.name())
+                    ? prismaCmd + ' ' + command.name()
                     : command.name(),
             },
             async () => {
