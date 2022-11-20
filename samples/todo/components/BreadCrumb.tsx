@@ -5,14 +5,14 @@ import { useRouter } from 'next/router';
 
 export default function BreadCrumb() {
     const router = useRouter();
+    const space = useCurrentSpace();
+    const { get: getList } = useList();
+
     const parts = router.asPath.split('/').filter((p) => p);
     const [base, slug, listId] = parts;
     if (base !== 'space') {
         return <></>;
     }
-
-    const space = useCurrentSpace();
-    const { get: getList } = useList();
 
     const items: Array<{ text: string; link: string }> = [];
 
