@@ -46,17 +46,20 @@ export default function SpaceMembers() {
     const space = useCurrentSpace();
 
     const { find: findMembers } = useSpaceUser();
-    const { data: members } = findMembers({
-        where: {
-            spaceId: space?.id,
+    const { data: members } = findMembers(
+        {
+            where: {
+                spaceId: space?.id,
+            },
+            include: {
+                user: true,
+            },
+            orderBy: {
+                role: 'desc',
+            },
         },
-        include: {
-            user: true,
-        },
-        orderBy: {
-            role: 'desc',
-        },
-    });
+        { disabled: !space }
+    );
 
     return (
         <div className="flex items-center">

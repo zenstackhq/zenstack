@@ -213,3 +213,11 @@ export type LogEvent = {
     target?: string;
     message?: string;
 };
+
+/**
+ * Client request options
+ */
+export type RequestOptions = {
+    // disable data fetching
+    disabled: boolean;
+};

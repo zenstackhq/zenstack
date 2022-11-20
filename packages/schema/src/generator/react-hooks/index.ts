@@ -5,7 +5,7 @@ import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../ast-utils';
-import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
+import { API_ROUTE_NAME } from '../constants';
 
 /**
  * Generate react data query hooks code
@@ -51,8 +51,7 @@ export default class ReactHooksGenerator implements Generator {
             moduleSpecifier: '../../.prisma',
         });
         sf.addStatements([
-            `import { request, validate } from '${INTERNAL_PACKAGE}/lib/client';`,
-            `import { ServerErrorCode } from '@zenstackhq/runtime/client';`,
+            `import { request, validate, ServerErrorCode, RequestOptions } from '@zenstackhq/runtime/client';`,
             `import { type SWRResponse } from 'swr';`,
             `import { ${this.getValidator(
                 model,
@@ -119,11 +118,15 @@ export default class ReactHooksGenerator implements Generator {
                         name: 'args?',
                         type: `P.SelectSubset<T, P.${model.name}FindManyArgs>`,
                     },
+                    {
+                        name: 'options?',
+                        type: 'RequestOptions',
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>(endpoint, args);`,
+                `return request.get<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>(endpoint, args, options);`,
             ]);
 
         // get
@@ -141,11 +144,15 @@ export default class ReactHooksGenerator implements Generator {
                         name: 'args?',
                         type: `P.SelectSubset<T, P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>>`,
                     },
+                    {
+                        name: 'options?',
+                        type: 'RequestOptions',
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(id ? \`\${endpoint}/\${id}\`: null, args);`,
+                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(id ? \`\${endpoint}/\${id}\`: null, args, options);`,
             ]);
 
         // update
