@@ -121,19 +121,24 @@ export default function SpaceHome() {
     const space = useContext(SpaceContext);
     const { find } = useList();
 
-    const { data: lists, mutate: invalidateLists } = find({
-        where: {
-            space: {
-                id: space?.id,
+    const { data: lists, mutate: invalidateLists } = find(
+        {
+            where: {
+                space: {
+                    id: space?.id,
+                },
+            },
+            include: {
+                owner: true,
+            },
+            orderBy: {
+                updatedAt: 'desc',
             },
         },
-        include: {
-            owner: true,
-        },
-        orderBy: {
-            updatedAt: 'desc',
-        },
-    });
+        {
+            disabled: !space,
+        }
+    );
 
     return (
         <>

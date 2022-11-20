@@ -1,19 +1,18 @@
+import { useCurrentSpace } from '@lib/context';
 import { useList } from '@zenstackhq/runtime/hooks';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCurrentSpace } from '@lib/context';
 
 export default function BreadCrumb() {
     const router = useRouter();
-    const space = useCurrentSpace();
-    const { get: getList } = useList();
-
     const parts = router.asPath.split('/').filter((p) => p);
-
     const [base, slug, listId] = parts;
     if (base !== 'space') {
         return <></>;
     }
+
+    const space = useCurrentSpace();
+    const { get: getList } = useList();
 
     const items: Array<{ text: string; link: string }> = [];
 
