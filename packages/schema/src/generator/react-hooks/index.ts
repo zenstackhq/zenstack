@@ -5,7 +5,7 @@ import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../ast-utils';
-import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
+import { API_ROUTE_NAME } from '../constants';
 
 /**
  * Generate react data query hooks code
