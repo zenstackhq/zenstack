@@ -8,14 +8,14 @@ ZenStack is a schema-first toolkit for defining data models, relations and autho
 
 Save time writing boilerplate code and focus on building real features!
 
-See the [Quick start](quickstart.md) guide for more details.
+See the [Quick start](quick-start.md) guide for more details.
 
 ## Features
 
 -   Intuitive data & authorization modeling language
--   Generating RESTful CRUD services and React data-access hooks
+-   Generating RESTful CRUD services and React hooks
 -   End-to-end type safety
--   Support for all major relational databases
+-   Support for [all major relational databases](supported-db.md)
 -   Integration with authentication libraries (like [NextAuth](https://next-auth.js.org/ ':target=_blank'))
 -   [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack ':target=_blank') for model authoring
 

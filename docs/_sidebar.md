@@ -1,11 +1,11 @@
 -   Getting started
 
-    -   [Quick start](quickstart.md)
-    -   [Modeling data](modeling-data.md)
-    -   [Adding policies](adding-policies.md)
-    -   [Using React hooks](using-react-hooks.md)
+    -   [Quick start](quick-start.md)
+    -   [Modeling your app](modeling-your-app.md)
+    -   [Code generation](code-generation.md)
+    -   [Building your app](building-your-app.md)
 
--   Customization
+-   ZModel references
 
     -   [Configuration](configuration.md)
     -   [Themes](themes.md)
@@ -15,15 +15,12 @@
     -   [Language highlighting](language-highlight.md)
     -   [Emoji](emoji.md)
 
+-   [CLI commands](cli-references.md)
+
 -   Guide
 
-    -   [Deploy](deploy.md)
-    -   [Helpers](helpers.md)
-    -   [Vue compatibility](vue.md)
-    -   [CDN](cdn.md)
-    -   [Offline Mode (PWA)](pwa.md)
-    -   [Server-Side Rendering (SSR)](ssr.md)
-    -   [Embed Files](embed-files.md)
+    -   [Choosing a database](choosing-a-database.md)
+    -   [Evolving model with migration](evolving-model-with-migration.md)
+    -   [Set up logging](setup-logging.md)
 
--   [Awesome docsify](awesome.md)
 -   [Changelog](changelog.md)
