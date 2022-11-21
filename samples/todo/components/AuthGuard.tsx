@@ -9,7 +9,7 @@ export default function AuthGuard({ children }: Props) {
     if (status === 'loading') {
         return <p>Loading...</p>;
     } else if (status === 'unauthenticated') {
-        signIn();
+        signIn(undefined, { callbackUrl: '/' });
         return <></>;
     } else {
         return <>{children}</>;

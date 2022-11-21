@@ -19,10 +19,10 @@ export default function BreadCrumb() {
     items.push({ text: 'Home', link: '/' });
     items.push({ text: space?.name || '', link: `/space/${slug}` });
 
-    if (listId) {
-        const { data } = getList(listId);
+    const { data: list } = getList(listId);
+    if (list) {
         items.push({
-            text: data?.title || '',
+            text: list?.title || '',
             link: `/space/${slug}/${listId}`,
         });
     }

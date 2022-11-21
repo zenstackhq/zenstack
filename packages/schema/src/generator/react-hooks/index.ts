@@ -138,7 +138,7 @@ export default class ReactHooksGenerator implements Generator {
                 parameters: [
                     {
                         name: 'id',
-                        type: 'String',
+                        type: 'String | undefined',
                     },
                     {
                         name: 'args?',
