@@ -22,6 +22,7 @@
 
     -   [Choosing a database](choosing-a-database.md)
     -   [Evolving model with migration](evolving-model-with-migration.md)
+    -   [Integrating authentication](integrating-authentication.md)
     -   [Set up logging](setup-logging.md)
 
 -   [Changelog](changelog.md)

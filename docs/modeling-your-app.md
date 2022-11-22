@@ -2,7 +2,7 @@
 
 ZenStack provides an integrated DSL called **ZModel** for defining your data models, relations, and access policies. It may sounds scary to learn yet another new language, but trust me is simple and intuitive.
 
-**ZModel** DSL is extended from the schema language of [Prisma ORM](https://www.prisma.io/docs/concepts/components/prisma-schema). Familarity of Prisma will make it very easy to start, but it's not a prerequisite.
+**ZModel** DSL is extended from the schema language of [Prisma ORM](https://www.prisma.io/docs/concepts/components/prisma-schema ':target=_blank'). Familarity of Prisma will make it very easy to start, but it's not a prerequisite.
 
 ## Configuring data source
 
@@ -49,7 +49,7 @@ model Post {
 }
 ```
 
-Check [here TBD](zmodel-references#Fields) for more details about defining fields.
+Check [here](zmodel-field.md) for more details about defining fields.
 
 ## Adding relations
 
@@ -117,7 +117,7 @@ model User {
 }
 ```
 
-Check [here TBD](zmodel-references#Relations) for more details about defining relations.
+Check [here](zmodel-relation.md) for more details about defining relations.
 
 ## Adding access policies
 
@@ -129,9 +129,9 @@ A few quick notes before diving into examples:
 
 -   Access kinds include `create`, `read`, `update` and `delete`, and you can use `all` to abbreviate full grant.
 
--   By default, all access kinds are denied for a model. You can use arbitrary number of `@@allow` and `@@deny` rules in a model. See [here TBD]() for the semantic of combining them.
+-   By default, all access kinds are denied for a model. You can use arbitrary number of `@@allow` and `@@deny` rules in a model. See [here](zmodel-access-policy.md#combining-multiple-rules) for the semantic of combining them.
 
--   You can access current login user with the builtin `auth()` function. See [here TBD]() for how authentication is integrated.
+-   You can access current login user with the builtin `auth()` function. See [here](integrating-authentication.md) for how authentication is integrated.
 
 Let's look at a few examples now:
 
