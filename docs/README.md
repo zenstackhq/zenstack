@@ -15,7 +15,7 @@ See the [Quick start](quick-start.md) guide for more details.
 -   Intuitive data & authorization modeling language
 -   Generating RESTful CRUD services and React hooks
 -   End-to-end type safety
--   Support for [all major relational databases](supported-db.md)
+-   Support for [all major relational databases](zmodel-data-source.md#supported-databases)
 -   Integration with authentication libraries (like [NextAuth](https://next-auth.js.org/ ':target=_blank'))
 -   [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack ':target=_blank') for model authoring
 

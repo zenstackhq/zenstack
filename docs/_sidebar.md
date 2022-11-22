@@ -5,16 +5,19 @@
     -   [Code generation](code-generation.md)
     -   [Building your app](building-your-app.md)
 
--   ZModel references
+-   ZModel reference
 
+    -   [Overview](zmodel-overview.md)
     -   [Data source](zmodel-data-source.md)
+    -   [Enum](zmodel-enum.md)
     -   [Data model](zmodel-data-model.md)
     -   [Attribute](zmodel-attribute.md)
     -   [Field](zmodel-field.md)
     -   [Relation](zmodel-relation.md)
     -   [Access policy](zmodel-access-policy.md)
+    -   [Field constraint](zmodel-field-constraint.md)
 
--   CLI references
+-   CLI reference
 
     -   [Commands](cli-commands.md)
 
