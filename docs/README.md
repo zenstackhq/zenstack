@@ -4,9 +4,9 @@
 
 ## What it is
 
-ZenStack is a schema-first toolkit for defining data models, relations and authorization policies. It generates database schema, backend CRUD services and frontend React hooks for you automatically from the model.
+ZenStack is a schema-first toolkit for defining data models, relations and authorization policies. It generates database schema, backend CRUD services and frontend React hooks for you automatically from the model. Our goal is to let you save time writing boilerplate code and focus on building real features!
 
-Save time writing boilerplate code and focus on building real features!
+_NOTE_: ZenStack is built above [Prisma ORM](https://www.prisma.io/) - the greatest ORM solution for Typescript. It extends Prisma's power from database handling to full-stack development.
 
 See the [Quick start](quick-start.md) guide for more details.
 

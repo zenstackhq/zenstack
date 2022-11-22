@@ -7,15 +7,16 @@
 
 -   ZModel references
 
-    -   [Configuration](configuration.md)
-    -   [Themes](themes.md)
-    -   [List of Plugins](plugins.md)
-    -   [Write a Plugin](write-a-plugin.md)
-    -   [Markdown configuration](markdown.md)
-    -   [Language highlighting](language-highlight.md)
-    -   [Emoji](emoji.md)
+    -   [Data source](zmodel-data-source.md)
+    -   [Data model](zmodel-data-model.md)
+    -   [Attribute](zmodel-attribute.md)
+    -   [Field](zmodel-field.md)
+    -   [Relation](zmodel-relation.md)
+    -   [Access policy](zmodel-access-policy.md)
 
--   [CLI commands](cli-references.md)
+-   CLI references
+
+    -   [Commands](cli-commands.md)
 
 -   Guide
 

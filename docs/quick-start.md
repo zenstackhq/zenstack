@@ -57,4 +57,4 @@ npm install --save-dev zenstack
 npx zenstack init
 ```
 
-You should find a `/zenstack/schema.model` file created, containing a simple blogger model in it. No worries if a blogger app doesn't suit you. You can modify it and build up your application's own model following [this guide](modeling-data.md).
+You should find a `/zenstack/schema.model` file created, containing a simple blogger model in it. No worries if a blogger app doesn't suit you. You can modify it and build up your application's own model following [this guide](modeling-your-app.md).

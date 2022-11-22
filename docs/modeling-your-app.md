@@ -2,7 +2,7 @@
 
 ZenStack provides an integrated DSL called **ZModel** for defining your data models, relations, and access policies. It may sounds scary to learn yet another new language, but trust me is simple and intuitive.
 
-If you're interested why we chose schema-first over code-first, check out the thoughts [here](schema-first.md).
+**ZModel** DSL is extended from the schema language of [Prisma ORM](https://www.prisma.io/docs/concepts/components/prisma-schema). Familarity of Prisma will make it very easy to start, but it's not a prerequisite.
 
 ## Configuring data source
 
@@ -147,8 +147,8 @@ model User {
 
 model Post {
     id String @id
-    owner User @relation(fields: [ownerId], references: [id])
-    ownerId String
+    author User @relation(fields: [authorId], references: [id])
+    authorId String
     published Boolean @default(false)
     ...
 
@@ -158,9 +158,11 @@ model Post {
     // published posts can be read by all
     @@allow("read", published)
 
-    // grant full access to owner
-    @@allow("all", auth() == owner)
+    // grant full access to author
+    @@allow("all", auth() == author)
 }
 ```
 
 You can find more details about access policy [TBD here](). Also, check out the [Collaborative Todo App](https://github.com/zenstackhq/todo-demo-sqlite) sample for a more sophisticated policy design.
+
+Now you've got a fairly complete model for the app. Let's go ahead with [generating code](code-generation.md) from it then.
