@@ -1,4 +1,4 @@
-![logo](_media/logo.png)
+![cover-logo](_media/logo.png)
 
 # ZenStack <small>0.4.0</small>
 
