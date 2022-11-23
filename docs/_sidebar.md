@@ -16,6 +16,7 @@
     -   [Relation](zmodel-relation.md)
     -   [Access policy](zmodel-access-policy.md)
     -   [Field constraint](zmodel-field-constraint.md)
+    -   [Referential action](zmodel-referential-action.md)
 
 -   CLI reference
 
@@ -27,5 +28,7 @@
     -   [Evolving model with migration](evolving-model-with-migration.md)
     -   [Integrating authentication](integrating-authentication.md)
     -   [Set up logging](setup-logging.md)
+
+-   [VSCode extension](vscode-extension.md)
 
 -   [Changelog](changelog.md)

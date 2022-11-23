@@ -4,7 +4,7 @@ Data models represent business entities of your application.
 
 ## Syntax
 
-A data model takes the following form:
+A data model declaration takes the following form:
 
 ```prisma
 model [NAME] {
