@@ -214,238 +214,238 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@id`
 
-```prisma
-attribute @id(map: String?)
-```
+    ```prisma
+    attribute @id(map: String?)
+    ```
 
-Defines an ID on the model.
+    Defines an ID on the model.
 
-_Params_:
+    _Params_:
 
-| Name | Description                                                       |
-| ---- | ----------------------------------------------------------------- |
-| map  | The name of the underlying primary key constraint in the database |
+    | Name | Description                                                       |
+    | ---- | ----------------------------------------------------------------- |
+    | map  | The name of the underlying primary key constraint in the database |
 
 -   `@default`
 
-```prisma
-    attribute @default(_ value: ContextType)
-```
+    ```prisma
+        attribute @default(_ value: ContextType)
+    ```
 
-Defines a default value for a field.
+    Defines a default value for a field.
 
-_Params_:
+    _Params_:
 
-| Name  | Description                  |
-| ----- | ---------------------------- |
-| value | The default value expression |
+    | Name  | Description                  |
+    | ----- | ---------------------------- |
+    | value | The default value expression |
 
 -   `@unique`
 
-```prisma
-    attribute @unique(map: String?)
-```
+    ```prisma
+        attribute @unique(map: String?)
+    ```
 
-Defines a unique constraint for this field.
+    Defines a unique constraint for this field.
 
-_Params_:
+    _Params_:
 
-| Name | Description                                                       |
-| ---- | ----------------------------------------------------------------- |
-| map  | The name of the underlying primary key constraint in the database |
+    | Name | Description                                                       |
+    | ---- | ----------------------------------------------------------------- |
+    | map  | The name of the underlying primary key constraint in the database |
 
 -   `@relation`
 
-```prisma
-    attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
-```
+    ```prisma
+        attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
+    ```
 
-Defines meta information about a relation.
+    Defines meta information about a relation.
 
-_Params_:
+    _Params_:
 
-| Name       | Description                                                                             |
-| ---------- | --------------------------------------------------------------------------------------- |
-| name       | The name of the relationship                                                            |
-| fields     | A list of fields defined in the current model                                           |
-| references | A list of fields of the model on the other side of the relation                         |
-| onDelete   | Referential action to take on delete. See details [here](zmodel-referential-action.md). |
-| onUpdate   | Referential action to take on update. See details [here](zmodel-referential-action.md). |
+    | Name       | Description                                                                             |
+    | ---------- | --------------------------------------------------------------------------------------- |
+    | name       | The name of the relationship                                                            |
+    | fields     | A list of fields defined in the current model                                           |
+    | references | A list of fields of the model on the other side of the relation                         |
+    | onDelete   | Referential action to take on delete. See details [here](zmodel-referential-action.md). |
+    | onUpdate   | Referential action to take on update. See details [here](zmodel-referential-action.md). |
 
 -   `@map`
 
-```prisma
-    attribute @map(_ name: String)
-```
+    ```prisma
+        attribute @map(_ name: String)
+    ```
 
-Maps a field name or enum value from the schema to a column with a different name in the database.
+    Maps a field name or enum value from the schema to a column with a different name in the database.
 
-_Params_:
+    _Params_:
 
-| Name | Description                                       |
-| ---- | ------------------------------------------------- |
-| map  | The name of the underlying column in the database |
+    | Name | Description                                       |
+    | ---- | ------------------------------------------------- |
+    | map  | The name of the underlying column in the database |
 
 -   `@updatedAt`
 
-```prisma
-    attribute @updatedAt()
-```
+    ```prisma
+        attribute @updatedAt()
+    ```
 
-Automatically stores the time when a record was last updated.
+    Automatically stores the time when a record was last updated.
 
 -   `@password`
 
-```prisma
-    attribute @password(saltLength: Int?, salt: String?)
-```
+    ```prisma
+        attribute @password(saltLength: Int?, salt: String?)
+    ```
 
-Indicates that the field is a password field and needs to be hashed before persistence.
+    Indicates that the field is a password field and needs to be hashed before persistence.
 
-_NOTE_: ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter to configure the cost of hashing, or use `salt` parameter to provide an explicit salt. By default, salt length of 12 is used. See [bcryptjs](https://www.npmjs.com/package/bcryptjs ':target=blank') for more details.
+    _NOTE_: ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter to configure the cost of hashing, or use `salt` parameter to provide an explicit salt. By default, salt length of 12 is used. See [bcryptjs](https://www.npmjs.com/package/bcryptjs ':target=blank') for more details.
 
-_Params_:
+    _Params_:
 
-| Name       | Description                                                   |
-| ---------- | ------------------------------------------------------------- |
-| saltLength | The length of salt to use (cost factor for the hash function) |
-| salt       | The salt to use (a pregenerated valid salt)                   |
+    | Name       | Description                                                   |
+    | ---------- | ------------------------------------------------------------- |
+    | saltLength | The length of salt to use (cost factor for the hash function) |
+    | salt       | The salt to use (a pregenerated valid salt)                   |
 
 -   `@omit`
 
-```prisma
-    attribute @omit()
-```
+    ```prisma
+        attribute @omit()
+    ```
 
-Indicates that the field should be omitted when read from the generated services. Commonly used together with `@password` attribute.
+    Indicates that the field should be omitted when read from the generated services. Commonly used together with `@password` attribute.
 
 ### Model attributes
 
 -   `@@unique`
 
-```prisma
-    attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
-```
+    ```prisma
+        attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
+    ```
 
-Defines a compound unique constraint for the specified fields.
+    Defines a compound unique constraint for the specified fields.
 
-_Params_:
+    _Params_:
 
-| Name   | Description                                                  |
-| ------ | ------------------------------------------------------------ |
-| fields | A list of fields defined in the current model                |
-| name   | The name of the unique combination of fields                 |
-| map    | The name of the underlying unique constraint in the database |
+    | Name   | Description                                                  |
+    | ------ | ------------------------------------------------------------ |
+    | fields | A list of fields defined in the current model                |
+    | name   | The name of the unique combination of fields                 |
+    | map    | The name of the underlying unique constraint in the database |
 
 -   `@@index`
 
-```prisma
-    attribute @@index(_ fields: FieldReference[], map: String?)
-```
+    ```prisma
+        attribute @@index(_ fields: FieldReference[], map: String?)
+    ```
 
-Defines an index in the database.
+    Defines an index in the database.
 
-_Params_:
+    _Params_:
 
-| Name   | Description                                      |
-| ------ | ------------------------------------------------ |
-| fields | A list of fields defined in the current model    |
-| map    | The name of the underlying index in the database |
+    | Name   | Description                                      |
+    | ------ | ------------------------------------------------ |
+    | fields | A list of fields defined in the current model    |
+    | map    | The name of the underlying index in the database |
 
 -   `@@map`
 
-```prisma
-    attribute @@map(_ name: String)
-```
+    ```prisma
+        attribute @@map(_ name: String)
+    ```
 
-Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database.
+    Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database.
 
-_Params_:
+    _Params_:
 
-| Name | Description                                              |
-| ---- | -------------------------------------------------------- |
-| name | The name of the underlying table or enum in the database |
+    | Name | Description                                              |
+    | ---- | -------------------------------------------------------- |
+    | name | The name of the underlying table or enum in the database |
 
 -   `@@allow`
 
-```prisma
-    attribute @@allow(_ operation: String, _ condition: Boolean)
-```
+    ```prisma
+        attribute @@allow(_ operation: String, _ condition: Boolean)
+    ```
 
-Defines an access policy that allows a set of operations when the given condition is true.
+    Defines an access policy that allows a set of operations when the given condition is true.
 
-_Params_:
+    _Params_:
 
-| Name      | Description                                                                                                                                                              |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| operation | Comma separated list of operations to control, including `"create"`, `"read"`, `"update"`, and `"delete"`. Pass` "all"` as an abbriviation for including all operations. |
-| condition | Boolean expression indicating if the operations should be allowed                                                                                                        |
+    | Name      | Description                                                                                                                                                              |
+    | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+    | operation | Comma separated list of operations to control, including `"create"`, `"read"`, `"update"`, and `"delete"`. Pass` "all"` as an abbriviation for including all operations. |
+    | condition | Boolean expression indicating if the operations should be allowed                                                                                                        |
 
 -   `@@deny`
 
-```prisma
-    attribute @@deny(_ operation: String, _ condition: Boolean)
-```
+    ```prisma
+        attribute @@deny(_ operation: String, _ condition: Boolean)
+    ```
 
-Defines an access policy that denies a set of operations when the given condition is true.
+    Defines an access policy that denies a set of operations when the given condition is true.
 
-_Params_:
+    _Params_:
 
-| Name      | Description                                                                                                                                                              |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| operation | Comma separated list of operations to control, including `"create"`, `"read"`, `"update"`, and `"delete"`. Pass` "all"` as an abbriviation for including all operations. |
-| condition | Boolean expression indicating if the operations should be denied                                                                                                         |
+    | Name      | Description                                                                                                                                                              |
+    | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+    | operation | Comma separated list of operations to control, including `"create"`, `"read"`, `"update"`, and `"delete"`. Pass` "all"` as an abbriviation for including all operations. |
+    | condition | Boolean expression indicating if the operations should be denied                                                                                                         |
 
 ## Predefined attribute functions
 
 -   `uuid`
 
-```prisma
-    function uuid(): String {}
-```
+    ```prisma
+        function uuid(): String {}
+    ```
 
-Generates a globally unique identifier based on the UUID spec.
+    Generates a globally unique identifier based on the UUID spec.
 
 -   `cuid`
 
-```prisma
-    function cuid(): String {}
-```
+    ```prisma
+        function cuid(): String {}
+    ```
 
-Generates a globally unique identifier based on the [CUID](https://github.com/ericelliott/cuid) spec.
+    Generates a globally unique identifier based on the [CUID](https://github.com/ericelliott/cuid) spec.
 
 -   `now`
 
-```prisma
-    function now(): DateTime {}
-```
+    ```prisma
+        function now(): DateTime {}
+    ```
 
-Gets current date-time.
+    Gets current date-time.
 
 -   `autoincrement`
 
-```prisma
-    function autoincrement(): Int {}
-```
+    ```prisma
+        function autoincrement(): Int {}
+    ```
 
-Creates a sequence of integers in the underlying database and assign the incremented
-values to the ID values of the created records based on the sequence.
+    Creates a sequence of integers in the underlying database and assign the incremented
+    values to the ID values of the created records based on the sequence.
 
 -   `dbgenerated`
 
-```prisma
-    function dbgenerated(expr: String): Any {}
-```
+    ```prisma
+        function dbgenerated(expr: String): Any {}
+    ```
 
-Represents default values that cannot be expressed in the Prisma schema (such as random()).
+    Represents default values that cannot be expressed in the Prisma schema (such as random()).
 
 -   `auth`
 
-```prisma
-    function auth(): User {}
-```
+    ```prisma
+        function auth(): User {}
+    ```
 
-Gets thec current login user. The return type of the function is the `User` data model defined in the current ZModel.
+    Gets thec current login user. The return type of the function is the `User` data model defined in the current ZModel.
 
 ## Examples
 
