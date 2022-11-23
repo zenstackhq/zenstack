@@ -5,12 +5,16 @@
 Set up ZenStack for an existing Next.js + Typescript project.
 
 ```bash
-npx zenstack init ./my-project
+npx zenstack init [dir]
 ```
 
 ### `generate`
 
 Generates RESTful CRUD API and React hooks from your model.
+
+```bash
+npx zenstack generate [options]
+```
 
 _Options_:
 
@@ -28,6 +32,10 @@ Update the database schema with migrations.
 
 Create a migration from changes in Prisma schema, apply it to the database, trigger generation of database client. This command wraps `prisma migrate` command.
 
+```bash
+npx zenstack migrate dev [options]
+```
+
 _Options_:
 
 ```
@@ -37,6 +45,10 @@ _Options_:
 #### `migrate reset`
 
 Reset your database and apply all migrations.
+
+```bash
+npx zenstack migrate reset [options]
+```
 
 _Options_:
 
@@ -48,6 +60,10 @@ _Options_:
 
 Apply pending migrations to the database in production/staging.
 
+```bash
+npx zenstack migrate deploy [options]
+```
+
 _Options_:
 
 ```
@@ -57,6 +73,10 @@ _Options_:
 #### `migrate status`
 
 Check the status of migrations in the production/staging database.
+
+```bash
+npx zenstack migrate status [options]
+```
 
 _Options_:
 
@@ -74,6 +94,10 @@ Manage your database schema and lifecycle during development. This command wraps
 
 Push the state from model to the database during prototyping.
 
+```bash
+npx zenstack db push [options]
+```
+
 _Options_:
 
 ```
@@ -84,6 +108,10 @@ _Options_:
 ### `studio`
 
 Browse your data with Prisma Studio. This command wraps `prisma studio` command.
+
+```bash
+npx zenstack studio [options]
+```
 
 _Options_:
 
