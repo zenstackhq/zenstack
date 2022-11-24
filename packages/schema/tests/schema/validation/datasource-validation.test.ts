@@ -51,7 +51,9 @@ describe('Datasource Validation Tests', () => {
                     provider = 'abc'
                 }
         `)
-        ).toContain('Provider "abc" is not supported');
+        ).toContainEqual(
+            expect.stringContaining('Provider "abc" is not supported')
+        );
     });
 
     it('invalid url value', async () => {
