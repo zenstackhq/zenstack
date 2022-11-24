@@ -7,7 +7,17 @@ import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import telemetry from '../telemetry';
 import { execSync } from '../utils/exec-utils';
 import { CliError } from './cli-error';
-import { runGenerator } from './cli-util';
+import { initProject, runGenerator } from './cli-util';
+
+export const initAction = async (projectPath: string): Promise<void> => {
+    await telemetry.trackSpan(
+        'cli:command:start',
+        'cli:command:complete',
+        'cli:command:error',
+        { command: 'init' },
+        () => initProject(projectPath)
+    );
+};
 
 export const generateAction = async (options: {
     schema: string;
@@ -107,6 +117,12 @@ export default async function (): Promise<void> {
             ).default('./zenstack/schema.zmodel');
 
             //#region wraps Prisma commands
+
+            program
+                .command('init')
+                .description('Set up a new ZenStack project.')
+                .argument('<path>', 'project path')
+                .action(initAction);
 
             program
                 .command('generate')
