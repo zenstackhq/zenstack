@@ -6,6 +6,7 @@ import * as os from 'os';
 import sleep from 'sleep-promise';
 import exitHook from 'async-exit-hook';
 import { CliError } from './cli/cli-error';
+import { CommanderError } from 'commander';
 
 /**
  * Telemetry events
@@ -59,7 +60,7 @@ export class Telemetry {
                 await sleep(this.exitWait);
             }
 
-            if (err instanceof CliError) {
+            if (err instanceof CliError || err instanceof CommanderError) {
                 // error already handled
             } else {
                 throw err;
