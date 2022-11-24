@@ -1,4 +1,5 @@
 import {
+    Attribute,
     AttributeArg,
     DataModel,
     DataModelAttribute,
@@ -19,7 +20,7 @@ import { AstNode } from 'langium';
 import path from 'path';
 import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../constants';
 import { Context, GeneratorError } from '../types';
-import { resolved } from '../utils';
+import { resolved } from '../ast-utils';
 import {
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
@@ -34,8 +35,6 @@ import {
     PrismaModel,
     ModelFieldType,
 } from './prisma-builder';
-
-const excludedAttributes = ['@@allow', '@@deny', '@password', '@omit'];
 
 /**
  * Generates Prisma schema file
@@ -186,12 +185,14 @@ export default class PrismaSchemaGenerator {
         ]);
 
         for (const attr of decl.attributes.filter(
-            (attr) =>
-                attr.decl.ref?.name &&
-                !excludedAttributes.includes(attr.decl.ref.name)
+            (attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref)
         )) {
             this.generateModelAttribute(model, attr);
         }
+    }
+
+    private isPrismaAttribute(attr: Attribute) {
+        return !!attr.attributes.find((a) => a.decl.ref?.name === '@@@prisma');
     }
 
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
@@ -210,9 +211,7 @@ export default class PrismaSchemaGenerator {
 
         const attributes = field.attributes
             .filter(
-                (attr) =>
-                    attr.decl.ref?.name &&
-                    !excludedAttributes.includes(attr.decl.ref.name)
+                (attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref)
             )
             .map((attr) => this.makeFieldAttribute(attr));
         model.addField(field.name, type, attributes);

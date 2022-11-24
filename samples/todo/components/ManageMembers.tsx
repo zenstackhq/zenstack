@@ -24,6 +24,9 @@ export default function ManageMembers({ space }: Props) {
         include: {
             user: true,
         },
+        orderBy: {
+            role: 'desc',
+        },
     });
 
     const inviteUser = async () => {

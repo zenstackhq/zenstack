@@ -5,6 +5,7 @@ import type {
     MutatorOptions,
     SWRResponse,
 } from 'swr/dist/types';
+import { RequestOptions } from './types';
 
 type BufferShape = { type: 'Buffer'; data: number[] };
 function isBuffer(value: unknown): value is BufferShape {
@@ -101,9 +102,11 @@ function makeUrl(url: string, args: unknown) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function get<Data, Error = any>(
     url: string | null,
-    args?: unknown
+    args?: unknown,
+    options?: RequestOptions
 ): SWRResponse<Data, Error> {
-    return useSWR<Data, Error>(url && makeUrl(url, args), fetcher);
+    const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
+    return useSWR<Data, Error>(reqUrl, fetcher);
 }
 
 export async function post<Data, Result>(

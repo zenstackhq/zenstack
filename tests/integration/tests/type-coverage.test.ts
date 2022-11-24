@@ -36,8 +36,6 @@ describe('Type Coverage Tests', () => {
             })
             .expect(201)
             .expect((resp) => {
-                console.log(resp.body);
-
                 expect(resp.body.bigInt).toEqual(
                     expect.objectContaining({
                         type: 'BigInt',

@@ -4,8 +4,8 @@ import * as path from 'path';
 import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
-import { extractDataModelsWithAllowRules } from '../utils';
-import { API_ROUTE_NAME, INTERNAL_PACKAGE } from '../constants';
+import { extractDataModelsWithAllowRules } from '../ast-utils';
+import { API_ROUTE_NAME } from '../constants';
 
 /**
  * Generate react data query hooks code
@@ -29,6 +29,10 @@ export default class ReactHooksGenerator implements Generator {
         console.log(colors.blue('  ✔️ React hooks generated'));
     }
 
+    private getValidator(model: DataModel, mode: 'create' | 'update') {
+        return `${model.name}_${mode}_validator`;
+    }
+
     private generateModelHooks(
         project: Project,
         context: Context,
@@ -47,9 +51,15 @@ export default class ReactHooksGenerator implements Generator {
             moduleSpecifier: '../../.prisma',
         });
         sf.addStatements([
-            `import { request } from '${INTERNAL_PACKAGE}/lib/client';`,
-            `import { ServerErrorCode } from '@zenstackhq/runtime/client';`,
-            `import { type SWRResponse } from 'swr'`,
+            `import { request, validate, ServerErrorCode, RequestOptions } from '@zenstackhq/runtime/client';`,
+            `import { type SWRResponse } from 'swr';`,
+            `import { ${this.getValidator(
+                model,
+                'create'
+            )}, ${this.getValidator(
+                model,
+                'update'
+            )} } from '../field-constraint';`,
         ]);
 
         sf.addStatements(
@@ -78,8 +88,15 @@ export default class ReactHooksGenerator implements Generator {
             .addBody()
             .addStatements([
                 `
+                // validate field-level constraints
+                validate(${this.getValidator(model, 'create')}, args.data);
+
                 try {
-                    return await request.post<P.${model.name}CreateArgs, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(endpoint, args, mutate);
+                    return await request.post<P.${
+                        model.name
+                    }CreateArgs, P.CheckSelect<T, ${model.name}, P.${
+                    model.name
+                }GetPayload<T>>>(endpoint, args, mutate);
                 } catch (err: any) {
                     if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;
@@ -101,11 +118,15 @@ export default class ReactHooksGenerator implements Generator {
                         name: 'args?',
                         type: `P.SelectSubset<T, P.${model.name}FindManyArgs>`,
                     },
+                    {
+                        name: 'options?',
+                        type: 'RequestOptions',
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>(endpoint, args);`,
+                `return request.get<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>(endpoint, args, options);`,
             ]);
 
         // get
@@ -117,17 +138,21 @@ export default class ReactHooksGenerator implements Generator {
                 parameters: [
                     {
                         name: 'id',
-                        type: 'String',
+                        type: 'String | undefined',
                     },
                     {
                         name: 'args?',
                         type: `P.SelectSubset<T, P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>>`,
                     },
+                    {
+                        name: 'options?',
+                        type: 'RequestOptions',
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(id ? \`\${endpoint}/\${id}\`: null, args);`,
+                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(id ? \`\${endpoint}/\${id}\`: null, args, options);`,
             ]);
 
         // update
@@ -149,8 +174,15 @@ export default class ReactHooksGenerator implements Generator {
             .addBody()
             .addStatements([
                 `
+                // validate field-level constraints
+                validate(${this.getValidator(model, 'update')}, args.data);
+                
                 try {
-                    return await request.put<Omit<P.${model.name}UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
+                    return await request.put<Omit<P.${
+                        model.name
+                    }UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${
+                    model.name
+                }GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
                 } catch (err: any) {
                     if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
                         return undefined;

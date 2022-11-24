@@ -14,17 +14,20 @@ export default function TodoList() {
     const [title, setTitle] = useState('');
 
     const { data: list } = getList(router.query.listId as string);
-    const { data: todos, mutate: invalidateTodos } = findTodos({
-        where: {
-            listId: list?.id,
+    const { data: todos, mutate: invalidateTodos } = findTodos(
+        {
+            where: {
+                listId: list?.id,
+            },
+            include: {
+                owner: true,
+            },
+            orderBy: {
+                updatedAt: 'desc',
+            },
         },
-        include: {
-            owner: true,
-        },
-        orderBy: {
-            updatedAt: 'desc',
-        },
-    });
+        { disabled: !list }
+    );
 
     if (!list) {
         return <p>Loading ...</p>;

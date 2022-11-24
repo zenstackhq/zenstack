@@ -19,7 +19,7 @@ import {
     UNKNOWN_USER_ID,
 } from '../constants';
 import { Context } from '../types';
-import { resolved } from '../utils';
+import { resolved } from '../ast-utils';
 import ExpressionWriter from './expression-writer';
 
 /**
@@ -58,7 +58,9 @@ export default class QueryGuardGenerator {
 
         this.generateFieldMapping(models, sf);
 
-        models.forEach((model) => this.generateQueryGuardForModel(model, sf));
+        for (const model of models) {
+            await this.generateQueryGuardForModel(model, sf);
+        }
 
         sf.formatText({});
         await project.save();

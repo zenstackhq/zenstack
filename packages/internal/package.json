@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/internal",
-    "version": "0.3.2",
+    "version": "0.3.9",
     "displayName": "ZenStack Internal Library",
     "description": "ZenStack internal runtime library. This package is for supporting runtime functionality of ZenStack and not supposed to be used directly.",
     "repository": {
@@ -30,7 +30,9 @@
         "cuid": "^2.1.8",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
-        "swr": "^1.3.0"
+        "swr": "^1.3.0",
+        "zod": "^3.19.1",
+        "zod-validation-error": "^0.2.1"
     },
     "peerDependencies": {
         "@prisma/client": "^4.4.0",

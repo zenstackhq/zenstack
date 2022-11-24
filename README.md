@@ -4,7 +4,8 @@
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/v/zenstack">
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Wow%20%40zenstackhq">
+    <img src="https://github.com/zenstackhq/zenstack/actions/workflows/build-test.yml/badge.svg">
+    <a href="https://twitter.com/zenstackhq">
         <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
     </a>
     <a href="https://go.zenstack.dev/chat">
@@ -265,6 +266,8 @@ export const getServerSideProps: GetServerSideProps = async () => {
 ### [Database hosting considerations](/docs/ref/database-hosting-considerations.md)
 
 ### [Setting up logging](/docs/ref/setup-logging.md)
+
+### [Telemetry](/docs/ref/telemetry.md)
 
 ## Reach out to us for issues, feedback and ideas!
 

@@ -40,7 +40,7 @@ const CreateSpace: NextPage = () => {
                     router.push(`/space/${space.slug}`);
                 }
             }, 2000);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
             if (
                 (err as HooksError).info?.code ===
@@ -48,7 +48,9 @@ const CreateSpace: NextPage = () => {
             ) {
                 toast.error('Space slug alread in use');
             } else {
-                toast.error(`Error occurred: ${err}`);
+                toast.error(
+                    `Error occurred: ${err.info?.message || err.message}`
+                );
             }
         }
     };

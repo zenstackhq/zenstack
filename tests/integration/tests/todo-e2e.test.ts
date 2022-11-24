@@ -3,12 +3,11 @@ import { makeClient, run, setup } from './utils';
 import { ServerErrorCode } from '../../../packages/internal/src/types';
 
 describe('Todo E2E Tests', () => {
-    let workDir: string;
     let origDir: string;
 
     beforeAll(async () => {
         origDir = path.resolve('.');
-        workDir = await setup('./tests/todo.zmodel');
+        await setup('./tests/todo.zmodel');
     });
 
     afterAll(() => {

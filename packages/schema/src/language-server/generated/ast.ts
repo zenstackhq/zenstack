@@ -15,6 +15,8 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
+export type AttributeAttributeName = string;
+
 export type AttributeName = string;
 
 export type BuiltinType = 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String';
@@ -74,6 +76,7 @@ export function isArrayExpr(item: unknown): item is ArrayExpr {
 
 export interface Attribute extends AstNode {
     readonly $container: Model;
+    attributes: Array<AttributeAttribute>
     name: AttributeName
     params: Array<AttributeParam>
 }
@@ -85,7 +88,7 @@ export function isAttribute(item: unknown): item is Attribute {
 }
 
 export interface AttributeArg extends AstNode {
-    readonly $container: DataModelAttribute | DataModelFieldAttribute;
+    readonly $container: AttributeAttribute | DataModelAttribute | DataModelFieldAttribute;
     name?: string
     value: Expression
 }
@@ -94,6 +97,18 @@ export const AttributeArg = 'AttributeArg';
 
 export function isAttributeArg(item: unknown): item is AttributeArg {
     return reflection.isInstance(item, AttributeArg);
+}
+
+export interface AttributeAttribute extends AstNode {
+    readonly $container: Attribute;
+    args: Array<AttributeArg>
+    decl: Reference<Attribute>
+}
+
+export const AttributeAttribute = 'AttributeAttribute';
+
+export function isAttributeAttribute(item: unknown): item is AttributeAttribute {
+    return reflection.isInstance(item, AttributeAttribute);
 }
 
 export interface AttributeParam extends AstNode {
@@ -389,12 +404,12 @@ export function isUnaryExpr(item: unknown): item is UnaryExpr {
     return reflection.isInstance(item, UnaryExpr);
 }
 
-export type ZModelAstType = 'AbstractDeclaration' | 'Argument' | 'ArrayExpr' | 'Attribute' | 'AttributeArg' | 'AttributeParam' | 'AttributeParamType' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'NullExpr' | 'ReferenceArg' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
+export type ZModelAstType = 'AbstractDeclaration' | 'Argument' | 'ArrayExpr' | 'Attribute' | 'AttributeArg' | 'AttributeAttribute' | 'AttributeParam' | 'AttributeParamType' | 'BinaryExpr' | 'DataModel' | 'DataModelAttribute' | 'DataModelField' | 'DataModelFieldAttribute' | 'DataModelFieldType' | 'DataSource' | 'DataSourceField' | 'Enum' | 'EnumField' | 'Expression' | 'Function' | 'FunctionParam' | 'FunctionParamType' | 'InvocationExpr' | 'LiteralExpr' | 'MemberAccessExpr' | 'Model' | 'NullExpr' | 'ReferenceArg' | 'ReferenceExpr' | 'ReferenceTarget' | 'ThisExpr' | 'TypeDeclaration' | 'UnaryExpr';
 
 export class ZModelAstReflection implements AstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'NullExpr', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeAttribute', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'Function', 'FunctionParam', 'FunctionParamType', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'NullExpr', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr'];
     }
 
     isInstance(node: unknown, type: string): boolean {
@@ -440,6 +455,9 @@ export class ZModelAstReflection implements AstReflection {
     getReferenceType(refInfo: ReferenceInfo): string {
         const referenceId = `${refInfo.container.$type}:${refInfo.property}`;
         switch (referenceId) {
+            case 'AttributeAttribute:decl': {
+                return Attribute;
+            }
             case 'AttributeParamType:reference': {
                 return TypeDeclaration;
             }
@@ -484,7 +502,16 @@ export class ZModelAstReflection implements AstReflection {
                 return {
                     name: 'Attribute',
                     mandatory: [
+                        { name: 'attributes', type: 'array' },
                         { name: 'params', type: 'array' }
+                    ]
+                };
+            }
+            case 'AttributeAttribute': {
+                return {
+                    name: 'AttributeAttribute',
+                    mandatory: [
+                        { name: 'args', type: 'array' }
                     ]
                 };
             }
