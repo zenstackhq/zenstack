@@ -6,7 +6,7 @@ describe('Field validation client-side tests', () => {
     let origDir: string;
 
     const hooksModule = '@zenstackhq/runtime/hooks';
-    const requestModule = '@zenstackhq/internal/lib/request';
+    const requestModule = '@zenstackhq/runtime/lib/request';
 
     beforeAll(async () => {
         origDir = path.resolve('.');

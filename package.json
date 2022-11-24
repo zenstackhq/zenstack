@@ -6,9 +6,13 @@
         "build": "pnpm -r build",
         "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
-        "publish-all": "pnpm --filter \"./packages/**\" -r publish"
+        "publish-all": "pnpm --filter \"./packages/**\" -r publish",
+        "publish-dev": "pnpm --filter \"./packages/**\" -r publish --tag dev"
     },
     "keywords": [],
     "author": "",
-    "license": "MIT"
+    "license": "MIT",
+    "devDependencies": {
+        "@changesets/cli": "^2.25.2"
+    }
 }

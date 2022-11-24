@@ -1,4 +1,4 @@
-import { useList, useTodo } from '@zenstackhq/runtime/hooks';
+import { useList, useTodo } from '@zenstackhq/runtime/client';
 import { useRouter } from 'next/router';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';

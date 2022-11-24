@@ -2,7 +2,7 @@ import { Context, Generator } from '../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
 import colors from 'colors';
-import { INTERNAL_PACKAGE } from '../constants';
+import { RUNTIME_PACKAGE } from '../constants';
 
 /**
  * Generates ZenStack service code
@@ -22,7 +22,7 @@ export default class ServiceGenerator implements Generator {
 
         sf.addStatements([
             `import { PrismaClient } from "../.prisma";`,
-            `import { DefaultService } from "${INTERNAL_PACKAGE}";`,
+            `import { DefaultService } from "${RUNTIME_PACKAGE}/lib/service";`,
         ]);
 
         const cls = sf.addClass({

@@ -221,3 +221,14 @@ export type RequestOptions = {
     // disable data fetching
     disabled: boolean;
 };
+
+/**
+ * Hooks invocation error
+ */
+export type HooksError = {
+    status: number;
+    info: {
+        code: ServerErrorCode;
+        message: string;
+    };
+};

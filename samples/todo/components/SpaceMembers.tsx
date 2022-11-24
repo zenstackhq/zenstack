@@ -1,4 +1,4 @@
-import { useSpaceUser } from '@zenstackhq/runtime/hooks';
+import { useSpaceUser } from '@zenstackhq/runtime/client';
 import { useCurrentSpace } from '@lib/context';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import Avatar from './Avatar';

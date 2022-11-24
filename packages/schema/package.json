@@ -82,7 +82,7 @@
         "prepublishOnly": "cp ../../README.md ./ && pnpm build"
     },
     "dependencies": {
-        "@zenstackhq/internal": "workspace:*",
+        "@zenstackhq/runtime": "workspace:../runtime/dist",
         "async-exit-hook": "^2.0.1",
         "change-case": "^4.1.2",
         "chevrotain": "^9.1.0",

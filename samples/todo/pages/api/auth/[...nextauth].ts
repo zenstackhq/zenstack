@@ -3,8 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import {
     authorize,
     NextAuthAdapter as Adapter,
-} from '@zenstackhq/runtime/auth';
-import service from '@zenstackhq/runtime';
+} from '@zenstackhq/runtime/server/auth';
+import service from '@zenstackhq/runtime/server';
 import { nanoid } from 'nanoid';
 import { SpaceUserRole } from '@zenstackhq/runtime/types';
 

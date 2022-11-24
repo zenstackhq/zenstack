@@ -48,7 +48,7 @@ Checkout [the starter's documentation](https://github.com/zenstackhq/nextjs-auth
 ```bash
 npm i -D zenstack
 
-npm i @zenstackhq/runtime @zenstackhq/internal
+npm i @zenstackhq/runtime
 ```
 
 2. Install [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack) for authoring the model file

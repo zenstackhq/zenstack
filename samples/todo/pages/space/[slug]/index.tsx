@@ -1,6 +1,6 @@
 import { SpaceContext, UserContext } from '@lib/context';
 import { ChangeEvent, FormEvent, useContext, useState } from 'react';
-import { useList } from '@zenstackhq/runtime/hooks';
+import { useList } from '@zenstackhq/runtime/client';
 import { toast } from 'react-toastify';
 import TodoList from 'components/TodoList';
 import BreadCrumb from 'components/BreadCrumb';
@@ -28,8 +28,10 @@ function CreateDialog() {
                     ownerId: user!.id,
                 },
             });
-        } catch (err) {
-            toast.error(`Failed to create list: ${err}`);
+        } catch (err: any) {
+            toast.error(
+                `Failed to create list: ${err.info?.message || err.message}`
+            );
             return;
         }
 

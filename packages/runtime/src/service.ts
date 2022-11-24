@@ -1,5 +1,7 @@
+import colors from 'colors';
 import * as fs from 'fs';
 import { EventEmitter } from 'stream';
+import { z } from 'zod';
 import { ServiceConfig } from './config';
 import {
     FieldInfo,
@@ -9,9 +11,7 @@ import {
     QueryContext,
     Service,
 } from './types';
-import colors from 'colors';
 import { validate } from './validation';
-import { z } from 'zod';
 
 export abstract class DefaultService<
     DbClient extends {

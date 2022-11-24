@@ -1,4 +1,4 @@
-import { useSpace } from '@zenstackhq/runtime/hooks';
+import { useSpace } from '@zenstackhq/runtime/client';
 import { Space } from '@zenstackhq/runtime/types';
 import { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
