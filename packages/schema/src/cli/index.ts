@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Command, Option } from 'commander';
-import { ZModelLanguageMetaData } from '../language-server/generated/module';
-import colors from 'colors';
-import { execSync } from '../utils/exec-utils';
 import { paramCase } from 'change-case';
+import colors from 'colors';
+import { Command, Option } from 'commander';
 import path from 'path';
-import { runGenerator } from './cli-util';
+import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import telemetry from '../telemetry';
+import { execSync } from '../utils/exec-utils';
 import { CliError } from './cli-error';
+import { runGenerator } from './cli-util';
 
 export const generateAction = async (options: {
     schema: string;
@@ -74,7 +74,6 @@ function prismaAction(prismaCmd: string): (...args: any[]) => Promise<void> {
 }
 
 export default async function (): Promise<void> {
-    // try {
     await telemetry.trackSpan(
         'cli:start',
         'cli:complete',
@@ -97,7 +96,7 @@ export default async function (): Promise<void> {
                 .description(
                     `${colors.bold.blue(
                         'ζ'
-                    )} ZenStack simplifies fullstack development by generating backend services and Typescript clients from a data model.\n\nDocumentation: https://go.zenstack.dev/doc.`
+                    )} ZenStack is a toolkit for building secure CRUD apps with Next.js + Typescript.\n\nDocumentation: https://go.zenstack.dev/doc.`
                 )
                 .showHelpAfterError()
                 .showSuggestionAfterError();
@@ -112,7 +111,7 @@ export default async function (): Promise<void> {
             program
                 .command('generate')
                 .description(
-                    'generates RESTful API and Typescript client for your data model'
+                    'Generates RESTful API and Typescript client for your data model.'
                 )
                 .addOption(schemaOption)
                 .action(generateAction);
@@ -120,15 +119,17 @@ export default async function (): Promise<void> {
             const migrate = program
                 .command('migrate')
                 .description(
-                    `wraps Prisma's ${colors.cyan('migrate')} command`
+                    `Updates the database schema with migrations\nAlias for ${colors.cyan(
+                        'prisma migrate'
+                    )}.`
                 );
 
             migrate
                 .command('dev')
                 .description(
-                    `alias for ${colors.cyan(
+                    `Creates a migration, apply it to the database, generate db client\nAlias for ${colors.cyan(
                         'prisma migrate dev'
-                    )}\nCreate a migration, apply it to the database, generate db client.`
+                    )}.`
                 )
                 .addOption(schemaOption)
                 .option(
@@ -142,9 +143,9 @@ export default async function (): Promise<void> {
             migrate
                 .command('reset')
                 .description(
-                    `alias for ${colors.cyan(
+                    `Resets your database and apply all migrations\nAlias for ${colors.cyan(
                         'prisma migrate reset'
-                    )}\nReset your database and apply all migrations.`
+                    )}.`
                 )
                 .addOption(schemaOption)
                 .option('--force', 'Skip the confirmation prompt')
@@ -153,9 +154,9 @@ export default async function (): Promise<void> {
             migrate
                 .command('deploy')
                 .description(
-                    `alias for ${colors.cyan(
+                    `Applies pending migrations to the database in production/staging\nAlias for ${colors.cyan(
                         'prisma migrate deploy'
-                    )}\nApply pending migrations to the database in production/staging.`
+                    )}.`
                 )
                 .addOption(schemaOption)
                 .action(prismaAction('migrate'));
@@ -163,22 +164,26 @@ export default async function (): Promise<void> {
             migrate
                 .command('status')
                 .description(
-                    `alias for ${colors.cyan(
+                    `Checks the status of migrations in the production/staging database\nAlias for ${colors.cyan(
                         'prisma migrate status'
-                    )}\nCheck the status of migrations in the production/staging database.`
+                    )}.`
                 )
                 .addOption(schemaOption)
                 .action(prismaAction('migrate'));
 
             const db = program
                 .command('db')
-                .description(`wraps Prisma's ${colors.cyan('db')} command`);
+                .description(
+                    `Manages your database schema and lifecycle during development\nAlias for ${colors.cyan(
+                        'prisma db'
+                    )}.`
+                );
 
             db.command('push')
                 .description(
-                    `alias for ${colors.cyan(
+                    `Pushes the Prisma schema state to the database\nAlias for ${colors.cyan(
                         'prisma db push'
-                    )}\nPush the Prisma schema state to the database.`
+                    )}.`
                 )
                 .addOption(schemaOption)
                 .option('--accept-data-loss', 'Ignore data loss warnings')
@@ -187,9 +192,9 @@ export default async function (): Promise<void> {
             program
                 .command('studio')
                 .description(
-                    `wraps Prisma's ${colors.cyan(
-                        'studio'
-                    )} command. Browse your data with Prisma Studio.`
+                    `Browses your data with Prisma Studio\nAlias for ${colors.cyan(
+                        'prisma studio'
+                    )}.`
                 )
                 .addOption(schemaOption)
                 .option('-p --port <port>', 'Port to start Studio in')

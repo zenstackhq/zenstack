@@ -1,0 +1,3 @@
+-   [EN](/)
+-   [中文](/zh-cn/)
+-   [Live Chat](https://go.zenstack.dev/chat ':target=_blank')
