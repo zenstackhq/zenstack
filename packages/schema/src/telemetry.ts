@@ -5,6 +5,8 @@ import cuid from 'cuid';
 import * as os from 'os';
 import sleep from 'sleep-promise';
 import exitHook from 'async-exit-hook';
+import { CliError } from './cli/cli-error';
+import { CommanderError } from 'commander';
 
 /**
  * Telemetry events
@@ -57,6 +59,13 @@ export class Telemetry {
                 // a small delay to ensure telemetry is sent
                 await sleep(this.exitWait);
             }
+
+            if (err instanceof CliError || err instanceof CommanderError) {
+                // error already handled
+            } else {
+                throw err;
+            }
+
             process.exit(1);
         });
     }

@@ -45,15 +45,7 @@ It's good idea to install the [VSCode extension](https://marketplace.visualstudi
 
 ## Adding to an existing project
 
-To add ZenStack to an existing Next.js + Typescript project, follow the steps below:
-
-1. Install zenstack cli
-
-```bash
-npm install --save-dev zenstack
-```
-
-2. Initialize the project
+To add ZenStack to an existing Next.js + Typescript project, run command below:
 
 ```bash
 npx zenstack init

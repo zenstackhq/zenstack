@@ -13,6 +13,93 @@ import { Context, GeneratorError } from '../generator/types';
 import { CliError } from './cli-error';
 
 /**
+ * Initializes an existing project for ZenStack
+ */
+export async function initProject(projectPath: string) {
+    const schema = path.join(projectPath, 'zenstack', 'schema.zmodel');
+    if (fs.existsSync(schema)) {
+        console.warn(colors.yellow(`Model already exists: ${schema}`));
+        throw new CliError(`schema file already exists`);
+    }
+
+    // create a default model
+    if (!fs.existsSync(path.join(projectPath, 'zenstack'))) {
+        fs.mkdirSync(path.join(projectPath, 'zenstack'));
+    }
+
+    fs.writeFileSync(
+        schema,
+        `// This is a sample model to get you started.
+// Learn how to model you app: https://zenstack.dev/#/modeling-your-app.
+
+/*
+ * A sample data source using local sqlite db.
+ * See how to use a different db: https://zenstack.dev/#/zmodel-data-source.
+ */
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./todo.db'
+}
+
+/*
+ * User model
+ */
+model User {
+    id String @id @default(cuid())
+    email String @unique @email
+    password String @password @omit @length(8, 16)
+    posts Post[]
+
+    // everybody can signup
+    @@allow('create', true)
+
+    // full access by self
+    @@allow('all', auth() == this)
+}
+
+/*
+ * Post model
+ */
+model Post {
+    id String @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title String @length(1, 256)
+    content String
+    published Boolean @default(false)
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+
+    // allow read for all signin users
+    @@allow('read', auth() != null && published)
+
+    // full access by author
+    @@allow('all', author == auth())
+}
+`
+    );
+
+    // add zenstack/schema.prisma to .gitignore
+    const gitIgnorePath = path.join(projectPath, '.gitignore');
+    let gitIgnoreContent = '';
+    if (fs.existsSync(gitIgnorePath)) {
+        gitIgnoreContent =
+            fs.readFileSync(gitIgnorePath, { encoding: 'utf-8' }) + '\n';
+    }
+
+    if (!gitIgnoreContent.includes('zenstack/schema.prisma')) {
+        gitIgnoreContent += 'zenstack/schema.prisma\n';
+        fs.writeFileSync(gitIgnorePath, gitIgnoreContent);
+    }
+
+    console.log(`Sample model generated at: ${colors.green(schema)}
+
+Please check the following guide on how to model your app:
+    https://zenstack.dev/#/modeling-your-app.
+`);
+}
+
+/**
  * Loads a zmodel document from a file.
  * @param fileName File name
  * @param services Language services
