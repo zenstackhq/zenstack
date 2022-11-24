@@ -30,5 +30,3 @@
     -   [Set up logging](setup-logging.md)
 
 -   [VSCode extension](vscode-extension.md)
-
--   [Changelog](changelog.md)
