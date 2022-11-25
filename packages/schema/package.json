@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for modeling data and access policies in full-stack development with Next.js and Typescript",
-    "version": "0.3.11",
+    "version": "0.3.12",
     "author": {
         "name": "ZenStack Team"
     },

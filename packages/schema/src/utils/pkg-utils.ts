@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from './exec-utils';
 
-type PackageManagers = 'npm' | 'yarn' | 'pnpm';
+export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
 function getPackageManager(projectPath = '.'): PackageManagers {
     if (fs.existsSync(path.join(projectPath, 'yarn.lock'))) {
@@ -25,9 +25,9 @@ export function installPackage(
     switch (manager) {
         case 'yarn':
             execSync(
-                `yarn add --cwd "${projectPath}" ${
-                    dev ? ' --save-dev' : ''
-                } ${pkg}`
+                `yarn --cwd "${projectPath}" add ${pkg} ${
+                    dev ? ' --dev' : ''
+                } --ignore-engines`
             );
             break;
 

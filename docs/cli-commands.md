@@ -8,6 +8,12 @@ Set up ZenStack for an existing Next.js + Typescript project.
 npx zenstack init [dir]
 ```
 
+_Options_:
+
+```
+    -p, --package-manager <pm>: package manager to use: "npm", "yarn", or "pnpm" (default: auto detect)
+```
+
 ## `generate`
 
 Generates RESTful CRUD API and React hooks from your model.
@@ -19,7 +25,9 @@ npx zenstack generate [options]
 _Options_:
 
 ```
-    --schema <file> schema file (with extension .zmodel) (default: "./zenstack/schema.zmodel")
+    --schema <file>: schema file (with extension .zmodel) (default: "./zenstack/schema.zmodel")
+
+    -p, --package-manager <pm>: package manager to use: "npm", "yarn", or "pnpm" (default: auto detect)
 ```
 
 ## `migrate`

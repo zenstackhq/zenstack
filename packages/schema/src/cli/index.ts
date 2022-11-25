@@ -3,25 +3,31 @@ import { paramCase } from 'change-case';
 import colors from 'colors';
 import { Command, Option } from 'commander';
 import path from 'path';
+import { PackageManagers } from '../utils/pkg-utils';
 import { ZModelLanguageMetaData } from '../language-server/generated/module';
 import telemetry from '../telemetry';
 import { execSync } from '../utils/exec-utils';
 import { CliError } from './cli-error';
 import { initProject, runGenerator } from './cli-util';
 
-export const initAction = async (projectPath: string): Promise<void> => {
+export const initAction = async (
+    projectPath: string,
+    options: {
+        packageManager: PackageManagers | undefined;
+    }
+): Promise<void> => {
     await telemetry.trackSpan(
         'cli:command:start',
         'cli:command:complete',
         'cli:command:error',
         { command: 'init' },
-        () => initProject(projectPath)
+        () => initProject(projectPath, options.packageManager)
     );
 };
 
 export const generateAction = async (options: {
     schema: string;
-    packageManager: string;
+    packageManager: PackageManagers | undefined;
 }): Promise<void> => {
     await telemetry.trackSpan(
         'cli:command:start',
@@ -118,9 +124,9 @@ export default async function (): Promise<void> {
             ).default('./zenstack/schema.zmodel');
 
             const pmOption = new Option(
-                '--package-manager, -p',
-                'package manager to use: "npm", "yarn" or "pnpm"'
-            ).default('auto detect');
+                '-p, --package-manager <pm>',
+                'package manager to use'
+            ).choices(['npm', 'yarn', 'pnpm']);
 
             //#region wraps Prisma commands
 
@@ -128,7 +134,7 @@ export default async function (): Promise<void> {
                 .command('init')
                 .description('Set up a new ZenStack project.')
                 .addOption(pmOption)
-                .argument('<path>', 'project path')
+                .argument('[path]', 'project path', '.')
                 .action(initAction);
 
             program
