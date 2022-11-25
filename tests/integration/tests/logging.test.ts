@@ -19,8 +19,10 @@ describe('Logging tests', () => {
         process.chdir(origDir);
     });
 
+    const getService = () => require('@zenstackhq/runtime/server').default;
+
     it('logging with default settings', async () => {
-        const service: DefaultService<any> = require('@zenstackhq/runtime');
+        const service: DefaultService<any> = getService();
         service.reinitialize();
 
         let gotInfoEmit = false;
@@ -98,7 +100,7 @@ describe('Logging tests', () => {
             `
         );
 
-        const service: DefaultService<any> = require('@zenstackhq/runtime');
+        const service: DefaultService<any> = getService();
         service.reinitialize();
 
         let gotInfoEmit = false;
@@ -185,7 +187,7 @@ describe('Logging tests', () => {
             `
         );
 
-        const service: DefaultService<any> = require('@zenstackhq/runtime');
+        const service: DefaultService<any> = getService();
         service.reinitialize();
 
         let gotInfoEmit = false;
