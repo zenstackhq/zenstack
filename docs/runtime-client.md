@@ -1,3 +1,0 @@
-# @zenstackhq/runtime/client
-
-TBD

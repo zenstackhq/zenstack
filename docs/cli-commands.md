@@ -5,7 +5,7 @@
 Set up ZenStack for an existing Next.js + Typescript project.
 
 ```bash
-npx zenstack init [dir]
+npx zenstack init [options] [dir]
 ```
 
 _Options_:
