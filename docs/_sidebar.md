@@ -22,11 +22,7 @@
 
     -   [Commands](cli-commands.md)
 
--   Runtime API
-
-    -   [`@zenstackhq/runtime/types`](runtime-types.md)
-    -   [`@zenstackhq/runtime/client`](runtime-client.md)
-    -   [`@zenstackhq/runtime/server`](runtime-server.md)
+-   [Runtime API](runtime-api.md)
 
 -   Guide
 
@@ -34,5 +30,7 @@
     -   [Evolving model with migration](evolving-model-with-migration.md)
     -   [Integrating authentication](integrating-authentication.md)
     -   [Set up logging](setup-logging.md)
+    -   [Telemetry](telemetry.md)
 
 -   [VSCode extension](vscode-extension.md)
+-   [Reach out to the developers](reach-out.md)

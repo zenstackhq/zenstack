@@ -164,6 +164,6 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
 The Typescript types of data models, filters, sorting, etc., are all shared between the frontend and the backend.
 
-**Note** that server-side database access is not protected by access policies. This is by-design so as to provide a way of bypassing the policies. Please make sure you implement authorization properly.
+_Note_ Server-side database access is **NOT PROTECTED** by access policies. This is by-design so as to provide a way of bypassing the policies. Please make sure you implement authorization properly.
 
 _TBD_ In the future we'll provide a utility for explicitly validating access policies in backend code, so that you can reuse your policy definitions in the model.
