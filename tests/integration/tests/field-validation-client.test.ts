@@ -5,7 +5,7 @@ import { default as fetch, enableFetchMocks } from 'jest-fetch-mock';
 describe('Field validation client-side tests', () => {
     let origDir: string;
 
-    const hooksModule = '@zenstackhq/runtime/hooks';
+    const hooksModule = '@zenstackhq/runtime/client';
     const requestModule = '@zenstackhq/runtime/lib/request';
 
     beforeAll(async () => {

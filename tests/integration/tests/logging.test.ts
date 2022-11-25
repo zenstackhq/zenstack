@@ -1,7 +1,7 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
 import * as fs from 'fs';
-import type { DefaultService } from '../../../packages/runtime/server';
+import type { DefaultService } from '../../../packages/runtime/src/service';
 
 describe('Logging tests', () => {
     let origDir: string;

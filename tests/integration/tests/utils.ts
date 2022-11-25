@@ -39,8 +39,7 @@ export async function setup(schemaFile: string) {
         'prisma',
         'zod',
         '../../../../packages/schema',
-        '../../../../packages/runtime',
-        '../../../../packages/internal',
+        '../../../../packages/runtime/dist',
     ];
     run(`npm i ${dependencies.join(' ')}`);
 
@@ -52,8 +51,7 @@ export async function setup(schemaFile: string) {
         'handler.ts',
         `
             import { NextApiRequest, NextApiResponse } from 'next';
-            import { type RequestHandlerOptions, requestHandler } from '@zenstackhq/runtime/server';
-            import service from '@zenstackhq/runtime';
+            import { type RequestHandlerOptions, requestHandler, default as service } from '@zenstackhq/runtime/server';
 
             const options: RequestHandlerOptions = {
                 async getServerUser(req: NextApiRequest, res: NextApiResponse) {
