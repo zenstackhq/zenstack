@@ -6,7 +6,7 @@ import fs from 'fs';
 import { LangiumServices } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
-import { installPackage } from 'src/utils/pkg-utils';
+import { installPackage, PackageManagers } from '../utils/pkg-utils';
 import { URI } from 'vscode-uri';
 import { ZenStackGenerator } from '../generator';
 import { GENERATED_CODE_PATH } from '../generator/constants';
@@ -16,7 +16,15 @@ import { CliError } from './cli-error';
 /**
  * Initializes an existing project for ZenStack
  */
-export async function initProject(projectPath: string) {
+export async function initProject(
+    projectPath: string,
+    packageManager: PackageManagers | undefined
+) {
+    if (!fs.existsSync(projectPath)) {
+        console.error(`Path does not exist: ${projectPath}`);
+        throw new CliError('project path does not exist');
+    }
+
     const schema = path.join(projectPath, 'zenstack', 'schema.zmodel');
     let schemaGenerated = false;
 
@@ -96,16 +104,18 @@ model Post {
         schemaGenerated = true;
     }
 
-    installPackage('zenstack', true, undefined, projectPath);
-    installPackage('@zenstackhq/runtime', false, undefined, projectPath);
+    installPackage('zenstack', true, packageManager, projectPath);
+    installPackage('@zenstackhq/runtime', false, packageManager, projectPath);
 
     if (schemaGenerated) {
-        console.log(`Sample model generated at: ${colors.green(schema)}
+        console.log(`Sample model generated at: ${colors.blue(schema)}
 
         Please check the following guide on how to model your app:
             https://zenstack.dev/#/modeling-your-app.
-        `);
+            `);
     }
+
+    console.log(colors.green('\nProject initialized successfully!'));
 }
 
 /**
@@ -173,7 +183,7 @@ export async function loadDocument(
 }
 
 export async function runGenerator(
-    options: { schema: string; packageManager: string },
+    options: { schema: string; packageManager: PackageManagers | undefined },
     includedGenerators?: string[],
     clearOutput = true
 ) {
