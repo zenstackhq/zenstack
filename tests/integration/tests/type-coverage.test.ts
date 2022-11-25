@@ -1,6 +1,5 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
-import { ServerErrorCode } from '../../../packages/internal/src/types';
 
 describe('Type Coverage Tests', () => {
     let origDir: string;

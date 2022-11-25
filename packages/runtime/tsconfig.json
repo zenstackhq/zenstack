@@ -4,7 +4,7 @@
         "module": "CommonJS",
         "lib": ["ESNext", "DOM"],
         "sourceMap": true,
-        "outDir": "lib",
+        "outDir": "dist/lib",
         "strict": true,
         "noUnusedLocals": true,
         "noImplicitReturns": true,
@@ -18,5 +18,5 @@
         "paths": {}
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["lib", "node_modules"]
+    "exclude": ["dist", "node_modules"]
 }

@@ -10,12 +10,12 @@ import {
     PolicyKind,
     PolicyOperationKind,
     RuntimeAttribute,
-} from '@zenstackhq/internal';
+} from '@zenstackhq/runtime/server';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import {
     GUARD_FIELD_NAME,
-    INTERNAL_PACKAGE,
+    RUNTIME_PACKAGE,
     UNKNOWN_USER_ID,
 } from '../constants';
 import { Context } from '../types';
@@ -38,7 +38,7 @@ export default class QueryGuardGenerator {
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'QueryContext' }],
-            moduleSpecifier: INTERNAL_PACKAGE,
+            moduleSpecifier: `${RUNTIME_PACKAGE}/server`,
             isTypeOnly: true,
         });
 

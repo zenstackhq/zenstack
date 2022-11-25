@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for modeling data and access policies in full-stack development with Next.js and Typescript",
-    "version": "0.3.10",
+    "version": "0.3.11",
     "author": {
         "name": "ZenStack Team"
     },
@@ -69,7 +69,7 @@
         "vscode:prepublish": "cp ../../README.md ./ && pnpm lint && pnpm build",
         "vscode:package": "vsce package --no-dependencies",
         "clean": "rimraf bundle",
-        "build": "pnpm langium:generate && tsc --noEmit && pnpm bundle && cp -r src/res/* bundle/res/",
+        "build": "pnpm -C ../runtime build && pnpm langium:generate && tsc --noEmit && pnpm bundle && cp -r src/res/* bundle/res/",
         "bundle": "npm run clean && node build/bundle.js --minify",
         "bundle-watch": "node build/bundle.js --watch",
         "ts:watch": "tsc --watch --noEmit",
@@ -82,7 +82,7 @@
         "prepublishOnly": "cp ../../README.md ./ && pnpm build"
     },
     "dependencies": {
-        "@zenstackhq/internal": "workspace:*",
+        "@zenstackhq/runtime": "workspace:../runtime/dist",
         "async-exit-hook": "^2.0.1",
         "change-case": "^4.1.2",
         "chevrotain": "^9.1.0",

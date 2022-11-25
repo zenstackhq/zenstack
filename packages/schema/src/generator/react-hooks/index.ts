@@ -5,7 +5,7 @@ import { paramCase } from 'change-case';
 import { DataModel } from '@lang/generated/ast';
 import colors from 'colors';
 import { extractDataModelsWithAllowRules } from '../ast-utils';
-import { API_ROUTE_NAME } from '../constants';
+import { API_ROUTE_NAME, RUNTIME_PACKAGE } from '../constants';
 
 /**
  * Generate react data query hooks code
@@ -51,7 +51,9 @@ export default class ReactHooksGenerator implements Generator {
             moduleSpecifier: '../../.prisma',
         });
         sf.addStatements([
-            `import { request, validate, ServerErrorCode, RequestOptions } from '@zenstackhq/runtime/client';`,
+            `import * as request from '${RUNTIME_PACKAGE}/lib/request';`,
+            `import { ServerErrorCode, RequestOptions } from '${RUNTIME_PACKAGE}/lib/types';`,
+            `import { validate } from '${RUNTIME_PACKAGE}/lib/validation';`,
             `import { type SWRResponse } from 'swr';`,
             `import { ${this.getValidator(
                 model,

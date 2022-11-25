@@ -1,4 +1,4 @@
-import { useSpace } from '@zenstackhq/runtime/hooks';
+import { useSpace } from '@zenstackhq/runtime/client';
 import Link from 'next/link';
 
 export default function Spaces() {

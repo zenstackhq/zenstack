@@ -6,7 +6,7 @@ import { User } from 'next-auth';
 import Avatar from './Avatar';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useList } from '@zenstackhq/runtime/hooks';
+import { useList } from '@zenstackhq/runtime/client';
 import TimeInfo from './TimeInfo';
 
 type Props = {

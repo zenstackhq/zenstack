@@ -22,6 +22,12 @@
 
     -   [Commands](cli-commands.md)
 
+-   Runtime API
+
+    -   [`@zenstackhq/runtime/types`](runtime-types.md)
+    -   [`@zenstackhq/runtime/client`](runtime-client.md)
+    -   [`@zenstackhq/runtime/server`](runtime-server.md)
+
 -   Guide
 
     -   [Choosing a database](choosing-a-database.md)

@@ -21,6 +21,7 @@ export const initAction = async (projectPath: string): Promise<void> => {
 
 export const generateAction = async (options: {
     schema: string;
+    packageManager: string;
 }): Promise<void> => {
     await telemetry.trackSpan(
         'cli:command:start',
@@ -116,11 +117,17 @@ export default async function (): Promise<void> {
                 `schema file (with extension ${schemaExtensions})`
             ).default('./zenstack/schema.zmodel');
 
+            const pmOption = new Option(
+                '--package-manager, -p',
+                'package manager to use: "npm", "yarn" or "pnpm"'
+            ).default('auto detect');
+
             //#region wraps Prisma commands
 
             program
                 .command('init')
                 .description('Set up a new ZenStack project.')
+                .addOption(pmOption)
                 .argument('<path>', 'project path')
                 .action(initAction);
 
@@ -130,6 +137,7 @@ export default async function (): Promise<void> {
                     'Generates RESTful API and Typescript client for your data model.'
                 )
                 .addOption(schemaOption)
+                .addOption(pmOption)
                 .action(generateAction);
 
             const migrate = program

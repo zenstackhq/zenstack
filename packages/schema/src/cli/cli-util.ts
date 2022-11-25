@@ -6,8 +6,9 @@ import fs from 'fs';
 import { LangiumServices } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
-import { ZenStackGenerator } from '../generator';
+import { installPackage } from 'src/utils/pkg-utils';
 import { URI } from 'vscode-uri';
+import { ZenStackGenerator } from '../generator';
 import { GENERATED_CODE_PATH } from '../generator/constants';
 import { Context, GeneratorError } from '../generator/types';
 import { CliError } from './cli-error';
@@ -17,19 +18,19 @@ import { CliError } from './cli-error';
  */
 export async function initProject(projectPath: string) {
     const schema = path.join(projectPath, 'zenstack', 'schema.zmodel');
+    let schemaGenerated = false;
+
     if (fs.existsSync(schema)) {
         console.warn(colors.yellow(`Model already exists: ${schema}`));
-        throw new CliError(`schema file already exists`);
-    }
+    } else {
+        // create a default model
+        if (!fs.existsSync(path.join(projectPath, 'zenstack'))) {
+            fs.mkdirSync(path.join(projectPath, 'zenstack'));
+        }
 
-    // create a default model
-    if (!fs.existsSync(path.join(projectPath, 'zenstack'))) {
-        fs.mkdirSync(path.join(projectPath, 'zenstack'));
-    }
-
-    fs.writeFileSync(
-        schema,
-        `// This is a sample model to get you started.
+        fs.writeFileSync(
+            schema,
+            `// This is a sample model to get you started.
 // Learn how to model you app: https://zenstack.dev/#/modeling-your-app.
 
 /*
@@ -77,26 +78,34 @@ model Post {
     @@allow('all', author == auth())
 }
 `
-    );
+        );
 
-    // add zenstack/schema.prisma to .gitignore
-    const gitIgnorePath = path.join(projectPath, '.gitignore');
-    let gitIgnoreContent = '';
-    if (fs.existsSync(gitIgnorePath)) {
-        gitIgnoreContent =
-            fs.readFileSync(gitIgnorePath, { encoding: 'utf-8' }) + '\n';
+        // add zenstack/schema.prisma to .gitignore
+        const gitIgnorePath = path.join(projectPath, '.gitignore');
+        let gitIgnoreContent = '';
+        if (fs.existsSync(gitIgnorePath)) {
+            gitIgnoreContent =
+                fs.readFileSync(gitIgnorePath, { encoding: 'utf-8' }) + '\n';
+        }
+
+        if (!gitIgnoreContent.includes('zenstack/schema.prisma')) {
+            gitIgnoreContent += 'zenstack/schema.prisma\n';
+            fs.writeFileSync(gitIgnorePath, gitIgnoreContent);
+        }
+
+        schemaGenerated = true;
     }
 
-    if (!gitIgnoreContent.includes('zenstack/schema.prisma')) {
-        gitIgnoreContent += 'zenstack/schema.prisma\n';
-        fs.writeFileSync(gitIgnorePath, gitIgnoreContent);
+    installPackage('zenstack', true, undefined, projectPath);
+    installPackage('@zenstackhq/runtime', false, undefined, projectPath);
+
+    if (schemaGenerated) {
+        console.log(`Sample model generated at: ${colors.green(schema)}
+
+        Please check the following guide on how to model your app:
+            https://zenstack.dev/#/modeling-your-app.
+        `);
     }
-
-    console.log(`Sample model generated at: ${colors.green(schema)}
-
-Please check the following guide on how to model your app:
-    https://zenstack.dev/#/modeling-your-app.
-`);
 }
 
 /**
@@ -164,7 +173,7 @@ export async function loadDocument(
 }
 
 export async function runGenerator(
-    options: { schema: string },
+    options: { schema: string; packageManager: string },
     includedGenerators?: string[],
     clearOutput = true
 ) {

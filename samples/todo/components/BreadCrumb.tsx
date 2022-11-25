@@ -1,5 +1,5 @@
 import { useCurrentSpace } from '@lib/context';
-import { useList } from '@zenstackhq/runtime/hooks';
+import { useList } from '@zenstackhq/runtime/client';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 

@@ -1,6 +1,6 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
-import { ServerErrorCode } from '../../../packages/internal/src/types';
+import { ServerErrorCode } from '../../../packages/runtime/src/types';
 
 describe('Todo E2E Tests', () => {
     let origDir: string;
