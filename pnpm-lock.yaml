@@ -18,7 +18,7 @@ importers:
       cuid: ^2.1.8
       decimal.js: ^10.4.2
       deepcopy: ^2.1.0
-      next: ^12.3.1
+      next: ^12.3.1 || ^13
       react: ^17.0.2 || ^18
       react-dom: ^17.0.2 || ^18
       rimraf: ^3.0.2
@@ -28,6 +28,7 @@ importers:
       zod: ^3.19.1
       zod-validation-error: ^0.2.1
     dependencies:
+      '@types/bcryptjs': 2.4.2
       bcryptjs: 2.4.3
       colors: 1.4.0
       cuid: 2.1.8
@@ -41,7 +42,6 @@ importers:
       zod: 3.19.1
       zod-validation-error: 0.2.1_zod@3.19.1
     devDependencies:
-      '@types/bcryptjs': 2.4.2
       '@types/jest': 29.2.0
       '@types/node': 14.18.32
       rimraf: 3.0.2
@@ -1903,7 +1903,6 @@ packages:
 
   /@types/bcryptjs/2.4.2:
     resolution: {integrity: sha512-LiMQ6EOPob/4yUL66SZzu6Yh77cbzJFYll+ZfaPiPPFswtIlA/Fs1MzdKYA7JApHU49zQTbJGX3PDmCpIdDBRQ==}
-    dev: true
 
   /@types/cookiejar/2.1.2:
     resolution: {integrity: sha512-t73xJJrvdTjXrn4jLS9VSGRbz0nUY3cl2DMGDU48lKl+HR9dbbjW2A9r3g40VA++mQpy6uuHg33gy7du2BKpog==}
