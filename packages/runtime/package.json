@@ -16,7 +16,8 @@
         "publish-dev": "pnpm publish --tag dev"
     },
     "publishConfig": {
-        "directory": "dist"
+        "directory": "dist",
+        "linkDirectory": true
     },
     "dependencies": {
         "colors": "1.4.0",
