@@ -58,7 +58,7 @@ export default NextAuth(authOptions);
 
 NextAuth is agnostic about the type of underlying database, but it requires certain table structures, depending on how you configure it. Your ZModel definitions should reflect these requirements. A sample `User` model is shown here (to be used with `CredentialsProvider`):
 
-```prisma
+```zmodel
 model User {
     id String @id @default(cuid())
     email String @unique @email

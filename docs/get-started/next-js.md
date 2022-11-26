@@ -59,7 +59,7 @@ npm i @zenstackhq/runtime
 
     Here's an example of using a Postgres database with connection string specified in `DATABASE_URL` environment variable:
 
-```prisma
+```zmodel
 datasource db {
     provider = 'postgresql'
     url = env('DATABASE_URL')

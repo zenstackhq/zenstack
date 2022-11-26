@@ -14,7 +14,7 @@ The _owner_ side of the relation declares an optional field typed as the data mo
 
 On the _owned_ side, a reference field is declared with `@relation` attribute, together with an **foreign key** field storing the id of the owner entity.
 
-```prisma
+```zmodel
 model User {
     id String @id
     profile Profile?
@@ -33,7 +33,7 @@ The _owner_ side of the relation declares a list field typed as the data model o
 
 On the _owned_ side, a reference field is declared with `@relation` attribute, together with an **foreign key** field storing the id of the owner entity.
 
-```prisma
+```zmodel
 model User {
     id String @id
     posts Post[]
@@ -52,7 +52,7 @@ A _join model_ is declared to connect the two sides of the relation, using two o
 
 Each side of the relation then establishes a one-to-many relation with the _join model_.
 
-```prisma
+```zmodel
 model Space {
     id String @id
     // one-to-many with the "join-model"

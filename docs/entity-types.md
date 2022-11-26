@@ -4,7 +4,7 @@ Module `@zenstackhq/runtime/types` contains type definitions of entities, filter
 
 Suppose a `User` model is defined in ZModel:
 
-```prisma
+```zmodel
 model User {
     id String @id @default(cuid())
     email String @unique @email

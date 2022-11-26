@@ -6,7 +6,7 @@ Every model needs to include exactly one `datasource` declaration, providing inf
 
 A data source declaration takes the following form:
 
-```prisma
+```zmodel
 datasource [NAME] {
     provider = [PROVIDER]
     url = [DB_URL]
@@ -33,7 +33,7 @@ datasource [NAME] {
 
 ## Examples
 
-```prisma
+```zmodel
 datasource db {
     provider = "postgresql"
     url = "postgresql://postgres:abc123@localhost:5432/todo?schema=public"
@@ -42,7 +42,7 @@ datasource db {
 
 It's highly recommended that you don't commit sensitive database connection string into source control. Alternatively, you can load it from an environment variable:
 
-```prisma
+```zmodel
 datasource db {
     provider = "postgresql"
     url = env("DATABASE_URL")

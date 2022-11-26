@@ -4,7 +4,7 @@ Access policies use `@@allow` and `@@deny` rules to specify the eligibility of a
 
 -   `@@allow`
 
-    ```prisma
+    ```zmodel
         attribute @@allow(_ operation: String, _ condition: Boolean)
     ```
 
@@ -17,7 +17,7 @@ Access policies use `@@allow` and `@@deny` rules to specify the eligibility of a
 
 -   `@@deny`
 
-    ```prisma
+    ```zmodel
         attribute @@deny(_ operation: String, _ condition: Boolean)
     ```
 
@@ -36,19 +36,19 @@ You can use `auth()` to:
 
 -   Check if a user is logged in
 
-    ```prisma
+    ```zmodel
     @@deny('all', auth() == null)
     ```
 
 -   Access user's fields
 
-    ```prisma
+    ```zmodel
     @@allow('update', auth().role == 'ADMIN')
     ```
 
 -   Compare user identity
 
-    ```prisma
+    ```zmodel
     // owner is a relation field to User model
     @@allow('update', auth() == owner)
     ```
@@ -57,7 +57,7 @@ You can use `auth()` to:
 
 As you've seen in the examples above, you can access fields from relations in policy expressions. For example, to express "a user can be read by any user sharing a space" in the `User` model, you can directly read into its `membership` field.
 
-```prisma
+```zmodel
     @@allow('read', membership?[space.members?[user == auth()]])
 ```
 
@@ -93,7 +93,7 @@ Collection predicate expressions are boolean expressions used to express conditi
 
 The `condition` expression has direct access to fields defined in the model of `collection`. E.g.:
 
-```prisma
+```zmodel
     @@allow('read', members?[user == auth()])
 ```
 
@@ -101,7 +101,7 @@ The `condition` expression has direct access to fields defined in the model of `
 
 Also, collection predicates can be nested to express complex conditions involving multi-level relation lookup. E.g.:
 
-```prisma
+```zmodel
     @@allow('read', membership?[space.members?[user == auth()]])
 ```
 
@@ -119,7 +119,7 @@ A data model can contain arbitrary number of policy rules. The logic of combinin
 
 ### A simple example with Post model
 
-```prisma
+```zmodel
 model Post {
     // reject all operations if user's not logged in
     @@deny('all', auth() == null)
@@ -134,7 +134,7 @@ model Post {
 
 ### A more complex example with multi-user spaces
 
-```prisma
+```zmodel
 model Space {
     id String @id
     members Membership[]
