@@ -60,7 +60,7 @@ The following attributes can be used to attach field constraints:
 
 ## Example
 
-```prisma
+```zmodel
 model User {
     id String @id
     handle String @regex("^[0-9a-zA-Z]{4,16}$")

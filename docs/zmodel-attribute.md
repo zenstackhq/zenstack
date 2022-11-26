@@ -8,7 +8,7 @@ Attributes decorate fields and data models and attach extra behaviors or constra
 
 Field attribute name is prefixed by a single `@`. Its application takes the following form:
 
-```prisma
+```zmodel
 id String @[ATTR_NAME](ARGS)?
 ```
 
@@ -24,7 +24,7 @@ See [attribute arguments](#attribute-arguments).
 
 Field attribute name is prefixed double `@@`. Its application takes the following form:
 
-```prisma
+```zmodel
 model Model {
     @@[ATTR_NAME](ARGS)?
 }
@@ -44,17 +44,17 @@ Attribute can be declared with a list of parameters, and applied with an optiona
 
 Arguments are mapped to parameters by position or by name. For example, for the `@default` attribute declared as:
 
-```prisma
+```zmodel
 attribute @default(_ value: ContextType)
 ```
 
 , the following two ways of applying it are equivalent:
 
-```prisma
+```zmodel
 published Boolean @default(value: false)
 ```
 
-```prisma
+```zmodel
 published Boolean @default(false)
 ```
 
@@ -68,14 +68,14 @@ Attribute parameters are typed. The following types are supported:
 
     E.g., declaration:
 
-    ```prisma
+    ```zmodel
     attribute @password(saltLength: Int?, salt: String?)
 
     ```
 
     application:
 
-    ```prisma
+    ```zmodel
     password String @password(saltLength: 10)
     ```
 
@@ -85,13 +85,13 @@ Attribute parameters are typed. The following types are supported:
 
     E.g., declaration:
 
-    ```prisma
+    ```zmodel
     attribute @id(map: String?)
     ```
 
     application:
 
-    ```prisma
+    ```zmodel
     id String @id(map: "_id")
     ```
 
@@ -101,13 +101,13 @@ Attribute parameters are typed. The following types are supported:
 
     E.g., declaration:
 
-    ```prisma
+    ```zmodel
     attribute @@allow(_ operation: String, _ condition: Boolean)
     ```
 
     application:
 
-    ```prisma
+    ```zmodel
     @@allow("read", true)
     @@allow("update", auth() != null)
     ```
@@ -118,13 +118,13 @@ Attribute parameters are typed. The following types are supported:
 
     E.g., declaration:
 
-    ```prisma
+    ```zmodel
     attribute @default(_ value: ContextType)
     ```
 
     application:
 
-    ```prisma
+    ```zmodel
     f1 String @default("hello")
     f2 Int @default(1)
     ```
@@ -135,7 +135,7 @@ Attribute parameters are typed. The following types are supported:
 
     E.g., declaration:
 
-    ```prisma
+    ```zmodel
     attribute @relation(
         _ name: String?,
         fields: FieldReference[]?,
@@ -147,7 +147,7 @@ Attribute parameters are typed. The following types are supported:
 
     application:
 
-    ```prisma
+    ```zmodel
     model Model {
         ...
         // [ownerId] is a list of FieldReference
@@ -162,7 +162,7 @@ Attribute parameters are typed. The following types are supported:
 
     E.g., declaration:
 
-    ```prisma
+    ```zmodel
     attribute @relation(
         _ name: String?,
         fields: FieldReference[]?,
@@ -175,7 +175,7 @@ Attribute parameters are typed. The following types are supported:
 
     application:
 
-    ```prisma
+    ```zmodel
     model Model {
         // 'Cascade' is a predefined enum value
         owner Owner @relation(..., onDelete: Cascade)
@@ -184,7 +184,7 @@ Attribute parameters are typed. The following types are supported:
 
 An attribute parameter can be typed as any of the above type, a list of the above type, or an optional of the above type.
 
-```prisma
+```zmodel
     model Model {
         ...
         f1 String
@@ -198,7 +198,7 @@ An attribute parameter can be typed as any of the above type, a list of the abov
 
 Attribute functions are used for providing values for attribute arguments, e.g., current `DateTime`, an autoincrement `Int`, etc. They can be used in place of attribute argument, like:
 
-```prisma
+```zmodel
 model Model {
     ...
     serial Int @default(autoincrement())
@@ -214,7 +214,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@id`
 
-    ```prisma
+    ```zmodel
     attribute @id(map: String?)
     ```
 
@@ -228,7 +228,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@default`
 
-    ```prisma
+    ```zmodel
         attribute @default(_ value: ContextType)
     ```
 
@@ -242,7 +242,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@unique`
 
-    ```prisma
+    ```zmodel
         attribute @unique(map: String?)
     ```
 
@@ -256,7 +256,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@relation`
 
-    ```prisma
+    ```zmodel
         attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?)
     ```
 
@@ -274,7 +274,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@map`
 
-    ```prisma
+    ```zmodel
         attribute @map(_ name: String)
     ```
 
@@ -288,7 +288,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@updatedAt`
 
-    ```prisma
+    ```zmodel
         attribute @updatedAt()
     ```
 
@@ -296,7 +296,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@password`
 
-    ```prisma
+    ```zmodel
         attribute @password(saltLength: Int?, salt: String?)
     ```
 
@@ -313,7 +313,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@omit`
 
-    ```prisma
+    ```zmodel
         attribute @omit()
     ```
 
@@ -323,7 +323,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@@unique`
 
-    ```prisma
+    ```zmodel
         attribute @@unique(_ fields: FieldReference[], name: String?, map: String?)
     ```
 
@@ -339,7 +339,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@@index`
 
-    ```prisma
+    ```zmodel
         attribute @@index(_ fields: FieldReference[], map: String?)
     ```
 
@@ -354,7 +354,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@@map`
 
-    ```prisma
+    ```zmodel
         attribute @@map(_ name: String)
     ```
 
@@ -368,7 +368,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@@allow`
 
-    ```prisma
+    ```zmodel
         attribute @@allow(_ operation: String, _ condition: Boolean)
     ```
 
@@ -383,7 +383,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `@@deny`
 
-    ```prisma
+    ```zmodel
         attribute @@deny(_ operation: String, _ condition: Boolean)
     ```
 
@@ -400,7 +400,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `uuid`
 
-    ```prisma
+    ```zmodel
         function uuid(): String {}
     ```
 
@@ -408,7 +408,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `cuid`
 
-    ```prisma
+    ```zmodel
         function cuid(): String {}
     ```
 
@@ -416,7 +416,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `now`
 
-    ```prisma
+    ```zmodel
         function now(): DateTime {}
     ```
 
@@ -424,7 +424,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `autoincrement`
 
-    ```prisma
+    ```zmodel
         function autoincrement(): Int {}
     ```
 
@@ -433,7 +433,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `dbgenerated`
 
-    ```prisma
+    ```zmodel
         function dbgenerated(expr: String): Any {}
     ```
 
@@ -441,7 +441,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 -   `auth`
 
-    ```prisma
+    ```zmodel
         function auth(): User {}
     ```
 
@@ -451,7 +451,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
 
 Here're some examples on using field and model attributes:
 
-```prisma
+```zmodel
 model User {
     // unique id field with a default UUID value
     id String @id @default(uuid())

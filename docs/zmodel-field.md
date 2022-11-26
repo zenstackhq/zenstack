@@ -6,7 +6,7 @@ Fields are typed members of data models.
 
 A field declaration takes the following form:
 
-```prisma
+```zmodel
 model Model {
     [FIELD_NAME] [FIELD_TYPE] (FIELD_ATTRIBUTES)?
 }
@@ -39,7 +39,7 @@ model Model {
 
 ## Example
 
-```prisma
+```zmodel
 model Post {
     // "id" field is a mandatory unique identifier of this model
     id String @id @default(uuid())

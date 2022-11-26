@@ -22,7 +22,7 @@ enum [ENUM_NAME] {
 
 ## Example
 
-```prisma
+```zmodel
 enum UserRole {
     USER
     ADMIN

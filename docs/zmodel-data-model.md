@@ -6,7 +6,7 @@ Data models represent business entities of your application.
 
 A data model declaration takes the following form:
 
-```prisma
+```zmodel
 model [NAME] {
     [FIELD]*
 }
@@ -28,7 +28,7 @@ See [here](zmodel-attribute.md) for more details about attributes.
 
 ## Example
 
-```prisma
+```zmodel
 model User {
     id String @id
 }

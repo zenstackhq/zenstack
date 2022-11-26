@@ -10,7 +10,7 @@ The very first thing to do is to configure how to connect to your database.
 
 Here's an example for using a PosgreSQL with is connection string read from `DATABASE_URL` environment variable:
 
-```prisma
+```zmodel
 datasource db {
     provider = "postgresql"
     url = env("DATABASE_URL")
@@ -25,7 +25,7 @@ Data models define the shapes of business entities in your app. A data model con
 
 Here's an example of a blog post model:
 
-```prisma
+```zmodel
 model Post {
     // @id attribute marks a field as unique identifier,
     // mapped to database table's primary key
@@ -59,7 +59,7 @@ Here are some examples:
 
 -   One-to-one
 
-```prisma
+```zmodel
 model User {
     id String @id
     profile Profile?
@@ -74,7 +74,7 @@ model Profile {
 
 -   One-to-many
 
-```prisma
+```zmodel
 model User {
     id String @id
     posts Post[]
@@ -89,7 +89,7 @@ model Post {
 
 -   Many-to-many
 
-```prisma
+```zmodel
 model Space {
     id String @id
     members Membership[]
@@ -135,7 +135,7 @@ A few quick notes before diving into examples:
 
 Let's look at a few examples now:
 
-```prisma
+```zmodel
 model User {
     id String @id
     posts Post[]
