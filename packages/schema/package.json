@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for modeling data and access policies in full-stack development with Next.js and Typescript",
-    "version": "0.3.12",
+    "version": "0.3.17",
     "author": {
         "name": "ZenStack Team"
     },
@@ -79,7 +79,8 @@
         "langium:watch": "langium generate --watch",
         "watch": "concurrently --kill-others \"npm:langium:watch\" \"npm:bundle-watch\"",
         "test": "jest",
-        "prepublishOnly": "cp ../../README.md ./ && pnpm build"
+        "prepublishOnly": "cp ../../README.md ./ && pnpm build",
+        "postinstall": "node bin/post-install.js"
     },
     "dependencies": {
         "@zenstackhq/runtime": "workspace:../runtime/dist",

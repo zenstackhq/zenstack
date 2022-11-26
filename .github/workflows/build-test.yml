@@ -5,6 +5,7 @@ name: CI
 
 env:
     TELEMETRY_TRACKING_TOKEN: ${{ secrets.TELEMETRY_TRACKING_TOKEN }}
+    DO_NOT_TRACK: '1'
 
 on:
     push:
