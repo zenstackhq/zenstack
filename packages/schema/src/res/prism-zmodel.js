@@ -1,21 +1,21 @@
 (function (Prism) {
-    Prism.languages.prisma = Prism.languages.extend('clike', {
-        keyword: /\b(?:datasource|enum|generator|model)\b/,
+    Prism.languages.zmodel = Prism.languages.extend('clike', {
+        keyword: /\b(?:datasource|enum|generator|model|attribute|function)\b/,
         'type-class-name': /(\b()\s+)[\w.\\]+/,
     });
 
     Prism.languages.javascript['class-name'][0].pattern =
         /(\b(?:model|datasource|enum|generator)\s+)[\w.\\]+/;
 
-    Prism.languages.insertBefore('prisma', 'function', {
+    Prism.languages.insertBefore('zmodel', 'function', {
         annotation: {
-            pattern: /(^|[^.])@+\w+/,
+            pattern: /@+\w+/,
             lookbehind: true,
             alias: 'punctuation',
         },
     });
 
-    Prism.languages.insertBefore('prisma', 'punctuation', {
+    Prism.languages.insertBefore('zmodel', 'punctuation', {
         'type-args': /\b(?:references|fields|onDelete|onUpdate):/,
     });
 
