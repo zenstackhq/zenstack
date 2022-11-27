@@ -1,10 +1,18 @@
 import { SpaceContext, UserContext } from '@lib/context';
-import { ChangeEvent, FormEvent, useContext, useState } from 'react';
+import {
+    ChangeEvent,
+    FormEvent,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
 import { useList } from '@zenstackhq/runtime/client';
 import { toast } from 'react-toastify';
 import TodoList from 'components/TodoList';
 import BreadCrumb from 'components/BreadCrumb';
 import SpaceMembers from 'components/SpaceMembers';
+import WithNavBar from 'components/WithNavBar';
 
 function CreateDialog() {
     const user = useContext(UserContext);
@@ -15,6 +23,13 @@ function CreateDialog() {
     const [_private, setPrivate] = useState(false);
 
     const { create } = useList();
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (modalOpen) {
+            inputRef.current?.focus();
+        }
+    }, [modalOpen]);
 
     const onSubmit = async (event: FormEvent) => {
         event.preventDefault();
@@ -75,6 +90,7 @@ function CreateDialog() {
                                     type="text"
                                     required
                                     placeholder="Title of your list"
+                                    ref={inputRef}
                                     className="input input-bordered w-full max-w-xs mt-2"
                                     value={title}
                                     onChange={(
@@ -143,7 +159,7 @@ export default function SpaceHome() {
     );
 
     return (
-        <>
+        <WithNavBar>
             <div className="px-8 py-2">
                 <BreadCrumb />
             </div>
@@ -171,6 +187,6 @@ export default function SpaceHome() {
 
                 <CreateDialog />
             </div>
-        </>
+        </WithNavBar>
     );
 }
