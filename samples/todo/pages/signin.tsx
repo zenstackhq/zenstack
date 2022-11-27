@@ -12,7 +12,13 @@ export default function Signup() {
 
     useEffect(() => {
         if (router.query.error) {
-            toast.error(`Authentication error: ${router.query.error}`);
+            if (router.query.error === 'OAuthCreateAccount') {
+                toast.error(
+                    'Unable to signin. The user email may be already in use.'
+                );
+            } else {
+                toast.error(`Authentication error: ${router.query.error}`);
+            }
         }
     }, [router]);
 

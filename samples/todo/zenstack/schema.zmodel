@@ -75,7 +75,7 @@ model User {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    email String? @unique @email
+    email String @unique @email
     emailVerified DateTime?
     password String? @password @omit
     name String?
