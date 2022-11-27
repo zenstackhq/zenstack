@@ -4,7 +4,7 @@ This documentation explains how to integrate ZenStack with popular authenticatio
 
 ## NextAuth
 
-[NextAuth](https://next-auth.js.org/) is a comprehensive framework for implementating authentication. It offers a pluggable mechanism for configuring how user data is persisted.
+[NextAuth](https://next-auth.js.org/) is a comprehensive framework for implementating authentication. It offers a pluggable mechanism for configuring how user data is persisted. You can find a full example using ZenStack with NextAuth [here](https://github.com/zenstackhq/zenstack/tree/main/samples/todo ':target=blank').
 
 When `zenstack generate` runs, it generates an adapter for NextAuth if it finds the `next-auth` npm package is installed. The generated adapter can be configured to NextAuth as follows:
 

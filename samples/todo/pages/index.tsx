@@ -2,11 +2,12 @@ import type { NextPage } from 'next';
 import Spaces from 'components/Spaces';
 import Link from 'next/link';
 import { useCurrentUser } from '@lib/context';
+import WithNavBar from 'components/WithNavBar';
 
 const Home: NextPage = () => {
     const user = useCurrentUser();
     return (
-        <>
+        <WithNavBar>
             {user && (
                 <div className="mt-8 text-center flex flex-col items-center w-full">
                     <h1 className="text-2xl text-gray-800">
@@ -25,7 +26,7 @@ const Home: NextPage = () => {
                     </div>
                 </div>
             )}
-        </>
+        </WithNavBar>
     );
 };
 

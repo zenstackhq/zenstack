@@ -1,5 +1,6 @@
 import NextAuth, { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import GitHubProvider from 'next-auth/providers/github';
 import {
     authorize,
     NextAuthAdapter as Adapter,
@@ -17,21 +18,26 @@ export const authOptions: NextAuthOptions = {
         strategy: 'jwt',
     },
 
+    pages: {
+        signIn: '/signin',
+    },
+
     providers: [
         CredentialsProvider({
             credentials: {
                 email: {
-                    label: 'Email Address',
                     type: 'email',
-                    placeholder: 'john.doe@example.com',
                 },
                 password: {
-                    label: 'Password',
                     type: 'password',
-                    placeholder: 'Your super secure password',
                 },
             },
-            authorize: authorize(service, true),
+            authorize: authorize(service),
+        }),
+
+        GitHubProvider({
+            clientId: process.env.GITHUB_ID!,
+            clientSecret: process.env.GITHUB_SECRET!,
         }),
     ],
 

@@ -5,6 +5,7 @@ import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { useCurrentUser } from '@lib/context';
 import TodoComponent from 'components/Todo';
 import BreadCrumb from 'components/BreadCrumb';
+import WithNavBar from 'components/WithNavBar';
 
 export default function TodoList() {
     const user = useCurrentUser();
@@ -46,7 +47,7 @@ export default function TodoList() {
     };
 
     return (
-        <>
+        <WithNavBar>
             <div className="px-8 py-2">
                 <BreadCrumb />
             </div>
@@ -86,6 +87,6 @@ export default function TodoList() {
                     ))}
                 </ul>
             </div>
-        </>
+        </WithNavBar>
     );
 }

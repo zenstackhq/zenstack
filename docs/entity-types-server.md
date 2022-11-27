@@ -44,7 +44,7 @@ export function MyComponent() {
 Backend database access API also returns the same type:
 
 ```ts
-const users: User[] = await service.db.User.find();
+const users: User[] = await service.db.user.find();
 ```
 
 ## Filter and sort type

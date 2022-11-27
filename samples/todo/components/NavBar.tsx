@@ -11,6 +11,10 @@ type Props = {
 };
 
 export default function NavBar({ user, space }: Props) {
+    const onSignout = async () => {
+        await signOut({ callbackUrl: '/signin' });
+    };
+
     return (
         <div className="navbar bg-base-100 px-8 py-2 border-b">
             <div className="flex-1">
@@ -47,7 +51,7 @@ export default function NavBar({ user, space }: Props) {
                             {user && <div>{user.name || user.email}</div>}
                         </li>
                         <li>
-                            <a onClick={() => signOut()}>Logout</a>
+                            <a onClick={onSignout}>Logout</a>
                         </li>
                     </ul>
                 </div>

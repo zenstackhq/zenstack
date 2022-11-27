@@ -133,10 +133,10 @@ Take `User` model for example:
 import service from '@zenstackhq/runtime/server';
 
 // find all users
-const users = service.db.User.find();
+const users = service.db.user.find();
 
 // update a user
-await service.db.User.update({
+await service.db.user.update({
     where: { id: userId },
     data: { email: newEmail },
 });

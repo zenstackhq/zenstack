@@ -75,14 +75,17 @@ model User {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    email String @unique @email
+    email String? @unique @email
     emailVerified DateTime?
-    password String @password @omit
+    password String? @password @omit
     name String?
     spaces SpaceUser[]
     image String? @url
     lists List[]
     todos Todo[]
+
+    // next-auth
+    accounts Account[]
 
     // can be created by anyone, even not logged in
     @@allow('create', true)
@@ -142,4 +145,24 @@ model Todo {
     // owner has full access, also space members have full access (if the parent List is not private)
     @@allow('all', list.owner == auth())
     @@allow('all', list.space.members?[user == auth()] && !list.private)
+}
+
+// next-auth
+model Account {
+    id String @id @default(uuid())
+    userId String
+    type String
+    provider String
+    providerAccountId String
+    refresh_token String?
+    refresh_token_expires_in Int?
+    access_token String?
+    expires_at Int?
+    token_type String?
+    scope String?
+    id_token String?
+    session_state String?
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
 }
