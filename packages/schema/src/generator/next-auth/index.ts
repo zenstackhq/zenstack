@@ -27,11 +27,6 @@ export default class NextAuthGenerator implements Generator {
         try {
             execSync('npm ls next-auth');
         } catch (err) {
-            console.warn(
-                colors.yellow(
-                    'Next-auth module is not installed, skipping generating adapter.'
-                )
-            );
             return;
         }
 
