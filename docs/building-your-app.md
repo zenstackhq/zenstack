@@ -32,7 +32,7 @@ export default requestHandler(service, options);
 
 Please note that the services need to be configured with a callback `getServerUser` for getting the current login user. The example above uses NextAuth to do it, but you can also hand-code it based on the authentication approach you use, as long as it returns a user object that represents the current session's user.
 
-_TBD_ In the future we'll provide more samples for showing how to integrate with other libraries, like IronSession.
+_NOTE_ Check out [this guide](integrating-authentication.md) for more details about integrating with authentication.
 
 Make sure the services are mounted at route `/api/zenstack/` with a catch all parameter named `path`, as this is required by the generate React hooks.
 
@@ -67,8 +67,6 @@ export const authOptions: NextAuthOptions = {
 
 export default NextAuth(authOptions);
 ```
-
-_TBD_ In the future we'll provide more samples for showing how to integrate with other libraries, like IronSession.
 
 ## Using React hooks
 
