@@ -35,7 +35,7 @@ Our goal is to let you save time writing boilerplate code and focus on building 
 -   Intuitive data & authorization modeling language
 -   Generating RESTful CRUD services and React hooks
 -   End-to-end type safety
--   Support for [all major relational databases](https://zenstack.dev/#/zmodel-data-source?id=supported-databases)
+-   Support for all major relational databases
 -   Integration with authentication libraries (like [NextAuth](https://next-auth.js.org/) and [iron-session](https://www.npmjs.com/package/iron-session))
 -   [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack) for model authoring
 
