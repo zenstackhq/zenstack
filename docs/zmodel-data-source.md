@@ -71,9 +71,9 @@ Here's a list for your reference:
 | SQLite                | \*      |
 | AWS Aurora            | \*      |
 | AWS Aurora Serverless | \*      |
-| Microsoft SQL Serve   | 2022    |
-| Microsoft SQL Serve   | 2019    |
-| Microsoft SQL Serve   | 2017    |
+| Microsoft SQL Server  | 2022    |
+| Microsoft SQL Server  | 2019    |
+| Microsoft SQL Server  | 2017    |
 | Azure SQL             | \*      |
 | CockroachDB           | 21.2.4+ |
 

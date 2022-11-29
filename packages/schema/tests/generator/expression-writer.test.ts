@@ -118,6 +118,7 @@ describe('Expression Writer Tests', () => {
     it('this reference', async () => {
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@allow('all', auth() == this)
@@ -133,6 +134,7 @@ describe('Expression Writer Tests', () => {
 
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@deny('all', this != auth())
@@ -551,6 +553,7 @@ describe('Expression Writer Tests', () => {
     it('auth check', async () => {
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@deny('all', auth() == null)
@@ -562,6 +565,7 @@ describe('Expression Writer Tests', () => {
 
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@allow('all', auth() != null)

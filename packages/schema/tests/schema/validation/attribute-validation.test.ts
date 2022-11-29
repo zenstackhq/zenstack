@@ -186,6 +186,8 @@ describe('Attribute tests', () => {
     it('attribute function coverage', async () => {
         await loadModel(`
             ${prelude}
+            model User { id String @id }
+
             model A {
                 id String @id @default(uuid())
                 id1 String @default(cuid())
@@ -215,6 +217,53 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain(`Value is not assignable to parameter`);
+    });
+
+    it('auth function check', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+
+            model Post {
+                id String @id
+                @@allow('all', auth() != null)
+            }
+        `)
+        ).toContain(
+            `auth() cannot be resolved because no "User" model is defined`
+        );
+
+        await loadModel(`
+            ${prelude}
+
+            model User {
+                id String @id
+                name String
+            }
+
+            model Post {
+                id String @id
+                @@allow('all', auth().name != null)
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+
+            model User {
+                id String @id
+                name String
+            }
+
+            model Post {
+                id String @id
+                @@allow('all', auth().email != null)
+            }
+        `)
+        ).toContain(
+            `Could not resolve reference to DataModelField named 'email'.`
+        );
     });
 
     it('invalid attribute target field', async () => {
