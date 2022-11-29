@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/104139426/204458772-90e6a704-457a-4618-bdba-b5a47c30b2d2.png" style="max-width: 512px; width: 100%; height: auto; margin-bottom: 1rem;"
+    <img src="https://user-images.githubusercontent.com/104139426/204459273-35c65630-9faf-42bb-bd2c-07c1580a0772.png" style="max-width: 512px; width: 100%; height: auto; margin-bottom: 1rem;"
     >
     <div></div>
     <a href="https://www.npmjs.com/package/zenstack">
