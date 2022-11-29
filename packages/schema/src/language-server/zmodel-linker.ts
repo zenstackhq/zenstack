@@ -367,8 +367,7 @@ export class ZModelLinker extends DefaultLinker {
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
         } else {
-            // TODO: handle this during validation
-            console.warn(`Unresolved collection predicate`);
+            // error is reported in validation pass
         }
     }
 

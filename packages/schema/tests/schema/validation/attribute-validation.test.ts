@@ -266,6 +266,44 @@ describe('Attribute tests', () => {
         );
     });
 
+    it('collection predicate expression check', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+
+            model A { 
+                id String @id 
+                x Int
+            }
+
+            model B {
+                id String @id
+                a A
+                @@allow('all', a?[x > 0])
+            }
+        `)
+        ).toContain(
+            `collection predicate can only be used on an array of model type`
+        );
+
+        await loadModel(`
+        ${prelude}
+
+            model A { 
+                id String @id 
+                x Int
+                b B @relation(references: [id], fields: [bId])
+                bId String
+            }
+
+            model B {
+                id String @id
+                a A[]
+                @@allow('all', a?[x > 0])
+            }
+        `);
+    });
+
     it('invalid attribute target field', async () => {
         expect(
             await loadModelWithError(`
