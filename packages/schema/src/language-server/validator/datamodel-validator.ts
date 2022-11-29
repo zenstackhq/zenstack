@@ -390,5 +390,37 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             });
             return;
         }
+
+        if (relationOwner !== field && !relationOwner.type.array) {
+            // one-to-one relation requires defining side's reference field to be @unique
+            // e.g.:
+            //     model User {
+            //         id String @id @default(cuid())
+            //         data UserData?
+            //     }
+            //     model UserData {
+            //         id String @id @default(cuid())
+            //         user User  @relation(fields: [userId], references: [id])
+            //         userId String
+            //     }
+            //
+            // UserData.userId field needs to be @unique
+
+            thisRelation.fields?.forEach((ref) => {
+                const refField = ref.target.ref as DataModelField;
+                if (
+                    refField &&
+                    !refField.attributes.find(
+                        (a) => a.decl.ref?.name === '@unique'
+                    )
+                ) {
+                    accept(
+                        'error',
+                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique`,
+                        { node: refField }
+                    );
+                }
+            });
+        }
     }
 }
