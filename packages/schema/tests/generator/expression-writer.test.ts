@@ -118,6 +118,7 @@ describe('Expression Writer Tests', () => {
     it('this reference', async () => {
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@allow('all', auth() == this)
@@ -133,6 +134,7 @@ describe('Expression Writer Tests', () => {
 
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@deny('all', this != auth())
@@ -315,7 +317,7 @@ describe('Expression Writer Tests', () => {
             model Test {
                 id String @id
                 foo Foo @relation(fields: [fooId], references: [id])
-                fooId String
+                fooId String @unique
                 @@deny('all', foo.x  <= 0)
             }
             `,
@@ -342,7 +344,7 @@ describe('Expression Writer Tests', () => {
             model Test {
                 id String @id
                 foo Foo @relation(fields: [fooId], references: [id])
-                fooId String
+                fooId String @unique
                 @@deny('all', !(foo.x  > 0))
             }
             `,
@@ -372,7 +374,7 @@ describe('Expression Writer Tests', () => {
             model Test {
                 id String @id
                 foo Foo @relation(fields: [fooId], references: [id])
-                fooId String
+                fooId String @unique
                 @@deny('all', !foo.x)
             }
             `,
@@ -400,13 +402,13 @@ describe('Expression Writer Tests', () => {
                 id String @id
                 x  Int
                 foo Foo @relation(fields: [fooId], references: [id])
-                fooId String
+                fooId String @unique
             }
 
             model Test {
                 id String @id
                 foo Foo @relation(fields: [fooId], references: [id])
-                fooId String
+                fooId String @unique
                 @@deny('all', foo.bar.x  <= 0)
             }
             `,
@@ -515,7 +517,7 @@ describe('Expression Writer Tests', () => {
                 id String @id
                 bars Bar[]
                 t Test @relation(fields: [tId], references: [id])
-                tId String
+                tId String @unique
             }
             
             model Bar {
@@ -551,6 +553,7 @@ describe('Expression Writer Tests', () => {
     it('auth check', async () => {
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@deny('all', auth() == null)
@@ -562,6 +565,7 @@ describe('Expression Writer Tests', () => {
 
         await check(
             `
+            model User { id String @id }
             model Test {
                 id String @id
                 @@allow('all', auth() != null)
@@ -583,7 +587,7 @@ describe('Expression Writer Tests', () => {
             model Test {
                 id String @id
                 owner User @relation(fields: [ownerId], references: [id])
-                ownerId String
+                ownerId String @unique
                 @@allow('all', auth() == owner)
             }
             `,
@@ -609,7 +613,7 @@ describe('Expression Writer Tests', () => {
                 model Test {
                     id String @id
                     owner User @relation(fields: [ownerId], references: [id])
-                    ownerId String
+                    ownerId String @unique
                     @@deny('all', auth() != owner)
                 }
                 `,
@@ -637,7 +641,7 @@ describe('Expression Writer Tests', () => {
                 model Test {
                     id String @id
                     owner User @relation(fields: [ownerId], references: [id])
-                    ownerId String
+                    ownerId String @unique
                     @@allow('all', auth().id == owner.id)
                 }
                 `,

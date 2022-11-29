@@ -2,9 +2,8 @@ import { Context, Generator } from '../types';
 import { Project } from 'ts-morph';
 import * as path from 'path';
 import { paramCase } from 'change-case';
-import { DataModel } from '@lang/generated/ast';
+import { DataModel, isDataModel } from '@lang/generated/ast';
 import colors from 'colors';
-import { extractDataModelsWithAllowRules } from '../ast-utils';
 import { API_ROUTE_NAME, RUNTIME_PACKAGE } from '../constants';
 
 /**
@@ -17,8 +16,24 @@ export default class ReactHooksGenerator implements Generator {
 
     async generate(context: Context): Promise<void> {
         const project = new Project();
+        const models: DataModel[] = [];
 
-        const models = extractDataModelsWithAllowRules(context.schema);
+        for (const model of context.schema.declarations.filter(
+            (d): d is DataModel => isDataModel(d)
+        )) {
+            const hasAllowRule = model.attributes.find(
+                (attr) => attr.decl.ref?.name === '@@allow'
+            );
+            if (!hasAllowRule) {
+                console.warn(
+                    colors.yellow(
+                        `Not generating hooks for "${model.name}" because it doesn't have any @@allow rule`
+                    )
+                );
+            } else {
+                models.push(model);
+            }
+        }
 
         this.generateIndex(project, context, models);
 

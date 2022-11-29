@@ -10,6 +10,7 @@ import {
     DataModel,
     DataSource,
     Enum,
+    Expression,
     Model,
     ZModelAstType,
 } from '../generated/ast';
@@ -19,6 +20,7 @@ import DataSourceValidator from './datasource-validator';
 import DataModelValidator from './datamodel-validator';
 import AttributeValidator from './attribute-validator';
 import EnumValidator from './enum-validator';
+import ExpressionValidator from './expression-validator';
 
 /**
  * Registry for validation checks.
@@ -33,6 +35,7 @@ export class ZModelValidationRegistry extends ValidationRegistry {
             DataModel: validator.checkDataModel,
             Enum: validator.checkEnum,
             Attribute: validator.checkAttribute,
+            Expression: validator.checkExpression,
         };
         this.register(checks, validator);
     }
@@ -80,5 +83,9 @@ export class ZModelValidator {
     checkAttribute(node: Attribute, accept: ValidationAcceptor): void {
         this.shouldCheck(node) &&
             new AttributeValidator().validate(node, accept);
+    }
+
+    checkExpression(node: Expression, accept: ValidationAcceptor): void {
+        new ExpressionValidator().validate(node, accept);
     }
 }

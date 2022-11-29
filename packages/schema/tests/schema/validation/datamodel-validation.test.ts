@@ -163,7 +163,7 @@ describe('Data Model Validation Tests', () => {
             model B {
                 id String @id
                 a A @relation(fields: [foreignId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-                foreignId String
+                foreignId String @unique
             }
         `);
 
@@ -235,6 +235,25 @@ describe('Data Model Validation Tests', () => {
         `)
         ).toContain(
             `"fields" and "references" must be provided only on one side of relation field`
+        );
+
+        // one-to-one missing @unique
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                b B?
+            }
+
+            model B {
+                id String @id
+                a A @relation(fields: [aId], references: [id])
+                aId String
+            }
+        `)
+        ).toContain(
+            `Field "aId" is part of a one-to-one relation and must be marked as @unique`
         );
 
         // missing @relation
