@@ -29,6 +29,7 @@
     -   [Choosing a database](choosing-a-database.md)
     -   [Evolving model with migration](evolving-model-with-migration.md)
     -   [Integrating authentication](integrating-authentication.md)
+    -   [Server-side rendering](server-side-rendering.md)
     -   [Set up logging](setup-logging.md)
     -   [Telemetry](telemetry.md)
 

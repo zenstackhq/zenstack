@@ -6,7 +6,7 @@ import {
     ServerErrorCode,
     Service,
 } from '../../types';
-import { RequestHandler, RequestHandlerError } from '../types';
+import { RequestHandler, CRUDError } from '../types';
 import { CRUD } from './crud';
 
 /**
@@ -63,7 +63,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
             }
         } catch (err: unknown) {
-            if (err instanceof RequestHandlerError) {
+            if (err instanceof CRUDError) {
                 this.service.warn(`${method} ${model}: ${err}`);
 
                 // in case of errors thrown directly by ZenStack
@@ -113,6 +113,9 @@ export default class DataHandler<DbClient extends DbClientContract>
         if (id) {
             // GET <model>/:id, make sure "id" is injected
             const result = await this.crud.get(model, id, args, context);
+            if (!result) {
+                throw new CRUDError(ServerErrorCode.ENTITY_NOT_FOUND);
+            }
             res.status(200).send(result);
         } else {
             // GET <model>/, get list
@@ -139,7 +142,7 @@ export default class DataHandler<DbClient extends DbClientContract>
         context: QueryContext
     ) {
         if (!id) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'missing "id" parameter'
             );
@@ -157,7 +160,7 @@ export default class DataHandler<DbClient extends DbClientContract>
         context: QueryContext
     ) {
         if (!id) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'missing "id" parameter'
             );

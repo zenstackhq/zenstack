@@ -10,7 +10,7 @@ import {
     Service,
 } from '../../types';
 import { ValidationError } from '../../validation';
-import { RequestHandlerError } from '../types';
+import { CRUDError } from '../types';
 import {
     and,
     checkPolicyForIds,
@@ -59,9 +59,6 @@ export class CRUD<DbClient> {
             throw this.processError(err, 'get', model);
         }
 
-        if (entities.length === 0) {
-            throw new RequestHandlerError(ServerErrorCode.ENTITY_NOT_FOUND);
-        }
         return entities[0];
     }
 
@@ -89,13 +86,13 @@ export class CRUD<DbClient> {
         context: QueryContext
     ): Promise<unknown> {
         if (!args) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'body is required'
             );
         }
         if (!args.data) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'data field is required'
             );
@@ -183,17 +180,17 @@ export class CRUD<DbClient> {
                 this.db
             );
             if (result.length === 0) {
-                throw new RequestHandlerError(
+                throw new CRUDError(
                     ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             }
             return result[0];
         } catch (err) {
             if (
-                err instanceof RequestHandlerError &&
+                err instanceof CRUDError &&
                 err.code === ServerErrorCode.DENIED_BY_POLICY
             ) {
-                throw new RequestHandlerError(
+                throw new CRUDError(
                     ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             } else {
@@ -209,7 +206,7 @@ export class CRUD<DbClient> {
         context: QueryContext
     ): Promise<unknown> {
         if (!args) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'body is required'
             );
@@ -292,17 +289,17 @@ export class CRUD<DbClient> {
                 this.db
             );
             if (result.length === 0) {
-                throw new RequestHandlerError(
+                throw new CRUDError(
                     ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             }
             return result[0];
         } catch (err) {
             if (
-                err instanceof RequestHandlerError &&
+                err instanceof CRUDError &&
                 err.code === ServerErrorCode.DENIED_BY_POLICY
             ) {
-                throw new RequestHandlerError(
+                throw new CRUDError(
                     ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
                 );
             } else {
@@ -348,7 +345,7 @@ export class CRUD<DbClient> {
                         readResult = items[0];
                     } catch (err) {
                         if (
-                            err instanceof RequestHandlerError &&
+                            err instanceof CRUDError &&
                             err.code === ServerErrorCode.DENIED_BY_POLICY
                         ) {
                             // can't read back, just return undefined, outer logic handles it
@@ -373,9 +370,7 @@ export class CRUD<DbClient> {
         if (result) {
             return result;
         } else {
-            throw new RequestHandlerError(
-                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
-            );
+            throw new CRUDError(ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED);
         }
     }
 
@@ -398,7 +393,7 @@ export class CRUD<DbClient> {
         operation: 'get' | 'find' | 'create' | 'update' | 'del',
         model: string
     ) {
-        if (err instanceof RequestHandlerError) {
+        if (err instanceof CRUDError) {
             return err;
         }
 
@@ -409,12 +404,12 @@ export class CRUD<DbClient> {
 
             // errors thrown by Prisma, try mapping to a known error
             if (PRISMA_ERROR_MAPPING[err.code]) {
-                return new RequestHandlerError(
+                return new CRUDError(
                     PRISMA_ERROR_MAPPING[err.code],
                     getServerErrorMessage(PRISMA_ERROR_MAPPING[err.code])
                 );
             } else {
-                return new RequestHandlerError(
+                return new CRUDError(
                     ServerErrorCode.UNKNOWN,
                     'an unhandled Prisma error occurred: ' + err.code
                 );
@@ -425,7 +420,7 @@ export class CRUD<DbClient> {
             );
 
             // prisma validation error
-            return new RequestHandlerError(
+            return new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 getServerErrorMessage(ServerErrorCode.INVALID_REQUEST_PARAMS)
             );
@@ -434,7 +429,7 @@ export class CRUD<DbClient> {
                 `Field constraint validation error: ${operation} ${model}: ${err.message}`
             );
 
-            return new RequestHandlerError(
+            return new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 err.message
             );
@@ -446,7 +441,7 @@ export class CRUD<DbClient> {
             if (err instanceof Error && err.stack) {
                 this.service.error(err.stack);
             }
-            return new RequestHandlerError(
+            return new CRUDError(
                 ServerErrorCode.UNKNOWN,
                 getServerErrorMessage(ServerErrorCode.UNKNOWN)
             );

@@ -76,7 +76,7 @@ export default class ServiceGenerator implements Generator {
             }).setBodyText(`
                 return {
                     get: <T extends P.${model.name}FindFirstArgs>(context: QueryContext, id: string, args?: P.SelectSubset<T, P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>>) => 
-                        this.crud.get('${model.name}', id, args, context) as Promise<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>,
+                        this.crud.get('${model.name}', id, args, context) as Promise<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>> | undefined>,
                     find: <T extends P.${model.name}FindManyArgs>(context: QueryContext, args?: P.SelectSubset<T, P.${model.name}FindManyArgs>) => 
                         this.crud.find('${model.name}', args, context) as Promise<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>,
                     create: <T extends P.${model.name}CreateArgs>(context: QueryContext, args: P.${model.name}CreateArgs) => 

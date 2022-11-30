@@ -108,6 +108,9 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
     const space = await getSpaceBySlug(queryContext, params?.slug as string);
 
     const list = await service.list.get(queryContext, params?.listId as string);
+    if (!list) {
+        throw new Error(`List not found: ${params?.listId}`);
+    }
 
     const todos = await service.todo.find(queryContext, {
         where: {
