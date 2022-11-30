@@ -50,7 +50,7 @@ importers:
 
   packages/schema:
     specifiers:
-      '@prisma/internals': ^4.5.0
+      '@prisma/internals': ~4.5.0
       '@types/async-exit-hook': ^2.0.0
       '@types/jest': ^29.2.0
       '@types/node': ^14.18.32
@@ -77,7 +77,7 @@ importers:
       mixpanel: ^0.17.0
       node-machine-id: ^1.1.12
       pluralize: ^8.0.0
-      prisma: ^4.5.0
+      prisma: ~4.5.0
       promisify: ^0.0.3
       rimraf: ^3.0.2
       sleep-promise: ^9.1.0
