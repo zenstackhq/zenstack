@@ -1,13 +1,14 @@
-import { useSpace } from '@zenstackhq/runtime/client';
+import { Space } from '@zenstackhq/runtime/types';
 import Link from 'next/link';
 
-export default function Spaces() {
-    const { find } = useSpace();
-    const spaces = find();
+type Props = {
+    spaces: Space[];
+};
 
+export default function Spaces({ spaces }: Props) {
     return (
         <ul className="flex flex-wrap gap-4">
-            {spaces.data?.map((space) => (
+            {spaces?.map((space) => (
                 <li
                     className="card w-80 h-32 shadow-xl text-gray-600 cursor-pointer hover:bg-gray-50 border"
                     key={space.id}

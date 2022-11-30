@@ -99,6 +99,15 @@ export interface Service<DbClient = any> {
         context: QueryContext
     ): Promise<unknown>;
 
+    /**
+     * Validates the given write payload for the given model according to field constraints in model.
+     *
+     * @param model Model name
+     * @param mode Write mode
+     * @param payload Write payload
+     *
+     * @throws @see ValidationError
+     */
     validateModelPayload(
         model: string,
         mode: 'create' | 'update',

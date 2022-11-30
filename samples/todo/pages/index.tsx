@@ -1,10 +1,18 @@
-import type { NextPage } from 'next';
-import Spaces from 'components/Spaces';
-import Link from 'next/link';
+import { authOptions } from '@api/auth/[...nextauth]';
 import { useCurrentUser } from '@lib/context';
+import service from '@zenstackhq/runtime/server';
+import { Space } from '@zenstackhq/runtime/types';
+import Spaces from 'components/Spaces';
 import WithNavBar from 'components/WithNavBar';
+import type { GetServerSideProps, NextPage } from 'next';
+import { unstable_getServerSession } from 'next-auth';
+import Link from 'next/link';
 
-const Home: NextPage = () => {
+type Props = {
+    spaces: Space[];
+};
+
+const Home: NextPage<Props> = ({ spaces }) => {
     const user = useCurrentUser();
     return (
         <WithNavBar>
@@ -22,12 +30,23 @@ const Home: NextPage = () => {
                                 </a>
                             </Link>
                         </h2>
-                        <Spaces />
+                        <Spaces spaces={spaces} />
                     </div>
                 </div>
             )}
         </WithNavBar>
     );
+};
+
+export const getServerSideProps: GetServerSideProps<Props> = async ({
+    req,
+    res,
+}) => {
+    const session = await unstable_getServerSession(req, res, authOptions);
+    const spaces = await service.space.find({ user: session?.user });
+    return {
+        props: { spaces },
+    };
 };
 
 export default Home;
