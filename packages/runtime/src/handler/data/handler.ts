@@ -1,33 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import cuid from 'cuid';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { TRANSACTION_FIELD_NAME } from '../../constants';
 import { RequestHandlerOptions } from '../../request-handler';
 import {
     DbClientContract,
-    DbOperations,
-    getServerErrorMessage,
     QueryContext,
     ServerErrorCode,
     Service,
 } from '../../types';
-import { ValidationError } from '../../validation';
-import { RequestHandler, RequestHandlerError } from '../types';
-import {
-    and,
-    checkPolicyForIds,
-    injectTransactionId,
-    preprocessWritePayload,
-    preUpdateCheck,
-    queryIds,
-    readWithCheck,
-} from './policy-utils';
-
-const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
-    P2002: ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
-    P2003: ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION,
-    P2025: ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION,
-};
+import { RequestHandler, CRUDError } from '../types';
+import { CRUD } from './crud';
 
 /**
  * Request handler for /data endpoint which processes data CRUD requests.
@@ -35,10 +15,14 @@ const PRISMA_ERROR_MAPPING: Record<string, ServerErrorCode> = {
 export default class DataHandler<DbClient extends DbClientContract>
     implements RequestHandler
 {
+    private readonly crud: CRUD<DbClient>;
+
     constructor(
         private readonly service: Service<DbClient>,
         private readonly options: RequestHandlerOptions
-    ) {}
+    ) {
+        this.crud = new CRUD(service);
+    }
 
     async handle(
         req: NextApiRequest,
@@ -79,7 +63,7 @@ export default class DataHandler<DbClient extends DbClientContract>
                     break;
             }
         } catch (err: unknown) {
-            if (err instanceof RequestHandlerError) {
+            if (err instanceof CRUDError) {
                 this.service.warn(`${method} ${model}: ${err}`);
 
                 // in case of errors thrown directly by ZenStack
@@ -99,59 +83,19 @@ export default class DataHandler<DbClient extends DbClientContract>
                         });
                         break;
 
+                    case ServerErrorCode.UNKNOWN:
+                        res.status(500).send({
+                            code: err.code,
+                            message: err.message,
+                        });
+                        break;
+
                     default:
                         res.status(400).send({
                             code: err.code,
                             message: err.message,
                         });
                 }
-            } else if (this.isPrismaClientKnownRequestError(err)) {
-                this.service.warn(`${method} ${model}: ${err}`);
-
-                // errors thrown by Prisma, try mapping to a known error
-                if (PRISMA_ERROR_MAPPING[err.code]) {
-                    res.status(400).send({
-                        code: PRISMA_ERROR_MAPPING[err.code],
-                        message: getServerErrorMessage(
-                            PRISMA_ERROR_MAPPING[err.code]
-                        ),
-                    });
-                } else {
-                    res.status(400).send({
-                        code: 'PRISMA:' + err.code,
-                        message: 'an unhandled Prisma error occurred',
-                    });
-                }
-            } else if (this.isPrismaClientValidationError(err)) {
-                this.service.warn(`${method} ${model}: ${err}`);
-
-                // prisma validation error
-                res.status(400).send({
-                    code: ServerErrorCode.INVALID_REQUEST_PARAMS,
-                    message: getServerErrorMessage(
-                        ServerErrorCode.INVALID_REQUEST_PARAMS
-                    ),
-                });
-            } else if (err instanceof ValidationError) {
-                this.service.warn(
-                    `Field constraint validation error for model "${model}": ${err.message}`
-                );
-                res.status(400).send({
-                    code: ServerErrorCode.INVALID_REQUEST_PARAMS,
-                    message: err.message,
-                });
-            } else {
-                // generic errors
-                this.service.error(
-                    `An unknown error occurred: ${JSON.stringify(err)}`
-                );
-                if (err instanceof Error && err.stack) {
-                    this.service.error(err.stack);
-                }
-                res.status(500).send({
-                    code: ServerErrorCode.UNKNOWN,
-                    message: getServerErrorMessage(ServerErrorCode.UNKNOWN),
-                });
             }
         }
     }
@@ -168,29 +112,14 @@ export default class DataHandler<DbClient extends DbClientContract>
 
         if (id) {
             // GET <model>/:id, make sure "id" is injected
-            args.where = and(args.where, { id });
-
-            const result = await readWithCheck(
-                model,
-                args,
-                this.service,
-                context,
-                this.service.db
-            );
-
-            if (result.length === 0) {
-                throw new RequestHandlerError(ServerErrorCode.ENTITY_NOT_FOUND);
+            const result = await this.crud.get(model, id, args, context);
+            if (!result) {
+                throw new CRUDError(ServerErrorCode.ENTITY_NOT_FOUND);
             }
-            res.status(200).send(result[0]);
+            res.status(200).send(result);
         } else {
             // GET <model>/, get list
-            const result = await readWithCheck(
-                model,
-                args,
-                this.service,
-                context,
-                this.service.db
-            );
+            const result = await this.crud.find(model, args, context);
             res.status(200).send(result);
         }
     }
@@ -201,114 +130,8 @@ export default class DataHandler<DbClient extends DbClientContract>
         model: string,
         context: QueryContext
     ) {
-        // validate args
-        const args = req.body;
-        if (!args) {
-            throw new RequestHandlerError(
-                ServerErrorCode.INVALID_REQUEST_PARAMS,
-                'body is required'
-            );
-        }
-        if (!args.data) {
-            throw new RequestHandlerError(
-                ServerErrorCode.INVALID_REQUEST_PARAMS,
-                'data field is required'
-            );
-        }
-
-        await this.service.validateModelPayload(model, 'create', args.data);
-
-        // preprocess payload to modify fields as required by attribute like @password
-        await preprocessWritePayload(model, args, this.service);
-
-        const transactionId = cuid();
-
-        // start an interactive transaction
-        const r = await this.service.db.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // inject transaction id into update/create payload (direct and nested)
-                const { createdModels } = await injectTransactionId(
-                    model,
-                    args,
-                    'create',
-                    transactionId,
-                    this.service
-                );
-
-                // conduct the create
-                this.service.verbose(
-                    `Conducting create: ${model}:\n${JSON.stringify(args)}`
-                );
-                const createResult = (await tx[model].create(args)) as {
-                    id: string;
-                };
-
-                // verify that the created entity pass policy check
-                await checkPolicyForIds(
-                    model,
-                    [createResult.id],
-                    'create',
-                    this.service,
-                    context,
-                    tx
-                );
-
-                // verify that nested creates pass policy check
-                await Promise.all(
-                    createdModels.map(async (model) => {
-                        const createdIds = await queryIds(model, tx, {
-                            [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
-                        });
-                        this.service.verbose(
-                            `Validating nestedly created entities: ${model}#[${createdIds.join(
-                                ', '
-                            )}]`
-                        );
-                        await checkPolicyForIds(
-                            model,
-                            createdIds,
-                            'create',
-                            this.service,
-                            context,
-                            tx
-                        );
-                    })
-                );
-
-                return createResult;
-            }
-        );
-
-        // verify that return data requested by query args pass policy check
-        const readArgs = { ...args, where: { id: r.id } };
-        delete readArgs.data;
-
-        try {
-            const result = await readWithCheck(
-                model,
-                readArgs,
-                this.service,
-                context,
-                this.service.db
-            );
-            if (result.length === 0) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
-                );
-            }
-            res.status(201).send(result[0]);
-        } catch (err) {
-            if (
-                err instanceof RequestHandlerError &&
-                err.code === ServerErrorCode.DENIED_BY_POLICY
-            ) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
-                );
-            } else {
-                throw err;
-            }
-        }
+        const result = await this.crud.create(model, req.body, context);
+        res.status(201).send(result);
     }
 
     private async put(
@@ -319,110 +142,14 @@ export default class DataHandler<DbClient extends DbClientContract>
         context: QueryContext
     ) {
         if (!id) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'missing "id" parameter'
             );
         }
 
-        const args = req.body;
-        if (!args) {
-            throw new RequestHandlerError(
-                ServerErrorCode.INVALID_REQUEST_PARAMS,
-                'body is required'
-            );
-        }
-
-        await this.service.validateModelPayload(model, 'update', args.data);
-
-        // preprocess payload to modify fields as required by attribute like @password
-        await preprocessWritePayload(model, args, this.service);
-
-        args.where = { ...args.where, id };
-
-        const transactionId = cuid();
-
-        await this.service.db.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // make sure the entity (including ones involved in nested write) pass policy check
-                await preUpdateCheck(
-                    model,
-                    id,
-                    args,
-                    this.service,
-                    context,
-                    tx
-                );
-
-                // inject transaction id into update/create payload (direct and nested)
-                const { createdModels } = await injectTransactionId(
-                    model,
-                    args,
-                    'update',
-                    transactionId,
-                    this.service
-                );
-
-                // conduct the update
-                this.service.verbose(
-                    `Conducting update: ${model}:\n${JSON.stringify(args)}`
-                );
-                await tx[model].update(args);
-
-                // verify that nested creates pass policy check
-                await Promise.all(
-                    createdModels.map(async (model) => {
-                        const createdIds = await queryIds(model, tx, {
-                            [TRANSACTION_FIELD_NAME]: `${transactionId}:create`,
-                        });
-                        this.service.verbose(
-                            `Validating nestedly created entities: ${model}#[${createdIds.join(
-                                ', '
-                            )}]`
-                        );
-                        await checkPolicyForIds(
-                            model,
-                            createdIds,
-                            'create',
-                            this.service,
-                            context,
-                            tx
-                        );
-                    })
-                );
-            }
-        );
-
-        // verify that return data requested by query args pass policy check
-        const readArgs = { ...args };
-        delete readArgs.data;
-
-        try {
-            const result = await readWithCheck(
-                model,
-                readArgs,
-                this.service,
-                context,
-                this.service.db
-            );
-            if (result.length === 0) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
-                );
-            }
-            res.status(200).send(result[0]);
-        } catch (err) {
-            if (
-                err instanceof RequestHandlerError &&
-                err.code === ServerErrorCode.DENIED_BY_POLICY
-            ) {
-                throw new RequestHandlerError(
-                    ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
-                );
-            } else {
-                throw err;
-            }
-        }
+        const result = await this.crud.update(model, id, req.body, context);
+        res.status(200).send(result);
     }
 
     private async del(
@@ -433,79 +160,14 @@ export default class DataHandler<DbClient extends DbClientContract>
         context: QueryContext
     ) {
         if (!id) {
-            throw new RequestHandlerError(
+            throw new CRUDError(
                 ServerErrorCode.INVALID_REQUEST_PARAMS,
                 'missing "id" parameter'
             );
         }
 
-        // ensures the item under deletion passes policy check
-        await checkPolicyForIds(
-            model,
-            [id],
-            'delete',
-            this.service,
-            context,
-            this.service.db
-        );
-
         const args = req.query.q ? JSON.parse(req.query.q as string) : {};
-        args.where = { ...args.where, id };
-
-        const r = await this.service.db.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // first fetch the data that needs to be returned after deletion
-                let readResult: any;
-                try {
-                    const items = await readWithCheck(
-                        model,
-                        args,
-                        this.service,
-                        context,
-                        tx
-                    );
-                    readResult = items[0];
-                } catch (err) {
-                    if (
-                        err instanceof RequestHandlerError &&
-                        err.code === ServerErrorCode.DENIED_BY_POLICY
-                    ) {
-                        // can't read back, just return undefined, outer logic handles it
-                    } else {
-                        throw err;
-                    }
-                }
-
-                // conduct the deletion
-                this.service.verbose(
-                    `Conducting delete ${model}:\n${JSON.stringify(args)}`
-                );
-                await tx[model].delete(args);
-
-                return readResult;
-            }
-        );
-
-        if (r) {
-            res.status(200).send(r);
-        } else {
-            throw new RequestHandlerError(
-                ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED
-            );
-        }
-    }
-
-    private isPrismaClientKnownRequestError(
-        err: any
-    ): err is { code: string; message: string } {
-        return (
-            err.__proto__.constructor.name === 'PrismaClientKnownRequestError'
-        );
-    }
-
-    private isPrismaClientValidationError(
-        err: any
-    ): err is { message: string } {
-        return err.__proto__.constructor.name === 'PrismaClientValidationError';
+        const result = await this.crud.del(model, id, args, context);
+        res.status(200).send(result);
     }
 }

@@ -1,24 +1,32 @@
-import { useList, useTodo } from '@zenstackhq/runtime/client';
-import { useRouter } from 'next/router';
+import { authOptions } from '@api/auth/[...nextauth]';
+import { useTodo } from '@zenstackhq/runtime/client';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { useCurrentUser } from '@lib/context';
 import TodoComponent from 'components/Todo';
 import BreadCrumb from 'components/BreadCrumb';
 import WithNavBar from 'components/WithNavBar';
+import { List, Space, Todo, User } from '@zenstackhq/runtime/types';
+import { GetServerSideProps } from 'next';
+import { unstable_getServerSession } from 'next-auth';
+import service from '@zenstackhq/runtime/server';
+import { getSpaceBySlug } from '@lib/query-utils';
 
-export default function TodoList() {
+type Props = {
+    space: Space;
+    list: List;
+    todos: (Todo & { owner: User })[];
+};
+
+export default function TodoList(props: Props) {
     const user = useCurrentUser();
-    const router = useRouter();
-    const { get: getList } = useList();
     const { create: createTodo, find: findTodos } = useTodo();
     const [title, setTitle] = useState('');
 
-    const { data: list } = getList(router.query.listId as string);
     const { data: todos, mutate: invalidateTodos } = findTodos(
         {
             where: {
-                listId: list?.id,
+                listId: props.list.id,
             },
             include: {
                 owner: true,
@@ -27,19 +35,15 @@ export default function TodoList() {
                 updatedAt: 'desc',
             },
         },
-        { disabled: !list }
+        { initialData: props.todos }
     );
-
-    if (!list) {
-        return <p>Loading ...</p>;
-    }
 
     const _createTodo = async () => {
         const todo = await createTodo({
             data: {
                 title,
                 ownerId: user!.id,
-                listId: list!.id,
+                listId: props.list.id,
             },
         });
         console.log(`Todo created: ${todo}`);
@@ -49,10 +53,12 @@ export default function TodoList() {
     return (
         <WithNavBar>
             <div className="px-8 py-2">
-                <BreadCrumb />
+                <BreadCrumb space={props.space} list={props.list} />
             </div>
             <div className="container w-full flex flex-col items-center pt-12">
-                <h1 className="text-2xl font-semibold mb-4">{list?.title}</h1>
+                <h1 className="text-2xl font-semibold mb-4">
+                    {props.list?.title}
+                </h1>
                 <div className="flex space-x-2">
                     <input
                         type="text"
@@ -90,3 +96,35 @@ export default function TodoList() {
         </WithNavBar>
     );
 }
+
+export const getServerSideProps: GetServerSideProps<Props> = async ({
+    req,
+    res,
+    params,
+}) => {
+    const session = await unstable_getServerSession(req, res, authOptions);
+    const queryContext = { user: session?.user };
+
+    const space = await getSpaceBySlug(queryContext, params?.slug as string);
+
+    const list = await service.list.get(queryContext, params?.listId as string);
+    if (!list) {
+        throw new Error(`List not found: ${params?.listId}`);
+    }
+
+    const todos = await service.todo.find(queryContext, {
+        where: {
+            listId: params?.id as string,
+        },
+        include: {
+            owner: true,
+        },
+        orderBy: {
+            updatedAt: 'desc',
+        },
+    });
+
+    return {
+        props: { space, list, todos },
+    };
+};

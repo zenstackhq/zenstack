@@ -36,7 +36,7 @@ export async function setup(schemaFile: string) {
         'typescript',
         'swr',
         'react',
-        'prisma',
+        'prisma@~4.5.0',
         'zod',
         '../../../../packages/schema',
         '../../../../packages/runtime/dist',

@@ -1,3 +1,4 @@
+import { authOptions } from '@api/auth/[...nextauth]';
 import { SpaceContext, UserContext } from '@lib/context';
 import {
     ChangeEvent,
@@ -13,6 +14,12 @@ import TodoList from 'components/TodoList';
 import BreadCrumb from 'components/BreadCrumb';
 import SpaceMembers from 'components/SpaceMembers';
 import WithNavBar from 'components/WithNavBar';
+import { List, Space, User } from '@zenstackhq/runtime/types';
+import { GetServerSideProps } from 'next';
+import { unstable_getServerSession } from 'next-auth';
+import service from '@zenstackhq/runtime/server';
+import { useRouter } from 'next/router';
+import { getSpaceBySlug } from '@lib/query-utils';
 
 function CreateDialog() {
     const user = useContext(UserContext);
@@ -135,15 +142,21 @@ function CreateDialog() {
     );
 }
 
-export default function SpaceHome() {
+type Props = {
+    space: Space;
+    lists: (List & { owner: User })[];
+};
+
+export default function SpaceHome(props: Props) {
     const space = useContext(SpaceContext);
     const { find } = useList();
+    const router = useRouter();
 
     const { data: lists, mutate: invalidateLists } = find(
         {
             where: {
                 space: {
-                    id: space?.id,
+                    slug: router.query.slug as string,
                 },
             },
             include: {
@@ -155,13 +168,14 @@ export default function SpaceHome() {
         },
         {
             disabled: !space,
+            initialData: props.lists,
         }
     );
 
     return (
         <WithNavBar>
             <div className="px-8 py-2">
-                <BreadCrumb />
+                <BreadCrumb space={props.space} />
             </div>
             <div className="p-8">
                 <div className="w-full flex flex-col md:flex-row mb-8 space-y-4 md:space-y-0 md:space-x-4">
@@ -190,3 +204,31 @@ export default function SpaceHome() {
         </WithNavBar>
     );
 }
+
+export const getServerSideProps: GetServerSideProps<Props> = async ({
+    req,
+    res,
+    params,
+}) => {
+    const session = await unstable_getServerSession(req, res, authOptions);
+    const queryContext = { user: session?.user };
+
+    const space = await getSpaceBySlug(queryContext, params?.slug as string);
+
+    const lists = await service.list.find(queryContext, {
+        where: {
+            space: {
+                slug: params?.slug as string,
+            },
+        },
+        include: {
+            owner: true,
+        },
+        orderBy: {
+            updatedAt: 'desc',
+        },
+    });
+    return {
+        props: { space, lists },
+    };
+};

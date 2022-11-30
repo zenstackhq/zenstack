@@ -15,7 +15,7 @@ import {
     ServerErrorCode,
     Service,
 } from '../../types';
-import { PrismaWriteActionType, RequestHandlerError } from '../types';
+import { PrismaWriteActionType, CRUDError } from '../types';
 import { NestedWriteVisitor } from './nested-write-vistor';
 
 //#region General helpers
@@ -77,7 +77,7 @@ export async function queryIds(
  *
  * For to-many relations involved, items not satisfying policy are
  * silently trimmed. For to-one relation, if relation data fails policy
- * an RequestHandlerError is thrown.
+ * an CRUDError is thrown.
  *
  * @param model the model to query for
  * @param queryArgs the Prisma query args
@@ -395,7 +395,7 @@ export async function preUpdateCheck(
 
 /**
  * Given a list of ids for a model, check if they all match policy rules, and if not,
- * throw a RequestHandlerError.
+ * throw a CRUDError.
  *
  * @param model the model
  * @param ids the entity ids
@@ -435,7 +435,7 @@ export async function checkPolicyForIds(
     const filteredIds = filteredResult.map((item) => item.id);
     if (filteredIds.length < ids.length) {
         const gap = ids.filter((id) => !filteredIds.includes(id));
-        throw new RequestHandlerError(
+        throw new CRUDError(
             ServerErrorCode.DENIED_BY_POLICY,
             `denied by policy: entities failed '${operation}' check, ${model}#[${gap.join(
                 ', '
@@ -514,7 +514,7 @@ function collectTerminalEntityIds(
     }
 
     if (!curr) {
-        throw new RequestHandlerError(
+        throw new CRUDError(
             ServerErrorCode.UNKNOWN,
             'an unexpected error occurred'
         );

@@ -20,9 +20,9 @@ export interface RequestHandler {
 }
 
 /**
- * Error thrown during request handling
+ * Error thrown during CRUD operations
  */
-export class RequestHandlerError extends Error {
+export class CRUDError extends Error {
     constructor(public readonly code: ServerErrorCode, message?: string) {
         message = message
             ? `${getServerErrorMessage(code)}: ${message}`

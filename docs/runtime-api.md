@@ -44,18 +44,22 @@ A `useXXX` API is generated fo each data model for getting the React hooks. The 
 const { get, find, create, update, del } = useUser();
 ```
 
-### RequestOptions
+### `RequestOptions`
 
 Options controlling hooks' fetch behavior.
 
 ```ts
-type RequestOptions = {
+type RequestOptions<T> = {
     // indicates if fetch should be disabled
-    disabled: boolean;
+    disabled?: boolean;
+
+    // provides initial data, which is immediately available
+    // before fresh data is fetched (usually used with SSR)
+    initialData?: T;
 };
 ```
 
-### HooksError
+### `HooksError`
 
 Error thrown for failure of `create`, `update` and `delete` hooks.
 
@@ -69,7 +73,7 @@ export type HooksError = {
 };
 ```
 
-#### ServerErrorCode
+#### `ServerErrorCode`
 
 | Code                           | Description                                                                                   |
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -80,7 +84,7 @@ export type HooksError = {
 | REFERENCE_CONSTRAINT_VIOLATION | Violation of database reference constraint (aka. foreign key constraints)                     |
 | READ_BACK_AFTER_WRITE_DENIED   | A write operation succeeded but the result cannot be read back due to policy control          |
 
-### get
+### `get`
 
 ```ts
 function get(
@@ -90,7 +94,7 @@ function get(
 ): SWRResponse<User>;
 ```
 
-### find
+### `find`
 
 ```ts
 function find(
@@ -99,33 +103,90 @@ function find(
 ): SWRResponse<User[]>;
 ```
 
-### create
+### `create`
 
 ```ts
 function create(args?: UserCreateArgs): Promise<User | undefined>;
 ```
 
-### update
+### `update`
 
 ```ts
 function update(id: string, args?: UserUpdateArgs): Promise<User | undefined>;
 ```
 
-### del
+### `del`
 
 ```ts
-function del(id: string): Promise<User | undefined>;
+function del(id: string, args?: UserDeleteArgs): Promise<User | undefined>;
 ```
 
 ## `@zenstackhq/runtime/server`
 
 This module contains API for server-side programming. The following declarations are exported:
 
-### `default`
+### `service`
 
 The default export of this module is a `service` object which encapsulates most of the server-side APIs.
 
+#### Server-side CRUD
+
+The `service` object contains members for each of the data models, each containing server-side CRUD APIs. These APIs can be used for doing CRUD operations without HTTP request overhead, while still fully protected by access policies.
+
+The server-side CRUD APIs have similar signature with client-side hooks, except that they take an extra `queryContext` parameter for passing in the current login user. They're usually used for implementing SSR or custom API endpoints.
+
+-   get
+
+    ```ts
+    async get(
+        context: QueryContext,
+        id: string,
+        args?: UserFindFirstArgs
+    ): Promise<User | undefined>;
+    ```
+
+-   find
+
+    ```ts
+    async find(
+        context: QueryContext,
+        args?: UserFindManyArgs
+    ): Promise<User[]>;
+    ```
+
+-   create
+
+    ```ts
+    async find(
+        context: QueryContext,
+        args?: UserCreateArgs
+    ): Promise<User>;
+    ```
+
+-   update
+
+    ```ts
+    async get(
+        context: QueryContext,
+        id: string,
+        args?: UserUpdateArgs
+    ): Promise<User>;
+    ```
+
+-   del
+    ```ts
+    async get(
+        context: QueryContext,
+        id: string,
+        args?: UserDeleteArgs
+    ): Promise<User>;
+    ```
+
+#### Direct database access
+
 The `service.db` object contains a member field for each data model defined, which you can use to conduct database operations for that model.
+
+_NOTE_ These database operations are **NOT** protected by access policies.
 
 Take `User` model for example:
 
