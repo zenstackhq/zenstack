@@ -137,7 +137,7 @@ export default class ReactHooksGenerator implements Generator {
                     },
                     {
                         name: 'options?',
-                        type: 'RequestOptions',
+                        type: `RequestOptions<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>`,
                     },
                 ],
             })
@@ -163,7 +163,7 @@ export default class ReactHooksGenerator implements Generator {
                     },
                     {
                         name: 'options?',
-                        type: 'RequestOptions',
+                        type: `RequestOptions<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>`,
                     },
                 ],
             })

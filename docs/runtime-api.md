@@ -49,9 +49,10 @@ const { get, find, create, update, del } = useUser();
 Options controlling hooks' fetch behavior.
 
 ```ts
-type RequestOptions = {
+type RequestOptions<T> = {
     // indicates if fetch should be disabled
-    disabled: boolean;
+    disabled?: boolean;
+    initialData?: T;
 };
 ```
 
@@ -121,7 +122,7 @@ function del(id: string): Promise<User | undefined>;
 
 This module contains API for server-side programming. The following declarations are exported:
 
-### `default`
+### **default**
 
 The default export of this module is a `service` object which encapsulates most of the server-side APIs.
 
@@ -144,7 +145,7 @@ await service.db.user.update({
 
 The server-side database access API uses the [same set of typing](#zenstackhqruntimetypes) as the client side. The `service.db` object is a Prisma Client, and you can find all API documentations [here](https://www.prisma.io/docs/reference/api-reference/prisma-client-reference ':target=blank').
 
-### `requestHandler`
+### **requestHandler**
 
 Function for handling API endpoint requests. Used for installing the generated CRUD services onto an API route:
 

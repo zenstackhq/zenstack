@@ -226,9 +226,10 @@ export type LogEvent = {
 /**
  * Client request options
  */
-export type RequestOptions = {
+export type RequestOptions<T> = {
     // disable data fetching
-    disabled: boolean;
+    disabled?: boolean;
+    initialData?: T;
 };
 
 /**

@@ -103,10 +103,12 @@ function makeUrl(url: string, args: unknown) {
 export function get<Data, Error = any>(
     url: string | null,
     args?: unknown,
-    options?: RequestOptions
+    options?: RequestOptions<Data>
 ): SWRResponse<Data, Error> {
     const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
-    return useSWR<Data, Error>(reqUrl, fetcher);
+    return useSWR<Data, Error>(reqUrl, fetcher, {
+        fallbackData: options?.initialData,
+    });
 }
 
 export async function post<Data, Result>(

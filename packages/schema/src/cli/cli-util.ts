@@ -207,6 +207,8 @@ export async function runGenerator(
         if (err instanceof GeneratorError) {
             console.error(colors.red(err.message));
             throw new CliError(err.message);
+        } else {
+            throw err;
         }
     }
 }
