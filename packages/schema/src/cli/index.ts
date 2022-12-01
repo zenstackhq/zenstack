@@ -113,7 +113,7 @@ export default async function (): Promise<void> {
                 .description(
                     `${colors.bold.blue(
                         'ζ'
-                    )} ZenStack is a toolkit for building secure CRUD apps with Next.js + Typescript.\n\nDocumentation: https://go.zenstack.dev/doc.`
+                    )} ZenStack is a toolkit for building secure CRUD apps with Next.js + Typescript.\n\nDocumentation: https://zenstack.dev.`
                 )
                 .showHelpAfterError()
                 .showSuggestionAfterError();
