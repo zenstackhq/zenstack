@@ -129,7 +129,7 @@ export default class ReactHooksGenerator implements Generator {
             .addFunction({
                 name: 'find',
                 typeParameters: [`T extends P.${model.name}FindManyArgs`],
-                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}[], P.${model.name}GetPayload<T, keyof T>[]>, any>`,
+                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}[], P.${model.name}GetPayload<T>[]>, any>`,
                 parameters: [
                     {
                         name: 'args?',
@@ -151,7 +151,7 @@ export default class ReactHooksGenerator implements Generator {
             .addFunction({
                 name: 'get',
                 typeParameters: [`T extends P.${model.name}FindFirstArgs`],
-                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T, keyof T>>, any>`,
+                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>, any>`,
                 parameters: [
                     {
                         name: 'id',

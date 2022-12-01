@@ -74,11 +74,6 @@ export abstract class DefaultService<
             }
         }
 
-        console.log(
-            'Initializing ZenStack service with config:',
-            JSON.stringify(this.config)
-        );
-
         this.prisma = this.initializePrisma();
 
         for (const level of this.prismaLogLevels) {
