@@ -11,6 +11,7 @@ import { GetServerSideProps } from 'next';
 import { unstable_getServerSession } from 'next-auth';
 import service from '@zenstackhq/runtime/server';
 import { getSpaceBySlug } from '@lib/query-utils';
+import { toast } from 'react-toastify';
 
 type Props = {
     space: Space;
@@ -39,15 +40,21 @@ export default function TodoList(props: Props) {
     );
 
     const _createTodo = async () => {
-        const todo = await createTodo({
-            data: {
-                title,
-                ownerId: user!.id,
-                listId: props.list.id,
-            },
-        });
-        console.log(`Todo created: ${todo}`);
-        setTitle('');
+        try {
+            const todo = await createTodo({
+                data: {
+                    title,
+                    ownerId: user!.id,
+                    listId: props.list.id,
+                },
+            });
+            console.log(`Todo created: ${todo}`);
+            setTitle('');
+        } catch (err: any) {
+            toast.error(
+                `Failed to create todo: ${err.info?.message || err.message}`
+            );
+        }
     };
 
     return (
