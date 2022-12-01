@@ -56,7 +56,7 @@
 
 -   Better overall documentation
 
-# 0.2.1 (2022-10-29)
+# 0.2.0 (2022-10-29)
 
 ### Features
 
