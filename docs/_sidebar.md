@@ -35,3 +35,4 @@
 
 -   [VSCode extension](vscode-extension.md)
 -   [Reach out to the developers](reach-out.md)
+-   [Changelog](changelog)
