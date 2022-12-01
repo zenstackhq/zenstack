@@ -35,6 +35,7 @@ import {
     UnaryExpr,
 } from './generated/ast';
 import { ResolvedShape } from './types';
+import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -291,7 +292,18 @@ export class ZModelLinker extends DefaultLinker {
         if (node.function.ref) {
             // eslint-disable-next-line @typescript-eslint/ban-types
             const funcDecl = node.function.ref as Function;
-            this.resolveToDeclaredType(node, funcDecl.returnType);
+            if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
+                // auth() function is resolved to User model in the current document
+                const model = getContainingModel(node);
+                const userModel = model?.declarations.find(
+                    (d) => isDataModel(d) && d.name === 'User'
+                );
+                if (userModel) {
+                    node.$resolvedType = { decl: userModel };
+                }
+            } else {
+                this.resolveToDeclaredType(node, funcDecl.returnType);
+            }
         }
     }
 
@@ -355,8 +367,7 @@ export class ZModelLinker extends DefaultLinker {
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
         } else {
-            // TODO: handle this during validation
-            console.warn(`Unresolved collection predicate`);
+            // error is reported in validation pass
         }
     }
 

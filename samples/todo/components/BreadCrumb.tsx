@@ -1,16 +1,17 @@
-import { useList } from '@zenstackhq/runtime/hooks';
+import { List, Space } from '@zenstackhq/runtime/types';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCurrentSpace } from '@lib/context';
 
-export default function BreadCrumb() {
+type Props = {
+    space: Space;
+    list?: List;
+};
+
+export default function BreadCrumb({ space, list }: Props) {
     const router = useRouter();
-    const space = useCurrentSpace();
-    const { get: getList } = useList();
 
     const parts = router.asPath.split('/').filter((p) => p);
-
-    const [base, slug, listId] = parts;
+    const [base] = parts;
     if (base !== 'space') {
         return <></>;
     }
@@ -18,13 +19,12 @@ export default function BreadCrumb() {
     const items: Array<{ text: string; link: string }> = [];
 
     items.push({ text: 'Home', link: '/' });
-    items.push({ text: space?.name || '', link: `/space/${slug}` });
+    items.push({ text: space.name || '', link: `/space/${space.slug}` });
 
-    if (listId) {
-        const { data } = getList(listId);
+    if (list) {
         items.push({
-            text: data?.title || '',
-            link: `/space/${slug}/${listId}`,
+            text: list?.title || '',
+            link: `/space/${space.slug}/${list.id}`,
         });
     }
 

@@ -1,4 +1,4 @@
-import { useSpaceUser } from '@zenstackhq/runtime/hooks';
+import { useSpaceUser } from '@zenstackhq/runtime/client';
 import { useCurrentSpace } from '@lib/context';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import Avatar from './Avatar';
@@ -46,17 +46,20 @@ export default function SpaceMembers() {
     const space = useCurrentSpace();
 
     const { find: findMembers } = useSpaceUser();
-    const { data: members } = findMembers({
-        where: {
-            spaceId: space?.id,
+    const { data: members } = findMembers(
+        {
+            where: {
+                spaceId: space?.id,
+            },
+            include: {
+                user: true,
+            },
+            orderBy: {
+                role: 'desc',
+            },
         },
-        include: {
-            user: true,
-        },
-        orderBy: {
-            role: 'desc',
-        },
-    });
+        { disabled: !space }
+    );
 
     return (
         <div className="flex items-center">

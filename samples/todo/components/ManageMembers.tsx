@@ -1,11 +1,11 @@
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useCurrentUser } from '@lib/context';
-import { HooksError, useSpaceUser } from '@zenstackhq/runtime/hooks';
 import { Space, SpaceUserRole } from '@zenstackhq/runtime/types';
-import { ServerErrorCode } from '@zenstackhq/runtime/client';
+import { HooksError, ServerErrorCode } from '@zenstackhq/runtime/client';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
 import Avatar from './Avatar';
+import { useSpaceUser } from '@zenstackhq/runtime/client';
 
 type Props = {
     space: Space;
@@ -23,6 +23,9 @@ export default function ManageMembers({ space }: Props) {
         },
         include: {
             user: true,
+        },
+        orderBy: {
+            role: 'desc',
         },
     });
 

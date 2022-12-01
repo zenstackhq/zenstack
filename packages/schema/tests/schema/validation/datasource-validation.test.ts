@@ -51,8 +51,8 @@ describe('Datasource Validation Tests', () => {
                     provider = 'abc'
                 }
         `)
-        ).toContain(
-            'Provider "abc" is not supported. Choose from "postgresql" | "mysql" | "sqlite" | "sqlserver".'
+        ).toContainEqual(
+            expect.stringContaining('Provider "abc" is not supported')
         );
     });
 

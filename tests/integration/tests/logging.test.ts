@@ -1,7 +1,7 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
 import * as fs from 'fs';
-import type { DefaultService } from '../../../packages/runtime/server';
+import type { DefaultService } from '../../../packages/runtime/src/service';
 
 describe('Logging tests', () => {
     let origDir: string;
@@ -19,8 +19,10 @@ describe('Logging tests', () => {
         process.chdir(origDir);
     });
 
+    const getService = () => require('@zenstackhq/runtime/server').default;
+
     it('logging with default settings', async () => {
-        const service: DefaultService<any> = require('@zenstackhq/runtime');
+        const service: DefaultService<any> = getService();
         service.reinitialize();
 
         let gotInfoEmit = false;
@@ -98,7 +100,7 @@ describe('Logging tests', () => {
             `
         );
 
-        const service: DefaultService<any> = require('@zenstackhq/runtime');
+        const service: DefaultService<any> = getService();
         service.reinitialize();
 
         let gotInfoEmit = false;
@@ -151,9 +153,13 @@ describe('Logging tests', () => {
             gotWarnEmit = true;
         });
 
-        await makeClient('/api/data/User').post('/').send({
-            data: {},
-        });
+        await makeClient('/api/data/User')
+            .post('/')
+            .send({
+                data: {
+                    email: 'abc@def.com',
+                },
+            });
 
         expect(gotQueryStd).toBeTruthy();
         expect(gotVerboseStd).toBeTruthy();
@@ -181,7 +187,7 @@ describe('Logging tests', () => {
             `
         );
 
-        const service: DefaultService<any> = require('@zenstackhq/runtime');
+        const service: DefaultService<any> = getService();
         service.reinitialize();
 
         let gotInfoEmit = false;
@@ -239,9 +245,13 @@ describe('Logging tests', () => {
             gotWarnEmit = true;
         });
 
-        await makeClient('/api/data/User').post('/').send({
-            data: {},
-        });
+        await makeClient('/api/data/User')
+            .post('/')
+            .send({
+                data: {
+                    email: 'abc@def.com',
+                },
+            });
 
         expect(gotInfoEmit).toBeTruthy();
         expect(gotQueryEmit).toBeTruthy();

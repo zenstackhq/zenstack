@@ -1,10 +1,25 @@
+import { authOptions } from '@api/auth/[...nextauth]';
 import { SpaceContext, UserContext } from '@lib/context';
-import { ChangeEvent, FormEvent, useContext, useState } from 'react';
-import { useList } from '@zenstackhq/runtime/hooks';
+import {
+    ChangeEvent,
+    FormEvent,
+    useContext,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+import { useList } from '@zenstackhq/runtime/client';
 import { toast } from 'react-toastify';
 import TodoList from 'components/TodoList';
 import BreadCrumb from 'components/BreadCrumb';
 import SpaceMembers from 'components/SpaceMembers';
+import WithNavBar from 'components/WithNavBar';
+import { List, Space, User } from '@zenstackhq/runtime/types';
+import { GetServerSideProps } from 'next';
+import { unstable_getServerSession } from 'next-auth';
+import service from '@zenstackhq/runtime/server';
+import { useRouter } from 'next/router';
+import { getSpaceBySlug } from '@lib/query-utils';
 
 function CreateDialog() {
     const user = useContext(UserContext);
@@ -15,6 +30,13 @@ function CreateDialog() {
     const [_private, setPrivate] = useState(false);
 
     const { create } = useList();
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (modalOpen) {
+            inputRef.current?.focus();
+        }
+    }, [modalOpen]);
 
     const onSubmit = async (event: FormEvent) => {
         event.preventDefault();
@@ -28,8 +50,10 @@ function CreateDialog() {
                     ownerId: user!.id,
                 },
             });
-        } catch (err) {
-            toast.error(`Failed to create list: ${err}`);
+        } catch (err: any) {
+            toast.error(
+                `Failed to create list: ${err.info?.message || err.message}`
+            );
             return;
         }
 
@@ -73,6 +97,7 @@ function CreateDialog() {
                                     type="text"
                                     required
                                     placeholder="Title of your list"
+                                    ref={inputRef}
                                     className="input input-bordered w-full max-w-xs mt-2"
                                     value={title}
                                     onChange={(
@@ -117,28 +142,40 @@ function CreateDialog() {
     );
 }
 
-export default function SpaceHome() {
+type Props = {
+    space: Space;
+    lists: (List & { owner: User })[];
+};
+
+export default function SpaceHome(props: Props) {
     const space = useContext(SpaceContext);
     const { find } = useList();
+    const router = useRouter();
 
-    const { data: lists, mutate: invalidateLists } = find({
-        where: {
-            space: {
-                id: space?.id,
+    const { data: lists, mutate: invalidateLists } = find(
+        {
+            where: {
+                space: {
+                    slug: router.query.slug as string,
+                },
+            },
+            include: {
+                owner: true,
+            },
+            orderBy: {
+                updatedAt: 'desc',
             },
         },
-        include: {
-            owner: true,
-        },
-        orderBy: {
-            updatedAt: 'desc',
-        },
-    });
+        {
+            disabled: !space,
+            initialData: props.lists,
+        }
+    );
 
     return (
-        <>
+        <WithNavBar>
             <div className="px-8 py-2">
-                <BreadCrumb />
+                <BreadCrumb space={props.space} />
             </div>
             <div className="p-8">
                 <div className="w-full flex flex-col md:flex-row mb-8 space-y-4 md:space-y-0 md:space-x-4">
@@ -164,6 +201,34 @@ export default function SpaceHome() {
 
                 <CreateDialog />
             </div>
-        </>
+        </WithNavBar>
     );
 }
+
+export const getServerSideProps: GetServerSideProps<Props> = async ({
+    req,
+    res,
+    params,
+}) => {
+    const session = await unstable_getServerSession(req, res, authOptions);
+    const queryContext = { user: session?.user };
+
+    const space = await getSpaceBySlug(queryContext, params?.slug as string);
+
+    const lists = await service.list.find(queryContext, {
+        where: {
+            space: {
+                slug: params?.slug as string,
+            },
+        },
+        include: {
+            owner: true,
+        },
+        orderBy: {
+            updatedAt: 'desc',
+        },
+    });
+    return {
+        props: { space, lists },
+    };
+};

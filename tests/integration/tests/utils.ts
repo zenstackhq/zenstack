@@ -9,7 +9,11 @@ import { NextApiHandler } from 'next/types';
 import supertest from 'supertest';
 
 export function run(cmd: string) {
-    execSync(cmd, { stdio: 'inherit', encoding: 'utf-8' });
+    execSync(cmd, {
+        stdio: 'pipe',
+        encoding: 'utf-8',
+        env: { ...process.env, DO_NOT_TRACK: '1' },
+    });
 }
 
 export async function setup(schemaFile: string) {
@@ -32,10 +36,10 @@ export async function setup(schemaFile: string) {
         'typescript',
         'swr',
         'react',
-        'prisma',
+        'prisma@~4.7.0',
+        'zod',
         '../../../../packages/schema',
-        '../../../../packages/runtime',
-        '../../../../packages/internal',
+        '../../../../packages/runtime/dist',
     ];
     run(`npm i ${dependencies.join(' ')}`);
 
@@ -47,8 +51,7 @@ export async function setup(schemaFile: string) {
         'handler.ts',
         `
             import { NextApiRequest, NextApiResponse } from 'next';
-            import { type RequestHandlerOptions, requestHandler } from '@zenstackhq/runtime/server';
-            import service from '@zenstackhq/runtime';
+            import { type RequestHandlerOptions, requestHandler, default as service } from '@zenstackhq/runtime/server';
 
             const options: RequestHandlerOptions = {
                 async getServerUser(req: NextApiRequest, res: NextApiResponse) {

@@ -3,7 +3,6 @@ import type { AppProps } from 'next/app';
 import { SessionProvider } from 'next-auth/react';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
-import NavBar from 'components/NavBar';
 import {
     SpaceContext,
     useCurrentSpace,
@@ -21,7 +20,6 @@ function AppContent(props: { children: JSX.Element | JSX.Element[] }) {
             <UserContext.Provider value={user}>
                 <SpaceContext.Provider value={space}>
                     <div className="h-screen flex flex-col">
-                        <NavBar user={user} space={space} />
                         {props.children}
                     </div>
                 </SpaceContext.Provider>

@@ -1,10 +1,12 @@
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/104139426/201654613-823e8929-6251-43e5-b2e4-49a0d0e0d6ac.png" height="256">
+    <img src="https://user-images.githubusercontent.com/104139426/204459273-35c65630-9faf-42bb-bd2c-07c1580a0772.png" style="max-width: 512px; width: 100%; height: auto; margin-bottom: 1rem;"
+    >
     <div></div>
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/v/zenstack">
     </a>
-    <a href="https://twitter.com/intent/tweet?text=Wow%20%40zenstackhq">
+    <img src="https://github.com/zenstackhq/zenstack/actions/workflows/build-test.yml/badge.svg">
+    <a href="https://twitter.com/zenstackhq">
         <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
     </a>
     <a href="https://go.zenstack.dev/chat">
@@ -15,258 +17,36 @@
     </a>
 </div>
 
-## 📣 Our Discord Server is Live
+## What it is
 
-[JOIN US](https://go.zenstack.dev/chat) to chat about questions, bugs, plans, or anything off the top of your head.
+ZenStack is a toolkit for building secure CRUD apps with Next.js + Typescript. It lets you define data models, relations and access policies all in one place, and generates database schema, backend CRUD services and frontend React hooks for you automatically.
 
-## What is ZenStack?
+Our goal is to let you save time writing boilerplate code and focus on building real features!
 
-[![ZenStack Full-stack Development Toolkit Introduction](https://cdn.loom.com/sessions/thumbnails/76ba1308fb734af993765a6696b62c96-1668251534738-with-play.gif)](https://www.loom.com/share/76ba1308fb734af993765a6696b62c96)
+## Links
 
-ZenStack is a toolkit for modeling data and access policies in full-stack development with [Next.js](https://nextjs.org/) and Typescript. It takes a schema-first approach to simplify the construction of CRUD services.
+-   [Documentation](https://zenstack.dev)
+-   [Community chat](https://go.zenstack.dev/chat)
+-   [Twitter](https://twitter.com/zenstackhq)
+-   [Blog](https://dev.to/zenstack)
 
-Next.js is an excellent full-stack framework. However, building the backend part of a web app is still quite challenging. For example, implementing CRUD services efficiently and securely is tricky and not fun.
+## Features
 
-ZenStack simplifies it by providing:
+-   Intuitive data & authorization modeling language
+-   Generating RESTful CRUD services and React hooks
+-   End-to-end type safety
+-   Support for all major relational databases
+-   Integration with authentication libraries (like [NextAuth](https://next-auth.js.org/) and [iron-session](https://www.npmjs.com/package/iron-session))
+-   [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack) for model authoring
 
--   An intuitive data modeling language for defining data types, relations, and access policies
+## Examples
 
-```prisma
-model User {
-    id String @id @default(cuid())
-    email String @unique
+Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find the source code [here](https://github.com/zenstackhq/zenstack/tree/main/samples/todo).
 
-    // one-to-many relation to Post
-    posts Post[]
-}
+## Community
 
-model Post {
-    id String @id @default(cuid())
-    title String
-    content String
-    published Boolean @default(false)
+Join our [discord server](https://go.zenstack.dev/chat) for chat and updates!
 
-    // one-to-many relation from User
-    author User? @relation(fields: [authorId], references: [id])
-    authorId String?
+## License
 
-    // must signin to CRUD any post
-    @@deny('all', auth() == null)
-
-    // allow CRUD by author
-    @@allow('all', author == auth())
-}
-```
-
--   Auto-generated CRUD services and strongly typed React hooks
-
-```jsx
-// React example
-
-const { find } = usePost();
-const posts = get({ where: { public: true } });
-// only posts owned by current login user are returned
-return (
-    <>
-        {posts?.map((post) => (
-            <Post key={post.id} post={post} />
-        ))}
-    </>
-);
-```
-
-Since CRUD APIs are automatically generated with access policies injected, you can safely implement most of your business logic in your front-end code. Read operations never return data that's not supposed to be visible to the current user, and writes will be rejected if unauthorized.
-
-## Getting started
-
-[A step by step guide for getting started](docs/get-started/next-js.md)
-
-[A complete sample with a collaborative todo app](https://github.com/zenstackhq/zenstack/tree/main/samples/todo)
-
-## How does it work?
-
-ZenStack has four essential responsibilities:
-
-1. Modeling data and mapping the model to DB schema and programmable client library
-1. Integrating with authentication
-1. Generating CRUD APIs and enforcing data access policies
-1. Providing type-safe React hooks
-
-Let's briefly go through each of them in this section.
-
-### Data modeling
-
-ZenStack uses a schema language called `ZModel` to define data types and their relations. The `zenstack` CLI takes a schema file as input and generates database client code. Such client code allows you to program against database in server-side code in a fully typed way without writing any SQL. It also provides commands for synchronizing data models with DB schema, and generating "migration records" when your data model evolves.
-
-Internally, ZenStack entirely relies on Prisma for ORM tasks. The ZModel language is a superset of Prisma's schema language. When `zenstack generate` is run, a Prisma schema named 'schema.prisma' is generated beside your ZModel file. You don't need to commit schema.prisma to source control. The recommended practice is to run `zenstack generate` during deployment, so Prisma schema is regenerated on the fly.
-
-### Authentication
-
-ZenStack is not an authentication library, but it gets involved in two ways.
-
-Firstly, if you use any authentication method that involves persisting users' identity, you'll model the user's shape in ZModel. Some auth libraries, like [NextAuth](https://next-auth.js.org/), require user entity to include specific fields, and your model should fulfill such requirements. In addition, credential-based authentication requires validating user-provided credentials, and you should implement this using the database client generated by ZenStack.
-
-To simplify the task, ZenStack automatically generates an adapter for NextAuth when it detects that the `next-auth` npm package is installed. Please refer to [the starter code](https://github.com/zenstackhq/nextjs-auth-starter/blob/main/pages/api/auth/%5B...nextauth%5D.ts) for how to use it. We'll keep adding integrations/samples for other auth libraries in the future.
-
-Secondly, authentication is almost always connected to authorization. ZModel allows you to reference the current login user via `auth()` function in access policy expressions. Like,
-
-```prisma
-model Post {
-    author User @relation(fields: [authorId], references: [id])
-    ...
-
-    @@deny('all', auth() == null)
-    @@allow('all', auth() == author)
-```
-
-The value returned by `auth()` is provided by your auth solution via the `getServerUser` hook function you provide when mounting ZenStack APIs. Check [this code](https://github.com/zenstackhq/nextjs-auth-starter/blob/main/pages/api/zenstack/%5B...path%5D.ts) for an example.
-
-### Data access policy
-
-The primary value that ZenStack adds over a traditional ORM is the built-in data access policy engine. This allows most business logic to be safely implemented in front-end code. Since ZenStack delegates database access to Prisma, it enforces access policies by analyzing queries sent to Prisma and injecting guarding conditions. For example, suppose we have a policy saying "a post can only be accessed by its author if it's not published", expressed in ZModel as:
-
-```prisma
-@@deny('all', auth() != author && !published)
-```
-
-When client code sends a query to list all `Post`s, ZenStack's generated code intercepts it and injects the `where` clause before passing it through to Prisma (conceptually):
-
-```js
-{
-    where: {
-        AND: [
-            { ...userProvidedFilter },
-            {
-                // injected by ZenStack, "user" object is fetched from context
-                NOT: {
-                    AND: [
-                        { author: { not: { id: user.id } } },
-                        { published: { not: true } },
-                    ],
-                },
-            },
-        ];
-    }
-}
-```
-
-Similar procedures are applied to write operations and more complex queries involving nested reads and writes. To ensure good performance, ZenStack generates conditions statically, so it doesn't need to introspect ZModel at runtime. The engine also makes the best effort to push down policy constraints to the database to avoid fetching data unnecessarily and discarding afterward.
-
-Please **BEWARE** that policy checking is only applied when data access is done using the generated client-side hooks or, equivalently, the RESTful API. If you use `service.db` to access the database directly from server-side code, policies are bypassed, and you have to do all necessary checking by yourself. We've planned to add helper functions for "injecting" the policy checking on the server side in the future.
-
-### Type-safe React hooks
-
-Strongly-typed React hooks are generated for CRUD operations, saving the need to write boilerplate code.
-
-Thanks to Prisma's power, ZenStack generates accurate Typescript types for your data models:
-
--   The model itself
--   Argument types for listing models, including filtering, sorting, pagination, and nested reads for related models
--   Argument types for creating and updating models, including nested writes for related models
-
-The cool thing is that the generated types are shared between client-side and server-side code, so no matter which side of code you're writing, you can always enjoy the pleasant IDE intellisense and typescript compiler's error checking.
-
-## Programming with the generated code
-
-### Client-side
-
-The generated CRUD services should be mounted at `/api/zenstack` route. The following React hooks are generated for each data model:
-
--   find: listing entities with filtering, ordering, pagination, and nested relations
-
-```ts
-const { find } = usePost();
-// lists unpublished posts with their author's data
-const posts = find({
-    where: { published: false },
-    include: { author: true },
-    orderBy: { updatedAt: 'desc' },
-});
-```
-
--   get: fetching a single entity by id, with nested relations
-
-```ts
-const { get } = usePost();
-// fetches a post with its author's data
-const post = get(id, {
-    include: { author: true },
-});
-```
-
--   create: creating a new entity, with the support for nested creation of related models
-
-```ts
-const { create } = usePost();
-// creating a new post for current user with a nested comment
-const post = await create({
-    data: {
-        title: 'My New Post',
-        author: {
-            connect: { id: session.user.id },
-        },
-        comments: {
-            create: [{ content: 'First comment' }],
-        },
-    },
-});
-```
-
--   update: updating an entity, with the support for nested creation/update of related models
-
-```ts
-const { update } = usePost();
-// updating a post's content and create a new comment
-const post = await update(id, {
-    data: {
-        const: 'My post content',
-        comments: {
-            create: [{ content: 'A new comment' }],
-        },
-    },
-});
-```
-
--   del: deleting an entity
-
-```js
-const { del } = usePost();
-const post = await del(id);
-```
-
-Internally ZenStack generated code uses [SWR](https://swr.vercel.app/) to do data fetching so that you can enjoy its caching, polling, and automatic revalidation features.
-
-### Server-side
-
-If you need to do server-side coding, either through implementing an API endpoint or by using `getServerSideProps` for SSR, you can directly access the database client generated by Prisma:
-
-```ts
-import service from '@zenstackhq/runtime';
-
-export const getServerSideProps: GetServerSideProps = async () => {
-    const posts = await service.db.post.findMany({
-        where: { published: true },
-        include: { author: true },
-    });
-    return {
-        props: { posts },
-    };
-};
-```
-
-**Please note** that server-side database access is not protected by access policies. This is by-design so as to provide a way of bypassing the policies. Please make sure you implement authorization properly.
-
-## Learning more
-
-### [Learning the ZModel language](/docs/get-started/learning-the-zmodel-language.md)
-
-### [Evolving data model with migration](/docs/ref/evolving-data-model-with-migration.md)
-
-### [Database hosting considerations](/docs/ref/database-hosting-considerations.md)
-
-### [Setting up logging](/docs/ref/setup-logging.md)
-
-## Reach out to us for issues, feedback and ideas!
-
-[Discord](https://go.zenstack.dev/chat) | [Twitter](https://twitter.com/zenstackhq) |
-[Discussions](../discussions) | [Issues](../issues)
+[MIT](LICENSE)

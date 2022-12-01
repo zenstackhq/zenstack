@@ -1,6 +1,5 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
-import { ServerErrorCode } from '../../../packages/internal/src/types';
 
 describe('Type Coverage Tests', () => {
     let origDir: string;
@@ -36,8 +35,6 @@ describe('Type Coverage Tests', () => {
             })
             .expect(201)
             .expect((resp) => {
-                console.log(resp.body);
-
                 expect(resp.body.bigInt).toEqual(
                     expect.objectContaining({
                         type: 'BigInt',

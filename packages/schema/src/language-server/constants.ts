@@ -2,10 +2,11 @@
  * Supported Prisma db providers
  */
 export const SUPPORTED_PROVIDERS = [
+    'sqlite',
     'postgresql',
     'mysql',
-    'sqlite',
     'sqlserver',
+    'cockroachdb',
 ];
 
 /**

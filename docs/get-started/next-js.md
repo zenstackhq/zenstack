@@ -11,7 +11,7 @@ Here we demonstrate the process with a simple Blog starter using [Next-Auth](htt
 2. Create a new Next.js project from the ZenStack starter
 
 ```bash
-npx create-next-app [project name] --use-npm -e https://github.com/zenstackhq/nextjs-auth-starter
+npx create-next-app --use-npm -e https://github.com/zenstackhq/nextjs-auth-starter [project name]
 
 cd [project name]
 ```
@@ -48,7 +48,7 @@ Checkout [the starter's documentation](https://github.com/zenstackhq/nextjs-auth
 ```bash
 npm i -D zenstack
 
-npm i @zenstackhq/runtime @zenstackhq/internal
+npm i @zenstackhq/runtime
 ```
 
 2. Install [VSCode extension](https://marketplace.visualstudio.com/items?itemName=zenstack.zenstack) for authoring the model file
@@ -59,7 +59,7 @@ npm i @zenstackhq/runtime @zenstackhq/internal
 
     Here's an example of using a Postgres database with connection string specified in `DATABASE_URL` environment variable:
 
-```prisma
+```zmodel
 datasource db {
     provider = 'postgresql'
     url = env('DATABASE_URL')

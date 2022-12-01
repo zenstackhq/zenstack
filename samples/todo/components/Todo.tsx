@@ -1,5 +1,5 @@
 import { TrashIcon } from '@heroicons/react/24/outline';
-import { useTodo } from '@zenstackhq/runtime/hooks';
+import { useTodo } from '@zenstackhq/runtime/client';
 import { Todo, User } from '@zenstackhq/runtime/types';
 import { ChangeEvent, useEffect, useState } from 'react';
 import Avatar from './Avatar';

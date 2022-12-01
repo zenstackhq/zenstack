@@ -1,0 +1,44 @@
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./field-validation.db'
+}
+
+model User {
+    id String @id @default(cuid())
+    password String @length(8, 16)
+    email String @email @endsWith("@myorg.com")
+    profileImage String? @url
+    handle String @regex("^[0-9a-zA-Z]{4,16}$")
+
+    userData UserData?
+    tasks Task[]
+
+    @@allow('all', true)
+}
+
+model UserData {
+    id String @id @default(cuid())
+    user User  @relation(fields: [userId], references: [id])
+    userId String @unique
+
+    a Int @gt(0)
+    b Int @gte(0)
+    c Int @lt(0)
+    d Int @lte(0)
+    text1 String @startsWith('abc')
+    text2 String @endsWith('def')
+    text3 String @length(min: 3)
+    text4 String @length(max: 5)
+    text5 String? @endsWith('xyz')
+
+    @@allow('all', true)
+}
+
+model Task {
+    id String @id @default(cuid())
+    user User  @relation(fields: [userId], references: [id])
+    userId String
+    slug String @regex("^[0-9a-zA-Z]{4,16}$")
+
+    @@allow('all', true)
+}

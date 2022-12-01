@@ -151,214 +151,6 @@ describe('Data Model Validation Tests', () => {
         ).toContain(`Field with @id attribute must be of scalar type`);
     });
 
-    it('builtin field attributes', async () => {
-        await loadModel(`
-            ${prelude}
-            model M {
-                x String @id @default("abc") @unique @map("_id") @updatedAt
-            }
-        `);
-    });
-
-    it('field attribute type checking', async () => {
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id(123)
-            }
-        `)
-        ).toContain(`Unexpected unnamed argument`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id() @default(value:'def', 'abc')
-            }
-        `)
-        ).toContain(`Unexpected unnamed argument`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id() @default('abc', value:'def')
-            }
-        `)
-        ).toContain(`Parameter \"value\" is already provided`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id() @default(123)
-            }
-        `)
-        ).toContain(`Value is not assignable to parameter`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id() @default()
-            }
-        `)
-        ).toContain(`Required parameter not provided: value`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id() @default('abc', value: 'def')
-            }
-        `)
-        ).toContain(`Parameter "value" is already provided`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id() @default(foo: 'abc')
-            }
-        `)
-        ).toContain(
-            `Attribute "@default" doesn't have a parameter named "foo"`
-        );
-    });
-
-    it('field attribute coverage', async () => {
-        await loadModel(`
-            ${prelude}
-            model A {
-                id String @id
-            }
-
-            model B {
-                id String @id()
-            }
-
-            model C {
-                id String @id(map: "__id")
-            }
-
-            model D {
-                id String @id
-                x String @default("x")
-            }
-
-            model E {
-                id String @id
-                x String @default(value: "x")
-            }
-
-            model F {
-                id String @id
-                x String @default(uuid())
-            }
-
-            model G {
-                id String @id
-                x Int @default(autoincrement())
-            }
-
-            model H {
-                id String @id
-                x String @unique()
-            }
-        `);
-    });
-
-    it('model attribute coverage', async () => {
-        await loadModel(`
-            ${prelude}
-            model A {
-                id String @id
-                x Int
-                y String
-                @@unique([x, y])
-            }
-        `);
-
-        await loadModel(`
-            ${prelude}
-            model A {
-                id String @id
-                x Int
-                y String
-                @@unique(fields: [x, y])
-            }
-        `);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model A {
-                id String @id
-                x Int
-                y String
-                @@unique([x, z])
-            }
-        `)
-        ).toContain(
-            `Could not resolve reference to ReferenceTarget named 'z'.`
-        );
-
-        await loadModel(`
-            ${prelude}
-            model A {
-                id String @id
-                x Int
-                y String
-                @@index([x, y])
-            }
-        `);
-
-        await loadModel(`
-            ${prelude}
-            model A {
-                id String @id
-                x Int
-                y String
-                @@map("__A")
-            }
-        `);
-    });
-
-    it('attribute function coverage', async () => {
-        await loadModel(`
-            ${prelude}
-            model A {
-                id String @id @default(uuid())
-                id1 String @default(cuid())
-                created DateTime @default(now())
-                serial Int @default(autoincrement())
-                foo String @default(dbgenerated("gen_random_uuid()"))
-                @@allow('all', auth() != null)
-            }
-        `);
-    });
-
-    it('attribute function check', async () => {
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model A {
-                id String @id @default(foo())
-            }
-        `)
-        ).toContain(`Could not resolve reference to Function named 'foo'.`);
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model A {
-                id Int @id @default(uuid())
-            }
-        `)
-        ).toContain(`Value is not assignable to parameter`);
-    });
-
     it('relation', async () => {
         // one-to-one
         await loadModel(`
@@ -371,7 +163,7 @@ describe('Data Model Validation Tests', () => {
             model B {
                 id String @id
                 a A @relation(fields: [foreignId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-                foreignId String
+                foreignId String @unique
             }
         `);
 
@@ -443,6 +235,25 @@ describe('Data Model Validation Tests', () => {
         `)
         ).toContain(
             `"fields" and "references" must be provided only on one side of relation field`
+        );
+
+        // one-to-one missing @unique
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                b B?
+            }
+
+            model B {
+                id String @id
+                a A @relation(fields: [aId], references: [id])
+                aId String
+            }
+        `)
+        ).toContain(
+            `Field "aId" is part of a one-to-one relation and must be marked as @unique`
         );
 
         // missing @relation

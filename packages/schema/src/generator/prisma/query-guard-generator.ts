@@ -10,16 +10,16 @@ import {
     PolicyKind,
     PolicyOperationKind,
     RuntimeAttribute,
-} from '@zenstackhq/internal';
+} from '@zenstackhq/runtime/server';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import {
     GUARD_FIELD_NAME,
-    INTERNAL_PACKAGE,
+    RUNTIME_PACKAGE,
     UNKNOWN_USER_ID,
 } from '../constants';
 import { Context } from '../types';
-import { resolved } from '../utils';
+import { resolved } from '../ast-utils';
 import ExpressionWriter from './expression-writer';
 
 /**
@@ -38,7 +38,7 @@ export default class QueryGuardGenerator {
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'QueryContext' }],
-            moduleSpecifier: INTERNAL_PACKAGE,
+            moduleSpecifier: `${RUNTIME_PACKAGE}/server`,
             isTypeOnly: true,
         });
 
@@ -58,7 +58,9 @@ export default class QueryGuardGenerator {
 
         this.generateFieldMapping(models, sf);
 
-        models.forEach((model) => this.generateQueryGuardForModel(model, sf));
+        for (const model of models) {
+            await this.generateQueryGuardForModel(model, sf);
+        }
 
         sf.formatText({});
         await project.save();

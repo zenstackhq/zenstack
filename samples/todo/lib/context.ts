@@ -1,4 +1,4 @@
-import { useSpace } from '@zenstackhq/runtime/hooks';
+import { useSpace } from '@zenstackhq/runtime/client';
 import { Space } from '@zenstackhq/runtime/types';
 import { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
@@ -17,15 +17,16 @@ export const SpaceContext = createContext<Space | undefined>(undefined);
 export function useCurrentSpace() {
     const router = useRouter();
     const { find } = useSpace();
-    const spaces = find({
-        where: {
-            slug: router.query.slug as string,
+    const spaces = find(
+        {
+            where: {
+                slug: router.query.slug as string,
+            },
         },
-    });
-
-    if (!router.query.slug) {
-        return undefined;
-    }
+        {
+            disabled: !router.query.slug,
+        }
+    );
 
     return spaces.data?.[0];
 }

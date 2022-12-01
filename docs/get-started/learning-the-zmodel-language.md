@@ -9,7 +9,7 @@ Every model needs to include exactly one `datasource` declaration, providing inf
 
 The recommended way is to load the connection string from an environment variable, like:
 
-```prisma
+```zmodel
 datasource db {
     provider = "postgresql"
     url = env("DATABASE_URL")
@@ -24,7 +24,7 @@ Data models define the shapes of entities in your application domain. They inclu
 
 Here's an example of a blog post model:
 
-```prisma
+```zmodel
 model Post {
     // the mandatory primary key of this model with a default UUID value
     id String @id @default(uuid())
@@ -59,7 +59,7 @@ Attributes attached to fields are prefixed with '@', and those to models are pre
 
 Here're some examples of commonly used attributes:
 
-```prisma
+```zmodel
 model Post {
     // @id is a field attribute, marking the field as a primary key
     // @default is another field attribute for specifying a default value for the field if it's not given at creation time
@@ -97,7 +97,7 @@ ZenStack inherits most attributes and functions from Prisma, and added a number 
 
     You can override the default setting with the `saltLength` or `salt` named parameters, like:
 
-```prisma
+```zmodel
 model User {
     password String @password(saltLength: 16)
 }
@@ -115,7 +115,7 @@ If both `saltLength` and `salt` parameters are provided, `salt` is used.
 
     E.g.:
 
-```prisma
+```zmodel
 model User {
     password String @password @omit
 }
@@ -129,7 +129,7 @@ The special `@relation` attribute expresses relations between data models. Here'
 
 -   One-to-one
 
-```prisma
+```zmodel
 model User {
     id String @id
     profile Profile?
@@ -144,7 +144,7 @@ model Profile {
 
 -   One-to-many
 
-```prisma
+```zmodel
 model User {
     id String @id
     posts Post[]
@@ -159,7 +159,7 @@ model Post {
 
 -   Many-to-many
 
-```prisma
+```zmodel
 model Space {
     id String @id
     members Membership[]
@@ -188,11 +188,13 @@ model User {
 
 ```
 
+This document serves as a quick overview for starting with the ZModel language. For more thorough explanations about data modeling, please check out [Prisma's schema references](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference).
+
 ## Access policies
 
-Access policies use `@@allow` and `@@deny` rules to specify the eligibility of an operation over a model entity. The signatures of the attributes are:
+Access policies express authorization logic in a declarative way. They use `@@allow` and `@@deny` rules to specify the eligibility of an operation over a model entity. The signatures of the attributes are:
 
-```prisma
+```zmodel
 @@allow(operation, condition)
 @@deny(operation, condition)
 ```
@@ -214,26 +216,26 @@ You can use `auth()` to:
 
 -   Check if a user is logged in
 
-```prisma
+```zmodel
 @@deny('all', auth() == null)
 ```
 
 -   Access user's fields
 
-```prisma
+```zmodel
 @@allow('update', auth().role == 'ADMIN')
 ```
 
 -   Compare user identity
 
-```prisma
+```zmodel
 // owner is a relation field to User model
 @@allow('update', auth() == owner)
 ```
 
 ### A simple example with Post model
 
-```prisma
+```zmodel
 model Post {
     // reject all operations if user's not logged in
     @@deny('all', auth() == null)
@@ -248,7 +250,7 @@ model Post {
 
 ### A more complex example with multi-user spaces
 
-```prisma
+```zmodel
 model Space {
     id String @id
     members Membership[]
@@ -320,7 +322,7 @@ model User {
 
 As you've seen in the examples above, you can access fields from relations in policy expressions. For example, to express "a user can be read by any user sharing a space" in the `User` model, you can directly read into its `membership` field.
 
-```prisma
+```zmodel
     @@allow('read', membership?[space.members?[user == auth()]])
 ```
 
@@ -356,7 +358,7 @@ Collection predicate expressions are boolean expressions used to express conditi
 
 The `condition` expression has direct access to fields defined in the model of `collection`. E.g.:
 
-```prisma
+```zmodel
     @@allow('read', members?[user == auth()])
 ```
 
@@ -364,7 +366,7 @@ The `condition` expression has direct access to fields defined in the model of `
 
 Also, collection predicates can be nested to express complex conditions involving multi-level relation lookup. E.g.:
 
-```prisma
+```zmodel
     @@allow('read', membership?[space.members?[user == auth()]])
 ```
 
@@ -374,6 +376,70 @@ In this example, `user` refers to `user` field of `Membership` model because `sp
 
 Please check out the [Collaborative Todo](../../samples/todo) for a complete example on using access policies.
 
-## Summary
+## Field constraints
 
-This document serves as a quick overview for starting with the ZModel language. For more thorough explanations about data modeling, please check out [Prisma's schema references](https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference).
+Field constraints are used for attaching constraints to field values. Unlike access policies, field constraints only apply on individual fields, and are only checked for 'create' and 'update' operations.
+
+Internally ZenStack uses [zod](https://github.com/colinhacks/zod) for validation. The checks are run in both the server-side CURD services and the clent-side React hooks. For the server side, upon validation error, HTTP 400 is returned with a body containing a `message` field for details. For the client side, a `ValidationError` is thrown.
+
+The following attributes can be used to attach field constraints:
+
+### String:
+
+-   `@length(_ min: Int?, _ max: Int?)`
+
+    Validates length of a string field.
+
+-   `@startsWith(_ text: String)`
+
+    Validates a string field value starts with the given text.
+
+-   `@endsWith(_ text: String)`
+
+    Validates a string field value ends with the given text.
+
+-   `@email()`
+
+    Validates a string field value is a valid email address.
+
+-   `@url()`
+
+    Validates a string field value is a valid url.
+
+-   `@datetime()`
+
+    Validates a string field value is a valid ISO datetime.
+
+-   `@regex(_ regex: String)`
+
+    Validates a string field value matches a regex.
+
+### Number:
+
+-   `@gt(_ value: Int)`
+
+    Validates a number field is greater than the given value.
+
+-   `@gte(_ value: Int)`
+
+    Validates a number field is greater than or equal to the given value.
+
+-   `@lt(_ value: Int)`
+
+    Validates a number field is less than the given value.
+
+-   `@lte(_ value: Int)`
+
+    Validates a number field is less than or equal to the given value.
+
+### Sample usage
+
+```zmodel
+model User {
+    id String @id
+    handle String @regex("^[0-9a-zA-Z]{4,16}$")
+    email String @email @endsWith("@myorg.com")
+    profileImage String? @url
+    age Int @gt(0)
+}
+```
