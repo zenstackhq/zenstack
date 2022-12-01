@@ -1,6 +1,6 @@
 # 0.4.0 (2022-12-01)
 
-### Features
+## Features
 
 -   `zenstack init` command for initializing a project, [#109](https://github.com/zenstackhq/zenstack/issues/109), [doc](https://zenstack.dev/#/quick-start?id=adding-to-an-existing-project).
 
@@ -18,7 +18,7 @@
 
 -   [Website](https://zenstack.dev) is live!
 
-### Fixes and improvements
+## Fixes and improvements
 
 -   Merge `@zenstackhq/internal` into `@zenstackhq/runtime` so as to have a single runtime dependency, [#70](https://github.com/zenstackhq/zenstack/issues/70).
 
@@ -30,7 +30,7 @@
 
 -   Upgraded to Prisma 4.7.
 
-### Breaking changes
+## Breaking changes
 
 -   @zenstackhq/runtime doesn't export anything now.
 
@@ -38,13 +38,13 @@
 
 # 0.3.0 (2022-11-08)
 
-### Features
+## Features
 
 -   `@password` and `@omit` attribute support
 
 -   Configurable logging (to stdout and emitting as events)
 
-### Fixes and improvements
+## Fixes and improvements
 
 -   More robust policy checks
 
@@ -58,7 +58,7 @@
 
 # 0.2.1 (2022-10-29)
 
-### Features
+## Features
 
 -   `ZModel` data modeling schema (an extension to [Prisma Schema](https://www.prisma.io/docs/concepts/components/prisma-schema))
 
