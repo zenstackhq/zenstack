@@ -16,6 +16,8 @@
 
 -   Barebone starter (without authentication), [link](https://github.com/zenstackhq/nextjs-barebone-starter).
 
+-   [Website](https://zenstack.dev) is live!
+
 ### Fixes and improvements
 
 -   Merge `@zenstackhq/internal` into `@zenstackhq/runtime` so as to have a single runtime dependency, [#70](https://github.com/zenstackhq/zenstack/issues/70).
@@ -33,3 +35,37 @@
 -   @zenstackhq/runtime doesn't export anything now.
 
     Use @zenstackhq/runtime/types for type definitions shared between client and server, @zenstackhq/runtime/client for client-specific libaries (like React hooks), and @zenstackhq/runtime/server for server-specific libraries.
+
+# 0.3.0 (2022-11-08)
+
+### Features
+
+-   `@password` and `@omit` attribute support
+
+-   Configurable logging (to stdout and emitting as events)
+
+### Fixes and improvements
+
+-   More robust policy checks
+
+-   Properly handles complex types like BigInt, Date, Decimal, etc.
+
+-   Makes sure Prisma schema is regenerated for related CLI commands
+
+-   Lower VSCode engine version requirement for the extension
+
+-   Better overall documentation
+
+# 0.2.1 (2022-10-29)
+
+### Features
+
+-   `ZModel` data modeling schema (an extension to [Prisma Schema](https://www.prisma.io/docs/concepts/components/prisma-schema))
+
+-   `zenstack` cli for generating RESTful services, auth adapters and React hooks from `ZModel`
+
+-   Policy engine that transforms policy rules into Prisma query conditions
+
+-   Runtime packages
+
+-   An initial set of tests
