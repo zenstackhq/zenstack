@@ -163,6 +163,6 @@ model Post {
 }
 ```
 
-You can find more details about access policy [TBD here](). Also, check out the [Collaborative Todo App](https://github.com/zenstackhq/todo-demo-sqlite) sample for a more sophisticated policy design.
+You can find more details about access policy [here](zmodel-access-policy.md). Also, check out the [Collaborative Todo App](https://github.com/zenstackhq/todo-demo-sqlite) sample for a more sophisticated policy design.
 
 Now you've got a fairly complete model for the app. Let's go ahead with [generating code](code-generation.md) from it then.
