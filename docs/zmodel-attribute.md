@@ -445,7 +445,7 @@ You can find a list of predefined attribute functions [here](#predefined-attribu
         function auth(): User {}
     ```
 
-    Gets thec current login user. The return type of the function is the `User` data model defined in the current ZModel.
+    Gets the current login user. The return type of the function is the `User` data model defined in the current ZModel.
 
 ## Examples
 
