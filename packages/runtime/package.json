@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && cp -r pre/* dist/ && cp ./package.json dist/",
+        "build": "pnpm lint && pnpm clean && tsc && cp -r pre/* dist/ && cp ./package.json ./README.md dist/",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
