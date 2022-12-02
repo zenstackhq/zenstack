@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "npm run clean && tsc && cp -r pre/* dist/ && cp ./package.json dist/",
+        "build": "pnpm lint && pnpm clean && tsc && cp -r pre/* dist/ && cp ./package.json dist/",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
@@ -39,6 +39,7 @@
     "author": {
         "name": "ZenStack Team"
     },
+    "homepage": "https://zenstack.dev",
     "license": "MIT",
     "devDependencies": {
         "@types/bcryptjs": "^2.4.2",
