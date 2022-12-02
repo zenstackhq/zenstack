@@ -6,6 +6,8 @@ export type {
     PolicyOperationKind,
     RuntimeAttribute,
     QueryContext,
+    Service,
+    DbClientContract,
 } from '../lib/types';
 
 export {
