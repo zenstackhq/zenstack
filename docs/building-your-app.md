@@ -38,16 +38,13 @@ Make sure the services are mounted at route `/api/zenstack/` with a catch all pa
 
 ## <small>_optional_</small> Integrating with NextAuth
 
-If you use NextAuth for authentication, ZenStack also generates an adapter which you can use to configure NextAuth for persistence of user, session, etc.
+If you use NextAuth for authentication, you can install the `@zenstackhq/next-auth` package for easier integration. This package provides an adapter and authorization helper that you can use to configure NextAuth.
 
 ```ts
 // pages/api/auth/[...nextauth].ts
 
 import service from '@zenstackhq/runtime';
-import {
-    authorize,
-    NextAuthAdapter as Adapter,
-} from '@zenstackhq/runtime/auth';
+import { authorize, Adapter } from '@zenstackhq/next-auth';
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
@@ -67,6 +64,8 @@ export const authOptions: NextAuthOptions = {
 
 export default NextAuth(authOptions);
 ```
+
+Find more details [here](integrating-authentication.md) about integrating with different authentication schemes.
 
 ## Using React hooks
 

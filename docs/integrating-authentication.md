@@ -6,15 +6,17 @@ This documentation explains how to integrate ZenStack with popular authenticatio
 
 [NextAuth](https://next-auth.js.org/) is a comprehensive framework for implementating authentication. It offers a pluggable mechanism for configuring how user data is persisted. You can find a full example using ZenStack with NextAuth [here](https://github.com/zenstackhq/zenstack/tree/main/samples/todo ':target=blank').
 
-### Using generated adapter
+ZenStack provides an extension package `@zenstackhq/next-auth` for integrating with NextAuth, which includes:
 
-When `zenstack generate` runs, it generates an adapter for NextAuth if it finds the `next-auth` npm package is installed. The generated adapter can be configured to NextAuth as follows:
+### Adapter
+
+Adapter is a NextAuth mechanism for hooking in custom persistence of auth related entities, like User, Account, etc. The ZenStack adapter can be configured to NextAuth as follows:
 
 ```ts
 // pages/api/auth/[...nextauth].ts
 
 import service from '@zenstackhq/runtime/server';
-import { NextAuthAdapter as Adapter } from '@zenstackhq/runtime/server/auth';
+import { Adapter } from '@zenstackhq/next-auth';
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
@@ -26,15 +28,15 @@ export const authOptions: NextAuthOptions = {
 export default NextAuth(authOptions);
 ```
 
-### Using generated `authorize`
+### `authorize` helper
 
-If you use [`CredentialsProvider`](https://next-auth.js.org/providers/credentials ':target=blank'), i.e. username/password based auth, you can also use the generated `authorize` function to implement how username/password is verified against the database:
+If you use [`CredentialsProvider`](https://next-auth.js.org/providers/credentials ':target=blank'), i.e. email/password based auth, you can also use the `authorize` helper to implement how credentials are verified against the database:
 
 ```ts
 // pages/api/auth/[...nextauth].ts
 
 import service from '@zenstackhq/runtime/server';
-import { authorize } from '@zenstackhq/runtime/server/auth';
+import { authorize } from '@zenstackhq/next-auth';
 import NextAuth, { type NextAuthOptions } from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
