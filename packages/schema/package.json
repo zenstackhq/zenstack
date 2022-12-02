@@ -2,11 +2,12 @@
     "name": "zenstack",
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
-    "description": "A toolkit for modeling data and access policies in full-stack development with Next.js and Typescript",
-    "version": "0.4.0",
+    "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
+    "version": "0.4.1",
     "author": {
         "name": "ZenStack Team"
     },
+    "homepage": "https://zenstack.dev",
     "license": "MIT",
     "keywords": [
         "fullstack",

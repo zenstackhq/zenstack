@@ -54,7 +54,7 @@ enum AttributeTargetField {
 function env(name: String): String {}
 
 /*
- * Gets thec current login user.
+ * Gets the current login user.
  */
 function auth(): Any {}
 

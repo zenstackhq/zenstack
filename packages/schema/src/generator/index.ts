@@ -5,7 +5,6 @@ import colors from 'colors';
 import PrismaGenerator from './prisma';
 import ServiceGenerator from './service';
 import ReactHooksGenerator from './react-hooks';
-import NextAuthGenerator from './next-auth';
 import { TypescriptCompilation } from './tsc';
 import FieldConstraintGenerator from './field-constraint';
 import telemetry from '../telemetry';
@@ -46,7 +45,6 @@ export class ZenStackGenerator {
             new PrismaGenerator(),
             new ServiceGenerator(),
             new ReactHooksGenerator(),
-            new NextAuthGenerator(),
             new FieldConstraintGenerator(),
             new TypescriptCompilation(),
         ];

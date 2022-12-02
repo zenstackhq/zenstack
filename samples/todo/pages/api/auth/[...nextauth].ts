@@ -1,10 +1,7 @@
 import NextAuth, { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GitHubProvider from 'next-auth/providers/github';
-import {
-    authorize,
-    NextAuthAdapter as Adapter,
-} from '@zenstackhq/runtime/server/auth';
+import { authorize, Adapter } from '@zenstackhq/next-auth';
 import service from '@zenstackhq/runtime/server';
 import { nanoid } from 'nanoid';
 import { SpaceUserRole } from '@zenstackhq/runtime/types';
