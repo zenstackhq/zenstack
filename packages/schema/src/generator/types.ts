@@ -8,7 +8,9 @@ export interface Context {
 
 export interface Generator {
     get name(): string;
-    generate(context: Context): Promise<void>;
+    get startMessage(): string;
+    get successMessage(): string;
+    generate(context: Context): Promise<string[]>;
 }
 
 export class GeneratorError extends Error {

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import colors from 'colors';
 import * as fs from 'fs';
 import path from 'path';
 import { execSync } from '../../utils/exec-utils';
@@ -8,6 +7,14 @@ import { Context, Generator, GeneratorError } from '../types';
 export class TypescriptCompilation implements Generator {
     get name(): string {
         return 'tsc';
+    }
+
+    get startMessage() {
+        return 'Transpiling generated code...';
+    }
+
+    get successMessage() {
+        return 'Successfully transpiled all generated code';
     }
 
     async generate(context: Context) {
@@ -47,6 +54,6 @@ export class TypescriptCompilation implements Generator {
             );
         }
 
-        console.log(colors.blue('  ✔️ Typescript source files transpiled'));
+        return [];
     }
 }

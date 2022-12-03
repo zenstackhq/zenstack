@@ -1,7 +1,3 @@
-import { Context, Generator } from '../types';
-import { Project, SourceFile } from 'ts-morph';
-import * as path from 'path';
-import colors from 'colors';
 import {
     DataModel,
     DataModelField,
@@ -10,6 +6,9 @@ import {
     isLiteralExpr,
     LiteralExpr,
 } from '@lang/generated/ast';
+import * as path from 'path';
+import { Project, SourceFile } from 'ts-morph';
+import { Context, Generator } from '../types';
 
 /**
  * Generates field constraint validators (run on both client and server side)
@@ -19,7 +18,15 @@ export default class FieldConstraintGenerator implements Generator {
         return 'field-constraint';
     }
 
-    async generate(context: Context): Promise<void> {
+    get startMessage() {
+        return 'Generating field constraints...';
+    }
+
+    get successMessage() {
+        return 'Successfully generated field constraints';
+    }
+
+    async generate(context: Context) {
         const project = new Project();
         const sf = project.createSourceFile(
             path.join(
@@ -41,7 +48,7 @@ export default class FieldConstraintGenerator implements Generator {
         sf.formatText();
         await project.save();
 
-        console.log(colors.blue(`  ✔️ Field constraint validators generated`));
+        return [];
     }
 
     private generateConstraints(sf: SourceFile, model: DataModel) {
