@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import cuid from 'cuid';
+import superjson from 'superjson';
 import { TRANSACTION_FIELD_NAME } from '../../constants';
 import {
     DbClientContract,
@@ -122,7 +123,9 @@ export class CRUD<DbClient> {
 
                     // conduct the create
                     this.service.verbose(
-                        `Conducting create: ${model}:\n${JSON.stringify(args)}`
+                        `Conducting create: ${model}:\n${superjson.stringify(
+                            args
+                        )}`
                     );
                     const createResult = (await tx[model].create(args)) as {
                         id: string;
@@ -245,7 +248,9 @@ export class CRUD<DbClient> {
 
                     // conduct the update
                     this.service.verbose(
-                        `Conducting update: ${model}:\n${JSON.stringify(args)}`
+                        `Conducting update: ${model}:\n${superjson.stringify(
+                            args
+                        )}`
                     );
                     await tx[model].update(args);
 
@@ -356,7 +361,9 @@ export class CRUD<DbClient> {
 
                     // conduct the deletion
                     this.service.verbose(
-                        `Conducting delete ${model}:\n${JSON.stringify(args)}`
+                        `Conducting delete ${model}:\n${superjson.stringify(
+                            args
+                        )}`
                     );
                     await tx[model].delete(args);
 

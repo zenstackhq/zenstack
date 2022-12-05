@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "author": {
         "name": "ZenStack Team"
     },

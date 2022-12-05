@@ -1,5 +1,6 @@
 import path from 'path';
 import { makeClient, run, setup } from './utils';
+import { Decimal } from 'decimal.js';
 
 describe('Type Coverage Tests', () => {
     let origDir: string;
@@ -18,13 +19,14 @@ describe('Type Coverage Tests', () => {
     });
 
     it('all types', async () => {
+        const date = new Date();
         const data = {
             string: 'string',
             int: 100,
-            bigInt: 9007199254740991,
-            date: new Date(),
+            bigInt: BigInt(9007199254740991),
+            date,
             float: 1.23,
-            decimal: 1.2345,
+            decimal: new Decimal(1.2345),
             boolean: true,
             bytes: Buffer.from('hello'),
         };
@@ -35,33 +37,7 @@ describe('Type Coverage Tests', () => {
             })
             .expect(201)
             .expect((resp) => {
-                expect(resp.body.bigInt).toEqual(
-                    expect.objectContaining({
-                        type: 'BigInt',
-                        data: data.bigInt.toString(),
-                    })
-                );
-
-                expect(resp.body.date).toEqual(
-                    expect.objectContaining({
-                        type: 'Date',
-                        data: data.date.toISOString(),
-                    })
-                );
-
-                expect(resp.body.decimal).toEqual(
-                    expect.objectContaining({
-                        type: 'Decimal',
-                        data: data.decimal.toString(),
-                    })
-                );
-
-                expect(resp.body.bytes).toEqual(
-                    expect.objectContaining({
-                        type: 'Bytes',
-                        data: Array.from(data.bytes),
-                    })
-                );
+                expect(resp.body).toEqual(expect.objectContaining(data));
             });
     });
 });

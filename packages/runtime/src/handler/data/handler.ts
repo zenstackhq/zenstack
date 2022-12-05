@@ -1,13 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import superjson from 'superjson';
 import { RequestHandlerOptions } from '../../request-handler';
+import { registerSerializers } from '../../serialization-utils';
 import {
     DbClientContract,
     QueryContext,
     ServerErrorCode,
     Service,
 } from '../../types';
-import { RequestHandler, CRUDError } from '../types';
+import { CRUDError, RequestHandler } from '../types';
 import { CRUD } from './crud';
+
+registerSerializers();
 
 /**
  * Request handler for /data endpoint which processes data CRUD requests.
@@ -36,7 +40,9 @@ export default class DataHandler<DbClient extends DbClientContract>
 
         this.service.verbose(`Data request: ${method} ${path}`);
         if (req.body) {
-            this.service.verbose(`Request body: ${JSON.stringify(req.body)}`);
+            this.service.verbose(
+                `Request body: ${superjson.stringify(req.body)}`
+            );
         }
 
         try {
@@ -100,6 +106,18 @@ export default class DataHandler<DbClient extends DbClientContract>
         }
     }
 
+    private marshal(value: unknown) {
+        return JSON.parse(superjson.stringify(value));
+    }
+
+    private unmarshal(value: unknown) {
+        if (typeof value === 'string') {
+            return superjson.parse(value);
+        } else {
+            return superjson.parse(JSON.stringify(value));
+        }
+    }
+
     private async get(
         req: NextApiRequest,
         res: NextApiResponse,
@@ -108,7 +126,7 @@ export default class DataHandler<DbClient extends DbClientContract>
         context: QueryContext
     ) {
         // parse additional query args from "q" parameter
-        const args = req.query.q ? JSON.parse(req.query.q as string) : {};
+        const args = req.query.q ? this.unmarshal(req.query.q as string) : {};
 
         if (id) {
             // GET <model>/:id, make sure "id" is injected
@@ -116,11 +134,11 @@ export default class DataHandler<DbClient extends DbClientContract>
             if (!result) {
                 throw new CRUDError(ServerErrorCode.ENTITY_NOT_FOUND);
             }
-            res.status(200).send(result);
+            res.status(200).send(this.marshal(result));
         } else {
             // GET <model>/, get list
             const result = await this.crud.find(model, args, context);
-            res.status(200).send(result);
+            res.status(200).send(this.marshal(result));
         }
     }
 
@@ -130,8 +148,12 @@ export default class DataHandler<DbClient extends DbClientContract>
         model: string,
         context: QueryContext
     ) {
-        const result = await this.crud.create(model, req.body, context);
-        res.status(201).send(result);
+        const result = await this.crud.create(
+            model,
+            this.unmarshal(req.body),
+            context
+        );
+        res.status(201).send(this.marshal(result));
     }
 
     private async put(
@@ -148,8 +170,13 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        const result = await this.crud.update(model, id, req.body, context);
-        res.status(200).send(result);
+        const result = await this.crud.update(
+            model,
+            id,
+            this.unmarshal(req.body),
+            context
+        );
+        res.status(200).send(this.marshal(result));
     }
 
     private async del(
@@ -166,8 +193,8 @@ export default class DataHandler<DbClient extends DbClientContract>
             );
         }
 
-        const args = req.query.q ? JSON.parse(req.query.q as string) : {};
+        const args = req.query.q ? this.unmarshal(req.query.q as string) : {};
         const result = await this.crud.del(model, id, args, context);
-        res.status(200).send(result);
+        res.status(200).send(this.marshal(result));
     }
 }
