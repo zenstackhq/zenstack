@@ -26,6 +26,8 @@
     "dependencies": {
         "@types/node": "^14.18.29",
         "bcryptjs": "^2.4.3",
-        "sleep-promise": "^9.1.0"
+        "decimal.js": "^10.4.2",
+        "sleep-promise": "^9.1.0",
+        "superjson": "^1.11.0"
     }
 }
