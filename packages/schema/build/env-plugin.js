@@ -12,18 +12,26 @@ module.exports = {
         function _findEnvFile(dir) {
             if (!fs.existsSync(dir)) return undefined;
 
-            if (fs.existsSync(`${dir}/.env.${ENV}`)) {
-                return `${dir}/.env.${ENV}`;
-            } else if (fs.existsSync(`${dir}/.env`)) {
-                return `${dir}/.env`;
-            } else {
-                const next = path.resolve(dir, '../');
-                if (next === dir) {
-                    // at root now, exit
-                    return undefined;
-                } else {
-                    return _findEnvFile(next);
+            const candidates = [
+                `${dir}/.env.${ENV}.local`,
+                `${dir}/.env.${ENV}`,
+                `${dir}/.env.local`,
+                `${dir}/.env`,
+            ];
+
+            for (const candidate of candidates) {
+                if (fs.existsSync(candidate)) {
+                    console.log('Using env from:', candidate);
+                    return candidate;
                 }
+            }
+
+            const next = path.resolve(dir, '../');
+            if (next === dir) {
+                // at root now, exit
+                return undefined;
+            } else {
+                return _findEnvFile(next);
             }
         }
 

@@ -3,3 +3,4 @@ dist
 .vercel
 .DS_Store
 .vscode/settings.json
+.env.local
