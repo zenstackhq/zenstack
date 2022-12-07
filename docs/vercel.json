@@ -1,3 +1,6 @@
 {
-    "rewrites": [{ "source": "/:path*", "destination": "/index.html" }]
+    "rewrites": [
+        { "source": "/8cd31ff7afe74424abbec00b65f04ae8.txt", "destination": "/8cd31ff7afe74424abbec00b65f04ae8.txt" },
+        { "source": "/:path*", "destination": "/index.html" }
+    ]
 }
