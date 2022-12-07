@@ -157,7 +157,7 @@ The server-side CRUD APIs have similar signature with client-side hooks, except 
 -   create
 
     ```ts
-    async find(
+    async create(
         context: QueryContext,
         args?: UserCreateArgs
     ): Promise<User>;
@@ -166,7 +166,7 @@ The server-side CRUD APIs have similar signature with client-side hooks, except 
 -   update
 
     ```ts
-    async get(
+    async update(
         context: QueryContext,
         id: string,
         args?: UserUpdateArgs
@@ -175,7 +175,7 @@ The server-side CRUD APIs have similar signature with client-side hooks, except 
 
 -   del
     ```ts
-    async get(
+    async del(
         context: QueryContext,
         id: string,
         args?: UserDeleteArgs
