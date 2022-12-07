@@ -129,10 +129,6 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument,
         extraScopes: ScopeProvider[] = []
     ) {
-        if (node.$resolvedType) {
-            return;
-        }
-
         switch (node.$type) {
             case LiteralExpr:
                 this.resolveLiteral(node as LiteralExpr);
