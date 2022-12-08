@@ -1,0 +1,24 @@
+{
+    "name": "zenstack-docs",
+    "version": "1.0.0",
+    "description": "ZenStack documentation site",
+    "main": "sitemap.js",
+    "type": "module",
+    "scripts": {
+        "sitemap": "node sitemap.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/zenstackhq/zenstack.git"
+    },
+    "author": "ZenStack Team",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/zenstackhq/zenstack/issues"
+    },
+    "homepage": "https://zenstack.dev",
+    "devDependencies": {
+        "globby": "^13.1.2",
+        "sitemap": "^7.1.1"
+    }
+}
