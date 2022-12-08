@@ -3,12 +3,15 @@ import { SitemapStream, streamToPromise } from 'sitemap';
 import { Readable } from 'stream';
 import fs from 'fs';
 
-const links = globbySync(['./**/[!_]?*.md', '!node_modules', '!README.md']).map(
-    (path) => ({
-        url: `/${path.replace('.md', '')}`,
-        changefreq: 'daily',
-    })
-);
+const links = [
+    { url: '/', changefreq: 'daily' },
+    ...globbySync(['./**/[!_]?*.md', '!node_modules', '!README.md']).map(
+        (path) => ({
+            url: `/${path.replace('.md', '')}`,
+            changefreq: 'daily',
+        })
+    ),
+];
 
 console.log('Sitemap entries:');
 console.log(links);
