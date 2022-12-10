@@ -12,7 +12,7 @@
             "destination": "/static/index.html"
         },
         {
-            "source": "/:path",
+            "source": "/:path*",
             "has": [
                 {
                     "type": "header",
@@ -20,7 +20,7 @@
                     "value": "Googlebot"
                 }
             ],
-            "destination": "/static/:path.html"
+            "destination": "/static/:path*.html"
         },
         { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
         {
