@@ -1,5 +1,27 @@
 {
     "rewrites": [
+        {
+            "source": "/",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "Googlebot"
+                }
+            ],
+            "destination": "/static/index.html"
+        },
+        {
+            "source": "/:path",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": "Googlebot"
+                }
+            ],
+            "destination": "/static/:path.html"
+        },
         { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
         {
             "source": "/8cd31ff7afe74424abbec00b65f04ae8.txt",

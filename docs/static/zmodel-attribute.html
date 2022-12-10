@@ -1,0 +1,391 @@
+<!DOCTYPE html><html lang="en"><head>
+        <meta charset="UTF-8">
+        <title>Attribute</title>
+        <link rel="icon" href="_media/logo.png">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="keywords" content="fullstack,full-stack,web development,next.js,typescript,crud,authorization,access control">
+        <meta name="description" content="A fullstack toolkit for building secure CRUD web apps with Next.js and Typescript. Save time writing boilerplate code and focus on building real features!">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+
+        <meta property="og:image" content="https://zenstack.dev/_media/banner.png">
+
+        <meta property="og:title" content="ZenStack - toolkit for building CRUD apps with Next.js + Typescript">
+
+        <meta property="og:description" content="A full-stack toolkit made for front-end developers. Intuitive and flexible data modeling. No more boilerplate CRUD code.">
+
+        <meta property="og:url" content="https://zenstackhq.github.io/zenstack">
+
+        <meta name="twitter:card" content="summary_large_image">
+
+        <meta property="twitter:image:src" content="https://zenstack.dev/_media/banner.png">
+
+        <meta property="twitter:title" content="ZenStack - toolkit for building CRUD apps with Next.js + Typescript">
+
+        <meta property="twitter:description" content="A full-stack toolkit made for front-end developers. Intuitive and flexible data modeling. No more boilerplate CRUD code.">
+
+        <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+    <style type="text/css">.docsify-copy-code-button,.docsify-copy-code-button span{cursor:pointer;transition:all .25s ease}.docsify-copy-code-button{position:absolute;z-index:1;top:0;right:0;overflow:visible;padding:.65em .8em;border:0;border-radius:0;outline:0;font-size:1em;background:grey;background:var(--theme-color,grey);color:#fff;opacity:0}.docsify-copy-code-button span{border-radius:3px;background:inherit;pointer-events:none}.docsify-copy-code-button .error,.docsify-copy-code-button .success{position:absolute;z-index:-100;top:50%;right:0;padding:.5em .65em;font-size:.825em;opacity:0;-webkit-transform:translateY(-50%);transform:translateY(-50%)}.docsify-copy-code-button.error .error,.docsify-copy-code-button.success .success{right:100%;opacity:1;-webkit-transform:translate(-115%,-50%);transform:translate(-115%,-50%)}.docsify-copy-code-button:focus,pre:hover .docsify-copy-code-button{opacity:1}</style><style>
+.sidebar {
+  padding-top: 0;
+}
+
+.search {
+  margin-bottom: 20px;
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+.search .input-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.search .results-panel {
+  display: none;
+}
+
+.search .results-panel.show {
+  display: block;
+}
+
+.search input {
+  outline: none;
+  border: none;
+  width: 100%;
+  padding: 0.6em 7px;
+  font-size: inherit;
+  border: 1px solid transparent;
+}
+
+.search input:focus {
+  box-shadow: 0 0 5px var(--theme-color, #42b983);
+  border: 1px solid var(--theme-color, #42b983);
+}
+
+.search input::-webkit-search-decoration,
+.search input::-webkit-search-cancel-button,
+.search input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.search input::-ms-clear {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.search .clear-button {
+  cursor: pointer;
+  width: 36px;
+  text-align: right;
+  display: none;
+}
+
+.search .clear-button.show {
+  display: block;
+}
+
+.search .clear-button svg {
+  transform: scale(.5);
+}
+
+.search h2 {
+  font-size: 17px;
+  margin: 10px 0;
+}
+
+.search a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.search .matching-post {
+  border-bottom: 1px solid #eee;
+}
+
+.search .matching-post:last-child {
+  border-bottom: 0;
+}
+
+.search p {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.search p.empty {
+  text-align: center;
+}
+
+.app-name.hide, .sidebar-nav.hide {
+  display: none;
+}</style></head>
+    <body data-page="/zmodel-attribute.md" class="ready">
+        <nav class="app-nav"><ul><li>  <a href="https://go.zenstack.dev/chat" target="_blank" rel="noopener" title="Live Chat">Live Chat</a></li></ul></nav><a href="https://github.com/zenstackhq/zenstack" target="_blank" class="github-corner" aria-label="View source on Github"><svg viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a><section class="cover" style="background: linear-gradient(to left bottom, hsl(3, 100%, 85%) 0%,hsl(145, 100%, 85%) 100%)"><div class="mask"></div><div class="cover-main"><!--cover--></div></section><main><button class="sidebar-toggle" aria-label="Menu"><div class="sidebar-toggle-button"><span></span><span></span><span></span></div></button><aside class="sidebar"><div class="search"><div class="input-wrap">
+      <input type="search" value="" aria-label="Search text" placeholder="Type to search">
+      <div class="clear-button">
+        <svg width="26" height="24">
+          <circle cx="12" cy="12" r="11" fill="#ccc"></circle>
+          <path stroke="white" stroke-width="2" d="M8.25,8.25,15.75,15.75"></path>
+          <path stroke="white" stroke-width="2" d="M8.25,15.75,15.75,8.25"></path>
+        </svg>
+      </div>
+    </div>
+    <div class="results-panel"></div>
+    </div><h1 class="app-name"><a class="app-name-link" data-nosearch="" href="/zmodel-attribute"><div style="display: flex; align-items: center;"><img src="_media/logo.png" style="width: 2rem; margin-left: 0.5rem; margin-right: 0.5rem;"> <span>ZenStack</span></div></a></h1><div class="sidebar-nav"><ul><li><p>Getting started</p><ul><li>  <a href="/quick-start" title="Quick start">Quick start</a></li><li>  <a href="/modeling-your-app" title="Modeling your app">Modeling your app</a></li><li>  <a href="/code-generation" title="Code generation">Code generation</a></li><li>  <a href="/building-your-app" title="Building your app">Building your app</a></li></ul></li><li><p>ZModel reference</p><ul><li>  <a href="/zmodel-overview" title="Overview">Overview</a></li><li>  <a href="/zmodel-data-source" title="Data source">Data source</a></li><li>  <a href="/zmodel-enum" title="Enum">Enum</a></li><li>  <a href="/zmodel-data-model" title="Data model">Data model</a></li><li class="active">  <a href="/zmodel-attribute" title="Attribute">Attribute</a><ul class="app-sub-sidebar"><li><a class="section-link" href="/zmodel-attribute?id=syntax" title="Syntax">Syntax</a></li><li><a class="section-link" href="/zmodel-attribute?id=parameter-types" title="Parameter types">Parameter types</a></li><li><a class="section-link" href="/zmodel-attribute?id=attribute-functions" title="Attribute functions">Attribute functions</a></li><li><a class="section-link" href="/zmodel-attribute?id=predefined-attributes" title="Predefined attributes">Predefined attributes</a></li><li><a class="section-link" href="/zmodel-attribute?id=predefined-attribute-functions" title="Predefined attribute functions">Predefined attribute functions</a></li><li><a class="section-link" href="/zmodel-attribute?id=examples" title="Examples">Examples</a></li></ul></li><li>  <a href="/zmodel-field" title="Field">Field</a></li><li>  <a href="/zmodel-relation" title="Relation">Relation</a></li><li>  <a href="/zmodel-access-policy" title="Access policy">Access policy</a></li><li>  <a href="/zmodel-field-constraint" title="Field constraint">Field constraint</a></li><li>  <a href="/zmodel-referential-action" title="Referential action">Referential action</a></li></ul></li><li><p>CLI reference</p><ul><li>  <a href="/cli-commands" title="Commands">Commands</a></li></ul></li><li><p>  <a href="/runtime-api" title="Runtime API">Runtime API</a></p></li><li><p>Guide</p><ul><li>  <a href="/choosing-a-database" title="Choosing a database">Choosing a database</a></li><li>  <a href="/evolving-model-with-migration" title="Evolving model with migration">Evolving model with migration</a></li><li>  <a href="/integrating-authentication" title="Integrating authentication">Integrating authentication</a></li><li>  <a href="/server-side-rendering" title="Server-side rendering">Server-side rendering</a></li><li>  <a href="/setup-logging" title="Set up logging">Set up logging</a></li><li>  <a href="/telemetry" title="Telemetry">Telemetry</a></li></ul></li><li><p>  <a href="/vscode-extension" title="VSCode extension">VSCode extension</a></p></li><li><p>  <a href="/reach-out" title="Reach out to the developers">Reach out to the developers</a></p></li><li><p>  <a href="/changelog" title="Changelog">Changelog</a></p></li></ul></div></aside><section class="content"><article class="markdown-section" id="main"><h1 id="attribute"><a href="/zmodel-attribute?id=attribute" data-id="attribute" class="anchor"><span>Attribute</span></a></h1><p>Attributes decorate fields and data models and attach extra behaviors or constraints to them.</p><h2 id="syntax"><a href="/zmodel-attribute?id=syntax" data-id="syntax" class="anchor"><span>Syntax</span></a></h2><h3 id="field-attribute"><a href="/zmodel-attribute?id=field-attribute" data-id="field-attribute" class="anchor"><span>Field attribute</span></a></h3><p>Field attribute name is prefixed by a single <code>@</code>. Its application takes the following form:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">id<span class="token type-class-name"> String</span> @<span class="token punctuation">[</span>ATTR_NAME<span class="token punctuation">]</span><span class="token punctuation">(</span>ARGS<span class="token punctuation">)</span><span class="token operator">?</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><ul><li>  <strong>[ATTR_NAME]</strong></li></ul><p>Attribute name. See <a href="/zmodel-attribute?id=built-in-attributes">below</a> for a full list of attributes.</p><ul><li>  <strong>[ARGS]</strong></li></ul><p>See <a href="/zmodel-attribute?id=attribute-arguments">attribute arguments</a>.</p><h3 id="data-model-attribute"><a href="/zmodel-attribute?id=data-model-attribute" data-id="data-model-attribute" class="anchor"><span>Data model attribute</span></a></h3><p>Field attribute name is prefixed double <code>@@</code>. Its application takes the following form:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">model</span> Model <span class="token punctuation">{</span>
+    @@<span class="token punctuation">[</span>ATTR_NAME<span class="token punctuation">]</span><span class="token punctuation">(</span>ARGS<span class="token punctuation">)</span><span class="token operator">?</span>
+<span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><ul><li>  <strong>[ATTR_NAME]</strong></li></ul><p>Attribute name. See <a href="/zmodel-attribute?id=built-in-attributes">below</a> for a full list of attributes.</p><ul><li>  <strong>[ARGS]</strong></li></ul><p>See <a href="/zmodel-attribute?id=attribute-arguments">attribute arguments</a>.</p><h3 id="arguments"><a href="/zmodel-attribute?id=arguments" data-id="arguments" class="anchor"><span>Arguments</span></a></h3><p>Attribute can be declared with a list of parameters, and applied with an optional comma-separated list of arguments.</p><p>Arguments are mapped to parameters by position or by name. For example, for the <code>@default</code> attribute declared as:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span>_<span class="token type-class-name"> value</span><span class="token punctuation">:</span> ContextType<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>, the following two ways of applying it are equivalent:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">published<span class="token type-class-name"> Boolean</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span>value<span class="token punctuation">:</span> <span class="token boolean">false</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">published<span class="token type-class-name"> Boolean</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token boolean">false</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><h2 id="parameter-types"><a href="/zmodel-attribute?id=parameter-types" data-id="parameter-types" class="anchor"><span>Parameter types</span></a></h2><p>Attribute parameters are typed. The following types are supported:</p><ul><li><p>Int</p><p>  Integer literal can be passed as argument.</p><p>  E.g., declaration:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@password</span><span class="token punctuation">(</span>saltLength<span class="token punctuation">:</span> Int<span class="token operator">?</span><span class="token punctuation">,</span> salt<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span>
+</code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  application:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">password<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@password</span><span class="token punctuation">(</span>saltLength<span class="token punctuation">:</span> <span class="token number">10</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></li><li><p>String</p><p>  String literal can be passed as argument.</p><p>  E.g., declaration:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@id</span><span class="token punctuation">(</span>map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  application:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">id<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@id</span><span class="token punctuation">(</span>map<span class="token punctuation">:</span> <span class="token string">"_id"</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></li><li><p>Boolean</p><p>  Boolean literal or expression can be passed as argument.</p><p>  E.g., declaration:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@@allow</span><span class="token punctuation">(</span>_<span class="token type-class-name"> operation</span><span class="token punctuation">:</span> String<span class="token punctuation">,</span> _<span class="token type-class-name"> condition</span><span class="token punctuation">:</span> Boolean<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  application:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token annotation punctuation">@@allow</span><span class="token punctuation">(</span><span class="token string">"read"</span><span class="token punctuation">,</span> <span class="token boolean">true</span><span class="token punctuation">)</span>
+<span class="token annotation punctuation">@@allow</span><span class="token punctuation">(</span><span class="token string">"update"</span><span class="token punctuation">,</span> <span class="token function">auth</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></li><li><p>ContextType</p><p>  A special type that represents the type of the field onto which the attribute is attached.</p><p>  E.g., declaration:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span>_<span class="token type-class-name"> value</span><span class="token punctuation">:</span> ContextType<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  application:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">f1<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token string">"hello"</span><span class="token punctuation">)</span>
+f2<span class="token type-class-name"> Int</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></li><li><p>FieldReference</p><p>  References to fields defined in the current model.</p><p>  E.g., declaration:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@relation</span><span class="token punctuation">(</span>
+    _<span class="token type-class-name"> name</span><span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">,</span>
+    fields<span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token punctuation">,</span>
+    references<span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token punctuation">,</span>
+    onDelete<span class="token punctuation">:</span> ReferentialAction<span class="token operator">?</span><span class="token punctuation">,</span>
+    onUpdate<span class="token punctuation">:</span> ReferentialAction<span class="token operator">?</span><span class="token punctuation">,</span>
+    map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  application:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">model</span> Model <span class="token punctuation">{</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    <span class="token comment">// [ownerId] is a list of FieldReference</span>
+    owner<span class="token type-class-name"> Owner</span> <span class="token annotation punctuation">@relation</span><span class="token punctuation">(</span>fields<span class="token punctuation">:</span> <span class="token punctuation">[</span>ownerId<span class="token punctuation">]</span><span class="token punctuation">,</span> references<span class="token punctuation">:</span> <span class="token punctuation">[</span>id<span class="token punctuation">]</span><span class="token punctuation">)</span>
+    ownerId
+<span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></li><li><p>Enum</p><p>  Attribute parameter can also be typed as predefined enum.</p><p>  E.g., declaration:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@relation</span><span class="token punctuation">(</span>
+    _<span class="token type-class-name"> name</span><span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">,</span>
+    fields<span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token punctuation">,</span>
+    references<span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token punctuation">,</span>
+    <span class="token comment">// ReferentialAction is a predefined enum</span>
+    onDelete<span class="token punctuation">:</span> ReferentialAction<span class="token operator">?</span><span class="token punctuation">,</span>
+    onUpdate<span class="token punctuation">:</span> ReferentialAction<span class="token operator">?</span><span class="token punctuation">,</span>
+    map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  application:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">model</span> Model <span class="token punctuation">{</span>
+    <span class="token comment">// 'Cascade' is a predefined enum value</span>
+    owner<span class="token type-class-name"> Owner</span> <span class="token annotation punctuation">@relation</span><span class="token punctuation">(</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">,</span> onDelete<span class="token punctuation">:</span> Cascade<span class="token punctuation">)</span>
+<span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></li></ul><p>An attribute parameter can be typed as any of the above type, a list of the above type, or an optional of the above type.</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">model</span> Model <span class="token punctuation">{</span>
+        <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+        f1<span class="token type-class-name"> String</span>
+        f2<span class="token type-class-name"> String</span>
+        <span class="token comment">// a list of FieldReference</span>
+        <span class="token annotation punctuation">@@unique</span><span class="token punctuation">(</span><span class="token punctuation">[</span>f1<span class="token punctuation">,</span> f2<span class="token punctuation">]</span><span class="token punctuation">)</span>
+    <span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><h2 id="attribute-functions"><a href="/zmodel-attribute?id=attribute-functions" data-id="attribute-functions" class="anchor"><span>Attribute functions</span></a></h2><p>Attribute functions are used for providing values for attribute arguments, e.g., current <code>DateTime</code>, an autoincrement <code>Int</code>, etc. They can be used in place of attribute argument, like:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">model</span> Model <span class="token punctuation">{</span>
+    <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+    serial<span class="token type-class-name"> Int</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token function">autoincrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+    createdAt<span class="token type-class-name"> DateTime</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token function">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>You can find a list of predefined attribute functions <a href="/zmodel-attribute?id=predefined-attribute-functions">here</a>.</p><h2 id="predefined-attributes"><a href="/zmodel-attribute?id=predefined-attributes" data-id="predefined-attributes" class="anchor"><span>Predefined attributes</span></a></h2><h3 id="field-attributes"><a href="/zmodel-attribute?id=field-attributes" data-id="field-attributes" class="anchor"><span>Field attributes</span></a></h3><ul><li><p><code>@id</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">attribute</span> <span class="token annotation punctuation">@id</span><span class="token punctuation">(</span>map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines an ID on the model.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>map</td>
+<td>The name of the underlying primary key constraint in the database</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@default</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span>_<span class="token type-class-name"> value</span><span class="token punctuation">:</span> ContextType<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines a default value for a field.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>value</td>
+<td>The default value expression</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@unique</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@unique</span><span class="token punctuation">(</span>map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines a unique constraint for this field.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>map</td>
+<td>The name of the underlying primary key constraint in the database</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@relation</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@relation</span><span class="token punctuation">(</span>_<span class="token type-class-name"> name</span><span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">,</span> fields<span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token punctuation">,</span> references<span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token operator">?</span><span class="token punctuation">,</span> onDelete<span class="token punctuation">:</span> ReferentialAction<span class="token operator">?</span><span class="token punctuation">,</span> onUpdate<span class="token punctuation">:</span> ReferentialAction<span class="token operator">?</span><span class="token punctuation">,</span> map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines meta information about a relation.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>name</td>
+<td>The name of the relationship</td>
+</tr>
+<tr>
+<td>fields</td>
+<td>A list of fields defined in the current model</td>
+</tr>
+<tr>
+<td>references</td>
+<td>A list of fields of the model on the other side of the relation</td>
+</tr>
+<tr>
+<td>onDelete</td>
+<td>Referential action to take on delete. See details <a href="/zmodel-referential-action">here</a>.</td>
+</tr>
+<tr>
+<td>onUpdate</td>
+<td>Referential action to take on update. See details <a href="/zmodel-referential-action">here</a>.</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@map</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@map</span><span class="token punctuation">(</span>_<span class="token type-class-name"> name</span><span class="token punctuation">:</span> String<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Maps a field name or enum value from the schema to a column with a different name in the database.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>map</td>
+<td>The name of the underlying column in the database</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@updatedAt</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@updatedAt</span><span class="token punctuation">(</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Automatically stores the time when a record was last updated.</p></li><li><p><code>@password</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@password</span><span class="token punctuation">(</span>saltLength<span class="token punctuation">:</span> Int<span class="token operator">?</span><span class="token punctuation">,</span> salt<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Indicates that the field is a password field and needs to be hashed before persistence.</p><p>  <em>NOTE</em>: ZenStack uses <code>bcryptjs</code> library to hash password. You can use the <code>saltLength</code> parameter to configure the cost of hashing, or use <code>salt</code> parameter to provide an explicit salt. By default, salt length of 12 is used. See <a href="https://www.npmjs.com/package/bcryptjs" target="blank">bcryptjs</a> for more details.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>saltLength</td>
+<td>The length of salt to use (cost factor for the hash function)</td>
+</tr>
+<tr>
+<td>salt</td>
+<td>The salt to use (a pregenerated valid salt)</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@omit</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@omit</span><span class="token punctuation">(</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Indicates that the field should be omitted when read from the generated services. Commonly used together with <code>@password</code> attribute.</p></li></ul><h3 id="model-attributes"><a href="/zmodel-attribute?id=model-attributes" data-id="model-attributes" class="anchor"><span>Model attributes</span></a></h3><ul><li><p><code>@@unique</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@@unique</span><span class="token punctuation">(</span>_<span class="token type-class-name"> fields</span><span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> name<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">,</span> map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines a compound unique constraint for the specified fields.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>fields</td>
+<td>A list of fields defined in the current model</td>
+</tr>
+<tr>
+<td>name</td>
+<td>The name of the unique combination of fields</td>
+</tr>
+<tr>
+<td>map</td>
+<td>The name of the underlying unique constraint in the database</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@@index</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@@index</span><span class="token punctuation">(</span>_<span class="token type-class-name"> fields</span><span class="token punctuation">:</span> FieldReference<span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">,</span> map<span class="token punctuation">:</span> String<span class="token operator">?</span><span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines an index in the database.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>fields</td>
+<td>A list of fields defined in the current model</td>
+</tr>
+<tr>
+<td>map</td>
+<td>The name of the underlying index in the database</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@@map</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@@map</span><span class="token punctuation">(</span>_<span class="token type-class-name"> name</span><span class="token punctuation">:</span> String<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>name</td>
+<td>The name of the underlying table or enum in the database</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@@allow</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@@allow</span><span class="token punctuation">(</span>_<span class="token type-class-name"> operation</span><span class="token punctuation">:</span> String<span class="token punctuation">,</span> _<span class="token type-class-name"> condition</span><span class="token punctuation">:</span> Boolean<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines an access policy that allows a set of operations when the given condition is true.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>operation</td>
+<td>Comma separated list of operations to control, including <code>"create"</code>, <code>"read"</code>, <code>"update"</code>, and <code>"delete"</code>. Pass<code> "all"</code> as an abbriviation for including all operations.</td>
+</tr>
+<tr>
+<td>condition</td>
+<td>Boolean expression indicating if the operations should be allowed</td>
+</tr>
+</tbody></table>
+</li><li><p><code>@@deny</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">attribute</span> <span class="token annotation punctuation">@@deny</span><span class="token punctuation">(</span>_<span class="token type-class-name"> operation</span><span class="token punctuation">:</span> String<span class="token punctuation">,</span> _<span class="token type-class-name"> condition</span><span class="token punctuation">:</span> Boolean<span class="token punctuation">)</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Defines an access policy that denies a set of operations when the given condition is true.</p><p>  <em>Params</em>:</p><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>operation</td>
+<td>Comma separated list of operations to control, including <code>"create"</code>, <code>"read"</code>, <code>"update"</code>, and <code>"delete"</code>. Pass<code> "all"</code> as an abbriviation for including all operations.</td>
+</tr>
+<tr>
+<td>condition</td>
+<td>Boolean expression indicating if the operations should be denied</td>
+</tr>
+</tbody></table>
+</li></ul><h2 id="predefined-attribute-functions"><a href="/zmodel-attribute?id=predefined-attribute-functions" data-id="predefined-attribute-functions" class="anchor"><span>Predefined attribute functions</span></a></h2><ul><li><p><code>uuid</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">function</span> <span class="token function">uuid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span> String <span class="token punctuation">{</span><span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Generates a globally unique identifier based on the UUID spec.</p></li><li><p><code>cuid</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">function</span> <span class="token function">cuid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span> String <span class="token punctuation">{</span><span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Generates a globally unique identifier based on the <a href="https://github.com/ericelliott/cuid" target="blank">CUID</a> spec.</p></li><li><p><code>now</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">function</span> <span class="token function">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span> DateTime <span class="token punctuation">{</span><span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Gets current date-time.</p></li><li><p><code>autoincrement</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">function</span> <span class="token function">autoincrement</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span> Int <span class="token punctuation">{</span><span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Creates a sequence of integers in the underlying database and assign the incremented
+  values to the ID values of the created records based on the sequence.</p></li><li><p><code>dbgenerated</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">function</span> <span class="token function">dbgenerated</span><span class="token punctuation">(</span>expr<span class="token punctuation">:</span> String<span class="token punctuation">)</span><span class="token punctuation">:</span> Any <span class="token punctuation">{</span><span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Represents default values that cannot be expressed in the Prisma schema (such as random()).</p></li><li><p><code>auth</code></p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel">    <span class="token keyword">function</span> <span class="token function">auth</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">:</span> User <span class="token punctuation">{</span><span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre><p>  Gets the current login user. The return type of the function is the <code>User</code> data model defined in the current ZModel.</p></li></ul><h2 id="examples"><a href="/zmodel-attribute?id=examples" data-id="examples" class="anchor"><span>Examples</span></a></h2><p>Here're some examples on using field and model attributes:</p><pre v-pre="" data-lang="zmodel"><code class="lang-zmodel"><span class="token keyword">model</span> User <span class="token punctuation">{</span>
+    <span class="token comment">// unique id field with a default UUID value</span>
+    id<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@id</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token function">uuid</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    <span class="token comment">// require email field to be unique</span>
+    email<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@unique</span>
+
+    <span class="token comment">// password is hashed with bcrypt with length of 16, omitted when returned from the CRUD services</span>
+    password<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@password</span><span class="token punctuation">(</span>saltLength<span class="token punctuation">:</span> <span class="token number">16</span><span class="token punctuation">)</span> <span class="token annotation punctuation">@omit</span>
+
+    <span class="token comment">// default to current date-time</span>
+    createdAt<span class="token type-class-name"> DateTime</span> <span class="token annotation punctuation">@default</span><span class="token punctuation">(</span><span class="token function">now</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+    <span class="token comment">// auto-updated when the entity is modified</span>
+    updatedAt<span class="token type-class-name"> DateTime</span> <span class="token annotation punctuation">@updatedAt</span>
+
+    <span class="token comment">// mapping to a different column name in database</span>
+    description<span class="token type-class-name"> String</span> <span class="token annotation punctuation">@map</span><span class="token punctuation">(</span><span class="token string">"desc"</span><span class="token punctuation">)</span>
+
+    <span class="token comment">// mapping to a different table name in database</span>
+    <span class="token annotation punctuation">@@map</span><span class="token punctuation">(</span><span class="token string">"users"</span><span class="token punctuation">)</span>
+
+    <span class="token comment">// use @@index to specify fields to create database index for</span>
+    <span class="token annotation punctuation">@@index</span><span class="token punctuation">(</span><span class="token punctuation">[</span>email<span class="token punctuation">]</span><span class="token punctuation">)</span>
+<span class="token punctuation">}</span></code><button class="docsify-copy-code-button"><span class="label">Copy to clipboard</span><span class="error">Error</span><span class="success">Copied</span></button></pre></article></section></main>
+        
+        <!-- Docsify v4 -->
+        
+        
+        
+        
+        
+        
+        
+    
+
+    <style>
+        img[alt='cover-logo'] {
+            width: 8rem;
+        }
+    </style>
+
+<div class="progress" style="opacity: 0; width: 0%;"></div></body></html>
