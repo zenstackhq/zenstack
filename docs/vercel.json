@@ -2,7 +2,7 @@
     "trailingSlash": false,
     "rewrites": [
         {
-            "source": "",
+            "source": "/:path*",
             "has": [
                 {
                     "type": "header",
@@ -10,7 +10,7 @@
                     "value": "Googlebot.*"
                 }
             ],
-            "destination": "/static/index.html"
+            "destination": "/static/:path*.html"
         },
         {
             "source": "/:path*",
@@ -21,7 +21,7 @@
                     "value": "Googlebot.*"
                 }
             ],
-            "destination": "/static/:path*.html"
+            "destination": "/static/index.html"
         },
         { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
         {
