@@ -1,7 +1,8 @@
 {
+    "trailingSlash": false,
     "rewrites": [
         {
-            "source": "/",
+            "source": "",
             "has": [
                 {
                     "type": "header",
