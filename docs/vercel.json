@@ -7,7 +7,7 @@
                 {
                     "type": "header",
                     "key": "user-agent",
-                    "value": "Googlebot.*"
+                    "value": ".*(Googlebot|bingbot).*"
                 }
             ],
             "destination": "/static/index.html"
@@ -18,7 +18,7 @@
                 {
                     "type": "header",
                     "key": "user-agent",
-                    "value": "Googlebot.*"
+                    "value": ".*(Googlebot|bingbot).*"
                 }
             ],
             "destination": "/static/:path*.html"
