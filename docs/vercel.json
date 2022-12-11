@@ -2,7 +2,7 @@
     "trailingSlash": false,
     "rewrites": [
         {
-            "source": ":path*",
+            "source": "/:path*",
             "has": [
                 {
                     "type": "header",
