@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "serve": "docsify serve -p 8765",
-        "generate": "rimraf static && node script/ssg.js",
+        "generate": "rimraf static && mkdir static && node script/ssg.js",
         "sitemap": "node script/sitemap.js"
     },
     "repository": {

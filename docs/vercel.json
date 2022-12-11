@@ -1,17 +1,6 @@
 {
-    "trailingSlash": false,
+    "trailingSlash": true,
     "rewrites": [
-        {
-            "source": "",
-            "has": [
-                {
-                    "type": "header",
-                    "key": "user-agent",
-                    "value": ".*(Googlebot|bingbot).*"
-                }
-            ],
-            "destination": "/static/index.html"
-        },
         {
             "source": "/:path*",
             "has": [
@@ -21,7 +10,7 @@
                     "value": ".*(Googlebot|bingbot).*"
                 }
             ],
-            "destination": "/static/:path*.html"
+            "destination": "/static/seo_:path*.html"
         },
         { "source": "/sitemap.xml", "destination": "/sitemap.xml" },
         {
