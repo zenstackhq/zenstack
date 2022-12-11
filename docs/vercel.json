@@ -2,6 +2,17 @@
     "trailingSlash": false,
     "rewrites": [
         {
+            "source": "$^",
+            "has": [
+                {
+                    "type": "header",
+                    "key": "user-agent",
+                    "value": ".*(Googlebot|bingbot).*"
+                }
+            ],
+            "destination": "/static/seo_.html"
+        },
+        {
             "source": "/:path*",
             "has": [
                 {
