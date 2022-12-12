@@ -6,7 +6,7 @@ import ora from 'ora';
 const siteUrl = 'http://localhost:8765';
 
 const urls = [
-    { route: '', url: `${siteUrl}/` },
+    { route: 'index', url: `${siteUrl}/` },
     ...globbySync(['./**/[!_]?*.md', '!node_modules', '!README.md']).map(
         (path) => ({
             route: path.replace('.md', ''),
@@ -29,7 +29,7 @@ for (let i = 0; i < urls.length; i++) {
         "document.querySelectorAll('script').forEach(e => e.remove())"
     );
     const content = await page.content();
-    fs.writeFileSync(`static/seo_${route}.html`, content);
+    fs.writeFileSync(`../doc-serve/public/static/${route}.html`, content);
     spinner.succeed();
     await page.close();
 }

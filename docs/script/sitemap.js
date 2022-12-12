@@ -21,4 +21,4 @@ const content = (
     await streamToPromise(Readable.from(links).pipe(stream))
 ).toString('utf-8');
 
-fs.writeFileSync('./sitemap.xml', content);
+fs.writeFileSync('../doc-serve/public/sitemap.xml', content);
