@@ -5,6 +5,7 @@ import fs from 'fs';
 
 const links = [
     { url: '/', changefreq: 'daily' },
+    { url: '/changelog', changefreq: 'daily' },
     ...globbySync(['./**/[!_]?*.md', '!node_modules', '!README.md']).map(
         (path) => ({
             url: `/${path.replace('.md', '')}`,
