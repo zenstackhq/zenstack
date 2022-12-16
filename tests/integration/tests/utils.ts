@@ -37,10 +37,10 @@ export async function setup(schemaFile: string) {
     run('npm init -y');
     const dependencies = [
         'typescript',
-        'swr',
+        'swr@1.3.0',
         'react',
         'prisma@~4.7.0',
-        'zod',
+        'zod@~3.19.0',
         '../../../../packages/schema',
         '../../../../packages/runtime/dist',
     ];

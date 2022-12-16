@@ -1,4 +1,4 @@
-# Evolving Data Model with Migration
+# Evolving model with migration
 
 When using ZenStack, your schema.zmodel file represents the current status of your app's data model and your database's schema. When you make changes to schema.zmodel, however, your data model drifts away from database schema. At your app's deployment time, such drift needs to be "fixed", and so that your database schema stays synchronized with your data model. This processing of "fixing" is called migration.
 
@@ -40,7 +40,9 @@ npx zenstack db push
 
 ```bash
 npx zenstack migrate reset
+```
 
+```bash
 npx zenstack migrate dev -n [name]
 ```
 
@@ -58,6 +60,6 @@ If you've always been taking the "migrate dev" and "migrate deploy" loop during 
 
 ## Summary
 
-ZenStack is built over [Prisma](https://www.prisma.io) and it internally delegates all ORM tasks to Prisma. The migration workflow is exactly the same as Prisma's workflow, with the only exception that the source of input is schema.zmodel, and a Prisma schema is generated on the fly. The set of migration commands that ZModel CLI offers, like "migrate dev" and "migrate deploy", are simple wrappers around Prisma commands.
+ZenStack is built over [Prisma](https://www.prisma.io ':target=blank') and it internally delegates all ORM tasks to Prisma. The migration workflow is exactly the same as Prisma's workflow, with the only exception that the source of input is schema.zmodel, and a Prisma schema is generated on the fly. The set of migration commands that ZModel CLI offers, like "migrate dev" and "migrate deploy", are simple wrappers around Prisma commands.
 
-Prisma has [excellent documentation](https://www.prisma.io/docs/concepts/components/prisma-migrate) about migration. Make sure you look into those for a more thorough understanding.
+Prisma has [excellent documentation](https://www.prisma.io/docs/concepts/components/prisma-migrate ':target=blank') about migration. Make sure you look into those for a more thorough understanding.
