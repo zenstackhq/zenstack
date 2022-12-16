@@ -1,10 +1,9 @@
-import { Context, Generator } from '../types';
-import { Project } from 'ts-morph';
-import * as path from 'path';
-import { paramCase } from 'change-case';
 import { DataModel, isDataModel } from '@lang/generated/ast';
-import colors from 'colors';
+import { paramCase } from 'change-case';
+import * as path from 'path';
+import { Project } from 'ts-morph';
 import { API_ROUTE_NAME, RUNTIME_PACKAGE } from '../constants';
+import { Context, Generator } from '../types';
 
 /**
  * Generate react data query hooks code
@@ -14,9 +13,18 @@ export default class ReactHooksGenerator implements Generator {
         return 'react-hooks';
     }
 
-    async generate(context: Context): Promise<void> {
+    get startMessage() {
+        return 'Generating React hooks...';
+    }
+
+    get successMessage(): string {
+        return 'Successfully generated React hooks';
+    }
+
+    async generate(context: Context) {
         const project = new Project();
         const models: DataModel[] = [];
+        const warnings: string[] = [];
 
         for (const model of context.schema.declarations.filter(
             (d): d is DataModel => isDataModel(d)
@@ -25,10 +33,8 @@ export default class ReactHooksGenerator implements Generator {
                 (attr) => attr.decl.ref?.name === '@@allow'
             );
             if (!hasAllowRule) {
-                console.warn(
-                    colors.yellow(
-                        `Not generating hooks for "${model.name}" because it doesn't have any @@allow rule`
-                    )
+                warnings.push(
+                    `Not generating hooks for "${model.name}" because it doesn't have any @@allow rule`
                 );
             } else {
                 models.push(model);
@@ -40,8 +46,7 @@ export default class ReactHooksGenerator implements Generator {
         models.forEach((d) => this.generateModelHooks(project, context, d));
 
         await project.save();
-
-        console.log(colors.blue('  ✔️ React hooks generated'));
+        return warnings;
     }
 
     private getValidator(model: DataModel, mode: 'create' | 'update') {

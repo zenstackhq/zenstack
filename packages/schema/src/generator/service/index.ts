@@ -1,6 +1,5 @@
 import { DataModel, isDataModel } from '@lang/generated/ast';
 import { camelCase } from 'change-case';
-import colors from 'colors';
 import * as path from 'path';
 import { Project } from 'ts-morph';
 import { RUNTIME_PACKAGE } from '../constants';
@@ -14,7 +13,15 @@ export default class ServiceGenerator implements Generator {
         return 'service';
     }
 
-    async generate(context: Context): Promise<void> {
+    get startMessage() {
+        return 'Generating ZenStack service...';
+    }
+
+    get successMessage() {
+        return 'Successfully generated ZenStack service';
+    }
+
+    async generate(context: Context) {
         const project = new Project();
         const sf = project.createSourceFile(
             path.join(context.generatedCodeDir, 'src/index.ts'),
@@ -101,6 +108,6 @@ export default class ServiceGenerator implements Generator {
         sf.formatText();
         await project.save();
 
-        console.log(colors.blue(`  ✔️ ZenStack service generated`));
+        return [];
     }
 }

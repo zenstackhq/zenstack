@@ -30,7 +30,6 @@ import {
 import { TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
-import ZModelDefinitionProvider from './lsp/zmodel-definition-provider';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -64,10 +63,6 @@ export const ZModelModule: Module<
         ValidationRegistry: (services) =>
             new ZModelValidationRegistry(services),
         ZModelValidator: () => new ZModelValidator(),
-    },
-    lsp: {
-        DefinitionProvider: (services) =>
-            new ZModelDefinitionProvider(services),
     },
 };
 

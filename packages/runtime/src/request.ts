@@ -1,71 +1,15 @@
-import Decimal from 'decimal.js';
+import superjson from 'superjson';
 import useSWR, { useSWRConfig } from 'swr';
 import type {
     MutatorCallback,
     MutatorOptions,
     SWRResponse,
 } from 'swr/dist/types';
+import { registerSerializers } from './serialization-utils';
 import { RequestOptions } from './types';
 
-type BufferShape = { type: 'Buffer'; data: number[] };
-function isBuffer(value: unknown): value is BufferShape {
-    return (
-        !!value &&
-        (value as BufferShape).type === 'Buffer' &&
-        Array.isArray((value as BufferShape).data)
-    );
-}
-
-type BigIntShape = { type: 'BigInt'; data: string };
-function isBigInt(value: unknown): value is BigIntShape {
-    return (
-        !!value &&
-        (value as BigIntShape).type === 'BigInt' &&
-        typeof (value as BigIntShape).data === 'string'
-    );
-}
-
-type DateShape = { type: 'Date'; data: string };
-function isDate(value: unknown): value is BigIntShape {
-    return (
-        !!value &&
-        (value as DateShape).type === 'Date' &&
-        typeof (value as DateShape).data === 'string'
-    );
-}
-
-type DecmalShape = { type: 'Decimal'; data: string };
-function isDecimal(value: unknown): value is DecmalShape {
-    return (
-        !!value &&
-        (value as DecmalShape).type === 'Decimal' &&
-        typeof (value as DateShape).data === 'string'
-    );
-}
-
-const dataReviver = (key: string, value: unknown) => {
-    // Buffer
-    if (isBuffer(value)) {
-        return Buffer.from(value.data);
-    }
-
-    // BigInt
-    if (isBigInt(value)) {
-        return BigInt(value.data);
-    }
-
-    // Date
-    if (isDate(value)) {
-        return new Date(value.data);
-    }
-
-    // Decimal
-    if (isDecimal(value)) {
-        return new Decimal(value.data);
-    }
-
-    return value;
-};
+// register superjson custom serializers
+registerSerializers();
 
 const fetcher = async (url: string, options?: RequestInit) => {
     const res = await fetch(url, options);
@@ -79,24 +23,32 @@ const fetcher = async (url: string, options?: RequestInit) => {
     }
 
     const textResult = await res.text();
-    console.log;
     try {
-        return JSON.parse(textResult, dataReviver);
+        return unmarshal(textResult);
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
         throw err;
     }
 };
 
+function marshal(value: unknown) {
+    return superjson.stringify(value);
+}
+
+function unmarshal(value: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return superjson.parse<any>(value);
+}
+
 function makeUrl(url: string, args: unknown) {
-    return args ? url + `?q=${encodeURIComponent(JSON.stringify(args))}` : url;
+    return args ? url + `?q=${encodeURIComponent(marshal(args))}` : url;
 }
 
 /**
  * Makes a GET request with SWR.
  *
  * @param url The request URL.
- * @param args The request args object, which will be JSON-stringified and appended as "?q=" parameter
+ * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
  * @returns SWR response
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -111,6 +63,13 @@ export function get<Data, Error = any>(
     });
 }
 
+/**
+ * Makes a POST request.
+ *
+ * @param url The request URL.
+ * @param data The request data.
+ * @param mutate Mutator for invalidating cache.
+ */
 export async function post<Data, Result>(
     url: string,
     data: Data,
@@ -121,12 +80,19 @@ export async function post<Data, Result>(
         headers: {
             'content-type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: marshal(data),
     });
     mutate(url, true);
     return r;
 }
 
+/**
+ * Makes a PUT request.
+ *
+ * @param url The request URL.
+ * @param data The request data.
+ * @param mutate Mutator for invalidating cache.
+ */
 export async function put<Data, Result>(
     url: string,
     data: Data,
@@ -137,12 +103,19 @@ export async function put<Data, Result>(
         headers: {
             'content-type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: marshal(data),
     });
     mutate(url, true);
     return r;
 }
 
+/**
+ * Makes a DELETE request.
+ *
+ * @param url The request URL.
+ * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
+ * @param mutate Mutator for invalidating cache.
+ */
 export async function del<Result>(
     url: string,
     args: unknown,

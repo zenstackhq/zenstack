@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { Context } from './types';
+import { Context, Generator } from './types';
 import * as fs from 'fs';
 import colors from 'colors';
 import PrismaGenerator from './prisma';
 import ServiceGenerator from './service';
 import ReactHooksGenerator from './react-hooks';
-import NextAuthGenerator from './next-auth';
 import { TypescriptCompilation } from './tsc';
 import FieldConstraintGenerator from './field-constraint';
 import telemetry from '../telemetry';
+import ora from 'ora';
 
 /**
  * ZenStack code generator
@@ -38,19 +38,19 @@ export class ZenStackGenerator {
             fs.mkdirSync(context.generatedCodeDir);
         }
 
-        const version = require('../../package.json').version;
-        console.log(colors.bold(`⌛️ Running ZenStack generator v${version}`));
-
         // TODO: plugin mechanism
-        const generators = [
+        const generators: Generator[] = [
             new PrismaGenerator(),
             new ServiceGenerator(),
             new ReactHooksGenerator(),
-            new NextAuthGenerator(),
             new FieldConstraintGenerator(),
             new TypescriptCompilation(),
         ];
 
+        const version = require('../../package.json').version;
+        console.log(colors.bold(`⌛️ Running ZenStack generator v${version}`));
+
+        const warnings: string[] = [];
         for (const generator of generators) {
             if (
                 includeGenerators &&
@@ -59,6 +59,7 @@ export class ZenStackGenerator {
                 continue;
             }
 
+            const spinner = ora(generator.startMessage).start();
             await telemetry.trackSpan(
                 'cli:generator:start',
                 'cli:generator:complete',
@@ -66,8 +67,12 @@ export class ZenStackGenerator {
                 {
                     generator: generator.name,
                 },
-                () => generator.generate(context)
+                async () => {
+                    const genWarnings = await generator.generate(context);
+                    warnings.push(...genWarnings);
+                }
             );
+            spinner.succeed(`${colors.cyan(generator.successMessage)}`);
         }
 
         console.log(
@@ -75,5 +80,7 @@ export class ZenStackGenerator {
                 colors.bold('👻 All generators completed successfully!')
             )
         );
+
+        warnings.forEach((w) => console.warn(colors.yellow(w)));
     }
 }

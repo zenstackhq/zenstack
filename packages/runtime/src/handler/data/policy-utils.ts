@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { hashSync } from 'bcryptjs';
 import deepcopy from 'deepcopy';
+import superjson from 'superjson';
 import {
     DEFAULT_PASSWORD_SALT_LENGTH,
     GUARD_FIELD_NAME,
@@ -15,7 +16,7 @@ import {
     ServerErrorCode,
     Service,
 } from '../../types';
-import { PrismaWriteActionType, CRUDError } from '../types';
+import { CRUDError, PrismaWriteActionType } from '../types';
 import { NestedWriteVisitor } from './nested-write-vistor';
 
 //#region General helpers
@@ -103,7 +104,7 @@ export async function readWithCheck(
     await injectNestedReadConditions(model, args, service, context);
 
     service.verbose(
-        `Reading with validation for ${model}: ${JSON.stringify(args)}`
+        `Reading with validation for ${model}: ${superjson.stringify(args)}`
     );
     const result = await db[model].findMany(args);
 
@@ -186,40 +187,6 @@ async function postProcessForRead(
     for (const field of Object.keys(entityData)) {
         if (await shouldOmit(service, model, field)) {
             delete entityData[field];
-        }
-
-        const fieldValue = entityData[field];
-
-        if (typeof fieldValue === 'bigint') {
-            // serialize BigInt with typing info
-            entityData[field] = {
-                type: 'BigInt',
-                data: fieldValue.toString(),
-            };
-        }
-
-        if (fieldValue instanceof Date) {
-            // serialize Date with typing info
-            entityData[field] = {
-                type: 'Date',
-                data: fieldValue.toISOString(),
-            };
-        }
-
-        if (typeof fieldValue === 'object') {
-            const fieldInfo = await service.resolveField(model, field);
-            if (fieldInfo?.type === 'Decimal') {
-                // serialize Decimal with typing info
-                entityData[field] = {
-                    type: 'Decimal',
-                    data: fieldValue.toString(),
-                };
-            } else if (fieldInfo?.type === 'Bytes') {
-                entityData[field] = {
-                    type: 'Bytes',
-                    data: Array.from(fieldValue as Buffer),
-                };
-            }
         }
     }
 
@@ -462,15 +429,15 @@ async function checkPolicyForSelectionPath(
     const query = buildChainedSelectQuery(id, selectionPath);
 
     service.verbose(
-        `Query for selection path: model ${model}, path ${JSON.stringify(
+        `Query for selection path: model ${model}, path ${superjson.stringify(
             selectionPath
-        )}, query ${JSON.stringify(query)}`
+        )}, query ${superjson.stringify(query)}`
     );
     const r = await db[model].findUnique(query);
 
     // collect ids at the end of the path
     const ids: string[] = collectTerminalEntityIds(selectionPath, r);
-    service.verbose(`Collected leaf ids: ${JSON.stringify(ids)}`);
+    service.verbose(`Collected leaf ids: ${superjson.stringify(ids)}`);
 
     if (ids.length === 0) {
         return;

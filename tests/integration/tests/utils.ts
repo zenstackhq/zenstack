@@ -1,4 +1,3 @@
-import * as tmp from 'tmp';
 import { execSync } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -7,6 +6,8 @@ import { apiResolver } from 'next/dist/server/api-utils/node';
 import request from 'supertest';
 import { NextApiHandler } from 'next/types';
 import supertest from 'supertest';
+import superjson from 'superjson';
+import { registerSerializers } from '../../../packages/runtime/src/serialization-utils';
 
 export function run(cmd: string) {
     execSync(cmd, {
@@ -17,6 +18,8 @@ export function run(cmd: string) {
 }
 
 export async function setup(schemaFile: string) {
+    registerSerializers();
+
     const origDir = path.resolve('.');
 
     const workDir = path.resolve('tests/test-run');
@@ -34,10 +37,10 @@ export async function setup(schemaFile: string) {
     run('npm init -y');
     const dependencies = [
         'typescript',
-        'swr',
+        'swr@1.3.0',
         'react',
         'prisma@~4.7.0',
-        'zod',
+        'zod@~3.19.0',
         '../../../../packages/schema',
         '../../../../packages/runtime/dist',
     ];
@@ -86,7 +89,7 @@ export function makeClient(apiPath: string, userId?: string, queryArgs?: any) {
 
     const query = {
         path: pathParts,
-        ...(queryArgs ? { q: JSON.stringify(queryArgs) } : {}),
+        ...(queryArgs ? { q: superjson.stringify(queryArgs) } : {}),
     };
     const testClient = (handler: NextApiHandler) =>
         request(
@@ -108,16 +111,30 @@ export function makeClient(apiPath: string, userId?: string, queryArgs?: any) {
     const handler = require(path.resolve('handler.js'));
     const client = testClient(handler);
 
+    // proxy test and superjson marshal post data
+    const proxyTest = (test: supertest.Test) => {
+        // return test;
+        return new Proxy(test, {
+            get(target: supertest.Test, prop: string | symbol, receiver: any) {
+                if (prop === 'send') {
+                    return (data: any) => {
+                        return target.send(
+                            JSON.parse(superjson.stringify(data))
+                        );
+                    };
+                } else {
+                    return Reflect.get(target, prop, receiver);
+                }
+            },
+        });
+    };
+
     const proxied = new Proxy(client, {
         get(
             target: supertest.SuperTest<supertest.Test>,
             prop: string | symbol,
             receiver: any
         ) {
-            if (userId === undefined) {
-                return Reflect.get(target, prop, receiver);
-            }
-
             switch (prop) {
                 case 'get':
                 case 'post':
@@ -125,11 +142,28 @@ export function makeClient(apiPath: string, userId?: string, queryArgs?: any) {
                 case 'del':
                 case 'delete':
                     return (url: string) => {
+                        const test = target[prop](url) as supertest.Test;
+
                         // use userId cookie to simulate a logged in user
-                        return target[prop](url).set('Cookie', [
-                            `userId=${userId}`,
-                        ]);
+                        if (userId) {
+                            test.set('Cookie', [`userId=${userId}`]);
+                        }
+
+                        test.expect((resp) => {
+                            if (
+                                (resp.status === 200 || resp.status === 201) &&
+                                resp.body
+                            ) {
+                                // unmarshal response
+                                resp.body = superjson.parse(
+                                    JSON.stringify(resp.body)
+                                );
+                            }
+                        });
+
+                        return proxyTest(test);
                     };
+
                 default:
                     return Reflect.get(target, prop, receiver);
             }

@@ -1,8 +1,7 @@
-import colors from 'colors';
-import { Context, Generator, GeneratorError } from '../types';
 import { execSync } from '../../utils/exec-utils';
-import PrismaSchemaGenerator from './schema-generator';
+import { Context, Generator, GeneratorError } from '../types';
 import QueryGuardGenerator from './query-guard-generator';
+import PrismaSchemaGenerator from './schema-generator';
 
 /**
  * Generates Prisma schema and db client
@@ -12,7 +11,15 @@ export default class PrismaGenerator implements Generator {
         return 'prisma';
     }
 
-    async generate(context: Context): Promise<void> {
+    get startMessage() {
+        return 'Generating Prisma client...';
+    }
+
+    get successMessage() {
+        return 'Successfully generated Prisma client';
+    }
+
+    async generate(context: Context) {
         // generate prisma schema
         const schemaFile = await new PrismaSchemaGenerator(context).generate();
 
@@ -22,9 +29,7 @@ export default class PrismaGenerator implements Generator {
         // generate prisma query guard
         await new QueryGuardGenerator(context).generate();
 
-        console.log(
-            colors.blue(`  ✔️ Prisma schema and query guard generated`)
-        );
+        return [];
     }
 
     private async generatePrismaClient(schemaFile: string) {

@@ -1,0 +1,6 @@
+{
+    "presets": ["next/babel"],
+    // "superjson-next" plugin uses superjson for serialization between getServerSideProps and client,
+    // so that types like Date and BigInt are properly handled
+    "plugins": ["superjson-next"]
+}
