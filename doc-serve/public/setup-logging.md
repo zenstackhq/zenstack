@@ -1,24 +1,24 @@
-# Setting Up Logging
+# Set up logging
 
 ZenStack uses the following levels to control server-side logging:
 
--   error
+-   `error`
 
     Error level logging
 
--   warn
+-   `warn`
 
     Warning level logging
 
--   info
+-   `info`
 
     Info level logging
 
--   verbose
+-   `verbose`
 
     Verbose level logging
 
--   query
+-   `query`
 
     Detailed database query logging
 
