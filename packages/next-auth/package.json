@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/next-auth",
     "displayName": "ZenStack next-auth integration library",
-    "version": "0.4.2",
+    "version": "0.5.0",
     "description": "ZenStack adapter for integrating with next-auth",
     "repository": {
         "type": "git",
