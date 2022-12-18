@@ -9,7 +9,7 @@ import { prisma } from './client';
  * @param ctx
  * @returns
  */
-export async function auth(ctx: {
+export async function withAuth(ctx: {
     req: GetServerSidePropsContext['req'];
     res: GetServerSidePropsContext['res'];
 }) {

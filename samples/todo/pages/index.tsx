@@ -4,7 +4,7 @@ import Spaces from 'components/Spaces';
 import WithNavBar from 'components/WithNavBar';
 import type { GetServerSideProps, NextPage } from 'next';
 import Link from 'next/link';
-import { auth } from 'server/db/auth';
+import { withAuth } from 'server/db/auth';
 
 type Props = {
     spaces: Space[];
@@ -39,7 +39,7 @@ const Home: NextPage<Props> = ({ spaces }) => {
 };
 
 export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
-    const db = await auth(ctx);
+    const db = await withAuth(ctx);
     const spaces = await db.space.findMany();
     return {
         props: { spaces },

@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "0.6.0-pre.9",
+    "version": "0.6.0-pre.10",
     "author": {
         "name": "ZenStack Team"
     },
@@ -63,7 +63,7 @@
     "bin": {
         "zenstack": "bin/cli"
     },
-    "main": "./extension.js",
+    "main": "./bundle/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
         "vscode:prepublish": "cp ../../README.md ./ && pnpm lint && pnpm build",

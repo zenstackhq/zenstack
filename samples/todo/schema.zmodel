@@ -19,7 +19,7 @@ plugin prisma {
 }
 
 plugin policy {
-    provider = 'zenstack/plugins/policy-guard'
+    provider = 'zenstack/plugins/access-policy'
     output = 'server/policy/'
 }
 

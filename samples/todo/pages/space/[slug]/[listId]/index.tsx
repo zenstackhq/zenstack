@@ -8,7 +8,7 @@ import WithNavBar from 'components/WithNavBar';
 import { GetServerSideProps } from 'next';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
-import { auth } from 'server/db/auth';
+import { withAuth } from 'server/db/auth';
 
 type Props = {
     space: Space;
@@ -113,7 +113,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
     res,
     params,
 }) => {
-    const db = await auth({ req, res });
+    const db = await withAuth({ req, res });
     const space = await db.space.findUnique({
         where: { slug: params!.slug as string },
     });

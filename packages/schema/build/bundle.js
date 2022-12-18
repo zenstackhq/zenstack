@@ -11,7 +11,7 @@ require('esbuild')
             'src/language-server/main.ts',
             'src/cli/index.ts',
             'src/plugins/prisma/index.ts',
-            'src/plugins/policy-guard/index.ts',
+            'src/plugins/access-policy/index.ts',
             'src/plugins/react-hooks/index.ts',
             'src/plugins/zod/index.ts',
             'src/plugins/trpc/index.ts',
