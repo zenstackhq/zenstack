@@ -6,9 +6,14 @@ export interface DbOperations {
     findFirst(args: unknown): Promise<unknown>;
     findUnique(args: unknown): Promise<unknown>;
     create(args: unknown): Promise<unknown>;
+    createMany(args: unknown, skipDuplicates?: boolean): Promise<unknown>;
     update(args: unknown): Promise<unknown>;
+    updateMany(args: unknown): Promise<unknown>;
+    upsert(args: unknown): Promise<unknown>;
     delete(args: unknown): Promise<unknown>;
     deleteMany(args: unknown): Promise<unknown>;
+    aggregate(args: unknown): Promise<unknown>;
+    groupBy(args: unknown): Promise<unknown>;
     count(args: unknown): Promise<number>;
 }
 
@@ -242,3 +247,18 @@ export type HooksError = {
         message: string;
     };
 };
+
+export const PrismaWriteActions = [
+    'create',
+    'createMany',
+    'connectOrCreate',
+    'update',
+    'updateMany',
+    'upsert',
+    'delete',
+    'deleteMany',
+    'connect',
+    'none',
+] as const;
+
+export type PrismaWriteActionType = typeof PrismaWriteActions[number];

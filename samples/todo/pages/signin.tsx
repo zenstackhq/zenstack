@@ -1,9 +1,9 @@
-import Link from 'next/link';
+import { signIn } from 'next-auth/react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { FormEvent, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/router';
 
 export default function Signup() {
     const [email, setEmail] = useState('');

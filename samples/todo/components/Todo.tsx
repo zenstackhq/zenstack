@@ -1,6 +1,6 @@
 import { TrashIcon } from '@heroicons/react/24/outline';
-import { useTodo } from '@zenstackhq/runtime/client';
-import { Todo, User } from '@zenstackhq/runtime/types';
+import { trpc } from '@lib/trpc';
+import { Todo, User } from '@prisma/client';
 import { ChangeEvent, useEffect, useState } from 'react';
 import Avatar from './Avatar';
 import TimeInfo from './TimeInfo';
@@ -11,24 +11,29 @@ type Props = {
     deleted?: (value: Todo) => any;
 };
 
-export default function Component({ value, updated, deleted }: Props) {
+export default function TodoComponent({ value, updated, deleted }: Props) {
     const [completed, setCompleted] = useState(!!value.completedAt);
-    const { update, del } = useTodo();
+    const { mutateAsync: update } = trpc.todo.updateOne.useMutation();
+    const { mutateAsync: del } = trpc.todo.deleteOne.useMutation();
 
     useEffect(() => {
         if (!!value.completedAt !== completed) {
-            update(value.id, {
-                data: { completedAt: completed ? new Date() : null },
-            }).then((newValue) => {
-                if (updated && newValue) {
-                    updated(newValue);
-                }
-            });
+            updateTodo();
         }
     });
 
+    const updateTodo = async () => {
+        const newValue = await update({
+            where: { id: value.id },
+            data: { completedAt: completed ? new Date() : null },
+        });
+        if (updated && newValue) {
+            updated(newValue);
+        }
+    };
+
     const deleteTodo = async () => {
-        await del(value.id);
+        await del({ where: { id: value.id } });
         if (deleted) {
             deleted(value);
         }

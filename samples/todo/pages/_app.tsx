@@ -1,15 +1,16 @@
-import '../styles/globals.css';
-import type { AppProps } from 'next/app';
-import { SessionProvider } from 'next-auth/react';
-import 'react-toastify/dist/ReactToastify.css';
-import { ToastContainer } from 'react-toastify';
 import {
     SpaceContext,
     useCurrentSpace,
     useCurrentUser,
     UserContext,
 } from '@lib/context';
+import { trpc } from '@lib/trpc';
 import AuthGuard from 'components/AuthGuard';
+import { SessionProvider } from 'next-auth/react';
+import type { AppProps } from 'next/app';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import '../styles/globals.css';
 
 function AppContent(props: { children: JSX.Element | JSX.Element[] }) {
     const user = useCurrentUser();
@@ -45,4 +46,4 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
     );
 }
 
-export default MyApp;
+export default trpc.withTRPC(MyApp);

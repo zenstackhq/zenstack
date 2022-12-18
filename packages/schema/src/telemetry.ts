@@ -18,9 +18,9 @@ export type TelemetryEvents =
     | 'cli:command:start'
     | 'cli:command:complete'
     | 'cli:command:error'
-    | 'cli:generator:start'
-    | 'cli:generator:complete'
-    | 'cli:generator:error';
+    | 'cli:plugin:start'
+    | 'cli:plugin:complete'
+    | 'cli:plugin:error';
 
 /**
  * Utility class for sending telemetry
@@ -61,9 +61,9 @@ export class Telemetry {
             }
 
             if (err instanceof CliError || err instanceof CommanderError) {
-                // error already handled
+                // error already logged
             } else {
-                throw err;
+                console.error('\nAn unexpected error occurred:\n', err);
             }
 
             process.exit(1);

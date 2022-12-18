@@ -1,0 +1,108 @@
+datasource db {
+    provider="postgresql"
+    url=env("DATABASE_URL")
+}
+
+generator js {
+    provider = "prisma-client-js"
+}
+
+enum SpaceUserRole {
+    USER
+    ADMIN
+}
+
+model Space {
+    id String @id() @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt()
+    name String
+    slug String @unique()
+    members SpaceUser[]
+    lists List[]
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+    @@index([zenstack_transaction])
+}
+
+model SpaceUser {
+    id String @id() @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt()
+    space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+    spaceId String
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+    role SpaceUserRole
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+    @@index([zenstack_transaction])
+    @@unique([userId, spaceId])
+}
+
+model User {
+    id String @id() @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt()
+    email String @unique()
+    emailVerified DateTime?
+    password String?
+    name String?
+    spaces SpaceUser[]
+    image String?
+    lists List[]
+    todos Todo[]
+    accounts Account[]
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+    @@index([zenstack_transaction])
+}
+
+model List {
+    id String @id() @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt()
+    space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+    spaceId String
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    ownerId String
+    title String
+    private Boolean @default(false)
+    todos Todo[]
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+    @@index([zenstack_transaction])
+}
+
+model Todo {
+    id String @id() @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt()
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    ownerId String
+    list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+    listId String
+    title String
+    completedAt DateTime?
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+    @@index([zenstack_transaction])
+}
+
+model Account {
+    id String @id() @default(uuid())
+    userId String
+    type String
+    provider String
+    providerAccountId String
+    refresh_token String?
+    refresh_token_expires_in Int?
+    access_token String?
+    expires_at Int?
+    token_type String?
+    scope String?
+    id_token String?
+    session_state String?
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    @@unique([provider, providerAccountId])
+}

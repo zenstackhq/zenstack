@@ -1,4 +1,4 @@
-import { Space } from '@zenstackhq/runtime/types';
+import { Space } from '@prisma/client';
 import Link from 'next/link';
 
 type Props = {

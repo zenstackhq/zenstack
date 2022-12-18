@@ -1,11 +1,11 @@
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useCurrentUser } from '@lib/context';
-import { Space, SpaceUserRole } from '@zenstackhq/runtime/types';
+import { trpc } from '@lib/trpc';
+import { Space, SpaceUser, SpaceUserRole, User } from '@prisma/client';
 import { HooksError, ServerErrorCode } from '@zenstackhq/runtime/client';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
 import Avatar from './Avatar';
-import { useSpaceUser } from '@zenstackhq/runtime/client';
 
 type Props = {
     space: Space;
@@ -16,8 +16,11 @@ export default function ManageMembers({ space }: Props) {
     const [role, setRole] = useState<SpaceUserRole>(SpaceUserRole.USER);
     const user = useCurrentUser();
 
-    const { find, create: addMember, del: delMember } = useSpaceUser();
-    const { data: members } = find({
+    type ExtendedMembers = (SpaceUser & { user: User })[];
+    const { data: members } = trpc.spaceUser.findMany.useQuery<
+        ExtendedMembers,
+        ExtendedMembers
+    >({
         where: {
             spaceId: space.id,
         },
@@ -28,6 +31,9 @@ export default function ManageMembers({ space }: Props) {
             role: 'desc',
         },
     });
+
+    const { mutateAsync: addMember } = trpc.spaceUser.createOne.useMutation();
+    const { mutateAsync: delMember } = trpc.spaceUser.deleteOne.useMutation();
 
     const inviteUser = async () => {
         try {
@@ -66,7 +72,7 @@ export default function ManageMembers({ space }: Props) {
 
     const removeMember = async (id: string) => {
         if (confirm(`Are you sure to remove this member from space?`)) {
-            await delMember(id);
+            await delMember({ where: { id } });
         }
     };
 

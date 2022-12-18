@@ -9,7 +9,7 @@ import {
     isDataModelField,
     isLiteralExpr,
     isReferenceExpr,
-} from '@lang/generated/ast';
+} from '@zenstackhq/language/ast';
 import { AstNode, ValidationAcceptor } from 'langium';
 
 /**
@@ -39,7 +39,9 @@ export function validateDuplicatedDeclarations(
 /**
  * Try getting string value from a potential string literal expression
  */
-export function getStringLiteral(node: AstNode): string | undefined {
+export function getStringLiteral(
+    node: AstNode | undefined
+): string | undefined {
     if (isLiteralExpr(node) && typeof node.value === 'string') {
         return node.value;
     } else {

@@ -1,6 +1,6 @@
 import { AstNode } from 'langium';
 import { STD_LIB_MODULE_NAME } from './constants';
-import { isModel, Model } from './generated/ast';
+import { isModel, Model } from '@zenstackhq/language/ast';
 
 /**
  * Gets the toplevel Model containing the given node.

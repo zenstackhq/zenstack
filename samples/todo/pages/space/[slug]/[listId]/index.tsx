@@ -1,17 +1,14 @@
-import { authOptions } from '@api/auth/[...nextauth]';
-import { useTodo } from '@zenstackhq/runtime/client';
 import { PlusIcon } from '@heroicons/react/24/outline';
-import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { useCurrentUser } from '@lib/context';
-import TodoComponent from 'components/Todo';
+import { trpc } from '@lib/trpc';
+import { List, Space, Todo, User } from '@prisma/client';
 import BreadCrumb from 'components/BreadCrumb';
+import TodoComponent from 'components/Todo';
 import WithNavBar from 'components/WithNavBar';
-import { List, Space, Todo, User } from '@zenstackhq/runtime/types';
 import { GetServerSideProps } from 'next';
-import { unstable_getServerSession } from 'next-auth';
-import service from '@zenstackhq/runtime/server';
-import { getSpaceBySlug } from '@lib/query-utils';
+import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
+import { auth } from 'server/db/auth';
 
 type Props = {
     space: Space;
@@ -21,14 +18,14 @@ type Props = {
 
 export default function TodoList(props: Props) {
     const user = useCurrentUser();
-    const { create: createTodo, find: findTodos } = useTodo();
     const [title, setTitle] = useState('');
 
-    const { data: todos, mutate: invalidateTodos } = findTodos(
+    const { data: todos, refetch } = trpc.todo.findMany.useQuery<
+        Props['todos'],
+        Props['todos']
+    >(
         {
-            where: {
-                listId: props.list.id,
-            },
+            where: { listId: props.list.id },
             include: {
                 owner: true,
             },
@@ -36,26 +33,33 @@ export default function TodoList(props: Props) {
                 updatedAt: 'desc',
             },
         },
-        { initialData: props.todos }
+        { initialData: props.todos, enabled: !!props.list }
     );
+
+    const { mutateAsync: createTodo } = trpc.todo.createOne.useMutation();
 
     const _createTodo = async () => {
         try {
             const todo = await createTodo({
                 data: {
                     title,
-                    ownerId: user!.id,
-                    listId: props.list.id,
+                    owner: { connect: { id: user!.id } },
+                    list: { connect: { id: props.list.id } },
                 },
             });
             console.log(`Todo created: ${todo}`);
             setTitle('');
+            refetch();
         } catch (err: any) {
             toast.error(
                 `Failed to create todo: ${err.info?.message || err.message}`
             );
         }
     };
+
+    if (!props.space || !props.list) {
+        return <></>;
+    }
 
     return (
         <WithNavBar>
@@ -91,10 +95,10 @@ export default function TodoList(props: Props) {
                             key={todo.id}
                             value={todo}
                             updated={() => {
-                                invalidateTodos();
+                                refetch();
                             }}
                             deleted={() => {
-                                invalidateTodos();
+                                refetch();
                             }}
                         />
                     ))}
@@ -109,20 +113,27 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
     res,
     params,
 }) => {
-    const session = await unstable_getServerSession(req, res, authOptions);
-    const queryContext = { user: session?.user };
-
-    const space = await getSpaceBySlug(queryContext, params?.slug as string);
-
-    const list = await service.list.get(queryContext, params?.listId as string);
-    if (!list) {
-        throw new Error(`List not found: ${params?.listId}`);
+    const db = await auth({ req, res });
+    const space = await db.space.findUnique({
+        where: { slug: params!.slug as string },
+    });
+    if (!space) {
+        return {
+            notFound: true,
+        };
     }
 
-    const todos = await service.todo.find(queryContext, {
-        where: {
-            listId: params?.id as string,
-        },
+    const list = await db.list.findUnique({
+        where: { id: params!.listId as string },
+    });
+    if (!list) {
+        return {
+            notFound: true,
+        };
+    }
+
+    const todos = await db.todo.findMany({
+        where: { listId: params?.listId as string },
         include: {
             owner: true,
         },

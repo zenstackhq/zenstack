@@ -1,4 +1,8 @@
 import {
+    ZModelGeneratedModule,
+    ZModelGeneratedSharedModule,
+} from '@zenstackhq/language/module';
+import {
     createDefaultModule,
     DefaultConfigurationProvider,
     DefaultDocumentBuilder,
@@ -17,18 +21,14 @@ import {
     MutexLock,
     PartialLangiumServices,
 } from 'langium';
-import {
-    ZModelGeneratedModule,
-    ZModelGeneratedSharedModule,
-} from './generated/module';
-import { ZModelLinker } from './zmodel-linker';
-import { ZModelScopeComputation } from './zmodel-scope';
+import { TextDocuments } from 'vscode-languageserver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import {
     ZModelValidationRegistry,
     ZModelValidator,
 } from './validator/zmodel-validator';
-import { TextDocuments } from 'vscode-languageserver';
-import { TextDocument } from 'vscode-languageserver-textdocument';
+import { ZModelLinker } from './zmodel-linker';
+import { ZModelScopeComputation } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
 
 /**

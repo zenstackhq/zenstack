@@ -1,9 +1,9 @@
-import Image from 'next/image';
-import Avatar from './Avatar';
-import { signOut } from 'next-auth/react';
-import Link from 'next/link';
-import { Space } from '@zenstackhq/runtime/types';
+import { Space } from '@prisma/client';
 import { User } from 'next-auth';
+import { signOut } from 'next-auth/react';
+import Image from 'next/image';
+import Link from 'next/link';
+import Avatar from './Avatar';
 
 type Props = {
     space: Space | undefined;

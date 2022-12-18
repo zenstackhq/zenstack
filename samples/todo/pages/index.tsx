@@ -1,12 +1,10 @@
-import { authOptions } from '@api/auth/[...nextauth]';
 import { useCurrentUser } from '@lib/context';
-import service from '@zenstackhq/runtime/server';
-import { Space } from '@zenstackhq/runtime/types';
+import { Space } from '@prisma/client';
 import Spaces from 'components/Spaces';
 import WithNavBar from 'components/WithNavBar';
 import type { GetServerSideProps, NextPage } from 'next';
-import { unstable_getServerSession } from 'next-auth';
 import Link from 'next/link';
+import { auth } from 'server/db/auth';
 
 type Props = {
     spaces: Space[];
@@ -14,6 +12,7 @@ type Props = {
 
 const Home: NextPage<Props> = ({ spaces }) => {
     const user = useCurrentUser();
+
     return (
         <WithNavBar>
             {user && (
@@ -21,6 +20,7 @@ const Home: NextPage<Props> = ({ spaces }) => {
                     <h1 className="text-2xl text-gray-800">
                         Welcome {user.name || user.email}!
                     </h1>
+
                     <div className="w-full p-8">
                         <h2 className="text-lg md:text-xl text-left mb-8 text-gray-700">
                             Choose a space to start, or{' '}
@@ -38,12 +38,9 @@ const Home: NextPage<Props> = ({ spaces }) => {
     );
 };
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({
-    req,
-    res,
-}) => {
-    const session = await unstable_getServerSession(req, res, authOptions);
-    const spaces = await service.space.find({ user: session?.user });
+export const getServerSideProps: GetServerSideProps<Props> = async (ctx) => {
+    const db = await auth(ctx);
+    const spaces = await db.space.findMany();
     return {
         props: { spaces },
     };

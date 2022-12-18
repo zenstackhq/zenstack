@@ -13,7 +13,7 @@ import {
     Expression,
     Model,
     ZModelAstType,
-} from '../generated/ast';
+} from '@zenstackhq/language/ast';
 import type { ZModelServices } from '../zmodel-module';
 import SchemaValidator from './schema-validator';
 import DataSourceValidator from './datasource-validator';

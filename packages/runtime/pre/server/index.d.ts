@@ -1,5 +1,3 @@
-import service from '.zenstack/lib';
-
 export type {
     FieldInfo,
     PolicyKind,
@@ -15,4 +13,4 @@ export {
     type RequestHandlerOptions,
 } from '../lib/request-handler';
 
-export default service;
+export { withPolicy } from '../lib/policy';

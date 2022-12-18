@@ -1,12 +1,12 @@
-import Image from 'next/image';
-import { List } from '@zenstackhq/runtime/types';
-import { customAlphabet } from 'nanoid';
 import { LockClosedIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { trpc } from '@lib/trpc';
+import { List } from '@prisma/client';
+import { customAlphabet } from 'nanoid';
 import { User } from 'next-auth';
-import Avatar from './Avatar';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useList } from '@zenstackhq/runtime/client';
+import Avatar from './Avatar';
 import TimeInfo from './TimeInfo';
 
 type Props = {
@@ -17,11 +17,11 @@ type Props = {
 export default function TodoList({ value, deleted }: Props) {
     const router = useRouter();
 
-    const { del } = useList();
+    const { mutateAsync: del } = trpc.list.deleteOne.useMutation();
 
     const deleteList = async () => {
         if (confirm('Are you sure to delete this list?')) {
-            await del(value.id);
+            await del({ where: { id: value.id } });
             if (deleted) {
                 deleted(value);
             }

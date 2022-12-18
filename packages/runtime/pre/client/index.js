@@ -5,7 +5,6 @@ const request = require('../lib/request');
 const types = require('../lib/types');
 
 module.exports = {
-    ...require('.zenstack/lib/hooks'),
     ...require('../lib/validation'),
     ServerErrorCode: types.ServerErrorCode,
     request,

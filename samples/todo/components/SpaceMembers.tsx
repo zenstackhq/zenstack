@@ -1,9 +1,9 @@
-import { useSpaceUser } from '@zenstackhq/runtime/client';
-import { useCurrentSpace } from '@lib/context';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import { useCurrentSpace } from '@lib/context';
+import { trpc } from '@lib/trpc';
+import { Space, SpaceUser, User } from '@prisma/client';
 import Avatar from './Avatar';
 import ManageMembers from './ManageMembers';
-import { Space } from '@zenstackhq/runtime/types';
 
 function ManagementDialog(space?: Space) {
     if (!space) return undefined;
@@ -45,8 +45,11 @@ function ManagementDialog(space?: Space) {
 export default function SpaceMembers() {
     const space = useCurrentSpace();
 
-    const { find: findMembers } = useSpaceUser();
-    const { data: members } = findMembers(
+    type ExtendedMembers = (SpaceUser & { user: User })[];
+    const { data: members } = trpc.spaceUser.findMany.useQuery<
+        ExtendedMembers,
+        ExtendedMembers
+    >(
         {
             where: {
                 spaceId: space?.id,
@@ -58,7 +61,7 @@ export default function SpaceMembers() {
                 role: 'desc',
             },
         },
-        { disabled: !space }
+        { enabled: !!space }
     );
 
     return (

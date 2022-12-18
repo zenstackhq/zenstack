@@ -1,3 +1,4 @@
+import { isEnumField } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
@@ -8,7 +9,6 @@ import {
     streamAllContents,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { isEnumField } from './generated/ast';
 
 /**
  * Custom Langium ScopeComputation implementation which adds enum fields into global scope

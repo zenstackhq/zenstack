@@ -10,10 +10,20 @@ require('esbuild')
             'src/extension.ts',
             'src/language-server/main.ts',
             'src/cli/index.ts',
+            'src/plugins/prisma/index.ts',
+            'src/plugins/policy-guard/index.ts',
+            'src/plugins/react-hooks/index.ts',
+            'src/plugins/zod/index.ts',
+            'src/plugins/trpc/index.ts',
         ],
         outdir: 'bundle',
         bundle: true,
-        external: ['vscode'],
+        external: [
+            'vscode',
+            '@prisma/internals',
+            '@prisma/generator-helper',
+            '@prisma/client',
+        ],
         platform: 'node',
         sourcemap: !minify,
         watch: watch
@@ -28,13 +38,21 @@ require('esbuild')
         plugins: [envFilePlugin],
     })
     .then(() => {
+        fs.cpSync('./bin', 'bundle/bin', { force: true, recursive: true });
         fs.cpSync('./src/res', 'bundle/res', { force: true, recursive: true });
         fs.cpSync('./asset', 'bundle/asset', {
             force: true,
             recursive: true,
         });
+        fs.cpSync('./README.md', 'bundle/README.md', {
+            force: true,
+        });
+        fs.cpSync('./package.json', 'bundle/package.json', {
+            force: true,
+        });
 
-        require('dotenv').config();
+        require('dotenv').config({ path: './.env.local' });
+        require('dotenv').config({ path: './.env' });
 
         if (process.env.TELEMETRY_TRACKING_TOKEN) {
             let postInstallContent = fs.readFileSync(

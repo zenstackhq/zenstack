@@ -1,15 +1,16 @@
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
+import { PrismaClient, SpaceUserRole } from '@prisma/client';
+import { compare } from 'bcryptjs';
+import { nanoid } from 'nanoid';
 import NextAuth, { NextAuthOptions, User } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GitHubProvider from 'next-auth/providers/github';
-import { authorize, Adapter } from '@zenstackhq/next-auth';
-import service from '@zenstackhq/runtime/server';
-import { nanoid } from 'nanoid';
-import { SpaceUserRole } from '@zenstackhq/runtime/types';
+import { prisma } from 'server/db/client';
 
 export const authOptions: NextAuthOptions = {
     // Configure one or more authentication providers
 
-    adapter: Adapter(service),
+    adapter: PrismaAdapter(prisma),
 
     session: {
         strategy: 'jwt',
@@ -29,7 +30,7 @@ export const authOptions: NextAuthOptions = {
                     type: 'password',
                 },
             },
-            authorize: authorize(service),
+            authorize: authorize(prisma),
         }),
 
         GitHubProvider({
@@ -54,7 +55,7 @@ export const authOptions: NextAuthOptions = {
 
     events: {
         async signIn({ user }: { user: User }) {
-            const spaceCount = await service.db.spaceUser.count({
+            const spaceCount = await prisma.spaceUser.count({
                 where: {
                     userId: user.id,
                 },
@@ -66,7 +67,7 @@ export const authOptions: NextAuthOptions = {
             console.log(
                 `User ${user.id} doesn't belong to any space. Creating one.`
             );
-            const space = await service.db.space.create({
+            const space = await prisma.space.create({
                 data: {
                     name: `${user.name || user.email}'s space`,
                     slug: nanoid(8),
@@ -84,5 +85,49 @@ export const authOptions: NextAuthOptions = {
         },
     },
 };
+
+function authorize(prisma: PrismaClient) {
+    return async (
+        credentials: Record<'email' | 'password', string> | undefined
+    ) => {
+        if (!credentials) {
+            throw new Error('Missing credentials');
+        }
+
+        if (!credentials.email) {
+            throw new Error('"email" is required in credentials');
+        }
+
+        if (!credentials.password) {
+            throw new Error('"password" is required in credentials');
+        }
+
+        const maybeUser = await prisma.user.findFirst({
+            where: {
+                email: credentials.email,
+            },
+            select: {
+                id: true,
+                email: true,
+                password: true,
+            },
+        });
+
+        if (!maybeUser || !maybeUser.password) {
+            return null;
+        }
+
+        const isValid = await compare(credentials.password, maybeUser.password);
+
+        if (!isValid) {
+            return null;
+        }
+
+        return {
+            id: maybeUser.id,
+            email: maybeUser.email,
+        };
+    };
+}
 
 export default NextAuth(authOptions);

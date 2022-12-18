@@ -33,7 +33,7 @@ import {
     ReferenceTarget,
     ThisExpr,
     UnaryExpr,
-} from './generated/ast';
+} from '@zenstackhq/language/ast';
 import { ResolvedShape } from './types';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
@@ -178,7 +178,7 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveNull(node as NullExpr, document, extraScopes);
                 break;
 
-            case AttributeArg:
+            case 'AttributeArg':
                 this.resolveAttributeArg(
                     node as AttributeArg,
                     document,

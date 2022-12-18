@@ -1,9 +1,6 @@
-import {
-    ServerErrorCode,
-    useSpace,
-    type HooksError,
-} from '@zenstackhq/runtime/client';
-import { SpaceUserRole } from '@zenstackhq/runtime/types';
+import { trpc } from '@lib/trpc';
+import { SpaceUserRole } from '@prisma/client';
+import { ServerErrorCode, type HooksError } from '@zenstackhq/runtime/client';
 import WithNavBar from 'components/WithNavBar';
 import { NextPage } from 'next';
 import { useSession } from 'next-auth/react';
@@ -16,7 +13,7 @@ const CreateSpace: NextPage = () => {
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
 
-    const { create } = useSpace();
+    const { mutateAsync: create } = trpc.space.createOne.useMutation();
     const router = useRouter();
 
     const onSubmit = async (event: FormEvent) => {

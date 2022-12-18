@@ -1,17 +1,17 @@
-import { STD_LIB_MODULE_NAME } from '@lang/constants';
-import { Model } from '@lang/generated/ast';
-import { createZModelServices } from '@lang/zmodel-module';
+import { Model } from '@zenstackhq/language/ast';
+import { PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import { LangiumServices } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
-import { installPackage, PackageManagers } from '../utils/pkg-utils';
 import { URI } from 'vscode-uri';
-import { ZenStackGenerator } from '../generator';
-import { GENERATED_CODE_PATH } from '../generator/constants';
-import { Context, GeneratorError } from '../generator/types';
+import { STD_LIB_MODULE_NAME } from '../language-server/constants';
+import { createZModelServices } from '../language-server/zmodel-module';
+import { Context } from '../types';
+import { installPackage, PackageManagers } from '../utils/pkg-utils';
 import { CliError } from './cli-error';
+import { PluginRunner } from './plugin-runner';
 
 /**
  * Initializes an existing project for ZenStack
@@ -182,29 +182,22 @@ export async function loadDocument(
     return document.parseResult.value as Model;
 }
 
-export async function runGenerator(
-    options: { schema: string; packageManager: PackageManagers | undefined },
-    includedGenerators?: string[],
-    clearOutput = true
-) {
+export async function runPlugins(options: {
+    schema: string;
+    packageManager: PackageManagers | undefined;
+}) {
     const services = createZModelServices(NodeFileSystem).ZModel;
     const model = await loadDocument(options.schema, services);
 
     const context: Context = {
         schema: model,
         outDir: path.dirname(options.schema),
-        // TODO: make this configurable
-        generatedCodeDir: GENERATED_CODE_PATH,
     };
 
     try {
-        await new ZenStackGenerator().generate(
-            context,
-            includedGenerators,
-            clearOutput
-        );
+        await new PluginRunner().run(context);
     } catch (err) {
-        if (err instanceof GeneratorError) {
+        if (err instanceof PluginError) {
             console.error(colors.red(err.message));
             throw new CliError(err.message);
         } else {

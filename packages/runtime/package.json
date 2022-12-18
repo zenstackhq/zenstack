@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "0.4.2",
+    "version": "0.6.0-pre.2",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -22,6 +22,7 @@
     "dependencies": {
         "@types/bcryptjs": "^2.4.2",
         "bcryptjs": "^2.4.3",
+        "change-case": "^4.1.2",
         "colors": "1.4.0",
         "cuid": "^2.1.8",
         "decimal.js": "^10.4.2",
@@ -35,7 +36,8 @@
     "peerDependencies": {
         "next": "^12.3.1 || ^13",
         "react": "^17.0.2 || ^18",
-        "react-dom": "^17.0.2 || ^18"
+        "react-dom": "^17.0.2 || ^18",
+        "@prisma/client": "^4.7.1"
     },
     "author": {
         "name": "ZenStack Team"

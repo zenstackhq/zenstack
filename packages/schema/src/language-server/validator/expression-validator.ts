@@ -2,9 +2,9 @@ import {
     Expression,
     isBinaryExpr,
     isInvocationExpr,
-} from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
-import { isFromStdlib } from '@lang/utils';
+} from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
+import { isFromStdlib } from '../utils';
 import { ValidationAcceptor } from 'langium';
 
 /**

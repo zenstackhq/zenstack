@@ -1,0 +1,29 @@
+{
+    "name": "@zenstackhq/language",
+    "version": "0.6.0-pre.2",
+    "description": "ZenStack modeling language",
+    "scripts": {
+        "clean": "rimraf dist",
+        "generate": "langium generate",
+        "watch": "concurrently \"langium generate --watch\" \"tsc --watch\"",
+        "lint": "eslint src --ext ts",
+        "build": "pnpm lint && pnpm clean && pnpm generate && tsc && cp ./package.json dist/",
+        "publish-dev": "pnpm build && pnpm publish --tag dev"
+    },
+    "publishConfig": {
+        "directory": "dist",
+        "linkDirectory": true
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "concurrently": "^7.4.0",
+        "langium-cli": "^0.5.0",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.9.4"
+    },
+    "dependencies": {
+        "langium": "^0.5.0"
+    }
+}

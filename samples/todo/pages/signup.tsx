@@ -1,18 +1,15 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { FormEvent, useState } from 'react';
-import {
-    HooksError,
-    ServerErrorCode,
-    useUser,
-} from '@zenstackhq/runtime/client';
-import { toast } from 'react-toastify';
+import { trpc } from '@lib/trpc';
+import { HooksError, ServerErrorCode } from '@zenstackhq/runtime/client';
 import { signIn } from 'next-auth/react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { FormEvent, useState } from 'react';
+import { toast } from 'react-toastify';
 
 export default function Signup() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { create: signup } = useUser();
+    const { mutateAsync: signup } = trpc.user.createOne.useMutation();
 
     async function onSignup(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();

@@ -1,4 +1,4 @@
-import { SCALAR_TYPES } from '@lang/constants';
+import { SCALAR_TYPES } from '../constants';
 import {
     ArrayExpr,
     Attribute,
@@ -12,8 +12,8 @@ import {
     isDataModelField,
     isLiteralExpr,
     ReferenceExpr,
-} from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
+} from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
 import {
     assignableToAttributeParam,

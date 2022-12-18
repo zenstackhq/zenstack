@@ -13,9 +13,6 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
-        "paths": {
-            "@lang/*": ["src/language-server/*"]
-        },
         "resolveJsonModule": true
     },
     "include": ["src/**/*.ts"],

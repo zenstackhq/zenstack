@@ -1,5 +1,5 @@
 import { AstNode, ValidationAcceptor } from 'langium';
-import { AbstractDeclaration, ExpressionType } from './generated/ast';
+import { AbstractDeclaration, ExpressionType } from '@zenstackhq/language/ast';
 
 /**
  * Shape of type resolution result: an expression type or reference to a declaration

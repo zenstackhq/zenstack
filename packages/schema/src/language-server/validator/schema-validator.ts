@@ -1,6 +1,6 @@
-import { STD_LIB_MODULE_NAME } from '@lang/constants';
-import { isDataSource, Model } from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
+import { STD_LIB_MODULE_NAME } from '../constants';
+import { isDataSource, Model } from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
 import { validateDuplicatedDeclarations } from './utils';
 

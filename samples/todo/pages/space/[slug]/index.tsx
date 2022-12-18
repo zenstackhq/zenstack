@@ -1,5 +1,12 @@
-import { authOptions } from '@api/auth/[...nextauth]';
 import { SpaceContext, UserContext } from '@lib/context';
+import { trpc } from '@lib/trpc';
+import { List, Space, User } from '@prisma/client';
+import BreadCrumb from 'components/BreadCrumb';
+import SpaceMembers from 'components/SpaceMembers';
+import TodoList from 'components/TodoList';
+import WithNavBar from 'components/WithNavBar';
+import { GetServerSideProps } from 'next';
+import { useRouter } from 'next/router';
 import {
     ChangeEvent,
     FormEvent,
@@ -8,18 +15,8 @@ import {
     useRef,
     useState,
 } from 'react';
-import { useList } from '@zenstackhq/runtime/client';
 import { toast } from 'react-toastify';
-import TodoList from 'components/TodoList';
-import BreadCrumb from 'components/BreadCrumb';
-import SpaceMembers from 'components/SpaceMembers';
-import WithNavBar from 'components/WithNavBar';
-import { List, Space, User } from '@zenstackhq/runtime/types';
-import { GetServerSideProps } from 'next';
-import { unstable_getServerSession } from 'next-auth';
-import service from '@zenstackhq/runtime/server';
-import { useRouter } from 'next/router';
-import { getSpaceBySlug } from '@lib/query-utils';
+import { auth } from 'server/db/auth';
 
 function CreateDialog() {
     const user = useContext(UserContext);
@@ -29,7 +26,7 @@ function CreateDialog() {
     const [title, setTitle] = useState('');
     const [_private, setPrivate] = useState(false);
 
-    const { create } = useList();
+    const { mutateAsync: create } = trpc.list.createOne.useMutation();
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -46,8 +43,8 @@ function CreateDialog() {
                 data: {
                     title,
                     private: _private,
-                    spaceId: space!.id,
-                    ownerId: user!.id,
+                    space: { connect: { id: space!.id } },
+                    owner: { connect: { id: user!.id } },
                 },
             });
         } catch (err: any) {
@@ -148,11 +145,12 @@ type Props = {
 };
 
 export default function SpaceHome(props: Props) {
-    const space = useContext(SpaceContext);
-    const { find } = useList();
     const router = useRouter();
 
-    const { data: lists, mutate: invalidateLists } = find(
+    const { data: lists, refetch } = trpc.list.findMany.useQuery<
+        Props['lists'],
+        Props['lists']
+    >(
         {
             where: {
                 space: {
@@ -167,7 +165,7 @@ export default function SpaceHome(props: Props) {
             },
         },
         {
-            disabled: !space,
+            enabled: !!router.query.slug,
             initialData: props.lists,
         }
     );
@@ -191,10 +189,7 @@ export default function SpaceHome(props: Props) {
                 <ul className="flex flex-wrap gap-6">
                     {lists?.map((list) => (
                         <li key={list.id}>
-                            <TodoList
-                                value={list}
-                                deleted={() => invalidateLists()}
-                            />
+                            <TodoList value={list} deleted={() => refetch()} />
                         </li>
                     ))}
                 </ul>
@@ -210,16 +205,20 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
     res,
     params,
 }) => {
-    const session = await unstable_getServerSession(req, res, authOptions);
-    const queryContext = { user: session?.user };
+    const db = await auth({ req, res });
 
-    const space = await getSpaceBySlug(queryContext, params?.slug as string);
+    const space = await db.space.findUnique({
+        where: { slug: params!.slug as string },
+    });
+    if (!space) {
+        return {
+            notFound: true,
+        };
+    }
 
-    const lists = await service.list.find(queryContext, {
+    const lists = await db.list.findMany({
         where: {
-            space: {
-                slug: params?.slug as string,
-            },
+            space: { slug: params?.slug as string },
         },
         include: {
             owner: true,
@@ -228,6 +227,7 @@ export const getServerSideProps: GetServerSideProps<Props> = async ({
             updatedAt: 'desc',
         },
     });
+
     return {
         props: { space, lists },
     };

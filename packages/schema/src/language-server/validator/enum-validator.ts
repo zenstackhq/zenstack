@@ -1,5 +1,5 @@
-import { Enum } from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
+import { Enum } from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
 import { validateDuplicatedDeclarations } from './utils';
 

@@ -1,7 +1,7 @@
-import { ResolvedType } from '@lang/types';
-import { AttributeParam } from './generated/ast';
+import { ResolvedType } from './types';
+import { AttributeParam } from '@zenstackhq/language/ast';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { AttributeArg } from './generated/ast';
+import { AttributeArg } from '@zenstackhq/language/ast';
 
 declare module 'langium' {
     export interface AstNode {
@@ -12,7 +12,7 @@ declare module 'langium' {
     }
 }
 
-declare module './generated/ast' {
+declare module '@zenstackhq/language/ast' {
     interface AttributeArg {
         /**
          * Resolved attribute param declaration

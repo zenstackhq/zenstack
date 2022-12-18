@@ -1,4 +1,4 @@
-import { List, Space } from '@zenstackhq/runtime/types';
+import { List, Space } from '@prisma/client';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
