@@ -13,7 +13,7 @@ const CreateSpace: NextPage = () => {
     const [name, setName] = useState('');
     const [slug, setSlug] = useState('');
 
-    const { mutateAsync: create } = trpc.space.createOne.useMutation();
+    const { mutateAsync: create } = trpc.space.create.useMutation();
     const router = useRouter();
 
     const onSubmit = async (event: FormEvent) => {

@@ -1,14 +1,14 @@
 {
-    "name": "@zenstackhq/sdk",
+    "name": "@zenstackhq/next",
     "version": "0.6.0-pre.11",
-    "description": "ZenStack plugin development SDK",
-    "main": "index.js",
+    "description": "ZenStack next.js runtime",
     "scripts": {
         "clean": "rimraf dist",
-        "lint": "eslint src --ext ts",
         "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md dist/",
         "watch": "tsc --watch",
-        "publish-dev": "pnpm build && pnpm publish --tag dev"
+        "lint": "eslint src --ext ts",
+        "prepublishOnly": "pnpm build",
+        "publish-dev": "pnpm publish --tag dev"
     },
     "publishConfig": {
         "directory": "dist",
@@ -17,11 +17,16 @@
     "keywords": [],
     "author": "",
     "license": "MIT",
+    "peerDependencies": {
+        "next": "^12.3.1 || ^13",
+        "react": "^17.0.2 || ^18"
+    },
     "dependencies": {
-        "@prisma/generator-helper": "^4.7.1",
-        "@zenstackhq/language": "workspace:*"
+        "superjson": "^1.11.0"
     },
     "devDependencies": {
+        "@types/react": "^18.0.26",
+        "react": "^17.0.2 || ^18",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"
     }

@@ -26,7 +26,7 @@ function CreateDialog() {
     const [title, setTitle] = useState('');
     const [_private, setPrivate] = useState(false);
 
-    const { mutateAsync: create } = trpc.list.createOne.useMutation();
+    const { mutateAsync: create } = trpc.list.create.useMutation();
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {

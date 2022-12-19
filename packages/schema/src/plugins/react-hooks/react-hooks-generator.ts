@@ -5,258 +5,475 @@ import * as path from 'path';
 import { Project } from 'ts-morph';
 import { RUNTIME_PACKAGE } from '../constants';
 
-/**
- * Generate react data query hooks code
- */
-export default class ReactHooksGenerator {
-    async generate(model: Model, options: PluginOptions) {
-        const project = new Project();
-        const models: DataModel[] = [];
-        const warnings: string[] = [];
+export async function generate(model: Model, options: PluginOptions) {
+    const project = new Project();
+    const models: DataModel[] = [];
+    const warnings: string[] = [];
 
-        for (const dm of model.declarations.filter((d): d is DataModel =>
-            isDataModel(d)
-        )) {
-            const hasAllowRule = dm.attributes.find(
-                (attr) => attr.decl.ref?.name === '@@allow'
-            );
-            if (!hasAllowRule) {
-                warnings.push(
-                    `Not generating hooks for "${dm.name}" because it doesn't have any @@allow rule`
-                );
-            } else {
-                models.push(dm);
-            }
-        }
-
-        const outDir =
-            (options.output as string) ?? 'node_modules/.zenstack/src/hooks';
-
-        this.generateIndex(project, outDir, models);
-
-        models.forEach((d) => this.generateModelHooks(project, outDir, d));
-
-        await project.save();
-        return warnings;
-    }
-
-    private getValidator(model: DataModel, mode: 'create' | 'update') {
-        return `${model.name}_${mode}_validator`;
-    }
-
-    private generateModelHooks(
-        project: Project,
-        outDir: string,
-        model: DataModel
-    ) {
-        const fileName = paramCase(model.name);
-        const sf = project.createSourceFile(
-            path.join(outDir, `${fileName}.ts`),
-            undefined,
-            { overwrite: true }
+    for (const dm of model.declarations.filter((d): d is DataModel =>
+        isDataModel(d)
+    )) {
+        const hasAllowRule = dm.attributes.find(
+            (attr) => attr.decl.ref?.name === '@@allow'
         );
+        if (!hasAllowRule) {
+            warnings.push(
+                `Not generating hooks for "${dm.name}" because it doesn't have any @@allow rule`
+            );
+        } else {
+            models.push(dm);
+        }
+    }
 
-        sf.addImportDeclaration({
-            namedImports: [{ name: 'Prisma', alias: 'P' }, model.name],
-            isTypeOnly: true,
-            moduleSpecifier: '@prisma/client',
-        });
-        sf.addStatements([
-            `import * as request from '${RUNTIME_PACKAGE}/lib/request';`,
-            `import { ServerErrorCode, RequestOptions } from '${RUNTIME_PACKAGE}/lib/types';`,
-            `import { type SWRResponse } from 'swr';`,
-            // `import { validate } from '${RUNTIME_PACKAGE}/lib/validation';`,
-            // `import { ${this.getValidator(
-            //     model,
-            //     'create'
-            // )}, ${this.getValidator(
-            //     model,
-            //     'update'
-            // )} } from '../field-constraint';`,
-        ]);
+    const outDir =
+        (options.output as string) ?? 'node_modules/.zenstack/src/hooks';
 
-        const useFunc = sf.addFunction({
-            name: `use${model.name}`,
-            isExported: true,
-        });
+    generateIndex(project, outDir, models);
 
-        useFunc.addParameter({
-            name: 'endpoint',
-            type: 'string',
-            initializer: `'/api/zenstack/data'`,
-        });
+    models.forEach((d) => generateModelHooks(project, outDir, d));
 
-        useFunc.addStatements(['const mutate = request.getMutate();']);
+    await project.save();
+    return warnings;
+}
 
-        // create
+function wrapReadbackErrorCheck(code: string) {
+    return `try {
+        ${code}
+    } catch (err: any) {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2004') {
+            // unable to readback data
+            return undefined;
+        } else {
+            throw err;
+        }
+    }`;
+}
+
+function generateModelHooks(
+    project: Project,
+    outDir: string,
+    model: DataModel
+) {
+    const fileName = paramCase(model.name);
+    const sf = project.createSourceFile(
+        path.join(outDir, `${fileName}.ts`),
+        undefined,
+        { overwrite: true }
+    );
+
+    sf.addImportDeclaration({
+        namedImports: [{ name: 'Prisma' }, `type ${model.name}`],
+        moduleSpecifier: '@prisma/client',
+    });
+    sf.addStatements([
+        `import { useContext } from 'react';`,
+        `import { RequestHandlerContext } from '@zenstackhq/next';`,
+        `import * as request from '${RUNTIME_PACKAGE}/lib/request';`,
+        `import { RequestOptions } from '${RUNTIME_PACKAGE}/lib/types';`,
+    ]);
+
+    const useFunc = sf.addFunction({
+        name: `use${model.name}`,
+        isExported: true,
+    });
+
+    useFunc.addStatements([
+        'const mutate = request.getMutate();',
+        'const { endpoint } = useContext(RequestHandlerContext);',
+    ]);
+
+    // create
+    {
+        const argsType = `Prisma.${model.name}CreateArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
         useFunc
             .addFunction({
                 name: 'create',
                 isAsync: true,
-                typeParameters: [`T extends P.${model.name}CreateArgs`],
+                typeParameters: [`T extends ${argsType}`],
                 parameters: [
-                    { name: 'args', type: `P.${model.name}CreateArgs` },
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `
-                // // validate field-level constraints
-                // validate(${this.getValidator(model, 'create')}, args.data);
-
-                try {
-                    return await request.post<P.${
-                        model.name
-                    }CreateArgs, P.CheckSelect<T, ${model.name}, P.${
-                    model.name
-                }GetPayload<T>>>(endpoint, args, mutate);
-                } catch (err: any) {
-                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
-                        return undefined;
-                    } else {
-                        throw err;
-                    }
-                }
-                `,
+                wrapReadbackErrorCheck(
+                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/create\`, args, mutate);`
+                ),
             ]);
+    }
 
-        // find
+    // createMany
+    {
+        const argsType = `Prisma.${model.name}CreateManyArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.BatchPayload`;
         useFunc
             .addFunction({
-                name: 'find',
-                typeParameters: [`T extends P.${model.name}FindManyArgs`],
-                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}[], P.${model.name}GetPayload<T>[]>, any>`,
+                name: 'createMany',
+                isAsync: true,
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/createMany\`, args, mutate);`,
+            ]);
+    }
+
+    // findMany
+    {
+        const argsType = `Prisma.${model.name}FindManyArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Array<Prisma.${model.name}GetPayload<T>>`;
+        useFunc
+            .addFunction({
+                name: 'findMany',
+                typeParameters: [`T extends ${argsType}`],
                 parameters: [
                     {
                         name: 'args?',
-                        type: `P.SelectSubset<T, P.${model.name}FindManyArgs>`,
+                        type: inputType,
                     },
                     {
                         name: 'options?',
-                        type: `RequestOptions<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>`,
+                        type: `RequestOptions<${returnType}>`,
                     },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, Array<${model.name}>, Array<P.${model.name}GetPayload<T>>>>(endpoint, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/findMany\`, args, options);`,
             ]);
+    }
 
-        // get
+    // findUnique
+    {
+        const argsType = `Prisma.${model.name}FindUniqueArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.${model.name}GetPayload<T>`;
         useFunc
             .addFunction({
-                name: 'get',
-                typeParameters: [`T extends P.${model.name}FindFirstArgs`],
-                returnType: `SWRResponse<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>, any>`,
+                name: 'findUnique',
+                typeParameters: [`T extends ${argsType}`],
                 parameters: [
                     {
-                        name: 'id',
-                        type: 'String | undefined',
-                    },
-                    {
-                        name: 'args?',
-                        type: `P.SelectSubset<T, P.Subset<P.${model.name}FindFirstArgs, 'select' | 'include'>>`,
+                        name: 'args',
+                        type: inputType,
                     },
                     {
                         name: 'options?',
-                        type: `RequestOptions<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>`,
+                        type: `RequestOptions<${returnType}>`,
                     },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(id ? \`\${endpoint}/\${id}\`: null, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/findUnique\`, args, options);`,
             ]);
+    }
 
-        // update
+    // findFirst
+    {
+        const argsType = `Prisma.${model.name}FindFirstArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.${model.name}GetPayload<T>`;
+        useFunc
+            .addFunction({
+                name: 'findFirst',
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
+                    {
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/findFirst\`, args, options);`,
+            ]);
+    }
+
+    // update
+    {
+        const argsType = `Prisma.${model.name}UpdateArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.${model.name}GetPayload<T>`;
         useFunc
             .addFunction({
                 name: 'update',
                 isAsync: true,
-                typeParameters: [
-                    `T extends Omit<P.${model.name}UpdateArgs, 'where'>`,
-                ],
+                typeParameters: [`T extends ${argsType}`],
                 parameters: [
-                    { name: 'id', type: 'String' },
                     {
                         name: 'args',
-                        type: `Omit<P.${model.name}UpdateArgs, 'where'>`,
+                        type: inputType,
                     },
                 ],
             })
             .addBody()
             .addStatements([
-                `
-                // // validate field-level constraints
-                // validate(${this.getValidator(model, 'update')}, args.data);
-                
-                try {
-                    return await request.put<Omit<P.${
-                        model.name
-                    }UpdateArgs, 'where'>, P.CheckSelect<T, ${model.name}, P.${
-                    model.name
-                }GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
-                } catch (err: any) {
-                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
-                        return undefined;
-                    } else {
-                        throw err;
-                    }
-                }
-                `,
+                wrapReadbackErrorCheck(
+                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/update\`, args, mutate);`
+                ),
             ]);
+    }
 
-        // del
+    // updateMany
+    {
+        const argsType = `Prisma.${model.name}UpdateManyArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.BatchPayload`;
+        useFunc
+            .addFunction({
+                name: 'updateMany',
+                isAsync: true,
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/updateMany\`, args, mutate);`,
+            ]);
+    }
+
+    // upsert
+    {
+        const argsType = `Prisma.${model.name}UpsertArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.${model.name}GetPayload<T>`;
+        useFunc
+            .addFunction({
+                name: 'upsert',
+                isAsync: true,
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                wrapReadbackErrorCheck(
+                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/upsert\`, args, mutate);`
+                ),
+            ]);
+    }
+
+    // del
+    {
+        const argsType = `Prisma.${model.name}DeleteArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.${model.name}GetPayload<T>`;
         useFunc
             .addFunction({
                 name: 'del',
                 isAsync: true,
-                typeParameters: [
-                    `T extends Omit<P.${model.name}DeleteArgs, 'where'>`,
-                ],
+                typeParameters: [`T extends ${argsType}`],
                 parameters: [
-                    { name: 'id', type: 'String' },
                     {
                         name: 'args?',
-                        type: `Omit<P.${model.name}DeleteArgs, 'where'>`,
+                        type: inputType,
                     },
                 ],
             })
             .addBody()
             .addStatements([
-                `
-                try {
-                    return await request.del<P.CheckSelect<T, ${model.name}, P.${model.name}GetPayload<T>>>(\`\${endpoint}/\${id}\`, args, mutate);
-                } catch (err: any) {
-                    if (err.info?.code === ServerErrorCode.READ_BACK_AFTER_WRITE_DENIED) {
-                        return undefined;
-                    } else {
-                        throw err;
-                    }
-                }
-                `,
+                wrapReadbackErrorCheck(
+                    `return await request.del<${returnType}>(\`\${endpoint}/${model.name}/delete\`, args, mutate);`
+                ),
             ]);
-
-        useFunc.addStatements(['return { create, find, get, update, del };']);
-
-        sf.formatText();
     }
 
-    private generateIndex(
-        project: Project,
-        outDir: string,
-        models: DataModel[]
-    ) {
-        const sf = project.createSourceFile(
-            path.join(outDir, 'index.ts'),
-            undefined,
-            { overwrite: true }
-        );
-
-        sf.addStatements(
-            models.map((d) => `export * from './${paramCase(d.name)}';`)
-        );
-
-        sf.formatText();
+    // deleteMany
+    {
+        const argsType = `Prisma.${model.name}DeleteManyArgs`;
+        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+        const returnType = `Prisma.BatchPayload`;
+        useFunc
+            .addFunction({
+                name: 'deleteMany',
+                isAsync: true,
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args?',
+                        type: inputType,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return await request.del<${returnType}>(\`\${endpoint}/${model.name}/deleteMany\`, args, mutate);`,
+            ]);
     }
+
+    // aggregate
+    {
+        const argsType = `Prisma.${model.name}AggregateArgs`;
+        const inputType = `Prisma.Subset<T, ${argsType}>`;
+        const returnType = `Prisma.Get${model.name}AggregateType<T>`;
+        useFunc
+            .addFunction({
+                name: 'aggregate',
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
+                    {
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/aggregate\`, args, options);`,
+            ]);
+    }
+
+    // groupBy
+    {
+        const returnType = `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`;
+        useFunc
+            .addFunction({
+                name: 'groupBy',
+                typeParameters: [
+                    `T extends Prisma.${model.name}GroupByArgs`,
+                    `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
+                    `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.UserGroupByArgs['orderBy'] }: { orderBy?: Prisma.UserGroupByArgs['orderBy'] },`,
+                    `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
+                    `ByFields extends Prisma.TupleToUnion<T['by']>`,
+                    `ByValid extends Prisma.Has<ByFields, OrderFields>`,
+                    `HavingFields extends Prisma.GetHavingFields<T['having']>`,
+                    `HavingValid extends Prisma.Has<ByFields, HavingFields>`,
+                    `ByEmpty extends T['by'] extends never[] ? Prisma.True : Prisma.False`,
+                    `InputErrors extends ByEmpty extends Prisma.True
+                    ? \`Error: "by" must not be empty.\`
+                    : HavingValid extends Prisma.False
+                    ? {
+                        [P in HavingFields]: P extends ByFields
+                        ? never
+                        : P extends string
+                        ? \`Error: Field "\${P}" used in "having" needs to be provided in "by".\`
+                        : [
+                            Error,
+                            'Field ',
+                            P,
+                            \` in "having" needs to be provided in "by"\`,
+                            ]
+                    }[HavingFields]
+                    : 'take' extends Prisma.Keys<T>
+                    ? 'orderBy' extends Prisma.Keys<T>
+                    ? ByValid extends Prisma.True
+                        ? {}
+                        : {
+                            [P in OrderFields]: P extends ByFields
+                            ? never
+                            : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                        }[OrderFields]
+                    : 'Error: If you provide "take", you also need to provide "orderBy"'
+                    : 'skip' extends Prisma.Keys<T>
+                    ? 'orderBy' extends Prisma.Keys<T>
+                    ? ByValid extends Prisma.True
+                        ? {}
+                        : {
+                            [P in OrderFields]: P extends ByFields
+                            ? never
+                            : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                        }[OrderFields]
+                    : 'Error: If you provide "skip", you also need to provide "orderBy"'
+                    : ByValid extends Prisma.True
+                    ? {}
+                    : {
+                        [P in OrderFields]: P extends ByFields
+                        ? never
+                        : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                    }[OrderFields]`,
+                ],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`,
+                    },
+                    {
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/groupBy\`, args, options);`,
+            ]);
+    }
+
+    // count
+    {
+        const argsType = `Prisma.${model.name}CountArgs`;
+        const inputType = `Prisma.Subset<T, ${argsType}>`;
+        const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`;
+        useFunc
+            .addFunction({
+                name: 'count',
+                typeParameters: [`T extends ${argsType}`],
+                parameters: [
+                    {
+                        name: 'args',
+                        type: inputType,
+                    },
+                    {
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
+                ],
+            })
+            .addBody()
+            .addStatements([
+                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/count\`, args, options);`,
+            ]);
+    }
+
+    useFunc.addStatements([
+        'return { create, createMany, findMany, findUnique, findFirst, update, updateMany, upsert, del, deleteMany, aggregate, groupBy, count };',
+    ]);
+
+    sf.formatText();
+}
+
+function generateIndex(project: Project, outDir: string, models: DataModel[]) {
+    const sf = project.createSourceFile(
+        path.join(outDir, 'index.ts'),
+        undefined,
+        { overwrite: true }
+    );
+
+    sf.addStatements(
+        models.map((d) => `export * from './${paramCase(d.name)}';`)
+    );
+
+    sf.formatText();
 }

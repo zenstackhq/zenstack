@@ -1,7 +1,6 @@
-import { ConnectorType, DMMF } from '@prisma/generator-helper';
+import { DMMF } from '@prisma/generator-helper';
 import { PluginOptions } from '@zenstackhq/sdk';
-import { DataSource, isDataSource, Model } from '@zenstackhq/sdk/ast';
-import { getLiteral } from '@zenstackhq/sdk/utils';
+import { Model } from '@zenstackhq/sdk/ast';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { generate as PrismaZodGenerator } from '../zod/generator';
@@ -27,14 +26,6 @@ export async function generate(
     await removeDir(outputDir, true);
 
     await PrismaZodGenerator(model, options, dmmf);
-
-    const dataSource = model.declarations.find((d): d is DataSource =>
-        isDataSource(d)
-    );
-
-    const dataSourceProvider = getLiteral(
-        dataSource?.fields.find((f) => f.name === 'provider')?.value
-    ) as ConnectorType;
 
     const prismaClientDmmf = dmmf;
 
@@ -111,8 +102,7 @@ export async function generate(
                     project,
                     model,
                     operations,
-                    outputDir,
-                    dataSourceProvider
+                    outputDir
                 );
 
                 appRouter.addImportDeclaration({
@@ -138,8 +128,7 @@ function generateModelCreateRouter(
     project: Project,
     model: string,
     operations: Record<string, string | undefined | null>,
-    outputDir: string,
-    dataSourceProvider: ConnectorType
+    outputDir: string
 ) {
     const modelRouter = project.createSourceFile(
         path.resolve(outputDir, 'routers', `${model}.router.ts`),
@@ -159,14 +148,7 @@ function generateModelCreateRouter(
         },
     ]);
 
-    const hasCreateMany = Boolean(operations.createMany);
-
-    generateRouterSchemaImports(
-        modelRouter,
-        model,
-        hasCreateMany,
-        dataSourceProvider
-    );
+    generateRouterSchemaImports(modelRouter, model);
 
     modelRouter
         .addFunction({
@@ -191,7 +173,7 @@ function generateModelCreateRouter(
                     if (opNameWithModel && inputType) {
                         generateProcedure(
                             writer,
-                            opType,
+                            opType.replace(/One$/, ''),
                             inputType,
                             model,
                             baseOpType

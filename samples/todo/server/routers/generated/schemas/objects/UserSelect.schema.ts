@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { SpaceUserFindManySchema } from '../findManySpaceUser.schema';
-import { ListFindManySchema } from '../findManyList.schema';
-import { TodoFindManySchema } from '../findManyTodo.schema';
-import { AccountFindManySchema } from '../findManyAccount.schema';
+import { SpaceUserSchema } from '../SpaceUser.schema';
+import { ListSchema } from '../List.schema';
+import { TodoSchema } from '../Todo.schema';
+import { AccountSchema } from '../Account.schema';
 import { UserCountOutputTypeArgsObjectSchema } from './UserCountOutputTypeArgs.schema';
 
 import type { Prisma } from '@prisma/client';
@@ -17,13 +17,13 @@ const Schema: z.ZodType<Prisma.UserSelect> = z
     password: z.boolean().optional(),
     name: z.boolean().optional(),
     spaces: z
-      .union([z.boolean(), z.lazy(() => SpaceUserFindManySchema)])
+      .union([z.boolean(), z.lazy(() => SpaceUserSchema.findMany)])
       .optional(),
     image: z.boolean().optional(),
-    lists: z.union([z.boolean(), z.lazy(() => ListFindManySchema)]).optional(),
-    todos: z.union([z.boolean(), z.lazy(() => TodoFindManySchema)]).optional(),
+    lists: z.union([z.boolean(), z.lazy(() => ListSchema.findMany)]).optional(),
+    todos: z.union([z.boolean(), z.lazy(() => TodoSchema.findMany)]).optional(),
     accounts: z
-      .union([z.boolean(), z.lazy(() => AccountFindManySchema)])
+      .union([z.boolean(), z.lazy(() => AccountSchema.findMany)])
       .optional(),
     zenstack_guard: z.boolean().optional(),
     zenstack_transaction: z.boolean().optional(),

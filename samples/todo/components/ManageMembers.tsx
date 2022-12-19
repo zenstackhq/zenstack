@@ -2,6 +2,7 @@ import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useCurrentUser } from '@lib/context';
 import { trpc } from '@lib/trpc';
 import { Space, SpaceUser, SpaceUserRole, User } from '@prisma/client';
+import { inferProcedureOutput } from '@trpc/server';
 import { HooksError, ServerErrorCode } from '@zenstackhq/runtime/client';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -16,10 +17,10 @@ export default function ManageMembers({ space }: Props) {
     const [role, setRole] = useState<SpaceUserRole>(SpaceUserRole.USER);
     const user = useCurrentUser();
 
-    type ExtendedMembers = (SpaceUser & { user: User })[];
     const { data: members } = trpc.spaceUser.findMany.useQuery<
-        ExtendedMembers,
-        ExtendedMembers
+        inferProcedureOutput<typeof trpc.spaceUser.findMany>,
+        // a cast is needed because trpc's procedure typing is static
+        (SpaceUser & { user: User })[]
     >({
         where: {
             spaceId: space.id,
@@ -32,8 +33,8 @@ export default function ManageMembers({ space }: Props) {
         },
     });
 
-    const { mutateAsync: addMember } = trpc.spaceUser.createOne.useMutation();
-    const { mutateAsync: delMember } = trpc.spaceUser.deleteOne.useMutation();
+    const { mutateAsync: addMember } = trpc.spaceUser.create.useMutation();
+    const { mutateAsync: delMember } = trpc.spaceUser.delete.useMutation();
 
     const inviteUser = async () => {
         try {

@@ -23,6 +23,11 @@ plugin policy {
     output = 'server/policy/'
 }
 
+plugin hooks {
+    provider = 'zenstack/plugins/react-hooks'
+    output = 'lib/hooks'
+}
+
 plugin trpc {
     provider = 'zenstack/plugins/trpc'
     output = 'server/routers/generated'

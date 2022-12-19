@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { SpaceUserFindManySchema } from '../findManySpaceUser.schema';
-import { ListFindManySchema } from '../findManyList.schema';
+import { SpaceUserSchema } from '../SpaceUser.schema';
+import { ListSchema } from '../List.schema';
 import { SpaceCountOutputTypeArgsObjectSchema } from './SpaceCountOutputTypeArgs.schema';
 
 import type { Prisma } from '@prisma/client';
@@ -13,9 +13,9 @@ const Schema: z.ZodType<Prisma.SpaceSelect> = z
     name: z.boolean().optional(),
     slug: z.boolean().optional(),
     members: z
-      .union([z.boolean(), z.lazy(() => SpaceUserFindManySchema)])
+      .union([z.boolean(), z.lazy(() => SpaceUserSchema.findMany)])
       .optional(),
-    lists: z.union([z.boolean(), z.lazy(() => ListFindManySchema)]).optional(),
+    lists: z.union([z.boolean(), z.lazy(() => ListSchema.findMany)]).optional(),
     zenstack_guard: z.boolean().optional(),
     zenstack_transaction: z.boolean().optional(),
     _count: z

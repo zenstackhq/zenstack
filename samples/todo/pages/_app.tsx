@@ -5,6 +5,7 @@ import {
     UserContext,
 } from '@lib/context';
 import { trpc } from '@lib/trpc';
+import { Provider as ZenStackHooksProvider } from '@zenstackhq/next';
 import AuthGuard from 'components/AuthGuard';
 import { SessionProvider } from 'next-auth/react';
 import type { AppProps } from 'next/app';
@@ -32,16 +33,18 @@ function AppContent(props: { children: JSX.Element | JSX.Element[] }) {
 function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
     return (
         <SessionProvider session={session}>
-            <AppContent>
-                <div className="flex-grow h-100">
-                    <Component {...pageProps} />
-                    <ToastContainer
-                        position="top-center"
-                        autoClose={2000}
-                        hideProgressBar={true}
-                    />
-                </div>
-            </AppContent>
+            <ZenStackHooksProvider value={{ endpoint: '/api/crud' }}>
+                <AppContent>
+                    <div className="flex-grow h-100">
+                        <Component {...pageProps} />
+                        <ToastContainer
+                            position="top-center"
+                            autoClose={2000}
+                            hideProgressBar={true}
+                        />
+                    </div>
+                </AppContent>
+            </ZenStackHooksProvider>
         </SessionProvider>
     );
 }

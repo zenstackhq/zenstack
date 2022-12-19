@@ -13,8 +13,8 @@ type Props = {
 
 export default function TodoComponent({ value, updated, deleted }: Props) {
     const [completed, setCompleted] = useState(!!value.completedAt);
-    const { mutateAsync: update } = trpc.todo.updateOne.useMutation();
-    const { mutateAsync: del } = trpc.todo.deleteOne.useMutation();
+    const { mutateAsync: update } = trpc.todo.update.useMutation();
+    const { mutateAsync: del } = trpc.todo.delete.useMutation();
 
     useEffect(() => {
         if (!!value.completedAt !== completed) {

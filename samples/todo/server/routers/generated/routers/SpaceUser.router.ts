@@ -1,47 +1,36 @@
 import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from ".";
-import { SpaceUserFindUniqueSchema } from "../schemas/findUniqueSpaceUser.schema";
-import { SpaceUserFindFirstSchema } from "../schemas/findFirstSpaceUser.schema";
-import { SpaceUserFindManySchema } from "../schemas/findManySpaceUser.schema";
-import { SpaceUserCreateOneSchema } from "../schemas/createOneSpaceUser.schema";
-import { SpaceUserCreateManySchema } from "../schemas/createManySpaceUser.schema";
-import { SpaceUserDeleteOneSchema } from "../schemas/deleteOneSpaceUser.schema";
-import { SpaceUserUpdateOneSchema } from "../schemas/updateOneSpaceUser.schema";
-import { SpaceUserDeleteManySchema } from "../schemas/deleteManySpaceUser.schema";
-import { SpaceUserUpdateManySchema } from "../schemas/updateManySpaceUser.schema";
-import { SpaceUserUpsertSchema } from "../schemas/upsertOneSpaceUser.schema";
-import { SpaceUserAggregateSchema } from "../schemas/aggregateSpaceUser.schema";
-import { SpaceUserGroupBySchema } from "../schemas/groupBySpaceUser.schema";
+import { SpaceUserSchema } from '../schemas/SpaceUser.schema';
 
 export default function createRouter<Config extends BaseConfig>(router: RouterFactory<Config>, procedure: ProcBuilder<Config>) {
     return router({
 
-        aggregate: procedure.input(SpaceUserAggregateSchema).query(({ ctx, input }) => db(ctx).spaceUser.aggregate(input)),
+        aggregate: procedure.input(SpaceUserSchema.aggregate).query(({ ctx, input }) => db(ctx).spaceUser.aggregate(input)),
 
-        createMany: procedure.input(SpaceUserCreateManySchema).mutation(({ ctx, input }) => db(ctx).spaceUser.createMany(input)),
+        createMany: procedure.input(SpaceUserSchema.createMany).mutation(({ ctx, input }) => db(ctx).spaceUser.createMany(input)),
 
-        createOne: procedure.input(SpaceUserCreateOneSchema).mutation(({ ctx, input }) => db(ctx).spaceUser.create(input)),
+        create: procedure.input(SpaceUserSchema.create).mutation(({ ctx, input }) => db(ctx).spaceUser.create(input)),
 
-        deleteMany: procedure.input(SpaceUserDeleteManySchema).mutation(({ ctx, input }) => db(ctx).spaceUser.deleteMany(input)),
+        deleteMany: procedure.input(SpaceUserSchema.deleteMany).mutation(({ ctx, input }) => db(ctx).spaceUser.deleteMany(input)),
 
-        deleteOne: procedure.input(SpaceUserDeleteOneSchema).mutation(({ ctx, input }) => db(ctx).spaceUser.delete(input)),
+        delete: procedure.input(SpaceUserSchema.delete).mutation(({ ctx, input }) => db(ctx).spaceUser.delete(input)),
 
-        findFirst: procedure.input(SpaceUserFindFirstSchema).query(({ ctx, input }) => db(ctx).spaceUser.findFirst(input)),
+        findFirst: procedure.input(SpaceUserSchema.findFirst).query(({ ctx, input }) => db(ctx).spaceUser.findFirst(input)),
 
-        findFirstOrThrow: procedure.input(SpaceUserFindFirstSchema).query(({ ctx, input }) => db(ctx).spaceUser.findFirstOrThrow(input)),
+        findFirstOrThrow: procedure.input(SpaceUserSchema.findFirst).query(({ ctx, input }) => db(ctx).spaceUser.findFirstOrThrow(input)),
 
-        findMany: procedure.input(SpaceUserFindManySchema).query(({ ctx, input }) => db(ctx).spaceUser.findMany(input)),
+        findMany: procedure.input(SpaceUserSchema.findMany).query(({ ctx, input }) => db(ctx).spaceUser.findMany(input)),
 
-        findUnique: procedure.input(SpaceUserFindUniqueSchema).query(({ ctx, input }) => db(ctx).spaceUser.findUnique(input)),
+        findUnique: procedure.input(SpaceUserSchema.findUnique).query(({ ctx, input }) => db(ctx).spaceUser.findUnique(input)),
 
-        findUniqueOrThrow: procedure.input(SpaceUserFindUniqueSchema).query(({ ctx, input }) => db(ctx).spaceUser.findUniqueOrThrow(input)),
+        findUniqueOrThrow: procedure.input(SpaceUserSchema.findUnique).query(({ ctx, input }) => db(ctx).spaceUser.findUniqueOrThrow(input)),
 
-        groupBy: procedure.input(SpaceUserGroupBySchema).query(({ ctx, input }) => db(ctx).spaceUser.groupBy(input)),
+        groupBy: procedure.input(SpaceUserSchema.groupBy).query(({ ctx, input }) => db(ctx).spaceUser.groupBy(input)),
 
-        updateMany: procedure.input(SpaceUserUpdateManySchema).mutation(({ ctx, input }) => db(ctx).spaceUser.updateMany(input)),
+        updateMany: procedure.input(SpaceUserSchema.updateMany).mutation(({ ctx, input }) => db(ctx).spaceUser.updateMany(input)),
 
-        updateOne: procedure.input(SpaceUserUpdateOneSchema).mutation(({ ctx, input }) => db(ctx).spaceUser.update(input)),
+        update: procedure.input(SpaceUserSchema.update).mutation(({ ctx, input }) => db(ctx).spaceUser.update(input)),
 
-        upsertOne: procedure.input(SpaceUserUpsertSchema).mutation(({ ctx, input }) => db(ctx).spaceUser.upsert(input)),
+        upsert: procedure.input(SpaceUserSchema.upsert).mutation(({ ctx, input }) => db(ctx).spaceUser.upsert(input)),
 
     }
     );

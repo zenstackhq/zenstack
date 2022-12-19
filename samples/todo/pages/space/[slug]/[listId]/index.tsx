@@ -36,7 +36,7 @@ export default function TodoList(props: Props) {
         { initialData: props.todos, enabled: !!props.list }
     );
 
-    const { mutateAsync: createTodo } = trpc.todo.createOne.useMutation();
+    const { mutateAsync: createTodo } = trpc.todo.create.useMutation();
 
     const _createTodo = async () => {
         try {

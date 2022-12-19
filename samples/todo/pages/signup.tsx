@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 export default function Signup() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const { mutateAsync: signup } = trpc.user.createOne.useMutation();
+    const { mutateAsync: signup } = trpc.user.create.useMutation();
 
     async function onSignup(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();

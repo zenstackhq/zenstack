@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import path from 'path';
+import indentString from '../prisma/indent-string';
 import {
     checkModelHasModelRelation,
     findModelByName,
@@ -377,15 +379,10 @@ export default class Transformer {
     generateSchemaImports() {
         return [...this.schemaImports]
             .map((name) => {
-                const { isModelQueryType, modelName, queryName } =
+                const { isModelQueryType, modelName } =
                     this.checkIsModelQueryType(name);
                 if (isModelQueryType) {
-                    return `import { ${this.resolveModelQuerySchemaName(
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        modelName!,
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        queryName!
-                    )} } from '../${queryName}${modelName}.schema'`;
+                    return `import { ${modelName}Schema } from '../${modelName}.schema'`;
                 } else if (Transformer.enumNames.includes(name)) {
                     return `import { ${name}Schema } from '../enums/${name}.schema'`;
                 } else {
@@ -415,10 +412,7 @@ export default class Transformer {
     resolveModelQuerySchemaName(modelName: string, queryName: string) {
         const modelNameCapitalized =
             modelName.charAt(0).toUpperCase() + modelName.slice(1);
-        const queryNameCapitalized =
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            queryName.charAt(0).toUpperCase() + queryName!.slice(1);
-        return `${modelNameCapitalized}${queryNameCapitalized}Schema`;
+        return `${modelNameCapitalized}Schema.${queryName}`;
     }
 
     wrapWithZodUnion(zodStringFields: string[]) {
@@ -454,23 +448,35 @@ export default class Transformer {
     }
 
     async generateModelSchemas() {
+        const globalImports: string[] = [];
+        let globalExport = '';
+
         for (const modelOperation of this.modelOperations) {
             const {
                 model: modelName,
                 findUnique,
                 findFirst,
                 findMany,
+                // @ts-expect-error
                 createOne,
                 createMany,
+                // @ts-expect-error
                 deleteOne,
+                // @ts-expect-error
                 updateOne,
                 deleteMany,
                 updateMany,
+                // @ts-expect-error
                 upsertOne,
                 aggregate,
                 groupBy,
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            } = modelOperation as any;
+            } = modelOperation;
+
+            globalImports.push(
+                `import { ${modelName}Schema } from './${modelName}.schema'`
+            );
+            globalExport += `${modelName}: ${modelName}Schema,`;
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const model = findModelByName(this.models, modelName)!;
@@ -484,216 +490,99 @@ export default class Transformer {
                 includeZodSchemaLineLazy,
             } = this.resolveSelectIncludeImportAndZodSchemaLine(model);
 
+            let imports = [
+                `import { z } from 'zod'`,
+                selectImport,
+                includeImport,
+            ];
+            let codeBody = '';
+
             if (findUnique) {
-                const imports = [
-                    selectImport,
-                    includeImport,
-                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${findUnique}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}FindUnique`,
-                        `z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema })`
-                    )}`
+                imports.push(
+                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
+                codeBody += `findUnique: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema }),`;
             }
 
             if (findFirst) {
-                const imports = [
-                    selectImport,
-                    includeImport,
+                imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${findFirst}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}FindFirst`,
-                        `z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() })`
-                    )}`
+                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
                 );
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
             }
 
             if (findMany) {
-                const imports = [
-                    selectImport,
-                    includeImport,
+                imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${findMany}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}FindMany`,
-                        `z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  })`
-                    )}`
+                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
                 );
+                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  }),`;
             }
 
             if (createOne) {
-                const imports = [
-                    selectImport,
-                    includeImport,
-                    `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${createOne}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}CreateOne`,
-                        `z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}CreateInputObjectSchema  })`
-                    )}`
+                imports.push(
+                    `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`
                 );
+                codeBody += `create: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}CreateInputObjectSchema  }),`;
             }
 
             if (createMany) {
-                const imports = [
-                    `import { ${modelName}CreateManyInputObjectSchema } from './objects/${modelName}CreateManyInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${createMany}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}CreateMany`,
-                        `z.object({ data: ${modelName}CreateManyInputObjectSchema  })`
-                    )}`
+                imports.push(
+                    `import { ${modelName}CreateManyInputObjectSchema } from './objects/${modelName}CreateManyInput.schema'`
                 );
+                codeBody += `createMany: z.object({ data: ${modelName}CreateManyInputObjectSchema  }),`;
             }
 
             if (deleteOne) {
-                const imports = [
-                    selectImport,
-                    includeImport,
-                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${deleteOne}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}DeleteOne`,
-                        `z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema  })`
-                    )}`
+                imports.push(
+                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
+                codeBody += `'delete': z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
             }
 
             if (deleteMany) {
-                const imports = [
-                    `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${deleteMany}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}DeleteMany`,
-                        `z.object({ where: ${modelName}WhereInputObjectSchema.optional()  })`
-                    )}`
+                imports.push(
+                    `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`
                 );
+                codeBody += `deleteMany: z.object({ where: ${modelName}WhereInputObjectSchema.optional()  }),`;
             }
 
             if (updateOne) {
-                const imports = [
-                    selectImport,
-                    includeImport,
+                imports.push(
                     `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`,
-                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${updateOne}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}UpdateOne`,
-                        `z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}UpdateInputObjectSchema, where: ${modelName}WhereUniqueInputObjectSchema  })`
-                    )}`
+                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
+                codeBody += `update: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}UpdateInputObjectSchema, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
             }
 
             if (updateMany) {
-                const imports = [
+                imports.push(
                     `import { ${modelName}UpdateManyMutationInputObjectSchema } from './objects/${modelName}UpdateManyMutationInput.schema'`,
-                    `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${updateMany}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}UpdateMany`,
-                        `z.object({ data: ${modelName}UpdateManyMutationInputObjectSchema, where: ${modelName}WhereInputObjectSchema.optional()  })`
-                    )}`
+                    `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`
                 );
+                codeBody += `updateMany: z.object({ data: ${modelName}UpdateManyMutationInputObjectSchema, where: ${modelName}WhereInputObjectSchema.optional()  }),`;
             }
 
             if (upsertOne) {
-                const imports = [
-                    selectImport,
-                    includeImport,
+                imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`,
-                    `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${upsertOne}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}Upsert`,
-                        `z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  })`
-                    )}`
+                    `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`
                 );
+                codeBody += `upsert: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  }),`;
             }
 
             if (aggregate) {
-                const imports = [
+                imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
-                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                ];
+                    `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
+                );
                 const aggregateOperations = [];
                 if (this.aggregateOperationSupport[modelName].count) {
                     imports.push(
@@ -736,43 +625,50 @@ export default class Transformer {
                     );
                 }
 
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${aggregate}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}Aggregate`,
-                        `z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
-                            ', '
-                        )} })`
-                    )}`
-                );
+                codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
+                    ', '
+                )} }),`;
             }
 
             if (groupBy) {
-                const imports = [
+                imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithAggregationInputObjectSchema } from './objects/${modelName}OrderByWithAggregationInput.schema'`,
                     `import { ${modelName}ScalarWhereWithAggregatesInputObjectSchema } from './objects/${modelName}ScalarWhereWithAggregatesInput.schema'`,
-                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`,
-                ];
-                await writeFileSafely(
-                    path.join(
-                        Transformer.outputPath,
-                        `schemas/${groupBy}.schema.ts`
-                    ),
-                    `${this.generateImportStatements(
-                        imports
-                    )}${this.generateExportSchemaStatement(
-                        `${modelName}GroupBy`,
-                        `z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema)  })`
-                    )}`
+                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
                 );
+                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema)  }),`;
             }
+
+            imports = [...new Set(imports)];
+
+            await writeFileSafely(
+                path.join(
+                    Transformer.outputPath,
+                    `schemas/${modelName}.schema.ts`
+                ),
+                `
+${imports.join(';\n')}
+
+export const ${modelName}Schema = {
+${indentString(codeBody, 4)}
+};
+            `
+            );
         }
+
+        await writeFileSafely(
+            path.join(Transformer.outputPath, 'schemas/index.ts'),
+            `
+${globalImports.join(';\n')}
+
+const schemas = {
+${indentString(globalExport, 4)}
+};
+
+export default schemas;
+`
+        );
     }
 
     generateImportStatements(imports: (string | undefined)[]) {

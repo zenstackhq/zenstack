@@ -17,7 +17,7 @@ type Props = {
 export default function TodoList({ value, deleted }: Props) {
     const router = useRouter();
 
-    const { mutateAsync: del } = trpc.list.deleteOne.useMutation();
+    const { mutateAsync: del } = trpc.list.delete.useMutation();
 
     const deleteList = async () => {
         if (confirm('Are you sure to delete this list?')) {

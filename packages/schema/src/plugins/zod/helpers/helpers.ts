@@ -58,7 +58,7 @@ export function resolveAddMissingInputObjectTypeOptions(
     generatorConfigOptions: Dictionary<string>
 ): AddMissingInputObjectTypeOptions {
     return {
-        isGenerateSelect: generatorConfigOptions.isGenerateSelect !== 'true',
-        isGenerateInclude: generatorConfigOptions.isGenerateInclude !== 'true',
+        isGenerateSelect: generatorConfigOptions.isGenerateSelect !== 'false',
+        isGenerateInclude: generatorConfigOptions.isGenerateInclude !== 'false',
     };
 }

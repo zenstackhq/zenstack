@@ -2,6 +2,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import { useCurrentSpace } from '@lib/context';
 import { trpc } from '@lib/trpc';
 import { Space, SpaceUser, User } from '@prisma/client';
+import { inferProcedureOutput } from '@trpc/server';
 import Avatar from './Avatar';
 import ManageMembers from './ManageMembers';
 
@@ -45,10 +46,10 @@ function ManagementDialog(space?: Space) {
 export default function SpaceMembers() {
     const space = useCurrentSpace();
 
-    type ExtendedMembers = (SpaceUser & { user: User })[];
     const { data: members } = trpc.spaceUser.findMany.useQuery<
-        ExtendedMembers,
-        ExtendedMembers
+        inferProcedureOutput<typeof trpc.spaceUser.findMany>,
+        // a cast is needed because trpc's procedure typing is static
+        (SpaceUser & { user: User })[]
     >(
         {
             where: {

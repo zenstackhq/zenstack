@@ -37,87 +37,57 @@ export function generateProcedure(
 
 export function generateRouterSchemaImports(
     sourceFile: SourceFile,
-    name: string,
-    hasCreateMany: boolean,
-    provider: string
+    name: string
 ) {
-    let statements = [
-        `import { ${name}FindUniqueSchema } from "../schemas/findUnique${name}.schema";`,
-        `import { ${name}FindFirstSchema } from "../schemas/findFirst${name}.schema";`,
-        `import { ${name}FindManySchema } from "../schemas/findMany${name}.schema";`,
-        `import { ${name}CreateOneSchema } from "../schemas/createOne${name}.schema";`,
-    ];
-
-    if (hasCreateMany) {
-        statements.push(
-            `import { ${name}CreateManySchema } from "../schemas/createMany${name}.schema";`
-        );
-    }
-
-    statements = statements.concat([
-        `import { ${name}DeleteOneSchema } from "../schemas/deleteOne${name}.schema";`,
-        `import { ${name}UpdateOneSchema } from "../schemas/updateOne${name}.schema";`,
-        `import { ${name}DeleteManySchema } from "../schemas/deleteMany${name}.schema";`,
-        `import { ${name}UpdateManySchema } from "../schemas/updateMany${name}.schema";`,
-        `import { ${name}UpsertSchema } from "../schemas/upsertOne${name}.schema";`,
-        `import { ${name}AggregateSchema } from "../schemas/aggregate${name}.schema";`,
-        `import { ${name}GroupBySchema } from "../schemas/groupBy${name}.schema";`,
-    ]);
-
-    if (provider === 'mongodb') {
-        statements = statements.concat([
-            `import { ${name}FindRawObjectSchema } from "../schemas/objects/${name}FindRaw.schema";`,
-            `import { ${name}AggregateRawObjectSchema } from "../schemas/objects/${name}AggregateRaw.schema";`,
-        ]);
-    }
-
-    sourceFile.addStatements(/* ts */ statements.join('\n'));
+    sourceFile.addStatements(
+        `import { ${name}Schema } from '../schemas/${name}.schema';`
+    );
 }
 
 export const getInputTypeByOpName = (opName: string, modelName: string) => {
     let inputType;
     switch (opName) {
         case 'findUnique':
-            inputType = `${modelName}FindUniqueSchema`;
+            inputType = `${modelName}Schema.findUnique`;
             break;
         case 'findFirst':
-            inputType = `${modelName}FindFirstSchema`;
+            inputType = `${modelName}Schema.findFirst`;
             break;
         case 'findMany':
-            inputType = `${modelName}FindManySchema`;
+            inputType = `${modelName}Schema.findMany`;
             break;
         case 'findRaw':
-            inputType = `${modelName}FindRawObjectSchema`;
+            inputType = `${modelName}Schema.findRawObject`;
             break;
         case 'createOne':
-            inputType = `${modelName}CreateOneSchema`;
+            inputType = `${modelName}Schema.create`;
             break;
         case 'createMany':
-            inputType = `${modelName}CreateManySchema`;
+            inputType = `${modelName}Schema.createMany`;
             break;
         case 'deleteOne':
-            inputType = `${modelName}DeleteOneSchema`;
+            inputType = `${modelName}Schema.delete`;
             break;
         case 'updateOne':
-            inputType = `${modelName}UpdateOneSchema`;
+            inputType = `${modelName}Schema.update`;
             break;
         case 'deleteMany':
-            inputType = `${modelName}DeleteManySchema`;
+            inputType = `${modelName}Schema.deleteMany`;
             break;
         case 'updateMany':
-            inputType = `${modelName}UpdateManySchema`;
+            inputType = `${modelName}Schema.updateMany`;
             break;
         case 'upsertOne':
-            inputType = `${modelName}UpsertSchema`;
+            inputType = `${modelName}Schema.upsert`;
             break;
         case 'aggregate':
-            inputType = `${modelName}AggregateSchema`;
+            inputType = `${modelName}Schema.aggregate`;
             break;
         case 'aggregateRaw':
-            inputType = `${modelName}AggregateRawObjectSchema`;
+            inputType = `${modelName}Schema.aggregateRawObject`;
             break;
         case 'groupBy':
-            inputType = `${modelName}GroupBySchema`;
+            inputType = `${modelName}Schema.groupBy`;
             break;
         default:
             console.log('getInputTypeByOpName: ', { opName, modelName });
