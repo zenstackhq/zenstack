@@ -18,7 +18,7 @@ import {
 import { toast } from 'react-toastify';
 import { withAuth } from 'server/db/auth';
 
-function CreateDialog() {
+function CreateDialog({ created }: { created: (list: List) => void }) {
     const user = useContext(UserContext);
     const space = useContext(SpaceContext);
 
@@ -39,7 +39,7 @@ function CreateDialog() {
         event.preventDefault();
 
         try {
-            await create({
+            const list = await create({
                 data: {
                     title,
                     private: _private,
@@ -47,6 +47,10 @@ function CreateDialog() {
                     owner: { connect: { id: user!.id } },
                 },
             });
+
+            if (created) {
+                created(list);
+            }
         } catch (err: any) {
             toast.error(
                 `Failed to create list: ${err.info?.message || err.message}`
@@ -194,7 +198,7 @@ export default function SpaceHome(props: Props) {
                     ))}
                 </ul>
 
-                <CreateDialog />
+                <CreateDialog created={() => refetch()} />
             </div>
         </WithNavBar>
     );

@@ -8,7 +8,7 @@ export const createContext = async ({ req, res }: CreateNextContextOptions) => {
     return {
         session,
         // use auth-enabled db client
-        prisma: withAuth({ req, res }),
+        prisma: await withAuth({ req, res }),
     };
 };
 

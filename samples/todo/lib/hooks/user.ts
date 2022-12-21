@@ -1,8 +1,8 @@
 import { Prisma, type User } from "@prisma/client";
 import { useContext } from 'react';
 import { RequestHandlerContext } from '@zenstackhq/next';
-import * as request from '@zenstackhq/runtime/lib/request';
-import { RequestOptions } from '@zenstackhq/runtime/lib/types';
+import * as request from '@zenstackhq/runtime/request';
+import { RequestOptions } from '@zenstackhq/runtime/types';
 
 export function useUser() {
     const mutate = request.getMutate();

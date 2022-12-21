@@ -1,6 +1,5 @@
 import { trpc } from '@lib/trpc';
 import { SpaceUserRole } from '@prisma/client';
-import { ServerErrorCode, type HooksError } from '@zenstackhq/runtime/client';
 import WithNavBar from 'components/WithNavBar';
 import { NextPage } from 'next';
 import { useSession } from 'next-auth/react';
@@ -43,16 +42,17 @@ const CreateSpace: NextPage = () => {
             }, 2000);
         } catch (err: any) {
             console.error(err);
-            if (
-                (err as HooksError).info?.code ===
-                ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION
-            ) {
-                toast.error('Space slug alread in use');
-            } else {
-                toast.error(
-                    `Error occurred: ${err.info?.message || err.message}`
-                );
-            }
+            // if (
+            //     (err as HooksError).info?.code ===
+            //     ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION
+            // ) {
+            //     toast.error('Space slug alread in use');
+            // } else {
+            //     toast.error(
+            //         `Error occurred: ${err.info?.message || err.message}`
+            //     );
+            // }
+            toast.error(JSON.stringify(err));
         }
     };
 

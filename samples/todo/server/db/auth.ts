@@ -1,4 +1,4 @@
-import { withPolicy } from '@zenstackhq/runtime/server';
+import { withPolicy } from '@zenstackhq/runtime/policy';
 import { GetServerSidePropsContext } from 'next';
 import { getServerAuthSession } from 'server/common/get-server-auth-session';
 import policy from 'server/policy';

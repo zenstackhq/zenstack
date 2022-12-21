@@ -68,8 +68,8 @@ function generateModelHooks(
     sf.addStatements([
         `import { useContext } from 'react';`,
         `import { RequestHandlerContext } from '@zenstackhq/next';`,
-        `import * as request from '${RUNTIME_PACKAGE}/lib/request';`,
-        `import { RequestOptions } from '${RUNTIME_PACKAGE}/lib/types';`,
+        `import * as request from '${RUNTIME_PACKAGE}/request';`,
+        `import { RequestOptions } from '${RUNTIME_PACKAGE}/types';`,
     ]);
 
     const useFunc = sf.addFunction({

@@ -40,6 +40,13 @@
             "skipFiles": ["<node_internals>/**"],
             "sourceMaps": true,
             "outFiles": ["${workspaceFolder}/bundle/**/*.js"]
+        },
+        {
+            "name": "Todo sample: debug server-side",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "pnpm dev",
+            "cwd": "${workspaceFolder}/samples/todo/"
         }
     ]
 }

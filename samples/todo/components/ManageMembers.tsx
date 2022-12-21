@@ -3,7 +3,6 @@ import { useCurrentUser } from '@lib/context';
 import { trpc } from '@lib/trpc';
 import { Space, SpaceUser, SpaceUserRole, User } from '@prisma/client';
 import { inferProcedureOutput } from '@trpc/server';
-import { HooksError, ServerErrorCode } from '@zenstackhq/runtime/client';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
 import { toast } from 'react-toastify';
 import Avatar from './Avatar';
@@ -57,14 +56,15 @@ export default function ManageMembers({ space }: Props) {
         } catch (err: any) {
             console.error(JSON.stringify(err));
             if (err.info?.code) {
-                const { info } = err as HooksError;
-                if (info.code === ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
-                    toast.error('User is already a member of the space');
-                } else if (
-                    info.code === ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION
-                ) {
-                    toast.error('User is not found for this email');
-                }
+                // const { info } = err as HooksError;
+                // if (info.code === ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
+                //     toast.error('User is already a member of the space');
+                // } else if (
+                //     info.code === ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION
+                // ) {
+                //     toast.error('User is not found for this email');
+                // }
+                toast.error(JSON.stringify(err.info));
             } else {
                 toast.error(`Error occurred: ${err}`);
             }

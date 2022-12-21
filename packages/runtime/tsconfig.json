@@ -4,7 +4,7 @@
         "module": "CommonJS",
         "lib": ["ESNext", "DOM"],
         "sourceMap": true,
-        "outDir": "dist/lib",
+        "outDir": "dist",
         "strict": true,
         "noUnusedLocals": true,
         "noImplicitReturns": true,

@@ -39,7 +39,8 @@
         "react": "18.2.0",
         "react-dom": "18.2.0",
         "react-toastify": "^9.0.8",
-        "superjson": "^1.12.0"
+        "superjson": "^1.12.0",
+        "zod": "^3.19.1"
     },
     "devDependencies": {
         "@tailwindcss/line-clamp": "^0.4.2",

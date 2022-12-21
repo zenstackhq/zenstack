@@ -1,5 +1,4 @@
 import { trpc } from '@lib/trpc';
-import { HooksError, ServerErrorCode } from '@zenstackhq/runtime/client';
 import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -17,16 +16,17 @@ export default function Signup() {
             await signup({ data: { email, password } });
         } catch (err: any) {
             console.error(err);
-            if (
-                (err as HooksError).info?.code ===
-                ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION
-            ) {
-                toast.error('User already exists');
-            } else {
-                toast.error(
-                    `Error occurred: ${err.info?.message || err.message}`
-                );
-            }
+            // if (
+            //     (err as HooksError).info?.code ===
+            //     ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION
+            // ) {
+            //     toast.error('User already exists');
+            // } else {
+            //     toast.error(
+            //         `Error occurred: ${err.info?.message || err.message}`
+            //     );
+            // }
+            toast.error(JSON.stringify(err));
             return;
         }
 
