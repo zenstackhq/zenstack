@@ -1,3 +1,17 @@
+# 0.5.0 (2022-12-15)
+
+### Features
+
+-   Serialization between client (hooks) and server now uses [superjson](https://github.com/blitz-js/superjson), [[#139](https://github.com/zenstackhq/zenstack/issues/139)]
+
+### Fixes and improvements
+
+-   Fixed goto definition issue in VSCode extension, [[#69](https://github.com/zenstackhq/zenstack/issues/69)]
+
+### Breaking changes
+
+-   Next-auth adapter and helper are moved to a separate package `@zenstackhq/next-auth`.
+
 # 0.4.0 (2022-12-01)
 
 ### Features
