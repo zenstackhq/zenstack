@@ -9,7 +9,7 @@ import {
     PolicyKind,
     PolicyOperationKind,
     RuntimeAttribute,
-} from '@zenstackhq/runtime/server';
+} from '@zenstackhq/runtime';
 import path from 'path';
 import {
     CodeBlockWriter,
@@ -42,7 +42,7 @@ export default class PolicyGuardGenerator {
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'QueryContext' }],
-            moduleSpecifier: `${RUNTIME_PACKAGE}/server`,
+            moduleSpecifier: `${RUNTIME_PACKAGE}`,
             isTypeOnly: true,
         });
 

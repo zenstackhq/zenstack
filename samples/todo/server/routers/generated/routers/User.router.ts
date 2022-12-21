@@ -1,67 +1,37 @@
-import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from '.';
+import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from ".";
 import { UserSchema } from '../schemas/User.schema';
 
-export default function createRouter<Config extends BaseConfig>(
-    router: RouterFactory<Config>,
-    procedure: ProcBuilder<Config>
-) {
+export default function createRouter<Config extends BaseConfig>(router: RouterFactory<Config>, procedure: ProcBuilder<Config>) {
     return router({
-        aggregate: procedure
-            .input(UserSchema.aggregate)
-            .query(({ ctx, input }) => db(ctx).user.aggregate(input)),
 
-        createMany: procedure
-            .input(UserSchema.createMany)
-            .mutation(({ ctx, input }) => db(ctx).user.createMany(input)),
+        aggregate: procedure.input(UserSchema.aggregate).query(({ ctx, input }) => db(ctx).user.aggregate(input)),
 
-        create: procedure
-            .input(UserSchema.create)
-            .mutation(({ ctx, input }) => {
-                return db(ctx).user.create(input);
-            }),
+        createMany: procedure.input(UserSchema.createMany).mutation(({ ctx, input }) => db(ctx).user.createMany(input)),
 
-        deleteMany: procedure
-            .input(UserSchema.deleteMany)
-            .mutation(({ ctx, input }) => db(ctx).user.deleteMany(input)),
+        create: procedure.input(UserSchema.create).mutation(({ ctx, input }) => db(ctx).user.create(input)),
 
-        delete: procedure
-            .input(UserSchema.delete)
-            .mutation(({ ctx, input }) => db(ctx).user.delete(input)),
+        deleteMany: procedure.input(UserSchema.deleteMany).mutation(({ ctx, input }) => db(ctx).user.deleteMany(input)),
 
-        findFirst: procedure
-            .input(UserSchema.findFirst)
-            .query(({ ctx, input }) => db(ctx).user.findFirst(input)),
+        delete: procedure.input(UserSchema.delete).mutation(({ ctx, input }) => db(ctx).user.delete(input)),
 
-        findFirstOrThrow: procedure
-            .input(UserSchema.findFirst)
-            .query(({ ctx, input }) => db(ctx).user.findFirstOrThrow(input)),
+        findFirst: procedure.input(UserSchema.findFirst).query(({ ctx, input }) => db(ctx).user.findFirst(input)),
 
-        findMany: procedure
-            .input(UserSchema.findMany)
-            .query(({ ctx, input }) => db(ctx).user.findMany(input)),
+        findFirstOrThrow: procedure.input(UserSchema.findFirst).query(({ ctx, input }) => db(ctx).user.findFirstOrThrow(input)),
 
-        findUnique: procedure
-            .input(UserSchema.findUnique)
-            .query(({ ctx, input }) => db(ctx).user.findUnique(input)),
+        findMany: procedure.input(UserSchema.findMany).query(({ ctx, input }) => db(ctx).user.findMany(input)),
 
-        findUniqueOrThrow: procedure
-            .input(UserSchema.findUnique)
-            .query(({ ctx, input }) => db(ctx).user.findUniqueOrThrow(input)),
+        findUnique: procedure.input(UserSchema.findUnique).query(({ ctx, input }) => db(ctx).user.findUnique(input)),
 
-        groupBy: procedure
-            .input(UserSchema.groupBy)
-            .query(({ ctx, input }) => db(ctx).user.groupBy(input)),
+        findUniqueOrThrow: procedure.input(UserSchema.findUnique).query(({ ctx, input }) => db(ctx).user.findUniqueOrThrow(input)),
 
-        updateMany: procedure
-            .input(UserSchema.updateMany)
-            .mutation(({ ctx, input }) => db(ctx).user.updateMany(input)),
+        groupBy: procedure.input(UserSchema.groupBy).query(({ ctx, input }) => db(ctx).user.groupBy(input)),
 
-        update: procedure
-            .input(UserSchema.update)
-            .mutation(({ ctx, input }) => db(ctx).user.update(input)),
+        updateMany: procedure.input(UserSchema.updateMany).mutation(({ ctx, input }) => db(ctx).user.updateMany(input)),
 
-        upsert: procedure
-            .input(UserSchema.upsert)
-            .mutation(({ ctx, input }) => db(ctx).user.upsert(input)),
-    });
+        update: procedure.input(UserSchema.update).mutation(({ ctx, input }) => db(ctx).user.update(input)),
+
+        upsert: procedure.input(UserSchema.upsert).mutation(({ ctx, input }) => db(ctx).user.upsert(input)),
+
+    }
+    );
 }
