@@ -9,6 +9,7 @@ import ora from 'ora';
 import telemetry from '../telemetry';
 import { Context } from '../types';
 import { CliError } from './cli-error';
+import path from 'path';
 
 /**
  * ZenStack code generator
@@ -51,13 +52,15 @@ export class PluginRunner {
                 );
             }
 
+            const pluginModulePath = this.getPluginModulePath(options.provider);
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let pluginModule: any;
             try {
-                pluginModule = require(options.provider);
+                pluginModule = require(pluginModulePath);
             } catch {
                 console.error(
-                    `Unable to load plugin module ${options.provider}`
+                    `Unable to load plugin module ${options.provider}: ${pluginModulePath}`
                 );
                 throw new CliError(
                     `Unable to load plugin module ${options.provider}`
@@ -87,7 +90,7 @@ export class PluginRunner {
             });
         }
 
-        const prismaPluginProvider = 'zenstack/plugins/prisma';
+        const prismaPluginProvider = '@zenstack/prisma';
         let prismaPlugin = plugins.find(
             (p) => p.provider === prismaPluginProvider
         );
@@ -95,7 +98,8 @@ export class PluginRunner {
             prismaPlugin = {
                 name: 'prisma',
                 provider: prismaPluginProvider,
-                run: require(prismaPluginProvider).default,
+                run: require(this.getPluginModulePath(prismaPluginProvider))
+                    .default,
                 options: {},
             };
         }
@@ -145,5 +149,16 @@ export class PluginRunner {
         );
 
         warnings.forEach((w) => console.warn(colors.yellow(w)));
+    }
+
+    private getPluginModulePath(provider: string) {
+        let pluginModulePath = provider;
+        if (pluginModulePath.startsWith('@zenstack')) {
+            pluginModulePath = pluginModulePath.replace(
+                /^@zenstack/,
+                path.join(__dirname, '../plugins')
+            );
+        }
+        return pluginModulePath;
     }
 }

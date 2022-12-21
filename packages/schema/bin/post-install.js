@@ -7,7 +7,7 @@ try {
     const machineId = require('node-machine-id');
     const os = require('os');
 
-    const mixpanel = Mixpanel.init('74944eb779d7d3b4ce185be843fde9fc', {
+    const mixpanel = Mixpanel.init('<TELEMETRY_TRACKING_TOKEN>', {
         geolocate: true,
     });
 

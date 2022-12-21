@@ -1,23 +1,20 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export type AuthUser = { id: string } & Record<string, unknown>;
-
 /**
  * Contract for Prisma db operations
  */
 export interface DbOperations {
-    findMany(...args: any): Promise<unknown[]>;
-    findFirst(...args: any): Promise<unknown>;
-    findUnique(...args: any): Promise<unknown>;
-    create(...args: any): Promise<unknown>;
-    createMany(...args: any): Promise<unknown>;
-    update(...args: any): Promise<unknown>;
-    updateMany(...args: any): Promise<unknown>;
-    upsert(...args: any): Promise<unknown>;
-    delete(...args: any): Promise<unknown>;
-    deleteMany(...args: any): Promise<unknown>;
-    aggregate(...args: any): Promise<unknown>;
-    groupBy(...args: any): Promise<unknown>;
-    count(...args: any): Promise<number>;
+    findMany(...args: unknown[]): Promise<unknown[]>;
+    findFirst(...args: unknown[]): Promise<unknown>;
+    findUnique(...args: unknown[]): Promise<unknown>;
+    create(...args: unknown[]): Promise<unknown>;
+    createMany(...args: unknown[]): Promise<unknown>;
+    update(...args: unknown[]): Promise<unknown>;
+    updateMany(...args: unknown[]): Promise<unknown>;
+    upsert(...args: unknown[]): Promise<unknown>;
+    delete(...args: unknown[]): Promise<unknown>;
+    deleteMany(...args: unknown[]): Promise<unknown>;
+    aggregate(...args: unknown[]): Promise<unknown>;
+    groupBy(...args: unknown[]): Promise<unknown>;
+    count(...args: unknown[]): Promise<number>;
 }
 
 /**

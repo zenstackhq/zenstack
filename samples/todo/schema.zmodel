@@ -15,21 +15,21 @@ generator js {
 }
 
 plugin prisma {
-    provider = 'zenstack/plugins/prisma'
+    provider = '@zenstack/prisma'
 }
 
 plugin policy {
-    provider = 'zenstack/plugins/access-policy'
+    provider = '@zenstack/access-policy'
     output = 'server/policy/'
 }
 
 plugin hooks {
-    provider = 'zenstack/plugins/react-hooks'
+    provider = '@zenstack/react-hooks'
     output = 'lib/hooks'
 }
 
 plugin trpc {
-    provider = 'zenstack/plugins/trpc'
+    provider = '@zenstack/trpc'
     output = 'server/routers/generated'
 }
 

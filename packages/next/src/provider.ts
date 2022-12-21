@@ -11,7 +11,7 @@ export type RequestHandlerContext = {
  * Context for configuring react hooks.
  */
 export const RequestHandlerContext = createContext<RequestHandlerContext>({
-    endpoint: '',
+    endpoint: '/api/model',
 });
 
 /**

@@ -2,5 +2,5 @@
 /tests/coverage/
 /bundle
 *.vsix
-/README.md
 /bin/post-install.js
+.env

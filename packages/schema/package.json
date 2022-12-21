@@ -22,7 +22,7 @@
         "url": "https://github.com/zenstackhq/zenstack"
     },
     "publishConfig": {
-        "directory": "bundle",
+        "directory": "dist",
         "linkDirectory": true
     },
     "engines": {
@@ -66,17 +66,15 @@
     "main": "./bundle/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
-        "vscode:prepublish": "cp ../../README.md ./ && pnpm lint && pnpm build",
+        "vscode:prepublish": "pnpm lint && pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
-        "clean": "rimraf bundle",
-        "build": "pnpm lint && pnpm bundle && tsc --emitDeclarationOnly --declaration ",
-        "bundle": "pnpm clean && node build/bundle.js --minify",
-        "watch": "node build/bundle.js --watch",
-        "ts:watch": "tsc --watch --noEmit",
-        "tsc-alias:watch": "tsc-alias --watch",
+        "clean": "rimraf bundle dist",
+        "build": "pnpm clean && pnpm lint && tsc && babel src -d dist --extensions '.ts' && cp -r bin src/res ./README.md ./LICENSE ./package.json dist/ && node build/process-post-install.js",
+        "bundle": "pnpm clean && pnpm lint && node build/bundle.js --minify",
+        "watch": "babel src -d dist --extensions '.ts' -w",
         "lint": "eslint src --ext ts",
         "test": "jest",
-        "prepublishOnly": "cp ../../README.md ./ && pnpm build",
+        "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev",
         "postinstall": "node bin/post-install.js"
     },
@@ -95,7 +93,7 @@
         "langium": "^0.5.0",
         "mixpanel": "^0.17.0",
         "node-machine-id": "^1.1.12",
-        "ora": "^6.1.2",
+        "ora": "^5.4.1",
         "pluralize": "^8.0.0",
         "prisma": "~4.7.0",
         "promisify": "^0.0.3",
@@ -110,6 +108,10 @@
         "zod": "^3.19.1"
     },
     "devDependencies": {
+        "@babel/cli": "^7.19.3",
+        "@babel/core": "^7.20.5",
+        "@babel/preset-env": "^7.20.2",
+        "@babel/preset-typescript": "^7.18.6",
         "@types/async-exit-hook": "^2.0.0",
         "@types/jest": "^29.2.0",
         "@types/node": "^14.18.32",
@@ -119,6 +121,7 @@
         "@types/vscode": "^1.56.0",
         "@typescript-eslint/eslint-plugin": "^5.42.0",
         "@typescript-eslint/parser": "^5.42.0",
+        "babel-plugin-inline-dotenv": "^1.7.0",
         "concurrently": "^7.4.0",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",

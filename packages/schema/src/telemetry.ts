@@ -1,5 +1,4 @@
 import { Mixpanel, init } from 'mixpanel';
-import { TELEMETRY_TRACKING_TOKEN } from 'env';
 import { machineIdSync } from 'node-machine-id';
 import cuid from 'cuid';
 import * as os from 'os';
@@ -29,7 +28,7 @@ export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
     private readonly hostId = machineIdSync();
     private readonly sessionid = cuid();
-    private readonly trackingToken = TELEMETRY_TRACKING_TOKEN;
+    private readonly trackingToken = process.env.TELEMETRY_TRACKING_TOKEN;
     private readonly _os = os.platform();
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     private readonly version = require('../package.json').version;

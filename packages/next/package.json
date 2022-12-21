@@ -1,7 +1,9 @@
 {
     "name": "@zenstackhq/next",
     "version": "0.6.0-pre.11",
-    "description": "ZenStack next.js runtime",
+    "displayName": "ZenStack Next.js integration",
+    "description": "ZenStack Next.js integration",
+    "homepage": "https://zenstack.dev",
     "scripts": {
         "clean": "rimraf dist",
         "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md dist/",

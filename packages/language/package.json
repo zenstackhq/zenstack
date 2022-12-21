@@ -1,21 +1,22 @@
 {
     "name": "@zenstackhq/language",
     "version": "0.6.0-pre.11",
-    "description": "ZenStack modeling language",
+    "displayName": "ZenStack modeling language compiler",
+    "description": "ZenStack modeling language compiler",
+    "homepage": "https://zenstack.dev",
     "scripts": {
         "clean": "rimraf dist",
         "generate": "langium generate",
         "watch": "concurrently \"langium generate --watch\" \"tsc --watch\"",
         "lint": "eslint src --ext ts",
-        "build": "pnpm lint && pnpm clean && pnpm generate && tsc && cp ./package.json dist/",
+        "build": "pnpm lint && pnpm clean && pnpm generate && tsc && cp ./README.md ./package.json dist/",
         "publish-dev": "pnpm build && pnpm publish --tag dev"
     },
     "publishConfig": {
         "directory": "dist",
         "linkDirectory": true
     },
-    "keywords": [],
-    "author": "",
+    "author": "ZenStack Team",
     "license": "MIT",
     "devDependencies": {
         "concurrently": "^7.4.0",
