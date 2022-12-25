@@ -33,8 +33,8 @@ import {
     ReferenceTarget,
     ThisExpr,
     UnaryExpr,
+    ResolvedShape,
 } from '@zenstackhq/language/ast';
-import { ResolvedShape } from './types';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 

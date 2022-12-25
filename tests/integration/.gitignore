@@ -1,2 +1,3 @@
 .npmcache
-tests/test-run
+tests/test-run/node_modules
+tests/test-run/cases

@@ -1,10 +1,4 @@
 import {
-    PluginError,
-    GUARD_FIELD_NAME,
-    PluginOptions,
-    TRANSACTION_FIELD_NAME,
-} from '@zenstackhq/sdk';
-import {
     AstNode,
     Attribute,
     AttributeArg,
@@ -17,30 +11,38 @@ import {
     Expression,
     Generator,
     InvocationExpr,
+    LiteralExpr,
+    Model,
     isArrayExpr,
     isInvocationExpr,
     isLiteralExpr,
     isReferenceExpr,
-    LiteralExpr,
-    Model,
 } from '@zenstackhq/language/ast';
+import {
+    GUARD_FIELD_NAME,
+    PluginError,
+    PluginOptions,
+    TRANSACTION_FIELD_NAME,
+} from '@zenstackhq/sdk';
 import { getLiteral, getLiteralArray, resolved } from '@zenstackhq/sdk/utils';
+import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import fs from 'fs';
+import { analyzePolicies } from '../../utils/ast-utils';
+import { execSync } from '../../utils/exec-utils';
 import {
+    ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
+    Model as PrismaDataModel,
     DataSourceUrl as PrismaDataSourceUrl,
     FieldAttribute as PrismaFieldAttribute,
     FieldReference as PrismaFieldReference,
     FieldReferenceArg as PrismaFieldReferenceArg,
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
-    Model as PrismaDataModel,
-    ModelAttribute as PrismaModelAttribute,
-    ModelFieldType,
     PrismaModel,
+    ModelAttribute as PrismaModelAttribute,
 } from './prisma-builder';
 
 /**
@@ -75,6 +77,9 @@ export default class PrismaSchemaGenerator {
             fs.mkdirSync(path.dirname(outFile), { recursive: true });
         }
         await writeFile(outFile, prisma.toString());
+
+        // run 'prisma generate'
+        await execSync(`npx prisma generate --schema ${outFile}`);
     }
 
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
@@ -165,13 +170,9 @@ export default class PrismaSchemaGenerator {
             this.generateModelField(model, field);
         }
 
-        if (
-            decl.attributes.find(
-                (attr) =>
-                    attr.decl.ref?.name === '@@allow' ||
-                    attr.decl.ref?.name === '@@deny'
-            )
-        ) {
+        const { allowAll, denyAll } = analyzePolicies(decl);
+
+        if (!allowAll && !denyAll) {
             // generate auxiliary fields for authorization
 
             // add an "zenstack_guard" field for dealing with pure auth() related conditions

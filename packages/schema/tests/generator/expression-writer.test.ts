@@ -1,15 +1,15 @@
-import { Project, VariableDeclarationKind } from 'ts-morph';
 import {
     DataModel,
     Enum,
     Expression,
     isDataModel,
     isEnum,
-} from '../../src/language-server/generated/ast';
-import { loadModel } from '../utils';
+} from '@zenstackhq/language/ast';
+import { GUARD_FIELD_NAME } from '@zenstackhq/runtime/constants';
 import * as tmp from 'tmp';
-import { GUARD_FIELD_NAME } from '../../src/generator/constants';
-import expressionWriter from '../../src/generator/prisma/expression-writer';
+import { Project, VariableDeclarationKind } from 'ts-morph';
+import { ExpressionWriter } from '../../src/plugins/access-policy/expression-writer';
+import { loadModel } from '../utils';
 
 describe('Expression Writer Tests', () => {
     it('boolean literal', async () => {
@@ -721,7 +721,7 @@ async function check(
             {
                 name: 'expr',
                 initializer: (writer) =>
-                    new expressionWriter(writer).write(expr),
+                    new ExpressionWriter(writer).write(expr),
             },
         ],
     });

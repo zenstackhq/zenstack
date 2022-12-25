@@ -21,7 +21,7 @@ type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 /**
  * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer
  */
-export default class ExpressionWriter {
+export class ExpressionWriter {
     private readonly plainExprBuilder = new TypeScriptExpressionTransformer();
 
     constructor(private readonly writer: CodeBlockWriter) {}

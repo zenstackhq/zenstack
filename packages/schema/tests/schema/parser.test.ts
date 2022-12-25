@@ -1,16 +1,16 @@
 import {
-    BinaryExpr,
-    LiteralExpr,
-    InvocationExpr,
-    DataSource,
-    DataModel,
-    Function,
-    AttributeArg,
-    Enum,
-    UnaryExpr,
-    ReferenceExpr,
     ArrayExpr,
-} from '../../src/language-server/generated/ast';
+    AttributeArg,
+    BinaryExpr,
+    DataModel,
+    DataSource,
+    Enum,
+    Function,
+    InvocationExpr,
+    LiteralExpr,
+    ReferenceExpr,
+    UnaryExpr,
+} from '@zenstackhq/language/ast';
 import { loadModel } from '../utils';
 
 describe('Parsing Tests', () => {

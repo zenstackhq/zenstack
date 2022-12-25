@@ -1,10 +1,10 @@
-import { createZModelServices } from '../src/language-server/zmodel-module';
-import { URI } from 'vscode-uri';
+import { Model } from '@zenstackhq/language/ast';
 import * as fs from 'fs';
-import * as path from 'path';
 import { NodeFileSystem } from 'langium/node';
-import { Model } from '../src/language-server/generated/ast';
+import * as path from 'path';
 import * as tmp from 'tmp';
+import { URI } from 'vscode-uri';
+import { createZModelServices } from '../src/language-server/zmodel-module';
 
 export class SchemaLoadingError extends Error {
     constructor(public readonly errors: string[]) {
