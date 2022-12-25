@@ -9,11 +9,6 @@ describe('Operation Coverage: nested to-one', () => {
 
     beforeAll(async () => {
         origDir = path.resolve('.');
-        const baseDir = `./tests/test-run/cases/${suite}`;
-        if (fs.existsSync(baseDir)) {
-            fs.rmSync(baseDir, { recursive: true, force: true });
-        }
-        fs.mkdirSync(baseDir, { recursive: true });
     });
 
     afterEach(() => {

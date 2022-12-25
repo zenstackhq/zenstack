@@ -21,7 +21,7 @@ export type WeakDbOperations = {
 };
 
 export async function loadPrisma(testName: string, model: string) {
-    const workDir = path.resolve('tests/test-run/cases', testName);
+    const workDir = path.resolve('test-run/cases', testName);
     if (fs.existsSync(workDir)) {
         fs.rmSync(workDir, { recursive: true, force: true });
     }

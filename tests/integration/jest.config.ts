@@ -11,6 +11,5 @@ export default {
 
     testTimeout: 300000,
 
-    // explicitly specify moduel paths so that resolution from local dependencies work
-    modulePaths: ['<rootDir>/tests/test-run/node_modules'],
+    globalSetup: './setup.js',
 };
