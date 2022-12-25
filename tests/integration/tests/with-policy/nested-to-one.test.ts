@@ -1,6 +1,5 @@
 import { expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import fs from 'fs';
 import { MODEL_PRELUDE } from '../common';
 
 describe('Operation Coverage: nested to-one', () => {

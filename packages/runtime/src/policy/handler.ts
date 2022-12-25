@@ -181,7 +181,11 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         );
     }
 
-    private async checkReadback(readArgs: any, action: string) {
+    private async checkReadback(
+        readArgs: any,
+        action: string,
+        operation: PolicyOperationKind
+    ) {
         const result = await readWithCheck(
             this.model,
             readArgs,
@@ -192,7 +196,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         );
         if (result.length === 0) {
             this.logger.warn(`${action} result cannot be read back`);
-            return undefined;
+            throw deniedByPolicy(this.model, operation);
         }
         return result[0];
     }
@@ -257,7 +261,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         const readArgs = { ...args, where: { id: createResult.id } };
         delete readArgs.data;
 
-        return this.checkReadback(readArgs, 'create');
+        return this.checkReadback(readArgs, 'create', 'create');
     }
 
     async createMany(args: any, skipDuplicates?: boolean) {
@@ -395,7 +399,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         const readArgs = { ...args };
         delete readArgs.data;
 
-        return this.checkReadback(readArgs, 'update');
+        return this.checkReadback(readArgs, 'update', 'update');
     }
 
     async update(args: any) {
@@ -536,7 +540,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         delete readArgs.create;
         delete readArgs.update;
 
-        return this.checkReadback(readArgs, 'upsert');
+        return this.checkReadback(readArgs, 'upsert', 'update');
     }
 
     async delete(args: any) {

@@ -1,9 +1,4 @@
-import {
-    WeakDbClientContract,
-    expectNotFound,
-    expectPolicyDeny,
-    loadPrisma,
-} from '../utils';
+import { expectNotFound, expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
 import { MODEL_PRELUDE } from '../common';
 
@@ -36,19 +31,19 @@ describe('Operation Coverage: toplevel operations', () => {
 
         const db = withPolicy();
 
-        const r = await db.model.create({
-            data: {
-                id: '1',
-                value: 1,
-            },
-        });
+        await expectPolicyDeny(() =>
+            db.model.create({
+                data: {
+                    id: '1',
+                    value: 1,
+                },
+            })
+        );
         const fromPrisma = await prisma.model.findUnique({
             where: { id: '1' },
         });
         expect(fromPrisma).toBeTruthy();
 
-        // should deny readback
-        expect(r).toBeUndefined();
         expect(await db.model.findMany()).toHaveLength(0);
         expect(await db.model.findUnique({ where: { id: '1' } })).toBeNull();
         expect(await db.model.findFirst({ where: { id: '1' } })).toBeNull();
@@ -111,14 +106,14 @@ describe('Operation Coverage: toplevel operations', () => {
         );
 
         // can't read back
-        expect(
-            await db.model.create({
+        await expectPolicyDeny(() =>
+            db.model.create({
                 data: {
                     id: '1',
                     value: 1,
                 },
             })
-        ).toBeUndefined();
+        );
 
         // success
         expect(
@@ -189,27 +184,33 @@ describe('Operation Coverage: toplevel operations', () => {
 
         await expectNotFound(() => db.model.delete({ where: { id: '1' } }));
 
-        await db.model.create({
-            data: { id: '1', value: 1 },
-        });
+        await expectPolicyDeny(() =>
+            db.model.create({
+                data: { id: '1', value: 1 },
+            })
+        );
 
         await expectPolicyDeny(() => db.model.delete({ where: { id: '1' } }));
         expect(
             await prisma.model.findUnique({ where: { id: '1' } })
         ).toBeTruthy();
 
-        await db.model.create({
-            data: { id: '2', value: 2 },
-        });
+        await expectPolicyDeny(() =>
+            db.model.create({
+                data: { id: '2', value: 2 },
+            })
+        );
         // deleted but unable to read back
         await expectPolicyDeny(() => db.model.delete({ where: { id: '2' } }));
         expect(
             await prisma.model.findUnique({ where: { id: '2' } })
         ).toBeNull();
 
-        await db.model.create({
-            data: { id: '2', value: 2 },
-        });
+        await expectPolicyDeny(() =>
+            db.model.create({
+                data: { id: '2', value: 2 },
+            })
+        );
         // only '2' is deleted, '1' is rejected by policy
         expect(await db.model.deleteMany()).toEqual(
             expect.objectContaining({ count: 1 })

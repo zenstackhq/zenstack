@@ -1,8 +1,6 @@
 import { WeakDbClientContract, expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import fs from 'fs';
 import { MODEL_PRELUDE } from '../common';
-import { DbClientContract } from '@zenstackhq/runtime';
 
 describe('Operation Coverage: deep nested', () => {
     let origDir: string;

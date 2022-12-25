@@ -20,6 +20,14 @@ export type WeakDbOperations = {
     [key in keyof DbOperations]: (...args: any[]) => Promise<any>;
 };
 
+export async function loadPrismaFromModelFile(
+    testName: string,
+    modelFile: string
+) {
+    const content = fs.readFileSync(modelFile, { encoding: 'utf-8' });
+    return loadPrisma(testName, content);
+}
+
 export async function loadPrisma(testName: string, model: string) {
     const workDir = path.resolve('test-run/cases', testName);
     if (fs.existsSync(workDir)) {
@@ -32,7 +40,7 @@ export async function loadPrisma(testName: string, model: string) {
     run('npx prisma db push');
 
     const PrismaClient = require(path.join(workDir, '.prisma')).PrismaClient;
-    const prisma = new PrismaClient();
+    const prisma = new PrismaClient({ log: ['error'] });
 
     const policy = require(path.join(workDir, 'policy')).default;
     return {

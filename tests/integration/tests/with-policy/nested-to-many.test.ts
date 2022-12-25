@@ -1,6 +1,5 @@
 import { expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import fs from 'fs';
 import { MODEL_PRELUDE } from '../common';
 
 describe('Operation Coverage: nested to-many', () => {
@@ -15,7 +14,7 @@ describe('Operation Coverage: nested to-many', () => {
         process.chdir(origDir);
     });
 
-    it('create', async () => {
+    it('create simple', async () => {
         const { withPolicy } = await loadPrisma(
             `${suite}/create`,
             `
@@ -82,10 +81,10 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeTruthy();
     });
 
-    it('update', async () => {
+    it('update simple', async () => {
         const { withPolicy } = await loadPrisma(
             `${suite}/update`,
             `
@@ -366,12 +365,14 @@ describe('Operation Coverage: nested to-many', () => {
 
         const db = withPolicy();
 
-        await db.m1.create({
-            data: {
-                id: '1',
-                value: 1,
-            },
-        });
+        await expectPolicyDeny(() =>
+            db.m1.create({
+                data: {
+                    id: '1',
+                    value: 1,
+                },
+            })
+        );
 
         // included 'm1' can't be read
         await expectPolicyDeny(() =>

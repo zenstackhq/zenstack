@@ -263,7 +263,7 @@ export default class PolicyGuardGenerator {
 
         if (hasAuthRef) {
             func.addStatements(
-                // make suer user id is always available
+                // make sure user id is always available
                 `const user = context.user?.id ? context.user : { ...context.user, id: '${UNKNOWN_USER_ID}' };`
             );
         }
