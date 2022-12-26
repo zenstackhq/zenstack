@@ -102,6 +102,7 @@ importers:
       '@types/jest': ^29.2.0
       '@types/node': ^14.18.32
       '@types/pluralize': ^0.0.29
+      '@types/semver': ^7.3.13
       '@types/tmp': ^0.2.3
       '@types/uuid': ^8.3.4
       '@types/vscode': ^1.56.0
@@ -186,6 +187,7 @@ importers:
       '@types/jest': 29.2.0
       '@types/node': 14.18.32
       '@types/pluralize': 0.0.29
+      '@types/semver': 7.3.13
       '@types/tmp': 0.2.3
       '@types/uuid': 8.3.4
       '@types/vscode': 1.72.0

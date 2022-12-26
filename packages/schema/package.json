@@ -97,6 +97,7 @@
         "pluralize": "^8.0.0",
         "prisma": "~4.7.0",
         "promisify": "^0.0.3",
+        "semver": "^7.3.8",
         "sleep-promise": "^9.1.0",
         "ts-morph": "^16.0.0",
         "uuid": "^9.0.0",
@@ -105,8 +106,7 @@
         "vscode-languageserver": "^8.0.2",
         "vscode-languageserver-textdocument": "^1.0.7",
         "vscode-uri": "^3.0.6",
-        "zod": "^3.19.1",
-        "semver":"^7.3.8"
+        "zod": "^3.19.1"
     },
     "devDependencies": {
         "@babel/cli": "^7.19.3",
@@ -117,6 +117,7 @@
         "@types/jest": "^29.2.0",
         "@types/node": "^14.18.32",
         "@types/pluralize": "^0.0.29",
+        "@types/semver": "^7.3.13",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
         "@types/vscode": "^1.56.0",
