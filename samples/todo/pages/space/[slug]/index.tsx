@@ -7,14 +7,7 @@ import TodoList from 'components/TodoList';
 import WithNavBar from 'components/WithNavBar';
 import { GetServerSideProps } from 'next';
 import { useRouter } from 'next/router';
-import {
-    ChangeEvent,
-    FormEvent,
-    useContext,
-    useEffect,
-    useRef,
-    useState,
-} from 'react';
+import { ChangeEvent, FormEvent, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { withAuth } from 'server/db/auth';
 
@@ -52,9 +45,7 @@ function CreateDialog({ created }: { created: (list: List) => void }) {
                 created(list);
             }
         } catch (err: any) {
-            toast.error(
-                `Failed to create list: ${err.info?.message || err.message}`
-            );
+            toast.error(`Failed to create list: ${err.info?.message || err.message}`);
             return;
         }
 
@@ -81,16 +72,11 @@ function CreateDialog({ created }: { created: (list: List) => void }) {
             />
             <div className="modal">
                 <div className="modal-box">
-                    <h3 className="font-bold text-xl mb-8">
-                        Create a Todo list
-                    </h3>
+                    <h3 className="font-bold text-xl mb-8">Create a Todo list</h3>
                     <form onSubmit={onSubmit}>
                         <div className="flex flex-col space-y-4">
                             <div className="flex items-center">
-                                <label
-                                    htmlFor="title"
-                                    className="text-lg inline-block w-20"
-                                >
+                                <label htmlFor="title" className="text-lg inline-block w-20">
                                     Title
                                 </label>
                                 <input
@@ -101,38 +87,24 @@ function CreateDialog({ created }: { created: (list: List) => void }) {
                                     ref={inputRef}
                                     className="input input-bordered w-full max-w-xs mt-2"
                                     value={title}
-                                    onChange={(
-                                        e: FormEvent<HTMLInputElement>
-                                    ) => setTitle(e.currentTarget.value)}
+                                    onChange={(e: FormEvent<HTMLInputElement>) => setTitle(e.currentTarget.value)}
                                 />
                             </div>
                             <div className="flex items-center">
-                                <label
-                                    htmlFor="private"
-                                    className="text-lg inline-block w-20"
-                                >
+                                <label htmlFor="private" className="text-lg inline-block w-20">
                                     Private
                                 </label>
                                 <input
                                     id="private"
                                     type="checkbox"
                                     className="checkbox"
-                                    onChange={(
-                                        e: FormEvent<HTMLInputElement>
-                                    ) => setPrivate(e.currentTarget.checked)}
+                                    onChange={(e: FormEvent<HTMLInputElement>) => setPrivate(e.currentTarget.checked)}
                                 />
                             </div>
                         </div>
                         <div className="modal-action">
-                            <input
-                                className="btn btn-primary"
-                                type="submit"
-                                value="Create"
-                            />
-                            <label
-                                htmlFor="create-list-modal"
-                                className="btn btn-outline"
-                            >
+                            <input className="btn btn-primary" type="submit" value="Create" />
+                            <label htmlFor="create-list-modal" className="btn btn-outline">
                                 Cancel
                             </label>
                         </div>
@@ -151,10 +123,7 @@ type Props = {
 export default function SpaceHome(props: Props) {
     const router = useRouter();
 
-    const { data: lists, refetch } = trpc.list.findMany.useQuery<
-        Props['lists'],
-        Props['lists']
-    >(
+    const { data: lists, refetch } = trpc.list.findMany.useQuery<Props['lists'], Props['lists']>(
         {
             where: {
                 space: {
@@ -181,10 +150,7 @@ export default function SpaceHome(props: Props) {
             </div>
             <div className="p-8">
                 <div className="w-full flex flex-col md:flex-row mb-8 space-y-4 md:space-y-0 md:space-x-4">
-                    <label
-                        htmlFor="create-list-modal"
-                        className="btn btn-primary btn-wide modal-button"
-                    >
+                    <label htmlFor="create-list-modal" className="btn btn-primary btn-wide modal-button">
                         Create a list
                     </label>
                     <SpaceMembers />
@@ -204,11 +170,7 @@ export default function SpaceHome(props: Props) {
     );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({
-    req,
-    res,
-    params,
-}) => {
+export const getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params }) => {
     const db = await withAuth({ req, res });
 
     const space = await db.space.findUnique({

@@ -48,9 +48,7 @@ describe('Data Model Validation Tests', () => {
                 x Int[]?
             }
         `)
-        ).toContain(
-            'Optional lists are not supported. Use either `Type[]` or `Type?`'
-        );
+        ).toContain('Optional lists are not supported. Use either `Type[]` or `Type?`');
     });
 
     it('unresolved field type', async () => {
@@ -62,9 +60,7 @@ describe('Data Model Validation Tests', () => {
                 x Integer
             }
         `)
-        ).toContain(
-            `Could not resolve reference to TypeDeclaration named 'Integer'.`
-        );
+        ).toContain(`Could not resolve reference to TypeDeclaration named 'Integer'.`);
 
         expect(
             await loadModelWithError(`
@@ -74,9 +70,7 @@ describe('Data Model Validation Tests', () => {
                 x Integer[]
             }
         `)
-        ).toContain(
-            `Could not resolve reference to TypeDeclaration named 'Integer'.`
-        );
+        ).toContain(`Could not resolve reference to TypeDeclaration named 'Integer'.`);
 
         expect(
             await loadModelWithError(`
@@ -86,9 +80,7 @@ describe('Data Model Validation Tests', () => {
                 x Integer?
             }
         `)
-        ).toContain(
-            `Could not resolve reference to TypeDeclaration named 'Integer'.`
-        );
+        ).toContain(`Could not resolve reference to TypeDeclaration named 'Integer'.`);
     });
 
     it('id field', async () => {
@@ -195,9 +187,7 @@ describe('Data Model Validation Tests', () => {
                 id String @id
             }
         `)
-        ).toContain(
-            `The relation field "b" on model "A" is missing an opposite relation field on model "B"`
-        );
+        ).toContain(`The relation field "b" on model "A" is missing an opposite relation field on model "B"`);
 
         // one-to-one ambiguous
         expect(
@@ -214,9 +204,7 @@ describe('Data Model Validation Tests', () => {
                 a1 A
             }
         `)
-        ).toContain(
-            `Fields "a", "a1" on model "B" refer to the same relation to model "A"`
-        );
+        ).toContain(`Fields "a", "a1" on model "B" refer to the same relation to model "A"`);
 
         // one-to-one inconsistent attribute
         expect(
@@ -233,9 +221,7 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(
-            `"fields" and "references" must be provided only on one side of relation field`
-        );
+        ).toContain(`"fields" and "references" must be provided only on one side of relation field`);
 
         // one-to-one missing @unique
         expect(
@@ -252,9 +238,7 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(
-            `Field "aId" is part of a one-to-one relation and must be marked as @unique`
-        );
+        ).toContain(`Field "aId" is part of a one-to-one relation and must be marked as @unique`);
 
         // missing @relation
         expect(
@@ -305,8 +289,6 @@ describe('Data Model Validation Tests', () => {
                 a A @relation(fields: [aId], references: [id])
             }
         `)
-        ).toContain(
-            `Could not resolve reference to ReferenceTarget named 'aId'.`
-        );
+        ).toContain(`Could not resolve reference to ReferenceTarget named 'aId'.`);
     });
 });

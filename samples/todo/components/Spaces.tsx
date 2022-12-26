@@ -16,9 +16,7 @@ export default function Spaces({ spaces }: Props) {
                     <Link href={`/space/${space.slug}`}>
                         <a>
                             <div className="card-body" title={space.name}>
-                                <h2 className="card-title line-clamp-1">
-                                    {space.name}
-                                </h2>
+                                <h2 className="card-title line-clamp-1">{space.name}</h2>
                             </div>
                         </a>
                     </Link>

@@ -47,12 +47,8 @@ describe('Operation Coverage: toplevel operations', () => {
         expect(await db.model.findMany()).toHaveLength(0);
         expect(await db.model.findUnique({ where: { id: '1' } })).toBeNull();
         expect(await db.model.findFirst({ where: { id: '1' } })).toBeNull();
-        await expect(
-            db.model.findUniqueOrThrow({ where: { id: '1' } })
-        ).toBeNotFound();
-        await expect(
-            db.model.findFirstOrThrow({ where: { id: '1' } })
-        ).toBeNotFound();
+        await expect(db.model.findUniqueOrThrow({ where: { id: '1' } })).toBeNotFound();
+        await expect(db.model.findFirstOrThrow({ where: { id: '1' } })).toBeNotFound();
 
         const item2 = {
             id: '2',
@@ -63,18 +59,10 @@ describe('Operation Coverage: toplevel operations', () => {
         });
         expect(r1).toBeTruthy();
         expect(await db.model.findMany()).toHaveLength(1);
-        expect(await db.model.findUnique({ where: { id: '2' } })).toEqual(
-            expect.objectContaining(item2)
-        );
-        expect(await db.model.findFirst({ where: { id: '2' } })).toEqual(
-            expect.objectContaining(item2)
-        );
-        expect(
-            await db.model.findUniqueOrThrow({ where: { id: '2' } })
-        ).toEqual(expect.objectContaining(item2));
-        expect(await db.model.findFirstOrThrow({ where: { id: '2' } })).toEqual(
-            expect.objectContaining(item2)
-        );
+        expect(await db.model.findUnique({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+        expect(await db.model.findFirst({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+        expect(await db.model.findUniqueOrThrow({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
+        expect(await db.model.findFirstOrThrow({ where: { id: '2' } })).toEqual(expect.objectContaining(item2));
     });
 
     it('write tests', async () => {
@@ -126,9 +114,7 @@ describe('Operation Coverage: toplevel operations', () => {
         ).toBeTruthy();
 
         // update not found
-        await expect(
-            db.model.update({ where: { id: '3' }, data: { value: 5 } })
-        ).toBeNotFound();
+        await expect(db.model.update({ where: { id: '3' }, data: { value: 5 } })).toBeNotFound();
         expect(
             await db.model.updateMany({
                 where: { id: '3' },
@@ -190,12 +176,8 @@ describe('Operation Coverage: toplevel operations', () => {
             })
         ).toBeRejectedByPolicy();
 
-        await expect(
-            db.model.delete({ where: { id: '1' } })
-        ).toBeRejectedByPolicy();
-        expect(
-            await prisma.model.findUnique({ where: { id: '1' } })
-        ).toBeTruthy();
+        await expect(db.model.delete({ where: { id: '1' } })).toBeRejectedByPolicy();
+        expect(await prisma.model.findUnique({ where: { id: '1' } })).toBeTruthy();
 
         await expect(
             db.model.create({
@@ -203,12 +185,8 @@ describe('Operation Coverage: toplevel operations', () => {
             })
         ).toBeRejectedByPolicy();
         // deleted but unable to read back
-        await expect(
-            db.model.delete({ where: { id: '2' } })
-        ).toBeRejectedByPolicy();
-        expect(
-            await prisma.model.findUnique({ where: { id: '2' } })
-        ).toBeNull();
+        await expect(db.model.delete({ where: { id: '2' } })).toBeRejectedByPolicy();
+        expect(await prisma.model.findUnique({ where: { id: '2' } })).toBeNull();
 
         await expect(
             db.model.create({
@@ -216,18 +194,10 @@ describe('Operation Coverage: toplevel operations', () => {
             })
         ).toBeRejectedByPolicy();
         // only '2' is deleted, '1' is rejected by policy
-        expect(await db.model.deleteMany()).toEqual(
-            expect.objectContaining({ count: 1 })
-        );
-        expect(
-            await prisma.model.findUnique({ where: { id: '2' } })
-        ).toBeNull();
-        expect(
-            await prisma.model.findUnique({ where: { id: '1' } })
-        ).toBeTruthy();
+        expect(await db.model.deleteMany()).toEqual(expect.objectContaining({ count: 1 }));
+        expect(await prisma.model.findUnique({ where: { id: '2' } })).toBeNull();
+        expect(await prisma.model.findUnique({ where: { id: '1' } })).toBeTruthy();
 
-        expect(await db.model.deleteMany()).toEqual(
-            expect.objectContaining({ count: 0 })
-        );
+        expect(await db.model.deleteMany()).toEqual(expect.objectContaining({ count: 0 }));
     });
 });

@@ -9,21 +9,13 @@ export class PrismaModel {
     private models: Model[] = [];
     private enums: Enum[] = [];
 
-    addDataSource(
-        name: string,
-        provider: string,
-        url: DataSourceUrl,
-        shadowDatabaseUrl?: DataSourceUrl
-    ): DataSource {
+    addDataSource(name: string, provider: string, url: DataSourceUrl, shadowDatabaseUrl?: DataSourceUrl): DataSource {
         const ds = new DataSource(name, provider, url, shadowDatabaseUrl);
         this.datasources.push(ds);
         return ds;
     }
 
-    addGenerator(
-        name: string,
-        fields: Array<{ name: string; value: string | string[] }>
-    ): Generator {
+    addGenerator(name: string, fields: Array<{ name: string; value: string | string[] }>): Generator {
         const generator = new Generator(name, fields);
         this.generators.push(generator);
         return generator;
@@ -42,12 +34,7 @@ export class PrismaModel {
     }
 
     toString(): string {
-        return [
-            ...this.datasources,
-            ...this.generators,
-            ...this.enums,
-            ...this.models,
-        ]
+        return [...this.datasources, ...this.generators, ...this.enums, ...this.models]
             .map((d) => d.toString())
             .join('\n\n');
     }
@@ -66,9 +53,7 @@ export class DataSource {
             `datasource ${this.name} {\n` +
             indentString(`provider="${this.provider}"\n`) +
             indentString(`url=${this.url}\n`) +
-            (this.shadowDatabaseUrl
-                ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`)
-                : '') +
+            (this.shadowDatabaseUrl ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`) : '') +
             `}`
         );
     }
@@ -83,19 +68,12 @@ export class DataSourceUrl {
 }
 
 export class Generator {
-    constructor(
-        public name: string,
-        public fields: Array<{ name: string; value: string | string[] }>
-    ) {}
+    constructor(public name: string, public fields: Array<{ name: string; value: string | string[] }>) {}
 
     toString(): string {
         return (
             `generator ${this.name} {\n` +
-            this.fields
-                .map((f) =>
-                    indentString(`${f.name} = ${JSON.stringify(f.value)}`)
-                )
-                .join('\n') +
+            this.fields.map((f) => indentString(`${f.name} = ${JSON.stringify(f.value)}`)).join('\n') +
             `\n}`
         );
     }
@@ -106,11 +84,7 @@ export class Model {
     public attributes: ModelAttribute[] = [];
     constructor(public name: string) {}
 
-    addField(
-        name: string,
-        type: ModelFieldType | string,
-        attributes: FieldAttribute[] = []
-    ): ModelField {
+    addField(name: string, type: ModelFieldType | string, attributes: FieldAttribute[] = []): ModelField {
         const field = new ModelField(name, type, attributes);
         this.fields.push(field);
         return field;
@@ -125,11 +99,7 @@ export class Model {
     toString(): string {
         return (
             `model ${this.name} {\n` +
-            indentString(
-                [...this.fields, ...this.attributes]
-                    .map((d) => d.toString())
-                    .join('\n')
-            ) +
+            indentString([...this.fields, ...this.attributes].map((d) => d.toString()).join('\n')) +
             `\n}`
         );
     }
@@ -148,25 +118,15 @@ export type ScalarTypes =
     | 'Unsupported';
 
 export class ModelFieldType {
-    constructor(
-        public type: ScalarTypes | string,
-        public array?: boolean,
-        public optional?: boolean
-    ) {}
+    constructor(public type: ScalarTypes | string, public array?: boolean, public optional?: boolean) {}
 
     toString(): string {
-        return `${this.type}${this.array ? '[]' : ''}${
-            this.optional ? '?' : ''
-        }`;
+        return `${this.type}${this.array ? '[]' : ''}${this.optional ? '?' : ''}`;
     }
 }
 
 export class ModelField {
-    constructor(
-        public name: string,
-        public type: ModelFieldType | string,
-        public attributes: FieldAttribute[] = []
-    ) {}
+    constructor(public name: string, public type: ModelFieldType | string, public attributes: FieldAttribute[] = []) {}
 
     addAttribute(name: string, args: AttributeArg[] = []): FieldAttribute {
         const attr = new FieldAttribute(name, args);
@@ -177,9 +137,7 @@ export class ModelField {
     toString(): string {
         return (
             `${this.name} ${this.type}` +
-            (this.attributes.length > 0
-                ? ' ' + this.attributes.map((a) => a.toString()).join(' ')
-                : '')
+            (this.attributes.length > 0 ? ' ' + this.attributes.map((a) => a.toString()).join(' ') : '')
         );
     }
 }
@@ -188,11 +146,7 @@ export class FieldAttribute {
     constructor(public name: string, public args: AttributeArg[] = []) {}
 
     toString(): string {
-        return (
-            `${this.name}(` +
-            this.args.map((a) => a.toString()).join(', ') +
-            `)`
-        );
+        return `${this.name}(` + this.args.map((a) => a.toString()).join(', ') + `)`;
     }
 }
 
@@ -200,71 +154,42 @@ export class ModelAttribute {
     constructor(public name: string, public args: AttributeArg[] = []) {}
 
     toString(): string {
-        return (
-            `${this.name}(` +
-            this.args.map((a) => a.toString()).join(', ') +
-            `)`
-        );
+        return `${this.name}(` + this.args.map((a) => a.toString()).join(', ') + `)`;
     }
 }
 
 export class AttributeArg {
-    constructor(
-        public name: string | undefined,
-        public value: AttributeArgValue
-    ) {}
+    constructor(public name: string | undefined, public value: AttributeArgValue) {}
 
     toString(): string {
-        return this.name
-            ? `${this.name}: ${this.value}`
-            : this.value.toString();
+        return this.name ? `${this.name}: ${this.value}` : this.value.toString();
     }
 }
 
 export class AttributeArgValue {
     constructor(
-        public type:
-            | 'String'
-            | 'FieldReference'
-            | 'Number'
-            | 'Boolean'
-            | 'Array'
-            | 'FunctionCall',
-        public value:
-            | string
-            | number
-            | boolean
-            | FieldReference
-            | FunctionCall
-            | AttributeArgValue[]
+        public type: 'String' | 'FieldReference' | 'Number' | 'Boolean' | 'Array' | 'FunctionCall',
+        public value: string | number | boolean | FieldReference | FunctionCall | AttributeArgValue[]
     ) {
         switch (type) {
             case 'String':
-                if (typeof value !== 'string')
-                    throw new Error('Value must be string');
+                if (typeof value !== 'string') throw new Error('Value must be string');
                 break;
             case 'Number':
-                if (typeof value !== 'number')
-                    throw new Error('Value must be number');
+                if (typeof value !== 'number') throw new Error('Value must be number');
                 break;
             case 'Boolean':
-                if (typeof value !== 'boolean')
-                    throw new Error('Value must be boolean');
+                if (typeof value !== 'boolean') throw new Error('Value must be boolean');
                 break;
             case 'Array':
-                if (!Array.isArray(value))
-                    throw new Error('Value must be array');
+                if (!Array.isArray(value)) throw new Error('Value must be array');
                 break;
             case 'FieldReference':
-                if (
-                    typeof value !== 'string' &&
-                    !(value instanceof FieldReference)
-                )
+                if (typeof value !== 'string' && !(value instanceof FieldReference))
                     throw new Error('Value must be string or FieldReference');
                 break;
             case 'FunctionCall':
-                if (!(value instanceof FunctionCall))
-                    throw new Error('Value must be FunctionCall');
+                if (!(value instanceof FunctionCall)) throw new Error('Value must be FunctionCall');
                 break;
         }
     }
@@ -282,10 +207,7 @@ export class AttributeArgValue {
                     const fr = this.value as FieldReference;
                     let r = fr.field;
                     if (fr.args.length > 0) {
-                        r +=
-                            '(' +
-                            fr.args.map((a) => a.toString()).join(',') +
-                            ')';
+                        r += '(' + fr.args.map((a) => a.toString()).join(',') + ')';
                     }
                     return r;
                 }
@@ -295,13 +217,7 @@ export class AttributeArgValue {
             case 'Boolean':
                 return this.value ? 'true' : 'false';
             case 'Array':
-                return (
-                    '[' +
-                    (this.value as AttributeArgValue[])
-                        .map((v) => v.toString())
-                        .join(', ') +
-                    ']'
-                );
+                return '[' + (this.value as AttributeArgValue[]).map((v) => v.toString()).join(', ') + ']';
             default:
                 throw new Error(`Unknown attribute value type ${this.type}`);
         }
@@ -324,12 +240,7 @@ export class FunctionCall {
     constructor(public func: string, public args: FunctionCallArg[] = []) {}
 
     toString(): string {
-        return (
-            `${this.func}` +
-            '(' +
-            this.args.map((a) => a.toString()).join(', ') +
-            ')'
-        );
+        return `${this.func}` + '(' + this.args.map((a) => a.toString()).join(', ') + ')';
     }
 }
 
@@ -346,11 +257,7 @@ export class Enum {
     constructor(public name: string, public fields: EnumField[]) {}
 
     toString(): string {
-        return (
-            `enum ${this.name} {\n` +
-            indentString(this.fields.join('\n')) +
-            '\n}'
-        );
+        return `enum ${this.name} {\n` + indentString(this.fields.join('\n')) + '\n}';
     }
 }
 

@@ -21,9 +21,7 @@ export class PluginRunner {
      */
     async run(context: Context): Promise<void> {
         const version = require('../../package.json').version;
-        console.log(
-            colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`)
-        );
+        console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
         const plugins: Array<{
             provider: string;
@@ -32,9 +30,7 @@ export class PluginRunner {
             options: PluginOptions;
         }> = [];
 
-        const pluginDecls = context.schema.declarations.filter(
-            (d): d is Plugin => isPlugin(d)
-        );
+        const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
 
         for (const plugin of pluginDecls) {
             const options: PluginOptions = {};
@@ -48,9 +44,7 @@ export class PluginRunner {
             });
 
             if (!options.provider) {
-                throw new CliError(
-                    `Plugin ${plugin.name} doesn't have a provider specified`
-                );
+                throw new CliError(`Plugin ${plugin.name} doesn't have a provider specified`);
             }
 
             const pluginModulePath = this.getPluginModulePath(options.provider);
@@ -60,29 +54,15 @@ export class PluginRunner {
             try {
                 pluginModule = require(pluginModulePath);
             } catch {
-                console.error(
-                    `Unable to load plugin module ${options.provider}: ${pluginModulePath}`
-                );
-                throw new CliError(
-                    `Unable to load plugin module ${options.provider}`
-                );
+                console.error(`Unable to load plugin module ${options.provider}: ${pluginModulePath}`);
+                throw new CliError(`Unable to load plugin module ${options.provider}`);
             }
 
-            if (
-                !pluginModule.default ||
-                typeof pluginModule.default !== 'function'
-            ) {
-                console.error(
-                    `Plugin provider ${options.provider} is missing a default function export`
-                );
-                throw new CliError(
-                    `Plugin provider ${options.provider} is missing a default function export`
-                );
+            if (!pluginModule.default || typeof pluginModule.default !== 'function') {
+                console.error(`Plugin provider ${options.provider} is missing a default function export`);
+                throw new CliError(`Plugin provider ${options.provider} is missing a default function export`);
             }
-            const name =
-                typeof pluginModule.name === 'string'
-                    ? (pluginModule.name as string)
-                    : options.provider;
+            const name = typeof pluginModule.name === 'string' ? (pluginModule.name as string) : options.provider;
             plugins.push({
                 name,
                 provider: options.provider,
@@ -92,15 +72,12 @@ export class PluginRunner {
         }
 
         const prismaPluginProvider = '@zenstack/prisma';
-        let prismaPlugin = plugins.find(
-            (p) => p.provider === prismaPluginProvider
-        );
+        let prismaPlugin = plugins.find((p) => p.provider === prismaPluginProvider);
         if (!prismaPlugin) {
             prismaPlugin = {
                 name: 'prisma',
                 provider: prismaPluginProvider,
-                run: require(this.getPluginModulePath(prismaPluginProvider))
-                    .default,
+                run: require(this.getPluginModulePath(prismaPluginProvider)).default,
                 options: {},
             };
         }
@@ -119,24 +96,17 @@ export class PluginRunner {
             warnings.push(...r);
         }
 
-        const prismaOutput =
-            (prismaPlugin.options.output as string) ?? 'prisma/schema.prisma';
+        const prismaOutput = (prismaPlugin.options.output as string) ?? 'prisma/schema.prisma';
 
         const dmmf = await getDMMF({
             datamodel: fs.readFileSync(prismaOutput, { encoding: 'utf-8' }),
         });
 
-        for (const { name, run, options } of plugins.filter(
-            (p) => p !== prismaPlugin
-        )) {
+        for (const { name, run, options } of plugins.filter((p) => p !== prismaPlugin)) {
             await this.runPlugin(name, run, context, options, dmmf, warnings);
         }
 
-        console.log(
-            colors.green(
-                colors.bold('\n👻 All plugins completed successfully!')
-            )
-        );
+        console.log(colors.green(colors.bold('\n👻 All plugins completed successfully!')));
 
         warnings.forEach((w) => console.warn(colors.yellow(w)));
     }
@@ -173,10 +143,7 @@ export class PluginRunner {
     private getPluginModulePath(provider: string) {
         let pluginModulePath = provider;
         if (pluginModulePath.startsWith('@zenstack')) {
-            pluginModulePath = pluginModulePath.replace(
-                /^@zenstack/,
-                path.join(__dirname, '../plugins')
-            );
+            pluginModulePath = pluginModulePath.replace(/^@zenstack/, path.join(__dirname, '../plugins'));
         }
         return pluginModulePath;
     }

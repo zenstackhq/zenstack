@@ -73,9 +73,7 @@ const CreateSpace: NextPage = () => {
                                 placeholder="Name of your space"
                                 className="input input-bordered w-full max-w-xs mt-2"
                                 autoFocus
-                                onChange={(e: FormEvent<HTMLInputElement>) =>
-                                    setName(e.currentTarget.value)
-                                }
+                                onChange={(e: FormEvent<HTMLInputElement>) => setName(e.currentTarget.value)}
                             />
                         </div>
                         <div>
@@ -88,9 +86,7 @@ const CreateSpace: NextPage = () => {
                                 required
                                 placeholder="Slug of your space"
                                 className="input input-bordered w-full max-w-xs mt-2"
-                                onChange={(e: FormEvent<HTMLInputElement>) =>
-                                    setSlug(e.currentTarget.value)
-                                }
+                                onChange={(e: FormEvent<HTMLInputElement>) => setSlug(e.currentTarget.value)}
                             />
                         </div>
                     </div>
@@ -98,18 +94,11 @@ const CreateSpace: NextPage = () => {
                     <div className="flex space-x-4 mt-6">
                         <input
                             type="submit"
-                            disabled={
-                                name.length < 4 ||
-                                name.length > 20 ||
-                                !slug.match(/^[0-9a-zA-Z]{4,16}$/)
-                            }
+                            disabled={name.length < 4 || name.length > 20 || !slug.match(/^[0-9a-zA-Z]{4,16}$/)}
                             value="Create"
                             className="btn btn-primary px-8"
                         />
-                        <button
-                            className="btn btn-outline"
-                            onClick={() => router.push('/')}
-                        >
+                        <button className="btn btn-outline" onClick={() => router.push('/')}>
                             Cancel
                         </button>
                     </div>

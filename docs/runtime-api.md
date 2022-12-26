@@ -87,20 +87,13 @@ export type HooksError = {
 ### `get`
 
 ```ts
-function get(
-    id: string | undefined,
-    args?: UserFindFirstArgs,
-    options?: RequestOptions
-): SWRResponse<User>;
+function get(id: string | undefined, args?: UserFindFirstArgs, options?: RequestOptions): SWRResponse<User>;
 ```
 
 ### `find`
 
 ```ts
-function find(
-    args?: UserFindManyArgs,
-    options?: RequestOptions
-): SWRResponse<User[]>;
+function find(args?: UserFindManyArgs, options?: RequestOptions): SWRResponse<User[]>;
 ```
 
 ### `create`

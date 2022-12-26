@@ -51,9 +51,7 @@ describe('Datasource Validation Tests', () => {
                     provider = 'abc'
                 }
         `)
-        ).toContainEqual(
-            expect.stringContaining('Provider "abc" is not supported')
-        );
+        ).toContainEqual(expect.stringContaining('Provider "abc" is not supported'));
     });
 
     it('invalid url value', async () => {
@@ -63,9 +61,7 @@ describe('Datasource Validation Tests', () => {
                     url = 123
                 }
         `)
-        ).toContain(
-            '"url" must be set to a string literal or an invocation of "env" function'
-        );
+        ).toContain('"url" must be set to a string literal or an invocation of "env" function');
 
         expect(
             await loadModelWithError(`
@@ -73,9 +69,7 @@ describe('Datasource Validation Tests', () => {
                     url = uuid()
                 }
         `)
-        ).toContain(
-            '"url" must be set to a string literal or an invocation of "env" function'
-        );
+        ).toContain('"url" must be set to a string literal or an invocation of "env" function');
 
         expect(
             await loadModelWithError(`
@@ -83,9 +77,7 @@ describe('Datasource Validation Tests', () => {
                     shadowDatabaseUrl = 123
                 }
         `)
-        ).toContain(
-            '"shadowDatabaseUrl" must be set to a string literal or an invocation of "env" function'
-        );
+        ).toContain('"shadowDatabaseUrl" must be set to a string literal or an invocation of "env" function');
     });
 
     it('invalid relationMode value', async () => {

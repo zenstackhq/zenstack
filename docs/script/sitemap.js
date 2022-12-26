@@ -6,20 +6,16 @@ import fs from 'fs';
 const links = [
     { url: '/', changefreq: 'daily' },
     { url: '/changelog', changefreq: 'daily' },
-    ...globbySync(['./**/[!_]?*.md', '!node_modules', '!README.md']).map(
-        (path) => ({
-            url: `/${path.replace('.md', '')}`,
-            changefreq: 'daily',
-        })
-    ),
+    ...globbySync(['./**/[!_]?*.md', '!node_modules', '!README.md']).map((path) => ({
+        url: `/${path.replace('.md', '')}`,
+        changefreq: 'daily',
+    })),
 ];
 
 console.log('Sitemap entries:');
 console.log(links);
 
 const stream = new SitemapStream({ hostname: 'https://zenstack.dev' });
-const content = (
-    await streamToPromise(Readable.from(links).pipe(stream))
-).toString('utf-8');
+const content = (await streamToPromise(Readable.from(links).pipe(stream))).toString('utf-8');
 
 fs.writeFileSync('../doc-serve/public/sitemap.xml', content);

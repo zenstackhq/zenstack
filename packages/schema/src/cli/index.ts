@@ -35,67 +35,58 @@ export const generateAction = async (options: {
 };
 
 export default async function (): Promise<void> {
-    await telemetry.trackSpan(
-        'cli:start',
-        'cli:complete',
-        'cli:error',
-        { args: process.argv },
-        async () => {
-            const program = new Command('zenstack');
+    await telemetry.trackSpan('cli:start', 'cli:complete', 'cli:error', { args: process.argv }, async () => {
+        const program = new Command('zenstack');
 
-            program.version(
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                require('../../package.json').version,
-                '-v --version',
-                'display CLI version'
-            );
+        program.version(
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            require('../../package.json').version,
+            '-v --version',
+            'display CLI version'
+        );
 
-            const schemaExtensions =
-                ZModelLanguageMetaData.fileExtensions.join(', ');
+        const schemaExtensions = ZModelLanguageMetaData.fileExtensions.join(', ');
 
-            program
-                .description(
-                    `${colors.bold.blue(
-                        'ζ'
-                    )} ZenStack is a toolkit for building secure CRUD apps with Next.js + Typescript.\n\nDocumentation: https://zenstack.dev.`
-                )
-                .showHelpAfterError()
-                .showSuggestionAfterError();
+        program
+            .description(
+                `${colors.bold.blue(
+                    'ζ'
+                )} ZenStack is a toolkit for building secure CRUD apps with Next.js + Typescript.\n\nDocumentation: https://zenstack.dev.`
+            )
+            .showHelpAfterError()
+            .showSuggestionAfterError();
 
-            const schemaOption = new Option(
-                '--schema <file>',
-                `schema file (with extension ${schemaExtensions})`
-            ).default('./schema.zmodel');
+        const schemaOption = new Option('--schema <file>', `schema file (with extension ${schemaExtensions})`).default(
+            './schema.zmodel'
+        );
 
-            const pmOption = new Option(
-                '-p, --package-manager <pm>',
-                'package manager to use'
-            ).choices(['npm', 'yarn', 'pnpm']);
+        const pmOption = new Option('-p, --package-manager <pm>', 'package manager to use').choices([
+            'npm',
+            'yarn',
+            'pnpm',
+        ]);
 
-            //#region wraps Prisma commands
+        //#region wraps Prisma commands
 
-            program
-                .command('init')
-                .description('Set up a new ZenStack project.')
-                .addOption(pmOption)
-                .argument('[path]', 'project path', '.')
-                .action(initAction);
+        program
+            .command('init')
+            .description('Set up a new ZenStack project.')
+            .addOption(pmOption)
+            .argument('[path]', 'project path', '.')
+            .action(initAction);
 
-            program
-                .command('generate')
-                .description(
-                    'Generates RESTful API and Typescript client for your data model.'
-                )
-                .addOption(schemaOption)
-                .addOption(pmOption)
-                .action(generateAction);
+        program
+            .command('generate')
+            .description('Generates RESTful API and Typescript client for your data model.')
+            .addOption(schemaOption)
+            .addOption(pmOption)
+            .action(generateAction);
 
-            //#endregion
+        //#endregion
 
-            // handle errors explicitly to ensure telemetry
-            program.exitOverride();
+        // handle errors explicitly to ensure telemetry
+        program.exitOverride();
 
-            await program.parseAsync(process.argv);
-        }
-    );
+        await program.parseAsync(process.argv);
+    });
 }

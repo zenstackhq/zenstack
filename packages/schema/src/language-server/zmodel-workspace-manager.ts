@@ -13,9 +13,7 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
         _collector: (document: LangiumDocument) => void
     ): Promise<void> {
         await super.loadAdditionalDocuments(_folders, _collector);
-        const stdLibUri = URI.file(
-            path.join(__dirname, '../res', STD_LIB_MODULE_NAME)
-        );
+        const stdLibUri = URI.file(path.join(__dirname, '../res', STD_LIB_MODULE_NAME));
         console.log(`Adding stdlib document from ${stdLibUri}`);
         const stdlib = this.langiumDocuments.getOrCreateDocument(stdLibUri);
         _collector(stdlib);

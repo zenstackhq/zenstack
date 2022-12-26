@@ -15,43 +15,27 @@ import Transformer from './transformer';
 import { AggregateOperationSupport } from './types';
 import removeDir from './utils/removeDir';
 
-export async function generate(
-    model: Model,
-    options: PluginOptions,
-    dmmf: DMMF.Document
-) {
+export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     try {
-        await handleGeneratorOutputValue(
-            (options.output as string) ?? './generated'
-        );
+        await handleGeneratorOutputValue((options.output as string) ?? './generated');
 
         const prismaClientDmmf = dmmf;
 
         const modelOperations = prismaClientDmmf.mappings.modelOperations;
-        const inputObjectTypes =
-            prismaClientDmmf.schema.inputObjectTypes.prisma;
-        const outputObjectTypes =
-            prismaClientDmmf.schema.outputObjectTypes.prisma;
+        const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma;
+        const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma;
         const enumTypes = prismaClientDmmf.schema.enumTypes;
         const models: DMMF.Model[] = prismaClientDmmf.datamodel.models;
         const hiddenModels: string[] = [];
         const hiddenFields: string[] = [];
-        resolveModelsComments(
-            models,
-            modelOperations,
-            enumTypes,
-            hiddenModels,
-            hiddenFields
-        );
+        resolveModelsComments(models, modelOperations, enumTypes, hiddenModels, hiddenFields);
 
         await generateEnumSchemas(
             prismaClientDmmf.schema.enumTypes.prisma,
             prismaClientDmmf.schema.enumTypes.model ?? []
         );
 
-        const dataSource = model.declarations.find((d): d is DataSource =>
-            isDataSource(d)
-        );
+        const dataSource = model.declarations.find((d): d is DataSource => isDataSource(d));
 
         const dataSourceProvider = getLiteral<string>(
             dataSource?.fields.find((f) => f.name === 'provider')?.value
@@ -60,12 +44,9 @@ export async function generate(
         Transformer.provider = dataSourceProvider;
 
         const generatorConfigOptions: Dictionary<string> = {};
-        Object.entries(options).forEach(
-            ([k, v]) => (generatorConfigOptions[k] = v as string)
-        );
+        Object.entries(options).forEach(([k, v]) => (generatorConfigOptions[k] = v as string));
 
-        const addMissingInputObjectTypeOptions =
-            resolveAddMissingInputObjectTypeOptions(generatorConfigOptions);
+        const addMissingInputObjectTypeOptions = resolveAddMissingInputObjectTypeOptions(generatorConfigOptions);
         addMissingInputObjectTypes(
             inputObjectTypes,
             outputObjectTypes,
@@ -75,21 +56,12 @@ export async function generate(
             addMissingInputObjectTypeOptions
         );
 
-        const aggregateOperationSupport =
-            resolveAggregateOperationSupport(inputObjectTypes);
+        const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
 
-        hideInputObjectTypesAndRelatedFields(
-            inputObjectTypes,
-            hiddenModels,
-            hiddenFields
-        );
+        hideInputObjectTypesAndRelatedFields(inputObjectTypes, hiddenModels, hiddenFields);
 
         await generateObjectSchemas(inputObjectTypes);
-        await generateModelSchemas(
-            models,
-            modelOperations,
-            aggregateOperationSupport
-        );
+        await generateModelSchemas(models, modelOperations, aggregateOperationSupport);
     } catch (error) {
         console.error(error);
     }
@@ -104,10 +76,7 @@ async function handleGeneratorOutputValue(output: string) {
     Transformer.setOutputPath(output);
 }
 
-async function generateEnumSchemas(
-    prismaSchemaEnum: DMMF.SchemaEnum[],
-    modelSchemaEnum: DMMF.SchemaEnum[]
-) {
+async function generateEnumSchemas(prismaSchemaEnum: DMMF.SchemaEnum[], modelSchemaEnum: DMMF.SchemaEnum[]) {
     const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
     const enumNames = enumTypes.map((enumItem) => enumItem.name);
     Transformer.enumNames = enumNames ?? [];

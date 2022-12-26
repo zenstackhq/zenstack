@@ -1,8 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import {
-    checkIsModelRelationField,
-    checkModelHasManyModelRelation,
-} from './model-helpers';
+import { checkIsModelRelationField, checkModelHasManyModelRelation } from './model-helpers';
 
 export function addMissingInputObjectTypesForSelect(
     inputObjectTypes: DMMF.InputType[],
@@ -12,14 +9,11 @@ export function addMissingInputObjectTypesForSelect(
     // generate input object types necessary to support ModelSelect._count
     const modelCountOutputTypes = getModelCountOutputTypes(outputObjectTypes);
     const modelCountOutputTypeSelectInputObjectTypes =
-        generateModelCountOutputTypeSelectInputObjectTypes(
-            modelCountOutputTypes
-        );
+        generateModelCountOutputTypeSelectInputObjectTypes(modelCountOutputTypes);
     const modelCountOutputTypeArgsInputObjectTypes =
         generateModelCountOutputTypeArgsInputObjectTypes(modelCountOutputTypes);
 
-    const modelSelectInputObjectTypes =
-        generateModelSelectInputObjectTypes(models);
+    const modelSelectInputObjectTypes = generateModelSelectInputObjectTypes(models);
 
     const generatedInputObjectTypes = [
         modelCountOutputTypeSelectInputObjectTypes,
@@ -33,20 +27,13 @@ export function addMissingInputObjectTypesForSelect(
 }
 
 function getModelCountOutputTypes(outputObjectTypes: DMMF.OutputType[]) {
-    return outputObjectTypes.filter(({ name }) =>
-        name.includes('CountOutputType')
-    );
+    return outputObjectTypes.filter(({ name }) => name.includes('CountOutputType'));
 }
 
-function generateModelCountOutputTypeSelectInputObjectTypes(
-    modelCountOutputTypes: DMMF.OutputType[]
-) {
+function generateModelCountOutputTypeSelectInputObjectTypes(modelCountOutputTypes: DMMF.OutputType[]) {
     const modelCountOutputTypeSelectInputObjectTypes: DMMF.InputType[] = [];
     for (const modelCountOutputType of modelCountOutputTypes) {
-        const {
-            name: modelCountOutputTypeName,
-            fields: modelCountOutputTypeFields,
-        } = modelCountOutputType;
+        const { name: modelCountOutputTypeName, fields: modelCountOutputTypeFields } = modelCountOutputType;
         const modelCountOutputTypeSelectInputObjectType: DMMF.InputType = {
             name: `${modelCountOutputTypeName}Select`,
             constraints: {
@@ -66,16 +53,12 @@ function generateModelCountOutputTypeSelectInputObjectTypes(
                 ],
             })),
         };
-        modelCountOutputTypeSelectInputObjectTypes.push(
-            modelCountOutputTypeSelectInputObjectType
-        );
+        modelCountOutputTypeSelectInputObjectTypes.push(modelCountOutputTypeSelectInputObjectType);
     }
     return modelCountOutputTypeSelectInputObjectTypes;
 }
 
-function generateModelCountOutputTypeArgsInputObjectTypes(
-    modelCountOutputTypes: DMMF.OutputType[]
-) {
+function generateModelCountOutputTypeArgsInputObjectTypes(modelCountOutputTypes: DMMF.OutputType[]) {
     const modelCountOutputTypeArgsInputObjectTypes: DMMF.InputType[] = [];
     for (const modelCountOutputType of modelCountOutputTypes) {
         const { name: modelCountOutputTypeName } = modelCountOutputType;
@@ -101,9 +84,7 @@ function generateModelCountOutputTypeArgsInputObjectTypes(
                 },
             ],
         };
-        modelCountOutputTypeArgsInputObjectTypes.push(
-            modelCountOutputTypeArgsInputObjectType
-        );
+        modelCountOutputTypeArgsInputObjectTypes.push(modelCountOutputTypeArgsInputObjectType);
     }
     return modelCountOutputTypeArgsInputObjectTypes;
 }
@@ -123,9 +104,7 @@ function generateModelSelectInputObjectTypes(models: DMMF.Model[]) {
                 name: modelFieldName,
                 isRequired: false,
                 isNullable: false,
-                inputTypes: [
-                    { isList: false, type: 'Boolean', location: 'scalar' },
-                ],
+                inputTypes: [{ isList: false, type: 'Boolean', location: 'scalar' }],
             };
 
             if (isRelationField) {
@@ -141,8 +120,7 @@ function generateModelSelectInputObjectTypes(models: DMMF.Model[]) {
             fields.push(field);
         }
 
-        const hasManyRelationToAnotherModel =
-            checkModelHasManyModelRelation(model);
+        const hasManyRelationToAnotherModel = checkModelHasManyModelRelation(model);
 
         const shouldAddCountField = hasManyRelationToAnotherModel;
         if (shouldAddCountField) {

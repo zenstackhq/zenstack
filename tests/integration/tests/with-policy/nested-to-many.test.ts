@@ -159,11 +159,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 })
             ).m2
-        ).toEqual(
-            expect.arrayContaining([
-                expect.objectContaining({ id: '2', value: 3 }),
-            ])
-        );
+        ).toEqual(expect.arrayContaining([expect.objectContaining({ id: '2', value: 3 })]));
     });
 
     it('update with create', async () => {
@@ -319,9 +315,7 @@ describe('Operation Coverage: nested to-many', () => {
             })
         ).toBeTruthy();
 
-        expect(
-            await db.m2.findMany({ where: { id: { in: ['4', '5'] } } })
-        ).toHaveLength(0);
+        expect(await db.m2.findMany({ where: { id: { in: ['4', '5'] } } })).toHaveLength(0);
     });
 
     it('create with nested read', async () => {

@@ -2,23 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { hashSync } from 'bcryptjs';
 import superjson from 'superjson';
-import {
-    AUXILIARY_FIELDS,
-    DEFAULT_PASSWORD_SALT_LENGTH,
-    TRANSACTION_FIELD_NAME,
-} from '../constants';
-import {
-    AuthUser,
-    DbOperations,
-    FieldInfo,
-    PolicyOperationKind,
-    PrismaWriteActionType,
-} from '../types';
+import { AUXILIARY_FIELDS, DEFAULT_PASSWORD_SALT_LENGTH, TRANSACTION_FIELD_NAME } from '../constants';
+import { AuthUser, DbOperations, FieldInfo, PolicyOperationKind, PrismaWriteActionType } from '../types';
 import { NestedWriteVisitor } from './nested-write-vistor';
-import {
-    PrismaClientUnknownRequestError,
-    PrismaClientKnownRequestError,
-} from '@prisma/client/runtime';
+import { PrismaClientUnknownRequestError, PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { getVersion } from '../version';
 import { Logger } from './logger';
 import { camelCase } from 'change-case';
@@ -35,9 +22,7 @@ export function and(...conditions: (boolean | object)[]): any {
         return { id: { in: [] } };
     }
 
-    const filtered = conditions.filter(
-        (c): c is object => typeof c === 'object' && !!c
-    );
+    const filtered = conditions.filter((c): c is object => typeof c === 'object' && !!c);
     if (filtered.length === 0) {
         return undefined;
     } else if (filtered.length === 1) {
@@ -56,9 +41,7 @@ export function or(...conditions: (boolean | object)[]): any {
         return { id: { notIn: [] } };
     }
 
-    const filtered = conditions.filter(
-        (c): c is object => typeof c === 'object' && !!c
-    );
+    const filtered = conditions.filter((c): c is object => typeof c === 'object' && !!c);
     if (filtered.length === 0) {
         return undefined;
     } else if (filtered.length === 1) {
@@ -78,11 +61,7 @@ export function ensureArray<T>(value: T): Array<T> {
 /**
  * Given a where condition, queries db and returns IDs of result entities
  */
-export async function queryIds(
-    model: string,
-    db: Record<string, DbOperations>,
-    where: unknown
-): Promise<string[]> {
+export async function queryIds(model: string, db: Record<string, DbOperations>, where: unknown): Promise<string[]> {
     const r = await db[model].findMany({ select: { id: true }, where });
     return (r as { id: string }[]).map((item) => item.id);
 }
@@ -99,10 +78,9 @@ export async function getAuthGuard(
 ): Promise<boolean | object> {
     const guard = policy.guard[camelCase(model)];
     if (!guard) {
-        throw new PrismaClientUnknownRequestError(
-            `zenstack: unable to load authorization guard for ${model}`,
-            { clientVersion: getVersion() }
-        );
+        throw new PrismaClientUnknownRequestError(`zenstack: unable to load authorization guard for ${model}`, {
+            clientVersion: getVersion(),
+        });
     }
 
     if (guard.allowAll === true) {
@@ -166,35 +144,15 @@ export async function readWithCheck(
     // recursively inject read guard conditions into the query args
     await injectNestedReadConditions(policy, model, args, user);
 
-    logger.info(
-        `Reading with validation for ${model}: ${superjson.stringify(args)}`
-    );
+    logger.info(`Reading with validation for ${model}: ${superjson.stringify(args)}`);
     const result: any[] = await db[model].findMany(args);
 
-    await Promise.all(
-        result.map((item) =>
-            postProcessForRead(
-                item,
-                model,
-                args,
-                user,
-                db,
-                policy,
-                'read',
-                logger
-            )
-        )
-    );
+    await Promise.all(result.map((item) => postProcessForRead(item, model, args, user, db, policy, 'read', logger)));
 
     return result;
 }
 
-async function injectNestedReadConditions(
-    policy: PolicyDef,
-    model: string,
-    args: any,
-    user: AuthUser | undefined
-) {
+async function injectNestedReadConditions(policy: PolicyDef, model: string, args: any, user: AuthUser | undefined) {
     const injectTarget = args.select ?? args.include;
     if (!injectTarget) {
         return;
@@ -212,31 +170,18 @@ async function injectNestedReadConditions(
                 injectTarget[field] = {};
             }
             // inject extra condition for to-many relation
-            const guard = await getAuthGuard(
-                policy,
-                fieldInfo.type,
-                'read',
-                user
-            );
+            const guard = await getAuthGuard(policy, fieldInfo.type, 'read', user);
             injectTarget[field].where = and(injectTarget.where, guard);
         } else {
             // there's no way of injecting condition for to-one relation, so we
             // make sure 'id' field is selected and check them against query result
-            if (
-                injectTarget[field]?.select &&
-                injectTarget[field]?.select?.id !== true
-            ) {
+            if (injectTarget[field]?.select && injectTarget[field]?.select?.id !== true) {
                 injectTarget[field].select.id = true;
             }
         }
 
         // recurse
-        await injectNestedReadConditions(
-            policy,
-            fieldInfo.type,
-            injectTarget[field],
-            user
-        );
+        await injectNestedReadConditions(policy, fieldInfo.type, injectTarget[field], user);
     }
 }
 
@@ -279,28 +224,13 @@ async function postProcessForRead(
     // post-check them
     for (const field of getModelFields(injectTarget)) {
         const fieldInfo = await resolveField(policy, model, field);
-        if (
-            !fieldInfo ||
-            !fieldInfo.isDataModel ||
-            fieldInfo.isArray ||
-            !entityData?.[field]?.id
-        ) {
+        if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray || !entityData?.[field]?.id) {
             continue;
         }
 
-        logger.info(
-            `Validating read of to-one relation: ${fieldInfo.type}#${entityData[field].id}`
-        );
+        logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${entityData[field].id}`);
 
-        await checkPolicyForIds(
-            fieldInfo.type,
-            [entityData[field].id],
-            operation,
-            user,
-            db,
-            policy,
-            logger
-        );
+        await checkPolicyForIds(fieldInfo.type, [entityData[field].id], operation, user, db, policy, logger);
 
         // recurse
         await postProcessForRead(
@@ -337,15 +267,7 @@ export async function preUpdateCheck(
     logger: Logger
 ): Promise<void> {
     // check the entity directly under update first
-    await checkPolicyForFilter(
-        model,
-        updateArgs.where,
-        'update',
-        user,
-        transaction,
-        policy,
-        logger
-    );
+    await checkPolicyForFilter(model, updateArgs.where, 'update', user, transaction, policy, logger);
 
     // We need to ensure that all nested updates respect policy rules of
     // the corresponding model.
@@ -358,9 +280,7 @@ export async function preUpdateCheck(
     // After the visiting, we validate that each collected path satisfies
     // corresponding policy rules by making separate queries.
 
-    const visitor = new NestedWriteVisitor<SelectionPath>((model, field) =>
-        resolveField(policy, model, field)
-    );
+    const visitor = new NestedWriteVisitor<SelectionPath>((model, field) => resolveField(policy, model, field));
     const state: SelectionPath = [];
     const checks: Array<Promise<void>> = [];
 
@@ -375,15 +295,7 @@ export async function preUpdateCheck(
             return state;
         }
 
-        if (
-            ![
-                'update',
-                'updateMany',
-                'upsert',
-                'delete',
-                'deleteMany',
-            ].includes(action)
-        ) {
+        if (!['update', 'updateMany', 'upsert', 'delete', 'deleteMany'].includes(action)) {
             // no more nested writes inside, stop recursion
             return undefined;
         }
@@ -396,9 +308,7 @@ export async function preUpdateCheck(
                 case 'updateMany':
                 case 'upsert':
                     // condition is wrapped in 'where'
-                    condition = or(
-                        ...ensureArray(fieldData).map((d) => d.where)
-                    );
+                    condition = or(...ensureArray(fieldData).map((d) => d.where));
                     break;
                 case 'delete':
                 case 'deleteMany':
@@ -409,16 +319,9 @@ export async function preUpdateCheck(
         }
 
         // build up a new segment of path
-        const selectionPath = [
-            ...state,
-            { field: fieldInfo, where: condition },
-        ];
+        const selectionPath = [...state, { field: fieldInfo, where: condition }];
 
-        const operation: PolicyOperationKind = [
-            'update',
-            'updateMany',
-            'upsert',
-        ].includes(action)
+        const operation: PolicyOperationKind = ['update', 'updateMany', 'upsert'].includes(action)
             ? 'update'
             : 'delete';
 
@@ -465,9 +368,7 @@ export async function checkPolicyForIds(
     policy: PolicyDef,
     logger: Logger
 ) {
-    logger.info(
-        `Checking policy for ${model}#[${ids.join(', ')}] for ${operation}`
-    );
+    logger.info(`Checking policy for ${model}#[${ids.join(', ')}] for ${operation}`);
 
     // build a query condition with policy injected
     const idCondition = ids.length > 1 ? { id: { in: ids } } : { id: ids[0] };
@@ -490,24 +391,18 @@ export async function checkPolicyForIds(
     }
 }
 
-export function deniedByPolicy(
-    model: string,
-    operation: PolicyOperationKind,
-    extra?: string
-) {
+export function deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
     return new PrismaClientKnownRequestError(
-        `denied by policy: entities failed '${operation}' check, ${model}${
-            extra ? ', ' + extra : ''
-        }`,
+        `denied by policy: entities failed '${operation}' check, ${model}${extra ? ', ' + extra : ''}`,
         { clientVersion: getVersion(), code: 'P2004' }
     );
 }
 
 export function notFound(model: string) {
-    return new PrismaClientKnownRequestError(
-        `entity not found for model ${model}`,
-        { clientVersion: getVersion(), code: 'P2025' }
-    );
+    return new PrismaClientKnownRequestError(`entity not found for model ${model}`, {
+        clientVersion: getVersion(),
+        code: 'P2025',
+    });
 }
 
 export async function checkPolicyForFilter(
@@ -519,11 +414,7 @@ export async function checkPolicyForFilter(
     policy: PolicyDef,
     logger: Logger
 ) {
-    logger.info(
-        `Checking policy for ${model}#${JSON.stringify(
-            filter
-        )} for ${operation}`
-    );
+    logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
 
     const count = await db[model].count({ where: filter });
     const guard = await getAuthGuard(policy, model, operation, user);
@@ -536,11 +427,7 @@ export async function checkPolicyForFilter(
 
     // see if we get fewer items with policy, if so, reject with an throw
     if (guardedCount < count) {
-        throw deniedByPolicy(
-            model,
-            operation,
-            `${count - guardedCount} entities failed policy check`
-        );
+        throw deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
     }
 }
 
@@ -578,24 +465,13 @@ async function checkPolicyForSelectionPath(
     }
 
     // check policies for the collected ids
-    await checkPolicyForIds(
-        targetField.type,
-        ids,
-        operation,
-        user,
-        db,
-        policy,
-        logger
-    );
+    await checkPolicyForIds(targetField.type, ids, operation, user, db, policy, logger);
 }
 
 /**
  * Builds a Prisma query for the given selection path
  */
-function buildChainedSelectQuery(
-    rootFilter: any,
-    selectionPath: SelectionPath
-) {
+function buildChainedSelectQuery(rootFilter: any, selectionPath: SelectionPath) {
     const query = { where: rootFilter, select: { id: true } };
     let currSelect: any = query.select;
     for (const path of selectionPath) {
@@ -609,10 +485,7 @@ function buildChainedSelectQuery(
     return query;
 }
 
-function collectTerminalEntityIds(
-    selectionPath: SelectionPath,
-    data: any
-): string[] {
+function collectTerminalEntityIds(selectionPath: SelectionPath, data: any): string[] {
     let curr = data;
     for (const path of selectionPath) {
         curr = curr[path.field.name];
@@ -622,9 +495,7 @@ function collectTerminalEntityIds(
         throw new Error('an unexpected error occurred');
     }
 
-    return Array.isArray(curr)
-        ? curr.map((item) => item.id as string)
-        : [curr.id as string];
+    return Array.isArray(curr) ? curr.map((item) => item.id as string) : [curr.id as string];
 }
 
 /**
@@ -656,34 +527,21 @@ export async function injectTransactionId(
         }
     }
 
-    const visitAction = async (
-        fieldInfo: FieldInfo,
-        action: PrismaWriteActionType,
-        fieldData: any
-    ) => {
+    const visitAction = async (fieldInfo: FieldInfo, action: PrismaWriteActionType, fieldData: any) => {
         if (fieldInfo.isDataModel && fieldData) {
             switch (action) {
                 case 'update':
                 case 'updateMany': {
-                    const guard = await getAuthGuard(
-                        policy,
-                        fieldInfo.type,
-                        'update',
-                        undefined
-                    );
+                    const guard = await getAuthGuard(policy, fieldInfo.type, 'update', undefined);
                     if (guard === false) {
                         // fail fast
                         throw deniedByPolicy(fieldInfo.type, 'update');
                     } else if (guard !== true) {
                         ensureArray(fieldData).forEach((item) => {
                             if (fieldInfo.isArray && item.data) {
-                                item.data[
-                                    TRANSACTION_FIELD_NAME
-                                ] = `${transactionId}:update`;
+                                item.data[TRANSACTION_FIELD_NAME] = `${transactionId}:update`;
                             } else {
-                                item[
-                                    TRANSACTION_FIELD_NAME
-                                ] = `${transactionId}:update`;
+                                item[TRANSACTION_FIELD_NAME] = `${transactionId}:update`;
                             }
                             updatedModels.add(fieldInfo.type);
                         });
@@ -692,31 +550,17 @@ export async function injectTransactionId(
                 }
 
                 case 'upsert': {
-                    const createGuard = await getAuthGuard(
-                        policy,
-                        fieldInfo.type,
-                        'create',
-                        undefined
-                    );
-                    const updateGuard = await getAuthGuard(
-                        policy,
-                        fieldInfo.type,
-                        'update',
-                        undefined
-                    );
+                    const createGuard = await getAuthGuard(policy, fieldInfo.type, 'create', undefined);
+                    const updateGuard = await getAuthGuard(policy, fieldInfo.type, 'update', undefined);
 
                     ensureArray(fieldData).forEach((item) => {
                         if (createGuard !== true) {
-                            item.create[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:create`;
+                            item.create[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
                             createdModels.add(fieldInfo.type);
                         }
 
                         if (updateGuard !== true) {
-                            item.update[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:update`;
+                            item.update[TRANSACTION_FIELD_NAME] = `${transactionId}:update`;
                             updatedModels.add(fieldInfo.type);
                         }
                     });
@@ -725,20 +569,13 @@ export async function injectTransactionId(
 
                 case 'create':
                 case 'createMany': {
-                    const guard = await getAuthGuard(
-                        policy,
-                        fieldInfo.type,
-                        'create',
-                        undefined
-                    );
+                    const guard = await getAuthGuard(policy, fieldInfo.type, 'create', undefined);
                     if (guard === false) {
                         // fail fast
                         throw deniedByPolicy(fieldInfo.type, 'create');
                     } else if (guard !== true) {
                         ensureArray(fieldData).forEach((item) => {
-                            item[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:create`;
+                            item[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
                             createdModels.add(fieldInfo.type);
                         });
                     }
@@ -746,17 +583,10 @@ export async function injectTransactionId(
                 }
 
                 case 'connectOrCreate': {
-                    const guard = await getAuthGuard(
-                        policy,
-                        fieldInfo.type,
-                        'create',
-                        undefined
-                    );
+                    const guard = await getAuthGuard(policy, fieldInfo.type, 'create', undefined);
                     if (guard !== true) {
                         ensureArray(fieldData).forEach((item) => {
-                            item.create[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:create`;
+                            item.create[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
                             createdModels.add(fieldInfo.type);
                         });
                     }
@@ -767,9 +597,7 @@ export async function injectTransactionId(
         return true;
     };
 
-    const visitor = new NestedWriteVisitor((model, field) =>
-        resolveField(policy, model, field)
-    );
+    const visitor = new NestedWriteVisitor((model, field) => resolveField(policy, model, field));
     await visitor.visit(model, args, undefined, undefined, visitAction);
 
     return {
@@ -782,11 +610,7 @@ export async function injectTransactionId(
  * Preprocesses the given write args to modify field values (in place) based on
  * attributes like @password
  */
-export async function preprocessWritePayload(
-    policy: PolicyDef,
-    model: string,
-    args: any
-) {
+export async function preprocessWritePayload(policy: PolicyDef, model: string, args: any) {
     const visitAction = async (
         fieldInfo: FieldInfo,
         _action: PrismaWriteActionType,
@@ -794,17 +618,12 @@ export async function preprocessWritePayload(
         parentData: any
     ) => {
         // process @password field
-        const pwdAttr = fieldInfo.attributes?.find(
-            (attr) => attr.name === '@password'
-        );
+        const pwdAttr = fieldInfo.attributes?.find((attr) => attr.name === '@password');
         if (pwdAttr && fieldInfo.type === 'String') {
             // hash password value
-            let salt: string | number | undefined = pwdAttr.args.find(
-                (arg) => arg.name === 'salt'
-            )?.value as string;
+            let salt: string | number | undefined = pwdAttr.args.find((arg) => arg.name === 'salt')?.value as string;
             if (!salt) {
-                salt = pwdAttr.args.find((arg) => arg.name === 'saltLength')
-                    ?.value as number;
+                salt = pwdAttr.args.find((arg) => arg.name === 'saltLength')?.value as number;
             }
             if (!salt) {
                 salt = DEFAULT_PASSWORD_SALT_LENGTH;
@@ -814,9 +633,7 @@ export async function preprocessWritePayload(
         return true;
     };
 
-    const visitor = new NestedWriteVisitor((model, field) =>
-        resolveField(policy, model, field)
-    );
+    const visitor = new NestedWriteVisitor((model, field) => resolveField(policy, model, field));
 
     await visitor.visit(model, args, undefined, undefined, visitAction);
 }
@@ -826,9 +643,7 @@ async function shouldOmit(policy: PolicyDef, model: string, field: string) {
         return true;
     }
     const fieldInfo = await resolveField(policy, model, field);
-    return !!(
-        fieldInfo && fieldInfo.attributes.find((attr) => attr.name === '@omit')
-    );
+    return !!(fieldInfo && fieldInfo.attributes.find((attr) => attr.name === '@omit'));
 }
 
 //#endregion

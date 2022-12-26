@@ -7,21 +7,12 @@ import {
     isInvocationExpr,
     isLiteralExpr,
 } from '@zenstackhq/language/ast';
-import {
-    PolicyKind,
-    PolicyOperationKind,
-    RuntimeAttribute,
-} from '@zenstackhq/runtime';
+import { PolicyKind, PolicyOperationKind, RuntimeAttribute } from '@zenstackhq/runtime';
 import { GUARD_FIELD_NAME, PluginOptions } from '@zenstackhq/sdk';
 import { resolved } from '@zenstackhq/sdk/utils';
 import { camelCase } from 'change-case';
 import path from 'path';
-import {
-    CodeBlockWriter,
-    Project,
-    SourceFile,
-    VariableDeclarationKind,
-} from 'ts-morph';
+import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE } from '../constants';
 import { ExpressionWriter } from './expression-writer';
 import { streamAllContents } from 'langium';
@@ -35,13 +26,8 @@ const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 export default class PolicyGuardGenerator {
     async generate(model: Model, options: PluginOptions) {
         const project = new Project();
-        const outDir =
-            (options.output as string) ?? 'node_modules/.zenstack/src';
-        const sf = project.createSourceFile(
-            path.join(outDir, 'index.ts'),
-            undefined,
-            { overwrite: true }
-        );
+        const outDir = (options.output as string) ?? 'node_modules/.zenstack/src';
+        const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'QueryContext' }],
@@ -57,16 +43,11 @@ export default class PolicyGuardGenerator {
             });
         }
 
-        const models = model.declarations.filter((d) =>
-            isDataModel(d)
-        ) as DataModel[];
+        const models = model.declarations.filter((d) => isDataModel(d)) as DataModel[];
 
         const policyMap: Record<string, Record<string, string | boolean>> = {};
         for (const model of models) {
-            policyMap[model.name] = await this.generateQueryGuardForModel(
-                model,
-                sf
-            );
+            policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
 
         sf.addVariableStatement({
@@ -80,15 +61,10 @@ export default class PolicyGuardGenerator {
 
                             writer.write('guard:'),
                                 writer.block(() => {
-                                    for (const [model, map] of Object.entries(
-                                        policyMap
-                                    )) {
+                                    for (const [model, map] of Object.entries(policyMap)) {
                                         writer.write(`${camelCase(model)}:`);
                                         writer.block(() => {
-                                            for (const [
-                                                op,
-                                                func,
-                                            ] of Object.entries(map)) {
+                                            for (const [op, func] of Object.entries(map)) {
                                                 writer.write(`${op}: ${func},`);
                                             }
                                         });
@@ -125,9 +101,7 @@ export default class PolicyGuardGenerator {
                         isDataModel: ${isDataModel(f.type.reference?.ref)},
                         isArray: ${f.type.array},
                         isOptional: ${f.type.optional},
-                        attributes: ${JSON.stringify(
-                            this.getFieldAttributes(f)
-                        )},    
+                        attributes: ${JSON.stringify(this.getFieldAttributes(f))},    
                     },`);
                     }
                 });
@@ -153,34 +127,20 @@ export default class PolicyGuardGenerator {
             .filter((d): d is RuntimeAttribute => !!d);
     }
 
-    private getPolicyExpressions(
-        model: DataModel,
-        kind: PolicyKind,
-        operation: PolicyOperationKind
-    ) {
-        const attrs = model.attributes.filter(
-            (attr) => attr.decl.ref?.name === `@@${kind}`
-        );
+    private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {
+        const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === `@@${kind}`);
         return attrs
             .filter((attr) => {
-                if (
-                    !isLiteralExpr(attr.args[0].value) ||
-                    typeof attr.args[0].value.value !== 'string'
-                ) {
+                if (!isLiteralExpr(attr.args[0].value) || typeof attr.args[0].value.value !== 'string') {
                     return false;
                 }
-                const ops = attr.args[0].value.value
-                    .split(',')
-                    .map((s) => s.trim());
+                const ops = attr.args[0].value.value.split(',').map((s) => s.trim());
                 return ops.includes(operation) || ops.includes('all');
             })
             .map((attr) => attr.args[1].value);
     }
 
-    private async generateQueryGuardForModel(
-        model: DataModel,
-        sourceFile: SourceFile
-    ) {
+    private async generateQueryGuardForModel(model: DataModel, sourceFile: SourceFile) {
         const result: Record<string, string | boolean> = {};
 
         const { allowAll, denyAll } = analyzePolicies(model);
@@ -198,22 +158,14 @@ export default class PolicyGuardGenerator {
         }
 
         for (const kind of ALL_OPERATION_KINDS) {
-            const func = this.generateQueryGuardFunction(
-                sourceFile,
-                model,
-                kind
-            );
+            const func = this.generateQueryGuardFunction(sourceFile, model, kind);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             result[kind] = func.getName()!;
         }
         return result;
     }
 
-    private generateQueryGuardFunction(
-        sourceFile: SourceFile,
-        model: DataModel,
-        kind: string
-    ) {
+    private generateQueryGuardFunction(sourceFile: SourceFile, model: DataModel, kind: string) {
         const func = sourceFile
             .addFunction({
                 name: model.name + '_' + kind,
@@ -227,17 +179,9 @@ export default class PolicyGuardGenerator {
             })
             .addBody();
 
-        const denies = this.getPolicyExpressions(
-            model,
-            'deny',
-            kind as PolicyOperationKind
-        );
+        const denies = this.getPolicyExpressions(model, 'deny', kind as PolicyOperationKind);
 
-        const allows = this.getPolicyExpressions(
-            model,
-            'allow',
-            kind as PolicyOperationKind
-        );
+        const allows = this.getPolicyExpressions(model, 'allow', kind as PolicyOperationKind);
 
         if (allows.length === 0) {
             func.addStatements('return undefined');
@@ -248,10 +192,7 @@ export default class PolicyGuardGenerator {
         let hasAuthRef = false;
         for (const node of [...denies, ...allows]) {
             for (const child of streamAllContents(node)) {
-                if (
-                    isInvocationExpr(child) &&
-                    resolved(child.function).name === 'auth'
-                ) {
+                if (isInvocationExpr(child) && resolved(child.function).name === 'auth') {
                     hasAuthRef = true;
                     break;
                 }
@@ -277,34 +218,22 @@ export default class PolicyGuardGenerator {
                     initializer: (writer) => {
                         const exprWriter = new ExpressionWriter(writer);
                         const writeDenies = () => {
-                            writer.conditionalWrite(
-                                denies.length > 1,
-                                '{ AND: ['
-                            );
+                            writer.conditionalWrite(denies.length > 1, '{ AND: [');
                             denies.forEach((expr, i) => {
                                 writer.block(() => {
                                     writer.write('NOT: ');
                                     exprWriter.write(expr);
                                 });
-                                writer.conditionalWrite(
-                                    i !== denies.length - 1,
-                                    ','
-                                );
+                                writer.conditionalWrite(i !== denies.length - 1, ',');
                             });
                             writer.conditionalWrite(denies.length > 1, ']}');
                         };
 
                         const writeAllows = () => {
-                            writer.conditionalWrite(
-                                allows.length > 1,
-                                '{ OR: ['
-                            );
+                            writer.conditionalWrite(allows.length > 1, '{ OR: [');
                             allows.forEach((expr, i) => {
                                 exprWriter.write(expr);
-                                writer.conditionalWrite(
-                                    i !== allows.length - 1,
-                                    ','
-                                );
+                                writer.conditionalWrite(i !== allows.length - 1, ',');
                             });
                             writer.conditionalWrite(allows.length > 1, ']}');
                         };

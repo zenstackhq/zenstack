@@ -20,10 +20,7 @@ export type WeakDbOperations = {
     [key in keyof DbOperations]: (...args: any[]) => Promise<any>;
 };
 
-export async function loadPrismaFromModelFile(
-    testName: string,
-    modelFile: string
-) {
+export async function loadPrismaFromModelFile(testName: string, modelFile: string) {
     const content = fs.readFileSync(modelFile, { encoding: 'utf-8' });
     return loadPrisma(testName, content);
 }
@@ -45,7 +42,6 @@ export async function loadPrisma(testName: string, model: string) {
     const policy = require(path.join(workDir, 'policy')).default;
     return {
         prisma,
-        withPolicy: (user?: AuthUser) =>
-            withPolicy<WeakDbClientContract>(prisma, policy, { user }),
+        withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, policy, { user }),
     };
 }

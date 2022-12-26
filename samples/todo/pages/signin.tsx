@@ -13,9 +13,7 @@ export default function Signup() {
     useEffect(() => {
         if (router.query.error) {
             if (router.query.error === 'OAuthCreateAccount') {
-                toast.error(
-                    'Unable to signin. The user email may be already in use.'
-                );
+                toast.error('Unable to signin. The user email may be already in use.');
             } else {
                 toast.error(`Authentication error: ${router.query.error}`);
             }
@@ -46,20 +44,11 @@ export default function Signup() {
             </Link>
             <div className="items-center justify-center w-full bg-white rounded-lg shadow lg:flex md:mt-0 lg:max-w-screen-md xl:p-0">
                 <div className="w-full p-6 space-y-8 sm:p-8 lg:p-16">
-                    <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl">
-                        Sign in to your account
-                    </h2>
+                    <h2 className="text-2xl font-bold text-gray-900 lg:text-3xl">Sign in to your account</h2>
 
-                    <form
-                        className="mt-8"
-                        action="#"
-                        onSubmit={(e) => onSignin(e)}
-                    >
+                    <form className="mt-8" action="#" onSubmit={(e) => onSignin(e)}>
                         <div className="mb-6">
-                            <label
-                                htmlFor="email"
-                                className="block mb-2 text-sm font-medium text-gray-900"
-                            >
+                            <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900">
                                 Your email
                             </label>
                             <input
@@ -73,10 +62,7 @@ export default function Signup() {
                             />
                         </div>
                         <div className="mb-6">
-                            <label
-                                htmlFor="password"
-                                className="block mb-2 text-sm font-medium text-gray-900"
-                            >
+                            <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900">
                                 Your password
                             </label>
                             <input
@@ -100,28 +86,20 @@ export default function Signup() {
                                 />
                             </div>
                             <div className="ml-3 text-sm">
-                                <label
-                                    htmlFor="remember"
-                                    className="font-medium text-gray-900"
-                                >
+                                <label htmlFor="remember" className="font-medium text-gray-900">
                                     Remember me
                                 </label>
                             </div>
                         </div>
 
                         <div className="flex flex-col lg:flex-row gap-4 mt-4">
-                            <button
-                                className="btn btn-primary w-full lg:w-fit"
-                                type="submit"
-                            >
+                            <button className="btn btn-primary w-full lg:w-fit" type="submit">
                                 Login to your account
                             </button>
 
                             <div
                                 className="btn btn-outline w-full lg:w-fit"
-                                onClick={() =>
-                                    signIn('github', { callbackUrl: '/' })
-                                }
+                                onClick={() => signIn('github', { callbackUrl: '/' })}
                             >
                                 Sign in with GitHub
                             </div>

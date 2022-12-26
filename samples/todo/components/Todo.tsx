@@ -44,9 +44,7 @@ export default function TodoComponent({ value, updated, deleted }: Props) {
             <div className="flex justify-between w-full mb-4">
                 <h3
                     className={`text-xl line-clamp-1 ${
-                        value.completedAt
-                            ? 'line-through text-gray-400 italic'
-                            : 'text-gray-700'
+                        value.completedAt ? 'line-through text-gray-400 italic' : 'text-gray-700'
                     }`}
                 >
                     {value.title}
@@ -56,9 +54,7 @@ export default function TodoComponent({ value, updated, deleted }: Props) {
                         type="checkbox"
                         className="checkbox mr-2"
                         checked={completed}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                            setCompleted(e.currentTarget.checked)
-                        }
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCompleted(e.currentTarget.checked)}
                     />
                     <TrashIcon
                         className="w-6 h-6 text-gray-500 cursor-pointer"

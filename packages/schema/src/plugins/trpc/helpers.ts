@@ -9,11 +9,7 @@ export const generatetRPCImport = (sourceFile: SourceFile) => {
     });
 };
 
-export const generateRouterImport = (
-    sourceFile: SourceFile,
-    modelNamePlural: string,
-    modelNameCamelCase: string
-) => {
+export const generateRouterImport = (sourceFile: SourceFile, modelNamePlural: string, modelNameCamelCase: string) => {
     sourceFile.addImportDeclaration({
         moduleSpecifier: `./${modelNameCamelCase}.router`,
         namedImports: [`${modelNamePlural}Router`],
@@ -35,13 +31,8 @@ export function generateProcedure(
     `);
 }
 
-export function generateRouterSchemaImports(
-    sourceFile: SourceFile,
-    name: string
-) {
-    sourceFile.addStatements(
-        `import { ${name}Schema } from '../schemas/${name}.schema';`
-    );
+export function generateRouterSchemaImports(sourceFile: SourceFile, name: string) {
+    sourceFile.addStatements(`import { ${name}Schema } from '../schemas/${name}.schema';`);
 }
 
 export const getInputTypeByOpName = (opName: string, modelName: string) => {
@@ -122,34 +113,24 @@ export const getProcedureTypeByOpName = (opName: string) => {
     return procType;
 };
 
-export function resolveModelsComments(
-    models: DMMF.Model[],
-    hiddenModels: string[]
-) {
+export function resolveModelsComments(models: DMMF.Model[], hiddenModels: string[]) {
     const modelAttributeRegex = /(@@Gen\.)+([A-z])+(\()+(.+)+(\))+/;
     const attributeNameRegex = /(?:\.)+([A-Za-z])+(?:\()+/;
     const attributeArgsRegex = /(?:\()+([A-Za-z])+:+(.+)+(?:\))+/;
 
     for (const model of models) {
         if (model.documentation) {
-            const attribute =
-                model.documentation?.match(modelAttributeRegex)?.[0];
-            const attributeName = attribute
-                ?.match(attributeNameRegex)?.[0]
-                ?.slice(1, -1);
+            const attribute = model.documentation?.match(modelAttributeRegex)?.[0];
+            const attributeName = attribute?.match(attributeNameRegex)?.[0]?.slice(1, -1);
             if (attributeName !== 'model') continue;
-            const rawAttributeArgs = attribute
-                ?.match(attributeArgsRegex)?.[0]
-                ?.slice(1, -1);
+            const rawAttributeArgs = attribute?.match(attributeArgsRegex)?.[0]?.slice(1, -1);
 
             const parsedAttributeArgs: Record<string, unknown> = {};
             if (rawAttributeArgs) {
                 const rawAttributeArgsParts = rawAttributeArgs
                     .split(':')
                     .map((it) => it.trim())
-                    .map((part) =>
-                        part.startsWith('[') ? part : part.split(',')
-                    )
+                    .map((part) => (part.startsWith('[') ? part : part.split(',')))
                     .flat()
                     .map((it) => it.trim());
 

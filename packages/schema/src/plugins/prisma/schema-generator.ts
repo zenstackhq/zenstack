@@ -18,12 +18,7 @@ import {
     isLiteralExpr,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
-import {
-    GUARD_FIELD_NAME,
-    PluginError,
-    PluginOptions,
-    TRANSACTION_FIELD_NAME,
-} from '@zenstackhq/sdk';
+import { GUARD_FIELD_NAME, PluginError, PluginOptions, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import { getLiteral, getLiteralArray, resolved } from '@zenstackhq/sdk/utils';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
@@ -93,9 +88,7 @@ export default class PrismaSchemaGenerator {
                     if (this.isStringLiteral(f.value)) {
                         provider = f.value.value as string;
                     } else {
-                        throw new PluginError(
-                            'Datasource provider must be set to a string'
-                        );
+                        throw new PluginError('Datasource provider must be set to a string');
                     }
                     break;
                 }
@@ -103,9 +96,7 @@ export default class PrismaSchemaGenerator {
                 case 'url': {
                     const r = this.extractDataSourceUrl(f.value);
                     if (!r) {
-                        throw new PluginError(
-                            'Invalid value for datasource url'
-                        );
+                        throw new PluginError('Invalid value for datasource url');
                     }
                     url = r;
                     break;
@@ -114,9 +105,7 @@ export default class PrismaSchemaGenerator {
                 case 'shadowDatabaseUrl': {
                     const r = this.extractDataSourceUrl(f.value);
                     if (!r) {
-                        throw new PluginError(
-                            'Invalid value for datasource url'
-                        );
+                        throw new PluginError('Invalid value for datasource url');
                     }
                     shadowDatabaseUrl = r;
                     break;
@@ -143,10 +132,7 @@ export default class PrismaSchemaGenerator {
             fieldValue.args.length === 1 &&
             this.isStringLiteral(fieldValue.args[0].value)
         ) {
-            return new PrismaDataSourceUrl(
-                fieldValue.args[0].value.value as string,
-                true
-            );
+            return new PrismaDataSourceUrl(fieldValue.args[0].value.value as string, true);
         } else {
             return null;
         }
@@ -156,9 +142,7 @@ export default class PrismaSchemaGenerator {
         prisma.addGenerator(
             decl.name,
             decl.fields.map((f) => {
-                const value = isArrayExpr(f.value)
-                    ? getLiteralArray(f.value)
-                    : getLiteral(f.value);
+                const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
                 return { name: f.name, value };
             })
         );
@@ -178,10 +162,7 @@ export default class PrismaSchemaGenerator {
             // add an "zenstack_guard" field for dealing with pure auth() related conditions
             model.addField(GUARD_FIELD_NAME, 'Boolean', [
                 new PrismaFieldAttribute('@default', [
-                    new PrismaAttributeArg(
-                        undefined,
-                        new PrismaAttributeArgValue('Boolean', true)
-                    ),
+                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
                 ]),
             ]);
 
@@ -193,18 +174,13 @@ export default class PrismaSchemaGenerator {
                 new PrismaAttributeArg(
                     undefined,
                     new PrismaAttributeArgValue('Array', [
-                        new PrismaAttributeArgValue(
-                            'FieldReference',
-                            TRANSACTION_FIELD_NAME
-                        ),
+                        new PrismaAttributeArgValue('FieldReference', TRANSACTION_FIELD_NAME),
                     ])
                 ),
             ]);
         }
 
-        for (const attr of decl.attributes.filter(
-            (attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref)
-        )) {
+        for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
             this.generateModelAttribute(model, attr);
         }
     }
@@ -216,21 +192,13 @@ export default class PrismaSchemaGenerator {
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
         const fieldType = field.type.type || field.type.reference?.ref?.name;
         if (!fieldType) {
-            throw new PluginError(
-                `Field type is not resolved: ${field.$container.name}.${field.name}`
-            );
+            throw new PluginError(`Field type is not resolved: ${field.$container.name}.${field.name}`);
         }
 
-        const type = new ModelFieldType(
-            fieldType,
-            field.type.array,
-            field.type.optional
-        );
+        const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
         const attributes = field.attributes
-            .filter(
-                (attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref)
-            )
+            .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
             .map((attr) => this.makeFieldAttribute(attr));
         model.addField(field.name, type, attributes);
     }
@@ -243,10 +211,7 @@ export default class PrismaSchemaGenerator {
     }
 
     private makeAttributeArg(arg: AttributeArg): PrismaAttributeArg {
-        return new PrismaAttributeArg(
-            arg.name,
-            this.makeAttributeArgValue(arg.value)
-        );
+        return new PrismaAttributeArg(arg.name, this.makeAttributeArgValue(arg.value));
     }
 
     private makeAttributeArgValue(node: Expression): PrismaAttributeArgValue {
@@ -259,40 +224,26 @@ export default class PrismaSchemaGenerator {
                 case 'boolean':
                     return new PrismaAttributeArgValue('Boolean', node.value);
                 default:
-                    throw new PluginError(
-                        `Unexpected literal type: ${typeof node.value}`
-                    );
+                    throw new PluginError(`Unexpected literal type: ${typeof node.value}`);
             }
         } else if (isArrayExpr(node)) {
             return new PrismaAttributeArgValue(
                 'Array',
-                new Array(
-                    ...node.items.map((item) =>
-                        this.makeAttributeArgValue(item)
-                    )
-                )
+                new Array(...node.items.map((item) => this.makeAttributeArgValue(item)))
             );
         } else if (isReferenceExpr(node)) {
             return new PrismaAttributeArgValue(
                 'FieldReference',
                 new PrismaFieldReference(
                     resolved(node.target).name,
-                    node.args.map(
-                        (arg) =>
-                            new PrismaFieldReferenceArg(arg.name, arg.value)
-                    )
+                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, arg.value))
                 )
             );
         } else if (isInvocationExpr(node)) {
             // invocation
-            return new PrismaAttributeArgValue(
-                'FunctionCall',
-                this.makeFunctionCall(node)
-            );
+            return new PrismaAttributeArgValue('FunctionCall', this.makeFunctionCall(node));
         } else {
-            throw new PluginError(
-                `Unsupported attribute argument expression type: ${node.$type}`
-            );
+            throw new PluginError(`Unsupported attribute argument expression type: ${node.$type}`);
         }
     }
 
@@ -301,19 +252,14 @@ export default class PrismaSchemaGenerator {
             resolved(node.function).name,
             node.args.map((arg) => {
                 if (!isLiteralExpr(arg.value)) {
-                    throw new PluginError(
-                        'Function call argument must be literal'
-                    );
+                    throw new PluginError('Function call argument must be literal');
                 }
                 return new PrismaFunctionCallArg(arg.name, arg.value.value);
             })
         );
     }
 
-    private generateModelAttribute(
-        model: PrismaDataModel,
-        attr: DataModelAttribute
-    ) {
+    private generateModelAttribute(model: PrismaDataModel, attr: DataModelAttribute) {
         model.attributes.push(
             new PrismaModelAttribute(
                 resolved(attr.decl).name,

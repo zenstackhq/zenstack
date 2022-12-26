@@ -1,9 +1,4 @@
-import {
-    SpaceContext,
-    useCurrentSpace,
-    useCurrentUser,
-    UserContext,
-} from '@lib/context';
+import { SpaceContext, useCurrentSpace, useCurrentUser, UserContext } from '@lib/context';
 import { trpc } from '@lib/trpc';
 import { Provider as ZenStackHooksProvider } from '@zenstackhq/next';
 import AuthGuard from 'components/AuthGuard';
@@ -21,9 +16,7 @@ function AppContent(props: { children: JSX.Element | JSX.Element[] }) {
         <AuthGuard>
             <UserContext.Provider value={user}>
                 <SpaceContext.Provider value={space}>
-                    <div className="h-screen flex flex-col">
-                        {props.children}
-                    </div>
+                    <div className="h-screen flex flex-col">{props.children}</div>
                 </SpaceContext.Provider>
             </UserContext.Provider>
         </AuthGuard>
@@ -37,11 +30,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
                 <AppContent>
                     <div className="flex-grow h-100">
                         <Component {...pageProps} />
-                        <ToastContainer
-                            position="top-center"
-                            autoClose={2000}
-                            hideProgressBar={true}
-                        />
+                        <ToastContainer position="top-center" autoClose={2000} hideProgressBar={true} />
                     </div>
                 </AppContent>
             </ZenStackHooksProvider>

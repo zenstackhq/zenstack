@@ -20,10 +20,7 @@ export default function TodoList(props: Props) {
     const user = useCurrentUser();
     const [title, setTitle] = useState('');
 
-    const { data: todos, refetch } = trpc.todo.findMany.useQuery<
-        Props['todos'],
-        Props['todos']
-    >(
+    const { data: todos, refetch } = trpc.todo.findMany.useQuery<Props['todos'], Props['todos']>(
         {
             where: { listId: props.list.id },
             include: {
@@ -51,9 +48,7 @@ export default function TodoList(props: Props) {
             setTitle('');
             refetch();
         } catch (err: any) {
-            toast.error(
-                `Failed to create todo: ${err.info?.message || err.message}`
-            );
+            toast.error(`Failed to create todo: ${err.info?.message || err.message}`);
         }
     };
 
@@ -67,9 +62,7 @@ export default function TodoList(props: Props) {
                 <BreadCrumb space={props.space} list={props.list} />
             </div>
             <div className="container w-full flex flex-col items-center pt-12">
-                <h1 className="text-2xl font-semibold mb-4">
-                    {props.list?.title}
-                </h1>
+                <h1 className="text-2xl font-semibold mb-4">{props.list?.title}</h1>
                 <div className="flex space-x-2">
                     <input
                         type="text"
@@ -108,11 +101,7 @@ export default function TodoList(props: Props) {
     );
 }
 
-export const getServerSideProps: GetServerSideProps<Props> = async ({
-    req,
-    res,
-    params,
-}) => {
+export const getServerSideProps: GetServerSideProps<Props> = async ({ req, res, params }) => {
     const db = await withAuth({ req, res });
     const space = await db.space.findUnique({
         where: { slug: params!.slug as string },

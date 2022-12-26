@@ -3,10 +3,7 @@ import { Model } from '@zenstackhq/language/ast';
 
 export type OptionValue = string | number | boolean;
 
-export type PluginOptions = { provider?: string } & Record<
-    string,
-    OptionValue | OptionValue[]
->;
+export type PluginOptions = { provider?: string } & Record<string, OptionValue | OptionValue[]>;
 
 export type PluginFunction = (
     model: Model,

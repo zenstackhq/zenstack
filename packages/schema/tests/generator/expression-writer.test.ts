@@ -1,10 +1,4 @@
-import {
-    DataModel,
-    Enum,
-    Expression,
-    isDataModel,
-    isEnum,
-} from '@zenstackhq/language/ast';
+import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/language/ast';
 import { GUARD_FIELD_NAME } from '@zenstackhq/runtime/constants';
 import * as tmp from 'tmp';
 import { Project, VariableDeclarationKind } from 'ts-morph';
@@ -659,11 +653,7 @@ describe('Expression Writer Tests', () => {
     });
 });
 
-async function check(
-    schema: string,
-    getExpr: (model: DataModel) => Expression,
-    expected: string
-) {
+async function check(schema: string, getExpr: (model: DataModel) => Expression, expected: string) {
     if (!schema.includes('datasource ')) {
         schema =
             `
@@ -675,11 +665,7 @@ async function check(
     }
 
     const model = await loadModel(schema);
-    const expr = getExpr(
-        model.declarations.find(
-            (d) => isDataModel(d) && d.name === 'Test'
-        ) as DataModel
-    );
+    const expr = getExpr(model.declarations.find((d) => isDataModel(d) && d.name === 'Test') as DataModel);
 
     const project = new Project();
 
@@ -705,9 +691,7 @@ async function check(
                         name: e.name,
                         initializer: `
               {
-                ${(e as Enum).fields
-                    .map((f) => `${f.name}: "${f.name}"`)
-                    .join(',\n')}
+                ${(e as Enum).fields.map((f) => `${f.name}: "${f.name}"`).join(',\n')}
               }
               `,
                     },
@@ -720,8 +704,7 @@ async function check(
         declarations: [
             {
                 name: 'expr',
-                initializer: (writer) =>
-                    new ExpressionWriter(writer).write(expr),
+                initializer: (writer) => new ExpressionWriter(writer).write(expr),
             },
         ],
     });
@@ -742,8 +725,6 @@ async function check(
 
     if (expected) {
         const generatedExpr = outExpr?.getInitializer()?.getText();
-        expect(generatedExpr && generatedExpr.replace(/\s+/g, '')).toBe(
-            expected.replace(/\s+/g, '')
-        );
+        expect(generatedExpr && generatedExpr.replace(/\s+/g, '')).toBe(expected.replace(/\s+/g, ''));
     }
 }

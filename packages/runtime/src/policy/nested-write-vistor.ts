@@ -29,12 +29,7 @@ export type NestedWriterVisitorCallback<State = unknown> = (
  * Recursive visitor for nested write (create/update) payload
  */
 export class NestedWriteVisitor<State> {
-    constructor(
-        private readonly resolveField: (
-            model: string,
-            field: string
-        ) => Promise<FieldInfo | undefined>
-    ) {}
+    constructor(private readonly resolveField: (model: string, field: string) => Promise<FieldInfo | undefined>) {}
 
     private isPrismaWriteAction(value: string): value is PrismaWriteActionType {
         return PrismaWriteActions.includes(value as PrismaWriteActionType);
@@ -75,26 +70,12 @@ export class NestedWriteVisitor<State> {
                 //
                 //     { update: { field: {...} } }
                 //
-                for (const [subKey, subPayload] of Object.entries<any>(
-                    payload
-                )) {
+                for (const [subKey, subPayload] of Object.entries<any>(payload)) {
                     if (this.isPrismaWriteAction(subKey) && subPayload) {
-                        const newState = await callback(
-                            fieldInfo,
-                            subKey,
-                            subPayload,
-                            payload,
-                            state
-                        );
+                        const newState = await callback(fieldInfo, subKey, subPayload, payload, state);
                         if (newState) {
                             // recurse into content
-                            await this.visit(
-                                fieldInfo.type,
-                                subPayload,
-                                payload,
-                                newState,
-                                callback
-                            );
+                            await this.visit(fieldInfo.type, subPayload, payload, newState, callback);
                         }
                     }
                 }

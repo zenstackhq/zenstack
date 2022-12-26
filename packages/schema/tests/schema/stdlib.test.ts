@@ -14,23 +14,17 @@ describe('Stdlib Tests', () => {
             validationChecks: 'all',
         });
 
-        const validationErrors = (stdLib.diagnostics ?? []).filter(
-            (e) => e.severity === 1
-        );
+        const validationErrors = (stdLib.diagnostics ?? []).filter((e) => e.severity === 1);
         if (validationErrors.length > 0) {
             for (const validationError of validationErrors) {
-                const range = stdLib.textDocument.getText(
-                    validationError.range
-                );
+                const range = stdLib.textDocument.getText(validationError.range);
                 console.error(
-                    `line ${validationError.range.start.line + 1}: ${
-                        validationError.message
-                    }${range ? ' [' + range + ']' : ''}`
+                    `line ${validationError.range.start.line + 1}: ${validationError.message}${
+                        range ? ' [' + range + ']' : ''
+                    }`
                 );
             }
-            throw new SchemaLoadingError(
-                validationErrors.map((e) => e.message)
-            );
+            throw new SchemaLoadingError(validationErrors.map((e) => e.message));
         }
     });
 });
