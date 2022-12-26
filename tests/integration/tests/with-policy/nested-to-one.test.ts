@@ -52,8 +52,8 @@ describe('Operation Coverage: nested to-one', () => {
             })
         ).toBeRejectedByPolicy();
 
-        expect(
-            await db.m1.create({
+        await expect(
+            db.m1.create({
                 data: {
                     id: '1',
                     m2: {
@@ -122,8 +122,8 @@ describe('Operation Coverage: nested to-one', () => {
             })
         ).toBeRejectedByPolicy();
 
-        expect(
-            await db.m1.update({
+        await expect(
+            db.m1.update({
                 where: { id: '1' },
                 data: {
                     m2: {

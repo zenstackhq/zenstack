@@ -51,8 +51,8 @@ describe('Operation Coverage: nested to-many', () => {
             })
         ).toBeRejectedByPolicy();
 
-        expect(
-            await db.m1.create({
+        await expect(
+            db.m1.create({
                 data: {
                     m2: {
                         create: { value: 1 },
@@ -72,15 +72,15 @@ describe('Operation Coverage: nested to-many', () => {
             })
         ).toBeRejectedByPolicy();
 
-        expect(
-            await db.m1.create({
+        await expect(
+            db.m1.create({
                 data: {
                     m2: {
                         create: [{ value: 1 }, { value: 2 }],
                     },
                 },
             })
-        ).toBeTruthy();
+        ).toResolveTruthy();
     });
 
     it('update simple', async () => {
