@@ -32,10 +32,7 @@ export function analyzePolicies(dataModel: DataModel) {
 }
 
 function allowAll(allows: DataModelAttribute[], denies: DataModelAttribute[]) {
-    if (denies.length > 0) {
-        return false;
-    }
-    return allows.some((attr) => allOpsTrue(attr));
+    return denies.length === 0 && allows.some((attr) => allOpsTrue(attr));
 }
 
 function denyAll(allows: DataModelAttribute[], denies: DataModelAttribute[]) {

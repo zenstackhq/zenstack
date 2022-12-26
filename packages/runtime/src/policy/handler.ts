@@ -528,7 +528,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
         // verify that the upserted data requested by query args pass policy check
         // note that there's no direct way to know if create or update happened,
-        // but since only one can happen, we can use transaction id to filter uniquely
+        // but since only one can happen, we can use transaction id to filter distinctively
         const readArgs = {
             ...args,
             where: {
