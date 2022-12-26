@@ -1,55 +1,57 @@
 {
-    "name": "zmodel",
-    "scopeName": "source.zmodel",
-    "fileTypes": [".zmodel"],
-    "patterns": [
-        {
-            "include": "#comments"
-        },
-        {
-            "name": "keyword.control.zmodel",
-            "match": "\\b(Any|Asc|attribute|BigInt|Boolean|Bytes|ContextType|datasource|DateTime|Decimal|Desc|enum|FieldReference|Float|function|generator|Int|Json|model|Null|plugin|sort|String)\\b"
-        },
-        {
-            "name": "string.quoted.double.zmodel",
-            "begin": "\"",
-            "end": "\""
-        },
-        {
-            "name": "string.quoted.single.zmodel",
-            "begin": "'",
-            "end": "'"
-        }
-    ],
-    "repository": {
-        "comments": {
-            "patterns": [
-                {
-                    "name": "comment.block.zmodel",
-                    "begin": "/\\*",
-                    "beginCaptures": {
-                        "0": {
-                            "name": "punctuation.definition.comment.zmodel"
-                        }
-                    },
-                    "end": "\\*/",
-                    "endCaptures": {
-                        "0": {
-                            "name": "punctuation.definition.comment.zmodel"
-                        }
-                    }
-                },
-                {
-                    "begin": "//",
-                    "beginCaptures": {
-                        "1": {
-                            "name": "punctuation.whitespace.comment.leading.zmodel"
-                        }
-                    },
-                    "end": "(?=$)",
-                    "name": "comment.line.zmodel"
-                }
-            ]
-        }
+  "name": "zmodel",
+  "scopeName": "source.zmodel",
+  "fileTypes": [
+    ".zmodel"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "name": "keyword.control.zmodel",
+      "match": "\\b(Any|Asc|attribute|BigInt|Boolean|Bytes|ContextType|datasource|DateTime|Decimal|Desc|enum|FieldReference|Float|function|generator|Int|Json|model|Null|plugin|sort|String)\\b"
+    },
+    {
+      "name": "string.quoted.double.zmodel",
+      "begin": "\"",
+      "end": "\""
+    },
+    {
+      "name": "string.quoted.single.zmodel",
+      "begin": "'",
+      "end": "'"
     }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.zmodel",
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.zmodel"
+            }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.zmodel"
+            }
+          }
+        },
+        {
+          "begin": "//",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.whitespace.comment.leading.zmodel"
+            }
+          },
+          "end": "(?=$)",
+          "name": "comment.line.zmodel"
+        }
+      ]
+    }
+  }
 }
