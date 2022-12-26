@@ -12,7 +12,7 @@
         "db:deploy": "zenstack migrate deploy",
         "db:reset": "zenstack migrate reset",
         "db:browse": "zenstack studio",
-        "generate": "pnpm zenstack generate",
+        "generate": "pnpm install && zenstack generate",
         "vercel-build": "pnpm build && pnpm db:deploy",
         "deps-local": "npm i -D ../../packages/schema/bundle && npm i ../../packages/runtime/dist ../../packages/next/dist zod zod-validation-error swr decimal.js",
         "deps-latest": "npm rm zod zod-validation-error swr decimal.js && npm i -D zenstack@latest && npm i @zenstackhq/runtime@latest @zenstackhq/next@latest",
