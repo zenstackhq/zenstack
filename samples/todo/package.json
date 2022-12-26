@@ -12,7 +12,7 @@
         "db:deploy": "zenstack migrate deploy",
         "db:reset": "zenstack migrate reset",
         "db:browse": "zenstack studio",
-        "generate": "zenstack generate && prisma generate",
+        "generate": "pnpm zenstack generate",
         "vercel-build": "pnpm build && pnpm db:deploy",
         "deps-local": "npm i -D ../../packages/schema/bundle && npm i ../../packages/runtime/dist ../../packages/next/dist zod zod-validation-error swr decimal.js",
         "deps-latest": "npm rm zod zod-validation-error swr decimal.js && npm i -D zenstack@latest && npm i @zenstackhq/runtime@latest @zenstackhq/next@latest",
@@ -21,7 +21,7 @@
     "dependencies": {
         "@heroicons/react": "^2.0.12",
         "@next-auth/prisma-adapter": "^1.0.5",
-        "@prisma/client": "^4.7.0",
+        "@prisma/client": "4.7.0",
         "@tanstack/react-query": "^4.20.2",
         "@trpc/client": "^10.5.0",
         "@trpc/next": "^10.5.0",
@@ -52,7 +52,7 @@
         "eslint": "^7.19.0",
         "eslint-config-next": "12.3.1",
         "postcss": "^8.4.16",
-        "prisma": "~4.7.0",
+        "prisma": "4.7.0",
         "tailwindcss": "^3.1.8",
         "typescript": "^4.6.2",
         "zenstack": "workspace:*"
