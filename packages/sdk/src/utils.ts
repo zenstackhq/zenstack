@@ -1,10 +1,4 @@
-import {
-    AstNode,
-    Expression,
-    isArrayExpr,
-    isLiteralExpr,
-    Reference,
-} from '@zenstackhq/language/ast';
+import { AstNode, Expression, isArrayExpr, isLiteralExpr, Reference } from '@zenstackhq/language/ast';
 
 export function resolved<T extends AstNode>(ref: Reference<T>): T {
     if (!ref.ref) {
@@ -23,9 +17,7 @@ export function getLiteral<T extends string | number | boolean | any = any>(
     return expr.value as T;
 }
 
-export function getArray(
-    expr: Expression | undefined
-): Expression[] | undefined {
+export function getArray(expr: Expression | undefined): Expression[] | undefined {
     return isArrayExpr(expr) ? expr.items : undefined;
 }
 

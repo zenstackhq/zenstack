@@ -64,9 +64,7 @@ export const authOptions: NextAuthOptions = {
                 return;
             }
 
-            console.log(
-                `User ${user.id} doesn't belong to any space. Creating one.`
-            );
+            console.log(`User ${user.id} doesn't belong to any space. Creating one.`);
             const space = await prisma.space.create({
                 data: {
                     name: `${user.name || user.email}'s space`,
@@ -87,9 +85,7 @@ export const authOptions: NextAuthOptions = {
 };
 
 function authorize(prisma: PrismaClient) {
-    return async (
-        credentials: Record<'email' | 'password', string> | undefined
-    ) => {
+    return async (credentials: Record<'email' | 'password', string> | undefined) => {
         if (!credentials) {
             throw new Error('Missing credentials');
         }

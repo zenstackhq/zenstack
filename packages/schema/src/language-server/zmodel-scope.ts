@@ -30,12 +30,11 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
                 await interruptAndCheck(cancelToken);
             }
             if (isEnumField(node)) {
-                const desc =
-                    this.services.workspace.AstNodeDescriptionProvider.createDescription(
-                        node,
-                        node.name,
-                        document
-                    );
+                const desc = this.services.workspace.AstNodeDescriptionProvider.createDescription(
+                    node,
+                    node.name,
+                    document
+                );
                 result.push(desc);
             }
         }

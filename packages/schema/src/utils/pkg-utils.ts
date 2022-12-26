@@ -24,27 +24,15 @@ export function installPackage(
     console.log(`Installing package "${pkg}" with ${manager}`);
     switch (manager) {
         case 'yarn':
-            execSync(
-                `yarn --cwd "${projectPath}" add ${pkg} ${
-                    dev ? ' --dev' : ''
-                } --ignore-engines`
-            );
+            execSync(`yarn --cwd "${projectPath}" add ${pkg} ${dev ? ' --dev' : ''} --ignore-engines`);
             break;
 
         case 'pnpm':
-            execSync(
-                `pnpm add -C "${projectPath}" ${
-                    dev ? ' --save-dev' : ''
-                } ${pkg}`
-            );
+            execSync(`pnpm add -C "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}`);
             break;
 
         default:
-            execSync(
-                `npm install --prefix "${projectPath}" ${
-                    dev ? ' --save-dev' : ''
-                } ${pkg}`
-            );
+            execSync(`npm install --prefix "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}`);
             break;
     }
 }

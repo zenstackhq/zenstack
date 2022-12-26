@@ -21,11 +21,7 @@ export default class SchemaValidator implements AstValidator<Model> {
         if (dataSources.length === 0) {
             accept('error', 'Model must define a datasource', { node: model });
         } else if (dataSources.length > 1) {
-            accept(
-                'error',
-                'Multiple datasource declarations are not allowed',
-                { node: dataSources[1] }
-            );
+            accept('error', 'Multiple datasource declarations are not allowed', { node: dataSources[1] });
         }
     }
 }

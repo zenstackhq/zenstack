@@ -10,23 +10,16 @@ export async function generate(model: Model, options: PluginOptions) {
     const models: DataModel[] = [];
     const warnings: string[] = [];
 
-    for (const dm of model.declarations.filter((d): d is DataModel =>
-        isDataModel(d)
-    )) {
-        const hasAllowRule = dm.attributes.find(
-            (attr) => attr.decl.ref?.name === '@@allow'
-        );
+    for (const dm of model.declarations.filter((d): d is DataModel => isDataModel(d))) {
+        const hasAllowRule = dm.attributes.find((attr) => attr.decl.ref?.name === '@@allow');
         if (!hasAllowRule) {
-            warnings.push(
-                `Not generating hooks for "${dm.name}" because it doesn't have any @@allow rule`
-            );
+            warnings.push(`Not generating hooks for "${dm.name}" because it doesn't have any @@allow rule`);
         } else {
             models.push(dm);
         }
     }
 
-    const outDir =
-        (options.output as string) ?? 'node_modules/.zenstack/src/hooks';
+    const outDir = (options.output as string) ?? 'node_modules/.zenstack/src/hooks';
 
     generateIndex(project, outDir, models);
 
@@ -49,17 +42,9 @@ function wrapReadbackErrorCheck(code: string) {
     }`;
 }
 
-function generateModelHooks(
-    project: Project,
-    outDir: string,
-    model: DataModel
-) {
+function generateModelHooks(project: Project, outDir: string, model: DataModel) {
     const fileName = paramCase(model.name);
-    const sf = project.createSourceFile(
-        path.join(outDir, `${fileName}.ts`),
-        undefined,
-        { overwrite: true }
-    );
+    const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
     sf.addImportDeclaration({
         namedImports: [{ name: 'Prisma' }, `type ${model.name}`],
@@ -452,9 +437,7 @@ function generateModelHooks(
                 ],
             })
             .addBody()
-            .addStatements([
-                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/count\`, args, options);`,
-            ]);
+            .addStatements([`return request.get<${returnType}>(\`\${endpoint}/${model.name}/count\`, args, options);`]);
     }
 
     useFunc.addStatements([
@@ -465,15 +448,9 @@ function generateModelHooks(
 }
 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
-    const sf = project.createSourceFile(
-        path.join(outDir, 'index.ts'),
-        undefined,
-        { overwrite: true }
-    );
+    const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
 
-    sf.addStatements(
-        models.map((d) => `export * from './${paramCase(d.name)}';`)
-    );
+    sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
 
     sf.formatText();
 }

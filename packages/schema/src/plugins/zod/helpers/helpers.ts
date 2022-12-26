@@ -21,19 +21,11 @@ export function addMissingInputObjectTypes(
 ) {
     // TODO: remove once Prisma fix this issue: https://github.com/prisma/prisma/issues/14900
     if (dataSourceProvider === 'mongodb') {
-        addMissingInputObjectTypesForMongoDbRawOpsAndQueries(
-            modelOperations,
-            outputObjectTypes,
-            inputObjectTypes
-        );
+        addMissingInputObjectTypesForMongoDbRawOpsAndQueries(modelOperations, outputObjectTypes, inputObjectTypes);
     }
     addMissingInputObjectTypesForAggregate(inputObjectTypes, outputObjectTypes);
     if (options.isGenerateSelect) {
-        addMissingInputObjectTypesForSelect(
-            inputObjectTypes,
-            outputObjectTypes,
-            models
-        );
+        addMissingInputObjectTypesForSelect(inputObjectTypes, outputObjectTypes, models);
         Transformer.setIsGenerateSelect(true);
     }
     if (options.isGenerateSelect || options.isGenerateInclude) {
@@ -45,11 +37,7 @@ export function addMissingInputObjectTypes(
         );
     }
     if (options.isGenerateInclude) {
-        addMissingInputObjectTypesForInclude(
-            inputObjectTypes,
-            models,
-            options.isGenerateSelect
-        );
+        addMissingInputObjectTypesForInclude(inputObjectTypes, models, options.isGenerateSelect);
         Transformer.setIsGenerateInclude(true);
     }
 }

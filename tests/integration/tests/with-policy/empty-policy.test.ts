@@ -32,21 +32,13 @@ describe('Operation Coverage: empty policy', () => {
         expect(await db.model.findMany()).toHaveLength(0);
         expect(await db.model.findUnique({ where: { id: '1' } })).toBeNull();
         expect(await db.model.findFirst({ where: { id: '1' } })).toBeNull();
-        await expect(
-            db.model.findUniqueOrThrow({ where: { id: '1' } })
-        ).toBeNotFound();
-        await expect(
-            db.model.findFirstOrThrow({ where: { id: '1' } })
-        ).toBeNotFound();
+        await expect(db.model.findUniqueOrThrow({ where: { id: '1' } })).toBeNotFound();
+        await expect(db.model.findFirstOrThrow({ where: { id: '1' } })).toBeNotFound();
 
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
-        await expect(
-            db.model.createMany({ data: [{}] })
-        ).toBeRejectedByPolicy();
+        await expect(db.model.createMany({ data: [{}] })).toBeRejectedByPolicy();
 
-        await expect(
-            db.model.update({ where: { id: '1' }, data: {} })
-        ).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: '1' }, data: {} })).toBeRejectedByPolicy();
         await expect(db.model.updateMany({ data: {} })).toBeRejectedByPolicy();
         await expect(
             db.model.upsert({
@@ -56,9 +48,7 @@ describe('Operation Coverage: empty policy', () => {
             })
         ).toBeRejectedByPolicy();
 
-        await expect(
-            db.model.delete({ where: { id: '1' } })
-        ).toBeRejectedByPolicy();
+        await expect(db.model.delete({ where: { id: '1' } })).toBeRejectedByPolicy();
         await expect(db.model.deleteMany()).toBeRejectedByPolicy();
 
         await expect(db.model.aggregate({})).toBeRejectedByPolicy();

@@ -64,9 +64,7 @@ export type FieldInfo = {
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: <T>(
-        action: (tx: Record<string, DbOperations>) => Promise<T>
-    ) => Promise<T>;
+    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>) => Promise<T>;
 };
 
 /**

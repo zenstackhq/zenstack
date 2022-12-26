@@ -21,24 +21,17 @@ function collectHiddenModels(models: DMMF.Model[], hiddenModels: string[]) {
     return models
         .map((model) => {
             if (model.documentation) {
-                const attribute =
-                    model.documentation?.match(modelAttributeRegex)?.[0];
-                const attributeName = attribute
-                    ?.match(attributeNameRegex)?.[0]
-                    ?.slice(1, -1);
+                const attribute = model.documentation?.match(modelAttributeRegex)?.[0];
+                const attributeName = attribute?.match(attributeNameRegex)?.[0]?.slice(1, -1);
                 if (attributeName !== 'model') model;
-                const rawAttributeArgs = attribute
-                    ?.match(attributeArgsRegex)?.[0]
-                    ?.slice(1, -1);
+                const rawAttributeArgs = attribute?.match(attributeArgsRegex)?.[0]?.slice(1, -1);
 
                 const parsedAttributeArgs: Record<string, unknown> = {};
                 if (rawAttributeArgs) {
                     const rawAttributeArgsParts = rawAttributeArgs
                         .split(':')
                         .map((it) => it.trim())
-                        .map((part) =>
-                            part.startsWith('[') ? part : part.split(',')
-                        )
+                        .map((part) => (part.startsWith('[') ? part : part.split(',')))
                         .flat()
                         .map((it) => it.trim());
 
@@ -58,37 +51,23 @@ function collectHiddenModels(models: DMMF.Model[], hiddenModels: string[]) {
         .filter(Boolean);
 }
 
-function collectHiddenFields(
-    models: DMMF.Model[],
-    hiddenModels: string[],
-    hiddenFields: string[]
-) {
+function collectHiddenFields(models: DMMF.Model[], hiddenModels: string[], hiddenFields: string[]) {
     models.forEach((model) => {
         model.fields.forEach((field) => {
             if (hiddenModels.includes(field.type)) {
                 hiddenFields.push(field.name);
                 if (field.relationFromFields) {
-                    field.relationFromFields.forEach((item) =>
-                        hiddenFields.push(item)
-                    );
+                    field.relationFromFields.forEach((item) => hiddenFields.push(item));
                 }
             }
         });
     });
 }
-function hideEnums(
-    enumTypes: { model?: DMMF.SchemaEnum[]; prisma: DMMF.SchemaEnum[] },
-    hiddenModels: string[]
-) {
-    enumTypes.prisma = enumTypes.prisma.filter(
-        (item) => !hiddenModels.find((model) => item.name.startsWith(model))
-    );
+function hideEnums(enumTypes: { model?: DMMF.SchemaEnum[]; prisma: DMMF.SchemaEnum[] }, hiddenModels: string[]) {
+    enumTypes.prisma = enumTypes.prisma.filter((item) => !hiddenModels.find((model) => item.name.startsWith(model)));
 }
 
-function hideModelOperations(
-    models: DMMF.Model[],
-    modelOperations: DMMF.ModelMapping[]
-) {
+function hideModelOperations(models: DMMF.Model[], modelOperations: DMMF.ModelMapping[]) {
     let i = modelOperations.length;
     while (i >= 0) {
         --i;

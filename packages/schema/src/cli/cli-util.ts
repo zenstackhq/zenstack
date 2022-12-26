@@ -16,10 +16,7 @@ import { PluginRunner } from './plugin-runner';
 /**
  * Initializes an existing project for ZenStack
  */
-export async function initProject(
-    projectPath: string,
-    packageManager: PackageManagers | undefined
-) {
+export async function initProject(projectPath: string, packageManager: PackageManagers | undefined) {
     if (!fs.existsSync(projectPath)) {
         console.error(`Path does not exist: ${projectPath}`);
         throw new CliError('project path does not exist');
@@ -92,8 +89,7 @@ model Post {
         const gitIgnorePath = path.join(projectPath, '.gitignore');
         let gitIgnoreContent = '';
         if (fs.existsSync(gitIgnorePath)) {
-            gitIgnoreContent =
-                fs.readFileSync(gitIgnorePath, { encoding: 'utf-8' }) + '\n';
+            gitIgnoreContent = fs.readFileSync(gitIgnorePath, { encoding: 'utf-8' }) + '\n';
         }
 
         if (!gitIgnoreContent.includes('zenstack/schema.prisma')) {
@@ -124,15 +120,10 @@ model Post {
  * @param services Language services
  * @returns Parsed and validated AST
  */
-export async function loadDocument(
-    fileName: string,
-    services: LangiumServices
-): Promise<Model> {
+export async function loadDocument(fileName: string, services: LangiumServices): Promise<Model> {
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
-        console.error(
-            colors.yellow(`Please choose a file with extension: ${extensions}.`)
-        );
+        console.error(colors.yellow(`Please choose a file with extension: ${extensions}.`));
         throw new CliError('invalid schema file');
     }
 
@@ -142,29 +133,19 @@ export async function loadDocument(
     }
 
     // load standard library
-    const stdLib =
-        services.shared.workspace.LangiumDocuments.getOrCreateDocument(
-            URI.file(
-                path.resolve(
-                    path.join(__dirname, '../res', STD_LIB_MODULE_NAME)
-                )
-            )
-        );
+    const stdLib = services.shared.workspace.LangiumDocuments.getOrCreateDocument(
+        URI.file(path.resolve(path.join(__dirname, '../res', STD_LIB_MODULE_NAME)))
+    );
 
     // load the document
-    const document =
-        services.shared.workspace.LangiumDocuments.getOrCreateDocument(
-            URI.file(path.resolve(fileName))
-        );
+    const document = services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
 
     // build the document together with standard library
     await services.shared.workspace.DocumentBuilder.build([stdLib, document], {
         validationChecks: 'all',
     });
 
-    const validationErrors = (document.diagnostics ?? []).filter(
-        (e) => e.severity === 1
-    );
+    const validationErrors = (document.diagnostics ?? []).filter((e) => e.severity === 1);
     if (validationErrors.length > 0) {
         console.error(colors.red('Validation errors:'));
         for (const validationError of validationErrors) {
@@ -182,10 +163,7 @@ export async function loadDocument(
     return document.parseResult.value as Model;
 }
 
-export async function runPlugins(options: {
-    schema: string;
-    packageManager: PackageManagers | undefined;
-}) {
+export async function runPlugins(options: { schema: string; packageManager: PackageManagers | undefined }) {
     const services = createZModelServices(NodeFileSystem).ZModel;
     const model = await loadDocument(options.schema, services);
 

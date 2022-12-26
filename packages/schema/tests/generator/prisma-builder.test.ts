@@ -25,21 +25,14 @@ async function validate(model: PrismaModel) {
 describe('Prisma Builder Tests', () => {
     it('datasource', async () => {
         let model = new PrismaModel();
-        model.addDataSource(
-            'db',
-            'postgresql',
-            new DataSourceUrl('DATABASE_URL', true)
-        );
+        model.addDataSource('db', 'postgresql', new DataSourceUrl('DATABASE_URL', true));
         await validate(model);
 
         model = new PrismaModel();
         model.addDataSource(
             'db',
             'postgresql',
-            new DataSourceUrl(
-                'postgresql://postgres:abc123@localhost:5432/sample?schema=public',
-                false
-            )
+            new DataSourceUrl('postgresql://postgres:abc123@localhost:5432/sample?schema=public', false)
         );
         await validate(model);
     });
@@ -52,9 +45,7 @@ describe('Prisma Builder Tests', () => {
 
     it('generator', async () => {
         const model = new PrismaModel();
-        model.addGenerator('client', [
-            { name: 'provider', value: 'prisma-client-js' },
-        ]);
+        model.addGenerator('client', [{ name: 'provider', value: 'prisma-client-js' }]);
         await validate(model);
     });
 
@@ -64,13 +55,7 @@ describe('Prisma Builder Tests', () => {
         dm.addField('id', 'String', [new FieldAttribute('@id')]);
         dm.addField('createdAt', 'DateTime', [
             new FieldAttribute('@default', [
-                new AttributeArg(
-                    undefined,
-                    new AttributeArgValue(
-                        'FunctionCall',
-                        new FunctionCall('now')
-                    )
-                ),
+                new AttributeArg(undefined, new AttributeArgValue('FunctionCall', new FunctionCall('now'))),
             ]),
         ]);
         await validate(model);
@@ -88,23 +73,13 @@ describe('Prisma Builder Tests', () => {
             new FieldAttribute('@relation', [
                 new AttributeArg(
                     'fields',
-                    new AttributeArgValue('Array', [
-                        new AttributeArgValue('FieldReference', 'userId'),
-                    ])
+                    new AttributeArgValue('Array', [new AttributeArgValue('FieldReference', 'userId')])
                 ),
                 new AttributeArg(
                     'references',
-                    new AttributeArgValue('Array', [
-                        new AttributeArgValue('FieldReference', 'id'),
-                    ])
+                    new AttributeArgValue('Array', [new AttributeArgValue('FieldReference', 'id')])
                 ),
-                new AttributeArg(
-                    'onDelete',
-                    new AttributeArgValue(
-                        'FieldReference',
-                        new FieldReference('Cascade')
-                    )
-                ),
+                new AttributeArg('onDelete', new AttributeArgValue('FieldReference', new FieldReference('Cascade'))),
             ]),
         ]);
         post.addField('userId', 'String');
@@ -122,15 +97,10 @@ describe('Prisma Builder Tests', () => {
             new AttributeArg(
                 'fields',
                 new AttributeArgValue('Array', [
+                    new AttributeArgValue('FieldReference', new FieldReference('space')),
                     new AttributeArgValue(
                         'FieldReference',
-                        new FieldReference('space')
-                    ),
-                    new AttributeArgValue(
-                        'FieldReference',
-                        new FieldReference('slug', [
-                            new FieldReferenceArg('sort', 'Desc'),
-                        ])
+                        new FieldReference('slug', [new FieldReferenceArg('sort', 'Desc')])
                     ),
                 ])
             ),

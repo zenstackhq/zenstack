@@ -10,10 +10,7 @@ export type RequestHandlerOptions = {
     /**
      * Callback method for getting a Prisma instance for the given request/response pair.
      */
-    getPrisma: (
-        req: NextApiRequest,
-        res: NextApiResponse
-    ) => Promise<unknown> | unknown;
+    getPrisma: (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> | unknown;
 };
 
 /**
@@ -40,11 +37,7 @@ export function requestHandler(
     };
 }
 
-async function handleRequest(
-    req: NextApiRequest,
-    res: NextApiResponse,
-    prisma: DbClientContract
-): Promise<void> {
+async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: DbClientContract): Promise<void> {
     const [model, op] = req.query.path as string[];
 
     const dbOp = op as keyof DbOperations;

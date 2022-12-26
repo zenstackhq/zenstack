@@ -9,10 +9,7 @@ import { prisma } from './client';
  * @param ctx
  * @returns
  */
-export async function withAuth(ctx: {
-    req: GetServerSidePropsContext['req'];
-    res: GetServerSidePropsContext['res'];
-}) {
+export async function withAuth(ctx: { req: GetServerSidePropsContext['req']; res: GetServerSidePropsContext['res'] }) {
     const session = await getServerAuthSession(ctx);
     return withPolicy(prisma, policy, { user: session?.user });
 }

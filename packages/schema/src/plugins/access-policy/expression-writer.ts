@@ -152,9 +152,7 @@ export class ExpressionWriter {
         const rightIsFieldAccess = this.isFieldAccess(expr.right);
 
         if (leftIsFieldAccess && rightIsFieldAccess) {
-            throw new PluginError(
-                `Comparison between fields are not supported yet`
-            );
+            throw new PluginError(`Comparison between fields are not supported yet`);
         }
 
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
@@ -208,10 +206,7 @@ export class ExpressionWriter {
         );
     }
 
-    private writeOperator(
-        operator: ComparisonOperator,
-        writeOperand: () => void
-    ) {
+    private writeOperator(operator: ComparisonOperator, writeOperand: () => void) {
         if (operator === '!=') {
             // wrap a 'not'
             this.writer.write('not: ');
@@ -242,9 +237,7 @@ export class ExpressionWriter {
             selector = fieldAccess.member.ref?.name;
             operand = fieldAccess.operand;
         } else {
-            throw new PluginError(
-                `Unsupported expression type: ${fieldAccess.$type}`
-            );
+            throw new PluginError(`Unsupported expression type: ${fieldAccess.$type}`);
         }
 
         if (!selector) {
@@ -342,9 +335,7 @@ export class ExpressionWriter {
 
     private writeUnary(expr: UnaryExpr) {
         if (expr.operator !== '!') {
-            throw new PluginError(
-                `Unary operator "${expr.operator}" is not supported`
-            );
+            throw new PluginError(`Unary operator "${expr.operator}" is not supported`);
         }
 
         this.writer.writeLine('NOT: ');

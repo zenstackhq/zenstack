@@ -19,9 +19,7 @@ export function validateDuplicatedDeclarations(
     decls: Array<AstNode & { name: string }>,
     accept: ValidationAcceptor
 ): void {
-    const groupByName = decls.reduce<
-        Record<string, Array<AstNode & { name: string }>>
-    >((group, decl) => {
+    const groupByName = decls.reduce<Record<string, Array<AstNode & { name: string }>>>((group, decl) => {
         group[decl.name] = group[decl.name] ?? [];
         group[decl.name].push(decl);
         return group;
@@ -39,9 +37,7 @@ export function validateDuplicatedDeclarations(
 /**
  * Try getting string value from a potential string literal expression
  */
-export function getStringLiteral(
-    node: AstNode | undefined
-): string | undefined {
+export function getStringLiteral(node: AstNode | undefined): string | undefined {
     if (isLiteralExpr(node) && typeof node.value === 'string') {
         return node.value;
     } else {
@@ -52,19 +48,12 @@ export function getStringLiteral(
 /**
  * Determines if the given sourceType is assignable to a destination of destType
  */
-export function typeAssignable(
-    destType: ExpressionType,
-    sourceType: ExpressionType
-): boolean {
+export function typeAssignable(destType: ExpressionType, sourceType: ExpressionType): boolean {
     switch (destType) {
         case 'Any':
             return true;
         case 'Float':
-            return (
-                sourceType === 'Any' ||
-                sourceType === 'Int' ||
-                sourceType === 'Float'
-            );
+            return sourceType === 'Any' || sourceType === 'Int' || sourceType === 'Float';
         default:
             return sourceType === 'Any' || sourceType === destType;
     }
@@ -73,9 +62,7 @@ export function typeAssignable(
 /**
  * Maps a ZModel builtin type to expression type
  */
-export function mapBuiltinTypeToExpressionType(
-    type: BuiltinType | 'Any' | 'Null'
-): ExpressionType | 'Any' {
+export function mapBuiltinTypeToExpressionType(type: BuiltinType | 'Any' | 'Null'): ExpressionType | 'Any' {
     switch (type) {
         case 'Any':
         case 'Boolean':
@@ -122,39 +109,24 @@ export function assignableToAttributeParam(
             if (dstIsArray) {
                 return (
                     isArrayExpr(arg.value) &&
-                    !arg.value.items.find(
-                        (item) =>
-                            !isReferenceExpr(item) ||
-                            !isDataModelField(item.target.ref)
-                    )
+                    !arg.value.items.find((item) => !isReferenceExpr(item) || !isDataModelField(item.target.ref))
                 );
             } else {
-                return (
-                    isReferenceExpr(arg.value) &&
-                    isDataModelField(arg.value.target.ref)
-                );
+                return isReferenceExpr(arg.value) && isDataModelField(arg.value.target.ref);
             }
         } else if (dstType === 'ContextType') {
             if (isDataModelField(attr.$container)) {
                 if (!attr.$container?.type?.type) {
                     return false;
                 }
-                dstType = mapBuiltinTypeToExpressionType(
-                    attr.$container.type.type
-                );
+                dstType = mapBuiltinTypeToExpressionType(attr.$container.type.type);
             } else {
                 dstType = 'Any';
             }
         }
 
-        return (
-            typeAssignable(dstType, argResolvedType.decl) &&
-            dstIsArray === argResolvedType.array
-        );
+        return typeAssignable(dstType, argResolvedType.decl) && dstIsArray === argResolvedType.array;
     } else {
-        return (
-            dstRef?.ref === argResolvedType.decl &&
-            dstIsArray === argResolvedType.array
-        );
+        return dstRef?.ref === argResolvedType.decl && dstIsArray === argResolvedType.array;
     }
 }

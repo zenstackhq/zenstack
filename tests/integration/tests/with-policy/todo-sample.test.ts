@@ -1,10 +1,6 @@
 import { AuthUser } from '@zenstackhq/runtime';
 import path from 'path';
-import {
-    WeakDbClientContract,
-    loadPrismaFromModelFile,
-    run,
-} from '../../utils';
+import { WeakDbClientContract, loadPrismaFromModelFile, run } from '../../utils';
 
 describe('Todo E2E Tests', () => {
     let getDb: (user?: AuthUser) => WeakDbClientContract;
@@ -42,20 +38,12 @@ describe('Todo E2E Tests', () => {
 
         // create user1
         // create should succeed but result can be read back anonymously
-        await expect(
-            anonDb.user.create({ data: user1 })
-        ).toBeRejectedByPolicy();
-        await expect(
-            user1Db.user.findUnique({ where: { id: user1.id } })
-        ).toResolveTruthy();
-        await expect(
-            user2Db.user.findUnique({ where: { id: user1.id } })
-        ).toResolveNull();
+        await expect(anonDb.user.create({ data: user1 })).toBeRejectedByPolicy();
+        await expect(user1Db.user.findUnique({ where: { id: user1.id } })).toResolveTruthy();
+        await expect(user2Db.user.findUnique({ where: { id: user1.id } })).toResolveNull();
 
         // create user2
-        await expect(
-            anonDb.user.create({ data: user2 })
-        ).toBeRejectedByPolicy();
+        await expect(anonDb.user.create({ data: user2 })).toBeRejectedByPolicy();
 
         // find with user1 should only get user1
         const r = await user1Db.user.findMany();
@@ -63,9 +51,7 @@ describe('Todo E2E Tests', () => {
         expect(r[0]).toEqual(expect.objectContaining(user1));
 
         // get user2 as user1
-        await expect(
-            user1Db.user.findUnique({ where: { id: user2.id } })
-        ).toResolveNull();
+        await expect(user1Db.user.findUnique({ where: { id: user2.id } })).toResolveNull();
 
         // add both users into the same space
         await expect(
@@ -111,17 +97,11 @@ describe('Todo E2E Tests', () => {
         ).toResolveTruthy();
 
         // delete user2 as user1
-        await expect(
-            user1Db.user.delete({ where: { id: user2.id } })
-        ).toBeRejectedByPolicy();
+        await expect(user1Db.user.delete({ where: { id: user2.id } })).toBeRejectedByPolicy();
 
         // delete user1 as user1
-        await expect(
-            user1Db.user.delete({ where: { id: user1.id } })
-        ).toResolveTruthy();
-        await expect(
-            user1Db.user.findUnique({ where: { id: user1.id } })
-        ).toResolveNull();
+        await expect(user1Db.user.delete({ where: { id: user1.id } })).toResolveTruthy();
+        await expect(user1Db.user.findUnique({ where: { id: user1.id } })).toResolveNull();
     });
 
     it('todo list', async () => {
@@ -158,26 +138,18 @@ describe('Todo E2E Tests', () => {
         await expect(user1Db.list.findMany()).resolves.toHaveLength(1);
         await expect(anonDb.list.findMany()).resolves.toHaveLength(0);
         await expect(emptyUIDDb.list.findMany()).resolves.toHaveLength(0);
-        await expect(
-            anonDb.list.findUnique({ where: { id: 'list1' } })
-        ).toResolveNull();
+        await expect(anonDb.list.findUnique({ where: { id: 'list1' } })).toResolveNull();
 
         // accessible to owner
-        await expect(
-            user1Db.list.findUnique({ where: { id: 'list1' } })
-        ).resolves.toEqual(
+        await expect(user1Db.list.findUnique({ where: { id: 'list1' } })).resolves.toEqual(
             expect.objectContaining({ id: 'list1', title: 'List 1' })
         );
 
         // accessible to user in the space
-        await expect(
-            user2Db.list.findUnique({ where: { id: 'list1' } })
-        ).toResolveTruthy();
+        await expect(user2Db.list.findUnique({ where: { id: 'list1' } })).toResolveTruthy();
 
         // inaccessible to user not in the space
-        await expect(
-            user3Db.list.findUnique({ where: { id: 'list1' } })
-        ).toResolveNull();
+        await expect(user3Db.list.findUnique({ where: { id: 'list1' } })).toResolveNull();
 
         // make a private list
         await user1Db.list.create({
@@ -191,14 +163,10 @@ describe('Todo E2E Tests', () => {
         });
 
         // accessible to owner
-        await expect(
-            user1Db.list.findUnique({ where: { id: 'list2' } })
-        ).toResolveTruthy();
+        await expect(user1Db.list.findUnique({ where: { id: 'list2' } })).toResolveTruthy();
 
         // inaccessible to other user in the space
-        await expect(
-            user2Db.list.findUnique({ where: { id: 'list2' } })
-        ).toResolveNull();
+        await expect(user2Db.list.findUnique({ where: { id: 'list2' } })).toResolveNull();
 
         // create a list which doesn't match credential should fail
         await expect(
@@ -232,9 +200,7 @@ describe('Todo E2E Tests', () => {
                     title: 'List 1 updated',
                 },
             })
-        ).resolves.toEqual(
-            expect.objectContaining({ title: 'List 1 updated' })
-        );
+        ).resolves.toEqual(expect.objectContaining({ title: 'List 1 updated' }));
 
         await expect(
             user2Db.list.update({
@@ -246,15 +212,9 @@ describe('Todo E2E Tests', () => {
         ).toBeRejectedByPolicy();
 
         // delete list
-        await expect(
-            user2Db.list.delete({ where: { id: 'list1' } })
-        ).toBeRejectedByPolicy();
-        await expect(
-            user1Db.list.delete({ where: { id: 'list1' } })
-        ).toResolveTruthy();
-        await expect(
-            user1Db.list.findUnique({ where: { id: 'list1' } })
-        ).toResolveNull();
+        await expect(user2Db.list.delete({ where: { id: 'list1' } })).toBeRejectedByPolicy();
+        await expect(user1Db.list.delete({ where: { id: 'list1' } })).toResolveTruthy();
+        await expect(user1Db.list.findUnique({ where: { id: 'list1' } })).toResolveNull();
     });
 
     it('todo', async () => {

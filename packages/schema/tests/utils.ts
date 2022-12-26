@@ -12,35 +12,27 @@ export class SchemaLoadingError extends Error {
     }
 }
 
-export async function loadModel(
-    content: string,
-    validate = true,
-    verbose = true
-) {
+export async function loadModel(content: string, validate = true, verbose = true) {
     const { name: docPath } = tmp.fileSync({ postfix: '.zmodel' });
     fs.writeFileSync(docPath, content);
     const { shared } = createZModelServices(NodeFileSystem);
     const stdLib = shared.workspace.LangiumDocuments.getOrCreateDocument(
         URI.file(path.resolve('src/res/stdlib.zmodel'))
     );
-    const doc = shared.workspace.LangiumDocuments.getOrCreateDocument(
-        URI.file(docPath)
-    );
+    const doc = shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(docPath));
     await shared.workspace.DocumentBuilder.build([stdLib, doc], {
         validationChecks: validate ? 'all' : 'none',
     });
 
-    const validationErrors = (doc.diagnostics ?? []).filter(
-        (e) => e.severity === 1
-    );
+    const validationErrors = (doc.diagnostics ?? []).filter((e) => e.severity === 1);
     if (validationErrors.length > 0) {
         for (const validationError of validationErrors) {
             if (verbose) {
                 const range = doc.textDocument.getText(validationError.range);
                 console.error(
-                    `line ${validationError.range.start.line + 1}: ${
-                        validationError.message
-                    }${range ? ' [' + range + ']' : ''}`
+                    `line ${validationError.range.start.line + 1}: ${validationError.message}${
+                        range ? ' [' + range + ']' : ''
+                    }`
                 );
             }
         }

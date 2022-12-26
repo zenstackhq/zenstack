@@ -5,12 +5,7 @@ import deepcopy from 'deepcopy';
 import superjson from 'superjson';
 import { PolicyDef } from '.';
 import { TRANSACTION_FIELD_NAME } from '../constants';
-import {
-    AuthUser,
-    DbClientContract,
-    DbOperations,
-    PolicyOperationKind,
-} from '../types';
+import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../types';
 import { Logger } from './logger';
 import {
     checkPolicyForFilter,
@@ -42,18 +37,10 @@ type PrismaClientOperations =
     | 'groupBy'
     | 'count';
 
-export function prismaClientProxyHandler(
-    prisma: any,
-    policy: PolicyDef,
-    user?: AuthUser
-) {
+export function prismaClientProxyHandler(prisma: any, policy: PolicyDef, user?: AuthUser) {
     return {
         get: (target: any, prop: string | symbol, receiver: any) => {
-            if (
-                typeof prop !== 'string' ||
-                prop.startsWith('$') ||
-                prop.startsWith('_engine')
-            ) {
+            if (typeof prop !== 'string' || prop.startsWith('$') || prop.startsWith('_engine')) {
                 return Reflect.get(target, prop, receiver);
             }
 
@@ -62,12 +49,7 @@ export function prismaClientProxyHandler(
                 return undefined;
             }
 
-            return new PrismaModelHandler(
-                prisma as DbClientContract,
-                policy,
-                prop,
-                user
-            );
+            return new PrismaModelHandler(prisma as DbClientContract, policy, prop, user);
         },
     };
 }
@@ -98,20 +80,11 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.where) {
-            throw new PrismaClientValidationError(
-                'where field is required in query argument'
-            );
+            throw new PrismaClientValidationError('where field is required in query argument');
         }
         args = deepcopy(args);
 
-        const entities = await readWithCheck(
-            this.model,
-            args,
-            this.user,
-            this.prisma,
-            this.policy,
-            this.logger
-        );
+        const entities = await readWithCheck(this.model, args, this.user, this.prisma, this.policy, this.logger);
         return entities[0] ?? null;
     }
 
@@ -125,14 +98,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
     async findFirst(args: any) {
         args = args ? deepcopy(args) : args;
-        const entities = await readWithCheck(
-            this.model,
-            args,
-            this.user,
-            this.prisma,
-            this.policy,
-            this.logger
-        );
+        const entities = await readWithCheck(this.model, args, this.user, this.prisma, this.policy, this.logger);
         return entities[0] ?? null;
     }
 
@@ -146,14 +112,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
     async findMany(args: any) {
         args = args ? deepcopy(args) : args;
-        return readWithCheck(
-            this.model,
-            args,
-            this.user,
-            this.prisma,
-            this.policy,
-            this.logger
-        );
+        return readWithCheck(this.model, args, this.user, this.prisma, this.policy, this.logger);
     }
 
     private async checkPolicyForCreatedModels(
@@ -181,19 +140,8 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         );
     }
 
-    private async checkReadback(
-        readArgs: any,
-        action: string,
-        operation: PolicyOperationKind
-    ) {
-        const result = await readWithCheck(
-            this.model,
-            readArgs,
-            this.user,
-            this.prisma,
-            this.policy,
-            this.logger
-        );
+    private async checkReadback(readArgs: any, action: string, operation: PolicyOperationKind) {
+        const result = await readWithCheck(this.model, readArgs, this.user, this.prisma, this.policy, this.logger);
         if (result.length === 0) {
             this.logger.warn(`${action} result cannot be read back`);
             throw deniedByPolicy(this.model, operation);
@@ -206,9 +154,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.data) {
-            throw new PrismaClientValidationError(
-                'data field is required in query argument'
-            );
+            throw new PrismaClientValidationError('data field is required in query argument');
         }
 
         args = deepcopy(args);
@@ -229,33 +175,21 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         );
 
         // start an interactive transaction
-        const createResult = await this.prisma.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // inject transaction id into update/create payload (direct and nested)
-                // conduct the create
-                this.logger.info(
-                    `Conducting create: ${this.model}:\n${superjson.stringify(
-                        args
-                    )}`
-                );
-                const createResult = (await tx[this.model].create(args)) as {
-                    id: string;
-                };
+        const createResult = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
+            // inject transaction id into update/create payload (direct and nested)
+            // conduct the create
+            this.logger.info(`Conducting create: ${this.model}:\n${superjson.stringify(args)}`);
+            const createResult = (await tx[this.model].create(args)) as {
+                id: string;
+            };
 
-                // verify that nested creates pass policy check
-                this.logger.info(
-                    `Checking all created models: [${createdModels.join(',')}]`
-                );
+            // verify that nested creates pass policy check
+            this.logger.info(`Checking all created models: [${createdModels.join(',')}]`);
 
-                await this.checkPolicyForCreatedModels(
-                    createdModels,
-                    transactionId,
-                    tx
-                );
+            await this.checkPolicyForCreatedModels(createdModels, transactionId, tx);
 
-                return createResult;
-            }
-        );
+            return createResult;
+        });
 
         // verify that return data requested by query args pass policy check
         const readArgs = { ...args, where: { id: createResult.id } };
@@ -269,9 +203,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.data) {
-            throw new PrismaClientValidationError(
-                'data field is required and must be an array'
-            );
+            throw new PrismaClientValidationError('data field is required and must be an array');
         }
 
         args = deepcopy(args);
@@ -300,96 +232,56 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         createdModels = [...new Set<string>(createdModels)];
 
         // start an interactive transaction
-        const createResult = await this.prisma.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // conduct the create
-                this.logger.info(
-                    `Conducting createMany: ${
-                        this.model
-                    }:\n${superjson.stringify(args)}`
-                );
-                const createResult = await tx[this.model].createMany(
-                    args,
-                    skipDuplicates
-                );
+        const createResult = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
+            // conduct the create
+            this.logger.info(`Conducting createMany: ${this.model}:\n${superjson.stringify(args)}`);
+            const createResult = await tx[this.model].createMany(args, skipDuplicates);
 
-                // verify that nested creates pass policy check
-                this.logger.info(
-                    `Checking all created models: [${createdModels.join(',')}]`
-                );
+            // verify that nested creates pass policy check
+            this.logger.info(`Checking all created models: [${createdModels.join(',')}]`);
 
-                await this.checkPolicyForCreatedModels(
-                    createdModels,
-                    transactionId,
-                    tx
-                );
+            await this.checkPolicyForCreatedModels(createdModels, transactionId, tx);
 
-                return createResult;
-            }
-        );
+            return createResult;
+        });
 
         return createResult;
     }
 
-    async doUpdate(
-        args: any,
-        updateAction: (db: DbOperations) => Promise<unknown>,
-        action: 'update' | 'updateMany'
-    ) {
+    async doUpdate(args: any, updateAction: (db: DbOperations) => Promise<unknown>, action: 'update' | 'updateMany') {
         // preprocess payload to modify fields as required by attribute like @password
         await preprocessWritePayload(this.policy, this.model, args.data);
 
         const transactionId = cuid();
 
-        const result = await this.prisma.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // make sure the entity (including ones involved in nested write) pass policy check
-                await preUpdateCheck(
-                    this.model,
-                    args,
-                    this.user,
-                    tx,
-                    this.policy,
-                    this.logger
-                );
+        const result = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
+            // make sure the entity (including ones involved in nested write) pass policy check
+            await preUpdateCheck(this.model, args, this.user, tx, this.policy, this.logger);
 
-                // inject transaction id into update/create payload (direct and nested)
-                const { createdModels } = await injectTransactionId(
-                    this.model,
-                    args.data,
-                    'update',
-                    transactionId,
-                    this.policy
-                );
+            // inject transaction id into update/create payload (direct and nested)
+            const { createdModels } = await injectTransactionId(
+                this.model,
+                args.data,
+                'update',
+                transactionId,
+                this.policy
+            );
 
-                // conduct the update
-                this.logger.info(
-                    `Conducting update: ${this.model}:\n${superjson.stringify(
-                        args
-                    )}`
-                );
+            // conduct the update
+            this.logger.info(`Conducting update: ${this.model}:\n${superjson.stringify(args)}`);
 
-                const result = await updateAction(tx[this.model]);
+            const result = await updateAction(tx[this.model]);
 
-                // verify that nested creates pass policy check
+            // verify that nested creates pass policy check
 
-                if (createdModels.length > 0) {
-                    this.logger.info(
-                        `Checking all created models: [${createdModels.join(
-                            ','
-                        )}]`
-                    );
+            if (createdModels.length > 0) {
+                this.logger.info(`Checking all created models: [${createdModels.join(',')}]`);
 
-                    await this.checkPolicyForCreatedModels(
-                        createdModels,
-                        transactionId,
-                        tx
-                    );
-                }
-
-                return result;
+                await this.checkPolicyForCreatedModels(createdModels, transactionId, tx);
             }
-        );
+
+            return result;
+        });
 
         if (action === 'updateMany') {
             return result;
@@ -407,14 +299,10 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.where) {
-            throw new PrismaClientValidationError(
-                'where field is required in query argument'
-            );
+            throw new PrismaClientValidationError('where field is required in query argument');
         }
         if (!args.data) {
-            throw new PrismaClientValidationError(
-                'data field is required in query argument'
-            );
+            throw new PrismaClientValidationError('data field is required in query argument');
         }
 
         args = deepcopy(args);
@@ -429,9 +317,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.data) {
-            throw new PrismaClientValidationError(
-                'data field is required in query argument'
-            );
+            throw new PrismaClientValidationError('data field is required in query argument');
         }
 
         args = deepcopy(args);
@@ -446,19 +332,13 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.where) {
-            throw new PrismaClientValidationError(
-                'where field is required in query argument'
-            );
+            throw new PrismaClientValidationError('where field is required in query argument');
         }
         if (!args.create) {
-            throw new PrismaClientValidationError(
-                'create field is required in query argument'
-            );
+            throw new PrismaClientValidationError('create field is required in query argument');
         }
         if (!args.update) {
-            throw new PrismaClientValidationError(
-                'update field is required in query argument'
-            );
+            throw new PrismaClientValidationError('update field is required in query argument');
         }
 
         args = deepcopy(args);
@@ -472,59 +352,38 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
         const transactionId = cuid();
 
-        await this.prisma.$transaction(
-            async (tx: Record<string, DbOperations>) => {
-                // make sure the entity (including ones involved in nested write) pass policy check
-                await preUpdateCheck(
-                    this.model,
-                    args,
-                    this.user,
-                    tx,
-                    this.policy,
-                    this.logger
-                );
+        await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
+            // make sure the entity (including ones involved in nested write) pass policy check
+            await preUpdateCheck(this.model, args, this.user, tx, this.policy, this.logger);
 
-                // inject transaction id into update/create payload (direct and nested)
-                const { createdModels: createdFromCreate } =
-                    await injectTransactionId(
-                        this.model,
-                        args.create,
-                        'create',
-                        transactionId,
-                        this.policy
-                    );
+            // inject transaction id into update/create payload (direct and nested)
+            const { createdModels: createdFromCreate } = await injectTransactionId(
+                this.model,
+                args.create,
+                'create',
+                transactionId,
+                this.policy
+            );
 
-                const { createdModels: createdFromUpdate } =
-                    await injectTransactionId(
-                        this.model,
-                        args.update,
-                        'update',
-                        transactionId,
-                        this.policy
-                    );
+            const { createdModels: createdFromUpdate } = await injectTransactionId(
+                this.model,
+                args.update,
+                'update',
+                transactionId,
+                this.policy
+            );
 
-                const createdModels = [
-                    ...new Set([...createdFromCreate, ...createdFromUpdate]),
-                ];
+            const createdModels = [...new Set([...createdFromCreate, ...createdFromUpdate])];
 
-                // conduct the upsert
-                this.logger.info(
-                    `Conducting upsert: ${this.model}:\n${superjson.stringify(
-                        args
-                    )}`
-                );
+            // conduct the upsert
+            this.logger.info(`Conducting upsert: ${this.model}:\n${superjson.stringify(args)}`);
 
-                await tx[this.model].upsert(args);
+            await tx[this.model].upsert(args);
 
-                // verify that nested creates pass policy check
+            // verify that nested creates pass policy check
 
-                await this.checkPolicyForCreatedModels(
-                    createdModels,
-                    transactionId,
-                    tx
-                );
-            }
-        );
+            await this.checkPolicyForCreatedModels(createdModels, transactionId, tx);
+        });
 
         // verify that the upserted data requested by query args pass policy check
         // note that there's no direct way to know if create or update happened,
@@ -548,9 +407,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
             throw new PrismaClientValidationError('query argument is required');
         }
         if (!args.where) {
-            throw new PrismaClientValidationError(
-                'where field is required in query argument'
-            );
+            throw new PrismaClientValidationError('where field is required in query argument');
         }
 
         args = deepcopy(args);
@@ -558,26 +415,11 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         await this.tryReject('delete');
 
         // ensures the item under deletion passes policy check
-        await checkPolicyForFilter(
-            this.model,
-            args.where,
-            'delete',
-            this.user,
-            this.prisma,
-            this.policy,
-            this.logger
-        );
+        await checkPolicyForFilter(this.model, args.where, 'delete', this.user, this.prisma, this.policy, this.logger);
 
         let readResult: any;
         try {
-            const items = await readWithCheck(
-                this.model,
-                args,
-                this.user,
-                this.prisma,
-                this.policy,
-                this.logger
-            );
+            const items = await readWithCheck(this.model, args, this.user, this.prisma, this.policy, this.logger);
             readResult = items[0];
         } catch (err) {
             // not readable
@@ -585,9 +427,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
         }
 
         // conduct the deletion
-        this.logger.info(
-            `Conducting delete ${this.model}:\n${superjson.stringify(args)}`
-        );
+        this.logger.info(`Conducting delete ${this.model}:\n${superjson.stringify(args)}`);
         await this.modelClient.delete(args);
 
         if (!readResult) {
@@ -600,18 +440,10 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
     async deleteMany(args: any) {
         await this.tryReject('delete');
 
-        args = await ensureAuthGuard(
-            args,
-            this.model,
-            'delete',
-            this.user,
-            this.policy
-        );
+        args = await ensureAuthGuard(args, this.model, 'delete', this.user, this.policy);
 
         // conduct the deletion
-        this.logger.info(
-            `Conducting deleteMany ${this.model}:\n${superjson.stringify(args)}`
-        );
+        this.logger.info(`Conducting deleteMany ${this.model}:\n${superjson.stringify(args)}`);
         return this.modelClient.deleteMany(args);
     }
 
@@ -624,13 +456,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
         await this.tryReject('read');
 
-        const aggArgs = await ensureAuthGuard(
-            args,
-            this.model,
-            'read',
-            this.user,
-            this.policy
-        );
+        const aggArgs = await ensureAuthGuard(args, this.model, 'read', this.user, this.policy);
 
         return this.modelClient.aggregate(aggArgs);
     }
@@ -644,13 +470,7 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
         await this.tryReject('read');
 
-        const aggArgs = await ensureAuthGuard(
-            args,
-            this.model,
-            'read',
-            this.user,
-            this.policy
-        );
+        const aggArgs = await ensureAuthGuard(args, this.model, 'read', this.user, this.policy);
 
         return this.modelClient.groupBy(aggArgs);
     }
@@ -660,24 +480,13 @@ export class PrismaModelHandler<DbClient extends DbClientContract>
 
         await this.tryReject('read');
 
-        const aggArgs = await ensureAuthGuard(
-            args,
-            this.model,
-            'read',
-            this.user,
-            this.policy
-        );
+        const aggArgs = await ensureAuthGuard(args, this.model, 'read', this.user, this.policy);
 
         return this.modelClient.count(aggArgs);
     }
 
     async tryReject(operation: PolicyOperationKind) {
-        const guard = await getAuthGuard(
-            this.policy,
-            this.model,
-            operation,
-            this.user
-        );
+        const guard = await getAuthGuard(this.policy, this.model, operation, this.user);
         if (guard === false) {
             throw deniedByPolicy(this.model, operation);
         }

@@ -1,10 +1,6 @@
 import superjson from 'superjson';
 import useSWR, { useSWRConfig } from 'swr';
-import type {
-    MutatorCallback,
-    MutatorOptions,
-    SWRResponse,
-} from 'swr/dist/types';
+import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr/dist/types';
 import { registerSerializers } from './serialization-utils';
 import { RequestOptions } from './types';
 
@@ -70,11 +66,7 @@ export function get<Data, Error = any>(
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function post<Data, Result>(
-    url: string,
-    data: Data,
-    mutate: Mutator
-): Promise<Result> {
+export async function post<Data, Result>(url: string, data: Data, mutate: Mutator): Promise<Result> {
     const r: Result = await fetcher(url, {
         method: 'POST',
         headers: {
@@ -93,11 +85,7 @@ export async function post<Data, Result>(
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function put<Data, Result>(
-    url: string,
-    data: Data,
-    mutate: Mutator
-): Promise<Result> {
+export async function put<Data, Result>(url: string, data: Data, mutate: Mutator): Promise<Result> {
     const r: Result = await fetcher(url, {
         method: 'PUT',
         headers: {
@@ -116,11 +104,7 @@ export async function put<Data, Result>(
  * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
  * @param mutate Mutator for invalidating cache.
  */
-export async function del<Result>(
-    url: string,
-    args: unknown,
-    mutate: Mutator
-): Promise<Result> {
+export async function del<Result>(url: string, args: unknown, mutate: Mutator): Promise<Result> {
     const reqUrl = makeUrl(url, args);
     const r: Result = await fetcher(reqUrl, {
         method: 'DELETE',
@@ -152,14 +136,10 @@ export function getMutate(): Mutator {
         }
 
         if (!(cache instanceof Map)) {
-            throw new Error(
-                'mutate requires the cache provider to be a Map instance'
-            );
+            throw new Error('mutate requires the cache provider to be a Map instance');
         }
 
-        const keys = Array.from(cache.keys()).filter(
-            (k) => typeof k === 'string' && k.startsWith(key)
-        ) as string[];
+        const keys = Array.from(cache.keys()).filter((k) => typeof k === 'string' && k.startsWith(key)) as string[];
         const mutations = keys.map((key) => mutate(key, data, opts));
         return Promise.all(mutations);
     };

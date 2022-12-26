@@ -11,10 +11,7 @@ First you should mount the generated server-side code as a Next.js API endpoint.
 
 import { authOptions } from '@api/auth/[...nextauth]';
 import service from '@zenstackhq/runtime';
-import {
-    requestHandler,
-    type RequestHandlerOptions,
-} from '@zenstackhq/runtime/server';
+import { requestHandler, type RequestHandlerOptions } from '@zenstackhq/runtime/server';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { unstable_getServerSession } from 'next-auth';
 

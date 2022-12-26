@@ -113,17 +113,12 @@ export default function ManageMembers({ space }: Props) {
 
             <ul className="space-y-2">
                 {members?.map((member) => (
-                    <li
-                        key={member.id}
-                        className="flex flex-wrap w-full justify-between"
-                    >
+                    <li key={member.id} className="flex flex-wrap w-full justify-between">
                         <div className="flex items-center">
                             <div className="hidden md:block mr-2">
                                 <Avatar user={member.user} size={32} />
                             </div>
-                            <p className="w-36 md:w-48 line-clamp-1 mr-2">
-                                {member.user.name || member.user.email}
-                            </p>
+                            <p className="w-36 md:w-48 line-clamp-1 mr-2">{member.user.name || member.user.email}</p>
                             <p>{member.role}</p>
                         </div>
                         <div className="flex items-center">

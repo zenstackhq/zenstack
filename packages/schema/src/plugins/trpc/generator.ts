@@ -4,22 +4,13 @@ import { Model } from '@zenstackhq/sdk/ast';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { generate as PrismaZodGenerator } from '../zod/generator';
-import {
-    generateProcedure,
-    generateRouterSchemaImports,
-    getInputTypeByOpName,
-    resolveModelsComments,
-} from './helpers';
+import { generateProcedure, generateRouterSchemaImports, getInputTypeByOpName, resolveModelsComments } from './helpers';
 import { project } from './project';
 import removeDir from './utils/removeDir';
 import { camelCase } from 'change-case';
 import { Project } from 'ts-morph';
 
-export async function generate(
-    model: Model,
-    options: PluginOptions,
-    dmmf: DMMF.Document
-) {
+export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     const outputDir = options.output as string;
 
     await fs.mkdir(outputDir, { recursive: true });
@@ -34,11 +25,9 @@ export async function generate(
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
-    const appRouter = project.createSourceFile(
-        path.resolve(outputDir, 'routers', `index.ts`),
-        undefined,
-        { overwrite: true }
-    );
+    const appRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `index.ts`), undefined, {
+        overwrite: true,
+    });
 
     appRouter.addImportDeclarations([
         {
@@ -55,8 +44,7 @@ export async function generate(
         },
         {
             namedImports: ['createBuilder'],
-            moduleSpecifier:
-                '@trpc/server/dist/core/internals/procedureBuilder',
+            moduleSpecifier: '@trpc/server/dist/core/internals/procedureBuilder',
         },
     ]);
 
@@ -98,23 +86,14 @@ export async function generate(
                     continue;
                 }
 
-                generateModelCreateRouter(
-                    project,
-                    model,
-                    operations,
-                    outputDir
-                );
+                generateModelCreateRouter(project, model, operations, outputDir);
 
                 appRouter.addImportDeclaration({
                     defaultImport: `create${model}Router`,
                     moduleSpecifier: `./${model}.router`,
                 });
 
-                writer.writeLine(
-                    `${camelCase(
-                        model
-                    )}: create${model}Router<Config>(router, procedure),`
-                );
+                writer.writeLine(`${camelCase(model)}: create${model}Router<Config>(router, procedure),`);
             }
         });
         writer.write(');');
@@ -130,20 +109,13 @@ function generateModelCreateRouter(
     operations: Record<string, string | undefined | null>,
     outputDir: string
 ) {
-    const modelRouter = project.createSourceFile(
-        path.resolve(outputDir, 'routers', `${model}.router.ts`),
-        undefined,
-        { overwrite: true }
-    );
+    const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
+        overwrite: true,
+    });
 
     modelRouter.addImportDeclarations([
         {
-            namedImports: [
-                'type RouterFactory',
-                'type ProcBuilder',
-                'type BaseConfig',
-                'db',
-            ],
+            namedImports: ['type RouterFactory', 'type ProcBuilder', 'type BaseConfig', 'db'],
             moduleSpecifier: '.',
         },
     ]);
@@ -163,21 +135,13 @@ function generateModelCreateRouter(
         .setBodyText((writer) => {
             writer.write('return router(');
             writer.block(() => {
-                for (const [opType, opNameWithModel] of Object.entries(
-                    operations
-                )) {
+                for (const [opType, opNameWithModel] of Object.entries(operations)) {
                     const baseOpType = opType.replace('OrThrow', '');
 
                     const inputType = getInputTypeByOpName(baseOpType, model);
 
                     if (opNameWithModel && inputType) {
-                        generateProcedure(
-                            writer,
-                            opType.replace(/One$/, ''),
-                            inputType,
-                            model,
-                            baseOpType
-                        );
+                        generateProcedure(writer, opType.replace(/One$/, ''), inputType, model, baseOpType);
                     }
                 }
             });

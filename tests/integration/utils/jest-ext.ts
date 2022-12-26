@@ -1,8 +1,6 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 
-export const toBeRejectedByPolicy = async function (
-    received: Promise<unknown>
-) {
+export const toBeRejectedByPolicy = async function (received: Promise<unknown>) {
     if (!(received instanceof Promise)) {
         return { message: () => 'a promise is expected', pass: false };
     }
@@ -12,8 +10,7 @@ export const toBeRejectedByPolicy = async function (
         const code = (err as PrismaClientKnownRequestError).code;
         if (code !== 'P2004') {
             return {
-                message: () =>
-                    `expected PrismaClientKnownRequestError.code 'P2004', got ${code}`,
+                message: () => `expected PrismaClientKnownRequestError.code 'P2004', got ${code}`,
                 pass: false,
             };
         }
@@ -38,8 +35,7 @@ export const toBeNotFound = async function (received: Promise<unknown>) {
         const code = (err as PrismaClientKnownRequestError).code;
         if (code !== 'P2025') {
             return {
-                message: () =>
-                    `expected PrismaClientKnownRequestError.code 'P2025', got ${code}`,
+                message: () => `expected PrismaClientKnownRequestError.code 'P2025', got ${code}`,
                 pass: false,
             };
         }

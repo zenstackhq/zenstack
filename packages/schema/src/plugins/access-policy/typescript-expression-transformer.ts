@@ -45,9 +45,7 @@ export default class TypeScriptExpressionTransformer {
                 return this.memberAccess(expr as MemberAccessExpr);
 
             default:
-                throw new PluginError(
-                    `Unsupported expression type: ${expr.$type}`
-                );
+                throw new PluginError(`Unsupported expression type: ${expr.$type}`);
         }
     }
 
@@ -71,9 +69,7 @@ export default class TypeScriptExpressionTransformer {
 
     private invocation(expr: InvocationExpr) {
         if (expr.function.ref?.name !== 'auth') {
-            throw new PluginError(
-                `Function invocation is not supported: ${expr.function.ref?.name}`
-            );
+            throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
         }
         return 'user';
     }

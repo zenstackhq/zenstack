@@ -2,11 +2,7 @@
 import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import path from 'path';
 import indentString from '../prisma/indent-string';
-import {
-    checkModelHasModelRelation,
-    findModelByName,
-    isMongodbRawOp,
-} from './helpers';
+import { checkModelHasModelRelation, findModelByName, isMongodbRawOp } from './helpers';
 import { isAggregateInputType } from './helpers/aggregate-helpers';
 import { AggregateOperationSupport, TransformerParams } from './types';
 import { writeFileSafely } from './utils/writeFileSafely';
@@ -57,8 +53,7 @@ export default class Transformer {
 
     static setPrismaClientOutputPath(prismaClientCustomPath: string) {
         this.prismaClientOutputPath = prismaClientCustomPath;
-        this.isCustomPrismaClientOutputPath =
-            prismaClientCustomPath !== '@prisma/client';
+        this.isCustomPrismaClientOutputPath = prismaClientCustomPath !== '@prisma/client';
     }
 
     async generateEnumSchemas() {
@@ -66,10 +61,7 @@ export default class Transformer {
             const { name, values } = enumType;
 
             await writeFileSafely(
-                path.join(
-                    Transformer.outputPath,
-                    `schemas/enums/${name}.schema.ts`
-                ),
+                path.join(Transformer.outputPath, `schemas/enums/${name}.schema.ts`),
                 `${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                     `${name}`,
                     `z.enum(${JSON.stringify(values)})`
@@ -92,10 +84,7 @@ export default class Transformer {
         const objectSchemaName = this.resolveObjectSchemaName();
 
         await writeFileSafely(
-            path.join(
-                Transformer.outputPath,
-                `schemas/objects/${objectSchemaName}.schema.ts`
-            ),
+            path.join(Transformer.outputPath, `schemas/objects/${objectSchemaName}.schema.ts`),
             objectSchema
         );
     }
@@ -109,19 +98,14 @@ export default class Transformer {
 
                 const value = skipValidators
                     ? zodStringWithMainType
-                    : this.generateFieldValidators(
-                          zodStringWithMainType,
-                          field
-                      );
+                    : this.generateFieldValidators(zodStringWithMainType, field);
 
                 return value.trim();
             });
         return zodObjectSchemaFields;
     }
 
-    generateObjectSchemaField(
-        field: PrismaDMMF.SchemaArg
-    ): [string, PrismaDMMF.SchemaArg, boolean][] {
+    generateObjectSchemaField(field: PrismaDMMF.SchemaArg): [string, PrismaDMMF.SchemaArg, boolean][] {
         const lines = field.inputTypes;
 
         if (lines.length === 0) {
@@ -130,61 +114,30 @@ export default class Transformer {
 
         let alternatives = lines.reduce<string[]>((result, inputType) => {
             if (inputType.type === 'String') {
-                result.push(
-                    this.wrapWithZodValidators('z.string()', field, inputType)
-                );
-            } else if (
-                inputType.type === 'Int' ||
-                inputType.type === 'Float' ||
-                inputType.type === 'Decimal'
-            ) {
-                result.push(
-                    this.wrapWithZodValidators('z.number()', field, inputType)
-                );
+                result.push(this.wrapWithZodValidators('z.string()', field, inputType));
+            } else if (inputType.type === 'Int' || inputType.type === 'Float' || inputType.type === 'Decimal') {
+                result.push(this.wrapWithZodValidators('z.number()', field, inputType));
             } else if (inputType.type === 'BigInt') {
-                result.push(
-                    this.wrapWithZodValidators('z.bigint()', field, inputType)
-                );
+                result.push(this.wrapWithZodValidators('z.bigint()', field, inputType));
             } else if (inputType.type === 'Boolean') {
-                result.push(
-                    this.wrapWithZodValidators('z.boolean()', field, inputType)
-                );
+                result.push(this.wrapWithZodValidators('z.boolean()', field, inputType));
             } else if (inputType.type === 'DateTime') {
-                result.push(
-                    this.wrapWithZodValidators('z.date()', field, inputType)
-                );
+                result.push(this.wrapWithZodValidators('z.date()', field, inputType));
             } else if (inputType.type === 'Json') {
                 this.hasJson = true;
 
-                result.push(
-                    this.wrapWithZodValidators('jsonSchema', field, inputType)
-                );
+                result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
             } else if (inputType.type === 'True') {
-                result.push(
-                    this.wrapWithZodValidators(
-                        'z.literal(true)',
-                        field,
-                        inputType
-                    )
-                );
+                result.push(this.wrapWithZodValidators('z.literal(true)', field, inputType));
             } else {
                 const isEnum = inputType.location === 'enumTypes';
 
                 if (inputType.namespace === 'prisma' || isEnum) {
-                    if (
-                        inputType.type !== this.name &&
-                        typeof inputType.type === 'string'
-                    ) {
+                    if (inputType.type !== this.name && typeof inputType.type === 'string') {
                         this.addSchemaImport(inputType.type);
                     }
 
-                    result.push(
-                        this.generatePrismaStringLine(
-                            field,
-                            inputType,
-                            lines.length
-                        )
-                    );
+                    result.push(this.generatePrismaStringLine(field, inputType, lines.length));
                 }
             }
 
@@ -196,21 +149,15 @@ export default class Transformer {
         }
 
         if (alternatives.length > 1) {
-            alternatives = alternatives.map((alter) =>
-                alter.replace('.optional()', '')
-            );
+            alternatives = alternatives.map((alter) => alter.replace('.optional()', ''));
         }
 
-        const fieldName = alternatives.some((alt) => alt.includes(':'))
-            ? ''
-            : `  ${field.name}:`;
+        const fieldName = alternatives.some((alt) => alt.includes(':')) ? '' : `  ${field.name}:`;
 
         const opt = !field.isRequired ? '.optional()' : '';
 
         let resString =
-            alternatives.length === 1
-                ? alternatives.join(',\r\n')
-                : `z.union([${alternatives.join(',\r\n')}])${opt}`;
+            alternatives.length === 1 ? alternatives.join(',\r\n') : `z.union([${alternatives.join(',\r\n')}])${opt}`;
 
         if (field.isNullable) {
             resString += '.nullable()';
@@ -249,8 +196,7 @@ export default class Transformer {
     ) {
         const isEnum = inputType.location === 'enumTypes';
 
-        const { isModelQueryType, modelName, queryName } =
-            this.checkIsModelQueryType(inputType.type as string);
+        const { isModelQueryType, modelName, queryName } = this.checkIsModelQueryType(inputType.type as string);
 
         const objectSchemaLine = isModelQueryType
             ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -258,12 +204,7 @@ export default class Transformer {
             : `${inputType.type}ObjectSchema`;
         const enumSchemaLine = `${inputType.type}Schema`;
 
-        const schema =
-            inputType.type === this.name
-                ? objectSchemaLine
-                : isEnum
-                ? enumSchemaLine
-                : objectSchemaLine;
+        const schema = inputType.type === this.name ? objectSchemaLine : isEnum ? enumSchemaLine : objectSchemaLine;
 
         const arr = inputType.isList ? '.array()' : '';
 
@@ -274,10 +215,7 @@ export default class Transformer {
             : `z.lazy(() => ${schema})${arr}${opt}`;
     }
 
-    generateFieldValidators(
-        zodStringWithMainType: string,
-        field: PrismaDMMF.SchemaArg
-    ) {
+    generateFieldValidators(zodStringWithMainType: string, field: PrismaDMMF.SchemaArg) {
         const { isRequired, isNullable } = field;
 
         if (!isRequired) {
@@ -333,11 +271,7 @@ export default class Transformer {
              * If a custom location was designated for the prisma client, we need to figure out the
              * relative path from {outputPath}/schemas/objects to {prismaClientCustomPath}
              */
-            const fromPath = path.join(
-                Transformer.outputPath,
-                'schemas',
-                'objects'
-            );
+            const fromPath = path.join(Transformer.outputPath, 'schemas', 'objects');
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const toPath = Transformer.prismaClientOutputPath!;
             const relativePathFromOutputToPrismaClient = path
@@ -379,8 +313,7 @@ export default class Transformer {
     generateSchemaImports() {
         return [...this.schemaImports]
             .map((name) => {
-                const { isModelQueryType, modelName } =
-                    this.checkIsModelQueryType(name);
+                const { isModelQueryType, modelName } = this.checkIsModelQueryType(name);
                 if (isModelQueryType) {
                     return `import { ${modelName}Schema } from '../${modelName}.schema'`;
                 } else if (Transformer.enumNames.includes(name)) {
@@ -410,8 +343,7 @@ export default class Transformer {
     }
 
     resolveModelQuerySchemaName(modelName: string, queryName: string) {
-        const modelNameCapitalized =
-            modelName.charAt(0).toUpperCase() + modelName.slice(1);
+        const modelNameCapitalized = modelName.charAt(0).toUpperCase() + modelName.slice(1);
         return `${modelNameCapitalized}Schema.${queryName}`;
     }
 
@@ -473,9 +405,7 @@ export default class Transformer {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } = modelOperation;
 
-            globalImports.push(
-                `import { ${modelName}Schema } from './${modelName}.schema'`
-            );
+            globalImports.push(`import { ${modelName}Schema } from './${modelName}.schema'`);
             globalExport += `${modelName}: ${modelName}Schema,`;
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -490,11 +420,7 @@ export default class Transformer {
                 includeZodSchemaLineLazy,
             } = this.resolveSelectIncludeImportAndZodSchemaLine(model);
 
-            let imports = [
-                `import { z } from 'zod'`,
-                selectImport,
-                includeImport,
-            ];
+            let imports = [`import { z } from 'zod'`, selectImport, includeImport];
             let codeBody = '';
 
             if (findUnique) {
@@ -596,33 +522,25 @@ export default class Transformer {
                     imports.push(
                         `import { ${modelName}MinAggregateInputObjectSchema } from './objects/${modelName}MinAggregateInput.schema'`
                     );
-                    aggregateOperations.push(
-                        `_min: ${modelName}MinAggregateInputObjectSchema.optional()`
-                    );
+                    aggregateOperations.push(`_min: ${modelName}MinAggregateInputObjectSchema.optional()`);
                 }
                 if (this.aggregateOperationSupport[modelName].max) {
                     imports.push(
                         `import { ${modelName}MaxAggregateInputObjectSchema } from './objects/${modelName}MaxAggregateInput.schema'`
                     );
-                    aggregateOperations.push(
-                        `_max: ${modelName}MaxAggregateInputObjectSchema.optional()`
-                    );
+                    aggregateOperations.push(`_max: ${modelName}MaxAggregateInputObjectSchema.optional()`);
                 }
                 if (this.aggregateOperationSupport[modelName].avg) {
                     imports.push(
                         `import { ${modelName}AvgAggregateInputObjectSchema } from './objects/${modelName}AvgAggregateInput.schema'`
                     );
-                    aggregateOperations.push(
-                        `_avg: ${modelName}AvgAggregateInputObjectSchema.optional()`
-                    );
+                    aggregateOperations.push(`_avg: ${modelName}AvgAggregateInputObjectSchema.optional()`);
                 }
                 if (this.aggregateOperationSupport[modelName].sum) {
                     imports.push(
                         `import { ${modelName}SumAggregateInputObjectSchema } from './objects/${modelName}SumAggregateInput.schema'`
                     );
-                    aggregateOperations.push(
-                        `_sum: ${modelName}SumAggregateInputObjectSchema.optional()`
-                    );
+                    aggregateOperations.push(`_sum: ${modelName}SumAggregateInputObjectSchema.optional()`);
                 }
 
                 codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
@@ -643,10 +561,7 @@ export default class Transformer {
             imports = [...new Set(imports)];
 
             await writeFileSafely(
-                path.join(
-                    Transformer.outputPath,
-                    `schemas/${modelName}.schema.ts`
-                ),
+                path.join(Transformer.outputPath, `schemas/${modelName}.schema.ts`),
                 `
 ${imports.join(';\n')}
 
@@ -673,8 +588,7 @@ export default schemas;
 
     generateImportStatements(imports: (string | undefined)[]) {
         let generatedImports = this.generateImportZodStatement();
-        generatedImports +=
-            imports?.filter((importItem) => !!importItem).join(';\r\n') ?? '';
+        generatedImports += imports?.filter((importItem) => !!importItem).join(';\r\n') ?? '';
         generatedImports += '\n\n';
         return generatedImports;
     }

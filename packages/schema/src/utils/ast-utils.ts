@@ -1,27 +1,16 @@
-import {
-    DataModel,
-    DataModelAttribute,
-    Model,
-    isDataModel,
-} from '@zenstackhq/language/ast';
+import { DataModel, DataModelAttribute, Model, isDataModel } from '@zenstackhq/language/ast';
 import { getLiteral } from '@zenstackhq/sdk/utils';
 import { ALL_OPERATION_KINDS } from '../plugins/constants';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(
-        (d) =>
-            isDataModel(d) &&
-            !!d.attributes.find((attr) => attr.decl.ref?.name === '@@allow')
+        (d) => isDataModel(d) && !!d.attributes.find((attr) => attr.decl.ref?.name === '@@allow')
     ) as DataModel[];
 }
 
 export function analyzePolicies(dataModel: DataModel) {
-    const allows = dataModel.attributes.filter(
-        (attr) => attr.decl.ref?.name === '@@allow'
-    );
-    const denies = dataModel.attributes.filter(
-        (attr) => attr.decl.ref?.name === '@@deny'
-    );
+    const allows = dataModel.attributes.filter((attr) => attr.decl.ref?.name === '@@allow');
+    const denies = dataModel.attributes.filter((attr) => attr.decl.ref?.name === '@@deny');
 
     return {
         allows,
