@@ -1,6 +1,5 @@
-import { expectNotFound, expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import { MODEL_PRELUDE } from '../common';
+import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('Operation Coverage: empty policy', () => {
     let origDir: string;
@@ -28,37 +27,43 @@ describe('Operation Coverage: empty policy', () => {
 
         const db = withPolicy();
 
+        await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
+
         expect(await db.model.findMany()).toHaveLength(0);
         expect(await db.model.findUnique({ where: { id: '1' } })).toBeNull();
         expect(await db.model.findFirst({ where: { id: '1' } })).toBeNull();
-        await expectNotFound(() =>
+        await expect(
             db.model.findUniqueOrThrow({ where: { id: '1' } })
-        );
-        await expectNotFound(() =>
+        ).toBeNotFound();
+        await expect(
             db.model.findFirstOrThrow({ where: { id: '1' } })
-        );
+        ).toBeNotFound();
 
-        await expectPolicyDeny(() => db.model.create({ data: {} }));
-        await expectPolicyDeny(() => db.model.createMany({ data: [{}] }));
+        await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(
+            db.model.createMany({ data: [{}] })
+        ).toBeRejectedByPolicy();
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.model.update({ where: { id: '1' }, data: {} })
-        );
-        await expectPolicyDeny(() => db.model.updateMany({ data: {} }));
-        await expectPolicyDeny(() =>
+        ).toBeRejectedByPolicy();
+        await expect(db.model.updateMany({ data: {} })).toBeRejectedByPolicy();
+        await expect(
             db.model.upsert({
                 where: { id: '1' },
                 create: {},
                 update: {},
             })
-        );
+        ).toBeRejectedByPolicy();
 
-        await expectPolicyDeny(() => db.model.delete({ where: { id: '1' } }));
-        await expectPolicyDeny(() => db.model.deleteMany());
+        await expect(
+            db.model.delete({ where: { id: '1' } })
+        ).toBeRejectedByPolicy();
+        await expect(db.model.deleteMany()).toBeRejectedByPolicy();
 
-        await expectPolicyDeny(() => db.model.aggregate({}));
-        await expectPolicyDeny(() => db.model.groupBy({}));
-        await expectPolicyDeny(() => db.model.count());
+        await expect(db.model.aggregate({})).toBeRejectedByPolicy();
+        await expect(db.model.groupBy({})).toBeRejectedByPolicy();
+        await expect(db.model.count()).toBeRejectedByPolicy();
     });
 
     it('to-many write', async () => {
@@ -84,7 +89,7 @@ describe('Operation Coverage: empty policy', () => {
 
         const db = withPolicy();
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -92,7 +97,7 @@ describe('Operation Coverage: empty policy', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 
     it('to-one write', async () => {
@@ -118,7 +123,7 @@ describe('Operation Coverage: empty policy', () => {
 
         const db = withPolicy();
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -126,6 +131,6 @@ describe('Operation Coverage: empty policy', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 });

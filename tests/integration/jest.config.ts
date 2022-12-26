@@ -11,5 +11,7 @@ export default {
 
     testTimeout: 300000,
 
-    globalSetup: './setup.js',
+    globalSetup: './global-setup.js',
+
+    setupFilesAfterEnv: ['./test-setup.ts'],
 };

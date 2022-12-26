@@ -1,6 +1,5 @@
-import { expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import { MODEL_PRELUDE } from '../common';
+import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('Operation Coverage: nested to-one', () => {
     let origDir: string;
@@ -43,7 +42,7 @@ describe('Operation Coverage: nested to-one', () => {
         const db = withPolicy();
 
         // create denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -51,7 +50,7 @@ describe('Operation Coverage: nested to-one', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         expect(
             await db.m1.create({
@@ -62,10 +61,10 @@ describe('Operation Coverage: nested to-one', () => {
                     },
                 },
             })
-        );
+        ).toResolveTruthy();
 
         // nested update denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -74,7 +73,7 @@ describe('Operation Coverage: nested to-one', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 
     it('nested create', async () => {
@@ -112,7 +111,7 @@ describe('Operation Coverage: nested to-one', () => {
         });
 
         // nested create denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -121,7 +120,7 @@ describe('Operation Coverage: nested to-one', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         expect(
             await db.m1.update({
@@ -132,7 +131,7 @@ describe('Operation Coverage: nested to-one', () => {
                     },
                 },
             })
-        );
+        ).toResolveTruthy();
     });
 
     it('nested delete', async () => {
@@ -173,14 +172,14 @@ describe('Operation Coverage: nested to-one', () => {
         });
 
         // nested delete denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
                     m2: { delete: true },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
         expect(await db.m2.findUnique({ where: { id: '1' } })).toBeTruthy();
 
         // update m2 so it can be deleted

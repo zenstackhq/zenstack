@@ -1,6 +1,5 @@
-import { expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import { MODEL_PRELUDE } from '../common';
+import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('Operation Coverage: nested to-many', () => {
     let origDir: string;
@@ -42,7 +41,7 @@ describe('Operation Coverage: nested to-many', () => {
         const db = withPolicy();
 
         // single create denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -50,7 +49,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         expect(
             await db.m1.create({
@@ -60,10 +59,10 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toResolveTruthy();
 
         // multi create denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -71,7 +70,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         expect(
             await db.m1.create({
@@ -121,7 +120,7 @@ describe('Operation Coverage: nested to-many', () => {
         });
 
         // update denied
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -133,7 +132,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         await db.m1.create({
             data: {
@@ -204,7 +203,7 @@ describe('Operation Coverage: nested to-many', () => {
             },
         });
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -213,7 +212,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         expect(
             (
@@ -274,7 +273,7 @@ describe('Operation Coverage: nested to-many', () => {
             },
         });
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -283,9 +282,9 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -294,7 +293,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         expect(
             await db.m1.update({
@@ -365,17 +364,17 @@ describe('Operation Coverage: nested to-many', () => {
 
         const db = withPolicy();
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     id: '1',
                     value: 1,
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         // included 'm1' can't be read
-        await expectPolicyDeny(() =>
+        await expect(
             db.m2.create({
                 include: { m1: true },
                 data: {
@@ -384,11 +383,11 @@ describe('Operation Coverage: nested to-many', () => {
                     m1: { connect: { id: '1' } },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
         expect(await db.m2.findUnique({ where: { id: '1' } })).toBeTruthy();
 
         // included 'm1' can't be read
-        await expectPolicyDeny(() =>
+        await expect(
             db.m3.create({
                 include: { m1: true },
                 data: {
@@ -397,7 +396,7 @@ describe('Operation Coverage: nested to-many', () => {
                     m1: { connect: { id: '1' } },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
         expect(await db.m3.findUnique({ where: { id: '1' } })).toBeTruthy();
 
         // nested to-many got filtered on read
@@ -414,7 +413,7 @@ describe('Operation Coverage: nested to-many', () => {
         ).toHaveLength(1);
 
         // read-back for to-one relation rejected
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 include: { m3: true },
                 data: {
@@ -422,7 +421,7 @@ describe('Operation Coverage: nested to-many', () => {
                     m3: { create: { value: 0 } },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 
     it('update with nested read', async () => {
@@ -477,7 +476,7 @@ describe('Operation Coverage: nested to-many', () => {
             },
         });
 
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 include: { m3: true },
@@ -489,7 +488,7 @@ describe('Operation Coverage: nested to-many', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         const r = await db.m1.update({
             where: { id: '1' },

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import {
     ArrayExpr,
     AttributeArg,
@@ -191,8 +192,8 @@ describe('Parsing Tests', () => {
         `;
         const doc = await loadModel(content, false);
         const models = doc.declarations as DataModel[];
-        expect(models[0].fields[1].type.reference?.ref?.name === 'Post');
-        expect(models[1].fields[1].type.reference?.ref?.name === 'User');
+        expect(models[0].fields[1].type.reference?.ref?.name).toBe('Post');
+        expect(models[1].fields[1].type.reference?.ref?.name).toBe('User');
     });
 
     it('policy expressions', async () => {

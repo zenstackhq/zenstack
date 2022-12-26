@@ -741,8 +741,8 @@ async function check(
     // console.log('Generated expr:\n', outExpr?.getText());
 
     if (expected) {
-        const generatedExpr = outExpr!.getInitializer()!.getText();
-        expect(generatedExpr.replace(/\s+/g, '')).toBe(
+        const generatedExpr = outExpr?.getInitializer()?.getText();
+        expect(generatedExpr && generatedExpr.replace(/\s+/g, '')).toBe(
             expected.replace(/\s+/g, '')
         );
     }

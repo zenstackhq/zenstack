@@ -1,6 +1,5 @@
-import { WeakDbClientContract, expectPolicyDeny, loadPrisma } from '../utils';
 import path from 'path';
-import { MODEL_PRELUDE } from '../common';
+import { MODEL_PRELUDE, WeakDbClientContract, loadPrisma } from '../../utils';
 
 describe('Operation Coverage: deep nested', () => {
     let origDir: string;
@@ -139,7 +138,7 @@ describe('Operation Coverage: deep nested', () => {
         expect(r.m2.m4[2].id).toBe('m4-3');
 
         // deep create violation
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -152,10 +151,10 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         // deep create violation due to deep policy
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -168,7 +167,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         // deep connect violation via deep policy: @@deny('create', m2.m4?[value == 100])
         await db.m4.create({
@@ -177,7 +176,7 @@ describe('Operation Coverage: deep nested', () => {
                 value: 100,
             },
         });
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 data: {
                     m2: {
@@ -190,7 +189,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         // create read-back filter: M4 @@deny('read', value == 200)
         expect(
@@ -212,7 +211,7 @@ describe('Operation Coverage: deep nested', () => {
         ).toHaveLength(1);
 
         // create read-back rejection: M3 @@deny('read', value == 200)
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.create({
                 include: { m2: { include: { m3: true } } },
                 data: {
@@ -226,7 +225,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 
     it('update', async () => {
@@ -303,7 +302,7 @@ describe('Operation Coverage: deep nested', () => {
         ).toBeTruthy();
 
         // deep update violation
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: {
@@ -316,7 +315,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         // deep update violation via deep policy: @@deny('update', m2.m4?[value == 101])
         await db.m1.create({
@@ -332,7 +331,7 @@ describe('Operation Coverage: deep nested', () => {
                 },
             },
         });
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '2' },
                 data: {
@@ -348,7 +347,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
 
         // update read-back filter: M4 @@deny('read', value == 200)
         const r1 = await db.m1.update({
@@ -371,7 +370,7 @@ describe('Operation Coverage: deep nested', () => {
         expect(r1.m2.m4).not.toContain(expect.objectContaining({ id: 'm4-1' }));
 
         // update read-back rejection: M3 @@deny('read', value == 200)
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 include: { m2: { include: { m3: true } } },
@@ -385,7 +384,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 
     it('delete', async () => {
@@ -425,11 +424,11 @@ describe('Operation Coverage: deep nested', () => {
         });
 
         // delete read-back reject: M3 @@deny('read', value == 200)
-        await expectPolicyDeny(() =>
+        await expect(
             db.m1.delete({
                 where: { id: '2' },
                 include: { m2: { select: { m3: { select: { id: true } } } } },
             })
-        );
+        ).toBeRejectedByPolicy();
     });
 });

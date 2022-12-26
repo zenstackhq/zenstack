@@ -49,26 +49,3 @@ export async function loadPrisma(testName: string, model: string) {
             withPolicy<WeakDbClientContract>(prisma, policy, { user }),
     };
 }
-
-export async function expectNotFound(fn: () => Promise<unknown>) {
-    try {
-        await fn();
-    } catch (err) {
-        expect((err as PrismaClientKnownRequestError).code).toBe('P2025');
-        return;
-    }
-    throw new Error('PrismaClientKnownRequestError("P2025") expected');
-}
-
-export async function expectPolicyDeny(fn: () => Promise<unknown>) {
-    try {
-        await fn();
-    } catch (err) {
-        if ((err as PrismaClientKnownRequestError).code !== 'P2004') {
-            console.error('Wrong error:', err);
-        }
-        expect((err as PrismaClientKnownRequestError).code).toBe('P2004');
-        return;
-    }
-    throw new Error('PrismaClientKnownRequestError("P2004") expected');
-}
