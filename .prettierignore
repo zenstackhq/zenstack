@@ -12,3 +12,6 @@ pnpm-*.yaml
 test-run
 coverage
 .vscode
+
+samples/todo/lib/hooks
+samples/todo/server/policy
