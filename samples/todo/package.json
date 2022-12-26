@@ -4,7 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev",
-        "build": "npm run generate && next build",
+        "build": "pnpm generate && next build",
         "start": "next start",
         "lint": "next lint",
         "db:push": "zenstack db push",
@@ -13,7 +13,7 @@
         "db:reset": "zenstack migrate reset",
         "db:browse": "zenstack studio",
         "generate": "zenstack generate && prisma generate",
-        "vercel-build": "npm run build && npm run db:deploy",
+        "vercel-build": "pnpm build && pnpm db:deploy",
         "deps-local": "npm i -D ../../packages/schema/bundle && npm i ../../packages/runtime/dist ../../packages/next/dist zod zod-validation-error swr decimal.js",
         "deps-latest": "npm rm zod zod-validation-error swr decimal.js && npm i -D zenstack@latest && npm i @zenstackhq/runtime@latest @zenstackhq/next@latest",
         "deps-dev": "npm rm zod zod-validation-error swr decimal.js && npm i -D zenstack@dev && npm i @zenstackhq/runtime@dev @zenstackhq/next@dev"
