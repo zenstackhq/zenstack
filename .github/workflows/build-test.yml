@@ -9,9 +9,9 @@ env:
 
 on:
     push:
-        branches: ['dev', 'main']
+        branches: ['dev', 'main', 'canary']
     pull_request:
-        branches: ['dev', 'main']
+        branches: ['dev', 'main', 'canary']
 
 jobs:
     build:
