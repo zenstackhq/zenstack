@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { hashSync } from 'bcryptjs';
-import deepcopy from 'deepcopy';
 import superjson from 'superjson';
 import {
     AUXILIARY_FIELDS,
     DEFAULT_PASSWORD_SALT_LENGTH,
-    GUARD_FIELD_NAME,
     TRANSACTION_FIELD_NAME,
 } from '../constants';
 import {
@@ -15,7 +13,6 @@ import {
     FieldInfo,
     PolicyOperationKind,
     PrismaWriteActionType,
-    QueryContext,
 } from '../types';
 import { NestedWriteVisitor } from './nested-write-vistor';
 import {
@@ -25,15 +22,22 @@ import {
 import { getVersion } from '../version';
 import { Logger } from './logger';
 import { camelCase } from 'change-case';
-import { PolicyDef } from '.';
+import { PolicyDef, PolicyFunc } from '.';
 
 //#region General helpers
 
 /**
  * Creates a conjunction of a list of query conditions.
  */
-export function and(...conditions: unknown[]): any {
-    const filtered = conditions.filter((c) => !!c);
+export function and(...conditions: (boolean | object)[]): any {
+    if (conditions.includes(false)) {
+        // always false
+        return { id: { in: [] } };
+    }
+
+    const filtered = conditions.filter(
+        (c): c is object => typeof c === 'object' && !!c
+    );
     if (filtered.length === 0) {
         return undefined;
     } else if (filtered.length === 1) {
@@ -46,8 +50,15 @@ export function and(...conditions: unknown[]): any {
 /**
  * Creates a disjunction of a list of query conditions.
  */
-export function or(...conditions: unknown[]): any {
-    const filtered = conditions.filter((c) => !!c);
+export function or(...conditions: (boolean | object)[]): any {
+    if (conditions.includes(true)) {
+        // always true
+        return { id: { notIn: [] } };
+    }
+
+    const filtered = conditions.filter(
+        (c): c is object => typeof c === 'object' && !!c
+    );
     if (filtered.length === 0) {
         return undefined;
     } else if (filtered.length === 1) {
@@ -85,10 +96,24 @@ export async function getAuthGuard(
     model: string,
     operation: PolicyOperationKind,
     user: AuthUser | undefined
-) {
-    // const metaModule = await loadMetaModule();
-    const provider: (context: QueryContext) => any =
-        policy.guard[camelCase(model)]?.[operation];
+): Promise<boolean | object> {
+    const guard = policy.guard[camelCase(model)];
+    if (!guard) {
+        throw new PrismaClientUnknownRequestError(
+            `zenstack: unable to load authorization guard for ${model}`,
+            { clientVersion: getVersion() }
+        );
+    }
+
+    if (guard.allowAll === true) {
+        return true;
+    }
+
+    if (guard.denyAll === true) {
+        return false;
+    }
+
+    const provider: PolicyFunc | undefined = guard[operation];
     if (!provider) {
         throw new PrismaClientUnknownRequestError(
             `zenstack: unable to load authorization query function for ${model}`,
@@ -110,7 +135,7 @@ export async function ensureAuthGuard(
     policy: PolicyDef
 ) {
     const guard = await getAuthGuard(policy, model, operation, user);
-    return { ...args, where: and(args.where, guard) };
+    return { ...args, where: and(args?.where, guard) };
 }
 
 /**
@@ -136,11 +161,7 @@ export async function readWithCheck(
     policy: PolicyDef,
     logger: Logger
 ): Promise<unknown[]> {
-    const args = queryArgs ? deepcopy(queryArgs) : {};
-    args.where = and(
-        args.where,
-        await getAuthGuard(policy, model, 'read', user)
-    );
+    const args = await ensureAuthGuard(queryArgs, model, 'read', user, policy);
 
     // recursively inject read guard conditions into the query args
     await injectNestedReadConditions(policy, model, args, user);
@@ -191,10 +212,13 @@ async function injectNestedReadConditions(
                 injectTarget[field] = {};
             }
             // inject extra condition for to-many relation
-            injectTarget[field].where = and(
-                injectTarget.where,
-                await getAuthGuard(policy, fieldInfo.type, 'read', user)
+            const guard = await getAuthGuard(
+                policy,
+                fieldInfo.type,
+                'read',
+                user
             );
+            injectTarget[field].where = and(injectTarget.where, guard);
         } else {
             // there's no way of injecting condition for to-one relation, so we
             // make sure 'id' field is selected and check them against query result
@@ -447,11 +471,9 @@ export async function checkPolicyForIds(
 
     // build a query condition with policy injected
     const idCondition = ids.length > 1 ? { id: { in: ids } } : { id: ids[0] };
+    const guard = await getAuthGuard(policy, model, operation, user);
     const query = {
-        where: and(
-            idCondition,
-            await getAuthGuard(policy, model, operation, user)
-        ),
+        where: and(idCondition, guard),
         select: { id: true },
     };
 
@@ -464,13 +486,28 @@ export async function checkPolicyForIds(
     const filteredIds = filteredResult.map((item) => item.id);
     if (filteredIds.length < ids.length) {
         const gap = ids.filter((id) => !filteredIds.includes(id));
-        throw new PrismaClientKnownRequestError(
-            `denied by policy: entities failed '${operation}' check, ${model}#[${gap.join(
-                ', '
-            )}]`,
-            { clientVersion: getVersion(), code: 'P2004' }
-        );
+        throw deniedByPolicy(model, operation, `#[${gap.join(', ')}]`);
     }
+}
+
+export function deniedByPolicy(
+    model: string,
+    operation: PolicyOperationKind,
+    extra?: string
+) {
+    return new PrismaClientKnownRequestError(
+        `denied by policy: entities failed '${operation}' check, ${model}${
+            extra ? ', ' + extra : ''
+        }`,
+        { clientVersion: getVersion(), code: 'P2004' }
+    );
+}
+
+export function notFound(model: string) {
+    return new PrismaClientKnownRequestError(
+        `entity not found for model ${model}`,
+        { clientVersion: getVersion(), code: 'P2025' }
+    );
 }
 
 export async function checkPolicyForFilter(
@@ -489,22 +526,20 @@ export async function checkPolicyForFilter(
     );
 
     const count = await db[model].count({ where: filter });
+    const guard = await getAuthGuard(policy, model, operation, user);
 
     // build a query condition with policy injected
-    const guardedQuery = {
-        where: and(filter, await getAuthGuard(policy, model, operation, user)),
-    };
+    const guardedQuery = { where: and(filter, guard) };
 
     // query with policy injected
     const guardedCount = await db[model].count(guardedQuery);
 
     // see if we get fewer items with policy, if so, reject with an throw
     if (guardedCount < count) {
-        throw new PrismaClientKnownRequestError(
-            `denied by policy: entities of ${model} failed '${operation}' check, ${
-                count - guardedCount
-            } entities failed policy check`,
-            { clientVersion: getVersion(), code: 'P2004' }
+        throw deniedByPolicy(
+            model,
+            operation,
+            `${count - guardedCount} entities failed policy check`
         );
     }
 }
@@ -609,16 +644,16 @@ export async function injectTransactionId(
     const updatedModels = new Set<string>();
     const createdModels = new Set<string>();
 
-    // if (args.data) {
-    //     args.data[TRANSACTION_FIELD_NAME] = `${transactionId}:${operation}`;
-    //     updatedModels.add(model);
-    // }
-
-    args[TRANSACTION_FIELD_NAME] = `${transactionId}:${operation}`;
-    if (operation === 'create') {
-        createdModels.add(model);
-    } else {
-        updatedModels.add(model);
+    const topGuard = await getAuthGuard(policy, model, operation, undefined);
+    if (topGuard === false) {
+        throw deniedByPolicy(model, operation);
+    } else if (topGuard !== true) {
+        args[TRANSACTION_FIELD_NAME] = `${transactionId}:${operation}`;
+        if (operation === 'create') {
+            createdModels.add(model);
+        } else {
+            updatedModels.add(model);
+        }
     }
 
     const visitAction = async (
@@ -629,52 +664,104 @@ export async function injectTransactionId(
         if (fieldInfo.isDataModel && fieldData) {
             switch (action) {
                 case 'update':
-                case 'updateMany':
-                    ensureArray(fieldData).forEach((item) => {
-                        if (fieldInfo.isArray && item.data) {
-                            item.data[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:update`;
-                        } else {
-                            item[
-                                TRANSACTION_FIELD_NAME
-                            ] = `${transactionId}:update`;
-                        }
-                        updatedModels.add(fieldInfo.type);
-                    });
+                case 'updateMany': {
+                    const guard = await getAuthGuard(
+                        policy,
+                        fieldInfo.type,
+                        'update',
+                        undefined
+                    );
+                    if (guard === false) {
+                        // fail fast
+                        throw deniedByPolicy(fieldInfo.type, 'update');
+                    } else if (guard !== true) {
+                        ensureArray(fieldData).forEach((item) => {
+                            if (fieldInfo.isArray && item.data) {
+                                item.data[
+                                    TRANSACTION_FIELD_NAME
+                                ] = `${transactionId}:update`;
+                            } else {
+                                item[
+                                    TRANSACTION_FIELD_NAME
+                                ] = `${transactionId}:update`;
+                            }
+                            updatedModels.add(fieldInfo.type);
+                        });
+                    }
                     break;
+                }
 
-                case 'upsert':
+                case 'upsert': {
+                    const createGuard = await getAuthGuard(
+                        policy,
+                        fieldInfo.type,
+                        'create',
+                        undefined
+                    );
+                    const updateGuard = await getAuthGuard(
+                        policy,
+                        fieldInfo.type,
+                        'update',
+                        undefined
+                    );
+
                     ensureArray(fieldData).forEach((item) => {
-                        item.create[
-                            TRANSACTION_FIELD_NAME
-                        ] = `${transactionId}:create`;
-                        createdModels.add(fieldInfo.type);
-                        item.update[
-                            TRANSACTION_FIELD_NAME
-                        ] = `${transactionId}:update`;
-                        updatedModels.add(fieldInfo.type);
+                        if (createGuard !== true) {
+                            item.create[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:create`;
+                            createdModels.add(fieldInfo.type);
+                        }
+
+                        if (updateGuard !== true) {
+                            item.update[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:update`;
+                            updatedModels.add(fieldInfo.type);
+                        }
                     });
                     break;
+                }
 
                 case 'create':
-                case 'createMany':
-                    ensureArray(fieldData).forEach((item) => {
-                        item[
-                            TRANSACTION_FIELD_NAME
-                        ] = `${transactionId}:create`;
-                        createdModels.add(fieldInfo.type);
-                    });
+                case 'createMany': {
+                    const guard = await getAuthGuard(
+                        policy,
+                        fieldInfo.type,
+                        'create',
+                        undefined
+                    );
+                    if (guard === false) {
+                        // fail fast
+                        throw deniedByPolicy(fieldInfo.type, 'create');
+                    } else if (guard !== true) {
+                        ensureArray(fieldData).forEach((item) => {
+                            item[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:create`;
+                            createdModels.add(fieldInfo.type);
+                        });
+                    }
                     break;
+                }
 
-                case 'connectOrCreate':
-                    ensureArray(fieldData).forEach((item) => {
-                        item.create[
-                            TRANSACTION_FIELD_NAME
-                        ] = `${transactionId}:create`;
-                        createdModels.add(fieldInfo.type);
-                    });
+                case 'connectOrCreate': {
+                    const guard = await getAuthGuard(
+                        policy,
+                        fieldInfo.type,
+                        'create',
+                        undefined
+                    );
+                    if (guard !== true) {
+                        ensureArray(fieldData).forEach((item) => {
+                            item.create[
+                                TRANSACTION_FIELD_NAME
+                            ] = `${transactionId}:create`;
+                            createdModels.add(fieldInfo.type);
+                        });
+                    }
                     break;
+                }
             }
         }
         return true;
@@ -735,24 +822,13 @@ export async function preprocessWritePayload(
 }
 
 async function shouldOmit(policy: PolicyDef, model: string, field: string) {
-    if ([TRANSACTION_FIELD_NAME, GUARD_FIELD_NAME].includes(field)) {
+    if (AUXILIARY_FIELDS.includes(field)) {
         return true;
     }
     const fieldInfo = await resolveField(policy, model, field);
     return !!(
         fieldInfo && fieldInfo.attributes.find((attr) => attr.name === '@omit')
     );
-}
-
-export async function validateModelPayload(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    model: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mode: 'create' | 'update' | 'upsert',
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    payload: unknown
-): Promise<void> {
-    return;
 }
 
 //#endregion

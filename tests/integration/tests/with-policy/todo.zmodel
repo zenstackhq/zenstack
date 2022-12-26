@@ -7,6 +7,15 @@ datasource db {
     url = 'file:./todo.db'
 }
 
+generator js {
+    provider = 'prisma-client-js'
+    output = '../.prisma'
+}
+
+plugin policy {
+    provider = '@zenstack/access-policy'
+    output = 'policy'
+}
 
 /*
  * Model for a space in which users can collaborate on Lists and Todos

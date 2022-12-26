@@ -12,10 +12,16 @@ export type WithPolicyContext = {
     user?: AuthUser;
 };
 
-type PolicyFunc = (context: QueryContext) => any;
+export type PolicyFunc = (context: QueryContext) => object;
 
 export type PolicyDef = {
-    guard: Record<string, Record<PolicyOperationKind, PolicyFunc>>;
+    guard: Record<
+        string,
+        {
+            allowAll?: boolean;
+            denyAll?: boolean;
+        } & Partial<Record<PolicyOperationKind, PolicyFunc>>
+    >;
     fieldMapping: Record<string, Record<string, FieldInfo>>;
 };
 

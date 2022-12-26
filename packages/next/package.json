@@ -24,7 +24,8 @@
         "react": "^17.0.2 || ^18"
     },
     "dependencies": {
-        "superjson": "^1.11.0"
+        "superjson": "^1.11.0",
+        "@zenstackhq/runtime": "workspace:*"
     },
     "devDependencies": {
         "@types/react": "^18.0.26",

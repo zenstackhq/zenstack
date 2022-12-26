@@ -821,30 +821,6 @@ function Todo_delete(context: QueryContext): any {
     return r;
 }
 
-function Account_create(context: QueryContext): any {
-    const user = context.user?.id ? context.user : { ...context.user, id: 'zenstack_unknown_user' };
-    const r = { zenstack_guard: false };
-    return r;
-}
-
-function Account_update(context: QueryContext): any {
-    const user = context.user?.id ? context.user : { ...context.user, id: 'zenstack_unknown_user' };
-    const r = { zenstack_guard: false };
-    return r;
-}
-
-function Account_read(context: QueryContext): any {
-    const user = context.user?.id ? context.user : { ...context.user, id: 'zenstack_unknown_user' };
-    const r = { zenstack_guard: false };
-    return r;
-}
-
-function Account_delete(context: QueryContext): any {
-    const user = context.user?.id ? context.user : { ...context.user, id: 'zenstack_unknown_user' };
-    const r = { zenstack_guard: false };
-    return r;
-}
-
 const policy = {
     fieldMapping: {
         space: {
@@ -1304,7 +1280,7 @@ const policy = {
             create: Todo_create, update: Todo_update, read: Todo_read, delete: Todo_delete,
         }
         , account: {
-            create: Account_create, update: Account_update, read: Account_read, delete: Account_delete,
+            denyAll: true,
         }
         ,
     }

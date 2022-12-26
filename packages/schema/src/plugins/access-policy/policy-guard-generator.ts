@@ -1,8 +1,10 @@
 import {
     DataModel,
     DataModelField,
+    Model,
     isDataModel,
     isEnum,
+    isInvocationExpr,
     isLiteralExpr,
 } from '@zenstackhq/language/ast';
 import {
@@ -10,6 +12,9 @@ import {
     PolicyOperationKind,
     RuntimeAttribute,
 } from '@zenstackhq/runtime';
+import { GUARD_FIELD_NAME, PluginOptions } from '@zenstackhq/sdk';
+import { resolved } from '@zenstackhq/sdk/utils';
+import { camelCase } from 'change-case';
 import path from 'path';
 import {
     CodeBlockWriter,
@@ -17,12 +22,10 @@ import {
     SourceFile,
     VariableDeclarationKind,
 } from 'ts-morph';
-import ExpressionWriter from './expression-writer';
-import { Model } from '@zenstackhq/language/ast';
-import { GUARD_FIELD_NAME, PluginOptions } from '@zenstackhq/sdk';
-import { resolved } from '@zenstackhq/sdk/utils';
-import { RUNTIME_PACKAGE } from '../constants';
-import { camelCase } from 'change-case';
+import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE } from '../constants';
+import { ExpressionWriter } from './expression-writer';
+import { streamAllContents } from 'langium';
+import { analyzePolicies } from '../../utils/ast-utils';
 
 const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 
@@ -58,7 +61,7 @@ export default class PolicyGuardGenerator {
             isDataModel(d)
         ) as DataModel[];
 
-        const policyMap: Record<string, Record<string, string>> = {};
+        const policyMap: Record<string, Record<string, string | boolean>> = {};
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(
                 model,
@@ -100,12 +103,6 @@ export default class PolicyGuardGenerator {
 
         sf.addStatements('export default policy');
 
-        // this.generateFieldMapping(models, sf);
-
-        // for (const model of models) {
-        //     await this.generateQueryGuardForModel(model, sf);
-        // }
-
         sf.formatText();
         await project.save();
     }
@@ -138,17 +135,6 @@ export default class PolicyGuardGenerator {
             }
         });
         writer.write(',');
-
-        // sourceFile.addVariableStatement({
-        //     isExported: true,
-        //     declarationKind: VariableDeclarationKind.Const,
-        //     declarations: [
-        //         {
-        //             name: '_fieldMapping',
-        //             initializer: JSON.stringify(mapping),
-        //         },
-        //     ],
-        // });
     }
 
     private getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
@@ -195,8 +181,23 @@ export default class PolicyGuardGenerator {
         model: DataModel,
         sourceFile: SourceFile
     ) {
-        const result: Record<string, string> = {};
-        for (const kind of ['create', 'update', 'read', 'delete']) {
+        const result: Record<string, string | boolean> = {};
+
+        const { allowAll, denyAll } = analyzePolicies(model);
+
+        if (allowAll) {
+            result['allowAll'] = true;
+        }
+
+        if (denyAll) {
+            result['denyAll'] = true;
+        }
+
+        if (allowAll || denyAll) {
+            return result;
+        }
+
+        for (const kind of ALL_OPERATION_KINDS) {
             const func = this.generateQueryGuardFunction(
                 sourceFile,
                 model,
@@ -226,10 +227,46 @@ export default class PolicyGuardGenerator {
             })
             .addBody();
 
-        func.addStatements(
-            // make suer user id is always available
-            `const user = context.user?.id ? context.user : { ...context.user, id: '${UNKNOWN_USER_ID}' };`
+        const denies = this.getPolicyExpressions(
+            model,
+            'deny',
+            kind as PolicyOperationKind
         );
+
+        const allows = this.getPolicyExpressions(
+            model,
+            'allow',
+            kind as PolicyOperationKind
+        );
+
+        if (allows.length === 0) {
+            func.addStatements('return undefined');
+            return func;
+        }
+
+        // check if any allow or deny rule contains 'auth()' invocation
+        let hasAuthRef = false;
+        for (const node of [...denies, ...allows]) {
+            for (const child of streamAllContents(node)) {
+                if (
+                    isInvocationExpr(child) &&
+                    resolved(child.function).name === 'auth'
+                ) {
+                    hasAuthRef = true;
+                    break;
+                }
+            }
+            if (hasAuthRef) {
+                break;
+            }
+        }
+
+        if (hasAuthRef) {
+            func.addStatements(
+                // make sure user id is always available
+                `const user = context.user?.id ? context.user : { ...context.user, id: '${UNKNOWN_USER_ID}' };`
+            );
+        }
 
         // r = <guard object>;
         func.addVariableStatement({
@@ -239,17 +276,6 @@ export default class PolicyGuardGenerator {
                     name: 'r',
                     initializer: (writer) => {
                         const exprWriter = new ExpressionWriter(writer);
-                        const denies = this.getPolicyExpressions(
-                            model,
-                            'deny',
-                            kind as PolicyOperationKind
-                        );
-                        const allows = this.getPolicyExpressions(
-                            model,
-                            'allow',
-                            kind as PolicyOperationKind
-                        );
-
                         const writeDenies = () => {
                             writer.conditionalWrite(
                                 denies.length > 1,

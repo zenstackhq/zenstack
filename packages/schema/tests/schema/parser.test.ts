@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import {
-    BinaryExpr,
-    LiteralExpr,
-    InvocationExpr,
-    DataSource,
-    DataModel,
-    Function,
-    AttributeArg,
-    Enum,
-    UnaryExpr,
-    ReferenceExpr,
     ArrayExpr,
-} from '../../src/language-server/generated/ast';
+    AttributeArg,
+    BinaryExpr,
+    DataModel,
+    DataSource,
+    Enum,
+    Function,
+    InvocationExpr,
+    LiteralExpr,
+    ReferenceExpr,
+    UnaryExpr,
+} from '@zenstackhq/language/ast';
 import { loadModel } from '../utils';
 
 describe('Parsing Tests', () => {
@@ -191,8 +192,8 @@ describe('Parsing Tests', () => {
         `;
         const doc = await loadModel(content, false);
         const models = doc.declarations as DataModel[];
-        expect(models[0].fields[1].type.reference?.ref?.name === 'Post');
-        expect(models[1].fields[1].type.reference?.ref?.name === 'User');
+        expect(models[0].fields[1].type.reference?.ref?.name).toBe('Post');
+        expect(models[1].fields[1].type.reference?.ref?.name).toBe('User');
     });
 
     it('policy expressions', async () => {

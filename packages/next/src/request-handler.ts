@@ -1,5 +1,5 @@
+import { DbClientContract, DbOperations } from '@zenstackhq/runtime';
 import { NextApiRequest, NextApiResponse } from 'next';
-import { DbOperationName, PrismaContract } from './types';
 import superjson from 'superjson';
 
 /**
@@ -36,18 +36,18 @@ export function requestHandler(
             });
             return;
         }
-        return handleRequest(req, res, prisma as PrismaContract);
+        return handleRequest(req, res, prisma as DbClientContract);
     };
 }
 
 async function handleRequest(
     req: NextApiRequest,
     res: NextApiResponse,
-    prisma: PrismaContract
+    prisma: DbClientContract
 ): Promise<void> {
     const [model, op] = req.query.path as string[];
 
-    const dbOp = op as DbOperationName;
+    const dbOp = op as keyof DbOperations;
     let args: unknown;
     let resCode = 200;
 

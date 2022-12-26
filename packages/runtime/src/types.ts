@@ -2,19 +2,21 @@
  * Weakly-typed database access methods
  */
 export interface DbOperations {
-    findMany(args: unknown): Promise<unknown[]>;
+    findMany(args?: unknown): Promise<unknown[]>;
     findFirst(args: unknown): Promise<unknown>;
+    findFirstOrThrow(args: unknown): Promise<unknown>;
     findUnique(args: unknown): Promise<unknown>;
+    findUniqueOrThrow(args: unknown): Promise<unknown>;
     create(args: unknown): Promise<unknown>;
     createMany(args: unknown, skipDuplicates?: boolean): Promise<unknown>;
     update(args: unknown): Promise<unknown>;
     updateMany(args: unknown): Promise<unknown>;
     upsert(args: unknown): Promise<unknown>;
     delete(args: unknown): Promise<unknown>;
-    deleteMany(args: unknown): Promise<unknown>;
+    deleteMany(args?: unknown): Promise<unknown>;
     aggregate(args: unknown): Promise<unknown>;
     groupBy(args: unknown): Promise<unknown>;
-    count(args: unknown): Promise<number>;
+    count(args?: unknown): Promise<number>;
 }
 
 /**

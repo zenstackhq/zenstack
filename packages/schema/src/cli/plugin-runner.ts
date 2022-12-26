@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { getDMMF } from '@prisma/internals';
+import { DMMF } from '@prisma/generator-helper';
 import { isPlugin, Plugin } from '@zenstackhq/language/ast';
 import { PluginFunction, PluginOptions } from '@zenstackhq/sdk';
 import { getLiteral, getLiteralArray } from '@zenstackhq/sdk/utils';
@@ -106,7 +107,14 @@ export class PluginRunner {
 
         const warnings: string[] = [];
 
-        const r = await prismaPlugin.run(context.schema, prismaPlugin.options);
+        const r = await this.runPlugin(
+            prismaPlugin.name,
+            prismaPlugin.run,
+            context,
+            prismaPlugin.options,
+            undefined,
+            warnings
+        );
         if (Array.isArray(r)) {
             warnings.push(...r);
         }
@@ -121,25 +129,7 @@ export class PluginRunner {
         for (const { name, run, options } of plugins.filter(
             (p) => p !== prismaPlugin
         )) {
-            const spinner = ora(`Running plugin ${colors.cyan(name)}`).start();
-            await telemetry.trackSpan(
-                'cli:plugin:start',
-                'cli:plugin:complete',
-                'cli:plugin:error',
-                {
-                    plugin: name,
-                },
-                async () => {
-                    let result = run(context.schema, options, dmmf);
-                    if (result instanceof Promise) {
-                        result = await result;
-                    }
-                    if (Array.isArray(result)) {
-                        warnings.push(...result);
-                    }
-                }
-            );
-            spinner.succeed();
+            await this.runPlugin(name, run, context, options, dmmf, warnings);
         }
 
         console.log(
@@ -149,6 +139,35 @@ export class PluginRunner {
         );
 
         warnings.forEach((w) => console.warn(colors.yellow(w)));
+    }
+
+    private async runPlugin(
+        name: string,
+        run: PluginFunction,
+        context: Context,
+        options: PluginOptions,
+        dmmf: DMMF.Document | undefined,
+        warnings: string[]
+    ) {
+        const spinner = ora(`Running plugin ${colors.cyan(name)}`).start();
+        await telemetry.trackSpan(
+            'cli:plugin:start',
+            'cli:plugin:complete',
+            'cli:plugin:error',
+            {
+                plugin: name,
+            },
+            async () => {
+                let result = run(context.schema, options, dmmf);
+                if (result instanceof Promise) {
+                    result = await result;
+                }
+                if (Array.isArray(result)) {
+                    warnings.push(...result);
+                }
+            }
+        );
+        spinner.succeed();
     }
 
     private getPluginModulePath(provider: string) {
