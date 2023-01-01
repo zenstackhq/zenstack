@@ -6,25 +6,28 @@ import { resolveField } from './model-meta';
 import { ModelMeta } from './types';
 import { Enumerable, ensureArray, getModelFields } from './utils';
 
+/**
+ * Context for visiting
+ */
 export type VisitorContext = {
+    /**
+     * Parent data, can be used to replace fields
+     */
     parent: any;
+
+    /**
+     * Current field, undefined if toplevel
+     */
     field?: FieldInfo;
-    updateStack: any[];
+
+    /**
+     * A top-down path of all update args till now
+     */
+    updatePath: any[];
 };
 
 /**
- * Visitor callback function type
- *
- * @fieldInfo current visiting field
- * @action prisma action for this field, e.g., update, create, etc.
- * @fieldData data attached to the field, a scalar type for simple field
- * and nested structure for model field
- * @parentData parent data of @see fieldData, can be used to replace current field data
- * @state a custom state
- *
- * @return if a truthy value is returned, recursive visiting will continue and the return
- * value will be used as the new state passed to visiting of the direct child level; otherwise
- * visiting is stopped at this level
+ * NestedWriteVisitor's callback actions
  */
 export type NestedWriterVisitorCallback = {
     create?: (model: string, args: any[], context: VisitorContext) => Promise<void>;
@@ -98,7 +101,7 @@ export class NestedWriteVisitor {
         data: any,
         parent: any,
         field: FieldInfo | undefined,
-        updateStack: object[]
+        updatePath: object[]
     ): Promise<void> {
         if (!data) {
             return;
@@ -106,8 +109,9 @@ export class NestedWriteVisitor {
 
         const fieldContainers: any[] = [];
         const isToOneUpdate = field?.isDataModel && !field.isArray;
-        const context = { parent, field, updateStack };
+        const context = { parent, field, updatePath };
 
+        // visit payload
         switch (action) {
             case 'create':
                 if (this.callback.create) {
@@ -137,7 +141,7 @@ export class NestedWriteVisitor {
                 if (this.callback.update) {
                     await this.callback.update(model, data, context);
                 }
-                updateStack.push(data);
+                updatePath.push(data);
                 fieldContainers.push(...ensureArray(data).map((d) => (isToOneUpdate ? d : d.data)));
                 break;
 
@@ -181,6 +185,7 @@ export class NestedWriteVisitor {
                 }
 
                 if (fieldInfo.isDataModel) {
+                    // recurse into nested payloads
                     for (const [subAction, subData] of Object.entries<any>(fieldContainer[field])) {
                         if (this.isPrismaWriteAction(subAction) && subData) {
                             await this.doVisit(
@@ -189,15 +194,16 @@ export class NestedWriteVisitor {
                                 subData,
                                 fieldContainer[field],
                                 fieldInfo,
-                                updateStack
+                                updatePath
                             );
                         }
                     }
                 } else {
+                    // visit plain field
                     if (this.callback.field) {
                         await this.callback.field(fieldInfo, action, fieldContainer[field], {
                             parent: fieldContainer,
-                            updateStack,
+                            updatePath: updatePath,
                             field: fieldInfo,
                         });
                     }

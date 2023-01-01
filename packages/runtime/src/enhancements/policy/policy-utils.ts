@@ -5,13 +5,13 @@ import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
 import { format } from 'util';
-import { AUXILIARY_FIELDS, TRANSACTION_FIELD_NAME } from '../../constants';
+import { TRANSACTION_FIELD_NAME } from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind, PrismaWriteActionType } from '../../types';
 import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate } from '../utils';
+import { enumerate, getModelFields } from '../utils';
 import { Logger } from './logger';
 
 /**
@@ -131,7 +131,7 @@ export class PolicyUtil {
             return;
         }
 
-        for (const field of this.getModelFields(injectTarget)) {
+        for (const field of getModelFields(injectTarget)) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel) {
                 // only care about relation fields
@@ -158,10 +158,6 @@ export class PolicyUtil {
         }
     }
 
-    private getModelFields(data: any) {
-        return Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f));
-    }
-
     /**
      * Post processing checks for read model entities. Validates to-one relations
      * (which can't be trimmed at query time) and removes fields that should be
@@ -179,7 +175,7 @@ export class PolicyUtil {
 
         // to-one relation data cannot be trimmed by injected guards, we have to
         // post-check them
-        for (const field of this.getModelFields(injectTarget)) {
+        for (const field of getModelFields(injectTarget)) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray || !entityData?.[field]?.id) {
                 continue;
@@ -236,7 +232,7 @@ export class PolicyUtil {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             let currField = context.field!;
 
-            for (const up of context.updateStack.slice().reverse()) {
+            for (const up of context.updatePath.slice().reverse()) {
                 // backLink field represents the field on the opposite side of the
                 // to-one relation
                 if (currField.backLink) {
@@ -287,7 +283,9 @@ export class PolicyUtil {
                     //   }
                     // }
                     // , and with this we can filter out the C entity that's going
-                    // to be nestedly updated, and check if it's allowed
+                    // to be nestedly updated, and check if it's allowed.
+                    //
+                    // The same logic applies to nested delete.
 
                     const subQuery = await buildReversedQuery(context);
                     await this.checkPolicyForFilter(model, subQuery, 'update', db);
@@ -321,6 +319,7 @@ export class PolicyUtil {
                 const isToOneDelete = context.field?.isDataModel && !context.field.isArray;
 
                 if (isToOneDelete) {
+                    // see comments in processUpdate
                     const subQuery = await buildReversedQuery(context);
                     await this.checkPolicyForFilter(model, subQuery, 'delete', db);
                 } else {

@@ -7,6 +7,9 @@ import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 import { ModelMeta } from './types';
 import { ensureArray, getModelFields } from './utils';
 
+/**
+ * Gets an enhanced Prisma client that supports @omit attribute.
+ */
 export function withOmit<DbClient extends object>(prisma: DbClient, modelMeta?: ModelMeta): DbClient {
     return makeProxy(
         prisma,

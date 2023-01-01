@@ -5,7 +5,7 @@ import { getLiteral, resolved } from '@zenstackhq/sdk/utils';
 import { camelCase } from 'change-case';
 import path from 'path';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
-import { ensureFolder, getNodeModulesFolder } from '../plugin-utils';
+import { ensureNodeModuleFolder, getNodeModulesFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
 
@@ -26,7 +26,7 @@ export default async function run(model: Model, options: PluginOptions) {
     const project = new Project();
 
     if (!options.output) {
-        ensureFolder(output);
+        ensureNodeModuleFolder(output);
     }
 
     const sf = project.createSourceFile(path.join(output, 'model-meta.ts'), undefined, { overwrite: true });

@@ -60,8 +60,6 @@ export default class PolicyGuardGenerator {
                     name: 'policy',
                     initializer: (writer) => {
                         writer.block(() => {
-                            // this.generateFieldMapping(models, writer);
-
                             writer.write('guard:'),
                                 writer.block(() => {
                                     for (const [model, map] of Object.entries(policyMap)) {

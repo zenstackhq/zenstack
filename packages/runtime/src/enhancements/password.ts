@@ -9,6 +9,9 @@ import { NestedWriteVisitor } from './nested-write-vistor';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 import { ModelMeta } from './types';
 
+/**
+ * Gets an enhanced Prisma client that supports @password attribute.
+ */
 export function withPassword<DbClient extends object = any>(prisma: DbClient, modelMeta?: ModelMeta): DbClient {
     return makeProxy(
         prisma,
@@ -21,6 +24,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
         super(prisma, model);
     }
 
+    // base override
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
         const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
         if (args && args.data && actionsOfInterest.includes(action)) {

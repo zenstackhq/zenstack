@@ -2,8 +2,14 @@
 
 import { DbClientContract } from '../types';
 
+/**
+ * Prisma batch write operation result
+ */
 export type BatchResult = { count: number };
 
+/**
+ * Interface for proxy that intercepts Prisma operations.
+ */
 export interface PrismaProxyHandler {
     findUnique(args: any): Promise<unknown | null>;
 
@@ -36,8 +42,16 @@ export interface PrismaProxyHandler {
     count(args: any): Promise<unknown | number>;
 }
 
+/**
+ * All Prisma operation names
+ */
 export type PrismaProxyActions = keyof PrismaProxyHandler;
 
+/**
+ * A default implementation of @see PrismaProxyHandler which directly
+ * delegates to the wrapped Prisma client. It offers a few overridable
+ * methods to allow more easily inject custom logic.
+ */
 export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     constructor(protected readonly prisma: DbClientContract, protected readonly model: string) {}
 
@@ -125,15 +139,24 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         return this.prisma[this.model].count(args);
     }
 
+    /**
+     * Processes result entities before they're returned
+     */
     protected async processResultEntity<T>(data: T): Promise<T> {
         return data;
     }
 
+    /**
+     * Processes query args before they're passed to Prisma.
+     */
     protected async preprocessArgs(method: PrismaProxyActions, args: any) {
         return args;
     }
 }
 
+/**
+ * Makes a Prisma client proxy.
+ */
 export function makeProxy<T extends PrismaProxyHandler>(
     prisma: any,
     makeHandler: (prisma: object, model: string) => T
@@ -141,6 +164,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
     return new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             if (typeof prop !== 'string' || prop.startsWith('$') || prop.startsWith('_engine')) {
+                // skip internal fields
                 return Reflect.get(target, prop, receiver);
             }
 
