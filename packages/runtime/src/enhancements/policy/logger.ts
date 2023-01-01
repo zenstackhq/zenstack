@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { EventEmitter } from 'stream';
 
+/**
+ * A logger that uses an existing Prisma client to emit.
+ */
 export class Logger {
     constructor(private readonly prisma: any) {}
 

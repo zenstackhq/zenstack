@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { PrismaClientValidationError } from '@prisma/client/runtime';
-import cuid from 'cuid';
-import superjson from 'superjson';
-import { BatchResult, PrismaProxyHandler } from '../enhancements/proxy';
-import { ModelMeta, PolicyDef } from '../enhancements/types';
-import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../types';
+import { format } from 'util';
+import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
+import { BatchResult, PrismaProxyHandler } from '../proxy';
+import { ModelMeta, PolicyDef } from '../types';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
 
 /**
- * Request handler for /data endpoint which processes data CRUD requests.
+ * Prisma proxy handler for injecting access policy check.
  */
-export class PrismaModelHandler<DbClient extends DbClientContract> implements PrismaProxyHandler {
+export class PolicyProxyHandler<DbClient extends DbClientContract> implements PrismaProxyHandler {
     private readonly logger: Logger;
     private readonly utils: PolicyUtil;
 
@@ -37,7 +37,6 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
         if (!args.where) {
             throw new PrismaClientValidationError('where field is required in query argument');
         }
-        args = this.utils.clone(args);
 
         const entities = await this.utils.readWithCheck(this.model, args);
         return entities[0] ?? null;
@@ -52,7 +51,6 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findFirst(args: any) {
-        args = this.utils.clone(args);
         const entities = await this.utils.readWithCheck(this.model, args);
         return entities[0] ?? null;
     }
@@ -66,7 +64,6 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findMany(args: any) {
-        args = this.utils.clone(args);
         return this.utils.readWithCheck(this.model, args);
     }
 
@@ -82,25 +79,18 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
 
         const origArgs = args;
         args = this.utils.clone(args);
-        const transactionId = cuid();
 
-        const result: any = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
-            return this.utils.processWritePayload(this.model, 'create', args, tx, transactionId, () =>
-                tx[this.model].create(args)
-            );
+        // use a transaction to wrap the write so it can be reverted if the created
+        // entity fails access policies
+        const result: any = await this.prisma.$transaction(async (tx) => {
+            return this.utils.processWrite(this.model, 'create', args, tx, () => tx[this.model].create(args));
         });
 
         if (!result.id) {
-            throw new Error(`unexpected error: create didn't return an id`);
+            throw this.utils.unknownError(`unexpected error: create didn't return an id`);
         }
 
-        // verify that return data requested by query args pass policy check
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { data, ...restArgs } = origArgs;
-        const readArgs = { ...restArgs, where: { id: result.id } };
-
-        return this.checkReadback(readArgs, 'create', 'create');
+        return this.checkReadback(origArgs, result.id, 'create', 'create');
     }
 
     async createMany(args: any, skipDuplicates?: boolean) {
@@ -114,10 +104,11 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
         await this.tryReject('create');
 
         args = this.utils.clone(args);
-        const transactionId = cuid();
 
-        const result = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
-            return await this.utils.processWritePayload(this.model, 'create', args, tx, transactionId, () =>
+        // use a transaction to wrap the write so it can be reverted if any created
+        // entity fails access policies
+        const result = await this.prisma.$transaction(async (tx) => {
+            return await this.utils.processWrite(this.model, 'create', args, tx, () =>
                 tx[this.model].createMany(args, skipDuplicates)
             );
         });
@@ -140,22 +131,17 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
 
         const origArgs = args;
         args = this.utils.clone(args);
-        const transactionId = cuid();
 
-        const result: any = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
-            return this.utils.processWritePayload(this.model, 'update', args, tx, transactionId, async () =>
-                tx[this.model].update(args)
-            );
+        // use a transaction to wrap the write so it can be reverted if any nested
+        // create fails access policies
+        const result: any = await this.prisma.$transaction(async (tx) => {
+            return this.utils.processWrite(this.model, 'update', args, tx, async () => tx[this.model].update(args));
         });
 
         if (!result.id) {
-            throw new Error(`unexpected error: update didn't return an id`);
+            throw this.utils.unknownError(`unexpected error: update didn't return an id`);
         }
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { data, ...restArgs } = origArgs;
-        const readArgs = { ...restArgs, where: { id: result.id } };
-        return this.checkReadback(readArgs, 'update', 'update');
+        return this.checkReadback(origArgs, result.id, 'update', 'update');
     }
 
     async updateMany(args: any) {
@@ -169,12 +155,11 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
         await this.tryReject('update');
 
         args = this.utils.clone(args);
-        const transactionId = cuid();
 
-        const result = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
-            return this.utils.processWritePayload(this.model, 'updateMany', args, tx, transactionId, () =>
-                tx[this.model].updateMany(args)
-            );
+        // use a transaction to wrap the write so it can be reverted if any nested
+        // create fails access policies
+        const result = await this.prisma.$transaction(async (tx) => {
+            return this.utils.processWrite(this.model, 'updateMany', args, tx, () => tx[this.model].updateMany(args));
         });
 
         return result as BatchResult;
@@ -194,31 +179,23 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
             throw new PrismaClientValidationError('update field is required in query argument');
         }
 
+        const origArgs = args;
         args = this.utils.clone(args);
 
         await this.tryReject('create');
         await this.tryReject('update');
 
-        const transactionId = cuid();
-
-        const result: any = await this.prisma.$transaction(async (tx: Record<string, DbOperations>) => {
-            return this.utils.processWritePayload(this.model, 'upsert', args, tx, transactionId, () =>
-                tx[this.model].upsert(args)
-            );
+        // use a transaction to wrap the write so it can be reverted if any nested
+        // create fails access policies
+        const result: any = await this.prisma.$transaction(async (tx) => {
+            return this.utils.processWrite(this.model, 'upsert', args, tx, () => tx[this.model].upsert(args));
         });
 
         if (!result.id) {
-            throw new Error(`unexpected error: upsert didn't return an id`);
+            throw this.utils.unknownError(`unexpected error: upsert didn't return an id`);
         }
 
-        // verify that the upserted data requested by query args pass policy check
-        // note that there's no direct way to know if create or update happened,
-        // but since only one can happen, we can use transaction id to filter distinctively
-
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { create, update, ...restArgs } = args;
-        const readArgs = { ...restArgs, where: { id: result.id } };
-        return this.checkReadback(readArgs, 'upsert', 'update');
+        return this.checkReadback(origArgs, result.id, 'upsert', 'update');
     }
 
     async delete(args: any) {
@@ -231,11 +208,10 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
 
         await this.tryReject('delete');
 
-        args = this.utils.clone(args);
-
         // ensures the item under deletion passes policy check
         await this.utils.checkPolicyForFilter(this.model, args.where, 'delete', this.prisma);
 
+        // read the entity under deletion with respect to read policies
         let readResult: any;
         try {
             const items = await this.utils.readWithCheck(this.model, args);
@@ -246,11 +222,11 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
         }
 
         // conduct the deletion
-        this.logger.info(`Conducting delete ${this.model}:\n${superjson.stringify(args)}`);
+        this.logger.info(`Conducting delete ${this.model}:\n${format(args)}`);
         await this.modelClient.delete(args);
 
         if (!readResult) {
-            throw this.utils.deniedByPolicy(this.model, 'delete');
+            throw this.utils.deniedByPolicy(this.model, 'delete', 'result not readable');
         } else {
             return readResult;
         }
@@ -259,11 +235,12 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
     async deleteMany(args: any) {
         await this.tryReject('delete');
 
-        args = this.utils.clone(args);
+        // inject policy conditions
+        args = args ?? {};
         await this.utils.injectAuthGuard(args, this.model, 'delete');
 
         // conduct the deletion
-        this.logger.info(`Conducting deleteMany ${this.model}:\n${superjson.stringify(args)}`);
+        this.logger.info(`Conducting deleteMany ${this.model}:\n${format(args)}`);
         return this.modelClient.deleteMany(args);
     }
 
@@ -272,11 +249,10 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
             throw new PrismaClientValidationError('query argument is required');
         }
 
-        args = this.utils.clone(args);
-
         await this.tryReject('read');
-        await this.utils.injectAuthGuard(args, this.model, 'read');
 
+        // inject policy conditions
+        await this.utils.injectAuthGuard(args, this.model, 'read');
         return this.modelClient.aggregate(args);
     }
 
@@ -285,20 +261,20 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
             throw new PrismaClientValidationError('query argument is required');
         }
 
-        args = this.utils.clone(args);
-
         await this.tryReject('read');
+
+        // inject policy conditions
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
         return this.modelClient.groupBy(args);
     }
 
     async count(args: any) {
-        args = args ? this.utils.clone(args) : args;
-
         await this.tryReject('read');
-        await this.utils.injectAuthGuard(args, this.model, 'read');
 
+        // inject policy conditions
+        args = args ?? {};
+        await this.utils.injectAuthGuard(args, this.model, 'read');
         return this.modelClient.count(args);
     }
 
@@ -309,13 +285,14 @@ export class PrismaModelHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private async checkReadback(readArgs: any, action: string, operation: PolicyOperationKind) {
+    private async checkReadback(origArgs: any, id: string, action: string, operation: PolicyOperationKind) {
+        const readArgs = { select: origArgs.select, include: origArgs.include, where: { id } };
         const result = await this.utils.readWithCheck(this.model, readArgs);
         if (result.length === 0) {
             this.logger.warn(`${action} result cannot be read back`);
-            throw this.utils.deniedByPolicy(this.model, operation);
+            throw this.utils.deniedByPolicy(this.model, operation, 'result not readable');
         } else if (result.length > 1) {
-            throw new Error('update unexpected resulted in multiple readback entities');
+            throw this.utils.unknownError('write unexpected resulted in multiple readback entities');
         }
         return result[0];
     }

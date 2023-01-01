@@ -14,5 +14,4 @@ coverage
 .vscode
 
 samples/todo/lib/hooks
-samples/todo/server/policy
 samples/todo/server/routers/generated

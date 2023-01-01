@@ -1,20 +1,22 @@
-/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
 import { camelCase } from 'change-case';
+import cuid from 'cuid';
 import deepcopy from 'deepcopy';
-import superjson from 'superjson';
-import { AUXILIARY_FIELDS, TRANSACTION_FIELD_NAME } from '../constants';
-import { resolveField } from '../enhancements/model-meta';
-import { NestedWriteVisitor, VisitorContext } from '../enhancements/nested-write-vistor';
-import { ModelMeta, PolicyDef, PolicyFunc } from '../enhancements/types';
-import { enumerate } from '../enhancements/utils';
-import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind, PrismaWriteActionType } from '../types';
-import { getVersion } from '../version';
+import { format } from 'util';
+import { AUXILIARY_FIELDS, TRANSACTION_FIELD_NAME } from '../../constants';
+import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind, PrismaWriteActionType } from '../../types';
+import { getVersion } from '../../version';
+import { resolveField } from '../model-meta';
+import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
+import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
+import { enumerate } from '../utils';
 import { Logger } from './logger';
 
-//#region General helpers
-
+/**
+ * Access policy enforcement utilities
+ */
 export class PolicyUtil {
     private readonly logger: Logger;
 
@@ -65,12 +67,16 @@ export class PolicyUtil {
         }
     }
 
+    /**
+     * Gets pregenerated authorization guard object for a given model and operation.
+     *
+     * @returns true if operation is unconditionally allowed, false if unconditionally denied,
+     * otherwise returns a guard object
+     */
     async getAuthGuard(model: string, operation: PolicyOperationKind): Promise<boolean | object> {
         const guard = this.policy.guard[camelCase(model)];
         if (!guard) {
-            throw new PrismaClientUnknownRequestError(`zenstack: unable to load authorization guard for ${model}`, {
-                clientVersion: getVersion(),
-            });
+            throw this.unknownError(model);
         }
 
         if (guard.allowAll === true) {
@@ -83,13 +89,14 @@ export class PolicyUtil {
 
         const provider: PolicyFunc | undefined = guard[operation];
         if (!provider) {
-            throw new PrismaClientUnknownRequestError(`zenstack: unable to load authorization query for ${model}`, {
-                clientVersion: getVersion(),
-            });
+            throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
         return provider({ user: this.user });
     }
 
+    /**
+     * Injects model auth guard as where clause.
+     */
     async injectAuthGuard(args: any, model: string, operation: PolicyOperationKind) {
         const guard = await this.getAuthGuard(model, operation);
         args.where = this.and(args.where, guard);
@@ -101,14 +108,7 @@ export class PolicyUtil {
      *
      * For to-many relations involved, items not satisfying policy are
      * silently trimmed. For to-one relation, if relation data fails policy
-     * an CRUDError is thrown.
-     *
-     * @param model the model to query for
-     * @param args the Prisma query args
-     * @param service the ZenStack service
-     * @param context the query context
-     * @param db the db (or transaction)
-     * @returns
+     * an error is thrown.
      */
     async readWithCheck(model: string, args: any): Promise<unknown[]> {
         args = this.clone(args);
@@ -117,7 +117,7 @@ export class PolicyUtil {
         // recursively inject read guard conditions into the query args
         await this.injectNestedReadConditions(model, args);
 
-        this.logger.info(`Reading with validation for ${model}: ${superjson.stringify(args)}`);
+        this.logger.info(`Reading with validation for ${model}: ${format(args)}`);
         const result: any[] = await this.db[model].findMany(args);
 
         await Promise.all(result.map((item) => this.postProcessForRead(item, model, args, 'read')));
@@ -163,9 +163,8 @@ export class PolicyUtil {
     }
 
     /**
-     * Post processing checks for read model entities.
-     * Validates to-one relations (which can't be trimmed
-     * at query time) and removes fields that should be
+     * Post processing checks for read model entities. Validates to-one relations
+     * (which can't be trimmed at query time) and removes fields that should be
      * omitted.
      */
     async postProcessForRead(entityData: any, model: string, args: any, operation: PolicyOperationKind) {
@@ -195,39 +194,63 @@ export class PolicyUtil {
         }
     }
 
-    async processWritePayload(
+    /**
+     * Process Prisma write actions.
+     */
+    async processWrite(
         model: string,
         action: PrismaWriteActionType,
         args: any,
         db: Record<string, DbOperations>,
-        transactionId: string,
         writeAction: () => Promise<unknown>
     ) {
+        // record model types for which new entities are created
+        // so we can post-check if they satisfy 'create' policies
         const createdModels = new Set<string>();
-        // const updateModels = new Map<string, Map<string, any>>();
-        // const deletedModels = new Set<string>();
 
         if (args.select && !args.select.id) {
-            // make sure 'id' field is selected
+            // make sure 'id' field is selected, we need it to
+            // read back the updated entity
             args.select.id = true;
         }
 
-        const processCreate = async (model: string, args: any, context: VisitorContext) => {
+        // use a transaction to conduct write, so in case any create or nested create
+        // fails access policies, we can roll back the entire operation
+        const transactionId = cuid();
+
+        // args processor for create
+        const processCreate = async (model: string, args: any) => {
             const guard = await this.getAuthGuard(model, 'create');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'create');
             } else if (guard !== true) {
-                if (!context.field) {
-                    // toplevel create, mark
-                    args[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
-                } else {
-                    // non-toplevel create, mark
-                    args[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
-                }
+                // mark the create with a transaction tag so we can check them later
+                args[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
                 createdModels.add(model);
             }
         };
 
+        const buildReversedQuery = async (context: VisitorContext) => {
+            const subQuery: any = {};
+            let curr = subQuery;
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            let currField = context.field!;
+
+            for (const up of context.updateStack.slice().reverse()) {
+                // backLink field represents the field on the opposite side of the
+                // to-one relation
+                if (currField.backLink) {
+                    curr[currField.backLink] = { ...up.where };
+                    curr = curr[currField.backLink];
+                    currField = await resolveField(this.modelMeta, currField.type, currField.backLink);
+                } else {
+                    throw this.unknownError(`Field ${currField.type}.${currField.name} doens't have a backLink`);
+                }
+            }
+            return subQuery;
+        };
+
+        // args processor for update/upsert
         const processUpdate = async (model: string, args: any, context: VisitorContext) => {
             const guard = await this.getAuthGuard(model, 'update');
             if (guard === false) {
@@ -236,40 +259,60 @@ export class PolicyUtil {
                 const isToOneUpdate = context.field?.isDataModel && !context.field.isArray;
 
                 if (isToOneUpdate) {
-                    const subQuery: any = {};
-                    let curr = subQuery;
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    let currField = context.field!;
+                    // To-one relation field is complicated because there's no way to
+                    // filter it during update (args doesn't carry a 'where' clause).
+                    //
+                    // We need to recursively walk up its hierarcy in the query args
+                    // to construct a reversed query to identify the nested entity
+                    // under update, and then check if it satisfies policy.
+                    //
+                    // E.g.:
+                    // A - B - C
+                    //
+                    // update A with:
+                    // {
+                    //   where: { id: 'aId' },
+                    //   data: {
+                    //     b: {
+                    //       c: { value: 1 }
+                    //     }
+                    //   }
+                    // }
+                    //
+                    // To check if the update to 'c' field is permitted, we
+                    // reverse the query stack into a filter for C model, like:
+                    // {
+                    //   where: {
+                    //     b: { a: { id: 'aId' } }
+                    //   }
+                    // }
+                    // , and with this we can filter out the C entity that's going
+                    // to be nestedly updated, and check if it's allowed
 
-                    for (const up of [...context.updateStack].reverse()) {
-                        if (currField.backLink) {
-                            curr[currField.backLink] = { ...up.where };
-                            curr = curr[currField.backLink];
-                            currField = await resolveField(this.modelMeta, currField.type, currField.backLink);
-                        } else {
-                            throw new Error('unexpected update stack');
-                        }
-                    }
+                    const subQuery = await buildReversedQuery(context);
                     await this.checkPolicyForFilter(model, subQuery, 'update', db);
                 } else {
+                    // non-nested update, check policies directly
                     if (!args.where) {
-                        throw new Error(`Missing 'where' in update args`);
+                        throw this.unknownError(`Missing 'where' in update args`);
                     }
                     await this.checkPolicyForFilter(model, args.where, 'update', db);
                 }
             }
         };
 
-        const processUpdateMany = async (model: string, args: any, _context: VisitorContext) => {
+        // args processor for updateMany
+        const processUpdateMany = async (model: string, args: any) => {
             const guard = await this.getAuthGuard(model, 'update');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'update');
             } else if (guard !== true) {
+                // inject policy filter
                 await this.injectAuthGuard(args, model, 'update');
-                // args.data = { ...args.data, [TRANSACTION_FIELD_NAME]: `${transactionId}:update` };
             }
         };
 
+        // args processor for delete
         const processDelete = async (model: string, args: any, context: VisitorContext) => {
             const guard = await this.getAuthGuard(model, 'delete');
             if (guard === false) {
@@ -278,20 +321,7 @@ export class PolicyUtil {
                 const isToOneDelete = context.field?.isDataModel && !context.field.isArray;
 
                 if (isToOneDelete) {
-                    const subQuery: any = {};
-                    let curr = subQuery;
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    let currField = context.field!;
-
-                    for (const up of [...context.updateStack].reverse()) {
-                        if (currField.backLink) {
-                            curr[currField.backLink] = { ...up.where };
-                            curr = curr[currField.backLink];
-                            currField = await resolveField(this.modelMeta, currField.type, currField.backLink);
-                        } else {
-                            throw new Error('unexpected update stack');
-                        }
-                    }
+                    const subQuery = await buildReversedQuery(context);
                     await this.checkPolicyForFilter(model, subQuery, 'delete', db);
                 } else {
                     await this.checkPolicyForFilter(model, args, 'delete', db);
@@ -299,17 +329,18 @@ export class PolicyUtil {
             }
         };
 
+        // use a visitor to process args before conducting the write action
         const visitor = new NestedWriteVisitor(this.modelMeta, {
-            create: async (model, args, context) => {
+            create: async (model, args) => {
                 for (const oneArgs of enumerate(args)) {
-                    await processCreate(model, oneArgs, context);
+                    await processCreate(model, oneArgs);
                 }
             },
 
-            connectOrCreate: async (model, args, context) => {
+            connectOrCreate: async (model, args) => {
                 for (const oneArgs of enumerate(args)) {
                     if (oneArgs.create) {
-                        await processCreate(model, oneArgs.create, context);
+                        await processCreate(model, oneArgs.create);
                     }
                 }
             },
@@ -320,16 +351,16 @@ export class PolicyUtil {
                 }
             },
 
-            updateMany: async (model, args, context) => {
+            updateMany: async (model, args) => {
                 for (const oneArgs of enumerate(args)) {
-                    await processUpdateMany(model, oneArgs, context);
+                    await processUpdateMany(model, oneArgs);
                 }
             },
 
             upsert: async (model, args, context) => {
                 for (const oneArgs of enumerate(args)) {
                     if (oneArgs.create) {
-                        await processCreate(model, oneArgs.create, context);
+                        await processCreate(model, oneArgs.create);
                     }
 
                     if (oneArgs.update) {
@@ -360,18 +391,16 @@ export class PolicyUtil {
 
         await visitor.visit(model, action, args);
 
+        // proceed with the update (with args processed)
         const result = await writeAction();
 
+        // do post-check on created entities
         if (createdModels.size > 0) {
             await Promise.all(
                 [...createdModels].map((model) =>
                     this.checkPolicyForFilter(
                         model,
-                        {
-                            [TRANSACTION_FIELD_NAME]: {
-                                in: [`${transactionId}:create`],
-                            },
-                        },
+                        { [TRANSACTION_FIELD_NAME]: `${transactionId}:create` },
                         'create',
                         db
                     )
@@ -395,6 +424,16 @@ export class PolicyUtil {
         });
     }
 
+    unknownError(message: string) {
+        return new PrismaClientUnknownRequestError(message, {
+            clientVersion: getVersion(),
+        });
+    }
+
+    /**
+     * Given a filter, check if applying access policy filtering will result
+     * in data being trimmed, and if so, throw an error.
+     */
     async checkPolicyForFilter(
         model: string,
         filter: any,
@@ -417,10 +456,11 @@ export class PolicyUtil {
             this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
             throw this.deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
         }
-
-        return count;
     }
 
+    /**
+     * Clones an object and makes sure it's not empty.
+     */
     clone(value: unknown) {
         return value ? deepcopy(value) : {};
     }

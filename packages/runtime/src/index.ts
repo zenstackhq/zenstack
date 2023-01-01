@@ -1,4 +1,4 @@
 export * from './enhancements';
-export * from './policy';
+export * from './enhancements/policy';
 export * from './types';
 export * from './validation';
