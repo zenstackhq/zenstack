@@ -5,6 +5,11 @@ import { Command, Option } from 'commander';
 import telemetry from '../telemetry';
 import { PackageManagers } from '../utils/pkg-utils';
 import { initProject, runPlugins } from './cli-util';
+import * as semver from 'semver';
+import { CliError } from './cli-error';
+
+// required minimal version of Prisma
+export const requiredPrismaVersion = '4.0.0';
 
 export const initAction = async (
     projectPath: string,
@@ -25,6 +30,8 @@ export const generateAction = async (options: {
     schema: string;
     packageManager: PackageManagers | undefined;
 }): Promise<void> => {
+    checkRequiredPackage('prisma', requiredPrismaVersion);
+    checkRequiredPackage('@prisma/client', requiredPrismaVersion);
     await telemetry.trackSpan(
         'cli:command:start',
         'cli:command:complete',
@@ -32,6 +39,26 @@ export const generateAction = async (options: {
         { command: 'generate' },
         () => runPlugins(options)
     );
+};
+
+const checkRequiredPackage = (packageName: string, minVersion?: string) => {
+    let packageVersion: string;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        packageVersion = require(`${packageName}/package.json`).version;
+    } catch (error) {
+        console.error(colors.red(`${packageName} not found, please install it`));
+        throw new CliError(`${packageName} not found`);
+    }
+
+    if (minVersion && semver.lt(packageVersion, minVersion)) {
+        console.error(
+            colors.red(
+                `${packageName} needs to be above ${minVersion}, the installed version is ${packageVersion}, please upgrade it`
+            )
+        );
+        throw new CliError(`${packageName} version is too low`);
+    }
 };
 
 export default async function (): Promise<void> {
