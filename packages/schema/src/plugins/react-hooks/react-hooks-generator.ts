@@ -1,9 +1,9 @@
-import { DataModel, isDataModel, Model } from '@zenstackhq/language/ast';
+import { DataModel, Model, isDataModel } from '@zenstackhq/language/ast';
 import { PluginOptions } from '@zenstackhq/sdk';
 import { paramCase } from 'change-case';
 import * as path from 'path';
 import { Project } from 'ts-morph';
-import { RUNTIME_PACKAGE } from '../constants';
+import { RUNTIME_PACKAGE } from '../plugin-utils';
 
 export async function generate(model: Model, options: PluginOptions) {
     const project = new Project();

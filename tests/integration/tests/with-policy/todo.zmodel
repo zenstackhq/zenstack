@@ -12,10 +12,16 @@ generator js {
     output = '../.prisma'
 }
 
+plugin meta {
+    provider = '@zenstack/model-meta'
+    output = '.zenstack'
+}
+
 plugin policy {
     provider = '@zenstack/access-policy'
-    output = 'policy'
+    output = '.zenstack'
 }
+
 
 /*
  * Model for a space in which users can collaborate on Lists and Todos

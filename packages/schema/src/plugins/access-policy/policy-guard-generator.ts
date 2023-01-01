@@ -1,22 +1,15 @@
-import {
-    DataModel,
-    DataModelField,
-    Model,
-    isDataModel,
-    isEnum,
-    isInvocationExpr,
-    isLiteralExpr,
-} from '@zenstackhq/language/ast';
-import { PolicyKind, PolicyOperationKind, RuntimeAttribute } from '@zenstackhq/runtime';
+import { DataModel, Model, isDataModel, isEnum, isInvocationExpr, isLiteralExpr } from '@zenstackhq/language/ast';
+import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import { GUARD_FIELD_NAME, PluginOptions } from '@zenstackhq/sdk';
 import { resolved } from '@zenstackhq/sdk/utils';
 import { camelCase } from 'change-case';
-import path from 'path';
-import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
-import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE } from '../constants';
-import { ExpressionWriter } from './expression-writer';
 import { streamAllContents } from 'langium';
+import path from 'path';
+import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { name } from '.';
 import { analyzePolicies } from '../../utils/ast-utils';
+import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getNodeModulesFolder } from '../plugin-utils';
+import { ExpressionWriter } from './expression-writer';
 
 const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 
@@ -25,9 +18,19 @@ const UNKNOWN_USER_ID = 'zenstack_unknown_user';
  */
 export default class PolicyGuardGenerator {
     async generate(model: Model, options: PluginOptions) {
+        const modulesFolder = getNodeModulesFolder();
+        const output = options.output
+            ? (options.output as string)
+            : modulesFolder
+            ? path.join(modulesFolder, '.zenstack')
+            : undefined;
+        if (!output) {
+            console.error(`Unable to determine output path, not running plugin ${name}`);
+            return;
+        }
+
         const project = new Project();
-        const outDir = (options.output as string) ?? 'node_modules/.zenstack/src';
-        const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
+        const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'QueryContext' }],
@@ -57,8 +60,6 @@ export default class PolicyGuardGenerator {
                     name: 'policy',
                     initializer: (writer) => {
                         writer.block(() => {
-                            this.generateFieldMapping(models, writer);
-
                             writer.write('guard:'),
                                 writer.block(() => {
                                     for (const [model, map] of Object.entries(policyMap)) {
@@ -81,50 +82,7 @@ export default class PolicyGuardGenerator {
 
         sf.formatText();
         await project.save();
-    }
-
-    private generateFieldMapping(models: DataModel[], writer: CodeBlockWriter) {
-        writer.write('fieldMapping:');
-        writer.block(() => {
-            for (const model of models) {
-                writer.write(`${camelCase(model.name)}:`);
-                writer.block(() => {
-                    for (const f of model.fields) {
-                        writer.write(`${f.name}: {
-                        name: "${f.name}",
-                        type: "${
-                            f.type.reference
-                                ? f.type.reference.$refText
-                                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                  f.type.type!
-                        }",
-                        isDataModel: ${isDataModel(f.type.reference?.ref)},
-                        isArray: ${f.type.array},
-                        isOptional: ${f.type.optional},
-                        attributes: ${JSON.stringify(this.getFieldAttributes(f))},    
-                    },`);
-                    }
-                });
-                writer.write(',');
-            }
-        });
-        writer.write(',');
-    }
-
-    private getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
-        return field.attributes
-            .map((attr) => {
-                const args: Array<{ name?: string; value: unknown }> = [];
-                for (const arg of attr.args) {
-                    if (!isLiteralExpr(arg.value)) {
-                        // attributes with non-literal args are skipped
-                        return undefined;
-                    }
-                    args.push({ name: arg.name, value: arg.value.value });
-                }
-                return { name: resolved(attr.decl).name, args };
-            })
-            .filter((d): d is RuntimeAttribute => !!d);
+        await project.emit();
     }
 
     private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {

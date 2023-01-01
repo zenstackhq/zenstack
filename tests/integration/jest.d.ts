@@ -4,6 +4,7 @@ interface CustomMatchers<R = unknown> {
     toResolveTruthy(): Promise<R>;
     toResolveFalsy(): Promise<R>;
     toResolveNull(): Promise<R>;
+    toBeRejectedWithCode(code: string): Promise<R>;
 }
 declare global {
     namespace jest {

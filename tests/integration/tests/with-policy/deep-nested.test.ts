@@ -1,7 +1,7 @@
 import path from 'path';
 import { MODEL_PRELUDE, WeakDbClientContract, loadPrisma } from '../../utils';
 
-describe('Operation Coverage: deep nested', () => {
+describe('With Policy:deep nested', () => {
     let origDir: string;
     const suite = 'deep-nested';
 
@@ -192,23 +192,20 @@ describe('Operation Coverage: deep nested', () => {
         ).toBeRejectedByPolicy();
 
         // create read-back filter: M4 @@deny('read', value == 200)
-        expect(
-            (
-                await db.m1.create({
-                    include: { m2: { include: { m4: true } } },
-                    data: {
-                        m2: {
-                            create: {
-                                value: 1,
-                                m4: {
-                                    create: [{ value: 200 }, { value: 201 }],
-                                },
-                            },
+        const r1 = await db.m1.create({
+            include: { m2: { include: { m4: true } } },
+            data: {
+                m2: {
+                    create: {
+                        value: 1,
+                        m4: {
+                            create: [{ value: 200 }, { value: 201 }],
                         },
                     },
-                })
-            ).m2.m4
-        ).toHaveLength(1);
+                },
+            },
+        });
+        expect(r1.m2.m4).toHaveLength(1);
 
         // create read-back rejection: M3 @@deny('read', value == 200)
         await expect(
@@ -234,8 +231,8 @@ describe('Operation Coverage: deep nested', () => {
         });
 
         // success
-        expect(
-            await db.m1.update({
+        await expect(
+            db.m1.update({
                 where: { id: '1' },
                 include: { m2: { include: { m3: true, m4: true } } },
                 data: {
@@ -256,7 +253,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        ).toBeTruthy();
+        ).toResolveTruthy();
 
         // deep update with connect/disconnect/delete success
         await db.m4.create({
@@ -284,8 +281,8 @@ describe('Operation Coverage: deep nested', () => {
         expect(r.m2.m4[0].id).toBe('m4-3');
 
         // reconnect m14-1, create m14-2
-        expect(
-            await db.m1.update({
+        await expect(
+            db.m1.update({
                 where: { id: '1' },
                 include: { m2: { include: { m4: true } } },
                 data: {
@@ -299,7 +296,7 @@ describe('Operation Coverage: deep nested', () => {
                     },
                 },
             })
-        ).toBeTruthy();
+        ).toResolveTruthy();
 
         // deep update violation
         await expect(

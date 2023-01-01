@@ -8,15 +8,15 @@ export interface DbOperations {
     findUnique(args: unknown): Promise<unknown>;
     findUniqueOrThrow(args: unknown): Promise<unknown>;
     create(args: unknown): Promise<unknown>;
-    createMany(args: unknown, skipDuplicates?: boolean): Promise<unknown>;
+    createMany(args: unknown, skipDuplicates?: boolean): Promise<{ count: number }>;
     update(args: unknown): Promise<unknown>;
-    updateMany(args: unknown): Promise<unknown>;
+    updateMany(args: unknown): Promise<{ count: number }>;
     upsert(args: unknown): Promise<unknown>;
     delete(args: unknown): Promise<unknown>;
-    deleteMany(args?: unknown): Promise<unknown>;
+    deleteMany(args?: unknown): Promise<{ count: number }>;
     aggregate(args: unknown): Promise<unknown>;
     groupBy(args: unknown): Promise<unknown>;
-    count(args?: unknown): Promise<number>;
+    count(args?: unknown): Promise<unknown>;
 }
 
 /**
@@ -61,6 +61,7 @@ export type FieldInfo = {
     isArray: boolean;
     isOptional: boolean;
     attributes: RuntimeAttribute[];
+    backLink?: string;
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
@@ -95,8 +96,6 @@ export const PrismaWriteActions = [
     'upsert',
     'delete',
     'deleteMany',
-    'connect',
-    'none',
 ] as const;
 
 export type PrismaWriteActionType = typeof PrismaWriteActions[number];

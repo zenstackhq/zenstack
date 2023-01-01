@@ -1,8 +1,29 @@
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
-import { AuthUser, DbOperations, withPolicy } from '@zenstackhq/runtime';
+import { AuthUser, DbOperations, withOmit, withPassword, withPolicy } from '@zenstackhq/runtime';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+
+export const MODEL_PRELUDE = `
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./operations.db'
+}
+
+generator js {
+    provider = 'prisma-client-js'
+    output = '../.prisma'
+}
+
+plugin meta {
+    provider = '@zenstack/model-meta'
+    output = '.zenstack'
+}
+
+plugin policy {
+    provider = '@zenstack/access-policy'
+    output = '.zenstack'
+}
+`;
 
 export function run(cmd: string) {
     execSync(cmd, {
@@ -32,16 +53,21 @@ export async function loadPrisma(testName: string, model: string) {
     }
     fs.mkdirSync(workDir, { recursive: true });
     process.chdir(workDir);
+
     fs.writeFileSync('schema.zmodel', model);
     run('npx zenstack generate');
     run('npx prisma db push');
 
     const PrismaClient = require(path.join(workDir, '.prisma')).PrismaClient;
-    const prisma = new PrismaClient({ log: ['error'] });
+    const prisma = new PrismaClient();
 
-    const policy = require(path.join(workDir, 'policy')).default;
+    const policy = require(path.join(workDir, '.zenstack/policy')).default;
+    const modelMeta = require(path.join(workDir, '.zenstack/model-meta')).default;
+
     return {
         prisma,
-        withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, policy, { user }),
+        withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+        withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
+        withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
     };
 }

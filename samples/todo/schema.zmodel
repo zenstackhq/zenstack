@@ -14,15 +14,6 @@ generator js {
     provider = 'prisma-client-js'
 }
 
-plugin prisma {
-    provider = '@zenstack/prisma'
-}
-
-plugin policy {
-    provider = '@zenstack/access-policy'
-    output = 'server/policy/'
-}
-
 plugin hooks {
     provider = '@zenstack/react-hooks'
     output = 'lib/hooks'

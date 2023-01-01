@@ -7,17 +7,7 @@ export const toBeRejectedByPolicy = async function (received: Promise<unknown>) 
     try {
         await received;
     } catch (err) {
-        const code = (err as PrismaClientKnownRequestError).code;
-        if (code !== 'P2004') {
-            return {
-                message: () => `expected PrismaClientKnownRequestError.code 'P2004', got ${code}`,
-                pass: false,
-            };
-        }
-        return {
-            message: () => '',
-            pass: true,
-        };
+        return expectPrismaCode(err, 'P2004');
     }
     return {
         message: () => `expected PrismaClientKnownRequestError, got no error`,
@@ -32,17 +22,22 @@ export const toBeNotFound = async function (received: Promise<unknown>) {
     try {
         await received;
     } catch (err) {
-        const code = (err as PrismaClientKnownRequestError).code;
-        if (code !== 'P2025') {
-            return {
-                message: () => `expected PrismaClientKnownRequestError.code 'P2025', got ${code}`,
-                pass: false,
-            };
-        }
-        return {
-            message: () => '',
-            pass: true,
-        };
+        return expectPrismaCode(err, 'P2025');
+    }
+    return {
+        message: () => `expected PrismaClientKnownRequestError, got no error`,
+        pass: false,
+    };
+};
+
+export const toBeRejectedWithCode = async function (received: Promise<unknown>, code: string) {
+    if (!(received instanceof Promise)) {
+        return { message: () => 'a promise is expected', pass: false };
+    }
+    try {
+        await received;
+    } catch (err) {
+        return expectPrismaCode(err, code);
     }
     return {
         message: () => `expected PrismaClientKnownRequestError, got no error`,
@@ -124,3 +119,17 @@ export const toResolveNull = async function (received: Promise<unknown>) {
         };
     }
 };
+
+function expectPrismaCode(err: any, code: string) {
+    const errCode = (err as PrismaClientKnownRequestError).code;
+    if (errCode !== code) {
+        return {
+            message: () => `expected PrismaClientKnownRequestError.code 'P2004', got ${errCode ?? err}`,
+            pass: false,
+        };
+    }
+    return {
+        message: () => '',
+        pass: true,
+    };
+}

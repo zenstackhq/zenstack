@@ -1,7 +1,7 @@
 import path from 'path';
 import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
-describe('Operation Coverage: nested to-one', () => {
+describe('With Policy:nested to-one', () => {
     let origDir: string;
     const suite = 'nested-to-one';
 
