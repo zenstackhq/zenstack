@@ -1,25 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { prismaClientProxyHandler } from './handler';
-import { AuthUser, FieldInfo, PolicyOperationKind, QueryContext } from '../types';
+import { getDefaultModelMeta } from '../enhancements/model-meta';
+import { makeProxy } from '../enhancements/proxy';
+import { ModelMeta, PolicyDef } from '../enhancements/types';
+import { AuthUser, DbClientContract } from '../types';
+import { PrismaModelHandler } from './handler';
 
 export type WithPolicyContext = {
     user?: AuthUser;
 };
 
-export type PolicyFunc = (context: QueryContext) => object;
+export function withPolicy<DbClient extends object>(
+    prisma: DbClient,
+    context?: WithPolicyContext,
+    policy?: PolicyDef,
+    modelMeta?: ModelMeta
+): DbClient {
+    return makeProxy(
+        prisma,
+        (_prisma, model) =>
+            new PrismaModelHandler(
+                _prisma as DbClientContract,
+                policy ?? getDefaultPolicy(),
+                modelMeta ?? getDefaultModelMeta(),
+                model,
+                context?.user
+            )
+    );
+}
 
-export type PolicyDef = {
-    guard: Record<
-        string,
-        {
-            allowAll?: boolean;
-            denyAll?: boolean;
-        } & Partial<Record<PolicyOperationKind, PolicyFunc>>
-    >;
-    fieldMapping: Record<string, Record<string, FieldInfo>>;
-};
-
-export function withPolicy<DbClient = any>(prisma: DbClient, policy: PolicyDef, context: WithPolicyContext): DbClient {
-    return new Proxy(prisma, prismaClientProxyHandler(prisma, policy, context.user));
+function getDefaultPolicy(): PolicyDef {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        return require('.zenstack/policy').default;
+    } catch {
+        throw new Error('Policy definition cannot be loaded');
+    }
 }

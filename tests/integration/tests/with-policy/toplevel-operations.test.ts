@@ -1,8 +1,7 @@
-import { loadPrisma } from '../../utils/utils';
+import { MODEL_PRELUDE, loadPrisma } from '../../utils/utils';
 import path from 'path';
-import { MODEL_PRELUDE } from '../../utils/common';
 
-describe('Operation Coverage: toplevel operations', () => {
+describe('With Policy:toplevel operations', () => {
     let origDir: string;
     const suite = 'toplevel';
 
@@ -115,16 +114,20 @@ describe('Operation Coverage: toplevel operations', () => {
 
         // update not found
         await expect(db.model.update({ where: { id: '3' }, data: { value: 5 } })).toBeNotFound();
+
+        // update-many empty
         expect(
             await db.model.updateMany({
                 where: { id: '3' },
                 data: { value: 5 },
             })
         ).toEqual(expect.objectContaining({ count: 0 }));
+
+        // upsert
         expect(
             await db.model.upsert({
                 where: { id: '3' },
-                create: { value: 5 },
+                create: { id: '3', value: 5 },
                 update: { value: 6 },
             })
         ).toEqual(expect.objectContaining({ value: 5 }));

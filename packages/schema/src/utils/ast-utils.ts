@@ -1,6 +1,6 @@
 import { DataModel, DataModelAttribute, Model, isDataModel } from '@zenstackhq/language/ast';
 import { getLiteral } from '@zenstackhq/sdk/utils';
-import { ALL_OPERATION_KINDS } from '../plugins/constants';
+import { ALL_OPERATION_KINDS } from '../plugins/plugin-utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(

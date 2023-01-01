@@ -1,4 +1,11 @@
-import { toBeRejectedByPolicy, toBeNotFound, toResolveTruthy, toResolveFalsy, toResolveNull } from './utils/jest-ext';
+import {
+    toBeRejectedByPolicy,
+    toBeNotFound,
+    toResolveTruthy,
+    toResolveFalsy,
+    toResolveNull,
+    toBeRejectedWithCode,
+} from './utils/jest-ext';
 
 expect.extend({
     toBeRejectedByPolicy,
@@ -6,4 +13,5 @@ expect.extend({
     toResolveTruthy,
     toResolveFalsy,
     toResolveNull,
+    toBeRejectedWithCode,
 });

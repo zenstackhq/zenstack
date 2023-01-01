@@ -1,7 +1,6 @@
 import { withPolicy } from '@zenstackhq/runtime';
 import { GetServerSidePropsContext } from 'next';
 import { getServerAuthSession } from 'server/common/get-server-auth-session';
-import policy from 'server/policy';
 import { prisma } from './client';
 
 /**
@@ -11,5 +10,5 @@ import { prisma } from './client';
  */
 export async function withAuth(ctx: { req: GetServerSidePropsContext['req']; res: GetServerSidePropsContext['res'] }) {
     const session = await getServerAuthSession(ctx);
-    return withPolicy(prisma, policy, { user: session?.user });
+    return withPolicy(prisma, { user: session?.user });
 }
