@@ -49,7 +49,7 @@ export class Telemetry {
             callback();
         });
 
-        exitHook.uncaughtExceptionHandler(async (err) => {
+        const errorHandler = async (err: Error) => {
             this.track('cli:error', {
                 message: err.message,
                 stack: err.stack,
@@ -66,7 +66,10 @@ export class Telemetry {
             }
 
             process.exit(1);
-        });
+        };
+
+        exitHook.unhandledRejectionHandler(errorHandler);
+        exitHook.uncaughtExceptionHandler(errorHandler);
     }
 
     track(event: TelemetryEvents, properties: Record<string, unknown> = {}) {
