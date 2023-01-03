@@ -19,6 +19,8 @@ export type PolicyDef = {
         {
             allowAll?: boolean;
             denyAll?: boolean;
-        } & Partial<Record<PolicyOperationKind, PolicyFunc>>
+        } & Partial<Record<PolicyOperationKind, PolicyFunc>> & {
+                preValueSelect?: object;
+            }
     >;
 };
