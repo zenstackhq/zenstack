@@ -1,15 +1,24 @@
-import { DataModel, Model, isDataModel, isEnum, isInvocationExpr, isLiteralExpr } from '@zenstackhq/language/ast';
+import {
+    DataModel,
+    Expression,
+    Model,
+    isBinaryExpr,
+    isDataModel,
+    isEnum,
+    isInvocationExpr,
+    isUnaryExpr,
+} from '@zenstackhq/language/ast';
 import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
-import { GUARD_FIELD_NAME, PluginOptions } from '@zenstackhq/sdk';
-import { resolved } from '@zenstackhq/sdk/utils';
+import { GUARD_FIELD_NAME, PluginOptions, getLiteral, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';
 import path from 'path';
-import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { analyzePolicies } from '../../utils/ast-utils';
-import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getNodeModulesFolder } from '../plugin-utils';
+import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
+import { isFromStdlib } from '../../language-server/utils';
 
 const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 
@@ -18,12 +27,7 @@ const UNKNOWN_USER_ID = 'zenstack_unknown_user';
  */
 export default class PolicyGuardGenerator {
     async generate(model: Model, options: PluginOptions) {
-        const modulesFolder = getNodeModulesFolder();
-        const output = options.output
-            ? (options.output as string)
-            : modulesFolder
-            ? path.join(modulesFolder, '.zenstack')
-            : undefined;
+        const output = options.output ? (options.output as string) : getDefaultOutputFolder();
         if (!output) {
             console.error(`Unable to determine output path, not running plugin ${name}`);
             return;
@@ -87,43 +91,115 @@ export default class PolicyGuardGenerator {
 
     private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {
         const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === `@@${kind}`);
-        return attrs
+
+        const checkOperation = operation === 'postUpdate' ? 'update' : operation;
+
+        let result = attrs
             .filter((attr) => {
-                if (!isLiteralExpr(attr.args[0].value) || typeof attr.args[0].value.value !== 'string') {
+                const opsValue = getLiteral<string>(attr.args[0].value);
+                if (!opsValue) {
                     return false;
                 }
-                const ops = attr.args[0].value.value.split(',').map((s) => s.trim());
-                return ops.includes(operation) || ops.includes('all');
+                const ops = opsValue.split(',').map((s) => s.trim());
+                return ops.includes(checkOperation) || ops.includes('all');
             })
             .map((attr) => attr.args[1].value);
+
+        if (operation === 'update') {
+            result = this.processUpdatePolicies(result, false);
+        } else if (operation === 'postUpdate') {
+            result = this.processUpdatePolicies(result, true);
+        }
+
+        return result;
+    }
+
+    private processUpdatePolicies(expressions: Expression[], postUpdate: boolean) {
+        return expressions
+            .map((expr) => this.visitPolicyExpression(expr, postUpdate))
+            .filter((e): e is Expression => !!e);
+    }
+
+    private visitPolicyExpression(expr: Expression, postUpdate: boolean): Expression | undefined {
+        if (isBinaryExpr(expr) && (expr.operator === '&&' || expr.operator === '||')) {
+            const left = this.visitPolicyExpression(expr.left, postUpdate);
+            const right = this.visitPolicyExpression(expr.right, postUpdate);
+            if (!left) return right;
+            if (!right) return left;
+            return { ...expr, left, right };
+        }
+
+        if (isUnaryExpr(expr) && expr.operator === '!') {
+            const operand = this.visitPolicyExpression(expr.operand, postUpdate);
+            if (!operand) return undefined;
+            return { ...expr, operand };
+        }
+
+        if (postUpdate && !this.hasFutureReference(expr)) {
+            return undefined;
+        } else if (!postUpdate && this.hasFutureReference(expr)) {
+            return undefined;
+        }
+
+        return expr;
+    }
+
+    private hasFutureReference(expr: Expression) {
+        for (const node of streamAllContents(expr)) {
+            if (isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private async generateQueryGuardForModel(model: DataModel, sourceFile: SourceFile) {
         const result: Record<string, string | boolean> = {};
 
-        const { allowAll, denyAll } = analyzePolicies(model);
-
-        if (allowAll) {
-            result['allowAll'] = true;
-        }
-
-        if (denyAll) {
-            result['denyAll'] = true;
-        }
-
-        if (allowAll || denyAll) {
-            return result;
-        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const policies: any = analyzePolicies(model);
 
         for (const kind of ALL_OPERATION_KINDS) {
-            const func = this.generateQueryGuardFunction(sourceFile, model, kind);
+            if (policies[kind] === true || policies[kind] === false) {
+                result[kind] = policies[kind];
+                continue;
+            }
+
+            const denies = this.getPolicyExpressions(model, 'deny', kind);
+            const allows = this.getPolicyExpressions(model, 'allow', kind);
+
+            if (kind === 'update' && allows.length === 0) {
+                // no allow rule for 'update', policy is constant based on if there's
+                // post-update counterpart
+                if (this.getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
+                    result[kind] = false;
+                    continue;
+                } else {
+                    result[kind] = true;
+                    continue;
+                }
+            }
+
+            if (kind === 'postUpdate' && allows.length === 0 && denies.length === 0) {
+                // no rule 'postUpdate', always allow
+                result[kind] = true;
+                continue;
+            }
+
+            const func = this.generateQueryGuardFunction(sourceFile, model, kind, allows, denies);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             result[kind] = func.getName()!;
         }
         return result;
     }
 
-    private generateQueryGuardFunction(sourceFile: SourceFile, model: DataModel, kind: string) {
+    private generateQueryGuardFunction(
+        sourceFile: SourceFile,
+        model: DataModel,
+        kind: PolicyOperationKind,
+        allows: Expression[],
+        denies: Expression[]
+    ): FunctionDeclaration {
         const func = sourceFile
             .addFunction({
                 name: model.name + '_' + kind,
@@ -136,15 +212,6 @@ export default class PolicyGuardGenerator {
                 ],
             })
             .addBody();
-
-        const denies = this.getPolicyExpressions(model, 'deny', kind as PolicyOperationKind);
-
-        const allows = this.getPolicyExpressions(model, 'allow', kind as PolicyOperationKind);
-
-        if (allows.length === 0) {
-            func.addStatements('return undefined');
-            return func;
-        }
 
         // check if any allow or deny rule contains 'auth()' invocation
         let hasAuthRef = false;
@@ -174,7 +241,7 @@ export default class PolicyGuardGenerator {
                 {
                     name: 'r',
                     initializer: (writer) => {
-                        const exprWriter = new ExpressionWriter(writer);
+                        const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
                         const writeDenies = () => {
                             writer.conditionalWrite(denies.length > 1, '{ AND: [');
                             denies.forEach((expr, i) => {

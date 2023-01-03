@@ -3,8 +3,6 @@ import { StringFieldUpdateOperationsInputObjectSchema } from './StringFieldUpdat
 import { DateTimeFieldUpdateOperationsInputObjectSchema } from './DateTimeFieldUpdateOperationsInput.schema';
 import { SpaceUserUpdateManyWithoutSpaceNestedInputObjectSchema } from './SpaceUserUpdateManyWithoutSpaceNestedInput.schema';
 import { ListUpdateManyWithoutSpaceNestedInputObjectSchema } from './ListUpdateManyWithoutSpaceNestedInput.schema';
-import { BoolFieldUpdateOperationsInputObjectSchema } from './BoolFieldUpdateOperationsInput.schema';
-import { NullableStringFieldUpdateOperationsInputObjectSchema } from './NullableStringFieldUpdateOperationsInput.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -17,11 +15,6 @@ const Schema: z.ZodType<Prisma.SpaceUpdateInput> = z
         slug: z.union([z.string(), z.lazy(() => StringFieldUpdateOperationsInputObjectSchema)]).optional(),
         members: z.lazy(() => SpaceUserUpdateManyWithoutSpaceNestedInputObjectSchema).optional(),
         lists: z.lazy(() => ListUpdateManyWithoutSpaceNestedInputObjectSchema).optional(),
-        zenstack_guard: z.union([z.boolean(), z.lazy(() => BoolFieldUpdateOperationsInputObjectSchema)]).optional(),
-        zenstack_transaction: z
-            .union([z.string(), z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema)])
-            .optional()
-            .nullable(),
     })
     .strict();
 

@@ -1,21 +1,15 @@
 import { DataModel, DataModelField, Model, isDataModel, isLiteralExpr } from '@zenstackhq/language/ast';
 import { RuntimeAttribute } from '@zenstackhq/runtime';
-import { PluginOptions } from '@zenstackhq/sdk';
-import { getLiteral, resolved } from '@zenstackhq/sdk/utils';
+import { PluginOptions, getLiteral, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import path from 'path';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
-import { ensureNodeModuleFolder, getNodeModulesFolder } from '../plugin-utils';
+import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
 
 export default async function run(model: Model, options: PluginOptions) {
-    const modulesFolder = getNodeModulesFolder();
-    const output = options.output
-        ? (options.output as string)
-        : modulesFolder
-        ? path.join(modulesFolder, '.zenstack')
-        : undefined;
+    const output = options.output ? (options.output as string) : getDefaultOutputFolder();
     if (!output) {
         console.error(`Unable to determine output path, not running plugin ${name}`);
         return;

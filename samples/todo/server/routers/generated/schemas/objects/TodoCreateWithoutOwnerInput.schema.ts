@@ -11,8 +11,6 @@ const Schema: z.ZodType<Prisma.TodoCreateWithoutOwnerInput> = z
         list: z.lazy(() => ListCreateNestedOneWithoutTodosInputObjectSchema),
         title: z.string(),
         completedAt: z.date().optional().nullable(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

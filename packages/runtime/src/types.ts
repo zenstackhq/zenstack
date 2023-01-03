@@ -27,7 +27,7 @@ export type PolicyKind = 'allow' | 'deny';
 /**
  * Kinds of operations controlled by access policies
  */
-export type PolicyOperationKind = 'create' | 'update' | 'read' | 'delete';
+export type PolicyOperationKind = 'create' | 'update' | 'postUpdate' | 'read' | 'delete';
 
 /**
  * Current login user info
@@ -44,6 +44,9 @@ export type QueryContext = {
      * Current login user (provided by @see RequestHandlerOptions)
      */
     user?: AuthUser;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    preValue?: any;
 };
 
 export type RuntimeAttribute = {

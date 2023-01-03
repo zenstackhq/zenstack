@@ -18,8 +18,6 @@ const Schema: z.ZodType<Prisma.ListOrderByWithRelationInput> = z
         title: z.lazy(() => SortOrderSchema).optional(),
         private: z.lazy(() => SortOrderSchema).optional(),
         todos: z.lazy(() => TodoOrderByRelationAggregateInputObjectSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

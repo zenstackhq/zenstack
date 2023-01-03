@@ -21,9 +21,9 @@ export type VisitorContext = {
     field?: FieldInfo;
 
     /**
-     * A top-down path of all update args till now
+     * A top-down path of all nested update conditions and corresponding field till now
      */
-    updatePath: any[];
+    nestingPath: { field?: FieldInfo; where: any }[];
 };
 
 /**
@@ -101,7 +101,7 @@ export class NestedWriteVisitor {
         data: any,
         parent: any,
         field: FieldInfo | undefined,
-        updatePath: object[]
+        nestingPath: { field?: FieldInfo; where: any }[]
     ): Promise<void> {
         if (!data) {
             return;
@@ -109,11 +109,12 @@ export class NestedWriteVisitor {
 
         const fieldContainers: any[] = [];
         const isToOneUpdate = field?.isDataModel && !field.isArray;
-        const context = { parent, field, updatePath };
+        const context = { parent, field, nestingPath };
 
         // visit payload
         switch (action) {
             case 'create':
+                nestingPath.push({ field, where: {} });
                 if (this.callback.create) {
                     await this.callback.create(model, data, context);
                 }
@@ -123,6 +124,7 @@ export class NestedWriteVisitor {
             case 'createMany':
                 // skip the 'data' layer so as to keep consistency with 'create'
                 if (data.data) {
+                    nestingPath.push({ field, where: {} });
                     if (this.callback.create) {
                         await this.callback.create(model, data.data, context);
                     }
@@ -131,6 +133,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'connectOrCreate':
+                nestingPath.push({ field, where: data.where });
                 if (this.callback.connectOrCreate) {
                     await this.callback.connectOrCreate(model, data, context);
                 }
@@ -138,14 +141,15 @@ export class NestedWriteVisitor {
                 break;
 
             case 'update':
+                nestingPath.push({ field, where: data.where });
                 if (this.callback.update) {
                     await this.callback.update(model, data, context);
                 }
-                updatePath.push(data);
                 fieldContainers.push(...ensureArray(data).map((d) => (isToOneUpdate ? d : d.data)));
                 break;
 
             case 'updateMany':
+                nestingPath.push({ field, where: data.where });
                 if (this.callback.updateMany) {
                     await this.callback.updateMany(model, data, context);
                 }
@@ -153,6 +157,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'upsert':
+                nestingPath.push({ field, where: data.where });
                 if (this.callback.upsert) {
                     await this.callback.upsert(model, data, context);
                 }
@@ -161,12 +166,14 @@ export class NestedWriteVisitor {
                 break;
 
             case 'delete':
+                nestingPath.push({ field, where: data.where });
                 if (this.callback.delete) {
                     await this.callback.delete(model, data, context);
                 }
                 break;
 
             case 'deleteMany':
+                nestingPath.push({ field, where: data.where });
                 if (this.callback.deleteMany) {
                     await this.callback.deleteMany(model, data, context);
                 }
@@ -194,7 +201,7 @@ export class NestedWriteVisitor {
                                 subData,
                                 fieldContainer[field],
                                 fieldInfo,
-                                updatePath
+                                nestingPath
                             );
                         }
                     }
@@ -203,7 +210,7 @@ export class NestedWriteVisitor {
                     if (this.callback.field) {
                         await this.callback.field(fieldInfo, action, fieldContainer[field], {
                             parent: fieldContainer,
-                            updatePath: updatePath,
+                            nestingPath: nestingPath,
                             field: fieldInfo,
                         });
                     }

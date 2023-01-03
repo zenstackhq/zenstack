@@ -13,8 +13,6 @@ const Schema: z.ZodType<Prisma.SpaceUncheckedCreateInput> = z
         slug: z.string(),
         members: z.lazy(() => SpaceUserUncheckedCreateNestedManyWithoutSpaceInputObjectSchema).optional(),
         lists: z.lazy(() => ListUncheckedCreateNestedManyWithoutSpaceInputObjectSchema).optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

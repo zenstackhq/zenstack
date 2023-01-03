@@ -14,8 +14,6 @@ const Schema: z.ZodType<Prisma.SpaceOrderByWithRelationInput> = z
         slug: z.lazy(() => SortOrderSchema).optional(),
         members: z.lazy(() => SpaceUserOrderByRelationAggregateInputObjectSchema).optional(),
         lists: z.lazy(() => ListOrderByRelationAggregateInputObjectSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

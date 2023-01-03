@@ -6,7 +6,6 @@ import { NullableStringFieldUpdateOperationsInputObjectSchema } from './Nullable
 import { SpaceUserUpdateManyWithoutUserNestedInputObjectSchema } from './SpaceUserUpdateManyWithoutUserNestedInput.schema';
 import { ListUpdateManyWithoutOwnerNestedInputObjectSchema } from './ListUpdateManyWithoutOwnerNestedInput.schema';
 import { AccountUpdateManyWithoutUserNestedInputObjectSchema } from './AccountUpdateManyWithoutUserNestedInput.schema';
-import { BoolFieldUpdateOperationsInputObjectSchema } from './BoolFieldUpdateOperationsInput.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -35,11 +34,6 @@ const Schema: z.ZodType<Prisma.UserUpdateWithoutTodosInput> = z
             .nullable(),
         lists: z.lazy(() => ListUpdateManyWithoutOwnerNestedInputObjectSchema).optional(),
         accounts: z.lazy(() => AccountUpdateManyWithoutUserNestedInputObjectSchema).optional(),
-        zenstack_guard: z.union([z.boolean(), z.lazy(() => BoolFieldUpdateOperationsInputObjectSchema)]).optional(),
-        zenstack_transaction: z
-            .union([z.string(), z.lazy(() => NullableStringFieldUpdateOperationsInputObjectSchema)])
-            .optional()
-            .nullable(),
     })
     .strict();
 

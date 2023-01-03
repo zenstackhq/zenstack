@@ -15,8 +15,6 @@ const Schema: z.ZodType<Prisma.SpaceUserOrderByWithRelationInput> = z
         user: z.lazy(() => UserOrderByWithRelationInputObjectSchema).optional(),
         userId: z.lazy(() => SortOrderSchema).optional(),
         role: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

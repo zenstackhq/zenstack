@@ -2,8 +2,6 @@ import { z } from 'zod';
 import { StringWithAggregatesFilterObjectSchema } from './StringWithAggregatesFilter.schema';
 import { DateTimeWithAggregatesFilterObjectSchema } from './DateTimeWithAggregatesFilter.schema';
 import { DateTimeNullableWithAggregatesFilterObjectSchema } from './DateTimeNullableWithAggregatesFilter.schema';
-import { BoolWithAggregatesFilterObjectSchema } from './BoolWithAggregatesFilter.schema';
-import { StringNullableWithAggregatesFilterObjectSchema } from './StringNullableWithAggregatesFilter.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -33,11 +31,6 @@ const Schema: z.ZodType<Prisma.TodoScalarWhereWithAggregatesInput> = z
         title: z.union([z.lazy(() => StringWithAggregatesFilterObjectSchema), z.string()]).optional(),
         completedAt: z
             .union([z.lazy(() => DateTimeNullableWithAggregatesFilterObjectSchema), z.date()])
-            .optional()
-            .nullable(),
-        zenstack_guard: z.union([z.lazy(() => BoolWithAggregatesFilterObjectSchema), z.boolean()]).optional(),
-        zenstack_transaction: z
-            .union([z.lazy(() => StringNullableWithAggregatesFilterObjectSchema), z.string()])
             .optional()
             .nullable(),
     })

@@ -11,8 +11,6 @@ const Schema: z.ZodType<Prisma.TodoMinAggregateInputType> = z
         listId: z.literal(true).optional(),
         title: z.literal(true).optional(),
         completedAt: z.literal(true).optional(),
-        zenstack_guard: z.literal(true).optional(),
-        zenstack_transaction: z.literal(true).optional(),
     })
     .strict();
 

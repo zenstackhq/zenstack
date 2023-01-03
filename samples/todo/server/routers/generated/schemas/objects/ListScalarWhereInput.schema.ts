@@ -2,7 +2,6 @@ import { z } from 'zod';
 import { StringFilterObjectSchema } from './StringFilter.schema';
 import { DateTimeFilterObjectSchema } from './DateTimeFilter.schema';
 import { BoolFilterObjectSchema } from './BoolFilter.schema';
-import { StringNullableFilterObjectSchema } from './StringNullableFilter.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -31,11 +30,6 @@ const Schema: z.ZodType<Prisma.ListScalarWhereInput> = z
         ownerId: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
         title: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
         private: z.union([z.lazy(() => BoolFilterObjectSchema), z.boolean()]).optional(),
-        zenstack_guard: z.union([z.lazy(() => BoolFilterObjectSchema), z.boolean()]).optional(),
-        zenstack_transaction: z
-            .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
-            .optional()
-            .nullable(),
     })
     .strict();
 

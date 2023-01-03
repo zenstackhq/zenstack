@@ -11,8 +11,6 @@ const Schema: z.ZodType<Prisma.SpaceUserMinOrderByAggregateInput> = z
         spaceId: z.lazy(() => SortOrderSchema).optional(),
         userId: z.lazy(() => SortOrderSchema).optional(),
         role: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

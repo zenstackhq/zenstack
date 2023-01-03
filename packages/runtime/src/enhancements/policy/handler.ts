@@ -82,9 +82,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // use a transaction to wrap the write so it can be reverted if the created
         // entity fails access policies
-        const result: any = await this.prisma.$transaction(async (tx) => {
-            return this.utils.processWrite(this.model, 'create', args, tx, () => tx[this.model].create(args));
-        });
+        const result: any = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) =>
+            dbOps.create(writeArgs)
+        );
 
         if (!result.id) {
             throw this.utils.unknownError(`unexpected error: create didn't return an id`);
@@ -107,11 +107,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // use a transaction to wrap the write so it can be reverted if any created
         // entity fails access policies
-        const result = await this.prisma.$transaction(async (tx) => {
-            return await this.utils.processWrite(this.model, 'create', args, tx, () =>
-                tx[this.model].createMany(args, skipDuplicates)
-            );
-        });
+        const result = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) =>
+            dbOps.createMany(writeArgs, skipDuplicates)
+        );
 
         return result as BatchResult;
     }
@@ -134,9 +132,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // use a transaction to wrap the write so it can be reverted if any nested
         // create fails access policies
-        const result: any = await this.prisma.$transaction(async (tx) => {
-            return this.utils.processWrite(this.model, 'update', args, tx, async () => tx[this.model].update(args));
-        });
+        const result: any = await this.utils.processWrite(this.model, 'update', args, (dbOps, writeArgs) =>
+            dbOps.update(writeArgs)
+        );
 
         if (!result.id) {
             throw this.utils.unknownError(`unexpected error: update didn't return an id`);
@@ -158,9 +156,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // use a transaction to wrap the write so it can be reverted if any nested
         // create fails access policies
-        const result = await this.prisma.$transaction(async (tx) => {
-            return this.utils.processWrite(this.model, 'updateMany', args, tx, () => tx[this.model].updateMany(args));
-        });
+        const result = await this.utils.processWrite(this.model, 'updateMany', args, (dbOps, writeArgs) =>
+            dbOps.updateMany(writeArgs)
+        );
 
         return result as BatchResult;
     }
@@ -187,9 +185,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // use a transaction to wrap the write so it can be reverted if any nested
         // create fails access policies
-        const result: any = await this.prisma.$transaction(async (tx) => {
-            return this.utils.processWrite(this.model, 'upsert', args, tx, () => tx[this.model].upsert(args));
-        });
+        const result: any = await this.utils.processWrite(this.model, 'upsert', args, (dbOps, writeArgs) =>
+            dbOps.upsert(writeArgs)
+        );
 
         if (!result.id) {
             throw this.utils.unknownError(`unexpected error: upsert didn't return an id`);

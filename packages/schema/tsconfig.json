@@ -14,9 +14,8 @@
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
         "resolveJsonModule": true,
-        "declaration": true,
-        "emitDeclarationOnly": true
+        "declaration": true
     },
-    "include": ["src/**/*.ts", "tests/**/*.test.ts"],
+    "include": ["src/**/*.ts"],
     "exclude": ["dist", "bundle", "node_modules", "src/extension.ts"]
 }

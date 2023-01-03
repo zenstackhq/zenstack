@@ -14,8 +14,6 @@ const Schema: z.ZodType<Prisma.SpaceUserSelect> = z
         user: z.union([z.boolean(), z.lazy(() => UserArgsObjectSchema)]).optional(),
         userId: z.boolean().optional(),
         role: z.boolean().optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.boolean().optional(),
     })
     .strict();
 

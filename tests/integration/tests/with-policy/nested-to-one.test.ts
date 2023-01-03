@@ -155,6 +155,7 @@ describe('With Policy:nested to-one', () => {
         
             @@allow('read', true)
             @@allow('create', true)
+            @@allow('update', true)
             @@allow('delete', value > 1)
         }
         `

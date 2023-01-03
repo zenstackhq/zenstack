@@ -21,8 +21,6 @@ const Schema: z.ZodType<Prisma.UserOrderByWithRelationInput> = z
         lists: z.lazy(() => ListOrderByRelationAggregateInputObjectSchema).optional(),
         todos: z.lazy(() => TodoOrderByRelationAggregateInputObjectSchema).optional(),
         accounts: z.lazy(() => AccountOrderByRelationAggregateInputObjectSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

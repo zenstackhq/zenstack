@@ -13,8 +13,6 @@ const Schema: z.ZodType<Prisma.SpaceUserCreateInput> = z
         space: z.lazy(() => SpaceCreateNestedOneWithoutMembersInputObjectSchema),
         user: z.lazy(() => UserCreateNestedOneWithoutSpacesInputObjectSchema),
         role: z.lazy(() => SpaceUserRoleSchema),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

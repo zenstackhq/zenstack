@@ -12,8 +12,6 @@ const Schema: z.ZodType<Prisma.ListUncheckedCreateWithoutOwnerInput> = z
         title: z.string(),
         private: z.boolean().optional(),
         todos: z.lazy(() => TodoUncheckedCreateNestedManyWithoutListInputObjectSchema).optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

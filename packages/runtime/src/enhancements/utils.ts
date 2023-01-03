@@ -1,4 +1,4 @@
-import { AUXILIARY_FIELDS } from '../constants';
+import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 
 /**
  * Wraps a value into array if it's not already one

@@ -77,8 +77,8 @@ describe('With Policy:deep nested', () => {
     });
 
     it('create', async () => {
-        expect(
-            await db.m1.create({
+        await expect(
+            db.m1.create({
                 data: {
                     id: '1',
                     m2: {
@@ -101,7 +101,7 @@ describe('With Policy:deep nested', () => {
                     },
                 },
             })
-        ).toBeTruthy();
+        ).toResolveTruthy();
 
         const r = await db.m1.create({
             include: { m2: { include: { m3: true, m4: true } } },

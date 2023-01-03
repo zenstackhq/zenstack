@@ -11,8 +11,6 @@ const Schema: z.ZodType<Prisma.SpaceUserCreateManyInput> = z
         spaceId: z.string(),
         userId: z.string(),
         role: z.lazy(() => SpaceUserRoleSchema),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

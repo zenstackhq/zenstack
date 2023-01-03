@@ -10,8 +10,6 @@ const Schema: z.ZodType<Prisma.ListCreateManySpaceInput> = z
         ownerId: z.string(),
         title: z.string(),
         private: z.boolean().optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

@@ -7,7 +7,6 @@ import { SpaceUserListRelationFilterObjectSchema } from './SpaceUserListRelation
 import { ListListRelationFilterObjectSchema } from './ListListRelationFilter.schema';
 import { TodoListRelationFilterObjectSchema } from './TodoListRelationFilter.schema';
 import { AccountListRelationFilterObjectSchema } from './AccountListRelationFilter.schema';
-import { BoolFilterObjectSchema } from './BoolFilter.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -47,11 +46,6 @@ const Schema: z.ZodType<Prisma.UserWhereInput> = z
         lists: z.lazy(() => ListListRelationFilterObjectSchema).optional(),
         todos: z.lazy(() => TodoListRelationFilterObjectSchema).optional(),
         accounts: z.lazy(() => AccountListRelationFilterObjectSchema).optional(),
-        zenstack_guard: z.union([z.lazy(() => BoolFilterObjectSchema), z.boolean()]).optional(),
-        zenstack_transaction: z
-            .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
-            .optional()
-            .nullable(),
     })
     .strict();
 

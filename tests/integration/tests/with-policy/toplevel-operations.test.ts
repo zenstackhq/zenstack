@@ -23,6 +23,7 @@ describe('With Policy:toplevel operations', () => {
             id String @id @default(uuid())
             value Int
         
+            @@allow('create', true)
             @@allow('read', value > 1)
         }
         `
@@ -163,6 +164,7 @@ describe('With Policy:toplevel operations', () => {
             id String @id @default(uuid())
             value Int
         
+            @@allow('create', true)
             @@allow('read', value > 2)
             @@allow('delete', value > 1)
         }

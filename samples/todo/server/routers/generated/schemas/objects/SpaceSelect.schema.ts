@@ -14,8 +14,6 @@ const Schema: z.ZodType<Prisma.SpaceSelect> = z
         slug: z.boolean().optional(),
         members: z.union([z.boolean(), z.lazy(() => SpaceUserSchema.findMany)]).optional(),
         lists: z.union([z.boolean(), z.lazy(() => ListSchema.findMany)]).optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.boolean().optional(),
         _count: z.union([z.boolean(), z.lazy(() => SpaceCountOutputTypeArgsObjectSchema)]).optional(),
     })
     .strict();
