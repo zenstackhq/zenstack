@@ -7,7 +7,6 @@ import { UserRelationFilterObjectSchema } from './UserRelationFilter.schema';
 import { UserWhereInputObjectSchema } from './UserWhereInput.schema';
 import { BoolFilterObjectSchema } from './BoolFilter.schema';
 import { TodoListRelationFilterObjectSchema } from './TodoListRelationFilter.schema';
-import { StringNullableFilterObjectSchema } from './StringNullableFilter.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -37,11 +36,6 @@ const Schema: z.ZodType<Prisma.ListWhereInput> = z
         title: z.union([z.lazy(() => StringFilterObjectSchema), z.string()]).optional(),
         private: z.union([z.lazy(() => BoolFilterObjectSchema), z.boolean()]).optional(),
         todos: z.lazy(() => TodoListRelationFilterObjectSchema).optional(),
-        zenstack_guard: z.union([z.lazy(() => BoolFilterObjectSchema), z.boolean()]).optional(),
-        zenstack_transaction: z
-            .union([z.lazy(() => StringNullableFilterObjectSchema), z.string()])
-            .optional()
-            .nullable(),
     })
     .strict();
 

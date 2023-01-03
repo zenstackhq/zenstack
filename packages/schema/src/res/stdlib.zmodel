@@ -84,8 +84,19 @@ function autoincrement(): Int {}
  */
 function dbgenerated(expr: String): Any {}
 
+/**
+ * Gets entities value before an update. Only valid when used in a "update" policy rule.
+ */
+function future(): Any {}
+
+/**
+ * Marks an attribute to be only applicable to certain field types.
+ */
 attribute @@@targetField(targetField: AttributeTargetField[])
 
+/**
+ * Indicates an attribute is directly supported by the Prisma schema.
+ */
 attribute @@@prisma()
 
 /*

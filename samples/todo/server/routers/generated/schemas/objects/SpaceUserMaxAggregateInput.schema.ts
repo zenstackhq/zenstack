@@ -10,8 +10,6 @@ const Schema: z.ZodType<Prisma.SpaceUserMaxAggregateInputType> = z
         spaceId: z.literal(true).optional(),
         userId: z.literal(true).optional(),
         role: z.literal(true).optional(),
-        zenstack_guard: z.literal(true).optional(),
-        zenstack_transaction: z.literal(true).optional(),
     })
     .strict();
 

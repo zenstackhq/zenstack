@@ -12,8 +12,6 @@ const Schema: z.ZodType<Prisma.TodoMinOrderByAggregateInput> = z
         listId: z.lazy(() => SortOrderSchema).optional(),
         title: z.lazy(() => SortOrderSchema).optional(),
         completedAt: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

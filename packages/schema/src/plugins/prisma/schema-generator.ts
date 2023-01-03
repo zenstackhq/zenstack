@@ -18,8 +18,15 @@ import {
     isLiteralExpr,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { GUARD_FIELD_NAME, PluginError, PluginOptions, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
-import { getLiteral, getLiteralArray, resolved } from '@zenstackhq/sdk/utils';
+import {
+    GUARD_FIELD_NAME,
+    PluginError,
+    PluginOptions,
+    TRANSACTION_FIELD_NAME,
+    getLiteral,
+    getLiteralArray,
+    resolved,
+} from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';

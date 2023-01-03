@@ -12,8 +12,6 @@ const Schema: z.ZodType<Prisma.UserCreateManyInput> = z
         password: z.string().optional().nullable(),
         name: z.string().optional().nullable(),
         image: z.string().optional().nullable(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

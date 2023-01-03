@@ -12,8 +12,6 @@ const Schema: z.ZodType<Prisma.UserMaxAggregateInputType> = z
         password: z.literal(true).optional(),
         name: z.literal(true).optional(),
         image: z.literal(true).optional(),
-        zenstack_guard: z.literal(true).optional(),
-        zenstack_transaction: z.literal(true).optional(),
     })
     .strict();
 

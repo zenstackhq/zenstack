@@ -10,8 +10,6 @@ const Schema: z.ZodType<Prisma.TodoUncheckedCreateWithoutOwnerInput> = z
         listId: z.string(),
         title: z.string(),
         completedAt: z.date().optional().nullable(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

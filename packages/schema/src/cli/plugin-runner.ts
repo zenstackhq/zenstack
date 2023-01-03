@@ -2,8 +2,7 @@
 import { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
 import { Plugin, isPlugin } from '@zenstackhq/language/ast';
-import { PluginFunction, PluginOptions } from '@zenstackhq/sdk';
-import { getLiteral, getLiteralArray } from '@zenstackhq/sdk/utils';
+import { PluginFunction, PluginOptions, getLiteral, getLiteralArray } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';

@@ -15,8 +15,6 @@ const Schema: z.ZodType<Prisma.ListCreateInput> = z
         title: z.string(),
         private: z.boolean().optional(),
         todos: z.lazy(() => TodoCreateNestedManyWithoutListInputObjectSchema).optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

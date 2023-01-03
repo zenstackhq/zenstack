@@ -11,8 +11,6 @@ const Schema: z.ZodType<Prisma.SpaceCreateWithoutMembersInput> = z
         name: z.string(),
         slug: z.string(),
         lists: z.lazy(() => ListCreateNestedManyWithoutSpaceInputObjectSchema).optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

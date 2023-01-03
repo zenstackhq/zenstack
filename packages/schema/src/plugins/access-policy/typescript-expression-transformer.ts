@@ -2,20 +2,28 @@ import {
     ArrayExpr,
     Expression,
     InvocationExpr,
-    isEnumField,
-    isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
     ReferenceExpr,
     ThisExpr,
+    isEnumField,
+    isThisExpr,
 } from '@zenstackhq/language/ast';
 import { PluginError } from '@zenstackhq/sdk';
+import { isFutureExpr } from './utils';
 
 /**
  * Transforms ZModel expression to plain TypeScript expression.
  */
 export default class TypeScriptExpressionTransformer {
+    /**
+     * Constructs a new TypeScriptExpressionTransformer.
+     *
+     * @param isPostGuard indicates if we're writing for post-update conditions
+     */
+    constructor(private readonly isPostGuard = false) {}
+
     /**
      *
      * @param expr
@@ -62,16 +70,22 @@ export default class TypeScriptExpressionTransformer {
 
         if (isThisExpr(expr.operand)) {
             return expr.member.ref.name;
+        } else if (isFutureExpr(expr.operand)) {
+            if (!this.isPostGuard) {
+                throw new PluginError(`future() is only supported in postUpdate rules`);
+            }
+            return expr.member.ref.name;
         } else {
             return `${this.transform(expr.operand)}?.${expr.member.ref.name}`;
         }
     }
 
     private invocation(expr: InvocationExpr) {
-        if (expr.function.ref?.name !== 'auth') {
+        if (expr.function.ref?.name === 'auth') {
+            return 'user';
+        } else {
             throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
         }
-        return 'user';
     }
 
     private reference(expr: ReferenceExpr) {
@@ -82,7 +96,14 @@ export default class TypeScriptExpressionTransformer {
         if (isEnumField(expr.target.ref)) {
             return `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
         } else {
-            return expr.target.ref.name;
+            if (this.isPostGuard) {
+                // if we're processing post-update, any direct field access should be
+                // treated as access to context.preValue, which is entity's value before
+                // the update
+                return `context.preValue?.${expr.target.ref.name}`;
+            } else {
+                return expr.target.ref.name;
+            }
         }
     }
 

@@ -1,5 +1,5 @@
 import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/language/ast';
-import { GUARD_FIELD_NAME } from '@zenstackhq/runtime/constants';
+import { GUARD_FIELD_NAME } from '@zenstackhq/sdk';
 import * as tmp from 'tmp';
 import { Project, VariableDeclarationKind } from 'ts-morph';
 import { ExpressionWriter } from '../../src/plugins/access-policy/expression-writer';

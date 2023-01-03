@@ -9,8 +9,6 @@ const Schema: z.ZodType<Prisma.SpaceCreateManyInput> = z
         updatedAt: z.date().optional(),
         name: z.string(),
         slug: z.string(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

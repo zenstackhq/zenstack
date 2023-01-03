@@ -18,8 +18,6 @@ const Schema: z.ZodType<Prisma.UserCreateWithoutTodosInput> = z
         image: z.string().optional().nullable(),
         lists: z.lazy(() => ListCreateNestedManyWithoutOwnerInputObjectSchema).optional(),
         accounts: z.lazy(() => AccountCreateNestedManyWithoutUserInputObjectSchema).optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.string().optional().nullable(),
     })
     .strict();
 

@@ -15,6 +15,7 @@ import {
 import { GUARD_FIELD_NAME, PluginError } from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
 import TypeScriptExpressionTransformer from './typescript-expression-transformer';
+import { isFutureExpr } from './utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
@@ -22,9 +23,16 @@ type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
  * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer
  */
 export class ExpressionWriter {
-    private readonly plainExprBuilder = new TypeScriptExpressionTransformer();
+    private readonly plainExprBuilder: TypeScriptExpressionTransformer;
 
-    constructor(private readonly writer: CodeBlockWriter) {}
+    /**
+     * Constructs a new ExpressionWriter
+     *
+     * @param isPostGuard indicates if we're writing for post-update conditions
+     */
+    constructor(private readonly writer: CodeBlockWriter, private readonly isPostGuard = false) {
+        this.plainExprBuilder = new TypeScriptExpressionTransformer(this.isPostGuard);
+    }
 
     /**
      * Writes the given ZModel expression.
@@ -129,10 +137,16 @@ export class ExpressionWriter {
         if (isThisExpr(expr)) {
             return true;
         }
+
         if (isMemberAccessExpr(expr)) {
-            return this.isFieldAccess(expr.operand);
+            if (isFutureExpr(expr.operand) && this.isPostGuard) {
+                // when writing for post-update, future().field.x is a field access
+                return true;
+            } else {
+                return this.isFieldAccess(expr.operand);
+            }
         }
-        if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
+        if (isReferenceExpr(expr) && isDataModelField(expr.target.ref) && !this.isPostGuard) {
             return true;
         }
         return false;
@@ -175,6 +189,17 @@ export class ExpressionWriter {
             fieldAccess = expr.right;
             operand = expr.left;
             operator = this.negateOperator(operator);
+        }
+
+        if (isMemberAccessExpr(fieldAccess) && isFutureExpr(fieldAccess.operand)) {
+            // future().field should be treated as the "field" directly, so we
+            // strip 'future().' and synthesize a reference expr
+            fieldAccess = {
+                $type: ReferenceExpr,
+                $container: fieldAccess.$container,
+                target: fieldAccess.member,
+                $resolvedType: fieldAccess.$resolvedType,
+            } as ReferenceExpr;
         }
 
         this.writeFieldCondition(
@@ -234,8 +259,13 @@ export class ExpressionWriter {
         } else if (isReferenceExpr(fieldAccess)) {
             selector = fieldAccess.target.ref?.name;
         } else if (isMemberAccessExpr(fieldAccess)) {
-            selector = fieldAccess.member.ref?.name;
-            operand = fieldAccess.operand;
+            if (isFutureExpr(fieldAccess.operand)) {
+                // future().field should be treated as the "field"
+                selector = fieldAccess.member.ref?.name;
+            } else {
+                selector = fieldAccess.member.ref?.name;
+                operand = fieldAccess.operand;
+            }
         } else {
             throw new PluginError(`Unsupported expression type: ${fieldAccess.$type}`);
         }

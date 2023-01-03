@@ -9,8 +9,6 @@ const Schema: z.ZodType<Prisma.SpaceMaxAggregateInputType> = z
         updatedAt: z.literal(true).optional(),
         name: z.literal(true).optional(),
         slug: z.literal(true).optional(),
-        zenstack_guard: z.literal(true).optional(),
-        zenstack_transaction: z.literal(true).optional(),
     })
     .strict();
 

@@ -15,8 +15,6 @@ const Schema: z.ZodType<Prisma.TodoSelect> = z
         listId: z.boolean().optional(),
         title: z.boolean().optional(),
         completedAt: z.boolean().optional(),
-        zenstack_guard: z.boolean().optional(),
-        zenstack_transaction: z.boolean().optional(),
     })
     .strict();
 

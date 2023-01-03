@@ -1,8 +1,9 @@
+import { PolicyOperationKind } from '@zenstackhq/runtime';
 import fs from 'fs';
 import path from 'path';
 
 export const RUNTIME_PACKAGE = '@zenstackhq/runtime';
-export const ALL_OPERATION_KINDS = ['create', 'update', 'read', 'delete'];
+export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
 /**
  * Gets the nearest "node_modules" folder by walking up froma start path.
@@ -17,6 +18,15 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
     } else {
         return undefined;
     }
+}
+
+/**
+ * Gets the default node_modules/.zenstack output folder for plugins.
+ * @returns
+ */
+export function getDefaultOutputFolder() {
+    const modulesFolder = getNodeModulesFolder();
+    return modulesFolder ? path.join(modulesFolder, '.zenstack') : undefined;
 }
 
 /**

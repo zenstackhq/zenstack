@@ -1,12 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
+import { TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
 import { format } from 'util';
-import { TRANSACTION_FIELD_NAME } from '../../constants';
-import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind, PrismaWriteActionType } from '../../types';
+import {
+    AuthUser,
+    DbClientContract,
+    DbOperations,
+    FieldInfo,
+    PolicyOperationKind,
+    PrismaWriteActionType,
+} from '../../types';
 import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
@@ -73,25 +80,21 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    async getAuthGuard(model: string, operation: PolicyOperationKind): Promise<boolean | object> {
+    async getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): Promise<boolean | object> {
         const guard = this.policy.guard[camelCase(model)];
         if (!guard) {
-            throw this.unknownError(model);
+            throw this.unknownError(`unable to load policy guard for ${model}`);
         }
 
-        if (guard.allowAll === true) {
-            return true;
+        const provider: PolicyFunc | boolean | undefined = guard[operation];
+        if (typeof provider === 'boolean') {
+            return provider;
         }
 
-        if (guard.denyAll === true) {
-            return false;
-        }
-
-        const provider: PolicyFunc | undefined = guard[operation];
         if (!provider) {
             throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
-        return provider({ user: this.user });
+        return provider({ user: this.user, preValue });
     }
 
     /**
@@ -197,12 +200,16 @@ export class PolicyUtil {
         model: string,
         action: PrismaWriteActionType,
         args: any,
-        db: Record<string, DbOperations>,
-        writeAction: () => Promise<unknown>
+        writeAction: (dbOps: DbOperations, writeArgs: any) => Promise<unknown>
     ) {
         // record model types for which new entities are created
         // so we can post-check if they satisfy 'create' policies
         const createdModels = new Set<string>();
+
+        // record model entities that are updated, together with their
+        // values before update, so we can post-check if they satisfy
+        //     model => id => entity value
+        const updatedModels = new Map<string, Map<string, any>>();
 
         if (args.select && !args.select.id) {
             // make sure 'id' field is selected, we need it to
@@ -226,35 +233,40 @@ export class PolicyUtil {
             }
         };
 
+        // build a reversed query for fetching entities affected by nested updates
         const buildReversedQuery = async (context: VisitorContext) => {
-            const subQuery: any = {};
-            let curr = subQuery;
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            let currField = context.field!;
+            let result, currQuery: any;
+            let currField: FieldInfo | undefined;
 
-            for (const up of context.updatePath.slice().reverse()) {
-                // backLink field represents the field on the opposite side of the
-                // to-one relation
-                if (currField.backLink) {
-                    curr[currField.backLink] = { ...up.where };
-                    curr = curr[currField.backLink];
-                    currField = await resolveField(this.modelMeta, currField.type, currField.backLink);
+            for (let i = context.nestingPath.length - 1; i >= 0; i--) {
+                const { field, where } = context.nestingPath[i];
+
+                if (!result) {
+                    // first segment (bottom), just use its where clause
+                    result = currQuery = { ...where };
+                    currField = field;
                 } else {
-                    throw this.unknownError(`Field ${currField.type}.${currField.name} doens't have a backLink`);
+                    if (!currField) {
+                        throw this.unknownError(`missing field in nested path`);
+                    }
+                    if (!currField.backLink) {
+                        throw this.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
+                    }
+                    currQuery[currField.backLink] = { ...where };
+                    currQuery = currQuery[currField.backLink];
+                    currField = field;
                 }
             }
-            return subQuery;
+            return result;
         };
 
         // args processor for update/upsert
         const processUpdate = async (model: string, args: any, context: VisitorContext) => {
-            const guard = await this.getAuthGuard(model, 'update');
-            if (guard === false) {
+            const preGuard = await this.getAuthGuard(model, 'update');
+            if (preGuard === false) {
                 throw this.deniedByPolicy(model, 'update');
-            } else if (guard !== true) {
-                const isToOneUpdate = context.field?.isDataModel && !context.field.isArray;
-
-                if (isToOneUpdate) {
+            } else if (preGuard !== true) {
+                if (this.isToOneRelation(context.field)) {
                     // To-one relation field is complicated because there's no way to
                     // filter it during update (args doesn't carry a 'where' clause).
                     //
@@ -288,25 +300,46 @@ export class PolicyUtil {
                     // The same logic applies to nested delete.
 
                     const subQuery = await buildReversedQuery(context);
-                    await this.checkPolicyForFilter(model, subQuery, 'update', db);
+                    await this.checkPolicyForFilter(model, subQuery, 'update', this.db);
                 } else {
                     // non-nested update, check policies directly
                     if (!args.where) {
                         throw this.unknownError(`Missing 'where' in update args`);
                     }
-                    await this.checkPolicyForFilter(model, args.where, 'update', db);
+                    await this.checkPolicyForFilter(model, args.where, 'update', this.db);
                 }
             }
+
+            await fetchAndRecordPreValues(model, context);
         };
 
         // args processor for updateMany
-        const processUpdateMany = async (model: string, args: any) => {
+        const processUpdateMany = async (model: string, args: any, context: VisitorContext) => {
             const guard = await this.getAuthGuard(model, 'update');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'update');
             } else if (guard !== true) {
                 // inject policy filter
                 await this.injectAuthGuard(args, model, 'update');
+            }
+
+            await fetchAndRecordPreValues(model, context);
+        };
+
+        // for models with post-update rules, we need to read and store
+        // entity values before the update for post-update check
+        const fetchAndRecordPreValues = async (model: string, context: VisitorContext) => {
+            const postGuard = await this.getAuthGuard(model, 'postUpdate');
+            if (postGuard !== true) {
+                let modelEntities = updatedModels.get(model);
+                if (!modelEntities) {
+                    modelEntities = new Map<string, any>();
+                    updatedModels.set(model, modelEntities);
+                }
+                const subQuery = await buildReversedQuery(context);
+                this.logger.info(`fetching pre-update entities for ${model}: ${format(subQuery)})}`);
+                const entities = await this.db[model].findMany({ where: subQuery });
+                entities.forEach((entity) => modelEntities?.set((entity as any).id, entity));
             }
         };
 
@@ -316,14 +349,12 @@ export class PolicyUtil {
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'delete');
             } else if (guard !== true) {
-                const isToOneDelete = context.field?.isDataModel && !context.field.isArray;
-
-                if (isToOneDelete) {
+                if (this.isToOneRelation(context.field)) {
                     // see comments in processUpdate
                     const subQuery = await buildReversedQuery(context);
-                    await this.checkPolicyForFilter(model, subQuery, 'delete', db);
+                    await this.checkPolicyForFilter(model, subQuery, 'delete', this.db);
                 } else {
-                    await this.checkPolicyForFilter(model, args, 'delete', db);
+                    await this.checkPolicyForFilter(model, args, 'delete', this.db);
                 }
             }
         };
@@ -350,9 +381,9 @@ export class PolicyUtil {
                 }
             },
 
-            updateMany: async (model, args) => {
+            updateMany: async (model, args, context) => {
                 for (const oneArgs of enumerate(args)) {
-                    await processUpdateMany(model, oneArgs);
+                    await processUpdateMany(model, oneArgs, context);
                 }
             },
 
@@ -390,23 +421,44 @@ export class PolicyUtil {
 
         await visitor.visit(model, action, args);
 
-        // proceed with the update (with args processed)
-        const result = await writeAction();
+        if (createdModels.size === 0 && updatedModels.size === 0) {
+            // no post-check needed, we can proceed with the write without transaction
+            return await writeAction(this.db[model], args);
+        } else {
+            return await this.db.$transaction(async (tx) => {
+                // proceed with the update (with args processed)
+                const result = await writeAction(tx[model], args);
 
-        // do post-check on created entities
-        if (createdModels.size > 0) {
-            await Promise.all(
-                [...createdModels].map((model) =>
-                    this.checkPolicyForFilter(
-                        model,
-                        { [TRANSACTION_FIELD_NAME]: `${transactionId}:create` },
-                        'create',
-                        db
-                    )
-                )
-            );
+                if (createdModels.size > 0) {
+                    // do post-check on created entities
+                    await Promise.all(
+                        [...createdModels].map((model) =>
+                            this.checkPolicyForFilter(
+                                model,
+                                { [TRANSACTION_FIELD_NAME]: `${transactionId}:create` },
+                                'create',
+                                tx
+                            )
+                        )
+                    );
+                }
+
+                if (updatedModels.size > 0) {
+                    // do post-check on updated entities
+                    await Promise.all(
+                        [...updatedModels.entries()]
+                            .map(([model, modelEntities]) =>
+                                [...modelEntities.entries()].map(async ([id, preValue]) =>
+                                    this.checkPostUpdate(model, id, tx, preValue)
+                                )
+                            )
+                            .flat()
+                    );
+                }
+
+                return result;
+            });
         }
-        return result;
     }
 
     deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
@@ -455,6 +507,28 @@ export class PolicyUtil {
             this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
             throw this.deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
         }
+    }
+
+    private async checkPostUpdate(model: string, id: string, db: Record<string, DbOperations>, preValue: any) {
+        this.logger.info(`Checking post-update policy for ${model}#${id}, preValue: ${format(preValue)}`);
+
+        const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
+
+        // build a query condition with policy injected
+        const guardedQuery = { where: this.and({ id }, guard) };
+
+        // query with policy injected
+        const guardedCount = (await db[model].count(guardedQuery)) as number;
+
+        // see if we get fewer items with policy, if so, reject with an throw
+        if (guardedCount === 0) {
+            this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
+            throw this.deniedByPolicy(model, 'postUpdate', `entity failed policy check`);
+        }
+    }
+
+    private isToOneRelation(field: FieldInfo | undefined) {
+        return !!field && field.isDataModel && !field.isArray;
     }
 
     /**

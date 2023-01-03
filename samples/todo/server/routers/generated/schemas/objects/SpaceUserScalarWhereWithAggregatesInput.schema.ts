@@ -3,8 +3,6 @@ import { StringWithAggregatesFilterObjectSchema } from './StringWithAggregatesFi
 import { DateTimeWithAggregatesFilterObjectSchema } from './DateTimeWithAggregatesFilter.schema';
 import { EnumSpaceUserRoleWithAggregatesFilterObjectSchema } from './EnumSpaceUserRoleWithAggregatesFilter.schema';
 import { SpaceUserRoleSchema } from '../enums/SpaceUserRole.schema';
-import { BoolWithAggregatesFilterObjectSchema } from './BoolWithAggregatesFilter.schema';
-import { StringNullableWithAggregatesFilterObjectSchema } from './StringNullableWithAggregatesFilter.schema';
 
 import type { Prisma } from '@prisma/client';
 
@@ -34,11 +32,6 @@ const Schema: z.ZodType<Prisma.SpaceUserScalarWhereWithAggregatesInput> = z
         role: z
             .union([z.lazy(() => EnumSpaceUserRoleWithAggregatesFilterObjectSchema), z.lazy(() => SpaceUserRoleSchema)])
             .optional(),
-        zenstack_guard: z.union([z.lazy(() => BoolWithAggregatesFilterObjectSchema), z.boolean()]).optional(),
-        zenstack_transaction: z
-            .union([z.lazy(() => StringNullableWithAggregatesFilterObjectSchema), z.string()])
-            .optional()
-            .nullable(),
     })
     .strict();
 

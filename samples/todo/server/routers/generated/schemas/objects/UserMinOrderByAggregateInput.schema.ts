@@ -13,8 +13,6 @@ const Schema: z.ZodType<Prisma.UserMinOrderByAggregateInput> = z
         password: z.lazy(() => SortOrderSchema).optional(),
         name: z.lazy(() => SortOrderSchema).optional(),
         image: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_guard: z.lazy(() => SortOrderSchema).optional(),
-        zenstack_transaction: z.lazy(() => SortOrderSchema).optional(),
     })
     .strict();
 

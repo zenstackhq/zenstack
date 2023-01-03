@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
+import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import path from 'path';
 import indentString from '../prisma/indent-string';
 import { checkModelHasModelRelation, findModelByName, isMongodbRawOp } from './helpers';
@@ -91,6 +92,7 @@ export default class Transformer {
 
     generateObjectSchemaFields() {
         const zodObjectSchemaFields = this.fields
+            .filter((field) => !AUXILIARY_FIELDS.includes(field.name))
             .map((field) => this.generateObjectSchemaField(field))
             .flatMap((item) => item)
             .map((item) => {

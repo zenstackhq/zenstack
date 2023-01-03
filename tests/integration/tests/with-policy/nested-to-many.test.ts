@@ -103,6 +103,7 @@ describe('With Policy:nested to-many', () => {
             m1Id String
         
             @@allow('read', true)
+            @@allow('create', true)
             @@allow('update', value > 1)
         }
         `

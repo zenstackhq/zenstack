@@ -34,6 +34,7 @@ import {
     ThisExpr,
     UnaryExpr,
     ResolvedShape,
+    Expression,
 } from '@zenstackhq/language/ast';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
@@ -231,10 +232,24 @@ export class ZModelLinker extends DefaultLinker {
                 if (userModel) {
                     node.$resolvedType = { decl: userModel };
                 }
+            } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
+                // future() function is resolved to current model
+                node.$resolvedType = { decl: this.getContainingDataModel(node) };
             } else {
                 this.resolveToDeclaredType(node, funcDecl.returnType);
             }
         }
+    }
+
+    private getContainingDataModel(node: Expression): DataModel | undefined {
+        let curr: AstNode | undefined = node.$container;
+        while (curr) {
+            if (isDataModel(curr)) {
+                return curr;
+            }
+            curr = curr.$container;
+        }
+        return undefined;
     }
 
     private resolveLiteral(node: LiteralExpr) {
