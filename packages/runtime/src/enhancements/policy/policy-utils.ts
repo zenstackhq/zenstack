@@ -341,20 +341,19 @@ export class PolicyUtil {
         const fetchAndRecordPreValues = async (model: string, context: VisitorContext) => {
             const postGuard = await this.getAuthGuard(model, 'postUpdate');
             if (postGuard !== true) {
+                let modelEntities = updatedModels.get(model);
+                if (!modelEntities) {
+                    modelEntities = new Map<string, any>();
+                    updatedModels.set(model, modelEntities);
+                }
+
                 // fetch preValue selection (analyzed from the post-update rules)
                 const preValueSelect = await this.getPreValueSelect(model);
-                if (preValueSelect) {
-                    let modelEntities = updatedModels.get(model);
-                    if (!modelEntities) {
-                        modelEntities = new Map<string, any>();
-                        updatedModels.set(model, modelEntities);
-                    }
-                    const filter = await buildReversedQuery(context);
-                    const query = { where: filter, select: { ...preValueSelect, id: true } };
-                    this.logger.info(`fetching pre-update entities for ${model}: ${format(query)})}`);
-                    const entities = await this.db[model].findMany(query);
-                    entities.forEach((entity) => modelEntities?.set((entity as any).id, entity));
-                }
+                const filter = await buildReversedQuery(context);
+                const query = { where: filter, select: { ...preValueSelect, id: true } };
+                this.logger.info(`fetching pre-update entities for ${model}: ${format(query)})}`);
+                const entities = await this.db[model].findMany(query);
+                entities.forEach((entity) => modelEntities?.set((entity as any).id, entity));
             }
         };
 

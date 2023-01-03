@@ -227,8 +227,6 @@ export default class PolicyGuardGenerator {
                     curr = curr[seg].select;
                 }
             });
-
-            return Object.keys(result).length === 0 ? null : result;
         };
 
         const visit = (node: Expression): string[] | undefined => {
@@ -276,7 +274,7 @@ export default class PolicyGuardGenerator {
             }
         }
 
-        return result;
+        return Object.keys(result).length === 0 ? null : result;
     }
 
     private generateQueryGuardFunction(

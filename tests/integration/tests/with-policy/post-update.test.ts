@@ -46,7 +46,7 @@ describe('With Policy: post update', () => {
             id String @id @default(uuid())
             value Int
 
-            @@allow('create,read', true)
+            @@allow('all', true)
             @@deny('update', future().value <= 1)
         }
         `
