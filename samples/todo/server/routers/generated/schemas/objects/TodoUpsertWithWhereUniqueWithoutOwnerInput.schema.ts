@@ -8,17 +8,17 @@ import { TodoUncheckedCreateWithoutOwnerInputObjectSchema } from './TodoUnchecke
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.TodoUpsertWithWhereUniqueWithoutOwnerInput> = z
-  .object({
-    where: z.lazy(() => TodoWhereUniqueInputObjectSchema),
-    update: z.union([
-      z.lazy(() => TodoUpdateWithoutOwnerInputObjectSchema),
-      z.lazy(() => TodoUncheckedUpdateWithoutOwnerInputObjectSchema),
-    ]),
-    create: z.union([
-      z.lazy(() => TodoCreateWithoutOwnerInputObjectSchema),
-      z.lazy(() => TodoUncheckedCreateWithoutOwnerInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => TodoWhereUniqueInputObjectSchema),
+        update: z.union([
+            z.lazy(() => TodoUpdateWithoutOwnerInputObjectSchema),
+            z.lazy(() => TodoUncheckedUpdateWithoutOwnerInputObjectSchema),
+        ]),
+        create: z.union([
+            z.lazy(() => TodoCreateWithoutOwnerInputObjectSchema),
+            z.lazy(() => TodoUncheckedCreateWithoutOwnerInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const TodoUpsertWithWhereUniqueWithoutOwnerInputObjectSchema = Schema;

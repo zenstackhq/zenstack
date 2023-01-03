@@ -4,12 +4,10 @@ import { SpaceUserUserIdSpaceIdCompoundUniqueInputObjectSchema } from './SpaceUs
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.SpaceUserWhereUniqueInput> = z
-  .object({
-    id: z.string().optional(),
-    userId_spaceId: z
-      .lazy(() => SpaceUserUserIdSpaceIdCompoundUniqueInputObjectSchema)
-      .optional(),
-  })
-  .strict();
+    .object({
+        id: z.string().optional(),
+        userId_spaceId: z.lazy(() => SpaceUserUserIdSpaceIdCompoundUniqueInputObjectSchema).optional(),
+    })
+    .strict();
 
 export const SpaceUserWhereUniqueInputObjectSchema = Schema;

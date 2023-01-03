@@ -7,16 +7,16 @@ import { UserUncheckedCreateWithoutListsInputObjectSchema } from './UserUnchecke
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.UserUpsertWithoutListsInput> = z
-  .object({
-    update: z.union([
-      z.lazy(() => UserUpdateWithoutListsInputObjectSchema),
-      z.lazy(() => UserUncheckedUpdateWithoutListsInputObjectSchema),
-    ]),
-    create: z.union([
-      z.lazy(() => UserCreateWithoutListsInputObjectSchema),
-      z.lazy(() => UserUncheckedCreateWithoutListsInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        update: z.union([
+            z.lazy(() => UserUpdateWithoutListsInputObjectSchema),
+            z.lazy(() => UserUncheckedUpdateWithoutListsInputObjectSchema),
+        ]),
+        create: z.union([
+            z.lazy(() => UserCreateWithoutListsInputObjectSchema),
+            z.lazy(() => UserUncheckedCreateWithoutListsInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const UserUpsertWithoutListsInputObjectSchema = Schema;

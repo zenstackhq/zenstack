@@ -6,13 +6,13 @@ import { SpaceUserUncheckedCreateWithoutUserInputObjectSchema } from './SpaceUse
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.SpaceUserCreateOrConnectWithoutUserInput> = z
-  .object({
-    where: z.lazy(() => SpaceUserWhereUniqueInputObjectSchema),
-    create: z.union([
-      z.lazy(() => SpaceUserCreateWithoutUserInputObjectSchema),
-      z.lazy(() => SpaceUserUncheckedCreateWithoutUserInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => SpaceUserWhereUniqueInputObjectSchema),
+        create: z.union([
+            z.lazy(() => SpaceUserCreateWithoutUserInputObjectSchema),
+            z.lazy(() => SpaceUserUncheckedCreateWithoutUserInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const SpaceUserCreateOrConnectWithoutUserInputObjectSchema = Schema;

@@ -7,16 +7,16 @@ import { SpaceUncheckedCreateWithoutMembersInputObjectSchema } from './SpaceUnch
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.SpaceUpsertWithoutMembersInput> = z
-  .object({
-    update: z.union([
-      z.lazy(() => SpaceUpdateWithoutMembersInputObjectSchema),
-      z.lazy(() => SpaceUncheckedUpdateWithoutMembersInputObjectSchema),
-    ]),
-    create: z.union([
-      z.lazy(() => SpaceCreateWithoutMembersInputObjectSchema),
-      z.lazy(() => SpaceUncheckedCreateWithoutMembersInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        update: z.union([
+            z.lazy(() => SpaceUpdateWithoutMembersInputObjectSchema),
+            z.lazy(() => SpaceUncheckedUpdateWithoutMembersInputObjectSchema),
+        ]),
+        create: z.union([
+            z.lazy(() => SpaceCreateWithoutMembersInputObjectSchema),
+            z.lazy(() => SpaceUncheckedCreateWithoutMembersInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const SpaceUpsertWithoutMembersInputObjectSchema = Schema;

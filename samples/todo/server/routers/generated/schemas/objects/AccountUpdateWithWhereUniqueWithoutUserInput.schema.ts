@@ -6,13 +6,13 @@ import { AccountUncheckedUpdateWithoutUserInputObjectSchema } from './AccountUnc
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.AccountUpdateWithWhereUniqueWithoutUserInput> = z
-  .object({
-    where: z.lazy(() => AccountWhereUniqueInputObjectSchema),
-    data: z.union([
-      z.lazy(() => AccountUpdateWithoutUserInputObjectSchema),
-      z.lazy(() => AccountUncheckedUpdateWithoutUserInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => AccountWhereUniqueInputObjectSchema),
+        data: z.union([
+            z.lazy(() => AccountUpdateWithoutUserInputObjectSchema),
+            z.lazy(() => AccountUncheckedUpdateWithoutUserInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const AccountUpdateWithWhereUniqueWithoutUserInputObjectSchema = Schema;

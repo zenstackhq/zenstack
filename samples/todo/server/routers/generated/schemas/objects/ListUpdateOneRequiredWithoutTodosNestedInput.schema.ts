@@ -10,25 +10,23 @@ import { ListUncheckedUpdateWithoutTodosInputObjectSchema } from './ListUnchecke
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.ListUpdateOneRequiredWithoutTodosNestedInput> = z
-  .object({
-    create: z
-      .union([
-        z.lazy(() => ListCreateWithoutTodosInputObjectSchema),
-        z.lazy(() => ListUncheckedCreateWithoutTodosInputObjectSchema),
-      ])
-      .optional(),
-    connectOrCreate: z
-      .lazy(() => ListCreateOrConnectWithoutTodosInputObjectSchema)
-      .optional(),
-    upsert: z.lazy(() => ListUpsertWithoutTodosInputObjectSchema).optional(),
-    connect: z.lazy(() => ListWhereUniqueInputObjectSchema).optional(),
-    update: z
-      .union([
-        z.lazy(() => ListUpdateWithoutTodosInputObjectSchema),
-        z.lazy(() => ListUncheckedUpdateWithoutTodosInputObjectSchema),
-      ])
-      .optional(),
-  })
-  .strict();
+    .object({
+        create: z
+            .union([
+                z.lazy(() => ListCreateWithoutTodosInputObjectSchema),
+                z.lazy(() => ListUncheckedCreateWithoutTodosInputObjectSchema),
+            ])
+            .optional(),
+        connectOrCreate: z.lazy(() => ListCreateOrConnectWithoutTodosInputObjectSchema).optional(),
+        upsert: z.lazy(() => ListUpsertWithoutTodosInputObjectSchema).optional(),
+        connect: z.lazy(() => ListWhereUniqueInputObjectSchema).optional(),
+        update: z
+            .union([
+                z.lazy(() => ListUpdateWithoutTodosInputObjectSchema),
+                z.lazy(() => ListUncheckedUpdateWithoutTodosInputObjectSchema),
+            ])
+            .optional(),
+    })
+    .strict();
 
 export const ListUpdateOneRequiredWithoutTodosNestedInputObjectSchema = Schema;

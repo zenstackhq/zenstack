@@ -4,10 +4,10 @@ import { AccountCreateManyUserInputObjectSchema } from './AccountCreateManyUserI
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.AccountCreateManyUserInputEnvelope> = z
-  .object({
-    data: z.lazy(() => AccountCreateManyUserInputObjectSchema).array(),
-    skipDuplicates: z.boolean().optional(),
-  })
-  .strict();
+    .object({
+        data: z.lazy(() => AccountCreateManyUserInputObjectSchema).array(),
+        skipDuplicates: z.boolean().optional(),
+    })
+    .strict();
 
 export const AccountCreateManyUserInputEnvelopeObjectSchema = Schema;

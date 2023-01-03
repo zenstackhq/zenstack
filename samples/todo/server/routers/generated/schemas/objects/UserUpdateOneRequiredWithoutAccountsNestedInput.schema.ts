@@ -9,30 +9,24 @@ import { UserUncheckedUpdateWithoutAccountsInputObjectSchema } from './UserUnche
 
 import type { Prisma } from '@prisma/client';
 
-const Schema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutAccountsNestedInput> =
-  z
+const Schema: z.ZodType<Prisma.UserUpdateOneRequiredWithoutAccountsNestedInput> = z
     .object({
-      create: z
-        .union([
-          z.lazy(() => UserCreateWithoutAccountsInputObjectSchema),
-          z.lazy(() => UserUncheckedCreateWithoutAccountsInputObjectSchema),
-        ])
-        .optional(),
-      connectOrCreate: z
-        .lazy(() => UserCreateOrConnectWithoutAccountsInputObjectSchema)
-        .optional(),
-      upsert: z
-        .lazy(() => UserUpsertWithoutAccountsInputObjectSchema)
-        .optional(),
-      connect: z.lazy(() => UserWhereUniqueInputObjectSchema).optional(),
-      update: z
-        .union([
-          z.lazy(() => UserUpdateWithoutAccountsInputObjectSchema),
-          z.lazy(() => UserUncheckedUpdateWithoutAccountsInputObjectSchema),
-        ])
-        .optional(),
+        create: z
+            .union([
+                z.lazy(() => UserCreateWithoutAccountsInputObjectSchema),
+                z.lazy(() => UserUncheckedCreateWithoutAccountsInputObjectSchema),
+            ])
+            .optional(),
+        connectOrCreate: z.lazy(() => UserCreateOrConnectWithoutAccountsInputObjectSchema).optional(),
+        upsert: z.lazy(() => UserUpsertWithoutAccountsInputObjectSchema).optional(),
+        connect: z.lazy(() => UserWhereUniqueInputObjectSchema).optional(),
+        update: z
+            .union([
+                z.lazy(() => UserUpdateWithoutAccountsInputObjectSchema),
+                z.lazy(() => UserUncheckedUpdateWithoutAccountsInputObjectSchema),
+            ])
+            .optional(),
     })
     .strict();
 
-export const UserUpdateOneRequiredWithoutAccountsNestedInputObjectSchema =
-  Schema;
+export const UserUpdateOneRequiredWithoutAccountsNestedInputObjectSchema = Schema;

@@ -16,96 +16,85 @@ import { UserOrderByWithAggregationInputObjectSchema } from './objects/UserOrder
 import { UserScalarWhereWithAggregatesInputObjectSchema } from './objects/UserScalarWhereWithAggregatesInput.schema';
 
 export const UserSchema = {
-  findUnique: z.object({
-    select: UserSelectObjectSchema.optional(),
-    include: UserIncludeObjectSchema.optional(),
-    where: UserWhereUniqueInputObjectSchema,
-  }),
-  findFirst: z.object({
-    select: UserSelectObjectSchema.optional(),
-    include: UserIncludeObjectSchema.optional(),
-    where: UserWhereInputObjectSchema.optional(),
-    orderBy: z
-      .union([
-        UserOrderByWithRelationInputObjectSchema,
-        UserOrderByWithRelationInputObjectSchema.array(),
-      ])
-      .optional(),
-    cursor: UserWhereUniqueInputObjectSchema.optional(),
-    take: z.number().optional(),
-    skip: z.number().optional(),
-    distinct: z.array(UserScalarFieldEnumSchema).optional(),
-  }),
-  findMany: z.object({
-    select: z.lazy(() => UserSelectObjectSchema.optional()),
-    include: z.lazy(() => UserIncludeObjectSchema.optional()),
-    where: UserWhereInputObjectSchema.optional(),
-    orderBy: z
-      .union([
-        UserOrderByWithRelationInputObjectSchema,
-        UserOrderByWithRelationInputObjectSchema.array(),
-      ])
-      .optional(),
-    cursor: UserWhereUniqueInputObjectSchema.optional(),
-    take: z.number().optional(),
-    skip: z.number().optional(),
-    distinct: z.array(UserScalarFieldEnumSchema).optional(),
-  }),
-  create: z.object({
-    select: UserSelectObjectSchema.optional(),
-    include: UserIncludeObjectSchema.optional(),
-    data: UserCreateInputObjectSchema,
-  }),
-  createMany: z.object({ data: UserCreateManyInputObjectSchema }),
-  delete: z.object({
-    select: UserSelectObjectSchema.optional(),
-    include: UserIncludeObjectSchema.optional(),
-    where: UserWhereUniqueInputObjectSchema,
-  }),
-  deleteMany: z.object({ where: UserWhereInputObjectSchema.optional() }),
-  update: z.object({
-    select: UserSelectObjectSchema.optional(),
-    include: UserIncludeObjectSchema.optional(),
-    data: UserUpdateInputObjectSchema,
-    where: UserWhereUniqueInputObjectSchema,
-  }),
-  updateMany: z.object({
-    data: UserUpdateManyMutationInputObjectSchema,
-    where: UserWhereInputObjectSchema.optional(),
-  }),
-  upsert: z.object({
-    select: UserSelectObjectSchema.optional(),
-    include: UserIncludeObjectSchema.optional(),
-    where: UserWhereUniqueInputObjectSchema,
-    create: UserCreateInputObjectSchema,
-    update: UserUpdateInputObjectSchema,
-  }),
-  aggregate: z.object({
-    where: UserWhereInputObjectSchema.optional(),
-    orderBy: z
-      .union([
-        UserOrderByWithRelationInputObjectSchema,
-        UserOrderByWithRelationInputObjectSchema.array(),
-      ])
-      .optional(),
-    cursor: UserWhereUniqueInputObjectSchema.optional(),
-    take: z.number().optional(),
-    skip: z.number().optional(),
-    _count: z
-      .union([z.literal(true), UserCountAggregateInputObjectSchema])
-      .optional(),
-    _min: UserMinAggregateInputObjectSchema.optional(),
-    _max: UserMaxAggregateInputObjectSchema.optional(),
-  }),
-  groupBy: z.object({
-    where: UserWhereInputObjectSchema.optional(),
-    orderBy: z.union([
-      UserOrderByWithAggregationInputObjectSchema,
-      UserOrderByWithAggregationInputObjectSchema.array(),
-    ]),
-    having: UserScalarWhereWithAggregatesInputObjectSchema.optional(),
-    take: z.number().optional(),
-    skip: z.number().optional(),
-    by: z.array(UserScalarFieldEnumSchema),
-  }),
+    findUnique: z.object({
+        select: UserSelectObjectSchema.optional(),
+        include: UserIncludeObjectSchema.optional(),
+        where: UserWhereUniqueInputObjectSchema,
+    }),
+    findFirst: z.object({
+        select: UserSelectObjectSchema.optional(),
+        include: UserIncludeObjectSchema.optional(),
+        where: UserWhereInputObjectSchema.optional(),
+        orderBy: z
+            .union([UserOrderByWithRelationInputObjectSchema, UserOrderByWithRelationInputObjectSchema.array()])
+            .optional(),
+        cursor: UserWhereUniqueInputObjectSchema.optional(),
+        take: z.number().optional(),
+        skip: z.number().optional(),
+        distinct: z.array(UserScalarFieldEnumSchema).optional(),
+    }),
+    findMany: z.object({
+        select: z.lazy(() => UserSelectObjectSchema.optional()),
+        include: z.lazy(() => UserIncludeObjectSchema.optional()),
+        where: UserWhereInputObjectSchema.optional(),
+        orderBy: z
+            .union([UserOrderByWithRelationInputObjectSchema, UserOrderByWithRelationInputObjectSchema.array()])
+            .optional(),
+        cursor: UserWhereUniqueInputObjectSchema.optional(),
+        take: z.number().optional(),
+        skip: z.number().optional(),
+        distinct: z.array(UserScalarFieldEnumSchema).optional(),
+    }),
+    create: z.object({
+        select: UserSelectObjectSchema.optional(),
+        include: UserIncludeObjectSchema.optional(),
+        data: UserCreateInputObjectSchema,
+    }),
+    createMany: z.object({ data: UserCreateManyInputObjectSchema }),
+    delete: z.object({
+        select: UserSelectObjectSchema.optional(),
+        include: UserIncludeObjectSchema.optional(),
+        where: UserWhereUniqueInputObjectSchema,
+    }),
+    deleteMany: z.object({ where: UserWhereInputObjectSchema.optional() }),
+    update: z.object({
+        select: UserSelectObjectSchema.optional(),
+        include: UserIncludeObjectSchema.optional(),
+        data: UserUpdateInputObjectSchema,
+        where: UserWhereUniqueInputObjectSchema,
+    }),
+    updateMany: z.object({
+        data: UserUpdateManyMutationInputObjectSchema,
+        where: UserWhereInputObjectSchema.optional(),
+    }),
+    upsert: z.object({
+        select: UserSelectObjectSchema.optional(),
+        include: UserIncludeObjectSchema.optional(),
+        where: UserWhereUniqueInputObjectSchema,
+        create: UserCreateInputObjectSchema,
+        update: UserUpdateInputObjectSchema,
+    }),
+    aggregate: z.object({
+        where: UserWhereInputObjectSchema.optional(),
+        orderBy: z
+            .union([UserOrderByWithRelationInputObjectSchema, UserOrderByWithRelationInputObjectSchema.array()])
+            .optional(),
+        cursor: UserWhereUniqueInputObjectSchema.optional(),
+        take: z.number().optional(),
+        skip: z.number().optional(),
+        _count: z.union([z.literal(true), UserCountAggregateInputObjectSchema]).optional(),
+        _min: UserMinAggregateInputObjectSchema.optional(),
+        _max: UserMaxAggregateInputObjectSchema.optional(),
+    }),
+    groupBy: z.object({
+        where: UserWhereInputObjectSchema.optional(),
+        orderBy: z.union([
+            UserOrderByWithAggregationInputObjectSchema,
+            UserOrderByWithAggregationInputObjectSchema.array(),
+        ]),
+        having: UserScalarWhereWithAggregatesInputObjectSchema.optional(),
+        take: z.number().optional(),
+        skip: z.number().optional(),
+        by: z.array(UserScalarFieldEnumSchema),
+    }),
 };

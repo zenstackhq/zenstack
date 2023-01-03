@@ -5,16 +5,14 @@ import { SpaceUserUncheckedUpdateWithoutUserInputObjectSchema } from './SpaceUse
 
 import type { Prisma } from '@prisma/client';
 
-const Schema: z.ZodType<Prisma.SpaceUserUpdateWithWhereUniqueWithoutUserInput> =
-  z
+const Schema: z.ZodType<Prisma.SpaceUserUpdateWithWhereUniqueWithoutUserInput> = z
     .object({
-      where: z.lazy(() => SpaceUserWhereUniqueInputObjectSchema),
-      data: z.union([
-        z.lazy(() => SpaceUserUpdateWithoutUserInputObjectSchema),
-        z.lazy(() => SpaceUserUncheckedUpdateWithoutUserInputObjectSchema),
-      ]),
+        where: z.lazy(() => SpaceUserWhereUniqueInputObjectSchema),
+        data: z.union([
+            z.lazy(() => SpaceUserUpdateWithoutUserInputObjectSchema),
+            z.lazy(() => SpaceUserUncheckedUpdateWithoutUserInputObjectSchema),
+        ]),
     })
     .strict();
 
-export const SpaceUserUpdateWithWhereUniqueWithoutUserInputObjectSchema =
-  Schema;
+export const SpaceUserUpdateWithWhereUniqueWithoutUserInputObjectSchema = Schema;

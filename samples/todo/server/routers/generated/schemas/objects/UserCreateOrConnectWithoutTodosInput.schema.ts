@@ -6,13 +6,13 @@ import { UserUncheckedCreateWithoutTodosInputObjectSchema } from './UserUnchecke
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.UserCreateOrConnectWithoutTodosInput> = z
-  .object({
-    where: z.lazy(() => UserWhereUniqueInputObjectSchema),
-    create: z.union([
-      z.lazy(() => UserCreateWithoutTodosInputObjectSchema),
-      z.lazy(() => UserUncheckedCreateWithoutTodosInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => UserWhereUniqueInputObjectSchema),
+        create: z.union([
+            z.lazy(() => UserCreateWithoutTodosInputObjectSchema),
+            z.lazy(() => UserUncheckedCreateWithoutTodosInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const UserCreateOrConnectWithoutTodosInputObjectSchema = Schema;
