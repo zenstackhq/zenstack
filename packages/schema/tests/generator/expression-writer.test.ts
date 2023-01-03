@@ -320,7 +320,7 @@ describe('Expression Writer Tests', () => {
                 foo: {
                     is: {
                         x : {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -413,7 +413,7 @@ describe('Expression Writer Tests', () => {
                         bar: {
                             is: {
                                 x : {
-                                    le: 0
+                                    lte: 0
                                 }
                             }
                         }
@@ -444,7 +444,7 @@ describe('Expression Writer Tests', () => {
                 foos: {
                     some: {
                         x: {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -471,7 +471,7 @@ describe('Expression Writer Tests', () => {
                 foos: {
                     every: {
                         x: {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -498,7 +498,7 @@ describe('Expression Writer Tests', () => {
                 foos: {
                     none: {
                         x: {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -534,7 +534,7 @@ describe('Expression Writer Tests', () => {
                         bars: {
                             some: {
                                 x: {
-                                    le: 0
+                                    lte: 0
                                 }
                             }
                         }
