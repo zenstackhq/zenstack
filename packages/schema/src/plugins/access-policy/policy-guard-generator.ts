@@ -1,11 +1,16 @@
 import {
     DataModel,
     Expression,
+    MemberAccessExpr,
     Model,
     isBinaryExpr,
     isDataModel,
+    isDataModelField,
     isEnum,
+    isExpression,
     isInvocationExpr,
+    isMemberAccessExpr,
+    isReferenceExpr,
     isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
@@ -15,10 +20,11 @@ import { streamAllContents } from 'langium';
 import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
+import { isFromStdlib } from '../../language-server/utils';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
-import { isFromStdlib } from '../../language-server/utils';
+import { isFutureExpr } from './utils';
 
 const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 
@@ -52,7 +58,7 @@ export default class PolicyGuardGenerator {
 
         const models = model.declarations.filter((d) => isDataModel(d)) as DataModel[];
 
-        const policyMap: Record<string, Record<string, string | boolean>> = {};
+        const policyMap: Record<string, Record<string, string | boolean | object>> = {};
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
@@ -70,7 +76,11 @@ export default class PolicyGuardGenerator {
                                         writer.write(`${camelCase(model)}:`);
                                         writer.block(() => {
                                             for (const [op, func] of Object.entries(map)) {
-                                                writer.write(`${op}: ${func},`);
+                                                if (typeof func === 'object') {
+                                                    writer.write(`${op}: ${JSON.stringify(func)},`);
+                                                } else {
+                                                    writer.write(`${op}: ${func},`);
+                                                }
                                             }
                                         });
                                         writer.write(',');
@@ -154,7 +164,7 @@ export default class PolicyGuardGenerator {
     }
 
     private async generateQueryGuardForModel(model: DataModel, sourceFile: SourceFile) {
-        const result: Record<string, string | boolean> = {};
+        const result: Record<string, string | boolean | object> = {};
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const policies: any = analyzePolicies(model);
@@ -189,8 +199,82 @@ export default class PolicyGuardGenerator {
             const func = this.generateQueryGuardFunction(sourceFile, model, kind, allows, denies);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             result[kind] = func.getName()!;
+
+            if (kind === 'postUpdate') {
+                const preValueSelect = this.generatePreValueSelect(model, allows, denies);
+                if (preValueSelect) {
+                    result['preValueSelect'] = preValueSelect;
+                }
+            }
         }
         return result;
+    }
+
+    // generates an object that can be used as the 'select' argument when fetching pre-update
+    // entity value
+    private generatePreValueSelect(model: DataModel, allows: Expression[], denies: Expression[]): object {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any = {};
+        const addPath = (path: string[]) => {
+            let curr = result;
+            path.forEach((seg, i) => {
+                if (i === path.length - 1) {
+                    curr[seg] = true;
+                } else {
+                    if (!curr[seg]) {
+                        curr[seg] = { select: {} };
+                    }
+                    curr = curr[seg].select;
+                }
+            });
+        };
+
+        const visit = (node: Expression): string[] | undefined => {
+            if (isReferenceExpr(node)) {
+                const target = resolved(node.target);
+                if (isDataModelField(target)) {
+                    // a field selection, it's a terminal
+                    return [target.name];
+                }
+            } else if (isMemberAccessExpr(node)) {
+                if (isFutureExpr(node.operand)) {
+                    // future().field is not subject to pre-update select
+                    return undefined;
+                }
+
+                // build a selection path inside-out for chained member access
+                const inner = visit(node.operand);
+                if (inner) {
+                    return [...inner, node.member.$refText];
+                }
+            }
+            return undefined;
+        };
+
+        for (const rule of [...allows, ...denies]) {
+            for (const expr of streamAllContents(rule).filter((node): node is Expression => isExpression(node))) {
+                // only care about member access and reference expressions
+                if (!isMemberAccessExpr(expr) && !isReferenceExpr(expr)) {
+                    continue;
+                }
+
+                if (expr.$container.$type === MemberAccessExpr) {
+                    // only visit top-level member access
+                    continue;
+                }
+
+                const path = visit(expr);
+                if (path) {
+                    if (isDataModel(expr.$resolvedType?.decl)) {
+                        // member selection ended at a data model field, include its 'id'
+                        path.push('id');
+                    }
+                    addPath(path);
+                }
+            }
+        }
+
+        return Object.keys(result).length === 0 ? null : result;
     }
 
     private generateQueryGuardFunction(

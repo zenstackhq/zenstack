@@ -13,9 +13,9 @@ describe('With Policy: post update', () => {
         process.chdir(origDir);
     });
 
-    it('simple', async () => {
+    it('simple allow', async () => {
         const { withPolicy } = await loadPrisma(
-            `${suite}/simple`,
+            `${suite}/simple-allow`,
             `
         ${MODEL_PRELUDE}
 
@@ -25,6 +25,29 @@ describe('With Policy: post update', () => {
 
             @@allow('create,read', true)
             @@allow('update', future().value > 1)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await expect(db.model.create({ data: { id: '1', value: 0 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: '1' }, data: { value: 1 } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: '1' }, data: { value: 2 } })).toResolveTruthy();
+    });
+
+    it('simple deny', async () => {
+        const { withPolicy } = await loadPrisma(
+            `${suite}/simple-deny`,
+            `
+        ${MODEL_PRELUDE}
+
+        model Model {
+            id String @id @default(uuid())
+            value Int
+
+            @@allow('all', true)
+            @@deny('update', future().value <= 1)
         }
         `
         );
@@ -178,6 +201,60 @@ describe('With Policy: post update', () => {
         await expect(db.m2.findMany()).resolves.toEqual(
             expect.arrayContaining([expect.objectContaining({ value: 2 })])
         );
+    });
+
+    it('nested select', async () => {
+        const { withPolicy } = await loadPrisma(
+            `${suite}/nested-select`,
+            `
+        ${MODEL_PRELUDE}
+
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2?
+            @@allow('create,read', true)
+            @@allow('update', future().m2.value > m2.value)
+        }
+
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String @unique
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await expect(
+            db.m1.create({
+                data: {
+                    id: '1',
+                    m2: {
+                        create: { id: '1', value: 1 },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: { m2: { update: { value: 0 } } },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: { m2: { update: { value: 2 } } },
+            })
+        ).toResolveTruthy();
+
+        await expect(db.m2.findFirst()).resolves.toEqual(expect.objectContaining({ value: 2 }));
     });
 
     it('deep nesting', async () => {

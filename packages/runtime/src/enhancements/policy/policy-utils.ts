@@ -45,7 +45,9 @@ export class PolicyUtil {
             return { id: { in: [] } };
         }
 
-        const filtered = conditions.filter((c): c is object => typeof c === 'object' && !!c);
+        const filtered = conditions.filter(
+            (c): c is object => typeof c === 'object' && !!c && Object.keys(c).length > 0
+        );
         if (filtered.length === 0) {
             return undefined;
         } else if (filtered.length === 1) {
@@ -95,6 +97,14 @@ export class PolicyUtil {
             throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
         return provider({ user: this.user, preValue });
+    }
+
+    private async getPreValueSelect(model: string): Promise<object | undefined> {
+        const guard = this.policy.guard[camelCase(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return guard.preValueSelect;
     }
 
     /**
@@ -336,9 +346,13 @@ export class PolicyUtil {
                     modelEntities = new Map<string, any>();
                     updatedModels.set(model, modelEntities);
                 }
-                const subQuery = await buildReversedQuery(context);
-                this.logger.info(`fetching pre-update entities for ${model}: ${format(subQuery)})}`);
-                const entities = await this.db[model].findMany({ where: subQuery });
+
+                // fetch preValue selection (analyzed from the post-update rules)
+                const preValueSelect = await this.getPreValueSelect(model);
+                const filter = await buildReversedQuery(context);
+                const query = { where: filter, select: { ...preValueSelect, id: true } };
+                this.logger.info(`fetching pre-update entities for ${model}: ${format(query)})}`);
+                const entities = await this.db[model].findMany(query);
                 entities.forEach((entity) => modelEntities?.set((entity as any).id, entity));
             }
         };
@@ -463,7 +477,7 @@ export class PolicyUtil {
 
     deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
         return new PrismaClientKnownRequestError(
-            `denied by policy: entities failed '${operation}' check, ${model}${extra ? ', ' + extra : ''}`,
+            `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
             { clientVersion: getVersion(), code: 'P2004' }
         );
     }
@@ -523,7 +537,7 @@ export class PolicyUtil {
         // see if we get fewer items with policy, if so, reject with an throw
         if (guardedCount === 0) {
             this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
-            throw this.deniedByPolicy(model, 'postUpdate', `entity failed policy check`);
+            throw this.deniedByPolicy(model, 'postUpdate');
         }
     }
 

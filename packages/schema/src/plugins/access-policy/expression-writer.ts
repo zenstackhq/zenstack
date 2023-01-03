@@ -335,11 +335,11 @@ export class ExpressionWriter {
             case '>':
                 return 'gt';
             case '>=':
-                return 'ge';
+                return 'gte';
             case '<':
                 return 'lt';
             case '<=':
-                return 'le';
+                return 'lte';
         }
     }
 
