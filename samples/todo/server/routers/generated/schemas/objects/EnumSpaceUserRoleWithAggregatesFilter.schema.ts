@@ -7,26 +7,26 @@ import { NestedEnumSpaceUserRoleFilterObjectSchema } from './NestedEnumSpaceUser
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.EnumSpaceUserRoleWithAggregatesFilter> = z
-  .object({
-    equals: z.lazy(() => SpaceUserRoleSchema).optional(),
-    in: z
-      .lazy(() => SpaceUserRoleSchema)
-      .array()
-      .optional(),
-    notIn: z
-      .lazy(() => SpaceUserRoleSchema)
-      .array()
-      .optional(),
-    not: z
-      .union([
-        z.lazy(() => SpaceUserRoleSchema),
-        z.lazy(() => NestedEnumSpaceUserRoleWithAggregatesFilterObjectSchema),
-      ])
-      .optional(),
-    _count: z.lazy(() => NestedIntFilterObjectSchema).optional(),
-    _min: z.lazy(() => NestedEnumSpaceUserRoleFilterObjectSchema).optional(),
-    _max: z.lazy(() => NestedEnumSpaceUserRoleFilterObjectSchema).optional(),
-  })
-  .strict();
+    .object({
+        equals: z.lazy(() => SpaceUserRoleSchema).optional(),
+        in: z
+            .lazy(() => SpaceUserRoleSchema)
+            .array()
+            .optional(),
+        notIn: z
+            .lazy(() => SpaceUserRoleSchema)
+            .array()
+            .optional(),
+        not: z
+            .union([
+                z.lazy(() => SpaceUserRoleSchema),
+                z.lazy(() => NestedEnumSpaceUserRoleWithAggregatesFilterObjectSchema),
+            ])
+            .optional(),
+        _count: z.lazy(() => NestedIntFilterObjectSchema).optional(),
+        _min: z.lazy(() => NestedEnumSpaceUserRoleFilterObjectSchema).optional(),
+        _max: z.lazy(() => NestedEnumSpaceUserRoleFilterObjectSchema).optional(),
+    })
+    .strict();
 
 export const EnumSpaceUserRoleWithAggregatesFilterObjectSchema = Schema;

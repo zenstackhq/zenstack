@@ -6,13 +6,13 @@ import { TodoUncheckedUpdateManyWithoutTodosInputObjectSchema } from './TodoUnch
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.TodoUpdateManyWithWhereWithoutListInput> = z
-  .object({
-    where: z.lazy(() => TodoScalarWhereInputObjectSchema),
-    data: z.union([
-      z.lazy(() => TodoUpdateManyMutationInputObjectSchema),
-      z.lazy(() => TodoUncheckedUpdateManyWithoutTodosInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => TodoScalarWhereInputObjectSchema),
+        data: z.union([
+            z.lazy(() => TodoUpdateManyMutationInputObjectSchema),
+            z.lazy(() => TodoUncheckedUpdateManyWithoutTodosInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const TodoUpdateManyWithWhereWithoutListInputObjectSchema = Schema;

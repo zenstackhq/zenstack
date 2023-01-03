@@ -8,17 +8,17 @@ import { ListUncheckedCreateWithoutSpaceInputObjectSchema } from './ListUnchecke
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.ListUpsertWithWhereUniqueWithoutSpaceInput> = z
-  .object({
-    where: z.lazy(() => ListWhereUniqueInputObjectSchema),
-    update: z.union([
-      z.lazy(() => ListUpdateWithoutSpaceInputObjectSchema),
-      z.lazy(() => ListUncheckedUpdateWithoutSpaceInputObjectSchema),
-    ]),
-    create: z.union([
-      z.lazy(() => ListCreateWithoutSpaceInputObjectSchema),
-      z.lazy(() => ListUncheckedCreateWithoutSpaceInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => ListWhereUniqueInputObjectSchema),
+        update: z.union([
+            z.lazy(() => ListUpdateWithoutSpaceInputObjectSchema),
+            z.lazy(() => ListUncheckedUpdateWithoutSpaceInputObjectSchema),
+        ]),
+        create: z.union([
+            z.lazy(() => ListCreateWithoutSpaceInputObjectSchema),
+            z.lazy(() => ListUncheckedCreateWithoutSpaceInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const ListUpsertWithWhereUniqueWithoutSpaceInputObjectSchema = Schema;

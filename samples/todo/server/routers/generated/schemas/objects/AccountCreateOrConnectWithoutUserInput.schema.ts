@@ -6,13 +6,13 @@ import { AccountUncheckedCreateWithoutUserInputObjectSchema } from './AccountUnc
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.AccountCreateOrConnectWithoutUserInput> = z
-  .object({
-    where: z.lazy(() => AccountWhereUniqueInputObjectSchema),
-    create: z.union([
-      z.lazy(() => AccountCreateWithoutUserInputObjectSchema),
-      z.lazy(() => AccountUncheckedCreateWithoutUserInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => AccountWhereUniqueInputObjectSchema),
+        create: z.union([
+            z.lazy(() => AccountCreateWithoutUserInputObjectSchema),
+            z.lazy(() => AccountUncheckedCreateWithoutUserInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const AccountCreateOrConnectWithoutUserInputObjectSchema = Schema;

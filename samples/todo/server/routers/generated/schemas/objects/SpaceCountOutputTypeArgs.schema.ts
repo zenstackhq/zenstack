@@ -4,9 +4,9 @@ import { SpaceCountOutputTypeSelectObjectSchema } from './SpaceCountOutputTypeSe
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.SpaceCountOutputTypeArgs> = z
-  .object({
-    select: z.lazy(() => SpaceCountOutputTypeSelectObjectSchema).optional(),
-  })
-  .strict();
+    .object({
+        select: z.lazy(() => SpaceCountOutputTypeSelectObjectSchema).optional(),
+    })
+    .strict();
 
 export const SpaceCountOutputTypeArgsObjectSchema = Schema;

@@ -8,17 +8,17 @@ import { AccountUncheckedCreateWithoutUserInputObjectSchema } from './AccountUnc
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.AccountUpsertWithWhereUniqueWithoutUserInput> = z
-  .object({
-    where: z.lazy(() => AccountWhereUniqueInputObjectSchema),
-    update: z.union([
-      z.lazy(() => AccountUpdateWithoutUserInputObjectSchema),
-      z.lazy(() => AccountUncheckedUpdateWithoutUserInputObjectSchema),
-    ]),
-    create: z.union([
-      z.lazy(() => AccountCreateWithoutUserInputObjectSchema),
-      z.lazy(() => AccountUncheckedCreateWithoutUserInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => AccountWhereUniqueInputObjectSchema),
+        update: z.union([
+            z.lazy(() => AccountUpdateWithoutUserInputObjectSchema),
+            z.lazy(() => AccountUncheckedUpdateWithoutUserInputObjectSchema),
+        ]),
+        create: z.union([
+            z.lazy(() => AccountCreateWithoutUserInputObjectSchema),
+            z.lazy(() => AccountUncheckedCreateWithoutUserInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const AccountUpsertWithWhereUniqueWithoutUserInputObjectSchema = Schema;

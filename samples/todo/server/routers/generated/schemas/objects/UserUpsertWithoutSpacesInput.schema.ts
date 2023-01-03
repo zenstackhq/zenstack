@@ -7,16 +7,16 @@ import { UserUncheckedCreateWithoutSpacesInputObjectSchema } from './UserUncheck
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.UserUpsertWithoutSpacesInput> = z
-  .object({
-    update: z.union([
-      z.lazy(() => UserUpdateWithoutSpacesInputObjectSchema),
-      z.lazy(() => UserUncheckedUpdateWithoutSpacesInputObjectSchema),
-    ]),
-    create: z.union([
-      z.lazy(() => UserCreateWithoutSpacesInputObjectSchema),
-      z.lazy(() => UserUncheckedCreateWithoutSpacesInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        update: z.union([
+            z.lazy(() => UserUpdateWithoutSpacesInputObjectSchema),
+            z.lazy(() => UserUncheckedUpdateWithoutSpacesInputObjectSchema),
+        ]),
+        create: z.union([
+            z.lazy(() => UserCreateWithoutSpacesInputObjectSchema),
+            z.lazy(() => UserUncheckedCreateWithoutSpacesInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const UserUpsertWithoutSpacesInputObjectSchema = Schema;

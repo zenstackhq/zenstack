@@ -6,13 +6,13 @@ import { TodoUncheckedCreateWithoutListInputObjectSchema } from './TodoUnchecked
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.TodoCreateOrConnectWithoutListInput> = z
-  .object({
-    where: z.lazy(() => TodoWhereUniqueInputObjectSchema),
-    create: z.union([
-      z.lazy(() => TodoCreateWithoutListInputObjectSchema),
-      z.lazy(() => TodoUncheckedCreateWithoutListInputObjectSchema),
-    ]),
-  })
-  .strict();
+    .object({
+        where: z.lazy(() => TodoWhereUniqueInputObjectSchema),
+        create: z.union([
+            z.lazy(() => TodoCreateWithoutListInputObjectSchema),
+            z.lazy(() => TodoUncheckedCreateWithoutListInputObjectSchema),
+        ]),
+    })
+    .strict();
 
 export const TodoCreateOrConnectWithoutListInputObjectSchema = Schema;

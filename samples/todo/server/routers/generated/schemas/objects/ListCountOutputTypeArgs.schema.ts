@@ -4,9 +4,9 @@ import { ListCountOutputTypeSelectObjectSchema } from './ListCountOutputTypeSele
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.ListCountOutputTypeArgs> = z
-  .object({
-    select: z.lazy(() => ListCountOutputTypeSelectObjectSchema).optional(),
-  })
-  .strict();
+    .object({
+        select: z.lazy(() => ListCountOutputTypeSelectObjectSchema).optional(),
+    })
+    .strict();
 
 export const ListCountOutputTypeArgsObjectSchema = Schema;

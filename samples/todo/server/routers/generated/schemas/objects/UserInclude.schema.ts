@@ -8,19 +8,13 @@ import { UserCountOutputTypeArgsObjectSchema } from './UserCountOutputTypeArgs.s
 import type { Prisma } from '@prisma/client';
 
 const Schema: z.ZodType<Prisma.UserInclude> = z
-  .object({
-    spaces: z
-      .union([z.boolean(), z.lazy(() => SpaceUserSchema.findMany)])
-      .optional(),
-    lists: z.union([z.boolean(), z.lazy(() => ListSchema.findMany)]).optional(),
-    todos: z.union([z.boolean(), z.lazy(() => TodoSchema.findMany)]).optional(),
-    accounts: z
-      .union([z.boolean(), z.lazy(() => AccountSchema.findMany)])
-      .optional(),
-    _count: z
-      .union([z.boolean(), z.lazy(() => UserCountOutputTypeArgsObjectSchema)])
-      .optional(),
-  })
-  .strict();
+    .object({
+        spaces: z.union([z.boolean(), z.lazy(() => SpaceUserSchema.findMany)]).optional(),
+        lists: z.union([z.boolean(), z.lazy(() => ListSchema.findMany)]).optional(),
+        todos: z.union([z.boolean(), z.lazy(() => TodoSchema.findMany)]).optional(),
+        accounts: z.union([z.boolean(), z.lazy(() => AccountSchema.findMany)]).optional(),
+        _count: z.union([z.boolean(), z.lazy(() => UserCountOutputTypeArgsObjectSchema)]).optional(),
+    })
+    .strict();
 
 export const UserIncludeObjectSchema = Schema;

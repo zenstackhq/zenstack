@@ -6,12 +6,12 @@ import { TodoSchema } from './Todo.schema';
 import { AccountSchema } from './Account.schema';
 
 const schemas = {
-  Space: SpaceSchema,
-  SpaceUser: SpaceUserSchema,
-  User: UserSchema,
-  List: ListSchema,
-  Todo: TodoSchema,
-  Account: AccountSchema,
+    Space: SpaceSchema,
+    SpaceUser: SpaceUserSchema,
+    User: UserSchema,
+    List: ListSchema,
+    Todo: TodoSchema,
+    Account: AccountSchema,
 };
 
 export default schemas;
