@@ -1,6 +1,6 @@
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { useCurrentUser } from '@lib/context';
-import { trpc } from '@lib/trpc';
+import { isTRPCClientError, trpc } from '@lib/trpc';
 import { Space, SpaceUser, SpaceUserRole, User } from '@prisma/client';
 import { inferProcedureOutput } from '@trpc/server';
 import { ChangeEvent, KeyboardEvent, useState } from 'react';
@@ -54,19 +54,18 @@ export default function ManageMembers({ space }: Props) {
             });
             console.log('SpaceUser created:', r);
         } catch (err: any) {
-            console.error(JSON.stringify(err));
-            if (err.info?.code) {
-                // const { info } = err as HooksError;
-                // if (info.code === ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION) {
-                //     toast.error('User is already a member of the space');
-                // } else if (
-                //     info.code === ServerErrorCode.REFERENCE_CONSTRAINT_VIOLATION
-                // ) {
-                //     toast.error('User is not found for this email');
-                // }
-                toast.error(JSON.stringify(err.info));
+            console.error(err);
+            if (isTRPCClientError(err) && err.data?.prismaError) {
+                console.error('PrismaError:', err.data.prismaError);
+                if (err.data.prismaError.code === 'P2002') {
+                    toast.error('User is already a member of the space');
+                } else if (err.data.prismaError.code === 'P2025') {
+                    toast.error('User is not found for this email');
+                } else {
+                    toast.error(`Unexpected Prisma error: ${err.data.prismaError.code}`);
+                }
             } else {
-                toast.error(`Error occurred: ${err}`);
+                toast.error(`Error occurred: ${JSON.stringify(err)}`);
             }
         }
     };
@@ -106,7 +105,7 @@ export default function ManageMembers({ space }: Props) {
                     <option value={SpaceUserRole.ADMIN}>ADMIN</option>
                 </select>
 
-                <button>
+                <button onClick={() => inviteUser()}>
                     <PlusIcon className="w-6 h-6 text-gray-500" />
                 </button>
             </div>

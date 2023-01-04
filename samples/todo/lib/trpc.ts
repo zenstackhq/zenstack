@@ -1,4 +1,4 @@
-import { httpBatchLink } from '@trpc/client';
+import { TRPCClientError, httpBatchLink } from '@trpc/client';
 import { createTRPCNext } from '@trpc/next';
 import superjson from 'superjson';
 import type { AppRouter } from '../server/routers/_app';
@@ -26,3 +26,7 @@ export const trpc = createTRPCNext<AppRouter>({
     },
     ssr: false,
 });
+
+export function isTRPCClientError(error: unknown): error is TRPCClientError<AppRouter> {
+    return error instanceof TRPCClientError;
+}

@@ -1,4 +1,4 @@
-import { trpc } from '@lib/trpc';
+import { isTRPCClientError, trpc } from '@lib/trpc';
 import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,17 +16,16 @@ export default function Signup() {
             await signup({ data: { email, password } });
         } catch (err: any) {
             console.error(err);
-            // if (
-            //     (err as HooksError).info?.code ===
-            //     ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION
-            // ) {
-            //     toast.error('User already exists');
-            // } else {
-            //     toast.error(
-            //         `Error occurred: ${err.info?.message || err.message}`
-            //     );
-            // }
-            toast.error(JSON.stringify(err));
+            if (isTRPCClientError(err) && err.data?.prismaError) {
+                console.error(err.data.prismaError);
+                if (err.data.prismaError.code === 'P2002') {
+                    toast.error('User already exists');
+                } else {
+                    toast.error(`Unexpected Prisma error: ${err.data.prismaError.code}`);
+                }
+            } else {
+                toast.error(`Error occurred: ${JSON.stringify(err)}`);
+            }
             return;
         }
 
