@@ -6,6 +6,7 @@ import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
 import { format } from 'util';
+import { fromZodError } from 'zod-validation-error';
 import {
     AuthUser,
     DbClientContract,
@@ -105,6 +106,10 @@ export class PolicyUtil {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
         return guard.preValueSelect;
+    }
+
+    private async getModelSchema(model: string) {
+        return this.policy.schema[camelCase(model)];
     }
 
     /**
@@ -234,9 +239,10 @@ export class PolicyUtil {
         // args processor for create
         const processCreate = async (model: string, args: any) => {
             const guard = await this.getAuthGuard(model, 'create');
+            const schema = await this.getModelSchema(model);
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'create');
-            } else if (guard !== true) {
+            } else if (guard !== true || schema) {
                 // mark the create with a transaction tag so we can check them later
                 args[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
                 createdModels.add(model);
@@ -320,7 +326,7 @@ export class PolicyUtil {
                 }
             }
 
-            await fetchAndRecordPreValues(model, context);
+            await preparePostUpdateCheck(model, context);
         };
 
         // args processor for updateMany
@@ -333,14 +339,17 @@ export class PolicyUtil {
                 await this.injectAuthGuard(args, model, 'update');
             }
 
-            await fetchAndRecordPreValues(model, context);
+            await preparePostUpdateCheck(model, context);
         };
 
         // for models with post-update rules, we need to read and store
         // entity values before the update for post-update check
-        const fetchAndRecordPreValues = async (model: string, context: VisitorContext) => {
+        const preparePostUpdateCheck = async (model: string, context: VisitorContext) => {
             const postGuard = await this.getAuthGuard(model, 'postUpdate');
-            if (postGuard !== true) {
+            const schema = await this.getModelSchema(model);
+
+            // post-update check is needed if there's post-update rule or validation schema
+            if (postGuard !== true || schema) {
                 let modelEntities = updatedModels.get(model);
                 if (!modelEntities) {
                     modelEntities = new Map<string, any>();
@@ -513,13 +522,30 @@ export class PolicyUtil {
         // build a query condition with policy injected
         const guardedQuery = { where: this.and(filter, guard) };
 
-        // query with policy injected
-        const guardedCount = (await db[model].count(guardedQuery)) as number;
+        const schema = (operation === 'create' || operation === 'update') && (await this.getModelSchema(model));
 
-        // see if we get fewer items with policy, if so, reject with an throw
-        if (guardedCount < count) {
-            this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
-            throw this.deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
+        if (schema) {
+            // we've got schemas, so have to fetch entities and validate them
+            const entities = await db[model].findMany(guardedQuery);
+            if (entities.length < count) {
+                this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                throw this.deniedByPolicy(model, operation, `${count - entities.length} entities failed policy check`);
+            }
+
+            // TODO: push down schema check to the database
+            const schemaCheckErrors = entities.map((entity) => schema.safeParse(entity)).filter((r) => !r.success);
+            if (schemaCheckErrors.length > 0) {
+                const error = schemaCheckErrors.map((r) => !r.success && fromZodError(r.error).message).join(', ');
+                this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
+                throw this.deniedByPolicy(model, operation, `entities failed schema check: [${error}]`);
+            }
+        } else {
+            // count entities with policy injected and see if any of them are filtered out
+            const guardedCount = (await db[model].count(guardedQuery)) as number;
+            if (guardedCount < count) {
+                this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                throw this.deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
+            }
         }
     }
 
@@ -532,12 +558,23 @@ export class PolicyUtil {
         const guardedQuery = { where: this.and({ id }, guard) };
 
         // query with policy injected
-        const guardedCount = (await db[model].count(guardedQuery)) as number;
+        const entity = await db[model].findFirst(guardedQuery);
 
         // see if we get fewer items with policy, if so, reject with an throw
-        if (guardedCount === 0) {
+        if (!entity) {
             this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
             throw this.deniedByPolicy(model, 'postUpdate');
+        }
+
+        // TODO: push down schema check to the database
+        const schema = await this.getModelSchema(model);
+        if (schema) {
+            const schemaCheckResult = schema.safeParse(entity);
+            if (!schemaCheckResult.success) {
+                const error = fromZodError(schemaCheckResult.error).message;
+                this.logger.info(`entity ${model} failed schema check for operation postUpdate: ${error}`);
+                throw this.deniedByPolicy(model, 'postUpdate', `entity failed schema check: ${error}`);
+            }
         }
     }
 

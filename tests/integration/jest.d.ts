@@ -1,5 +1,5 @@
 interface CustomMatchers<R = unknown> {
-    toBeRejectedByPolicy(): Promise<R>;
+    toBeRejectedByPolicy(expectedMessages?: string[]): Promise<R>;
     toBeNotFound(): Promise<R>;
     toResolveTruthy(): Promise<R>;
     toResolveFalsy(): Promise<R>;

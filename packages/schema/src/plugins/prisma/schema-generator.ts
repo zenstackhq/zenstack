@@ -161,10 +161,10 @@ export default class PrismaSchemaGenerator {
             this.generateModelField(model, field);
         }
 
-        const { allowAll, denyAll } = analyzePolicies(decl);
+        const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
-        if (!allowAll && !denyAll) {
-            // generate auxiliary fields for authorization
+        if ((!allowAll && !denyAll) || hasFieldValidation) {
+            // generate auxiliary fields for policy check
 
             // add an "zenstack_guard" field for dealing with pure auth() related conditions
             model.addField(GUARD_FIELD_NAME, 'Boolean', [

@@ -1,12 +1,23 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 
-export const toBeRejectedByPolicy = async function (received: Promise<unknown>) {
+export const toBeRejectedByPolicy = async function (received: Promise<unknown>, expectedMessages?: string[]) {
     if (!(received instanceof Promise)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
         await received;
-    } catch (err) {
+    } catch (err: any) {
+        if (expectedMessages) {
+            const message = err.message || '';
+            for (const m of expectedMessages) {
+                if (!message.includes(m)) {
+                    return {
+                        message: () => `expected message not found in error: ${m}, got message: ${message}`,
+                        pass: false,
+                    };
+                }
+            }
+        }
         return expectPrismaCode(err, 'P2004');
     }
     return {
