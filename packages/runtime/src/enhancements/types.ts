@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { FieldInfo, PolicyOperationKind, QueryContext } from '../types';
 
 /**
@@ -14,6 +15,7 @@ export type PolicyFunc = (context: QueryContext) => object;
  * Policy definition
  */
 export type PolicyDef = {
+    // Prisma query guards
     guard: Record<
         string,
         {
@@ -23,4 +25,7 @@ export type PolicyDef = {
                 preValueSelect?: object;
             }
     >;
+
+    // zod schema for post-write validation
+    schema: Record<string, z.ZodSchema>;
 };

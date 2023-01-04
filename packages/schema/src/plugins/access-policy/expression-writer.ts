@@ -89,14 +89,14 @@ export class ExpressionWriter {
     }
 
     private writeExprList(exprs: Expression[]) {
-        this.writer.writeLine('[');
+        this.writer.write('[');
         for (let i = 0; i < exprs.length; i++) {
             this.write(exprs[i]);
             if (i !== exprs.length - 1) {
-                this.writer.writeLine(',');
+                this.writer.write(',');
             }
         }
-        this.writer.writeLine(']');
+        this.writer.write(']');
     }
 
     private writeBinary(expr: BinaryExpr) {
@@ -316,7 +316,7 @@ export class ExpressionWriter {
 
     private block(write: () => void, condition = true) {
         if (condition) {
-            this.writer.block(write);
+            this.writer.inlineBlock(write);
         } else {
             write();
         }
@@ -359,7 +359,7 @@ export class ExpressionWriter {
     }
 
     private writeLogical(expr: BinaryExpr, operator: '&&' | '||') {
-        this.writer.writeLine(`${operator === '&&' ? 'AND' : 'OR'}: `);
+        this.writer.write(`${operator === '&&' ? 'AND' : 'OR'}: `);
         this.writeExprList([expr.left, expr.right]);
     }
 
@@ -368,7 +368,7 @@ export class ExpressionWriter {
             throw new PluginError(`Unary operator "${expr.operator}" is not supported`);
         }
 
-        this.writer.writeLine('NOT: ');
+        this.writer.write('NOT: ');
         this.write(expr.operand);
     }
 

@@ -25,13 +25,14 @@ import { analyzePolicies } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import { isFutureExpr } from './utils';
+import { ZodSchemaGenerator } from './zod-schema-generator';
 
 const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
  */
-export default class PolicyGuardGenerator {
+export default class PolicyGenerator {
     async generate(model: Model, options: PluginOptions) {
         const output = options.output ? (options.output as string) : getDefaultOutputFolder();
         if (!output) {
@@ -46,6 +47,11 @@ export default class PolicyGuardGenerator {
             namedImports: [{ name: 'QueryContext' }],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
             isTypeOnly: true,
+        });
+
+        sf.addImportDeclaration({
+            namedImports: [{ name: 'z' }],
+            moduleSpecifier: 'zod',
         });
 
         // import enums
@@ -63,6 +69,8 @@ export default class PolicyGuardGenerator {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
 
+        const zodGenerator = new ZodSchemaGenerator();
+
         sf.addVariableStatement({
             declarationKind: VariableDeclarationKind.Const,
             declarations: [
@@ -70,22 +78,27 @@ export default class PolicyGuardGenerator {
                     name: 'policy',
                     initializer: (writer) => {
                         writer.block(() => {
-                            writer.write('guard:'),
-                                writer.block(() => {
-                                    for (const [model, map] of Object.entries(policyMap)) {
-                                        writer.write(`${camelCase(model)}:`);
-                                        writer.block(() => {
-                                            for (const [op, func] of Object.entries(map)) {
-                                                if (typeof func === 'object') {
-                                                    writer.write(`${op}: ${JSON.stringify(func)},`);
-                                                } else {
-                                                    writer.write(`${op}: ${func},`);
-                                                }
+                            writer.write('guard:');
+                            writer.inlineBlock(() => {
+                                for (const [model, map] of Object.entries(policyMap)) {
+                                    writer.write(`${camelCase(model)}:`);
+                                    writer.inlineBlock(() => {
+                                        for (const [op, func] of Object.entries(map)) {
+                                            if (typeof func === 'object') {
+                                                writer.write(`${op}: ${JSON.stringify(func)},`);
+                                            } else {
+                                                writer.write(`${op}: ${func},`);
                                             }
-                                        });
-                                        writer.write(',');
-                                    }
-                                });
+                                        }
+                                    });
+                                    writer.write(',');
+                                }
+                            });
+
+                            writer.writeLine(',');
+
+                            writer.write('schema:');
+                            zodGenerator.generate(writer, models);
                         });
                     },
                 },
@@ -319,54 +332,46 @@ export default class PolicyGuardGenerator {
         }
 
         // r = <guard object>;
-        func.addVariableStatement({
-            declarationKind: VariableDeclarationKind.Const,
-            declarations: [
-                {
-                    name: 'r',
-                    initializer: (writer) => {
-                        const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
-                        const writeDenies = () => {
-                            writer.conditionalWrite(denies.length > 1, '{ AND: [');
-                            denies.forEach((expr, i) => {
-                                writer.block(() => {
-                                    writer.write('NOT: ');
-                                    exprWriter.write(expr);
-                                });
-                                writer.conditionalWrite(i !== denies.length - 1, ',');
-                            });
-                            writer.conditionalWrite(denies.length > 1, ']}');
-                        };
+        func.addStatements((writer) => {
+            writer.write('return ');
+            const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
+            const writeDenies = () => {
+                writer.conditionalWrite(denies.length > 1, '{ AND: [');
+                denies.forEach((expr, i) => {
+                    writer.inlineBlock(() => {
+                        writer.write('NOT: ');
+                        exprWriter.write(expr);
+                    });
+                    writer.conditionalWrite(i !== denies.length - 1, ',');
+                });
+                writer.conditionalWrite(denies.length > 1, ']}');
+            };
 
-                        const writeAllows = () => {
-                            writer.conditionalWrite(allows.length > 1, '{ OR: [');
-                            allows.forEach((expr, i) => {
-                                exprWriter.write(expr);
-                                writer.conditionalWrite(i !== allows.length - 1, ',');
-                            });
-                            writer.conditionalWrite(allows.length > 1, ']}');
-                        };
+            const writeAllows = () => {
+                writer.conditionalWrite(allows.length > 1, '{ OR: [');
+                allows.forEach((expr, i) => {
+                    exprWriter.write(expr);
+                    writer.conditionalWrite(i !== allows.length - 1, ',');
+                });
+                writer.conditionalWrite(allows.length > 1, ']}');
+            };
 
-                        if (allows.length > 0 && denies.length > 0) {
-                            writer.writeLine('{ AND: [');
-                            writeDenies();
-                            writer.writeLine(',');
-                            writeAllows();
-                            writer.writeLine(']}');
-                        } else if (denies.length > 0) {
-                            writeDenies();
-                        } else if (allows.length > 0) {
-                            writeAllows();
-                        } else {
-                            // disallow any operation
-                            writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
-                        }
-                    },
-                },
-            ],
+            if (allows.length > 0 && denies.length > 0) {
+                writer.write('{ AND: [');
+                writeDenies();
+                writer.write(',');
+                writeAllows();
+                writer.write(']}');
+            } else if (denies.length > 0) {
+                writeDenies();
+            } else if (allows.length > 0) {
+                writeAllows();
+            } else {
+                // disallow any operation
+                writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
+            }
+            writer.write(';');
         });
-
-        func.addStatements('return r;');
         return func;
     }
 }
