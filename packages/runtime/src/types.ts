@@ -80,16 +80,6 @@ export type RequestOptions<T> = {
     initialData?: T;
 };
 
-/**
- * Hooks invocation error
- */
-export type HooksError = {
-    status: number;
-    info: {
-        message: string;
-    };
-};
-
 export const PrismaWriteActions = [
     'create',
     'createMany',

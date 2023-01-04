@@ -1,4 +1,4 @@
-import { trpc } from '@lib/trpc';
+import { isTRPCClientError, trpc } from '@lib/trpc';
 import { SpaceUserRole } from '@prisma/client';
 import WithNavBar from 'components/WithNavBar';
 import { NextPage } from 'next';
@@ -42,17 +42,16 @@ const CreateSpace: NextPage = () => {
             }, 2000);
         } catch (err: any) {
             console.error(err);
-            // if (
-            //     (err as HooksError).info?.code ===
-            //     ServerErrorCode.UNIQUE_CONSTRAINT_VIOLATION
-            // ) {
-            //     toast.error('Space slug alread in use');
-            // } else {
-            //     toast.error(
-            //         `Error occurred: ${err.info?.message || err.message}`
-            //     );
-            // }
-            toast.error(JSON.stringify(err));
+            if (isTRPCClientError(err) && err.data?.prismaError) {
+                console.error('PrismaError:', err.data.prismaError);
+                if (err.data.prismaError.code === 'P2002') {
+                    toast.error('Space slug already in use');
+                } else {
+                    toast.error(`Unexpected Prisma error: ${err.data.prismaError.code}`);
+                }
+            } else {
+                toast.error(JSON.stringify(err));
+            }
         }
     };
 

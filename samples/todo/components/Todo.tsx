@@ -1,7 +1,7 @@
 import { TrashIcon } from '@heroicons/react/24/outline';
 import { trpc } from '@lib/trpc';
 import { Todo, User } from '@prisma/client';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent } from 'react';
 import Avatar from './Avatar';
 import TimeInfo from './TimeInfo';
 
@@ -12,30 +12,26 @@ type Props = {
 };
 
 export default function TodoComponent({ value, updated, deleted }: Props) {
-    const [completed, setCompleted] = useState(!!value.completedAt);
     const { mutateAsync: update } = trpc.todo.update.useMutation();
     const { mutateAsync: del } = trpc.todo.delete.useMutation();
 
-    useEffect(() => {
-        if (!!value.completedAt !== completed) {
-            updateTodo();
+    const deleteTodo = async () => {
+        await del({ where: { id: value.id } });
+        if (deleted) {
+            deleted(value);
         }
-    });
+    };
 
-    const updateTodo = async () => {
+    const toggleCompleted = async (completed: boolean) => {
+        if (completed === !!value.completedAt) {
+            return;
+        }
         const newValue = await update({
             where: { id: value.id },
             data: { completedAt: completed ? new Date() : null },
         });
         if (updated && newValue) {
             updated(newValue);
-        }
-    };
-
-    const deleteTodo = async () => {
-        await del({ where: { id: value.id } });
-        if (deleted) {
-            deleted(value);
         }
     };
 
@@ -53,8 +49,8 @@ export default function TodoComponent({ value, updated, deleted }: Props) {
                     <input
                         type="checkbox"
                         className="checkbox mr-2"
-                        checked={completed}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCompleted(e.currentTarget.checked)}
+                        checked={!!value.completedAt}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => toggleCompleted(e.currentTarget.checked)}
                     />
                     <TrashIcon
                         className="w-6 h-6 text-gray-500 cursor-pointer"
