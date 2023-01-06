@@ -206,6 +206,23 @@ describe('Data Model Validation Tests', () => {
         `)
         ).toContain(`Fields "a", "a1" on model "B" refer to the same relation to model "A"`);
 
+        // fields or references missing
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                b B?
+            }
+
+            model B {
+                id String @id
+                a A @relation(fields: [aId])
+                aId String
+            }
+        `)
+        ).toContain(`Both "fields" and "references" must be provided`);
+
         // one-to-one inconsistent attribute
         expect(
             await loadModelWithError(`
@@ -222,6 +239,40 @@ describe('Data Model Validation Tests', () => {
             }
         `)
         ).toContain(`"fields" and "references" must be provided only on one side of relation field`);
+
+        // references mismatch
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                myId Int @id
+                b B?
+            }
+
+            model B {
+                id String @id
+                a A @relation(fields: [aId], references: [id])
+                aId String @unique
+            }
+        `)
+        ).toContain(`values of "references" and "fields" must have the same type`);
+
+        // "fields" and "references" typing consistency
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id Int @id
+                b B?
+            }
+
+            model B {
+                id String @id
+                a A @relation(fields: [aId], references: [id])
+                aId String @unique
+            }
+        `)
+        ).toContain(`values of "references" and "fields" must have the same type`);
 
         // one-to-one missing @unique
         expect(

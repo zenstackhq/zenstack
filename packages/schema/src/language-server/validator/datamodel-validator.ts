@@ -232,6 +232,43 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             }
         }
 
+        if (!fields || !references) {
+            if (accept) {
+                accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
+            }
+        } else {
+            // validate "fields" and "references" typing consistency
+            if (fields.length !== references.length) {
+                if (accept) {
+                    accept('error', `"references" and "fields" must have the same length`, { node: relAttr });
+                }
+            } else {
+                for (let i = 0; i < fields.length; i++) {
+                    if (!fields[i].$resolvedType) {
+                        if (accept) {
+                            accept('error', `field reference is unresolved`, { node: fields[i] });
+                        }
+                    }
+                    if (!references[i].$resolvedType) {
+                        if (accept) {
+                            accept('error', `field reference is unresolved`, { node: references[i] });
+                        }
+                    }
+
+                    if (
+                        fields[i].$resolvedType?.decl !== references[i].$resolvedType?.decl ||
+                        fields[i].$resolvedType?.array !== references[i].$resolvedType?.array
+                    ) {
+                        if (accept) {
+                            accept('error', `values of "references" and "fields" must have the same type`, {
+                                node: relAttr,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
         return { attr: relAttr, name, fields, references, valid };
     }
 

@@ -184,8 +184,10 @@ Attribute:
 AttributeParam:
     (default?='_')? name=ID ':' type=AttributeParamType;
 
+// FieldReference refers to fields declared in the current model
+// TransitiveFieldReference refers to fields declared in the model type of the current field
 AttributeParamType:
-    (type=(ExpressionType | 'FieldReference' | 'ContextType') | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
+    (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
 
 type TypeDeclaration = DataModel | Enum;
 

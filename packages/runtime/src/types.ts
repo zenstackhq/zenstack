@@ -31,10 +31,8 @@ export type PolicyOperationKind = 'create' | 'update' | 'postUpdate' | 'read' | 
 
 /**
  * Current login user info
- *
- * @todo Support for non-string "id" field
  */
-export type AuthUser = { id: string } & Record<string, unknown>;
+export type AuthUser = Record<string, unknown>;
 
 /**
  * Context for database query
@@ -60,6 +58,7 @@ export type RuntimeAttribute = {
 export type FieldInfo = {
     name: string;
     type: string;
+    isId: boolean;
     isDataModel: boolean;
     isArray: boolean;
     isOptional: boolean;

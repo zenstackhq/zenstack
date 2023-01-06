@@ -105,7 +105,7 @@ export function assignableToAttributeParam(
             return false;
         }
 
-        if (dstType === 'FieldReference') {
+        if (dstType === 'FieldReference' || dstType === 'TransitiveFieldReference') {
             if (dstIsArray) {
                 return (
                     isArrayExpr(arg.value) &&

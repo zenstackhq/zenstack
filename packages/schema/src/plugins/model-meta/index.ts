@@ -53,6 +53,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                             : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                               f.type.type!
                     }",
+                    isId: ${isIdField(f)},
                     isDataModel: ${isDataModel(f.type.reference?.ref)},
                     isArray: ${f.type.array},
                     isOptional: ${f.type.optional},
@@ -113,4 +114,8 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
             return { name: resolved(attr.decl).name, args };
         })
         .filter((d): d is RuntimeAttribute => !!d);
+}
+
+function isIdField(field: DataModelField) {
+    return field.attributes.some((attr) => attr.decl.ref?.name === '@id');
 }

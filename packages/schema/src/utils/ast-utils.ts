@@ -87,3 +87,7 @@ export const VALIDATION_ATTRIBUTES = [
     '@lt',
     '@lte',
 ];
+
+export function getIdField(dataModel: DataModel) {
+    return dataModel.fields.find((f) => f.attributes.some((attr) => attr.decl.$refText === '@id'));
+}

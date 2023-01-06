@@ -14,14 +14,14 @@ import {
     isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
-import { GUARD_FIELD_NAME, PluginOptions, getLiteral, resolved } from '@zenstackhq/sdk';
+import { GUARD_FIELD_NAME, PluginError, PluginOptions, getLiteral, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
-import { analyzePolicies } from '../../utils/ast-utils';
+import { analyzePolicies, getIdField } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import { isFutureExpr } from './utils';
@@ -325,9 +325,19 @@ export default class PolicyGenerator {
         }
 
         if (hasAuthRef) {
+            const userModel = model.$container.declarations.find(
+                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
+            );
+            if (!userModel) {
+                throw new PluginError('User model not found');
+            }
+            const userIdField = getIdField(userModel);
+            if (!userIdField) {
+                throw new PluginError('User model does not have an id field');
+            }
             func.addStatements(
                 // make sure user id is always available
-                `const user = context.user?.id ? context.user : { ...context.user, id: '${UNKNOWN_USER_ID}' };`
+                `const user = context.user?.${userIdField.name} ? context.user : { ...context.user, ${userIdField.name}: '${UNKNOWN_USER_ID}' };`
             );
         }
 

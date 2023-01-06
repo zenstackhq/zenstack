@@ -86,11 +86,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             dbOps.create(writeArgs)
         );
 
-        if (!result.id) {
+        if (!this.utils.getEntityId(this.model, result)) {
             throw this.utils.unknownError(`unexpected error: create didn't return an id`);
         }
 
-        return this.checkReadback(origArgs, result.id, 'create', 'create');
+        return this.checkReadback(origArgs, this.utils.getEntityId(this.model, result), 'create', 'create');
     }
 
     async createMany(args: any, skipDuplicates?: boolean) {
@@ -136,10 +136,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             dbOps.update(writeArgs)
         );
 
-        if (!result.id) {
+        if (!this.utils.getEntityId(this.model, result)) {
             throw this.utils.unknownError(`unexpected error: update didn't return an id`);
         }
-        return this.checkReadback(origArgs, result.id, 'update', 'update');
+        return this.checkReadback(origArgs, this.utils.getEntityId(this.model, result), 'update', 'update');
     }
 
     async updateMany(args: any) {
@@ -189,11 +189,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             dbOps.upsert(writeArgs)
         );
 
-        if (!result.id) {
+        if (!this.utils.getEntityId(this.model, result)) {
             throw this.utils.unknownError(`unexpected error: upsert didn't return an id`);
         }
 
-        return this.checkReadback(origArgs, result.id, 'upsert', 'update');
+        return this.checkReadback(origArgs, this.utils.getEntityId(this.model, result), 'upsert', 'update');
     }
 
     async delete(args: any) {
@@ -283,8 +283,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private async checkReadback(origArgs: any, id: string, action: string, operation: PolicyOperationKind) {
-        const readArgs = { select: origArgs.select, include: origArgs.include, where: { id } };
+    private async checkReadback(origArgs: any, id: any, action: string, operation: PolicyOperationKind) {
+        const idField = this.utils.getIdField(this.model);
+        const readArgs = { select: origArgs.select, include: origArgs.include, where: { [idField.name]: id } };
         const result = await this.utils.readWithCheck(this.model, readArgs);
         if (result.length === 0) {
             this.logger.warn(`${action} result cannot be read back`);

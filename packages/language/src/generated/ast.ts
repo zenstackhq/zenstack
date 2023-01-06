@@ -129,7 +129,7 @@ export interface AttributeParamType extends AstNode {
     array: boolean
     optional: boolean
     reference?: Reference<TypeDeclaration>
-    type?: 'ContextType' | 'FieldReference' | ExpressionType
+    type?: 'ContextType' | 'FieldReference' | 'TransitiveFieldReference' | ExpressionType
 }
 
 export const AttributeParamType = 'AttributeParamType';

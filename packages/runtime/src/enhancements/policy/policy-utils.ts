@@ -149,6 +149,7 @@ export class PolicyUtil {
             return;
         }
 
+        const idField = this.getIdField(model);
         for (const field of getModelFields(injectTarget)) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel) {
@@ -166,8 +167,8 @@ export class PolicyUtil {
             } else {
                 // there's no way of injecting condition for to-one relation, so we
                 // make sure 'id' field is selected and check them against query result
-                if (injectTarget[field]?.select && injectTarget[field]?.select?.id !== true) {
-                    injectTarget[field].select.id = true;
+                if (injectTarget[field]?.select && injectTarget[field]?.select?.[idField.name] !== true) {
+                    injectTarget[field].select[idField.name] = true;
                 }
             }
 
@@ -182,7 +183,7 @@ export class PolicyUtil {
      * omitted.
      */
     async postProcessForRead(entityData: any, model: string, args: any, operation: PolicyOperationKind) {
-        if (!entityData?.id) {
+        if (!this.getEntityId(model, entityData)) {
             return;
         }
 
@@ -193,15 +194,23 @@ export class PolicyUtil {
 
         // to-one relation data cannot be trimmed by injected guards, we have to
         // post-check them
+
         for (const field of getModelFields(injectTarget)) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
-            if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray || !entityData?.[field]?.id) {
+            if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray) {
                 continue;
             }
 
-            this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${entityData[field].id}`);
+            const idField = this.getIdField(fieldInfo.type);
+            const relatedEntityId = entityData?.[field]?.[idField.name];
 
-            await this.checkPolicyForFilter(fieldInfo.type, { id: entityData[field].id }, operation, this.db);
+            if (!relatedEntityId) {
+                continue;
+            }
+
+            this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${relatedEntityId}`);
+
+            await this.checkPolicyForFilter(fieldInfo.type, { [idField.name]: relatedEntityId }, operation, this.db);
 
             // recurse
             await this.postProcessForRead(entityData[field], fieldInfo.type, injectTarget[field], operation);
@@ -226,10 +235,11 @@ export class PolicyUtil {
         //     model => id => entity value
         const updatedModels = new Map<string, Map<string, any>>();
 
-        if (args.select && !args.select.id) {
+        const idField = this.getIdField(model);
+        if (args.select && !args.select[idField.name]) {
             // make sure 'id' field is selected, we need it to
             // read back the updated entity
-            args.select.id = true;
+            args.select[idField.name] = true;
         }
 
         // use a transaction to conduct write, so in case any create or nested create
@@ -359,10 +369,11 @@ export class PolicyUtil {
                 // fetch preValue selection (analyzed from the post-update rules)
                 const preValueSelect = await this.getPreValueSelect(model);
                 const filter = await buildReversedQuery(context);
-                const query = { where: filter, select: { ...preValueSelect, id: true } };
+                const idField = this.getIdField(model);
+                const query = { where: filter, select: { ...preValueSelect, [idField.name]: true } };
                 this.logger.info(`fetching pre-update entities for ${model}: ${format(query)})}`);
                 const entities = await this.db[model].findMany(query);
-                entities.forEach((entity) => modelEntities?.set((entity as any).id, entity));
+                entities.forEach((entity) => modelEntities?.set(this.getEntityId(model, entity), entity));
             }
         };
 
@@ -549,13 +560,14 @@ export class PolicyUtil {
         }
     }
 
-    private async checkPostUpdate(model: string, id: string, db: Record<string, DbOperations>, preValue: any) {
+    private async checkPostUpdate(model: string, id: any, db: Record<string, DbOperations>, preValue: any) {
         this.logger.info(`Checking post-update policy for ${model}#${id}, preValue: ${format(preValue)}`);
 
         const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
 
         // build a query condition with policy injected
-        const guardedQuery = { where: this.and({ id }, guard) };
+        const idField = this.getIdField(model);
+        const guardedQuery = { where: this.and({ [idField.name]: id }, guard) };
 
         // query with policy injected
         const entity = await db[model].findFirst(guardedQuery);
@@ -587,5 +599,28 @@ export class PolicyUtil {
      */
     clone(value: unknown) {
         return value ? deepcopy(value) : {};
+    }
+
+    /**
+     * Gets "id" field for a given model.
+     */
+    getIdField(model: string) {
+        const fields = this.modelMeta.fields[camelCase(model)];
+        if (!fields) {
+            throw this.unknownError(`Unable to load fields for ${model}`);
+        }
+        const result = Object.values(fields).find((f) => f.isId);
+        if (!result) {
+            throw this.unknownError(`model ${model} does not have an id field`);
+        }
+        return result;
+    }
+
+    /**
+     * Gets id field value from an entity.
+     */
+    getEntityId(model: string, entityData: any) {
+        const idField = this.getIdField(model);
+        return entityData[idField.name];
     }
 }
