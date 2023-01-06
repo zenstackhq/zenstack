@@ -11,7 +11,7 @@ describe('With Policy:deep nested', () => {
     // M1 - M2 -  M3
     //           -* M4
     model M1 {
-        id String @id @default(cuid())
+        myId String @id @default(cuid())
         m2 M2?
 
         @@allow('all', true)
@@ -20,9 +20,9 @@ describe('With Policy:deep nested', () => {
     }
 
     model M2 {
-        id String @id @default(cuid())
+        id Int @id @default(autoincrement())
         value Int
-        m1 M1 @relation(fields: [m1Id], references: [id], onDelete: Cascade)
+        m1 M1 @relation(fields: [m1Id], references: [myId], onDelete: Cascade)
         m1Id String @unique
 
         m3 M3?
@@ -38,7 +38,7 @@ describe('With Policy:deep nested', () => {
         id String @id @default(cuid())
         value Int
         m2 M2 @relation(fields: [m2Id], references: [id], onDelete: Cascade)
-        m2Id String @unique
+        m2Id Int @unique
 
         @@allow('read', true)
         @@allow('create', value > 10)
@@ -51,7 +51,7 @@ describe('With Policy:deep nested', () => {
         id String @id @default(cuid())
         value Int
         m2 M2? @relation(fields: [m2Id], references: [id], onDelete: Cascade)
-        m2Id String?
+        m2Id Int?
 
         @@allow('read', true)
         @@allow('create', value > 20)
@@ -80,10 +80,10 @@ describe('With Policy:deep nested', () => {
         await expect(
             db.m1.create({
                 data: {
-                    id: '1',
+                    myId: '1',
                     m2: {
                         create: {
-                            id: 'm2-1',
+                            id: 201,
                             value: 1,
                             m3: {
                                 create: {
@@ -106,7 +106,7 @@ describe('With Policy:deep nested', () => {
         const r = await db.m1.create({
             include: { m2: { include: { m3: true, m4: true } } },
             data: {
-                id: '2',
+                myId: '2',
                 m2: {
                     create: {
                         value: 2,
@@ -227,18 +227,18 @@ describe('With Policy:deep nested', () => {
 
     it('update', async () => {
         await db.m1.create({
-            data: { id: '1' },
+            data: { myId: '1' },
         });
 
         // success
         await expect(
             db.m1.update({
-                where: { id: '1' },
+                where: { myId: '1' },
                 include: { m2: { include: { m3: true, m4: true } } },
                 data: {
                     m2: {
                         create: {
-                            id: 'm2-1',
+                            id: 201,
                             value: 2,
                             m3: {
                                 create: { id: 'm3-1', value: 11 },
@@ -263,7 +263,7 @@ describe('With Policy:deep nested', () => {
             },
         });
         const r = await db.m1.update({
-            where: { id: '1' },
+            where: { myId: '1' },
             include: { m2: { include: { m4: true } } },
             data: {
                 m2: {
@@ -283,7 +283,7 @@ describe('With Policy:deep nested', () => {
         // reconnect m14-1, create m14-2
         await expect(
             db.m1.update({
-                where: { id: '1' },
+                where: { myId: '1' },
                 include: { m2: { include: { m4: true } } },
                 data: {
                     m2: {
@@ -301,7 +301,7 @@ describe('With Policy:deep nested', () => {
         // deep update violation
         await expect(
             db.m1.update({
-                where: { id: '1' },
+                where: { myId: '1' },
                 data: {
                     m2: {
                         update: {
@@ -317,7 +317,7 @@ describe('With Policy:deep nested', () => {
         // deep update violation via deep policy: @@deny('update', m2.m4?[value == 101])
         await db.m1.create({
             data: {
-                id: '2',
+                myId: '2',
                 m2: {
                     create: {
                         value: 2,
@@ -330,7 +330,7 @@ describe('With Policy:deep nested', () => {
         });
         await expect(
             db.m1.update({
-                where: { id: '2' },
+                where: { myId: '2' },
                 data: {
                     m2: {
                         update: {
@@ -348,7 +348,7 @@ describe('With Policy:deep nested', () => {
 
         // update read-back filter: M4 @@deny('read', value == 200)
         const r1 = await db.m1.update({
-            where: { id: '1' },
+            where: { myId: '1' },
             include: { m2: { include: { m4: true } } },
             data: {
                 m2: {
@@ -369,7 +369,7 @@ describe('With Policy:deep nested', () => {
         // update read-back rejection: M3 @@deny('read', value == 200)
         await expect(
             db.m1.update({
-                where: { id: '1' },
+                where: { myId: '1' },
                 include: { m2: { include: { m3: true } } },
                 data: {
                     m2: {
@@ -387,7 +387,7 @@ describe('With Policy:deep nested', () => {
     it('delete', async () => {
         await db.m1.create({
             data: {
-                id: '1',
+                myId: '1',
                 m2: {
                     create: {
                         value: 1,
@@ -399,16 +399,19 @@ describe('With Policy:deep nested', () => {
             },
         });
 
-        // delete read-back filter: M14 @@deny('read', value == 200)
-        const r = await db.m1.delete({
-            where: { id: '1' },
-            include: { m2: { select: { m4: true } } },
-        });
-        expect(r.m2.m4).toHaveLength(1);
+        // delete read-back reject: M4 @@deny('read', value == 200)
+        await expect(
+            db.m1.delete({
+                where: { myId: '1' },
+                include: { m2: { select: { m4: true } } },
+            })
+        ).toBeRejectedByPolicy(['result not readable']);
+
+        await expect(db.m4.findMany()).resolves.toHaveLength(0);
 
         await db.m1.create({
             data: {
-                id: '2',
+                myId: '2',
                 m2: {
                     create: {
                         value: 1,
@@ -423,7 +426,7 @@ describe('With Policy:deep nested', () => {
         // delete read-back reject: M3 @@deny('read', value == 200)
         await expect(
             db.m1.delete({
-                where: { id: '2' },
+                where: { myId: '2' },
                 include: { m2: { select: { m3: { select: { id: true } } } } },
             })
         ).toBeRejectedByPolicy();

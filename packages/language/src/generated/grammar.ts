@@ -2136,6 +2136,10 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                     },
                     {
                       "$type": "Keyword",
+                      "value": "TransitiveFieldReference"
+                    },
+                    {
+                      "$type": "Keyword",
                       "value": "ContextType"
                     }
                   ]

@@ -1,41 +1,45 @@
 import {
-    AstNode,
-    AstNodeDescription,
-    AstNodeDescriptionProvider,
-    DefaultLinker,
-    DocumentState,
-    interruptAndCheck,
-    isReference,
-    LangiumDocument,
-    LangiumServices,
-    LinkingError,
-    Reference,
-    streamContents,
-} from 'langium';
-import { CancellationToken } from 'vscode-jsonrpc';
-import {
     ArrayExpr,
     AttributeArg,
+    AttributeParam,
     BinaryExpr,
     DataModel,
     DataModelField,
     DataModelFieldType,
     EnumField,
+    Expression,
     Function,
     FunctionParam,
     FunctionParamType,
     InvocationExpr,
-    isDataModel,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
     ReferenceExpr,
     ReferenceTarget,
+    ResolvedShape,
     ThisExpr,
     UnaryExpr,
-    ResolvedShape,
-    Expression,
+    isArrayExpr,
+    isDataModel,
+    isDataModelField,
+    isReferenceExpr,
 } from '@zenstackhq/language/ast';
+import {
+    AstNode,
+    AstNodeDescription,
+    AstNodeDescriptionProvider,
+    DefaultLinker,
+    DocumentState,
+    LangiumDocument,
+    LangiumServices,
+    LinkingError,
+    Reference,
+    interruptAndCheck,
+    isReference,
+    streamContents,
+} from 'langium';
+import { CancellationToken } from 'vscode-jsonrpc';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
@@ -145,7 +149,7 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveNull(node as NullExpr, document, extraScopes);
                 break;
 
-            case 'AttributeArg':
+            case AttributeArg:
                 this.resolveAttributeArg(node as AttributeArg, document, extraScopes);
                 break;
 
@@ -332,8 +336,82 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveAttributeArg(node: AttributeArg, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
-        this.resolve(node.value, document, extraScopes);
+        const attrParam = this.findAttrParamForArg(node);
+        const attrAppliedOn = node.$container.$container;
+
+        if (attrParam?.type.type === 'TransitiveFieldReference' && isDataModelField(attrAppliedOn)) {
+            // "TransitiveFieldReference" is resolved in the context of the containing model of the field
+            // where the attribute is applied
+            //
+            // E.g.:
+            //
+            // model A {
+            //   myId @id String
+            // }
+            //
+            // model B {
+            //   id @id String
+            //   a A @relation(fields: [id], references: [myId])
+            // }
+            //
+            // In model B, the attribute argument "myId" is resolved to the field "myId" in model A
+
+            const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
+            if (transtiveDataModel) {
+                // resolve references in the context of the transitive data model
+                const scopeProvider = (name: string) => transtiveDataModel.fields.find((f) => f.name === name);
+                if (isArrayExpr(node.value)) {
+                    node.value.items.forEach((item) => {
+                        if (isReferenceExpr(item)) {
+                            const resolved = this.resolveFromScopeProviders(item, 'target', document, [scopeProvider]);
+                            if (resolved) {
+                                this.resolveToDeclaredType(item, (resolved as DataModelField).type);
+                            } else {
+                                // need to clear linked reference, because it's resolved in default scope by default
+                                const ref = item.target as DefaultReference;
+                                ref._ref = this.createLinkingError({
+                                    reference: ref,
+                                    container: item,
+                                    property: 'target',
+                                });
+                            }
+                        }
+                    });
+                    if (node.value.items[0]?.$resolvedType?.decl) {
+                        this.resolveToBuiltinTypeOrDecl(node.value, node.value.items[0].$resolvedType.decl, true);
+                    }
+                } else if (isReferenceExpr(node.value)) {
+                    const resolved = this.resolveFromScopeProviders(node.value, 'target', document, [scopeProvider]);
+                    if (resolved) {
+                        this.resolveToDeclaredType(node.value, (resolved as DataModelField).type);
+                    } else {
+                        // need to clear linked reference, because it's resolved in default scope by default
+                        const ref = node.value.target as DefaultReference;
+                        ref._ref = this.createLinkingError({
+                            reference: ref,
+                            container: node.value,
+                            property: 'target',
+                        });
+                    }
+                }
+            }
+        } else {
+            this.resolve(node.value, document, extraScopes);
+        }
         node.$resolvedType = node.value.$resolvedType;
+    }
+
+    private findAttrParamForArg(arg: AttributeArg): AttributeParam | undefined {
+        const attr = arg.$container.decl.ref;
+        if (!attr) {
+            return undefined;
+        }
+        if (arg.name) {
+            return attr.params?.find((p) => p.name === arg.name);
+        } else {
+            const index = arg.$container.args.findIndex((a) => a === arg);
+            return attr.params[index];
+        }
     }
 
     private resolveDefault(node: AstNode, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {

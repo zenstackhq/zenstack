@@ -127,7 +127,7 @@ attribute @@index(_ fields: FieldReference[], map: String?) @@@prisma
 /*
  * Defines meta information about the relation.
  */
-attribute @relation(_ name: String?, fields: FieldReference[]?, references: FieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?) @@@prisma
+attribute @relation(_ name: String?, fields: FieldReference[]?, references: TransitiveFieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?) @@@prisma
 
 /*
  * Maps a field name or enum value from the schema to a column with a different name in the database.

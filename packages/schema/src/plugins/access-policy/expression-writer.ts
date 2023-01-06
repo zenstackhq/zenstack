@@ -1,19 +1,21 @@
 import {
     BinaryExpr,
+    DataModel,
     Expression,
+    LiteralExpr,
+    MemberAccessExpr,
+    ReferenceExpr,
+    UnaryExpr,
     isDataModel,
     isDataModelField,
     isEnumField,
     isMemberAccessExpr,
     isReferenceExpr,
     isThisExpr,
-    LiteralExpr,
-    MemberAccessExpr,
-    ReferenceExpr,
-    UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { GUARD_FIELD_NAME, PluginError } from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
+import { getIdField } from '../../utils/ast-utils';
 import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 import { isFutureExpr } from './utils';
 
@@ -207,13 +209,18 @@ export class ExpressionWriter {
             () => {
                 this.block(
                     () => {
-                        if (this.isModelTyped(fieldAccess)) {
+                        const dataModel = this.isModelTyped(fieldAccess);
+                        if (dataModel) {
+                            const idField = getIdField(dataModel);
+                            if (!idField) {
+                                throw new PluginError(`Data model ${dataModel.name} does not have an id field`);
+                            }
                             // comparing with an object, conver to "id" comparison instead
-                            this.writer.write('id: ');
+                            this.writer.write(`${idField.name}: `);
                             this.block(() => {
                                 this.writeOperator(operator, () => {
                                     this.plain(operand);
-                                    this.writer.write('?.id');
+                                    this.writer.write(`?.${idField.name}`);
                                 });
                             });
                         } else {
@@ -323,7 +330,7 @@ export class ExpressionWriter {
     }
 
     private isModelTyped(expr: Expression) {
-        return isDataModel(expr.$resolvedType?.decl);
+        return isDataModel(expr.$resolvedType?.decl) ? (expr.$resolvedType?.decl as DataModel) : undefined;
     }
 
     private mapOperator(operator: '==' | '!=' | '>' | '>=' | '<' | '<=') {
