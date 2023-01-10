@@ -2,14 +2,14 @@ import { AuthUser } from '@zenstackhq/runtime';
 import path from 'path';
 import { WeakDbClientContract, loadPrismaFromModelFile, run } from '../../utils';
 
-describe('Todo E2E Tests', () => {
+describe('Todo Policy Tests', () => {
     let getDb: (user?: AuthUser) => WeakDbClientContract;
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
         const { withPolicy, prisma: _prisma } = await loadPrismaFromModelFile(
-            'todo',
-            path.join(__dirname, 'todo.zmodel')
+            'todo-policy',
+            path.join(__dirname, '../schema/todo.zmodel')
         );
         getDb = withPolicy;
         prisma = _prisma;

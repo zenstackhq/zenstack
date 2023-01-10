@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { DbClientContract } from '../types';
+import { ModelMeta } from './types';
 
 /**
  * Prisma batch write operation result
@@ -159,12 +160,54 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
  */
 export function makeProxy<T extends PrismaProxyHandler>(
     prisma: any,
-    makeHandler: (prisma: object, model: string) => T
+    modelMeta: ModelMeta,
+    makeHandler: (prisma: object, model: string) => T,
+    name = 'unnamed_enhancer',
+    inTransaction = false
 ) {
-    return new Proxy(prisma, {
+    const models = Object.keys(modelMeta.fields);
+    const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
-            if (typeof prop !== 'string' || prop.startsWith('$') || prop.startsWith('_engine')) {
-                // skip internal fields
+            // enhancer metadata
+            if (prop === '__zenstack_enhancer') {
+                return name;
+            }
+
+            // transaction metadata
+            if (prop === '__zenstack_tx') {
+                return inTransaction;
+            }
+
+            if (prop === '$transaction') {
+                // for interactive transactions, we need to proxy the transaction function so that
+                // when it runs the callback, it provides a proxy to the Prisma client wrapped with
+                // the same handler
+                //
+                // TODO: batch transaction is not supported yet, how?
+                const $transaction = Reflect.get(target, prop, receiver);
+                if ($transaction) {
+                    return (input: any, ...rest: any[]) => {
+                        if (Array.isArray(input)) {
+                            throw new Error(
+                                'Batch transaction is not supported by ZenStack enhanced Prisma client. Please use interactive transaction instead.'
+                            );
+                        } else if (typeof input !== 'function') {
+                            throw new Error('A function value input is expected');
+                        }
+
+                        const txFunc = input;
+                        return $transaction.bind(target)((tx: any) => {
+                            const txProxy = makeProxy(tx, modelMeta, makeHandler, name + '$tx', true);
+                            return txFunc(txProxy);
+                        }, ...rest);
+                    };
+                } else {
+                    return $transaction;
+                }
+            }
+
+            if (typeof prop !== 'string' || prop.startsWith('$') || !models.includes(prop)) {
+                // skip non-model fields
                 return Reflect.get(target, prop, receiver);
             }
 
@@ -173,7 +216,9 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 return undefined;
             }
 
-            return makeHandler(prisma, prop);
+            return makeHandler(target, prop);
         },
     });
+
+    return proxy;
 }

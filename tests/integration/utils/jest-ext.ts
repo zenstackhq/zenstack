@@ -1,4 +1,5 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import { format } from 'util';
 
 export const toBeRejectedByPolicy = async function (received: Promise<unknown>, expectedMessages?: string[]) {
     if (!(received instanceof Promise)) {
@@ -119,7 +120,7 @@ export const toResolveNull = async function (received: Promise<unknown>) {
             };
         } else {
             return {
-                message: () => `resolved to a non-null value: ${r}`,
+                message: () => `resolved to a non-null value: ${format(r)}`,
                 pass: false,
             };
         }

@@ -459,7 +459,7 @@ export class PolicyUtil {
             // no post-check needed, we can proceed with the write without transaction
             return await writeAction(this.db[model], args);
         } else {
-            return await this.db.$transaction(async (tx) => {
+            return await this.transaction(this.db, async (tx) => {
                 // proceed with the update (with args processed)
                 const result = await writeAction(tx[model], args);
 
@@ -492,6 +492,15 @@ export class PolicyUtil {
 
                 return result;
             });
+        }
+    }
+
+    private transaction(db: DbClientContract, action: (tx: Record<string, DbOperations>) => Promise<any>) {
+        if (db.__zenstack_tx) {
+            // already in transaction, don't nest
+            return action(db);
+        } else {
+            return db.$transaction((tx) => action(tx));
         }
     }
 

@@ -11,9 +11,12 @@ import { ensureArray, getModelFields } from './utils';
  * Gets an enhanced Prisma client that supports @omit attribute.
  */
 export function withOmit<DbClient extends object>(prisma: DbClient, modelMeta?: ModelMeta): DbClient {
+    const _modelMeta = modelMeta ?? getDefaultModelMeta();
     return makeProxy(
         prisma,
-        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, modelMeta ?? getDefaultModelMeta())
+        _modelMeta,
+        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, _modelMeta),
+        'omit'
     );
 }
 
