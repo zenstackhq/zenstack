@@ -79,13 +79,32 @@ export class Generator {
     }
 }
 
-export class Model {
+export class DeclarationBase {
+    public documentations: string[] = [];
+
+    addComment(name: string): string {
+        this.documentations.push(name);
+        return name;
+    }
+
+    toString(): string {
+        return this.documentations.map((x) => `///${x}\n`).join('');
+    }
+}
+export class Model extends DeclarationBase {
     public fields: ModelField[] = [];
     public attributes: ModelAttribute[] = [];
-    constructor(public name: string) {}
+    constructor(public name: string, public documentations: string[] = []) {
+        super();
+    }
 
-    addField(name: string, type: ModelFieldType | string, attributes: FieldAttribute[] = []): ModelField {
-        const field = new ModelField(name, type, attributes);
+    addField(
+        name: string,
+        type: ModelFieldType | string,
+        attributes: FieldAttribute[] = [],
+        documentations: string[] = []
+    ): ModelField {
+        const field = new ModelField(name, type, attributes, documentations);
         this.fields.push(field);
         return field;
     }
@@ -98,6 +117,7 @@ export class Model {
 
     toString(): string {
         return (
+            super.toString() +
             `model ${this.name} {\n` +
             indentString([...this.fields, ...this.attributes].map((d) => d.toString()).join('\n')) +
             `\n}`
@@ -125,8 +145,15 @@ export class ModelFieldType {
     }
 }
 
-export class ModelField {
-    constructor(public name: string, public type: ModelFieldType | string, public attributes: FieldAttribute[] = []) {}
+export class ModelField extends DeclarationBase {
+    constructor(
+        public name: string,
+        public type: ModelFieldType | string,
+        public attributes: FieldAttribute[] = [],
+        public documentations: string[] = []
+    ) {
+        super();
+    }
 
     addAttribute(name: string, args: AttributeArg[] = []): FieldAttribute {
         const attr = new FieldAttribute(name, args);
@@ -136,6 +163,7 @@ export class ModelField {
 
     toString(): string {
         return (
+            super.toString() +
             `${this.name} ${this.type}` +
             (this.attributes.length > 0 ? ' ' + this.attributes.map((a) => a.toString()).join(' ') : '')
         );

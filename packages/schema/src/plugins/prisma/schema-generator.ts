@@ -32,6 +32,7 @@ import { writeFile } from 'fs/promises';
 import path from 'path';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { execSync } from '../../utils/exec-utils';
+import ZModelCodeGenerator from '../zmodel-code-generator';
 import {
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
@@ -51,6 +52,8 @@ import {
  * Generates Prisma schema file
  */
 export default class PrismaSchemaGenerator {
+    private zModelGenerator: ZModelCodeGenerator = new ZModelCodeGenerator();
+
     async generate(model: Model, options: PluginOptions) {
         const prisma = new PrismaModel();
 
@@ -190,6 +193,10 @@ export default class PrismaSchemaGenerator {
         for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
             this.generateModelAttribute(model, attr);
         }
+
+        decl.attributes
+            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
+            .forEach((attr) => model.addComment(this.zModelGenerator.generateAttribute(attr)));
     }
 
     private isPrismaAttribute(attr: Attribute) {
@@ -207,7 +214,14 @@ export default class PrismaSchemaGenerator {
         const attributes = field.attributes
             .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
             .map((attr) => this.makeFieldAttribute(attr));
-        model.addField(field.name, type, attributes);
+
+        const nonPrismaAttributes = field.attributes.filter(
+            (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
+        );
+
+        const documentations = nonPrismaAttributes.map((attr) => this.zModelGenerator.generateAttribute(attr));
+
+        model.addField(field.name, type, attributes, documentations);
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
