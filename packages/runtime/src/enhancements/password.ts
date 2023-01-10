@@ -13,9 +13,12 @@ import { ModelMeta } from './types';
  * Gets an enhanced Prisma client that supports @password attribute.
  */
 export function withPassword<DbClient extends object = any>(prisma: DbClient, modelMeta?: ModelMeta): DbClient {
+    const _modelMeta = modelMeta ?? getDefaultModelMeta();
     return makeProxy(
         prisma,
-        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, modelMeta ?? getDefaultModelMeta())
+        _modelMeta,
+        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, _modelMeta),
+        'password'
     );
 }
 

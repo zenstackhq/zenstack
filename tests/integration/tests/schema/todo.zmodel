@@ -84,6 +84,7 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique @email
+    password String? @password @omit
     emailVerified DateTime?
     name String?
     ownedSpaces Space[]

@@ -1,4 +1,4 @@
-import { AuthUser, DbOperations, withOmit, withPassword, withPolicy } from '@zenstackhq/runtime';
+import { AuthUser, DbOperations, withOmit, withPassword, withPolicy, withPresets } from '@zenstackhq/runtime';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -12,6 +12,7 @@ datasource db {
 generator js {
     provider = 'prisma-client-js'
     output = '../.prisma'
+    previewFeatures = ['clientExtensions']
 }
 
 plugin meta {
@@ -34,7 +35,13 @@ export function run(cmd: string) {
 }
 
 export type WeakDbClientContract = Record<string, WeakDbOperations> & {
+    $on(eventType: any, callback: (event: any) => void): void;
+    $use(cb: any): void;
     $disconnect: () => Promise<void>;
+    $transaction: (input: ((tx: WeakDbClientContract) => Promise<any>) | any[], options?: any) => Promise<any>;
+    $queryRaw: (query: TemplateStringsArray, ...args: any[]) => Promise<any>;
+    $executeRaw: (query: TemplateStringsArray, ...args: any[]) => Promise<number>;
+    $extends: (args: any) => WeakDbClientContract;
 };
 
 export type WeakDbOperations = {
@@ -59,7 +66,7 @@ export async function loadPrisma(testName: string, model: string) {
     run('npx prisma db push');
 
     const PrismaClient = require(path.join(workDir, '.prisma')).PrismaClient;
-    const prisma = new PrismaClient();
+    const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
 
     const policy = require(path.join(workDir, '.zenstack/policy')).default;
     const modelMeta = require(path.join(workDir, '.zenstack/model-meta')).default;
@@ -69,5 +76,6 @@ export async function loadPrisma(testName: string, model: string) {
         withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
         withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
         withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
+        withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
     };
 }

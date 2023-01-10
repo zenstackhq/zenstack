@@ -27,16 +27,14 @@ export function withPolicy<DbClient extends object>(
     policy?: PolicyDef,
     modelMeta?: ModelMeta
 ): DbClient {
+    const _policy = policy ?? getDefaultPolicy();
+    const _modelMeta = modelMeta ?? getDefaultModelMeta();
     return makeProxy(
         prisma,
+        _modelMeta,
         (_prisma, model) =>
-            new PolicyProxyHandler(
-                _prisma as DbClientContract,
-                policy ?? getDefaultPolicy(),
-                modelMeta ?? getDefaultModelMeta(),
-                model,
-                context?.user
-            )
+            new PolicyProxyHandler(_prisma as DbClientContract, _policy, _modelMeta, model, context?.user),
+        'policy'
     );
 }
 
