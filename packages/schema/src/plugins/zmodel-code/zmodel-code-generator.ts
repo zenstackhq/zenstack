@@ -13,10 +13,26 @@ import {
     ReferenceExpr,
     ThisExpr,
     UnaryExpr,
+    BinaryExprOperatorPriority,
 } from '@zenstackhq/language/ast';
 import { resolved } from '@zenstackhq/sdk';
 
+/**
+ * Options for the generator.
+ */
+export interface ZModelCodeOptions {
+    binaryExprNumberOfSpaces: number;
+    unaryExprNumberOfSpaces: number;
+}
+
 export default class ZModelCodeGenerator {
+    private readonly options: ZModelCodeOptions;
+    constructor(options?: Partial<ZModelCodeOptions>) {
+        this.options = {
+            binaryExprNumberOfSpaces: options?.binaryExprNumberOfSpaces ?? 1,
+            unaryExprNumberOfSpaces: options?.unaryExprNumberOfSpaces ?? 0,
+        };
+    }
     generateAttribute(ast: DataModelAttribute | DataModelFieldAttribute): string {
         const args = ast.args.length ? `(${ast.args.map((x) => this.generateAttributeArg(x)).join(', ')})` : '';
         return `${resolved(ast.decl).name}${args}`;
@@ -53,14 +69,21 @@ export default class ZModelCodeGenerator {
     }
 
     generateUnaryExpr(ast: UnaryExpr) {
-        return `${ast.operator}${this.generateExpression(ast.operand)}`;
+        return `${ast.operator}${this.unaryExprSpace}${this.generateExpression(ast.operand)}`;
     }
 
     generateBinaryExpr(ast: BinaryExpr) {
         const operator = ast.operator;
-        const isCollectionPredicate = ['?', '!', '^'].includes(operator);
+        const isCollectionPredicate = this.isCollectionPredicateOperator(operator);
         const rightExpr = this.generateExpression(ast.right);
-        return `${this.generateExpression(ast.left)}${operator}${isCollectionPredicate ? `[${rightExpr}]` : rightExpr}`;
+
+        const { left: isLeftParenthesis, right: isRightParenthesis } = this.isParenthesesNeededForBinaryExpr(ast);
+
+        return `${isLeftParenthesis ? '(' : ''}${this.generateExpression(ast.left)}${isLeftParenthesis ? ')' : ''}${
+            this.binaryExprSpace
+        }${operator}${this.binaryExprSpace}${isRightParenthesis ? '(' : ''}${
+            isCollectionPredicate ? `[${rightExpr}]` : rightExpr
+        }${isRightParenthesis ? ')' : ''}`;
     }
 
     generateReferenceExpr(ast: ReferenceExpr) {
@@ -69,7 +92,7 @@ export default class ZModelCodeGenerator {
     }
 
     generateReferenceArg(ast: ReferenceArg) {
-        return `sort:${ast.value}`;
+        return `${ast.name}:${ast.value}`;
     }
 
     generateMemberExpr(ast: MemberAccessExpr) {
@@ -82,5 +105,45 @@ export default class ZModelCodeGenerator {
 
     generateArgument(ast: Argument) {
         return `${ast.name && ':'} ${this.generateExpression(ast.value)}`;
+    }
+
+    private get binaryExprSpace(): string {
+        return ' '.repeat(this.options.binaryExprNumberOfSpaces);
+    }
+
+    private get unaryExprSpace(): string {
+        return ' '.repeat(this.options.unaryExprNumberOfSpaces);
+    }
+
+    private isParenthesesNeededForBinaryExpr(ast: BinaryExpr): { left: boolean; right: boolean } {
+        const result = { left: false, right: false };
+        const operator = ast.operator;
+        const isCollectionPredicate = this.isCollectionPredicateOperator(operator);
+
+        const currentPriority = BinaryExprOperatorPriority[operator];
+
+        if (
+            ast.left.$type === BinaryExpr &&
+            BinaryExprOperatorPriority[(ast.left as BinaryExpr)['operator']] < currentPriority
+        ) {
+            result.left = true;
+        }
+        /**
+         *  1 collection predicate operator has [] around the right operand, no need to add parenthesis.
+         *  2 grammar is left associative, so if the right operand has the same priority still need to add parenthesis.
+         **/
+        if (
+            !isCollectionPredicate &&
+            ast.right.$type === BinaryExpr &&
+            BinaryExprOperatorPriority[(ast.right as BinaryExpr)['operator']] <= currentPriority
+        ) {
+            result.right = true;
+        }
+
+        return result;
+    }
+
+    private isCollectionPredicateOperator(op: BinaryExpr['operator']) {
+        return ['?', '!', '^'].includes(op);
     }
 }
