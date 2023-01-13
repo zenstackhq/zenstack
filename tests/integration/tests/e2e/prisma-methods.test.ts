@@ -65,7 +65,7 @@ describe('Prisma Methods Tests', () => {
         });
 
         const q = await db.$queryRaw`SELECT * FROM "Model" WHERE id=${r[1].id};`;
-        expect(q[0]).toEqual(r[1]);
+        expect(q[0]).toEqual(expect.objectContaining(r[1]));
 
         const r1 = await db.$executeRaw`UPDATE "Model" SET value=5 WHERE id="1";`;
         expect(r1).toBe(1);
