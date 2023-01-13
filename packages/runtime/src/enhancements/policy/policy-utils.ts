@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
-import { TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
+import { TRANSACTION_FIELD_NAME, AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
@@ -185,6 +185,13 @@ export class PolicyUtil {
     async postProcessForRead(entityData: any, model: string, args: any, operation: PolicyOperationKind) {
         if (!this.getEntityId(model, entityData)) {
             return;
+        }
+
+        // strip auxiliary fields
+        for (const auxField of AUXILIARY_FIELDS) {
+            if (auxField in entityData) {
+                delete entityData[auxField];
+            }
         }
 
         const injectTarget = args.select ?? args.include;

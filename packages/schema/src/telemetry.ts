@@ -31,7 +31,7 @@ export class Telemetry {
     private readonly trackingToken = process.env.TELEMETRY_TRACKING_TOKEN;
     private readonly _os = os.platform();
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    private readonly version = require('../package.json').version;
+    private readonly version = require('./package.json').version;
     private exitWait = 200;
 
     constructor() {

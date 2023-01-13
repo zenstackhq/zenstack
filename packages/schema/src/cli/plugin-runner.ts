@@ -19,7 +19,7 @@ export class PluginRunner {
      * Runs a series of nested generators
      */
     async run(context: Context): Promise<void> {
-        const version = require('../../package.json').version;
+        const version = require('../package.json').version;
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
         const plugins: Array<{
