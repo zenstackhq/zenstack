@@ -74,7 +74,7 @@ export async function post<Data, Result>(url: string, data: Data, mutate: Mutato
         },
         body: marshal(data),
     });
-    mutate(url, true);
+    mutate();
     return r;
 }
 
@@ -93,7 +93,7 @@ export async function put<Data, Result>(url: string, data: Data, mutate: Mutator
         },
         body: marshal(data),
     });
-    mutate(url, true);
+    mutate();
     return r;
 }
 
@@ -111,35 +111,26 @@ export async function del<Result>(url: string, args: unknown, mutate: Mutator): 
     });
     const path = url.split('/');
     path.pop();
-    mutate(path.join('/'), true);
+    mutate();
     return r;
 }
 
 type Mutator = (
-    key: string,
-    prefix: boolean,
     data?: unknown | Promise<unknown> | MutatorCallback,
     opts?: boolean | MutatorOptions
 ) => Promise<unknown[]>;
 
-export function getMutate(): Mutator {
+export function getMutate(prefixes: string[]): Mutator {
     // https://swr.vercel.app/docs/advanced/cache#mutate-multiple-keys-from-regex
     const { cache, mutate } = useSWRConfig();
-    return (
-        key: string,
-        prefix: boolean,
-        data?: unknown | Promise<unknown> | MutatorCallback,
-        opts?: boolean | MutatorOptions
-    ) => {
-        if (!prefix) {
-            return mutate(key, data, opts);
-        }
-
+    return (data?: unknown | Promise<unknown> | MutatorCallback, opts?: boolean | MutatorOptions) => {
         if (!(cache instanceof Map)) {
             throw new Error('mutate requires the cache provider to be a Map instance');
         }
 
-        const keys = Array.from(cache.keys()).filter((k) => typeof k === 'string' && k.startsWith(key)) as string[];
+        const keys = Array.from(cache.keys()).filter(
+            (k) => typeof k === 'string' && prefixes.some((prefix) => k.startsWith(prefix))
+        ) as string[];
         const mutations = keys.map((key) => mutate(key, data, opts));
         return Promise.all(mutations);
     };

@@ -1,6 +1,6 @@
 import { DataModel, Model, isDataModel } from '@zenstackhq/language/ast';
 import { PluginOptions } from '@zenstackhq/sdk';
-import { paramCase } from 'change-case';
+import { camelCase, paramCase } from 'change-case';
 import * as path from 'path';
 import { Project } from 'ts-morph';
 import { RUNTIME_PACKAGE } from '../plugin-utils';
@@ -33,7 +33,7 @@ function wrapReadbackErrorCheck(code: string) {
     return `try {
         ${code}
     } catch (err: any) {
-        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2004') {
+        if (err.prisma && err.code === 'P2004') {
             // unable to readback data
             return undefined;
         } else {
@@ -47,14 +47,14 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
     sf.addImportDeclaration({
-        namedImports: [{ name: 'Prisma' }, `type ${model.name}`],
+        namedImports: ['Prisma', model.name],
+        isTypeOnly: true,
         moduleSpecifier: '@prisma/client',
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext } from '@zenstackhq/next';`,
-        `import * as request from '${RUNTIME_PACKAGE}/request';`,
-        `import { RequestOptions } from '${RUNTIME_PACKAGE}/types';`,
+        `import { RequestHandlerContext } from '@zenstackhq/next/client';`,
+        `import { request, type RequestOptions } from '${RUNTIME_PACKAGE}/client';`,
     ]);
 
     const useFunc = sf.addFunction({
@@ -62,9 +62,15 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
         isExported: true,
     });
 
+    const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
+    const modelRouteName = camelCase(model.name);
+
     useFunc.addStatements([
-        'const mutate = request.getMutate();',
         'const { endpoint } = useContext(RequestHandlerContext);',
+        `const prefixesToMutate = [${prefixesToMutate
+            .map((prefix) => '`${endpoint}/' + modelRouteName + '/' + prefix + '`')
+            .join(', ')}];`,
+        'const mutate = request.getMutate(prefixesToMutate);',
     ]);
 
     // create
@@ -87,7 +93,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/create\`, args, mutate);`
+                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/create\`, args, mutate);`
                 ),
             ]);
     }
@@ -111,7 +117,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/createMany\`, args, mutate);`,
+                `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/createMany\`, args, mutate);`,
             ]);
     }
 
@@ -137,7 +143,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/findMany\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findMany\`, args, options);`,
             ]);
     }
 
@@ -163,7 +169,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/findUnique\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findUnique\`, args, options);`,
             ]);
     }
 
@@ -189,7 +195,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/findFirst\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findFirst\`, args, options);`,
             ]);
     }
 
@@ -213,7 +219,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/update\`, args, mutate);`
+                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/update\`, args, mutate);`
                 ),
             ]);
     }
@@ -237,7 +243,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/updateMany\`, args, mutate);`,
+                `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/updateMany\`, args, mutate);`,
             ]);
     }
 
@@ -261,7 +267,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${model.name}/upsert\`, args, mutate);`
+                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, mutate);`
                 ),
             ]);
     }
@@ -286,7 +292,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.del<${returnType}>(\`\${endpoint}/${model.name}/delete\`, args, mutate);`
+                    `return await request.del<${returnType}>(\`\${endpoint}/${modelRouteName}/delete\`, args, mutate);`
                 ),
             ]);
     }
@@ -310,7 +316,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return await request.del<${returnType}>(\`\${endpoint}/${model.name}/deleteMany\`, args, mutate);`,
+                `return await request.del<${returnType}>(\`\${endpoint}/${modelRouteName}/deleteMany\`, args, mutate);`,
             ]);
     }
 
@@ -336,7 +342,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/aggregate\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/aggregate\`, args, options);`,
             ]);
     }
 
@@ -412,7 +418,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(\`\${endpoint}/${model.name}/groupBy\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/groupBy\`, args, options);`,
             ]);
     }
 
@@ -437,7 +443,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
                 ],
             })
             .addBody()
-            .addStatements([`return request.get<${returnType}>(\`\${endpoint}/${model.name}/count\`, args, options);`]);
+            .addStatements([
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/count\`, args, options);`,
+            ]);
     }
 
     useFunc.addStatements([

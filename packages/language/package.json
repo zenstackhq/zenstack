@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/language",
-    "version": "0.6.0-pre.11",
+    "version": "0.6.0-pre.18",
     "displayName": "ZenStack modeling language compiler",
     "description": "ZenStack modeling language compiler",
     "homepage": "https://zenstack.dev",
@@ -10,6 +10,7 @@
         "watch": "concurrently \"langium generate --watch\" \"tsc --watch\"",
         "lint": "eslint src --ext ts",
         "build": "pnpm lint && pnpm clean && pnpm generate && tsc && cp ./README.md ./package.json dist/",
+        "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm build && pnpm publish --tag dev"
     },
     "publishConfig": {

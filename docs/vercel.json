@@ -6,5 +6,8 @@
             "destination": "/8cd31ff7afe74424abbec00b65f04ae8.txt"
         },
         { "source": "/:path*", "destination": "/index.html" }
-    ]
+    ],
+    "github": {
+        "silent": true
+    }
 }

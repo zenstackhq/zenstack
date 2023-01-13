@@ -1,4 +1,10 @@
-import { DbClientContract, DbOperations } from '@zenstackhq/runtime';
+import {
+    DbClientContract,
+    DbOperations,
+    isPrismaClientKnownRequestError,
+    isPrismaClientUnknownRequestError,
+    isPrismaClientValidationError,
+} from '@zenstackhq/runtime';
 import { NextApiRequest, NextApiResponse } from 'next';
 import superjson from 'superjson';
 
@@ -11,6 +17,11 @@ export type RequestHandlerOptions = {
      * Callback method for getting a Prisma instance for the given request/response pair.
      */
     getPrisma: (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> | unknown;
+
+    /**
+     * Whether to use superjson for serialization/deserialization. Defaults to true.
+     */
+    useSuperJson?: boolean;
 };
 
 /**
@@ -33,11 +44,16 @@ export function requestHandler(
             });
             return;
         }
-        return handleRequest(req, res, prisma as DbClientContract);
+        return handleRequest(req, res, prisma as DbClientContract, options);
     };
 }
 
-async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: DbClientContract): Promise<void> {
+async function handleRequest(
+    req: NextApiRequest,
+    res: NextApiResponse,
+    prisma: DbClientContract,
+    options: RequestHandlerOptions
+): Promise<void> {
     const [model, op] = req.query.path as string[];
 
     const dbOp = op as keyof DbOperations;
@@ -52,7 +68,7 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: 
                 res.status(400).send({ error: 'invalid http method' });
                 return;
             }
-            args = req.body;
+            args = unmarshal(req.body, options.useSuperJson);
             resCode = 201;
             break;
 
@@ -66,7 +82,7 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: 
                 res.status(400).send({ error: 'invalid http method' });
                 return;
             }
-            args = req.query.q ? unmarshal(req.query.q as string) : {};
+            args = req.query.q ? unmarshal(req.query.q as string, options.useSuperJson) : {};
             break;
 
         case 'update':
@@ -75,7 +91,7 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: 
                 res.status(400).send({ error: 'invalid http method' });
                 return;
             }
-            args = req.body;
+            args = unmarshal(req.body, options.useSuperJson);
             break;
 
         case 'delete':
@@ -84,7 +100,7 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: 
                 res.status(400).send({ error: 'invalid http method' });
                 return;
             }
-            args = req.query.q ? unmarshal(req.query.q as string) : {};
+            args = req.query.q ? unmarshal(req.query.q as string, options.useSuperJson) : {};
             break;
 
         default:
@@ -92,20 +108,61 @@ async function handleRequest(req: NextApiRequest, res: NextApiResponse, prisma: 
             break;
     }
 
-    const result = await prisma[model][dbOp](args);
-
-    // TODO: how to filter out zenstack_* fields
-    res.status(resCode).send(marshal(result));
+    try {
+        const result = await prisma[model][dbOp](args);
+        res.status(resCode).send(marshal(result, options.useSuperJson));
+    } catch (err) {
+        if (isPrismaClientKnownRequestError(err)) {
+            if (err.code === 'P2004') {
+                // rejected by policy
+                res.status(403).send({
+                    prisma: true,
+                    rejectedByPolicy: true,
+                    code: err.code,
+                    message: err.message,
+                });
+            } else {
+                res.status(400).send({
+                    prisma: true,
+                    code: err.code,
+                    message: err.message,
+                });
+            }
+        } else if (isPrismaClientUnknownRequestError(err) || isPrismaClientValidationError(err)) {
+            res.status(400).send({
+                prisma: true,
+                message: err.message,
+            });
+        } else {
+            res.status(500).send({
+                message: (err as Error).message,
+            });
+        }
+    }
 }
 
-function marshal(value: unknown) {
-    return JSON.parse(superjson.stringify(value));
+function marshal(value: unknown, useSuperJson = true) {
+    return useSuperJson ? JSON.parse(superjson.stringify(value)) : value;
 }
 
-function unmarshal(value: unknown) {
-    if (typeof value === 'string') {
-        return superjson.parse(value);
+function unmarshal(value: unknown, useSuperJson = true) {
+    if (!value) {
+        return value;
+    }
+
+    if (useSuperJson) {
+        if (typeof value === 'string') {
+            return superjson.parse(value);
+        } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const json = (value as any).json;
+            if (json && typeof json === 'object') {
+                return superjson.parse(JSON.stringify(value));
+            } else {
+                return value;
+            }
+        }
     } else {
-        return superjson.parse(JSON.stringify(value));
+        return value;
     }
 }

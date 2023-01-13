@@ -67,7 +67,7 @@ export default async function (): Promise<void> {
 
         program.version(
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            require('../../package.json').version,
+            require('../package.json').version,
             '-v --version',
             'display CLI version'
         );
