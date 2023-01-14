@@ -1,11 +1,12 @@
-import { Mixpanel, init } from 'mixpanel';
-import { machineIdSync } from 'node-machine-id';
+import exitHook from 'async-exit-hook';
+import { CommanderError } from 'commander';
 import cuid from 'cuid';
+import { init, Mixpanel } from 'mixpanel';
+import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
 import sleep from 'sleep-promise';
-import exitHook from 'async-exit-hook';
 import { CliError } from './cli/cli-error';
-import { CommanderError } from 'commander';
+import { getVersion } from './utils/version-utils';
 
 /**
  * Telemetry events
@@ -30,8 +31,7 @@ export class Telemetry {
     private readonly sessionid = cuid();
     private readonly trackingToken = process.env.TELEMETRY_TRACKING_TOKEN;
     private readonly _os = os.platform();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    private readonly version = require('./package.json').version;
+    private readonly version = getVersion();
     private exitWait = 200;
 
     constructor() {

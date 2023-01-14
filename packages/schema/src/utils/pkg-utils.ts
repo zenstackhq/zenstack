@@ -18,21 +18,22 @@ export function installPackage(
     pkg: string,
     dev: boolean,
     pkgManager: PackageManagers | undefined = undefined,
+    tag = 'latest',
     projectPath = '.'
 ) {
     const manager = pkgManager ?? getPackageManager(projectPath);
     console.log(`Installing package "${pkg}" with ${manager}`);
     switch (manager) {
         case 'yarn':
-            execSync(`yarn --cwd "${projectPath}" add ${pkg} ${dev ? ' --dev' : ''} --ignore-engines`);
+            execSync(`yarn --cwd "${projectPath}" add ${pkg}@${tag} ${dev ? ' --dev' : ''} --ignore-engines`);
             break;
 
         case 'pnpm':
-            execSync(`pnpm add -C "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}`);
+            execSync(`pnpm add -C "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}@${tag}`);
             break;
 
         default:
-            execSync(`npm install --prefix "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}`);
+            execSync(`npm install --prefix "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}@${tag}`);
             break;
     }
 }
