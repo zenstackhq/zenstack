@@ -4,3 +4,4 @@ dist
 .DS_Store
 .vscode/settings.json
 .env.local
+.npmcache
