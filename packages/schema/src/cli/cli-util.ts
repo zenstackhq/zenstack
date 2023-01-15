@@ -61,13 +61,11 @@ export async function initProject(
         console.log(`Sample model generated at: ${colors.blue(zmodelFile)}
 
 Please check the following guide on how to model your app:
-    https://zenstack.dev/#/modeling-your-app.
-            `);
+    https://zenstack.dev/#/modeling-your-app.`);
     } else {
         console.log(
             `Your current Prisma schema "${prismaSchema}" has been copied to "${zmodelFile}".
-Moving forward please edit this file and run "zenstack generate" to regenerate Prisma schema.
-        `
+Moving forward please edit this file and run "zenstack generate" to regenerate Prisma schema.`
         );
     }
 

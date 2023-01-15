@@ -1,9 +1,8 @@
-import { DataModel, Model, isDataModel } from '@zenstackhq/language/ast';
+import { DataModel, Model, isDataModel } from '@zenstackhq/sdk/ast';
 import { PluginOptions } from '@zenstackhq/sdk';
 import { camelCase, paramCase } from 'change-case';
 import * as path from 'path';
 import { Project } from 'ts-morph';
-import { RUNTIME_PACKAGE } from '../plugin-utils';
 
 export async function generate(model: Model, options: PluginOptions) {
     const project = new Project();
@@ -12,9 +11,7 @@ export async function generate(model: Model, options: PluginOptions) {
 
     for (const dm of model.declarations.filter((d): d is DataModel => isDataModel(d))) {
         const hasAllowRule = dm.attributes.find((attr) => attr.decl.ref?.name === '@@allow');
-        if (!hasAllowRule) {
-            warnings.push(`Not generating hooks for "${dm.name}" because it doesn't have any @@allow rule`);
-        } else {
+        if (hasAllowRule) {
             models.push(dm);
         }
     }
@@ -53,8 +50,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext } from '@zenstackhq/next/client';`,
-        `import { request, type RequestOptions } from '${RUNTIME_PACKAGE}/client';`,
+        `import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/react/runtime';`,
+        `import * as request from '@zenstackhq/react/runtime';`,
     ]);
 
     const useFunc = sf.addFunction({

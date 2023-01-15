@@ -70,15 +70,6 @@ export type DbClientContract = Record<string, DbOperations> & {
     $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>) => Promise<T>;
 };
 
-/**
- * Client request options
- */
-export type RequestOptions<T> = {
-    // disable data fetching
-    disabled?: boolean;
-    initialData?: T;
-};
-
 export const PrismaWriteActions = [
     'create',
     'createMany',

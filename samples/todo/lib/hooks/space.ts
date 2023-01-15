@@ -1,7 +1,7 @@
 import type { Prisma, Space } from "@prisma/client";
 import { useContext } from 'react';
-import { RequestHandlerContext } from '@zenstackhq/next/client';
-import { request, type RequestOptions } from '@zenstackhq/runtime/client';
+import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/react/runtime';
+import * as request from '@zenstackhq/react/runtime';
 
 export function useSpace() {
     const { endpoint } = useContext(RequestHandlerContext);

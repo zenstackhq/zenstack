@@ -1,8 +1,17 @@
+import { createContext } from 'react';
 import superjson from 'superjson';
 import useSWR, { useSWRConfig } from 'swr';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr/dist/types';
 import { registerSerializers } from './serialization-utils';
-import { RequestOptions } from './types';
+
+/**
+ * Client request options
+ */
+export type RequestOptions<T> = {
+    // disable data fetching
+    disabled?: boolean;
+    initialData?: T;
+};
 
 // register superjson custom serializers
 registerSerializers();
@@ -135,3 +144,22 @@ export function getMutate(prefixes: string[]): Mutator {
         return Promise.all(mutations);
     };
 }
+
+/**
+ * Context type for configuring react hooks.
+ */
+export type RequestHandlerContext = {
+    endpoint: string;
+};
+
+/**
+ * Context for configuring react hooks.
+ */
+export const RequestHandlerContext = createContext<RequestHandlerContext>({
+    endpoint: '/api/model',
+});
+
+/**
+ * Context provider.
+ */
+export const Provider = RequestHandlerContext.Provider;
