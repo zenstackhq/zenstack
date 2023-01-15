@@ -1,5 +1,5 @@
 import { loadModel } from '../utils';
-import ZModelCodeGenerator from '../../src/plugins/zmodel-code/zmodel-code-generator';
+import ZModelCodeGenerator from '../../src/plugins/prisma/zmodel-code-generator';
 import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/language/ast';
 
 describe('Code Generator Tests', () => {

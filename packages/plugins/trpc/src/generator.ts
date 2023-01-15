@@ -3,7 +3,7 @@ import { PluginOptions } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { generate as PrismaZodGenerator } from '../zod/generator';
+import { generate as PrismaZodGenerator } from './zod/generator';
 import { generateProcedure, generateRouterSchemaImports, getInputTypeByOpName, resolveModelsComments } from './helpers';
 import { project } from './project';
 import removeDir from './utils/removeDir';

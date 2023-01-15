@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import indentString from '@zenstackhq/sdk/utils';
 import path from 'path';
-import indentString from '../prisma/indent-string';
 import { checkModelHasModelRelation, findModelByName, isMongodbRawOp } from './helpers';
 import { isAggregateInputType } from './helpers/aggregate-helpers';
 import { AggregateOperationSupport, TransformerParams } from './types';

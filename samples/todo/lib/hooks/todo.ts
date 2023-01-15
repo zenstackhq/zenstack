@@ -1,7 +1,7 @@
 import type { Prisma, Todo } from "@prisma/client";
 import { useContext } from 'react';
-import { RequestHandlerContext } from '@zenstackhq/next/client';
-import { request, type RequestOptions } from '@zenstackhq/runtime/client';
+import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/react/runtime';
+import * as request from '@zenstackhq/react/runtime';
 
 export function useTodo() {
     const { endpoint } = useContext(RequestHandlerContext);

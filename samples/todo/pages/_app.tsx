@@ -1,6 +1,6 @@
 import { SpaceContext, useCurrentSpace, useCurrentUser, UserContext } from '@lib/context';
 import { trpc } from '@lib/trpc';
-import { Provider as ZenStackHooksProvider } from '@zenstackhq/next/client';
+import { Provider as ZenStackHooksProvider } from '@zenstackhq/react/runtime';
 import AuthGuard from 'components/AuthGuard';
 import { SessionProvider } from 'next-auth/react';
 import type { AppProps } from 'next/app';

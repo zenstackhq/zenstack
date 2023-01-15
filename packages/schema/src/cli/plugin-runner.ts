@@ -56,8 +56,8 @@ export class PluginRunner {
                 let pluginModule: any;
                 try {
                     pluginModule = require(pluginModulePath);
-                } catch {
-                    console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}`);
+                } catch (err) {
+                    console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
                     throw new CliError(`Unable to load plugin module ${pluginProvider}`);
                 }
 
@@ -147,7 +147,7 @@ export class PluginRunner {
 
     private getPluginModulePath(provider: string) {
         let pluginModulePath = provider;
-        if (pluginModulePath.startsWith('@zenstack')) {
+        if (pluginModulePath.startsWith('@zenstack/')) {
             pluginModulePath = pluginModulePath.replace(/^@zenstack/, path.join(__dirname, '../plugins'));
         }
         return pluginModulePath;

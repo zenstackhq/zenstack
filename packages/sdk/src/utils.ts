@@ -31,3 +31,8 @@ export function getLiteralArray<
     }
     return arr.map((item) => getLiteral<T>(item));
 }
+
+export default function indentString(string: string, count = 4): string {
+    const indent = ' ';
+    return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
+}

@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "0.6.0-pre.18",
+    "version": "0.6.0-pre.19",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md ./LICENSE dist/",
+        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md ../../LICENSE dist/",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",

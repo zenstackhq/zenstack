@@ -3,7 +3,7 @@
 */
 
 /*
- * Data soruce definition
+ * Data source definition
  */
 datasource db {
     provider = 'postgresql'
@@ -14,8 +14,8 @@ generator js {
     provider = 'prisma-client-js'
 }
 
-plugin hooks {
-    provider = '@zenstack/react-hooks'
+plugin reactHooks {
+    provider = '@zenstackhq/react'
     output = 'lib/hooks'
 }
 
@@ -137,7 +137,7 @@ model List {
 
     // when create, owner must be set to current user, and user must be in the space
     // update is not allowed to change owner
-    @@allow('update', owner == auth()&& space.members?[user == auth()] && future().owner == owner)
+    @@allow('update', owner == auth() && space.members?[user == auth()] && future().owner == owner)
 
     // can be deleted by owner
     @@allow('delete', owner == auth()) 

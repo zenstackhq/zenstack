@@ -32,7 +32,7 @@ import { writeFile } from 'fs/promises';
 import path from 'path';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { execSync } from '../../utils/exec-utils';
-import ZModelCodeGenerator from '../zmodel-code/zmodel-code-generator';
+import ZModelCodeGenerator from './zmodel-code-generator';
 import {
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,

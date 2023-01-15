@@ -1,7 +1,7 @@
 import type { Prisma, User } from "@prisma/client";
 import { useContext } from 'react';
-import { RequestHandlerContext } from '@zenstackhq/next/client';
-import { request, type RequestOptions } from '@zenstackhq/runtime/client';
+import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/react/runtime';
+import * as request from '@zenstackhq/react/runtime';
 
 export function useUser() {
     const { endpoint } = useContext(RequestHandlerContext);
