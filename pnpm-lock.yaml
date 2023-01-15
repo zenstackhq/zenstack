@@ -294,6 +294,7 @@ importers:
       '@zenstackhq/next': workspace:*
       '@zenstackhq/react': workspace:*
       '@zenstackhq/runtime': workspace:*
+      '@zenstackhq/trpc': workspace:*
       autoprefixer: ^10.4.12
       babel-plugin-superjson-next: ^0.4.5
       bcryptjs: ^2.4.3
@@ -326,6 +327,7 @@ importers:
       '@zenstackhq/next': link:../../packages/next/dist
       '@zenstackhq/react': link:../../packages/plugins/react/dist
       '@zenstackhq/runtime': link:../../packages/runtime/dist
+      '@zenstackhq/trpc': link:../../packages/plugins/trpc/dist
       babel-plugin-superjson-next: 0.4.5_dxtdkpchuuqtkmn6tf3q576faq
       bcryptjs: 2.4.3
       daisyui: 2.46.0_r4gnkvssmvyxmi2wmat5xbx36a
