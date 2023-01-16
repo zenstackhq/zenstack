@@ -6,7 +6,7 @@ import {
     DataModel,
     DataSource,
     Enum,
-    Function,
+    FunctionDecl,
     InvocationExpr,
     LiteralExpr,
     ReferenceExpr,
@@ -338,8 +338,8 @@ describe('Parsing Tests', () => {
         `;
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        const foo = doc.declarations[2] as Function;
-        const bar = doc.declarations[3] as Function;
+        const foo = doc.declarations[2] as FunctionDecl;
+        const bar = doc.declarations[3] as FunctionDecl;
 
         expect(foo.name).toBe('foo');
         expect(foo.params.map((p) => p.type.type)).toEqual(expect.arrayContaining(['Int', 'Int']));
