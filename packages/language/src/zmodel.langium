@@ -6,7 +6,7 @@ entry Model:
     )*;
 
 AbstractDeclaration:
-    DataSource | Generator | Plugin | DataModel | Enum | Function | Attribute;
+    DataSource | GeneratorDecl| Plugin | DataModel | Enum | FunctionDecl | Attribute;
 
 // datasource
 DataSource:
@@ -16,7 +16,7 @@ DataSourceField:
     name=ID '=' value=(LiteralExpr|InvocationExpr);
 
 // generator
-Generator:
+GeneratorDecl:
     'generator' name=ID '{' (fields+=GeneratorField)* '}';
 
 GeneratorField:
@@ -57,7 +57,7 @@ ReferenceArg:
     name=('sort') ':' value=('Asc'| 'Desc');
 
 InvocationExpr:
-    function=[Function] '(' ArgumentList? ')';
+    function=[FunctionDecl] '(' ArgumentList? ')';
 
 UnaryExpr:
     operator=('!') operand=Expression;
@@ -153,7 +153,7 @@ EnumField:
     name=ID;
 
 // function
-Function:
+FunctionDecl:
     'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
 
 FunctionParam:

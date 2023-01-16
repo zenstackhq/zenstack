@@ -12,7 +12,7 @@
         "db:deploy": "prisma migrate deploy",
         "db:reset": "prisma migrate reset",
         "db:browse": "prisma studio",
-        "generate": "pnpm install && NODE_PATH=node_modules npx zenstack generate",
+        "generate": "pnpm install && set NODE_PATH=node_modules npx zenstack generate",
         "vercel-build": "pnpm build && pnpm db:deploy",
         "deps-local": "npm i -D ../../packages/schema/dist && npm i ../../packages/runtime/dist ../../packages/next/dist zod zod-validation-error swr decimal.js",
         "deps-latest": "npm rm zod zod-validation-error swr decimal.js && npm i -D zenstack@latest && npm i @zenstackhq/runtime@latest @zenstackhq/next@latest",
