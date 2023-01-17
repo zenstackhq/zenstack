@@ -9,7 +9,7 @@ import {
     DataSource,
     Enum,
     Expression,
-    Generator,
+    GeneratorDecl,
     InvocationExpr,
     LiteralExpr,
     Model,
@@ -78,8 +78,8 @@ export default class PrismaSchemaGenerator {
                     this.generateModel(prisma, decl as DataModel);
                     break;
 
-                case Generator:
-                    this.generateGenerator(prisma, decl as Generator);
+                case GeneratorDecl:
+                    this.generateGenerator(prisma, decl as GeneratorDecl);
                     break;
             }
         }
@@ -155,7 +155,7 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private generateGenerator(prisma: PrismaModel, decl: Generator) {
+    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
         prisma.addGenerator(
             decl.name,
             decl.fields.map((f) => {

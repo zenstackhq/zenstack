@@ -8,7 +8,7 @@ import {
     DataModelFieldType,
     EnumField,
     Expression,
-    Function,
+    FunctionDecl,
     FunctionParam,
     FunctionParamType,
     InvocationExpr,
@@ -228,7 +228,7 @@ export class ZModelLinker extends DefaultLinker {
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
         if (node.function.ref) {
             // eslint-disable-next-line @typescript-eslint/ban-types
-            const funcDecl = node.function.ref as Function;
+            const funcDecl = node.function.ref as FunctionDecl;
             if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
