@@ -298,6 +298,7 @@ importers:
       autoprefixer: ^10.4.12
       babel-plugin-superjson-next: ^0.4.5
       bcryptjs: ^2.4.3
+      cross-env: ^7.0.3
       daisyui: ^2.31.0
       eslint: ^7.19.0
       eslint-config-next: 12.3.1
@@ -330,6 +331,7 @@ importers:
       '@zenstackhq/trpc': link:../../packages/plugins/trpc/dist
       babel-plugin-superjson-next: 0.4.5_dxtdkpchuuqtkmn6tf3q576faq
       bcryptjs: 2.4.3
+      cross-env: 7.0.3
       daisyui: 2.46.0_r4gnkvssmvyxmi2wmat5xbx36a
       moment: 2.29.4
       nanoid: 4.0.0
@@ -4829,6 +4831,14 @@ packages:
   /create-require/1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
     dev: true
+
+  /cross-env/7.0.3:
+    resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
+    engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
+    hasBin: true
+    dependencies:
+      cross-spawn: 7.0.3
+    dev: false
 
   /cross-fetch/3.1.5:
     resolution: {integrity: sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==}
