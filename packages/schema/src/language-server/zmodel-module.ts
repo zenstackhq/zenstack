@@ -20,6 +20,7 @@ import {
 import { TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ZModelValidationRegistry, ZModelValidator } from './validator/zmodel-validator';
+import { ZModelFormatter } from './zmodel-formatter';
 import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
@@ -52,6 +53,9 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
     validation: {
         ValidationRegistry: (services) => new ZModelValidationRegistry(services),
         ZModelValidator: () => new ZModelValidator(),
+    },
+    lsp: {
+        Formatter: () => new ZModelFormatter(),
     },
 };
 
