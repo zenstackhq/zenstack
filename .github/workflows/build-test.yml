@@ -34,5 +34,10 @@ jobs:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
-            - run: pnpm run build
+            - run: |
+                if [[ $GITHUB_REF == 'refs/heads/canary' ]]; then
+                    DEFAULT_NPM_TAG=canary pnpm run build
+                else
+                    DEFAULT_NPM_TAG=latest pnpm run build
+                fi
             - run: pnpm run test

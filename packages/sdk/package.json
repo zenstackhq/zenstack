@@ -1,12 +1,12 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "0.6.0-pre.19",
+    "version": "1.0.0-alpha.19",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
         "clean": "rimraf dist",
         "lint": "eslint src --ext ts",
-        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md dist/",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist",
         "watch": "tsc --watch",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm build && pnpm publish --tag dev"
@@ -23,6 +23,7 @@
         "@zenstackhq/language": "workspace:*"
     },
     "devDependencies": {
+        "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"
     }

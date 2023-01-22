@@ -13,3 +13,13 @@ if (process.env.TELEMETRY_TRACKING_TOKEN) {
         encoding: 'utf-8',
     });
 }
+
+let cliContent = fs.readFileSync('dist/cli/index.js', 'utf-8');
+if (process.env.DEFAULT_NPM_TAG) {
+    cliContent = cliContent.replace('<DEFAULT_NPM_TAG>', process.env.DEFAULT_NPM_TAG);
+} else {
+    cliContent = cliContent.replace('<DEFAULT_NPM_TAG>', 'latest');
+}
+fs.writeFileSync('dist/cli/index.js', cliContent, {
+    encoding: 'utf-8',
+});
