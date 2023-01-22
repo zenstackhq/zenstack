@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "0.6.0-pre.19",
+    "version": "1.0.0-alpha.19",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md ../../LICENSE dist/",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
@@ -21,6 +21,7 @@
     },
     "dependencies": {
         "@types/bcryptjs": "^2.4.2",
+        "@zenstackhq/sdk": "workspace:*",
         "bcryptjs": "^2.4.3",
         "change-case": "^4.1.2",
         "colors": "1.4.0",
@@ -31,14 +32,13 @@
         "swr": "^1.3.0",
         "tslib": "^2.4.1",
         "zod": "^3.19.1",
-        "zod-validation-error": "^0.2.1",
-        "@zenstackhq/sdk": "workspace:*"
+        "zod-validation-error": "^0.2.1"
     },
     "peerDependencies": {
+        "@prisma/client": "^4.0.0",
         "next": "^12.3.1 || ^13",
         "react": "^17.0.2 || ^18",
-        "react-dom": "^17.0.2 || ^18",
-        "@prisma/client": "^4.0.0"
+        "react-dom": "^17.0.2 || ^18"
     },
     "author": {
         "name": "ZenStack Team"
@@ -49,6 +49,7 @@
         "@types/bcryptjs": "^2.4.2",
         "@types/jest": "^29.0.3",
         "@types/node": "^14.18.29",
+        "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.3"
     }

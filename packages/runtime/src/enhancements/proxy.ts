@@ -189,7 +189,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                     return (input: any, ...rest: any[]) => {
                         if (Array.isArray(input)) {
                             throw new Error(
-                                'Batch transaction is not supported by ZenStack enhanced Prisma client. Please use interactive transaction instead.'
+                                'Sequential operations transaction is not supported by ZenStack enhanced Prisma client. Please use interactive transaction instead.'
                             );
                         } else if (typeof input !== 'function') {
                             throw new Error('A function value input is expected');

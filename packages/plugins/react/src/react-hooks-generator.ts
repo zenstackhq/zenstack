@@ -1,5 +1,5 @@
 import { DataModel, Model, isDataModel } from '@zenstackhq/sdk/ast';
-import { PluginOptions } from '@zenstackhq/sdk';
+import { PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { camelCase, paramCase } from 'change-case';
 import * as path from 'path';
 import { Project } from 'ts-morph';
@@ -16,7 +16,10 @@ export async function generate(model: Model, options: PluginOptions) {
         }
     }
 
-    const outDir = (options.output as string) ?? 'node_modules/.zenstack/src/hooks';
+    const outDir = options.output as string;
+    if (!outDir) {
+        throw new PluginError('"output" option is required');
+    }
 
     generateIndex(project, outDir, models);
 

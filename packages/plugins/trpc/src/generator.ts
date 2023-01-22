@@ -1,5 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import { PluginOptions } from '@zenstackhq/sdk';
+import { PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -12,6 +12,9 @@ import { Project } from 'ts-morph';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     const outputDir = options.output as string;
+    if (!outputDir) {
+        throw new PluginError('"output" option is required');
+    }
 
     await fs.mkdir(outputDir, { recursive: true });
     await removeDir(outputDir, true);

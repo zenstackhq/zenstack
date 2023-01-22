@@ -1,12 +1,12 @@
 {
     "name": "@zenstackhq/next",
-    "version": "0.6.0-pre.19",
+    "version": "1.0.0-alpha.19",
     "displayName": "ZenStack Next.js integration",
     "description": "ZenStack Next.js integration",
     "homepage": "https://zenstack.dev",
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md ../../LICENSE dist/",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
@@ -24,11 +24,12 @@
         "react": "^17.0.2 || ^18"
     },
     "dependencies": {
-        "superjson": "^1.11.0",
-        "@zenstackhq/runtime": "workspace:*"
+        "@zenstackhq/runtime": "workspace:*",
+        "superjson": "^1.11.0"
     },
     "devDependencies": {
         "@types/react": "^18.0.26",
+        "copyfiles": "^2.4.1",
         "react": "^17.0.2 || ^18",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"
