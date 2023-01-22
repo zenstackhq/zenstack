@@ -125,24 +125,29 @@ export class PluginRunner {
         warnings: string[]
     ) {
         const spinner = ora(`Running plugin ${colors.cyan(name)}`).start();
-        await telemetry.trackSpan(
-            'cli:plugin:start',
-            'cli:plugin:complete',
-            'cli:plugin:error',
-            {
-                plugin: name,
-            },
-            async () => {
-                let result = run(context.schema, options, dmmf);
-                if (result instanceof Promise) {
-                    result = await result;
+        try {
+            await telemetry.trackSpan(
+                'cli:plugin:start',
+                'cli:plugin:complete',
+                'cli:plugin:error',
+                {
+                    plugin: name,
+                },
+                async () => {
+                    let result = run(context.schema, options, dmmf);
+                    if (result instanceof Promise) {
+                        result = await result;
+                    }
+                    if (Array.isArray(result)) {
+                        warnings.push(...result);
+                    }
                 }
-                if (Array.isArray(result)) {
-                    warnings.push(...result);
-                }
-            }
-        );
-        spinner.succeed();
+            );
+            spinner.succeed();
+        } catch (err) {
+            spinner.fail();
+            throw err;
+        }
     }
 
     private getPluginModulePath(provider: string) {
