@@ -71,7 +71,7 @@ describe('CLI Tests', () => {
         fs.writeFileSync('schema.zmodel', origZModelContent);
         createNpmrc();
         const program = createProgram();
-        program.parse(['init'], { from: 'user' });
+        program.parse(['init', '--tag', 'canary'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(origZModelContent);
     });
 });
