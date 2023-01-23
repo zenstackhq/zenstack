@@ -22,7 +22,7 @@ describe('tRPC Routers Generation Tests', () => {
         fs.mkdirSync(testDir, { recursive: true });
         fse.copySync(path.join(__dirname, './test-project'), testDir);
 
-        const nodePath = path.resolve('./node_modules');
+        const nodePath = path.resolve(path.join(__dirname, '../../node_modules'));
 
         process.chdir(testDir);
         run('npm install');
