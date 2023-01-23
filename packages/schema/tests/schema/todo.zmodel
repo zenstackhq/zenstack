@@ -19,11 +19,6 @@ plugin reactHooks {
     output = 'lib/hooks'
 }
 
-plugin trpc {
-    provider = '@zenstackhq/trpc'
-    output = 'server/routers/generated'
-}
-
 /*
  * Enum for user's role in a space
  */
