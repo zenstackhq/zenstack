@@ -9,7 +9,7 @@ export type OptionValue = string | number | boolean;
 /**
  * Plugin configuration oiptions
  */
-export type PluginOptions = { provider?: string } & Record<string, OptionValue | OptionValue[]>;
+export type PluginOptions = { provider?: string; schemaPath: string } & Record<string, OptionValue | OptionValue[]>;
 
 /**
  * Plugin entry point function definition

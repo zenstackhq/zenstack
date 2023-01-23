@@ -26,11 +26,12 @@ plugin policy {
 }
 `;
 
-export function run(cmd: string) {
+export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     execSync(cmd, {
         stdio: 'pipe',
         encoding: 'utf-8',
-        env: { ...process.env, DO_NOT_TRACK: '1' },
+        env: { ...process.env, DO_NOT_TRACK: '1', ...env },
+        cwd,
     });
 }
 

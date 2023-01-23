@@ -127,6 +127,7 @@ export async function runPlugins(options: { schema: string; packageManager: Pack
 
     const context: Context = {
         schema: model,
+        schemaPath: path.resolve(options.schema),
         outDir: path.dirname(options.schema),
     };
 

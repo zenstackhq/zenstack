@@ -11,13 +11,18 @@ import { camelCase } from 'change-case';
 import { Project } from 'ts-morph';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    const outputDir = options.output as string;
-    if (!outputDir) {
+    let outDir = options.output as string;
+    if (!outDir) {
         throw new PluginError('"output" option is required');
     }
 
-    await fs.mkdir(outputDir, { recursive: true });
-    await removeDir(outputDir, true);
+    if (!path.isAbsolute(outDir)) {
+        // output dir is resolved relative to the schema file path
+        outDir = path.join(path.dirname(options.schemaPath), outDir);
+    }
+
+    await fs.mkdir(outDir, { recursive: true });
+    await removeDir(outDir, true);
 
     await PrismaZodGenerator(model, options, dmmf);
 
@@ -28,7 +33,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
-    const appRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `index.ts`), undefined, {
+    const appRouter = project.createSourceFile(path.resolve(outDir, 'routers', `index.ts`), undefined, {
         overwrite: true,
     });
 
@@ -89,7 +94,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
                     continue;
                 }
 
-                generateModelCreateRouter(project, model, operations, outputDir);
+                generateModelCreateRouter(project, model, operations, outDir);
 
                 appRouter.addImportDeclaration({
                     defaultImport: `create${model}Router`,
