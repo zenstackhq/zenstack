@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "0.6.0-pre.19",
+    "version": "1.0.0-alpha.20",
     "author": {
         "name": "ZenStack Team"
     },
@@ -69,7 +69,7 @@
         "vscode:prepublish": "pnpm lint && pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
         "clean": "rimraf bundle dist",
-        "build": "pnpm clean && pnpm lint && tsc && babel src -d dist --extensions '.ts' && cp -r bin src/res ./README.md ./LICENSE ./package.json dist/ && node build/process-post-install.js",
+        "build": "pnpm clean && pnpm lint && tsc && babel src -d dist --extensions '.ts' && copyfiles -F \"bin/*\" ./README.md ./LICENSE ./package.json dist && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js",
         "bundle": "pnpm clean && pnpm lint && node build/bundle.js --minify",
         "watch": "babel src -d dist --extensions '.ts' -w",
         "lint": "eslint src tests --ext ts",
@@ -125,6 +125,7 @@
         "@typescript-eslint/parser": "^5.42.0",
         "babel-plugin-inline-dotenv": "^1.7.0",
         "concurrently": "^7.4.0",
+        "copyfiles": "^2.4.1",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",
         "eslint": "^8.27.0",

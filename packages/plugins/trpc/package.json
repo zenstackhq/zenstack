@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "0.6.0-pre.19",
+    "version": "1.0.0-alpha.20",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -10,7 +10,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md ../../../LICENSE dist/",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
@@ -28,10 +28,14 @@
         "@prisma/internals": "^4.7.1",
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
+        "prettier": "^2.8.3",
         "ts-morph": "^16.0.0",
+        "tslib": "^2.4.1",
         "zod": "^3.19.1"
     },
     "devDependencies": {
+        "@types/prettier": "^2.7.2",
+        "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"
     }

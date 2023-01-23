@@ -96,7 +96,9 @@ export function createProgram() {
         .addOption(pmOption)
         .addOption(new Option('--prisma <file>', 'location of Prisma schema file to bootstrap from'))
         .addOption(
-            new Option('--tag <tag>', 'the NPM package tag to use when installing dependencies').default('latest')
+            new Option('--tag <tag>', 'the NPM package tag to use when installing dependencies').default(
+                '<DEFAULT_NPM_TAG>'
+            )
         )
         .argument('[path]', 'project path', '.')
         .action(initAction);

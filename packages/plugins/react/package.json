@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/react",
     "displayName": "ZenStack plugin and runtime for ReactJS",
-    "version": "0.6.0-pre.19",
+    "version": "1.0.0-alpha.20",
     "description": "ZenStack plugin and runtime for ReactJS",
     "main": "index.js",
     "repository": {
@@ -10,7 +10,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && cp ./package.json ./README.md ../../../LICENSE dist/",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
@@ -35,6 +35,7 @@
     },
     "devDependencies": {
         "@types/react": "^18.0.26",
+        "copyfiles": "^2.4.1",
         "react": "^17.0.2 || ^18",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"

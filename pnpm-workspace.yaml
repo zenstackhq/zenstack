@@ -1,5 +1,4 @@
 packages:
     - 'packages/*'
     - 'packages/plugins/*'
-    - 'samples/*'
     - 'tests/*'
