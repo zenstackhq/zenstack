@@ -64,7 +64,6 @@ model SpaceUser {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
     role SpaceUserRole
-    
     @@unique([userId, spaceId])
 
     // require login
@@ -103,7 +102,7 @@ model User {
     @@allow('read', spaces?[space.members?[user == auth()]])
 
     // full access by oneself
-    @@allow('all', auth() == this) 
+    @@allow('all', auth() == this)
 }
 
 /*
@@ -135,7 +134,7 @@ model List {
     @@allow('update', owner == auth() && space.members?[user == auth()] && future().owner == owner)
 
     // can be deleted by owner
-    @@allow('delete', owner == auth()) 
+    @@allow('delete', owner == auth())
 }
 
 /*
@@ -179,6 +178,5 @@ model Account {
     id_token String?
     session_state String?
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
     @@unique([provider, providerAccountId])
 }
