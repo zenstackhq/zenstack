@@ -84,11 +84,39 @@ describe('Data Model Validation Tests', () => {
     });
 
     it('id field', async () => {
+        // no need for '@id' field when there's no access policy or field validation
+        await loadModel(`
+            ${prelude}
+            model M {
+                x Int
+            }
+        `);
+
         expect(
             await loadModelWithError(`
             ${prelude}
             model M {
                 x Int
+                @@allow('all', x > 0)
+            }
+        `)
+        ).toContain(`Model must include a field with @id attribute`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                x Int
+                @@deny('all', x <= 0)
+            }
+        `)
+        ).toContain(`Model must include a field with @id attribute`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                x Int @gt(0)
             }
         `)
         ).toContain(`Model must include a field with @id attribute`);

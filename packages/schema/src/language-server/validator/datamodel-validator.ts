@@ -1,4 +1,3 @@
-import { SCALAR_TYPES } from '../constants';
 import {
     ArrayExpr,
     Attribute,
@@ -13,10 +12,12 @@ import {
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
-import { assignableToAttributeParam, validateDuplicatedDeclarations } from './utils';
 import pluralize from 'pluralize';
+import { analyzePolicies } from '../../utils/ast-utils';
+import { SCALAR_TYPES } from '../constants';
+import { AstValidator } from '../types';
+import { assignableToAttributeParam, validateDuplicatedDeclarations } from './utils';
 
 /**
  * Validates data model declarations.
@@ -31,9 +32,14 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
         const idFields = dm.fields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
         if (idFields.length === 0) {
-            accept('error', 'Model must include a field with @id attribute', {
-                node: dm,
-            });
+            const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
+            if (allows.length > 0 || denies.length > 0 || hasFieldValidation) {
+                // TODO: relax this requirement to require only @unique fields
+                // when access policies or field valdaition is used, require an @id field
+                accept('error', 'Model must include a field with @id attribute', {
+                    node: dm,
+                });
+            }
         } else if (idFields.length > 1) {
             accept('error', 'Model can include at most one field with @id attribute', {
                 node: dm,
