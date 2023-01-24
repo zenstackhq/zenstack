@@ -40,4 +40,6 @@ jobs:
                 else
                     DEFAULT_NPM_TAG=latest pnpm run build
                 fi
+            # install again for internal dependencies
+            - run: pnpm install --frozen-lockfile
             - run: pnpm run test

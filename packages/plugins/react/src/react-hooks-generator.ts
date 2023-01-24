@@ -1,10 +1,11 @@
-import { DataModel, Model, isDataModel } from '@zenstackhq/sdk/ast';
+import { DMMF } from '@prisma/generator-helper';
 import { PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
 import { camelCase, paramCase } from 'change-case';
 import * as path from 'path';
 import { Project } from 'ts-morph';
 
-export async function generate(model: Model, options: PluginOptions) {
+export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     const project = new Project();
     const models: DataModel[] = [];
     const warnings: string[] = [];
@@ -16,14 +17,22 @@ export async function generate(model: Model, options: PluginOptions) {
         }
     }
 
-    const outDir = options.output as string;
+    let outDir = options.output as string;
     if (!outDir) {
         throw new PluginError('"output" option is required');
     }
 
+    if (!path.isAbsolute(outDir)) {
+        // output dir is resolved relative to the schema file path
+        outDir = path.join(path.dirname(options.schemaPath), outDir);
+    }
+
     generateIndex(project, outDir, models);
 
-    models.forEach((d) => generateModelHooks(project, outDir, d));
+    models.forEach((model) => {
+        const mapping = dmmf.mappings.modelOperations.find((op) => op.model === model.name);
+        generateModelHooks(project, outDir, model, mapping);
+    });
 
     await project.save();
     return warnings;
@@ -42,7 +51,12 @@ function wrapReadbackErrorCheck(code: string) {
     }`;
 }
 
-function generateModelHooks(project: Project, outDir: string, model: DataModel) {
+function generateModelHooks(
+    project: Project,
+    outDir: string,
+    model: DataModel,
+    mapping: DMMF.ModelMapping | undefined
+) {
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
@@ -73,8 +87,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
         'const mutate = request.getMutate(prefixesToMutate);',
     ]);
 
-    // create
-    {
+    const methods: string[] = [];
+
+    // create is somehow named "createOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping?.create || (mapping as any)?.createOne) {
+        methods.push('create');
         const argsType = `Prisma.${model.name}CreateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
@@ -99,7 +117,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // createMany
-    {
+    if (mapping?.createMany) {
+        methods.push('createMany');
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
@@ -122,7 +141,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // findMany
-    {
+    if (mapping?.findMany) {
+        methods.push('findMany');
         const argsType = `Prisma.${model.name}FindManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Array<Prisma.${model.name}GetPayload<T>>`;
@@ -148,7 +168,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // findUnique
-    {
+    if (mapping?.findUnique) {
+        methods.push('findUnique');
         const argsType = `Prisma.${model.name}FindUniqueArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
@@ -174,7 +195,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // findFirst
-    {
+    if (mapping?.findFirst) {
+        methods.push('findFirst');
         const argsType = `Prisma.${model.name}FindFirstArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
@@ -200,7 +222,10 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // update
-    {
+    // update is somehow named "updateOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping?.update || (mapping as any).updateOne) {
+        methods.push('update');
         const argsType = `Prisma.${model.name}UpdateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
@@ -225,7 +250,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // updateMany
-    {
+    if (mapping?.updateMany) {
+        methods.push('updateMany');
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
@@ -248,7 +274,10 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // upsert
-    {
+    // upsert is somehow named "upsertOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping?.upsert || (mapping as any).upsertOne) {
+        methods.push('upsert');
         const argsType = `Prisma.${model.name}UpsertArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
@@ -273,7 +302,10 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // del
-    {
+    // delete is somehow named "deleteOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping?.delete || (mapping as any).deleteOne) {
+        methods.push('del');
         const argsType = `Prisma.${model.name}DeleteArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
@@ -298,7 +330,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // deleteMany
-    {
+    if (mapping?.deleteMany) {
+        methods.push('deleteMany');
         const argsType = `Prisma.${model.name}DeleteManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
@@ -321,7 +354,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // aggregate
-    {
+    if (mapping?.aggregate) {
+        methods.push('aggregate');
         const argsType = `Prisma.${model.name}AggregateArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
         const returnType = `Prisma.Get${model.name}AggregateType<T>`;
@@ -347,7 +381,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // groupBy
-    {
+    if (mapping?.groupBy) {
+        methods.push('groupBy');
         const returnType = `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`;
         useFunc
             .addFunction({
@@ -423,7 +458,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
     }
 
     // count
-    {
+    if (mapping?.count) {
+        methods.push('count');
         const argsType = `Prisma.${model.name}CountArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
         const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`;
@@ -448,9 +484,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel) 
             ]);
     }
 
-    useFunc.addStatements([
-        'return { create, createMany, findMany, findUnique, findFirst, update, updateMany, upsert, del, deleteMany, aggregate, groupBy, count };',
-    ]);
+    useFunc.addStatements([`return { ${methods.join(', ')} };`]);
 
     sf.formatText();
 }

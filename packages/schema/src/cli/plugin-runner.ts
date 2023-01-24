@@ -41,7 +41,7 @@ export class PluginRunner {
         for (const pluginProvider of allPluginProviders) {
             const plugin = pluginDecls.find((p) => this.getPluginProvider(p) === pluginProvider);
             if (plugin) {
-                const options: PluginOptions = {};
+                const options: PluginOptions = { schemaPath: context.schemaPath };
 
                 plugin.fields.forEach((f) => {
                     const value = getLiteral(f.value) || getLiteralArray(f.value);
@@ -83,7 +83,7 @@ export class PluginRunner {
                     name: this.getPluginName(pluginModule, pluginProvider),
                     provider: pluginProvider,
                     run: pluginModule.default,
-                    options: {},
+                    options: { schemaPath: context.schemaPath },
                 });
             }
         }

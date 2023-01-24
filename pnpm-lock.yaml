@@ -50,24 +50,22 @@ importers:
 
   packages/plugins/react:
     specifiers:
+      '@prisma/generator-helper': ^4.7.1
       '@types/react': ^18.0.26
       '@zenstackhq/sdk': workspace:*
       change-case: ^4.1.2
       copyfiles: ^2.4.1
       decimal.js: ^10.4.2
-      react: ^17.0.2 || ^18
-      react-dom: ^17.0.2 || ^18
       rimraf: ^3.0.2
       superjson: ^1.11.0
       swr: ^1.3.0
       ts-morph: ^16.0.0
       typescript: ^4.9.4
     dependencies:
+      '@prisma/generator-helper': 4.7.1
       '@zenstackhq/sdk': link:../../sdk/dist
       change-case: 4.1.2
       decimal.js: 10.4.2
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
       superjson: 1.12.1
       swr: 1.3.0_react@18.2.0
       ts-morph: 16.0.0
@@ -300,19 +298,25 @@ importers:
     specifiers:
       '@prisma/client': ^4.7.0
       '@types/bcryptjs': ^2.4.2
+      '@types/fs-extra': ^11.0.1
       '@types/jest': ^29.0.3
       '@types/node': ^14.18.29
       '@types/supertest': ^2.0.12
       '@types/tmp': ^0.2.3
       '@types/uuid': ^8.3.4
+      '@zenstackhq/next': workspace:*
+      '@zenstackhq/react': workspace:*
       '@zenstackhq/runtime': workspace:*
+      '@zenstackhq/trpc': workspace:*
       bcryptjs: ^2.4.3
       decimal.js: ^10.4.2
       eslint: ^8.30.0
       eslint-plugin-jest: ^27.1.7
+      fs-extra: ^11.1.0
       jest: ^29.0.3
       jest-fetch-mock: ^3.0.3
       next: ^12.3.1
+      prisma: ~4.7.0
       sleep-promise: ^9.1.0
       superjson: ^1.11.0
       tmp: ^0.2.1
@@ -320,8 +324,9 @@ importers:
       ts-node: ^10.9.1
       typescript: ^4.6.2
       uuid: ^9.0.0
+      zenstack: 'workspace: *'
     dependencies:
-      '@prisma/client': 4.7.1
+      '@prisma/client': 4.7.1_prisma@4.7.0
       '@types/node': 14.18.29
       bcryptjs: 2.4.3
       decimal.js: 10.4.2
@@ -329,21 +334,28 @@ importers:
       superjson: 1.11.0
     devDependencies:
       '@types/bcryptjs': 2.4.2
+      '@types/fs-extra': 11.0.1
       '@types/jest': 29.0.3
       '@types/supertest': 2.0.12
       '@types/tmp': 0.2.3
       '@types/uuid': 8.3.4
+      '@zenstackhq/next': link:../../packages/next/dist
+      '@zenstackhq/react': link:../../packages/plugins/react/dist
       '@zenstackhq/runtime': link:../../packages/runtime/dist
+      '@zenstackhq/trpc': link:../../packages/plugins/trpc/dist
       eslint: 8.30.0
       eslint-plugin-jest: 27.1.7_mqrelppxlcv42tihlyzz2qch5q
+      fs-extra: 11.1.0
       jest: 29.0.3_johvxhudwcpndp4mle25vwrlq4
       jest-fetch-mock: 3.0.3
       next: 12.3.1_672uxklweod7ene3nqtsh262ca
+      prisma: 4.7.0
       tmp: 0.2.1
       ts-jest: 29.0.1_57hartw4ijnqan4zaqtggk6uaa
       ts-node: 10.9.1_ck2axrxkiif44rdbzjywaqjysa
       typescript: 4.8.3
       uuid: 9.0.0
+      zenstack: link:../../packages/schema/dist
 
 packages:
 
@@ -431,7 +443,7 @@ packages:
       convert-source-map: 1.9.0
       debug: 4.3.4
       gensync: 1.0.0-beta.2
-      json5: 2.2.1
+      json5: 2.2.3
       semver: 6.3.0
     transitivePeerDependencies:
       - supports-color
@@ -567,14 +579,14 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/template': 7.18.10
-      '@babel/types': 7.19.4
+      '@babel/types': 7.20.5
     dev: true
 
   /@babel/helper-hoist-variables/7.18.6:
     resolution: {integrity: sha512-UlJQPkFqFULIcyW5sbzgbkxn2FKRgwWiRexcuaR8RNJRy8+LLveqPjwZV/bwrLZCN0eUHD/x8D0heK1ozuoo6Q==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.19.4
+      '@babel/types': 7.20.5
     dev: true
 
   /@babel/helper-member-expression-to-functions/7.18.9:
@@ -716,7 +728,7 @@ packages:
     resolution: {integrity: sha512-bde1etTx6ZyTmobl9LLMMQsaizFVZrquTEHOqKeQESMKo4PlObf+8+JA25ZsIpZhT/WEd39+vOdLXAFG/nELpA==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.19.4
+      '@babel/types': 7.20.5
     dev: true
 
   /@babel/helper-string-parser/7.19.4:
@@ -2358,7 +2370,7 @@ packages:
     dependencies:
       '@jest/fake-timers': 29.3.1
       '@jest/types': 29.3.1
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       jest-mock: 29.3.1
     dev: true
 
@@ -2443,7 +2455,7 @@ packages:
     dependencies:
       '@jest/types': 29.3.1
       '@sinonjs/fake-timers': 9.1.2
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       jest-message-util: 29.3.1
       jest-mock: 29.3.1
       jest-util: 29.3.1
@@ -2713,7 +2725,7 @@ packages:
       '@jest/schemas': 29.0.0
       '@types/istanbul-lib-coverage': 2.0.4
       '@types/istanbul-reports': 3.0.1
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       '@types/yargs': 17.0.13
       chalk: 4.1.2
     dev: true
@@ -2977,6 +2989,20 @@ packages:
       '@prisma/engines-version': 4.7.1-1.272861e07ab64f234d3ffc4094e32bd61775599c
     dev: false
 
+  /@prisma/client/4.7.1_prisma@4.7.0:
+    resolution: {integrity: sha512-/GbnOwIPtjiveZNUzGXOdp7RxTEkHL4DZP3vBaFNadfr6Sf0RshU5EULFzVaSi9i9PIK9PYd+1Rn7z2B2npb9w==}
+    engines: {node: '>=14.17'}
+    requiresBuild: true
+    peerDependencies:
+      prisma: '*'
+    peerDependenciesMeta:
+      prisma:
+        optional: true
+    dependencies:
+      '@prisma/engines-version': 4.7.1-1.272861e07ab64f234d3ffc4094e32bd61775599c
+      prisma: 4.7.0
+    dev: false
+
   /@prisma/debug/4.7.1:
     resolution: {integrity: sha512-oppjBRcTakJuAn0rANxWT9caxLKypSBT4Ajh7t+uPcO06CJOoN2Gt4VpFdw2i79U+klGAjTe/1yh8SCsTmxAhA==}
     dependencies:
@@ -3015,7 +3041,6 @@ packages:
   /@prisma/engines/4.7.0:
     resolution: {integrity: sha512-afKrVFktaZ1pOK12/uFl2hRsBWIJZuC5FdDtacuKk5x/mR+rC5AbA+PlN3ZCZbmYTaeiBMHjcU5wbT5z2N3nSQ==}
     requiresBuild: true
-    dev: false
 
   /@prisma/engines/4.7.1:
     resolution: {integrity: sha512-zWabHosTdLpXXlMefHmnouhXMoTB1+SCbUU3t4FCmdrtIOZcarPKU3Alto7gm/pZ9vHlGOXHCfVZ1G7OIrSbog==}
@@ -3180,8 +3205,8 @@ packages:
   /@types/babel__core/7.1.19:
     resolution: {integrity: sha512-WEOTgRsbYkvA/KCsDwVEGkd7WAr1e3g31VHQ8zy5gul/V1qKullU/BU5I68X5v7V3GnB9eotmom4v5a5gjxorw==}
     dependencies:
-      '@babel/parser': 7.19.6
-      '@babel/types': 7.19.4
+      '@babel/parser': 7.20.5
+      '@babel/types': 7.20.5
       '@types/babel__generator': 7.6.4
       '@types/babel__template': 7.4.1
       '@types/babel__traverse': 7.18.2
@@ -3190,14 +3215,14 @@ packages:
   /@types/babel__generator/7.6.4:
     resolution: {integrity: sha512-tFkciB9j2K755yrTALxD44McOrk+gfpIpvC3sxHjRawj6PfnQxrse4Clq5y/Rq+G3mrBurMax/lG8Qn2t9mSsg==}
     dependencies:
-      '@babel/types': 7.19.4
+      '@babel/types': 7.20.5
     dev: true
 
   /@types/babel__template/7.4.1:
     resolution: {integrity: sha512-azBFKemX6kMg5Io+/rdGT0dkGreboUVR0Cdm3fz9QJWpaQGJRQXl7C+6hOTCZcMll7KFyEQpgbYI2lHdsS4U7g==}
     dependencies:
-      '@babel/parser': 7.19.6
-      '@babel/types': 7.19.4
+      '@babel/parser': 7.20.5
+      '@babel/types': 7.20.5
     dev: true
 
   /@types/babel__traverse/7.18.1:
@@ -3209,7 +3234,7 @@ packages:
   /@types/babel__traverse/7.18.2:
     resolution: {integrity: sha512-FcFaxOr2V5KZCviw1TnutEMVUVsGt4D2hP1TAfXZAMKuHYW3xQhe3jTxNPWutgCJ3/X1c5yX8ZoGVEItxKbwBg==}
     dependencies:
-      '@babel/types': 7.19.4
+      '@babel/types': 7.20.5
     dev: true
 
   /@types/bcryptjs/2.4.2:
@@ -3222,7 +3247,7 @@ packages:
   /@types/cross-spawn/6.0.2:
     resolution: {integrity: sha512-KuwNhp3eza+Rhu8IFI5HUXRP0LIhqH5cAjubUvGXXthh4YYBuP2ntwEX+Cz8GJoZUHlKo247wPWOfA9LYEq4cw==}
     dependencies:
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
     dev: false
 
   /@types/debug/4.1.7:
@@ -3231,10 +3256,17 @@ packages:
       '@types/ms': 0.7.31
     dev: false
 
+  /@types/fs-extra/11.0.1:
+    resolution: {integrity: sha512-MxObHvNl4A69ofaTRU8DFqvgzzv8s9yRtaPPm5gud9HDNvpB3GPQFvNuTWAI59B9huVGV5jXYJwbCsmBsOGYWA==}
+    dependencies:
+      '@types/jsonfile': 6.1.1
+      '@types/node': 18.11.18
+    dev: true
+
   /@types/graceful-fs/4.1.5:
     resolution: {integrity: sha512-anKkLmZZ+xm4p8JWBf4hElkM4XR+EZeA2M9BAkkTldmcyDY4mbdIJnRghDJH3Ov5ooY7/UAoENtmdMSkaAd7Cw==}
     dependencies:
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
     dev: true
 
   /@types/is-ci/3.0.0:
@@ -3277,6 +3309,12 @@ packages:
     resolution: {integrity: sha512-wOuvG1SN4Us4rez+tylwwwCV1psiNVOkJeM3AUWUNWg/jDQY2+HE/444y5gc+jBmRqASOm2Oeh5c1axHobwRKQ==}
     dev: true
 
+  /@types/jsonfile/6.1.1:
+    resolution: {integrity: sha512-GSgiRCVeapDN+3pqA35IkQwasaCh/0YFH5dEF6S88iDvEn901DjOeH3/QPY+XYP1DFzDZPvIvfeEgk+7br5png==}
+    dependencies:
+      '@types/node': 18.11.18
+    dev: true
+
   /@types/minimist/1.2.2:
     resolution: {integrity: sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==}
     dev: true
@@ -3298,6 +3336,10 @@ packages:
 
   /@types/node/18.11.13:
     resolution: {integrity: sha512-IASpMGVcWpUsx5xBOrxMj7Bl8lqfuTY7FKAnPmu5cHkfQVWF8GulWS1jbRqA934qZL35xh5xN/+Xe/i26Bod4w==}
+    dev: true
+
+  /@types/node/18.11.18:
+    resolution: {integrity: sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==}
 
   /@types/normalize-package-data/2.4.1:
     resolution: {integrity: sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==}
@@ -3794,7 +3836,7 @@ packages:
     resolution: {integrity: sha512-Y1IQok9821cC9onCx5otgFfRm7Lm+I+wwxOx738M/WLPZ9Q42m4IG5W0FNX8WLL2gYMZo3JkuXIH2DOpWM+qwA==}
     engines: {node: '>=8'}
     dependencies:
-      '@babel/helper-plugin-utils': 7.19.0
+      '@babel/helper-plugin-utils': 7.20.2
       '@istanbuljs/load-nyc-config': 1.1.0
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-instrument: 5.2.1
@@ -3818,7 +3860,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@babel/template': 7.18.10
-      '@babel/types': 7.19.4
+      '@babel/types': 7.20.5
       '@types/babel__core': 7.1.19
       '@types/babel__traverse': 7.18.2
     dev: true
@@ -4060,12 +4102,8 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /caniuse-lite/1.0.30001422:
-    resolution: {integrity: sha512-hSesn02u1QacQHhaxl/kNMZwqVG35Sz/8DgvmgedxSH8z9UUpcDYSPYgsj3x5dQNRcNp6BwpSfQfVzYUTm+fog==}
-
   /caniuse-lite/1.0.30001439:
     resolution: {integrity: sha512-1MgUzEkoMO6gKfXflStpYgZDlFM7M/ck/bgfVCACO5vnAf0fXoNVHdWtqGU+MYca+4bL9Z5bpOVmR33cWW9G2A==}
-    dev: true
 
   /capital-case/1.0.4:
     resolution: {integrity: sha512-ds37W8CytHgwnhGGTi88pcPyR15qoNkOpYwmMMfnWqqWgESapLqvDx6huFjQ5vqWSn2Z06173XNA7LtMOeUh1A==}
@@ -5426,6 +5464,15 @@ packages:
       universalify: 2.0.0
     dev: false
 
+  /fs-extra/11.1.0:
+    resolution: {integrity: sha512-0rcTq621PD5jM/e0a3EJoGC/1TC5ZBCERW82LQuwfGnCa1V8w7dpYH1yNu+SLb6E5dkeCBzKEyLGlFrnr+dUyw==}
+    engines: {node: '>=14.14'}
+    dependencies:
+      graceful-fs: 4.2.10
+      jsonfile: 6.1.0
+      universalify: 2.0.0
+    dev: true
+
   /fs-extra/7.0.1:
     resolution: {integrity: sha512-YJDaCJZEnBmcbw13fvdAM9AwNOJwOzrE4pqMqBq5nFiEqXUqHwlK4B+3pUw6JNvfSPtX05xFHtYy/1ni01eGCw==}
     engines: {node: '>=6 <7 || >=8'}
@@ -6037,7 +6084,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       '@babel/core': 7.20.5
-      '@babel/parser': 7.19.6
+      '@babel/parser': 7.20.5
       '@istanbuljs/schema': 0.1.3
       istanbul-lib-coverage: 3.2.0
       semver: 6.3.0
@@ -6512,7 +6559,7 @@ packages:
     dependencies:
       '@jest/types': 29.3.1
       '@types/graceful-fs': 4.1.5
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       anymatch: 3.1.2
       fb-watchman: 2.0.2
       graceful-fs: 4.2.10
@@ -6638,7 +6685,7 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@jest/types': 29.3.1
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       jest-util: 29.3.1
     dev: true
 
@@ -6922,7 +6969,7 @@ packages:
       '@jest/transform': 29.3.1
       '@jest/types': 29.3.1
       '@types/babel__traverse': 7.18.2
-      '@types/prettier': 2.7.1
+      '@types/prettier': 2.7.2
       babel-preset-current-node-syntax: 1.0.1_@babel+core@7.20.5
       chalk: 4.1.2
       expect: 29.3.1
@@ -6969,9 +7016,9 @@ packages:
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
       '@jest/types': 29.3.1
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       chalk: 4.1.2
-      ci-info: 3.5.0
+      ci-info: 3.7.1
       graceful-fs: 4.2.10
       picomatch: 2.3.1
     dev: true
@@ -7051,7 +7098,7 @@ packages:
     resolution: {integrity: sha512-lY4AnnmsEWeiXirAIA0c9SDPbuCBq8IYuDVL8PMm0MZ2PEs2yPvRA/J64QBXuZp7CYKrDM/rmNrc9/i3KJQncw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     dependencies:
-      '@types/node': 18.11.13
+      '@types/node': 18.11.18
       jest-util: 29.3.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -7143,6 +7190,12 @@ packages:
 
   /json5/2.2.1:
     resolution: {integrity: sha512-1hqLFMSrGHRHxav9q9gNjJ5EXznIxGVO09xQRrwplcS8qs28pZ8s8hupZAmqDwZUmVZ2Qb2jnyPOWcDH8m8dlA==}
+    engines: {node: '>=6'}
+    hasBin: true
+    dev: true
+
+  /json5/2.2.3:
+    resolution: {integrity: sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==}
     engines: {node: '>=6'}
     hasBin: true
     dev: true
@@ -7537,7 +7590,7 @@ packages:
     dependencies:
       '@next/env': 12.3.1
       '@swc/helpers': 0.4.11
-      caniuse-lite: 1.0.30001422
+      caniuse-lite: 1.0.30001439
       postcss: 8.4.14
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
@@ -7582,7 +7635,7 @@ packages:
     dependencies:
       '@next/env': 12.3.1
       '@swc/helpers': 0.4.11
-      caniuse-lite: 1.0.30001422
+      caniuse-lite: 1.0.30001439
       postcss: 8.4.14
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
@@ -8004,7 +8057,6 @@ packages:
     requiresBuild: true
     dependencies:
       '@prisma/engines': 4.7.0
-    dev: false
 
   /process-nextick-args/2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
