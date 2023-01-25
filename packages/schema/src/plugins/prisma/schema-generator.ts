@@ -203,7 +203,10 @@ export default class PrismaSchemaGenerator {
 
         decl.attributes
             .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
-            .forEach((attr) => model.addComment(this.zModelGenerator.generateAttribute(attr)));
+            .forEach((attr) => model.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
+
+        // user defined comments pass-through
+        decl.comments.forEach((c) => model.addComment(c));
     }
 
     private isPrismaAttribute(attr: Attribute) {
@@ -226,9 +229,12 @@ export default class PrismaSchemaGenerator {
             (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
         );
 
-        const documentations = nonPrismaAttributes.map((attr) => this.zModelGenerator.generateAttribute(attr));
+        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
 
-        model.addField(field.name, type, attributes, documentations);
+        const result = model.addField(field.name, type, attributes, documentations);
+
+        // user defined comments pass-through
+        field.comments.forEach((c) => result.addComment(c));
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {

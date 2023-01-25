@@ -21,7 +21,6 @@ async function validate(model: PrismaModel) {
     }
 }
 
-// TODO: this test suite is failing on github actions; disabling for now
 describe('Prisma Builder Tests', () => {
     it('datasource', async () => {
         let model = new PrismaModel();
