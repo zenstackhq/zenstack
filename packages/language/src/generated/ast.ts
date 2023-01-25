@@ -34,6 +34,8 @@ export function isExpression(item: unknown): item is Expression {
 
 export type ExpressionType = 'Any' | 'Boolean' | 'DateTime' | 'Float' | 'Int' | 'Null' | 'String';
 
+export type QualifiedName = string;
+
 export type ReferenceTarget = DataModelField | EnumField | FunctionParam;
 
 export const ReferenceTarget = 'ReferenceTarget';
@@ -162,6 +164,7 @@ export interface DataModel extends AstNode {
     readonly $container: Model;
     readonly $type: 'DataModel';
     attributes: Array<DataModelAttribute>
+    comments: Array<string>
     fields: Array<DataModelField>
     name: string
 }
@@ -189,6 +192,7 @@ export interface DataModelField extends AstNode {
     readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'DataModelField';
     attributes: Array<DataModelFieldAttribute>
+    comments: Array<string>
     name: string
     type: DataModelFieldType
 }
@@ -642,6 +646,7 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     name: 'DataModel',
                     mandatory: [
                         { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' },
                         { name: 'fields', type: 'array' }
                     ]
                 };
@@ -658,7 +663,8 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return {
                     name: 'DataModelField',
                     mandatory: [
-                        { name: 'attributes', type: 'array' }
+                        { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' }
                     ]
                 };
             }

@@ -125,7 +125,9 @@ export function assignableToAttributeParam(
             }
         }
 
-        return typeAssignable(dstType, argResolvedType.decl) && dstIsArray === argResolvedType.array;
+        return (
+            typeAssignable(dstType, argResolvedType.decl) && (dstType === 'Any' || dstIsArray === argResolvedType.array)
+        );
     } else {
         return dstRef?.ref === argResolvedType.decl && dstIsArray === argResolvedType.array;
     }

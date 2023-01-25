@@ -1,7 +1,9 @@
 import {
     Argument,
+    ArrayExpr,
     AttributeArg,
     BinaryExpr,
+    BinaryExprOperatorPriority,
     DataModelAttribute,
     DataModelFieldAttribute,
     Expression,
@@ -13,7 +15,6 @@ import {
     ReferenceExpr,
     ThisExpr,
     UnaryExpr,
-    BinaryExprOperatorPriority,
 } from '@zenstackhq/language/ast';
 import { resolved } from '@zenstackhq/sdk';
 
@@ -39,7 +40,11 @@ export default class ZModelCodeGenerator {
     }
 
     generateAttributeArg(ast: AttributeArg) {
-        return this.generateExpression(ast.value);
+        if (ast.name) {
+            return `${ast.name}: ${this.generateExpression(ast.value)}`;
+        } else {
+            return this.generateExpression(ast.value);
+        }
     }
 
     generateExpression(ast: Expression): string {
@@ -48,6 +53,8 @@ export default class ZModelCodeGenerator {
                 return this.generateLiteralExpr(ast as LiteralExpr);
             case UnaryExpr:
                 return this.generateUnaryExpr(ast as UnaryExpr);
+            case ArrayExpr:
+                return this.generateArrayExpr(ast as ArrayExpr);
             case BinaryExpr:
                 return this.generateBinaryExpr(ast as BinaryExpr);
             case ReferenceExpr:
@@ -60,8 +67,12 @@ export default class ZModelCodeGenerator {
             case ThisExpr:
                 return (ast as NullExpr | ThisExpr).value;
             default:
-                throw new Error(`Not implemented: ${ast.$type}`);
+                throw new Error(`Not implemented: ${ast}`);
         }
+    }
+
+    generateArrayExpr(ast: ArrayExpr) {
+        return `[${ast.items.map((item) => this.generateExpression(item)).join(', ')}]`;
     }
 
     generateLiteralExpr(ast: LiteralExpr) {

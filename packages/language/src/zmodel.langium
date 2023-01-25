@@ -133,6 +133,7 @@ Argument:
 
 // model
 DataModel:
+    (comments+=TRIPLE_SLASH_COMMENT)*
     'model' name=ID '{' (
             fields+=DataModelField
             | attributes+=DataModelAttribute
@@ -140,6 +141,7 @@ DataModel:
     '}';
 
 DataModelField:
+    (comments+=TRIPLE_SLASH_COMMENT)*
     name=ID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
@@ -162,17 +164,20 @@ FunctionParam:
 FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration]) (array?='[]')?;
 
+QualifiedName returns string:
+    ID ('.' ID)*;
+
 // attribute-level attribute
 AttributeAttributeName returns string:
-    '@@@' ID;
+    '@@@' QualifiedName;
 
 // model-level attribute
 DataModelAttributeName returns string:
-    '@@' ID;
+    '@@' QualifiedName;
 
 // field-level attribute
 DataModelFieldAttributeName returns string:
-    '@' ID;
+    '@' QualifiedName;
 
 AttributeName returns string:
     DataModelAttributeName | DataModelFieldAttributeName | AttributeAttributeName;
@@ -219,5 +224,6 @@ terminal THIS: 'this';
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"[^"]*"|'[^']*'/;
 terminal NUMBER returns number: /[+-]?[0-9]+(\.[0-9]+)?/;
+terminal TRIPLE_SLASH_COMMENT: /\/\/\/[^\n\r]*/;
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;

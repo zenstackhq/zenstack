@@ -88,7 +88,7 @@ export class DeclarationBase {
     }
 
     toString(): string {
-        return this.documentations.map((x) => `/// ${x}\n`).join('');
+        return this.documentations.map((x) => `${x}\n`).join('');
     }
 }
 export class Model extends DeclarationBase {
