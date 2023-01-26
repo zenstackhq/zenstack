@@ -63,7 +63,7 @@ export default class Transformer {
 
             await writeFileSafely(
                 path.join(Transformer.outputPath, `schemas/enums/${name}.schema.ts`),
-                `${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
+                `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                     `${name}`,
                     `z.enum(${JSON.stringify(values)})`
                 )}`
@@ -86,7 +86,7 @@ export default class Transformer {
 
         await writeFileSafely(
             path.join(Transformer.outputPath, `schemas/objects/${objectSchemaName}.schema.ts`),
-            objectSchema
+            '/* eslint-disable */\n' + objectSchema
         );
     }
 
@@ -565,6 +565,7 @@ export default class Transformer {
             await writeFileSafely(
                 path.join(Transformer.outputPath, `schemas/${modelName}.schema.ts`),
                 `
+/* eslint-disable */
 ${imports.join(';\n')}
 
 export const ${modelName}Schema = {
@@ -577,6 +578,7 @@ ${indentString(codeBody, 4)}
         await writeFileSafely(
             path.join(Transformer.outputPath, 'schemas/index.ts'),
             `
+/* eslint-disable */
 ${globalImports.join(';\n')}
 
 const schemas = {

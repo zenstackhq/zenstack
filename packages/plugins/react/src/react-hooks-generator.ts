@@ -60,6 +60,8 @@ function generateModelHooks(
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
+    sf.addStatements('/* eslint-disable */');
+
     sf.addImportDeclaration({
         namedImports: ['Prisma', model.name],
         isTypeOnly: true,

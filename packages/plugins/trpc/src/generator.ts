@@ -37,6 +37,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         overwrite: true,
     });
 
+    appRouter.addStatements('/* eslint-disable */');
+
     appRouter.addImportDeclarations([
         {
             namedImports: ['AnyRootConfig'],
@@ -120,6 +122,8 @@ function generateModelCreateRouter(
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
     });
+
+    modelRouter.addStatements('/* eslint-disable */');
 
     modelRouter.addImportDeclarations([
         {
