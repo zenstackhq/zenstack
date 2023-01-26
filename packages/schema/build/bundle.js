@@ -27,7 +27,7 @@ require('esbuild')
             force: true,
             recursive: true,
         });
-        fs.cpSync('../../README.md', 'bundle/README.md', {
+        fs.cpSync('./README-vscode.md', 'bundle/README.md', {
             force: true,
         });
         fs.cpSync('../../LICENSE', 'bundle/LICENSE', {
