@@ -15,7 +15,7 @@
         "typescript",
         "data modeling"
     ],
-    "preview": true,
+    "preview": false,
     "icon": "asset/logo-256-bg.png",
     "repository": {
         "type": "git",
@@ -69,9 +69,9 @@
         "vscode:prepublish": "pnpm lint && pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
         "clean": "rimraf bundle dist",
-        "build": "pnpm clean && pnpm lint && tsc && babel src -d dist --extensions '.ts' && copyfiles -F \"bin/*\" ./README.md ./LICENSE ./package.json dist && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js",
+        "build": "pnpm clean && pnpm lint && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js",
         "bundle": "pnpm clean && pnpm lint && node build/bundle.js --minify",
-        "watch": "babel src -d dist --extensions '.ts' -w",
+        "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
         "test": "jest",
         "prepublishOnly": "pnpm build",
