@@ -48,7 +48,7 @@ model Post {
 At runtime, transparent proxies are created around Prisma clients for intercepting queries and mutations to enforce access policies. Moreover, framework integration packages help you wrap an access-control-enabled Prisma client into backend APIs that can be safely called from the frontend.
 
 ```ts
-// pages/api/model/[...path].ts
+// Next.js example: pages/api/model/[...path].ts
 
 import { requestHandler } from '@zenstackhq/next';
 import { withPolicy } from '@zenstackhq/runtime';
@@ -63,6 +63,8 @@ export default requestHandler({
 Plugins can generate strong-typed client libraries that talk to the APIs:
 
 ```tsx
+// React example: components/MyPosts.tsx
+
 import { usePost } from '@lib/hooks';
 
 const MyPosts = () => {
