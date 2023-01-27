@@ -119,9 +119,11 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+            { zenstack_guard: false } : 
+            {
                 id: {
-                    equals: user?.id
+                    equals: (user ? user.id: null)
                 }
             }`
         );
@@ -135,10 +137,12 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+            { zenstack_guard: false } : 
+            {
                 id: {
                     not: {
-                        equals: user?.id
+                        equals: (user ? user.id: null)
                     }
                 }
             }`
@@ -586,15 +590,18 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{
-                owner: {
-                    is: {
-                        id: {
-                            equals: user?.id
+            `!user ? 
+                { zenstack_guard : false } : 
+                {
+                    owner: {
+                        is: {
+                            id: {
+                                equals: (user ? user.id : null)
+                            }
                         }
                     }
                 }
-            }`
+            `
         );
 
         await check(
@@ -612,12 +619,14 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+                { zenstack_guard : false } : 
+                {
                     owner: {
                         is: {
                             id: {
                                 not: {
-                                    equals: user?.id
+                                    equals: (user ? user.id : null)
                                 }
                             }
                         }
@@ -640,11 +649,13 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+                { zenstack_guard : false } : 
+                {
                     owner: {
                         is: {
                             id: {
-                                equals: user?.id
+                                equals: (user ? user.id : null)
                             }
                         }
                     }

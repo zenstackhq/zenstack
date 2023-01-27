@@ -1,7 +1,7 @@
-import { Expression, isBinaryExpr, isInvocationExpr } from '@zenstackhq/language/ast';
-import { AstValidator } from '../types';
-import { isFromStdlib } from '../utils';
+import { Expression, isBinaryExpr } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
+import { isAuthInvocation } from '../../utils/ast-utils';
+import { AstValidator } from '../types';
 
 /**
  * Validates expressions.
@@ -9,7 +9,7 @@ import { ValidationAcceptor } from 'langium';
 export default class ExpressionValidator implements AstValidator<Expression> {
     validate(expr: Expression, accept: ValidationAcceptor): void {
         if (!expr.$resolvedType) {
-            if (this.isAuthInvocation(expr)) {
+            if (isAuthInvocation(expr)) {
                 // check was done at link time
                 accept('error', 'auth() cannot be resolved because no "User" model is defined', { node: expr });
             } else if (this.isCollectionPredicate(expr)) {
@@ -24,9 +24,5 @@ export default class ExpressionValidator implements AstValidator<Expression> {
 
     private isCollectionPredicate(expr: Expression) {
         return isBinaryExpr(expr) && ['?', '!', '^'].includes(expr.operator);
-    }
-
-    private isAuthInvocation(expr: Expression) {
-        return isInvocationExpr(expr) && expr.function.ref?.name === 'auth' && isFromStdlib(expr.function.ref);
     }
 }

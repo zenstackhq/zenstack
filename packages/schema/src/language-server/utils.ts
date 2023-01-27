@@ -17,5 +17,5 @@ export function getContainingModel(node: AstNode | undefined): Model | null {
  */
 export function isFromStdlib(node: AstNode) {
     const model = getContainingModel(node);
-    return model && model.$document?.uri.path.endsWith(STD_LIB_MODULE_NAME);
+    return !!model && !!model.$document && model.$document.uri.path.endsWith(STD_LIB_MODULE_NAME);
 }

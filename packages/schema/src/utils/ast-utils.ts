@@ -1,6 +1,14 @@
-import { DataModel, DataModelAttribute, Model, isDataModel } from '@zenstackhq/language/ast';
+import {
+    DataModel,
+    DataModelAttribute,
+    Expression,
+    isDataModel,
+    isInvocationExpr,
+    Model,
+} from '@zenstackhq/language/ast';
 import { PolicyOperationKind } from '@zenstackhq/runtime';
 import { getLiteral } from '@zenstackhq/sdk';
+import { isFromStdlib } from '../language-server/utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(
@@ -90,4 +98,8 @@ export const VALIDATION_ATTRIBUTES = [
 
 export function getIdField(dataModel: DataModel) {
     return dataModel.fields.find((f) => f.attributes.some((attr) => attr.decl.$refText === '@id'));
+}
+
+export function isAuthInvocation(expr: Expression) {
+    return isInvocationExpr(expr) && expr.function.ref?.name === 'auth' && isFromStdlib(expr.function.ref);
 }

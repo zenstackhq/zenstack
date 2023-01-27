@@ -2,15 +2,16 @@ import {
     ArrayExpr,
     Expression,
     InvocationExpr,
+    isEnumField,
+    isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
     ReferenceExpr,
     ThisExpr,
-    isEnumField,
-    isThisExpr,
 } from '@zenstackhq/language/ast';
 import { PluginError } from '@zenstackhq/sdk';
+import { isAuthInvocation } from '../../utils/ast-utils';
 import { isFutureExpr } from './utils';
 
 /**
@@ -76,12 +77,13 @@ export default class TypeScriptExpressionTransformer {
             }
             return expr.member.ref.name;
         } else {
-            return `${this.transform(expr.operand)}?.${expr.member.ref.name}`;
+            // normalize field access to null instead of undefined to avoid accidentally use undefined in filter
+            return `(${this.transform(expr.operand)} ? ${this.transform(expr.operand)}.${expr.member.ref.name} : null)`;
         }
     }
 
     private invocation(expr: InvocationExpr) {
-        if (expr.function.ref?.name === 'auth') {
+        if (isAuthInvocation(expr)) {
             return 'user';
         } else {
             throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
