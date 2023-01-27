@@ -12,12 +12,7 @@ module.exports = {
         function _findEnvFile(dir) {
             if (!fs.existsSync(dir)) return undefined;
 
-            const candidates = [
-                `${dir}/.env.${ENV}.local`,
-                `${dir}/.env.${ENV}`,
-                `${dir}/.env.local`,
-                `${dir}/.env`,
-            ];
+            const candidates = [`${dir}/.env.${ENV}.local`, `${dir}/.env.${ENV}`, `${dir}/.env.local`, `${dir}/.env`];
 
             for (const candidate of candidates) {
                 if (fs.existsSync(candidate)) {
@@ -51,10 +46,7 @@ module.exports = {
             // read in .env file contents and combine with regular .env:
             let config = {};
             if (args.pluginData && args.pluginData.envPath) {
-                let data = await fs.promises.readFile(
-                    args.pluginData.envPath,
-                    'utf8'
-                );
+                let data = await fs.promises.readFile(args.pluginData.envPath, 'utf8');
                 const buf = Buffer.from(data);
                 config = require('dotenv').parse(buf);
             }

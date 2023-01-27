@@ -1,15 +1,9 @@
-import { Project, VariableDeclarationKind } from 'ts-morph';
-import {
-    DataModel,
-    Enum,
-    Expression,
-    isDataModel,
-    isEnum,
-} from '../../src/language-server/generated/ast';
-import { loadModel } from '../utils';
+import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/language/ast';
+import { GUARD_FIELD_NAME } from '@zenstackhq/sdk';
 import * as tmp from 'tmp';
-import { GUARD_FIELD_NAME } from '../../src/generator/constants';
-import expressionWriter from '../../src/generator/prisma/expression-writer';
+import { Project, VariableDeclarationKind } from 'ts-morph';
+import { ExpressionWriter } from '../../src/plugins/access-policy/expression-writer';
+import { loadModel } from '../utils';
 
 describe('Expression Writer Tests', () => {
     it('boolean literal', async () => {
@@ -125,9 +119,11 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+            { zenstack_guard: false } : 
+            {
                 id: {
-                    equals: user?.id
+                    equals: (user ? user.id: null)
                 }
             }`
         );
@@ -141,10 +137,12 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+            { zenstack_guard: false } : 
+            {
                 id: {
                     not: {
-                        equals: user?.id
+                        equals: (user ? user.id: null)
                     }
                 }
             }`
@@ -326,7 +324,7 @@ describe('Expression Writer Tests', () => {
                 foo: {
                     is: {
                         x : {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -419,7 +417,7 @@ describe('Expression Writer Tests', () => {
                         bar: {
                             is: {
                                 x : {
-                                    le: 0
+                                    lte: 0
                                 }
                             }
                         }
@@ -450,7 +448,7 @@ describe('Expression Writer Tests', () => {
                 foos: {
                     some: {
                         x: {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -477,7 +475,7 @@ describe('Expression Writer Tests', () => {
                 foos: {
                     every: {
                         x: {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -504,7 +502,7 @@ describe('Expression Writer Tests', () => {
                 foos: {
                     none: {
                         x: {
-                            le: 0
+                            lte: 0
                         }
                     }
                 }
@@ -540,7 +538,7 @@ describe('Expression Writer Tests', () => {
                         bars: {
                             some: {
                                 x: {
-                                    le: 0
+                                    lte: 0
                                 }
                             }
                         }
@@ -592,15 +590,18 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{
-                owner: {
-                    is: {
-                        id: {
-                            equals: user?.id
+            `!user ? 
+                { zenstack_guard : false } : 
+                {
+                    owner: {
+                        is: {
+                            id: {
+                                equals: (user ? user.id : null)
+                            }
                         }
                     }
                 }
-            }`
+            `
         );
 
         await check(
@@ -618,12 +619,14 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+                { zenstack_guard : false } : 
+                {
                     owner: {
                         is: {
                             id: {
                                 not: {
-                                    equals: user?.id
+                                    equals: (user ? user.id : null)
                                 }
                             }
                         }
@@ -646,11 +649,13 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `{
+            `!user ? 
+                { zenstack_guard : false } : 
+                {
                     owner: {
                         is: {
                             id: {
-                                equals: user?.id
+                                equals: (user ? user.id : null)
                             }
                         }
                     }
@@ -659,11 +664,7 @@ describe('Expression Writer Tests', () => {
     });
 });
 
-async function check(
-    schema: string,
-    getExpr: (model: DataModel) => Expression,
-    expected: string
-) {
+async function check(schema: string, getExpr: (model: DataModel) => Expression, expected: string) {
     if (!schema.includes('datasource ')) {
         schema =
             `
@@ -675,11 +676,7 @@ async function check(
     }
 
     const model = await loadModel(schema);
-    const expr = getExpr(
-        model.declarations.find(
-            (d) => isDataModel(d) && d.name === 'Test'
-        ) as DataModel
-    );
+    const expr = getExpr(model.declarations.find((d) => isDataModel(d) && d.name === 'Test') as DataModel);
 
     const project = new Project();
 
@@ -705,9 +702,7 @@ async function check(
                         name: e.name,
                         initializer: `
               {
-                ${(e as Enum).fields
-                    .map((f) => `${f.name}: "${f.name}"`)
-                    .join(',\n')}
+                ${(e as Enum).fields.map((f) => `${f.name}: "${f.name}"`).join(',\n')}
               }
               `,
                     },
@@ -720,8 +715,7 @@ async function check(
         declarations: [
             {
                 name: 'expr',
-                initializer: (writer) =>
-                    new expressionWriter(writer).write(expr),
+                initializer: (writer) => new ExpressionWriter(writer).write(expr),
             },
         ],
     });
@@ -741,9 +735,7 @@ async function check(
     // console.log('Generated expr:\n', outExpr?.getText());
 
     if (expected) {
-        const generatedExpr = outExpr!.getInitializer()!.getText();
-        expect(generatedExpr.replace(/\s+/g, '')).toBe(
-            expected.replace(/\s+/g, '')
-        );
+        const generatedExpr = outExpr?.getInitializer()?.getText();
+        expect(generatedExpr && generatedExpr.replace(/\s+/g, '')).toBe(expected.replace(/\s+/g, ''));
     }
 }

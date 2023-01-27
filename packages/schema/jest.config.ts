@@ -3,9 +3,6 @@
  * https://jestjs.io/docs/configuration
  */
 
-import tsconfig from './tsconfig.json';
-const moduleNameMapper = require('tsconfig-paths-jest')(tsconfig);
-
 export default {
     // Automatically clear mock calls, instances, contexts and results before every test
     clearMocks: true,
@@ -29,6 +26,4 @@ export default {
     transform: { '^.+\\.tsx?$': 'ts-jest' },
 
     testTimeout: 300000,
-
-    moduleNameMapper,
 };

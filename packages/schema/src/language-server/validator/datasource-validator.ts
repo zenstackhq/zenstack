@@ -1,15 +1,10 @@
-import { DataSource, isInvocationExpr } from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
+import { DataSource, isInvocationExpr } from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
 import { getStringLiteral, validateDuplicatedDeclarations } from './utils';
 import { SUPPORTED_PROVIDERS } from '../constants';
 
-const supportedFields = [
-    'provider',
-    'url',
-    'shadowDatabaseUrl',
-    'relationMode',
-];
+const supportedFields = ['provider', 'url', 'shadowDatabaseUrl', 'relationMode'];
 
 /**
  * Validates data source declarations.
@@ -48,9 +43,9 @@ export default class DataSourceValidator implements AstValidator<DataSource> {
         } else if (!SUPPORTED_PROVIDERS.includes(value)) {
             accept(
                 'error',
-                `Provider "${value}" is not supported. Choose from ${SUPPORTED_PROVIDERS.map(
-                    (p) => '"' + p + '"'
-                ).join(' | ')}.`,
+                `Provider "${value}" is not supported. Choose from ${SUPPORTED_PROVIDERS.map((p) => '"' + p + '"').join(
+                    ' | '
+                )}.`,
                 { node: provider.value }
             );
         }
@@ -70,18 +65,10 @@ export default class DataSourceValidator implements AstValidator<DataSource> {
                 continue;
             }
             const value = getStringLiteral(field.value);
-            if (
-                !value &&
-                !(
-                    isInvocationExpr(field.value) &&
-                    field.value.function.ref?.name === 'env'
-                )
-            ) {
-                accept(
-                    'error',
-                    `"${fieldName}" must be set to a string literal or an invocation of "env" function`,
-                    { node: field.value }
-                );
+            if (!value && !(isInvocationExpr(field.value) && field.value.function.ref?.name === 'env')) {
+                accept('error', `"${fieldName}" must be set to a string literal or an invocation of "env" function`, {
+                    node: field.value,
+                });
             }
         }
     }
@@ -91,11 +78,7 @@ export default class DataSourceValidator implements AstValidator<DataSource> {
         if (field) {
             const val = getStringLiteral(field.value);
             if (!val || !['foreignKeys', 'prisma'].includes(val)) {
-                accept(
-                    'error',
-                    '"relationMode" must be set to "foreignKeys" or "prisma"',
-                    { node: field.value }
-                );
+                accept('error', '"relationMode" must be set to "foreignKeys" or "prisma"', { node: field.value });
             }
         }
     }

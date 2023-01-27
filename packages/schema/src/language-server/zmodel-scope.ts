@@ -1,3 +1,4 @@
+import { isEnumField } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
@@ -8,7 +9,6 @@ import {
     streamAllContents,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { isEnumField } from './generated/ast';
 
 /**
  * Custom Langium ScopeComputation implementation which adds enum fields into global scope
@@ -30,12 +30,11 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
                 await interruptAndCheck(cancelToken);
             }
             if (isEnumField(node)) {
-                const desc =
-                    this.services.workspace.AstNodeDescriptionProvider.createDescription(
-                        node,
-                        node.name,
-                        document
-                    );
+                const desc = this.services.workspace.AstNodeDescriptionProvider.createDescription(
+                    node,
+                    node.name,
+                    document
+                );
                 result.push(desc);
             }
         }

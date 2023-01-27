@@ -2,13 +2,11 @@
 
 (function (Prism) {
     Prism.languages.zmodel = Prism.languages.extend('clike', {
-        keyword:
-            /\b(?:datasource|enum|generator|model|attribute|function|null|this)\b/,
+        keyword: /\b(?:datasource|enum|generator|model|attribute|function|null|this)\b/,
         'type-class-name': /(\b()\s+)[\w.\\]+/,
     });
 
-    Prism.languages.javascript['class-name'][0].pattern =
-        /(\b(?:model|datasource|enum|generator)\s+)[\w.\\]+/;
+    Prism.languages.javascript['class-name'][0].pattern = /(\b(?:model|datasource|enum|generator)\s+)[\w.\\]+/;
 
     Prism.languages.insertBefore('zmodel', 'function', {
         annotation: {

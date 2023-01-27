@@ -1,0 +1,30 @@
+{
+    "name": "@zenstackhq/sdk",
+    "version": "1.0.0-alpha.26",
+    "description": "ZenStack plugin development SDK",
+    "main": "index.js",
+    "scripts": {
+        "clean": "rimraf dist",
+        "lint": "eslint src --ext ts",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist",
+        "watch": "tsc --watch",
+        "prepublishOnly": "pnpm build",
+        "publish-dev": "pnpm build && pnpm publish --tag dev"
+    },
+    "publishConfig": {
+        "directory": "dist",
+        "linkDirectory": true
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@prisma/generator-helper": "^4.7.1",
+        "@zenstackhq/language": "workspace:*"
+    },
+    "devDependencies": {
+        "copyfiles": "^2.4.1",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.9.4"
+    }
+}

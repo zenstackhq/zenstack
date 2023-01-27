@@ -80,9 +80,7 @@ describe('Attribute tests', () => {
                 id String @id() @default(foo: 'abc')
             }
         `)
-        ).toContain(
-            `Attribute "@default" doesn't have a parameter named "foo"`
-        );
+        ).toContain(`Attribute "@default" doesn't have a parameter named "foo"`);
     });
 
     it('field attribute coverage', async () => {
@@ -158,9 +156,7 @@ describe('Attribute tests', () => {
                 @@unique([x, z])
             }
         `)
-        ).toContain(
-            `Could not resolve reference to ReferenceTarget named 'z'.`
-        );
+        ).toContain(`Could not resolve reference to ReferenceTarget named 'z'.`);
 
         await loadModel(`
             ${prelude}
@@ -207,7 +203,7 @@ describe('Attribute tests', () => {
                 id String @id @default(foo())
             }
         `)
-        ).toContain(`Could not resolve reference to Function named 'foo'.`);
+        ).toContain(`Could not resolve reference to FunctionDecl named 'foo'.`);
 
         expect(
             await loadModelWithError(`
@@ -229,9 +225,7 @@ describe('Attribute tests', () => {
                 @@allow('all', auth() != null)
             }
         `)
-        ).toContain(
-            `auth() cannot be resolved because no "User" model is defined`
-        );
+        ).toContain(`auth() cannot be resolved because no "User" model is defined`);
 
         await loadModel(`
             ${prelude}
@@ -261,9 +255,7 @@ describe('Attribute tests', () => {
                 @@allow('all', auth().email != null)
             }
         `)
-        ).toContain(
-            `Could not resolve reference to DataModelField named 'email'.`
-        );
+        ).toContain(`Could not resolve reference to DataModelField named 'email'.`);
     });
 
     it('collection predicate expression check', async () => {
@@ -282,9 +274,7 @@ describe('Attribute tests', () => {
                 @@allow('all', a?[x > 0])
             }
         `)
-        ).toContain(
-            `collection predicate can only be used on an array of model type`
-        );
+        ).toContain(`collection predicate can only be used on an array of model type`);
 
         await loadModel(`
         ${prelude}

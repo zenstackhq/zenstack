@@ -1,6 +1,6 @@
-import { STD_LIB_MODULE_NAME } from '@lang/constants';
-import { isDataSource, Model } from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
+import { STD_LIB_MODULE_NAME } from '../constants';
+import { isDataSource, Model } from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
 import { validateDuplicatedDeclarations } from './utils';
 
@@ -21,11 +21,7 @@ export default class SchemaValidator implements AstValidator<Model> {
         if (dataSources.length === 0) {
             accept('error', 'Model must define a datasource', { node: model });
         } else if (dataSources.length > 1) {
-            accept(
-                'error',
-                'Multiple datasource declarations are not allowed',
-                { node: dataSources[1] }
-            );
+            accept('error', 'Multiple datasource declarations are not allowed', { node: dataSources[1] });
         }
     }
 }

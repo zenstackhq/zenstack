@@ -1,57 +1,55 @@
 {
-  "name": "zmodel",
-  "scopeName": "source.zmodel",
-  "fileTypes": [
-    ".zmodel"
-  ],
-  "patterns": [
-    {
-      "include": "#comments"
-    },
-    {
-      "name": "keyword.control.zmodel",
-      "match": "\\b(Boolean|datasource|enum|model|String)\\b"
-    },
-    {
-      "name": "string.quoted.double.zmodel",
-      "begin": "\"",
-      "end": "\""
-    },
-    {
-      "name": "string.quoted.single.zmodel",
-      "begin": "'",
-      "end": "'"
-    }
-  ],
-  "repository": {
-    "comments": {
-      "patterns": [
+    "name": "zmodel",
+    "scopeName": "source.zmodel",
+    "fileTypes": [".zmodel"],
+    "patterns": [
         {
-          "name": "comment.block.zmodel",
-          "begin": "/\\*",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.comment.zmodel"
-            }
-          },
-          "end": "\\*/",
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.comment.zmodel"
-            }
-          }
+            "include": "#comments"
         },
         {
-          "begin": "//",
-          "beginCaptures": {
-            "1": {
-              "name": "punctuation.whitespace.comment.leading.zmodel"
-            }
-          },
-          "end": "(?=$)",
-          "name": "comment.line.zmodel"
+            "name": "keyword.control.zmodel",
+            "match": "\\b(Boolean|datasource|enum|model|String)\\b"
+        },
+        {
+            "name": "string.quoted.double.zmodel",
+            "begin": "\"",
+            "end": "\""
+        },
+        {
+            "name": "string.quoted.single.zmodel",
+            "begin": "'",
+            "end": "'"
         }
-      ]
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.block.zmodel",
+                    "begin": "/\\*",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.comment.zmodel"
+                        }
+                    },
+                    "end": "\\*/",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.comment.zmodel"
+                        }
+                    }
+                },
+                {
+                    "begin": "//",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.comment.leading.zmodel"
+                        }
+                    },
+                    "end": "(?=$)",
+                    "name": "comment.line.zmodel"
+                }
+            ]
+        }
     }
-  }
 }
