@@ -1,8 +1,6 @@
 import {
     DataModel,
     Expression,
-    MemberAccessExpr,
-    Model,
     isBinaryExpr,
     isDataModel,
     isDataModelField,
@@ -12,9 +10,11 @@ import {
     isMemberAccessExpr,
     isReferenceExpr,
     isUnaryExpr,
+    MemberAccessExpr,
+    Model,
 } from '@zenstackhq/language/ast';
 import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
-import { GUARD_FIELD_NAME, PluginError, PluginOptions, getLiteral, resolved } from '@zenstackhq/sdk';
+import { getLiteral, GUARD_FIELD_NAME, PluginError, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';
 import path from 'path';
@@ -22,12 +22,10 @@ import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } fro
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { analyzePolicies, getIdField } from '../../utils/ast-utils';
-import { ALL_OPERATION_KINDS, RUNTIME_PACKAGE, getDefaultOutputFolder } from '../plugin-utils';
+import { ALL_OPERATION_KINDS, getDefaultOutputFolder, RUNTIME_PACKAGE } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import { isFutureExpr } from './utils';
 import { ZodSchemaGenerator } from './zod-schema-generator';
-
-const UNKNOWN_USER_ID = 'zenstack_unknown_user';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -335,10 +333,9 @@ export default class PolicyGenerator {
             if (!userIdField) {
                 throw new PluginError('User model does not have an id field');
             }
-            func.addStatements(
-                // make sure user id is always available
-                `const user = context.user?.${userIdField.name} ? context.user : { ...context.user, ${userIdField.name}: '${UNKNOWN_USER_ID}' };`
-            );
+
+            // normalize user to null to avoid accidentally use undefined in filter
+            func.addStatements(`const user = context.user ?? null;`);
         }
 
         // r = <guard object>;

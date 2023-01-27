@@ -2,20 +2,20 @@ import {
     BinaryExpr,
     DataModel,
     Expression,
-    LiteralExpr,
-    MemberAccessExpr,
-    ReferenceExpr,
-    UnaryExpr,
     isDataModel,
     isDataModelField,
     isEnumField,
     isMemberAccessExpr,
     isReferenceExpr,
     isThisExpr,
+    LiteralExpr,
+    MemberAccessExpr,
+    ReferenceExpr,
+    UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { GUARD_FIELD_NAME, PluginError } from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
-import { getIdField } from '../../utils/ast-utils';
+import { getIdField, isAuthInvocation } from '../../utils/ast-utils';
 import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 import { isFutureExpr } from './utils';
 
@@ -40,54 +40,55 @@ export class ExpressionWriter {
      * Writes the given ZModel expression.
      */
     write(expr: Expression): void {
-        const _write = () => {
-            switch (expr.$type) {
-                case LiteralExpr:
-                    this.writeLiteral(expr as LiteralExpr);
-                    break;
+        switch (expr.$type) {
+            case LiteralExpr:
+                this.writeLiteral(expr as LiteralExpr);
+                break;
 
-                case UnaryExpr:
-                    this.writeUnary(expr as UnaryExpr);
-                    break;
+            case UnaryExpr:
+                this.writeUnary(expr as UnaryExpr);
+                break;
 
-                case BinaryExpr:
-                    this.writeBinary(expr as BinaryExpr);
-                    break;
+            case BinaryExpr:
+                this.writeBinary(expr as BinaryExpr);
+                break;
 
-                case ReferenceExpr:
-                    this.writeReference(expr as ReferenceExpr);
-                    break;
+            case ReferenceExpr:
+                this.writeReference(expr as ReferenceExpr);
+                break;
 
-                case MemberAccessExpr:
-                    this.writeMemberAccess(expr as MemberAccessExpr);
-                    break;
+            case MemberAccessExpr:
+                this.writeMemberAccess(expr as MemberAccessExpr);
+                break;
 
-                default:
-                    throw new Error(`Not implemented: ${expr.$type}`);
-            }
-        };
-
-        this.block(_write);
+            default:
+                throw new Error(`Not implemented: ${expr.$type}`);
+        }
     }
 
     private writeReference(expr: ReferenceExpr) {
         if (isEnumField(expr.target.ref)) {
             throw new Error('We should never get here');
         } else {
-            this.writer.write(`${expr.target.ref?.name}: true`);
+            this.block(() => {
+                this.writer.write(`${expr.target.ref?.name}: true`);
+            });
         }
     }
 
     private writeMemberAccess(expr: MemberAccessExpr) {
-        this.writeFieldCondition(
-            expr.operand,
-            () => {
-                this.block(() => {
-                    this.writer.write(`${expr.member.ref?.name}: true`);
-                });
-            },
-            'is'
-        );
+        this.block(() => {
+            // must be a boolean member
+            this.writeFieldCondition(
+                expr.operand,
+                () => {
+                    this.block(() => {
+                        this.writer.write(`${expr.member.ref?.name}: true`);
+                    });
+                },
+                'is'
+            );
+        });
     }
 
     private writeExprList(exprs: Expression[]) {
@@ -126,13 +127,15 @@ export class ExpressionWriter {
     }
 
     private writeCollectionPredicate(expr: BinaryExpr, operator: string) {
-        this.writeFieldCondition(
-            expr.left,
-            () => {
-                this.write(expr.right);
-            },
-            operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
-        );
+        this.block(() => {
+            this.writeFieldCondition(
+                expr.left,
+                () => {
+                    this.write(expr.right);
+                },
+                operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
+            );
+        });
     }
 
     private isFieldAccess(expr: Expression): boolean {
@@ -173,10 +176,12 @@ export class ExpressionWriter {
 
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
             // compile down to a plain expression
-            this.guard(() => {
-                this.plain(expr.left);
-                this.writer.write(' ' + operator + ' ');
-                this.plain(expr.right);
+            this.block(() => {
+                this.guard(() => {
+                    this.plain(expr.left);
+                    this.writer.write(' ' + operator + ' ');
+                    this.plain(expr.right);
+                });
             });
 
             return;
@@ -204,38 +209,57 @@ export class ExpressionWriter {
             } as ReferenceExpr;
         }
 
-        this.writeFieldCondition(
-            fieldAccess,
-            () => {
-                this.block(
-                    () => {
-                        const dataModel = this.isModelTyped(fieldAccess);
-                        if (dataModel) {
-                            const idField = getIdField(dataModel);
-                            if (!idField) {
-                                throw new PluginError(`Data model ${dataModel.name} does not have an id field`);
-                            }
-                            // comparing with an object, conver to "id" comparison instead
-                            this.writer.write(`${idField.name}: `);
-                            this.block(() => {
+        // if the operand refers to auth(), need to build a guard to avoid
+        // using undefined user as filter (which means no filter to Prisma)
+        // if auth() evaluates falsy, just treat the condition as false
+        if (this.isAuthOrAuthMemberAccess(operand)) {
+            this.writer.write(`!user ? { ${GUARD_FIELD_NAME}: false } : `);
+        }
+
+        this.block(() => {
+            this.writeFieldCondition(
+                fieldAccess,
+                () => {
+                    this.block(
+                        () => {
+                            const dataModel = this.isModelTyped(fieldAccess);
+                            if (dataModel) {
+                                const idField = getIdField(dataModel);
+                                if (!idField) {
+                                    throw new PluginError(`Data model ${dataModel.name} does not have an id field`);
+                                }
+                                // comparing with an object, convert to "id" comparison instead
+                                this.writer.write(`${idField.name}: `);
+                                this.block(() => {
+                                    this.writeOperator(operator, () => {
+                                        // operand ? operand.field : null
+                                        this.writer.write('(');
+                                        this.plain(operand);
+                                        this.writer.write(' ? ');
+                                        this.plain(operand);
+                                        this.writer.write(`.${idField.name}`);
+                                        this.writer.write(' : null');
+                                        this.writer.write(')');
+                                    });
+                                });
+                            } else {
                                 this.writeOperator(operator, () => {
                                     this.plain(operand);
-                                    this.writer.write(`?.${idField.name}`);
                                 });
-                            });
-                        } else {
-                            this.writeOperator(operator, () => {
-                                this.plain(operand);
-                            });
-                        }
-                    },
-                    // "this" expression is compiled away (to .id access), so we should
-                    // avoid generating a new layer
-                    !isThisExpr(fieldAccess)
-                );
-            },
-            'is'
-        );
+                            }
+                        },
+                        // "this" expression is compiled away (to .id access), so we should
+                        // avoid generating a new layer
+                        !isThisExpr(fieldAccess)
+                    );
+                },
+                'is'
+            );
+        });
+    }
+
+    private isAuthOrAuthMemberAccess(expr: Expression) {
+        return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthInvocation(expr.operand));
     }
 
     private writeOperator(operator: ComparisonOperator, writeOperand: () => void) {
@@ -366,8 +390,10 @@ export class ExpressionWriter {
     }
 
     private writeLogical(expr: BinaryExpr, operator: '&&' | '||') {
-        this.writer.write(`${operator === '&&' ? 'AND' : 'OR'}: `);
-        this.writeExprList([expr.left, expr.right]);
+        this.block(() => {
+            this.writer.write(`${operator === '&&' ? 'AND' : 'OR'}: `);
+            this.writeExprList([expr.left, expr.right]);
+        });
     }
 
     private writeUnary(expr: UnaryExpr) {
@@ -375,13 +401,17 @@ export class ExpressionWriter {
             throw new PluginError(`Unary operator "${expr.operator}" is not supported`);
         }
 
-        this.writer.write('NOT: ');
-        this.write(expr.operand);
+        this.block(() => {
+            this.writer.write('NOT: ');
+            this.write(expr.operand);
+        });
     }
 
     private writeLiteral(expr: LiteralExpr) {
-        this.guard(() => {
-            this.plain(expr);
+        this.block(() => {
+            this.guard(() => {
+                this.plain(expr);
+            });
         });
     }
 }
