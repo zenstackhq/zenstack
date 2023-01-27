@@ -6,6 +6,7 @@ import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
 import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
+import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import { getVersion } from './utils/version-utils';
 
 /**
@@ -29,14 +30,13 @@ export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
     private readonly hostId = machineIdSync();
     private readonly sessionid = cuid();
-    private readonly trackingToken = process.env.TELEMETRY_TRACKING_TOKEN;
     private readonly _os = os.platform();
     private readonly version = getVersion();
     private exitWait = 200;
 
     constructor() {
-        if (process.env.DO_NOT_TRACK !== '1' && this.trackingToken) {
-            this.mixpanel = init(this.trackingToken, {
+        if (process.env.DO_NOT_TRACK !== '1' && TELEMETRY_TRACKING_TOKEN) {
+            this.mixpanel = init(TELEMETRY_TRACKING_TOKEN, {
                 geolocate: true,
             });
         }
