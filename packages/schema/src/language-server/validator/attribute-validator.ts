@@ -1,5 +1,5 @@
-import { Attribute } from '@lang/generated/ast';
-import { AstValidator } from '@lang/types';
+import { Attribute } from '@zenstackhq/language/ast';
+import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
 
 /**

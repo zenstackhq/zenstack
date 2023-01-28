@@ -9,9 +9,9 @@ env:
 
 on:
     push:
-        branches: ['dev', 'main']
+        branches: ['dev', 'main', 'canary']
     pull_request:
-        branches: ['dev', 'main']
+        branches: ['dev', 'main', 'canary']
 
 jobs:
     build:
@@ -34,5 +34,12 @@ jobs:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
-            - run: pnpm run build
+            - run: |
+                if [[ $GITHUB_REF == 'refs/heads/canary' ]]; then
+                    DEFAULT_NPM_TAG=canary pnpm run build
+                else
+                    DEFAULT_NPM_TAG=latest pnpm run build
+                fi
+            # install again for internal dependencies
+            - run: pnpm install --frozen-lockfile
             - run: pnpm run test

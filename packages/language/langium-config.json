@@ -1,0 +1,14 @@
+{
+    "projectName": "ZModel",
+    "languages": [
+        {
+            "id": "zmodel",
+            "grammar": "src/zmodel.langium",
+            "fileExtensions": [".zmodel"],
+            "textMate": {
+                "out": "syntaxes/zmodel.tmLanguage.json"
+            }
+        }
+    ],
+    "out": "src/generated"
+}

@@ -1,0 +1,47 @@
+// This is a sample model to get you started.
+// Learn how to model you app: https://zenstack.dev/#/modeling-your-app.
+
+/*
+ * A sample data source using local sqlite db.
+ * See how to use a different db: https://zenstack.dev/#/zmodel-data-source.
+ */
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./todo.db'
+}
+
+/*
+ * User model
+ */
+model User {
+    id String @id @default(cuid())
+    email String @unique @email
+    password String @password @omit @length(8, 16)
+    posts Post[]
+
+    // everybody can signup
+    @@allow('create', true)
+
+    // full access by self
+    @@allow('all', auth() == this)
+}
+
+/*
+ * Post model
+ */
+model Post {
+    id String @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title String @length(1, 256)
+    content String
+    published Boolean @default(false)
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+
+    // allow read for all signin users
+    @@allow('read', auth() != null && published)
+
+    // full access by author
+    @@allow('all', author == auth())
+}

@@ -1,18 +1,19 @@
 {
     "name": "zenstack-monorepo",
-    "version": "0.5.0",
+    "version": "1.0.0-alpha.27",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
         "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish",
-        "publish-dev": "pnpm --filter \"./packages/**\" -r publish --tag dev"
+        "publish-dev": "pnpm --filter \"./packages/**\" -r publish --tag dev",
+        "publish-canary": "pnpm --filter \"./packages/**\" -r publish --tag canary"
     },
     "keywords": [],
     "author": "",
     "license": "MIT",
     "devDependencies": {
-        "@changesets/cli": "^2.25.2"
+        "@changesets/cli": "^2.26.0"
     }
 }

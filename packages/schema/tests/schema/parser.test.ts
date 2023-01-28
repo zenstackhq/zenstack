@@ -1,16 +1,17 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import {
-    BinaryExpr,
-    LiteralExpr,
-    InvocationExpr,
-    DataSource,
-    DataModel,
-    Function,
-    AttributeArg,
-    Enum,
-    UnaryExpr,
-    ReferenceExpr,
     ArrayExpr,
-} from '../../src/language-server/generated/ast';
+    AttributeArg,
+    BinaryExpr,
+    DataModel,
+    DataSource,
+    Enum,
+    FunctionDecl,
+    InvocationExpr,
+    LiteralExpr,
+    ReferenceExpr,
+    UnaryExpr,
+} from '@zenstackhq/language/ast';
 import { loadModel } from '../utils';
 
 describe('Parsing Tests', () => {
@@ -35,12 +36,8 @@ describe('Parsing Tests', () => {
             })
         );
         expect(ds.fields[1].name).toBe('url');
-        expect((ds.fields[1].value as InvocationExpr).function.ref?.name).toBe(
-            'env'
-        );
-        expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(
-            LiteralExpr
-        );
+        expect((ds.fields[1].value as InvocationExpr).function.ref?.name).toBe('env');
+        expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(LiteralExpr);
     });
 
     it('enum', async () => {
@@ -58,9 +55,7 @@ describe('Parsing Tests', () => {
         const doc = await loadModel(content, false);
         const enumDecl = doc.declarations[0];
         expect(enumDecl.name).toBe('UserRole');
-        expect((enumDecl as Enum).fields.map((f) => f.name)).toEqual(
-            expect.arrayContaining(['USER', 'ADMIN'])
-        );
+        expect((enumDecl as Enum).fields.map((f) => f.name)).toEqual(expect.arrayContaining(['USER', 'ADMIN']));
 
         const model = doc.declarations[1] as DataModel;
         expect(model.fields[1].type.reference?.ref?.name).toBe('UserRole');
@@ -124,9 +119,7 @@ describe('Parsing Tests', () => {
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
         expect(model.fields[0].attributes[0].decl.ref?.name).toBe('@id');
-        expect(model.fields[1].attributes[0].args[0].value.$type).toBe(
-            LiteralExpr
-        );
+        expect(model.fields[1].attributes[0].args[0].value.$type).toBe(LiteralExpr);
         expect(model.fields[1].attributes[1].decl.ref?.name).toBe('@unique');
     });
 
@@ -151,25 +144,15 @@ describe('Parsing Tests', () => {
             )
         ).toEqual(expect.arrayContaining(['a', 'b']));
 
-        expect(
-            (
-                (model.attributes[1].args[0].value as ArrayExpr)
-                    .items[0] as ReferenceExpr
-            ).args[0]
-        ).toEqual(
+        expect(((model.attributes[1].args[0].value as ArrayExpr).items[0] as ReferenceExpr).args[0]).toEqual(
             expect.objectContaining({
                 name: 'sort',
                 value: 'Asc',
             })
         );
 
-        expect(
-            (model.attributes[2].args[0].value as ReferenceExpr).target.ref
-                ?.name
-        ).toBe('b');
-        expect(
-            (model.attributes[2].args[0].value as ReferenceExpr).args[0]
-        ).toEqual(
+        expect((model.attributes[2].args[0].value as ReferenceExpr).target.ref?.name).toBe('b');
+        expect((model.attributes[2].args[0].value as ReferenceExpr).args[0]).toEqual(
             expect.objectContaining({
                 name: 'sort',
                 value: 'Desc',
@@ -191,8 +174,8 @@ describe('Parsing Tests', () => {
         `;
         const doc = await loadModel(content, false);
         const models = doc.declarations as DataModel[];
-        expect(models[0].fields[1].type.reference?.ref?.name === 'Post');
-        expect(models[1].fields[1].type.reference?.ref?.name === 'User');
+        expect(models[0].fields[1].type.reference?.ref?.name).toBe('Post');
+        expect(models[1].fields[1].type.reference?.ref?.name).toBe('User');
     });
 
     it('policy expressions', async () => {
@@ -213,25 +196,15 @@ describe('Parsing Tests', () => {
         const attrs = model.attributes;
 
         expect(attrs[0].args[1].value.$type).toBe(UnaryExpr);
-        expect((attrs[0].args[1].value as UnaryExpr).operand.$type).toBe(
-            ReferenceExpr
-        );
+        expect((attrs[0].args[1].value as UnaryExpr).operand.$type).toBe(ReferenceExpr);
 
         expect(attrs[1].args[1].value.$type).toBe(BinaryExpr);
-        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(
-            ReferenceExpr
-        );
-        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(
-            LiteralExpr
-        );
+        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(ReferenceExpr);
+        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(LiteralExpr);
 
         expect(attrs[1].args[1].value.$type).toBe(BinaryExpr);
-        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(
-            ReferenceExpr
-        );
-        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(
-            LiteralExpr
-        );
+        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(ReferenceExpr);
+        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(LiteralExpr);
 
         // expect(attrs[2].args[0].value.$type).toBe(BinaryExpr);
         // expect((attrs[2].args[0].value as BinaryExpr).left.$type).toBe(
@@ -365,13 +338,11 @@ describe('Parsing Tests', () => {
         `;
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
-        const foo = doc.declarations[2] as Function;
-        const bar = doc.declarations[3] as Function;
+        const foo = doc.declarations[2] as FunctionDecl;
+        const bar = doc.declarations[3] as FunctionDecl;
 
         expect(foo.name).toBe('foo');
-        expect(foo.params.map((p) => p.type.type)).toEqual(
-            expect.arrayContaining(['Int', 'Int'])
-        );
+        expect(foo.params.map((p) => p.type.type)).toEqual(expect.arrayContaining(['Int', 'Int']));
 
         expect(bar.name).toBe('bar');
         expect(bar.params[0].type.reference?.ref?.name).toBe('N');

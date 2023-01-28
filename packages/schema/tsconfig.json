@@ -4,7 +4,7 @@
         "module": "commonjs",
         "lib": ["ESNext"],
         "sourceMap": true,
-        "outDir": "out",
+        "outDir": "dist",
         "strict": true,
         "noUnusedLocals": true,
         "noImplicitReturns": true,
@@ -13,11 +13,9 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
-        "paths": {
-            "@lang/*": ["src/language-server/*"]
-        },
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "declaration": true
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["out", "node_modules"]
+    "exclude": ["dist", "bundle", "node_modules", "src/extension.ts"]
 }

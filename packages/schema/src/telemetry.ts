@@ -1,12 +1,13 @@
-import { Mixpanel, init } from 'mixpanel';
-import { TELEMETRY_TRACKING_TOKEN } from 'env';
-import { machineIdSync } from 'node-machine-id';
+import exitHook from 'async-exit-hook';
+import { CommanderError } from 'commander';
 import cuid from 'cuid';
+import { init, Mixpanel } from 'mixpanel';
+import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
 import sleep from 'sleep-promise';
-import exitHook from 'async-exit-hook';
 import { CliError } from './cli/cli-error';
-import { CommanderError } from 'commander';
+import { TELEMETRY_TRACKING_TOKEN } from './constants';
+import { getVersion } from './utils/version-utils';
 
 /**
  * Telemetry events
@@ -18,9 +19,9 @@ export type TelemetryEvents =
     | 'cli:command:start'
     | 'cli:command:complete'
     | 'cli:command:error'
-    | 'cli:generator:start'
-    | 'cli:generator:complete'
-    | 'cli:generator:error';
+    | 'cli:plugin:start'
+    | 'cli:plugin:complete'
+    | 'cli:plugin:error';
 
 /**
  * Utility class for sending telemetry
@@ -29,15 +30,13 @@ export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
     private readonly hostId = machineIdSync();
     private readonly sessionid = cuid();
-    private readonly trackingToken = TELEMETRY_TRACKING_TOKEN;
     private readonly _os = os.platform();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    private readonly version = require('../package.json').version;
+    private readonly version = getVersion();
     private exitWait = 200;
 
     constructor() {
-        if (process.env.DO_NOT_TRACK !== '1' && this.trackingToken) {
-            this.mixpanel = init(this.trackingToken, {
+        if (process.env.DO_NOT_TRACK !== '1' && TELEMETRY_TRACKING_TOKEN) {
+            this.mixpanel = init(TELEMETRY_TRACKING_TOKEN, {
                 geolocate: true,
             });
         }
@@ -50,7 +49,7 @@ export class Telemetry {
             callback();
         });
 
-        exitHook.uncaughtExceptionHandler(async (err) => {
+        const errorHandler = async (err: Error) => {
             this.track('cli:error', {
                 message: err.message,
                 stack: err.stack,
@@ -61,13 +60,16 @@ export class Telemetry {
             }
 
             if (err instanceof CliError || err instanceof CommanderError) {
-                // error already handled
+                // error already logged
             } else {
-                throw err;
+                console.error('\nAn unexpected error occurred:\n', err);
             }
 
             process.exit(1);
-        });
+        };
+
+        exitHook.unhandledRejectionHandler(errorHandler);
+        exitHook.uncaughtExceptionHandler(errorHandler);
     }
 
     track(event: TelemetryEvents, properties: Record<string, unknown> = {}) {

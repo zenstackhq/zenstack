@@ -1,0 +1,41 @@
+{
+    "name": "@zenstackhq/react",
+    "displayName": "ZenStack plugin and runtime for ReactJS",
+    "version": "1.0.0-alpha.27",
+    "description": "ZenStack plugin and runtime for ReactJS",
+    "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/zenstackhq/zenstack"
+    },
+    "scripts": {
+        "clean": "rimraf dist",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
+        "watch": "tsc --watch",
+        "lint": "eslint src --ext ts",
+        "prepublishOnly": "pnpm build",
+        "publish-dev": "pnpm publish --tag dev"
+    },
+    "publishConfig": {
+        "directory": "dist",
+        "linkDirectory": true
+    },
+    "keywords": [],
+    "author": "ZenStack Team",
+    "license": "MIT",
+    "dependencies": {
+        "@prisma/generator-helper": "^4.7.1",
+        "@zenstackhq/sdk": "workspace:*",
+        "change-case": "^4.1.2",
+        "decimal.js": "^10.4.2",
+        "superjson": "^1.11.0",
+        "swr": "^1.3.0",
+        "ts-morph": "^16.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^18.0.26",
+        "copyfiles": "^2.4.1",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.9.4"
+    }
+}

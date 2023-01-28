@@ -1,3 +1,4 @@
+import { ZModelGeneratedModule, ZModelGeneratedSharedModule } from '@zenstackhq/language/module';
 import {
     createDefaultModule,
     DefaultConfigurationProvider,
@@ -8,7 +9,6 @@ import {
     DefaultLanguageServer,
     DefaultServiceRegistry,
     DefaultSharedModuleContext,
-    DefaultTextDocumentFactory,
     inject,
     LangiumDefaultSharedServices,
     LangiumServices,
@@ -17,18 +17,12 @@ import {
     MutexLock,
     PartialLangiumServices,
 } from 'langium';
-import {
-    ZModelGeneratedModule,
-    ZModelGeneratedSharedModule,
-} from './generated/module';
-import { ZModelLinker } from './zmodel-linker';
-import { ZModelScopeComputation } from './zmodel-scope';
-import {
-    ZModelValidationRegistry,
-    ZModelValidator,
-} from './validator/zmodel-validator';
 import { TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { ZModelValidationRegistry, ZModelValidator } from './validator/zmodel-validator';
+import { ZModelFormatter } from './zmodel-formatter';
+import { ZModelLinker } from './zmodel-linker';
+import { ZModelScopeComputation } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
 
 /**
@@ -51,18 +45,17 @@ export type ZModelServices = LangiumServices & ZModelAddedServices;
  * declared custom services. The Langium defaults can be partially specified to override only
  * selected services, while the custom services must be fully specified.
  */
-export const ZModelModule: Module<
-    ZModelServices,
-    PartialLangiumServices & ZModelAddedServices
-> = {
+export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZModelAddedServices> = {
     references: {
         ScopeComputation: (services) => new ZModelScopeComputation(services),
         Linker: (services) => new ZModelLinker(services),
     },
     validation: {
-        ValidationRegistry: (services) =>
-            new ZModelValidationRegistry(services),
+        ValidationRegistry: (services) => new ZModelValidationRegistry(services),
         ZModelValidator: () => new ZModelValidator(),
+    },
+    lsp: {
+        Formatter: () => new ZModelFormatter(),
     },
 };
 
@@ -77,22 +70,15 @@ export function createSharedModule(
             LanguageServer: (services) => new DefaultLanguageServer(services),
         },
         workspace: {
-            LangiumDocuments: (services) =>
-                new DefaultLangiumDocuments(services),
-            LangiumDocumentFactory: (services) =>
-                new DefaultLangiumDocumentFactory(services),
+            LangiumDocuments: (services) => new DefaultLangiumDocuments(services),
+            LangiumDocumentFactory: (services) => new DefaultLangiumDocumentFactory(services),
             DocumentBuilder: (services) => new DefaultDocumentBuilder(services),
             TextDocuments: () => new TextDocuments(TextDocument),
-            TextDocumentFactory: (services) =>
-                new DefaultTextDocumentFactory(services),
             IndexManager: (services) => new DefaultIndexManager(services),
-            WorkspaceManager: (services) =>
-                new ZModelWorkspaceManager(services),
-            FileSystemProvider: (services) =>
-                context.fileSystemProvider(services),
+            WorkspaceManager: (services) => new ZModelWorkspaceManager(services),
+            FileSystemProvider: (services) => context.fileSystemProvider(services),
             MutexLock: () => new MutexLock(),
-            ConfigurationProvider: (services) =>
-                new DefaultConfigurationProvider(services),
+            ConfigurationProvider: (services) => new DefaultConfigurationProvider(services),
         },
     };
 }
@@ -116,16 +102,9 @@ export function createZModelServices(context: DefaultSharedModuleContext): {
     shared: LangiumSharedServices;
     ZModel: ZModelServices;
 } {
-    const shared = inject(
-        createSharedModule(context),
-        ZModelGeneratedSharedModule
-    );
+    const shared = inject(createSharedModule(context), ZModelGeneratedSharedModule);
 
-    const ZModel = inject(
-        createDefaultModule({ shared }),
-        ZModelGeneratedModule,
-        ZModelModule
-    );
+    const ZModel = inject(createDefaultModule({ shared }), ZModelGeneratedModule, ZModelModule);
     shared.ServiceRegistry.register(ZModel);
     return { shared, ZModel };
 }

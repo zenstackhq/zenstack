@@ -1,19 +1,5 @@
-import {
-    AstNode,
-    LangiumDocument,
-    ValidationAcceptor,
-    ValidationChecks,
-    ValidationRegistry,
-} from 'langium';
-import {
-    Attribute,
-    DataModel,
-    DataSource,
-    Enum,
-    Expression,
-    Model,
-    ZModelAstType,
-} from '../generated/ast';
+import { AstNode, LangiumDocument, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
+import { Attribute, DataModel, DataSource, Enum, Expression, Model, ZModelAstType } from '@zenstackhq/language/ast';
 import type { ZModelServices } from '../zmodel-module';
 import SchemaValidator from './schema-validator';
 import DataSourceValidator from './datasource-validator';
@@ -56,10 +42,7 @@ export class ZModelValidator {
             currNode = currNode.$container;
         }
 
-        return (
-            doc?.parseResult.lexerErrors.length === 0 &&
-            doc?.parseResult.parserErrors.length === 0
-        );
+        return doc?.parseResult.lexerErrors.length === 0 && doc?.parseResult.parserErrors.length === 0;
     }
 
     checkModel(node: Model, accept: ValidationAcceptor): void {
@@ -67,13 +50,11 @@ export class ZModelValidator {
     }
 
     checkDataSource(node: DataSource, accept: ValidationAcceptor): void {
-        this.shouldCheck(node) &&
-            new DataSourceValidator().validate(node, accept);
+        this.shouldCheck(node) && new DataSourceValidator().validate(node, accept);
     }
 
     checkDataModel(node: DataModel, accept: ValidationAcceptor): void {
-        this.shouldCheck(node) &&
-            new DataModelValidator().validate(node, accept);
+        this.shouldCheck(node) && new DataModelValidator().validate(node, accept);
     }
 
     checkEnum(node: Enum, accept: ValidationAcceptor): void {
@@ -81,8 +62,7 @@ export class ZModelValidator {
     }
 
     checkAttribute(node: Attribute, accept: ValidationAcceptor): void {
-        this.shouldCheck(node) &&
-            new AttributeValidator().validate(node, accept);
+        this.shouldCheck(node) && new AttributeValidator().validate(node, accept);
     }
 
     checkExpression(node: Expression, accept: ValidationAcceptor): void {
