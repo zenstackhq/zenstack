@@ -6,17 +6,6 @@ import * as path from 'path';
 import { Project } from 'ts-morph';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    const project = new Project();
-    const models: DataModel[] = [];
-    const warnings: string[] = [];
-
-    for (const dm of model.declarations.filter((d): d is DataModel => isDataModel(d))) {
-        const hasAllowRule = dm.attributes.find((attr) => attr.decl.ref?.name === '@@allow');
-        if (hasAllowRule) {
-            models.push(dm);
-        }
-    }
-
     let outDir = options.output as string;
     if (!outDir) {
         throw new PluginError('"output" option is required');
@@ -26,6 +15,10 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         // output dir is resolved relative to the schema file path
         outDir = path.join(path.dirname(options.schemaPath), outDir);
     }
+
+    const project = new Project();
+    const warnings: string[] = [];
+    const models = model.declarations.filter((d): d is DataModel => isDataModel(d));
 
     generateIndex(project, outDir, models);
 
