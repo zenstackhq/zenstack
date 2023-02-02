@@ -105,6 +105,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
+          {
             "$type": "Keyword",
             "value": "datasource"
           },
@@ -156,6 +164,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Assignment",
             "feature": "name",
@@ -212,6 +228,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
+          {
             "$type": "Keyword",
             "value": "generator"
           },
@@ -263,6 +287,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Assignment",
             "feature": "name",
@@ -319,6 +351,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
+          {
             "$type": "Keyword",
             "value": "plugin"
           },
@@ -370,6 +410,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Assignment",
             "feature": "name",
@@ -1590,6 +1638,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
+          {
             "$type": "Keyword",
             "value": "enum"
           },
@@ -1639,16 +1695,29 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "$type": "ParserRule",
       "name": "EnumField",
       "definition": {
-        "$type": "Assignment",
-        "feature": "name",
-        "operator": "=",
-        "terminal": {
-          "$type": "RuleCall",
-          "rule": {
-            "$ref": "#/rules@53"
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
           },
-          "arguments": []
-        }
+          {
+            "$type": "Assignment",
+            "feature": "name",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@53"
+              },
+              "arguments": []
+            }
+          }
+        ]
       },
       "definesHiddenTokens": false,
       "entry": false,
@@ -1663,6 +1732,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Keyword",
             "value": "function"
@@ -1779,6 +1856,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Assignment",
             "feature": "name",
@@ -2035,6 +2120,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
+          {
             "$type": "Keyword",
             "value": "attribute"
           },
@@ -2126,6 +2219,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Assignment",
             "feature": "default",
@@ -2323,6 +2424,14 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "definition": {
         "$type": "Group",
         "elements": [
+          {
+            "$type": "RuleCall",
+            "rule": {
+              "$ref": "#/rules@56"
+            },
+            "arguments": [],
+            "cardinality": "*"
+          },
           {
             "$type": "Assignment",
             "feature": "decl",
