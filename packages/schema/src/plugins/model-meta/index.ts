@@ -1,6 +1,14 @@
-import { DataModel, DataModelField, Model, isDataModel, isLiteralExpr } from '@zenstackhq/language/ast';
+import {
+    ArrayExpr,
+    DataModel,
+    DataModelField,
+    isDataModel,
+    isLiteralExpr,
+    Model,
+    ReferenceExpr,
+} from '@zenstackhq/language/ast';
 import { RuntimeAttribute } from '@zenstackhq/runtime';
-import { PluginOptions, getLiteral, resolved } from '@zenstackhq/sdk';
+import { getAttributeArgs, getLiteral, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import path from 'path';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
@@ -66,6 +74,23 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
             }
         });
         writer.write(',');
+
+        writer.write('uniqueConstraints:');
+        writer.block(() => {
+            for (const model of dataModels) {
+                writer.write(`${camelCase(model.name)}:`);
+                writer.block(() => {
+                    for (const constraint of getUniqueConstraints(model)) {
+                        writer.write(`${constraint.name}: {
+                    name: "${constraint.name}",
+                    fields: ${JSON.stringify(constraint.fields)}
+                },`);
+                    }
+                });
+                writer.write(',');
+            }
+        });
+        writer.write(',');
     });
 }
 
@@ -118,4 +143,23 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
 
 function isIdField(field: DataModelField) {
     return field.attributes.some((attr) => attr.decl.ref?.name === '@id');
+}
+
+function getUniqueConstraints(model: DataModel) {
+    const constraints: Array<{ name: string; fields: string[] }> = [];
+    for (const attr of model.attributes.filter((attr) => attr.decl.ref?.name === '@@unique')) {
+        const argsMap = getAttributeArgs(attr);
+        if (argsMap.fields) {
+            const fieldNames = (argsMap.fields as ArrayExpr).items.map(
+                (item) => resolved((item as ReferenceExpr).target).name
+            );
+            let constraintName = argsMap.name && getLiteral<string>(argsMap.name);
+            if (!constraintName) {
+                // default constraint name is fields concatenated with underscores
+                constraintName = fieldNames.join('_');
+            }
+            constraints.push({ name: constraintName, fields: fieldNames });
+        }
+    }
+    return constraints;
 }

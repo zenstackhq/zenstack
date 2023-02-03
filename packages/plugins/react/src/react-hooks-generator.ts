@@ -35,7 +35,7 @@ function wrapReadbackErrorCheck(code: string) {
     return `try {
         ${code}
     } catch (err: any) {
-        if (err.prisma && err.code === 'P2004') {
+        if (err.info?.prisma && err.info?.code === 'P2004') {
             // unable to readback data
             return undefined;
         } else {
