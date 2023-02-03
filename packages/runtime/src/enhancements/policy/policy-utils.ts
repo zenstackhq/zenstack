@@ -130,6 +130,14 @@ export class PolicyUtil {
      */
     async readWithCheck(model: string, args: any): Promise<unknown[]> {
         args = this.clone(args);
+
+        if (args.where) {
+            // query args will be used with findMany, so we need to
+            // translate unique constraint filters into a flat filter
+            // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
+            await this.flattenGeneratedUniqueField(model, args.where);
+        }
+
         await this.injectAuthGuard(args, model, 'read');
 
         // recursively inject read guard conditions into the query args
@@ -141,6 +149,28 @@ export class PolicyUtil {
         await Promise.all(result.map((item) => this.postProcessForRead(item, model, args, 'read')));
 
         return result;
+    }
+
+    // flatten unique constraint filters
+    async flattenGeneratedUniqueField(model: string, args: any) {
+        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
+        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[camelCase(model)];
+        let flattened = false;
+        if (uniqueConstraints) {
+            for (const [field, value] of Object.entries<any>(args)) {
+                if (uniqueConstraints[field] && typeof value === 'object') {
+                    for (const [f, v] of Object.entries(value)) {
+                        args[f] = v;
+                    }
+                    delete args[field];
+                    flattened = true;
+                }
+            }
+        }
+
+        if (flattened) {
+            this.logger.info(`Filter flattened: ${JSON.stringify(args)}`);
+        }
     }
 
     private async injectNestedReadConditions(model: string, args: any) {
@@ -376,6 +406,12 @@ export class PolicyUtil {
                 // fetch preValue selection (analyzed from the post-update rules)
                 const preValueSelect = await this.getPreValueSelect(model);
                 const filter = await buildReversedQuery(context);
+
+                // query args will be used with findMany, so we need to
+                // translate unique constraint filters into a flat filter
+                // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
+                await this.flattenGeneratedUniqueField(model, filter);
+
                 const idField = this.getIdField(model);
                 const query = { where: filter, select: { ...preValueSelect, [idField.name]: true } };
                 this.logger.info(`fetching pre-update entities for ${model}: ${format(query)})}`);
@@ -543,11 +579,18 @@ export class PolicyUtil {
     ) {
         this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
 
-        const count = (await db[model].count({ where: filter })) as number;
+        const queryFilter = deepcopy(filter);
+
+        // query args will be used with findMany, so we need to
+        // translate unique constraint filters into a flat filter
+        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
+        await this.flattenGeneratedUniqueField(model, queryFilter);
+
+        const count = (await db[model].count({ where: queryFilter })) as number;
         const guard = await this.getAuthGuard(model, operation);
 
         // build a query condition with policy injected
-        const guardedQuery = { where: this.and(filter, guard) };
+        const guardedQuery = { where: this.and(queryFilter, guard) };
 
         const schema = (operation === 'create' || operation === 'update') && (await this.getModelSchema(model));
 
