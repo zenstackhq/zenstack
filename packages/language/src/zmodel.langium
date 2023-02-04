@@ -10,24 +10,24 @@ AbstractDeclaration:
 
 // datasource
 DataSource:
-    'datasource' name=ID '{' (fields+=DataSourceField)* '}';
+    TRIPLE_SLASH_COMMENT* 'datasource' name=ID '{' (fields+=DataSourceField)* '}';
 
 DataSourceField:
-    name=ID '=' value=(LiteralExpr|InvocationExpr);
+    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr|InvocationExpr);
 
 // generator
 GeneratorDecl:
-    'generator' name=ID '{' (fields+=GeneratorField)* '}';
+    TRIPLE_SLASH_COMMENT* 'generator' name=ID '{' (fields+=GeneratorField)* '}';
 
 GeneratorField:
-    name=ID '=' value=(LiteralExpr | ArrayExpr);
+    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr | ArrayExpr);
 
 // plugin
 Plugin:
-    'plugin' name=ID '{' (fields+=PluginField)* '}';
+    TRIPLE_SLASH_COMMENT* 'plugin' name=ID '{' (fields+=PluginField)* '}';
 
 PluginField:
-    name=ID '=' value=(LiteralExpr | ArrayExpr);
+    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr | ArrayExpr);
 
 // expression
 Expression:
@@ -149,17 +149,17 @@ DataModelFieldType:
 
 // enum
 Enum:
-    'enum' name=ID '{' (fields+=EnumField)+ '}';
+    TRIPLE_SLASH_COMMENT* 'enum' name=ID '{' (fields+=EnumField)+ '}';
 
 EnumField:
-    name=ID;
+    TRIPLE_SLASH_COMMENT* name=ID;
 
 // function
 FunctionDecl:
-    'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
+    TRIPLE_SLASH_COMMENT* 'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
 
 FunctionParam:
-    name=ID ':' type=FunctionParamType;
+    TRIPLE_SLASH_COMMENT* name=ID ':' type=FunctionParamType;
 
 FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration]) (array?='[]')?;
@@ -184,10 +184,10 @@ AttributeName returns string:
 
 // attribute
 Attribute:
-    'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=AttributeAttribute)*;
+    TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=AttributeAttribute)*;
 
 AttributeParam:
-    (default?='_')? name=ID ':' type=AttributeParamType;
+    TRIPLE_SLASH_COMMENT* (default?='_')? name=ID ':' type=AttributeParamType;
 
 // FieldReference refers to fields declared in the current model
 // TransitiveFieldReference refers to fields declared in the model type of the current field
@@ -200,7 +200,7 @@ DataModelFieldAttribute:
     decl=[Attribute:DataModelFieldAttributeName] ('(' AttributeArgList? ')')?;
 
 DataModelAttribute:
-    decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
+    TRIPLE_SLASH_COMMENT* decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
 
 AttributeAttribute:
     decl=[Attribute:AttributeAttributeName] ('(' AttributeArgList? ')')?;

@@ -1,4 +1,12 @@
-import { AstNode, Expression, isArrayExpr, isLiteralExpr, Reference } from '@zenstackhq/language/ast';
+import {
+    AstNode,
+    DataModelAttribute,
+    DataModelFieldAttribute,
+    Expression,
+    isArrayExpr,
+    isLiteralExpr,
+    Reference,
+} from '@zenstackhq/language/ast';
 
 export function resolved<T extends AstNode>(ref: Reference<T>): T {
     if (!ref.ref) {
@@ -35,4 +43,15 @@ export function getLiteralArray<
 export default function indentString(string: string, count = 4): string {
     const indent = ' ';
     return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
+}
+
+export function getAttributeArgs(attr: DataModelAttribute | DataModelFieldAttribute): Record<string, Expression> {
+    const result: Record<string, Expression> = {};
+    for (const arg of attr.args) {
+        if (!arg.$resolvedParam) {
+            continue;
+        }
+        result[arg.$resolvedParam.name] = arg.value;
+    }
+    return result;
 }
