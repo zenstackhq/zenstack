@@ -115,7 +115,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                                     newText:
                                         '\n' +
                                         indent +
-                                        `${fieldName} ${typeName} @relation(fields: [${referenceIdFieldName}], references: [${idFieldName}], onDelete: Cascade)` +
+                                        `${fieldName} ${typeName} @relation(fields: [${referenceIdFieldName}], references: [${idFieldName}])` +
                                         referenceField,
                                 },
                             ],
