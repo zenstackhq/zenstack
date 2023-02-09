@@ -7,7 +7,22 @@ export class ZModelFormatter extends AbstractFormatter {
     private formatOptions?: FormattingOptions;
     protected format(node: AstNode): void {
         const formatter = this.getNodeFormatter(node);
-        if (ast.isAbstractDeclaration(node)) {
+        if (ast.isDataModelField(node)) {
+            formatter.property('type').prepend(Formatting.oneSpace());
+            if (node.attributes.length > 0) {
+                formatter.properties('attributes').prepend(Formatting.oneSpace());
+            }
+        } else if (ast.isDataModelFieldAttribute(node)) {
+            formatter.keyword('(').surround(Formatting.noSpace());
+            formatter.keyword(')').prepend(Formatting.noSpace());
+            formatter.keyword(',').append(Formatting.oneSpace());
+            if (node.args.length > 1) {
+                formatter.nodes(...node.args.slice(1)).prepend(Formatting.oneSpace());
+            }
+        } else if (ast.isAttributeArg(node)) {
+            formatter.keyword(':').prepend(Formatting.noSpace());
+            formatter.keyword(':').append(Formatting.oneSpace());
+        } else if (ast.isAbstractDeclaration(node)) {
             const bracesOpen = formatter.keyword('{');
             const bracesClose = formatter.keyword('}');
             // this line decide the indent count return by this.getIndent()
