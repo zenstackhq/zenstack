@@ -10,14 +10,7 @@ import {
     MaybePromise,
 } from 'langium';
 
-import {
-    CancellationToken,
-    CodeAction,
-    CodeActionKind,
-    CodeActionParams,
-    Command,
-    Diagnostic,
-} from 'vscode-languageserver';
+import { CodeAction, CodeActionKind, CodeActionParams, Command, Diagnostic } from 'vscode-languageserver';
 import { IssueCodes } from './constants';
 import { ZModelFormatter } from './zmodel-formatter';
 
@@ -34,8 +27,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
 
     getCodeActions(
         document: LangiumDocument,
-        params: CodeActionParams,
-        cancelToken?: CancellationToken
+        params: CodeActionParams
     ): MaybePromise<Array<Command | CodeAction> | undefined> {
         const result: CodeAction[] = [];
         const acceptor = (ca: CodeAction | undefined) => ca && result.push(ca);
@@ -67,6 +59,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
 
             const astNode = cstNode?.element as DataModelField;
 
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const oppositeModel = astNode.type.reference!.ref! as DataModel;
 
             const lastField = oppositeModel.fields[oppositeModel.fields.length - 1];
@@ -109,7 +102,9 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                             [document.textDocument.uri]: [
                                 {
                                     range: {
+                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                                         start: lastField.$cstNode!.range.end,
+                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                                         end: lastField.$cstNode!.range.end,
                                     },
                                     newText:

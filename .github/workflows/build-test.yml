@@ -14,7 +14,7 @@ on:
         branches: ['dev', 'main', 'canary']
 
 jobs:
-    build:
+    build-test:
         runs-on: ubuntu-latest
 
         strategy:
@@ -35,11 +35,14 @@ jobs:
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
             - run: |
-                if [[ $GITHUB_REF == 'refs/heads/canary' ]]; then
-                    DEFAULT_NPM_TAG=canary pnpm run build
-                else
-                    DEFAULT_NPM_TAG=latest pnpm run build
-                fi
+                  if [[ $GITHUB_REF == 'refs/heads/canary' ]]; then
+                      DEFAULT_NPM_TAG=canary pnpm run build
+                  else
+                      DEFAULT_NPM_TAG=latest pnpm run build
+                  fi
+
+            - run: pnpm lint
+
             # install again for internal dependencies
             - run: pnpm install --frozen-lockfile
             - run: pnpm run test

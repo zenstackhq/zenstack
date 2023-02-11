@@ -7,9 +7,11 @@ import {
     ExpressionType,
     isArrayExpr,
     isDataModelField,
+    isEnum,
     isLiteralExpr,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
+import { resolved } from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
 
 /**
@@ -99,7 +101,19 @@ export function assignableToAttributeParam(
     const dstIsArray = param.type.array;
     const dstRef = param.type.reference;
 
-    if (dstType) {
+    if (isEnum(argResolvedType.decl)) {
+        // enum type
+
+        let attrArgDeclType = dstRef?.ref;
+        if (dstType === 'ContextType' && isDataModelField(attr.$container) && attr.$container?.type?.reference) {
+            // attribute parameter type is ContextType, need to infer type from
+            // the attribute's container
+            attrArgDeclType = resolved(attr.$container?.type?.reference);
+        }
+        return attrArgDeclType === argResolvedType.decl && dstIsArray === argResolvedType.array;
+    } else if (dstType) {
+        // scalar type
+
         if (typeof argResolvedType?.decl !== 'string') {
             // destination type is not a reference, so argument type must be a plain expression
             return false;
@@ -115,6 +129,8 @@ export function assignableToAttributeParam(
                 return isReferenceExpr(arg.value) && isDataModelField(arg.value.target.ref);
             }
         } else if (dstType === 'ContextType') {
+            // attribute parameter type is ContextType, need to infer type from
+            // the attribute's container
             if (isDataModelField(attr.$container)) {
                 if (!attr.$container?.type?.type) {
                     return false;
@@ -129,6 +145,7 @@ export function assignableToAttributeParam(
             typeAssignable(dstType, argResolvedType.decl) && (dstType === 'Any' || dstIsArray === argResolvedType.array)
         );
     } else {
+        // reference type
         return dstRef?.ref === argResolvedType.decl && dstIsArray === argResolvedType.array;
     }
 }
