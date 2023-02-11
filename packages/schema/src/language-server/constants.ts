@@ -12,3 +12,7 @@ export const SCALAR_TYPES = ['String', 'Int', 'Float', 'Decimal', 'BigInt', 'Boo
  * Name of standard library module
  */
 export const STD_LIB_MODULE_NAME = 'stdlib.zmodel';
+
+export enum IssueCodes {
+    MissingOppositeRelation = 'miss-opposite-relation',
+}

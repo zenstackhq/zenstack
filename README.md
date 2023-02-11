@@ -89,6 +89,10 @@ const MyPosts = () => {
 };
 ```
 
+The following diagram gives a high-level overview of how it works.
+
+![Architecture](https://zenstack.dev/img/architecture-light.png)
+
 ## Links
 
 -   [Home](https://zenstack.dev)

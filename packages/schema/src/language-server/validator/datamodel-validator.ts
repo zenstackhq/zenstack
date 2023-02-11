@@ -15,7 +15,7 @@ import {
 import { ValidationAcceptor } from 'langium';
 import pluralize from 'pluralize';
 import { analyzePolicies } from '../../utils/ast-utils';
-import { SCALAR_TYPES } from '../constants';
+import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { assignableToAttributeParam, validateDuplicatedDeclarations } from './utils';
 
@@ -297,7 +297,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             accept(
                 'error',
                 `The relation field "${field.name}" on model "${field.$container.name}" is missing an opposite relation field on model "${oppositeModel.name}"`,
-                { node: field }
+                { node: field, code: IssueCodes.MissingOppositeRelation }
             );
             return;
         } else if (oppositeFields.length > 1) {
