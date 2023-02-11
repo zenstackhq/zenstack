@@ -314,4 +314,19 @@ describe('Attribute tests', () => {
         `)
         ).toContain('attribute "@length" cannot be used on this type of field');
     });
+
+    it('enum as default', async () => {
+        await loadModel(`
+            ${prelude}
+
+            enum E {
+                E1
+                E2
+            }
+
+            model M {
+                e E @default(E1)
+            }
+        `);
+    });
 });
