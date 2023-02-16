@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "1.0.0-alpha.36",
+    "version": "1.0.0-alpha.40",
     "author": {
         "name": "ZenStack Team"
     },
@@ -90,7 +90,7 @@
         "colors": "1.4.0",
         "commander": "^8.3.0",
         "cuid": "^2.1.8",
-        "langium": "^1.0.1",
+        "langium": "1.0.1",
         "mixpanel": "^0.17.0",
         "node-machine-id": "^1.1.12",
         "ora": "^5.4.1",
