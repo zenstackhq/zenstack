@@ -291,7 +291,7 @@ function generateModelHooks(
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, mutate);`
+                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, mutate);`
                 ),
             ]);
     }
