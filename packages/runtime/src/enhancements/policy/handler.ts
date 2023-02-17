@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PrismaClientValidationError } from '@prisma/client/runtime';
-import { format } from 'util';
 import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
 import { ModelMeta, PolicyDef } from '../types';
+import { formatObject } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
 
@@ -220,7 +220,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         // conduct the deletion
-        this.logger.info(`Conducting delete ${this.model}:\n${format(args)}`);
+        this.logger.info(`Conducting delete ${this.model}:\n${formatObject(args)}`);
         await this.modelClient.delete(args);
 
         if (!readResult) {
@@ -238,7 +238,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.utils.injectAuthGuard(args, this.model, 'delete');
 
         // conduct the deletion
-        this.logger.info(`Conducting deleteMany ${this.model}:\n${format(args)}`);
+        this.logger.info(`Conducting deleteMany ${this.model}:\n${formatObject(args)}`);
         return this.modelClient.deleteMany(args);
     }
 
