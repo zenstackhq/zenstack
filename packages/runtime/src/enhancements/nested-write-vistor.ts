@@ -80,6 +80,8 @@ export class NestedWriteVisitor {
         }
 
         let topData = args;
+        // const topWhere = { ...topData.where };
+
         switch (action) {
             // create has its data wrapped in 'data' field
             case 'create':
@@ -91,6 +93,13 @@ export class NestedWriteVisitor {
                 topData = topData.where;
                 break;
         }
+
+        // const initialPath = [
+        //     {
+        //         field: undefined,
+        //         where: topWhere,
+        //     },
+        // ];
 
         await this.doVisit(model, action, topData, undefined, undefined, []);
     }
@@ -195,14 +204,9 @@ export class NestedWriteVisitor {
                     // recurse into nested payloads
                     for (const [subAction, subData] of Object.entries<any>(fieldContainer[field])) {
                         if (this.isPrismaWriteAction(subAction) && subData) {
-                            await this.doVisit(
-                                fieldInfo.type,
-                                subAction,
-                                subData,
-                                fieldContainer[field],
-                                fieldInfo,
-                                nestingPath
-                            );
+                            await this.doVisit(fieldInfo.type, subAction, subData, fieldContainer[field], fieldInfo, [
+                                ...context.nestingPath,
+                            ]);
                         }
                     }
                 } else {
@@ -210,7 +214,7 @@ export class NestedWriteVisitor {
                     if (this.callback.field) {
                         await this.callback.field(fieldInfo, action, fieldContainer[field], {
                             parent: fieldContainer,
-                            nestingPath: nestingPath,
+                            nestingPath: [...context.nestingPath],
                             field: fieldInfo,
                         });
                     }
