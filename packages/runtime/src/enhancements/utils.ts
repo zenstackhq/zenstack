@@ -1,4 +1,5 @@
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import * as util from 'util';
 
 /**
  * Wraps a value into array if it's not already one
@@ -11,7 +12,7 @@ export function ensureArray<T>(value: T): T[] {
  * Gets field names in a data model entity, filtering out internal fields.
  */
 export function getModelFields(data: object) {
-    return Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f));
+    return data ? Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f)) : [];
 }
 
 /**
@@ -28,4 +29,8 @@ export function enumerate<T>(x: Enumerable<T>) {
     } else {
         return [x];
     }
+}
+
+export function formatObject(value: unknown) {
+    return util.formatWithOptions({ depth: 10 }, value);
 }

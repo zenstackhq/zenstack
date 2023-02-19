@@ -1,7 +1,7 @@
 import { createContext } from 'react';
 import superjson from 'superjson';
 import useSWR, { useSWRConfig } from 'swr';
-import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr/dist/types';
+import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import { registerSerializers } from './serialization-utils';
 
 /**

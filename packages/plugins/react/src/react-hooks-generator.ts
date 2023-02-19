@@ -35,7 +35,7 @@ function wrapReadbackErrorCheck(code: string) {
     return `try {
         ${code}
     } catch (err: any) {
-        if (err.info?.prisma && err.info?.code === 'P2004') {
+        if (err.info?.prisma && err.info?.code === 'P2004' && err.info?.extra === 'RESULT_NOT_READABLE') {
             // unable to readback data
             return undefined;
         } else {
@@ -291,7 +291,7 @@ function generateModelHooks(
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, mutate);`
+                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, mutate);`
                 ),
             ]);
     }

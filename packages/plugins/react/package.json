@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/react",
     "displayName": "ZenStack plugin and runtime for ReactJS",
-    "version": "1.0.0-alpha.40",
+    "version": "1.0.0-alpha.44",
     "description": "ZenStack plugin and runtime for ReactJS",
     "main": "index.js",
     "repository": {
@@ -29,7 +29,7 @@
         "change-case": "^4.1.2",
         "decimal.js": "^10.4.2",
         "superjson": "^1.11.0",
-        "swr": "^1.3.0",
+        "swr": "^2.0.3",
         "ts-morph": "^16.0.0"
     },
     "devDependencies": {
