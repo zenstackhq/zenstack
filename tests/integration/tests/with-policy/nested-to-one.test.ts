@@ -202,4 +202,61 @@ describe('With Policy:nested to-one', () => {
         // check deleted
         expect(await db.m2.findUnique({ where: { id: '1' } })).toBeNull();
     });
+
+    it('nested relation delete', async () => {
+        const { withPolicy } = await loadPrisma(
+            `${suite}/nested relation delete`,
+            `
+        ${MODEL_PRELUDE}
+
+        model User {
+            id String @id @default(uuid())
+            m1 M1?
+
+            @@allow('all', true)
+        }
+
+        model M1 {
+            id String @id @default(uuid())
+            value Int
+            user User @relation(fields: [userId], references: [id])
+            userId String @unique
+        
+            @@allow('create', true)
+            @@allow('all', auth() == user)
+        }
+        `
+        );
+
+        await expect(
+            withPolicy({ id: 'user1' }).user.create({
+                data: {
+                    id: 'user1',
+                    m1: {
+                        create: { value: 1 },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            withPolicy({ id: 'user2' }).user.create({
+                data: {
+                    id: 'user2',
+                    m1: {
+                        create: { value: 2 },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            withPolicy({ id: 'user1' }).user.update({
+                where: { id: 'user1' },
+                data: {
+                    m1: { delete: true },
+                },
+            })
+        ).toResolveTruthy();
+    });
 });

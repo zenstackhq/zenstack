@@ -12,7 +12,7 @@ export function ensureArray<T>(value: T): T[] {
  * Gets field names in a data model entity, filtering out internal fields.
  */
 export function getModelFields(data: object) {
-    return Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f));
+    return data ? Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f)) : [];
 }
 
 /**
