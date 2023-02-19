@@ -1,4 +1,5 @@
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import * as util from 'util';
 
 /**
  * Wraps a value into array if it's not already one
@@ -28,4 +29,8 @@ export function enumerate<T>(x: Enumerable<T>) {
     } else {
         return [x];
     }
+}
+
+export function formatObject(value: unknown) {
+    return util.formatWithOptions({ depth: 10 }, value);
 }

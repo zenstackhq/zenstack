@@ -8,6 +8,18 @@ import {
 import { NextApiRequest, NextApiResponse } from 'next';
 import superjson from 'superjson';
 
+type LoggerMethod = (code: string | undefined, message: string) => void;
+
+/**
+ * Logger config.
+ */
+export type LoggerConfig = {
+    debug?: LoggerMethod;
+    info?: LoggerMethod;
+    warn?: LoggerMethod;
+    error?: LoggerMethod;
+};
+
 /**
  * Options for initializing a Next.js API endpoint request handler.
  * @see requestHandler
@@ -17,6 +29,11 @@ export type RequestHandlerOptions = {
      * Callback method for getting a Prisma instance for the given request/response pair.
      */
     getPrisma: (req: NextApiRequest, res: NextApiResponse) => Promise<unknown> | unknown;
+
+    /**
+     * Logger configuration. By default log to console. Set to null to turn off logging.
+     */
+    logger?: LoggerConfig | null;
 
     /**
      * Whether to use superjson for serialization/deserialization. Defaults to true.
@@ -46,6 +63,14 @@ export function requestHandler(
         }
         return handleRequest(req, res, prisma as DbClientContract, options);
     };
+}
+
+function logError(options: RequestHandlerOptions, code: string | undefined, message: string) {
+    if (options.logger === undefined) {
+        console.error(`zenstack-next error: ${code ? '[' + code + ']' : ''} ${message}`);
+    } else if (options.logger?.error) {
+        options.logger.error(code, message);
+    }
 }
 
 async function handleRequest(
@@ -113,6 +138,7 @@ async function handleRequest(
         res.status(resCode).send(marshal(result, options.useSuperJson));
     } catch (err) {
         if (isPrismaClientKnownRequestError(err)) {
+            logError(options, err.code, err.message);
             if (err.code === 'P2004') {
                 // rejected by policy
                 res.status(403).send({
@@ -129,11 +155,13 @@ async function handleRequest(
                 });
             }
         } else if (isPrismaClientUnknownRequestError(err) || isPrismaClientValidationError(err)) {
+            logError(options, undefined, err.message);
             res.status(400).send({
                 prisma: true,
                 message: err.message,
             });
         } else {
+            logError(options, undefined, (err as Error).message);
             res.status(500).send({
                 message: (err as Error).message,
             });

@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
-import { TRANSACTION_FIELD_NAME, AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import { AUXILIARY_FIELDS, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
-import { format } from 'util';
 import { fromZodError } from 'zod-validation-error';
 import {
     AuthUser,
@@ -19,7 +18,7 @@ import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate, getModelFields } from '../utils';
+import { enumerate, formatObject, getModelFields } from '../utils';
 import { Logger } from './logger';
 
 /**
@@ -43,6 +42,7 @@ export class PolicyUtil {
     and(...conditions: (boolean | object)[]): any {
         if (conditions.includes(false)) {
             // always false
+            // TODO: custom id field
             return { id: { in: [] } };
         }
 
@@ -74,6 +74,17 @@ export class PolicyUtil {
             return filtered[0];
         } else {
             return { OR: filtered };
+        }
+    }
+
+    /**
+     * Creates a negation of a query condition.
+     */
+    not(condition: object | boolean): any {
+        if (typeof condition === 'boolean') {
+            return !condition;
+        } else {
+            return { NOT: condition };
         }
     }
 
@@ -116,8 +127,94 @@ export class PolicyUtil {
      * Injects model auth guard as where clause.
      */
     async injectAuthGuard(args: any, model: string, operation: PolicyOperationKind) {
+        if (args.where) {
+            // inject into relation fields:
+            //   to-many: some/none/every
+            //   to-one: direct-conditions/is/isNot
+            await this.injectGuardForFields(model, args.where, operation);
+        }
+
         const guard = await this.getAuthGuard(model, operation);
         args.where = this.and(args.where, guard);
+    }
+
+    async injectGuardForFields(model: string, payload: any, operation: PolicyOperationKind) {
+        for (const [field, subPayload] of Object.entries<any>(payload)) {
+            if (!subPayload) {
+                continue;
+            }
+
+            const fieldInfo = await resolveField(this.modelMeta, model, field);
+            if (!fieldInfo || !fieldInfo.isDataModel) {
+                continue;
+            }
+
+            if (fieldInfo.isArray) {
+                await this.injectGuardForToManyField(fieldInfo, subPayload, operation);
+            } else {
+                await this.injectGuardForToOneField(fieldInfo, subPayload, operation);
+            }
+        }
+    }
+
+    async injectGuardForToManyField(
+        fieldInfo: FieldInfo,
+        payload: { some?: any; every?: any; none?: any },
+        operation: PolicyOperationKind
+    ) {
+        const guard = await this.getAuthGuard(fieldInfo.type, operation);
+        if (payload.some) {
+            await this.injectGuardForFields(fieldInfo.type, payload.some, operation);
+            // turn "some" into: { some: { AND: [guard, payload.some] } }
+            payload.some = this.and(payload.some, guard);
+        }
+        if (payload.none) {
+            await this.injectGuardForFields(fieldInfo.type, payload.none, operation);
+            // turn none into: { none: { AND: [guard, payload.none] } }
+            payload.none = this.and(payload.none, guard);
+        }
+        if (
+            payload.every &&
+            typeof payload.every === 'object' &&
+            // ignore empty every clause
+            Object.keys(payload.every).length > 0
+        ) {
+            await this.injectGuardForFields(fieldInfo.type, payload.every, operation);
+
+            // turn "every" into: { none: { AND: [guard, { NOT: payload.every }] } }
+            if (!payload.none) {
+                payload.none = {};
+            }
+            payload.none = this.and(payload.none, guard, this.not(payload.every));
+            delete payload.every;
+        }
+    }
+
+    async injectGuardForToOneField(
+        fieldInfo: FieldInfo,
+        payload: { is?: any; isNot?: any } & Record<string, any>,
+        operation: PolicyOperationKind
+    ) {
+        const guard = await this.getAuthGuard(fieldInfo.type, operation);
+        if (payload.is || payload.isNot) {
+            if (payload.is) {
+                await this.injectGuardForFields(fieldInfo.type, payload.is, operation);
+                // turn "is" into: { is: { AND: [ originalIs, guard ] }
+                payload.is = this.and(payload.is, guard);
+            }
+            if (payload.isNot) {
+                await this.injectGuardForFields(fieldInfo.type, payload.isNot, operation);
+                // turn "isNot" into: { isNot: { AND: [ originalIsNot, { NOT: guard } ] } }
+                payload.isNot = this.and(payload.isNot, this.not(guard));
+                delete payload.isNot;
+            }
+        } else {
+            await this.injectGuardForFields(fieldInfo.type, payload, operation);
+            // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
+            const combined = this.and(deepcopy(payload), guard);
+            Object.keys(payload).forEach((key) => delete payload[key]);
+            payload.is = combined;
+        }
     }
 
     /**
@@ -143,7 +240,7 @@ export class PolicyUtil {
         // recursively inject read guard conditions into the query args
         await this.injectNestedReadConditions(model, args);
 
-        this.logger.info(`Reading with validation for ${model}: ${format(args)}`);
+        this.logger.info(`Reading with validation for ${model}: ${formatObject(args)}`);
         const result: any[] = await this.db[model].findMany(args);
 
         await Promise.all(result.map((item) => this.postProcessForRead(item, model, args, 'read')));
@@ -192,8 +289,8 @@ export class PolicyUtil {
                     injectTarget[field] = {};
                 }
                 // inject extra condition for to-many relation
-                const guard = await this.getAuthGuard(fieldInfo.type, 'read');
-                injectTarget[field].where = this.and(injectTarget.where, guard);
+
+                await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
             } else {
                 // there's no way of injecting condition for to-one relation, so we
                 // make sure 'id' field is selected and check them against query result
@@ -414,7 +511,7 @@ export class PolicyUtil {
 
                 const idField = this.getIdField(model);
                 const query = { where: filter, select: { ...preValueSelect, [idField.name]: true } };
-                this.logger.info(`fetching pre-update entities for ${model}: ${format(query)})}`);
+                this.logger.info(`fetching pre-update entities for ${model}: ${formatObject(query)})}`);
                 const entities = await this.db[model].findMany(query);
                 entities.forEach((entity) => modelEntities?.set(this.getEntityId(model, entity), entity));
             }
@@ -620,7 +717,7 @@ export class PolicyUtil {
     }
 
     private async checkPostUpdate(model: string, id: any, db: Record<string, DbOperations>, preValue: any) {
-        this.logger.info(`Checking post-update policy for ${model}#${id}, preValue: ${format(preValue)}`);
+        this.logger.info(`Checking post-update policy for ${model}#${id}, preValue: ${formatObject(preValue)}`);
 
         const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
 
