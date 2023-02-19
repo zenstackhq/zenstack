@@ -185,7 +185,7 @@ export class PolicyUtil {
             if (!payload.none) {
                 payload.none = {};
             }
-            payload.none = this.and(payload.none, guard, { NOT: payload.every });
+            payload.none = this.and(payload.none, guard, this.not(payload.every));
             delete payload.every;
         }
     }
