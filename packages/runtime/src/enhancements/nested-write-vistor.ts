@@ -94,13 +94,6 @@ export class NestedWriteVisitor {
                 break;
         }
 
-        // const initialPath = [
-        //     {
-        //         field: undefined,
-        //         where: topWhere,
-        //     },
-        // ];
-
         await this.doVisit(model, action, topData, undefined, undefined, []);
     }
 
