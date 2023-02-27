@@ -56,6 +56,8 @@ importers:
       change-case: ^4.1.2
       copyfiles: ^2.4.1
       decimal.js: ^10.4.2
+      react: ^17.0.2 || ^18
+      react-dom: ^17.0.2 || ^18
       rimraf: ^3.0.2
       superjson: ^1.11.0
       swr: ^2.0.3
@@ -66,6 +68,8 @@ importers:
       '@zenstackhq/sdk': link:../../sdk/dist
       change-case: 4.1.2
       decimal.js: 10.4.2
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
       superjson: 1.12.1
       swr: 2.0.3_react@18.2.0
       ts-morph: 16.0.0
@@ -120,9 +124,6 @@ importers:
       cuid: ^2.1.8
       decimal.js: ^10.4.2
       deepcopy: ^2.1.0
-      next: ^12.3.1 || ^13
-      react: ^17.0.2 || ^18
-      react-dom: ^17.0.2 || ^18
       rimraf: ^3.0.2
       superjson: ^1.11.0
       swr: ^1.3.0
@@ -140,9 +141,6 @@ importers:
       cuid: 2.1.8
       decimal.js: 10.4.2
       deepcopy: 2.1.0
-      next: 12.3.1_biqbaboplfbrettd7655fr4n2y
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
       superjson: 1.11.0
       swr: 1.3.0_react@18.2.0
       tslib: 2.4.1
