@@ -54,8 +54,8 @@ export async function initProject(
         }
     }
 
-    ensurePackage('prisma', true, packageManager, projectPath);
-    ensurePackage('@prisma/client', false, packageManager, projectPath);
+    ensurePackage('prisma', true, packageManager, tag, projectPath);
+    ensurePackage('@prisma/client', false, packageManager, tag, projectPath);
     installPackage('zenstack', true, packageManager, tag, projectPath);
     installPackage('@zenstackhq/runtime', false, packageManager, tag, projectPath);
 
