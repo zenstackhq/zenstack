@@ -9,7 +9,7 @@ import { URI } from 'vscode-uri';
 import { STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { createZModelServices } from '../language-server/zmodel-module';
 import { Context } from '../types';
-import { installPackage, PackageManagers } from '../utils/pkg-utils';
+import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
 import { CliError } from './cli-error';
 import { PluginRunner } from './plugin-runner';
 
@@ -54,6 +54,8 @@ export async function initProject(
         }
     }
 
+    ensurePackage('prisma', true, packageManager, projectPath);
+    ensurePackage('@prisma/client', false, packageManager, projectPath);
     installPackage('zenstack', true, packageManager, tag, projectPath);
     installPackage('@zenstackhq/runtime', false, packageManager, tag, projectPath);
 
