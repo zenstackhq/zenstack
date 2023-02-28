@@ -66,6 +66,6 @@ export class ZModelValidator {
     }
 
     checkExpression(node: Expression, accept: ValidationAcceptor): void {
-        new ExpressionValidator().validate(node, accept);
+        this.shouldCheck(node) && new ExpressionValidator().validate(node, accept);
     }
 }
