@@ -42,11 +42,12 @@ export function ensurePackage(
     pkg: string,
     dev: boolean,
     pkgManager: PackageManagers | undefined = undefined,
+    tag = 'latest',
     projectPath = '.'
 ) {
     try {
         require(pkg);
     } catch {
-        installPackage(pkg, dev, pkgManager, projectPath);
+        installPackage(pkg, dev, pkgManager, tag, projectPath);
     }
 }
