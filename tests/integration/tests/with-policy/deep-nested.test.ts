@@ -1,13 +1,11 @@
+import { loadSchema, type WeakDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, WeakDbClientContract, loadPrisma } from '../../utils';
 
 describe('With Policy:deep nested', () => {
     let origDir: string;
     const suite = 'deep-nested';
 
     const model = `
-    ${MODEL_PRELUDE}
-
     // M1 - M2 -  M3
     //           -* M4
     model M1 {
@@ -68,7 +66,7 @@ describe('With Policy:deep nested', () => {
     });
 
     beforeEach(async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/shared`, model);
+        const { withPolicy } = await loadSchema(model);
         db = withPolicy();
     });
 

@@ -2,27 +2,6 @@
 * Sample model for a collaborative Todo app
 */
 
-datasource db {
-    provider = 'sqlite'
-    url = 'file:./todo.db'
-}
-
-generator js {
-    provider = 'prisma-client-js'
-    output = '../.prisma'
-}
-
-plugin meta {
-    provider = '@zenstack/model-meta'
-    output = '.zenstack'
-}
-
-plugin policy {
-    provider = '@zenstack/access-policy'
-    output = '.zenstack'
-}
-
-
 /*
  * Model for a space in which users can collaborate on Lists and Todos
  */
@@ -32,7 +11,6 @@ model Space {
     updatedAt DateTime @updatedAt
     name String @length(4, 50)
     slug String @unique @length(4, 16)
-
     owner User? @relation(fields: [ownerId], references: [id])
     ownerId String?
     members SpaceUser[]
@@ -58,12 +36,11 @@ model SpaceUser {
     id String @id @default(uuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    space Space @relation(fields:[spaceId], references: [id], onDelete: Cascade)
+    space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
     spaceId String
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId String
     role String
-    
     @@unique([userId, spaceId])
 
     // require login
@@ -100,7 +77,7 @@ model User {
     @@allow('read', spaces?[space.members?[user == auth()]])
 
     // full access by oneself
-    @@allow('all', auth() == this) 
+    @@allow('all', auth() == this)
 }
 
 /*
@@ -132,7 +109,7 @@ model List {
     @@allow('update', owner == auth()&& space.members?[user == auth()] && future().owner == owner)
 
     // can be deleted by owner
-    @@allow('delete', owner == auth()) 
+    @@allow('delete', owner == auth())
 }
 
 /*

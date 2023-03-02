@@ -647,7 +647,7 @@ export class PolicyUtil {
     deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
         return new PrismaClientKnownRequestError(
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: 'P2004' }
+            { clientVersion: getVersion(), code: 'P2004', meta: { reason: 'RESULT_NOT_READABLE' } }
         );
     }
 

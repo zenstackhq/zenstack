@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export function isPrismaClientKnownRequestError(err: any): err is { code: string; message: string } {
+export function isPrismaClientKnownRequestError(
+    err: any
+): err is { code: string; message: string; meta?: Record<string, unknown> } {
     return err.__proto__.constructor.name === 'PrismaClientKnownRequestError';
 }
 

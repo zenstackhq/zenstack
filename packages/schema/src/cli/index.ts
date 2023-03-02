@@ -32,9 +32,12 @@ export const initAction = async (
 export const generateAction = async (options: {
     schema: string;
     packageManager: PackageManagers | undefined;
+    dependencyCheck: boolean;
 }): Promise<void> => {
-    checkRequiredPackage('prisma', requiredPrismaVersion);
-    checkRequiredPackage('@prisma/client', requiredPrismaVersion);
+    if (options.dependencyCheck) {
+        checkRequiredPackage('prisma', requiredPrismaVersion);
+        checkRequiredPackage('@prisma/client', requiredPrismaVersion);
+    }
     await telemetry.trackSpan(
         'cli:command:start',
         'cli:command:complete',
@@ -90,6 +93,8 @@ export function createProgram() {
         'pnpm',
     ]);
 
+    const noDependencyCheck = new Option('--no-dependency-check', 'do not check if dependencies are installed');
+
     program
         .command('init')
         .description('Initialize an existing project for ZenStack.')
@@ -105,9 +110,10 @@ export function createProgram() {
 
     program
         .command('generate')
-        .description('Generates RESTful API and Typescript client for your data model.')
+        .description('Run code generation.')
         .addOption(schemaOption)
         .addOption(pmOption)
+        .addOption(noDependencyCheck)
         .action(generateAction);
     return program;
 }

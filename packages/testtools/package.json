@@ -1,0 +1,33 @@
+{
+  "name": "@zenstackhq/testtools",
+  "version": "1.0.0-alpha.48",
+  "description": "ZenStack Test Tools",
+  "main": "index.js",
+  "publishConfig": {
+    "directory": "dist",
+    "linkDirectory": true
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "lint": "eslint src --ext ts",
+    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist && copyfiles -u 1 src/package.template.json src/.npmrc.template dist",
+    "watch": "tsc --watch",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^4.7.0",
+    "@zenstackhq/runtime": "workspace:*",
+    "tmp": "^0.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.2",
+    "@types/tmp": "^0.2.3",
+    "copyfiles": "^2.4.1",
+    "prisma": "~4.7.0",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.9.5"
+  }
+}

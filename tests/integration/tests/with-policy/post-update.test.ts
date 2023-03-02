@@ -1,5 +1,5 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy: post update', () => {
     let origDir: string;
@@ -14,11 +14,8 @@ describe('With Policy: post update', () => {
     });
 
     it('simple allow', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/simple-allow`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             value Int
@@ -37,11 +34,8 @@ describe('With Policy: post update', () => {
     });
 
     it('simple deny', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/simple-deny`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             value Int
@@ -60,11 +54,8 @@ describe('With Policy: post update', () => {
     });
 
     it('mixed pre and post', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/mixed`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             value Int
@@ -86,11 +77,8 @@ describe('With Policy: post update', () => {
     });
 
     it('nested to-many', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested-to-many`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]
@@ -148,11 +136,8 @@ describe('With Policy: post update', () => {
     });
 
     it('nested to-one', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested-to-one`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?
@@ -204,11 +189,8 @@ describe('With Policy: post update', () => {
     });
 
     it('nested select', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested-select`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?
@@ -258,11 +240,8 @@ describe('With Policy: post update', () => {
     });
 
     it('deep nesting', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/deep-nesting`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?

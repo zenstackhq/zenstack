@@ -1,5 +1,5 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy: relation to-many filter', () => {
     let origDir: string;
@@ -14,8 +14,6 @@ describe('With Policy: relation to-many filter', () => {
     });
 
     const model = `
-    ${MODEL_PRELUDE}
-
     model M1 {
         id String @id @default(uuid())
         m2 M2[]
@@ -48,7 +46,7 @@ describe('With Policy: relation to-many filter', () => {
     `;
 
     it('some filter', async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/some-filter`, model);
+        const { withPolicy } = await loadSchema(model);
 
         const db = withPolicy();
 
@@ -166,7 +164,7 @@ describe('With Policy: relation to-many filter', () => {
     });
 
     it('none filter', async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/none-filter`, model);
+        const { withPolicy } = await loadSchema(model);
 
         const db = withPolicy();
 
@@ -284,7 +282,7 @@ describe('With Policy: relation to-many filter', () => {
     });
 
     it('every filter', async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/every-filter`, model);
+        const { withPolicy } = await loadSchema(model);
 
         const db = withPolicy();
 
