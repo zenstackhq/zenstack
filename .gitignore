@@ -5,3 +5,4 @@ dist
 .vscode/settings.json
 .env.local
 .npmcache
+coverage

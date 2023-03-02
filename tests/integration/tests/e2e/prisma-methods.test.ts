@@ -1,16 +1,13 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadPrisma, MODEL_PRELUDE, run, WeakDbClientContract } from '../../utils';
+import { loadSchema, run, WeakDbClientContract } from '@zenstackhq/testtools';
 
 describe('Prisma Methods Tests', () => {
     let getDb: (user?: AuthUser) => WeakDbClientContract;
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPresets, prisma: _prisma } = await loadPrisma(
-            'prisma-methods',
+        const { withPresets, prisma: _prisma } = await loadSchema(
             `
-            ${MODEL_PRELUDE}
-
             model Model {
                 id String @id @default(cuid())
                 value Int

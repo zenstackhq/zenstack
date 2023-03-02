@@ -1,5 +1,5 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma, run } from '../../utils';
 
 describe('With Policy: multi-field unique', () => {
     let origDir: string;
@@ -14,11 +14,8 @@ describe('With Policy: multi-field unique', () => {
     });
 
     it('toplevel crud test unnamed constraint', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/toplevel-crud-unnamed`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             a String
@@ -47,11 +44,8 @@ describe('With Policy: multi-field unique', () => {
     });
 
     it('toplevel crud test named constraint', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/toplevel-crud-named`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             a String
@@ -80,11 +74,8 @@ describe('With Policy: multi-field unique', () => {
     });
 
     it('nested crud test', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested-crud`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]

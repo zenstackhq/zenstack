@@ -1,5 +1,5 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy:nested to-one', () => {
     let origDir: string;
@@ -14,11 +14,8 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('create and update tests', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/create and update`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?
@@ -77,11 +74,8 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested create', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested create`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?
@@ -135,11 +129,8 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested delete', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested delete`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?
@@ -204,11 +195,8 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested relation delete', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested relation delete`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(uuid())
             m1 M1?

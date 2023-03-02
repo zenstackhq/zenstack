@@ -1,5 +1,5 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy:nested to-many', () => {
     let origDir: string;
@@ -14,11 +14,8 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('create simple', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/create`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]
@@ -84,11 +81,8 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update simple', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/update`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]
@@ -161,11 +155,8 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with create', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/update with create`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]
@@ -221,11 +212,8 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with delete', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/update with delete`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]
@@ -315,11 +303,8 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('create with nested read', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/create with nested read`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             value Int
@@ -412,11 +397,8 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with nested read', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/update with nested read`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]

@@ -1,18 +1,15 @@
 import { AuthUser } from '@zenstackhq/runtime';
+import { loadSchema, run, type WeakDbClientContract } from '@zenstackhq/testtools';
 import Decimal from 'decimal.js';
 import superjson from 'superjson';
-import { loadPrisma, MODEL_PRELUDE, run, WeakDbClientContract } from '../../utils';
 
 describe('Type Coverage Tests', () => {
     let getDb: (user?: AuthUser) => WeakDbClientContract;
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPresets, prisma: _prisma } = await loadPrisma(
-            'type-coverate',
+        const { withPresets, prisma: _prisma } = await loadSchema(
             `
-            ${MODEL_PRELUDE}
-            
             model Foo {
                 id String @id @default(cuid())
                 

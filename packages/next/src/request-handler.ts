@@ -94,6 +94,7 @@ async function handleRequest(
                 return;
             }
             args = unmarshal(req.body, options.useSuperJson);
+            // TODO: upsert's status code should be conditional
             resCode = 201;
             break;
 
@@ -112,7 +113,7 @@ async function handleRequest(
 
         case 'update':
         case 'updateMany':
-            if (req.method !== 'PUT') {
+            if (req.method !== 'PUT' && req.method !== 'PATCH') {
                 res.status(400).send({ error: 'invalid http method' });
                 return;
             }
@@ -130,10 +131,14 @@ async function handleRequest(
 
         default:
             res.status(400).send({ error: `unknown method name: ${op}` });
-            break;
+            return;
     }
 
     try {
+        if (!prisma[model]) {
+            res.status(400).send({ error: `unknown model name: ${model}` });
+            return;
+        }
         const result = await prisma[model][dbOp](args);
         res.status(resCode).send(marshal(result, options.useSuperJson));
     } catch (err) {
@@ -146,12 +151,14 @@ async function handleRequest(
                     rejectedByPolicy: true,
                     code: err.code,
                     message: err.message,
+                    reason: err.meta?.reason,
                 });
             } else {
                 res.status(400).send({
                     prisma: true,
                     code: err.code,
                     message: err.message,
+                    reason: err.meta?.reason,
                 });
             }
         } else if (isPrismaClientUnknownRequestError(err) || isPrismaClientValidationError(err)) {

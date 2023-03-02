@@ -1,9 +1,8 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy:empty policy', () => {
     let origDir: string;
-    const suite = 'empty-policy';
 
     beforeAll(async () => {
         origDir = path.resolve('.');
@@ -14,11 +13,8 @@ describe('With Policy:empty policy', () => {
     });
 
     it('direct operations', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/direct operations`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
         }
@@ -57,11 +53,8 @@ describe('With Policy:empty policy', () => {
     });
 
     it('to-many write', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/to-many write`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2[]
@@ -91,11 +84,8 @@ describe('With Policy:empty policy', () => {
     });
 
     it('to-one write', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/nested write to-one`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model M1 {
             id String @id @default(uuid())
             m2 M2?
