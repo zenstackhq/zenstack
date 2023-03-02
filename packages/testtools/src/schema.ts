@@ -29,8 +29,8 @@ export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     });
 }
 
-function getWorkspaceRoot() {
-    let curr = process.cwd();
+function getWorkspaceRoot(start: string) {
+    let curr = start;
     while (curr && curr !== '/') {
         if (fs.existsSync(path.join(curr, 'pnpm-workspace.yaml'))) {
             return curr;
@@ -72,7 +72,7 @@ export async function loadSchemaFromFile(schemaFile: string) {
 export async function loadSchema(schema: string) {
     const { name: workDir } = tmp.dirSync();
 
-    const root = getWorkspaceRoot();
+    const root = getWorkspaceRoot(__dirname);
     if (!root) {
         throw new Error('Could not find workspace root');
     }
