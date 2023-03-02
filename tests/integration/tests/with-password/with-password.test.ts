@@ -1,10 +1,9 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import { compareSync } from 'bcryptjs';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils/utils';
 import path from 'path';
 
 describe('Password test', () => {
     let origDir: string;
-    const suite = 'password';
 
     beforeAll(async () => {
         origDir = path.resolve('.');
@@ -15,11 +14,8 @@ describe('Password test', () => {
     });
 
     it('password tests', async () => {
-        const { withPassword } = await loadPrisma(
-            `${suite}/test`,
+        const { withPassword } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(cuid())
             password String @password(saltLength: 16)

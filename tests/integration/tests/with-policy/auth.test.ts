@@ -1,6 +1,5 @@
-import { PrismaClientValidationError } from '@prisma/client/runtime';
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy:undefined user', () => {
     let origDir: string;
@@ -15,11 +14,8 @@ describe('With Policy:undefined user', () => {
     });
 
     it('undefined user with string id', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/undefined user with string id`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(uuid())
         }
@@ -42,11 +38,8 @@ describe('With Policy:undefined user', () => {
     });
 
     it('undefined user with string id more', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/undefined user with string id more`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(uuid())
         }
@@ -69,11 +62,8 @@ describe('With Policy:undefined user', () => {
     });
 
     it('undefined user with int id', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/undefined user with int id`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id Int @id @default(autoincrement())
         }
@@ -96,11 +86,8 @@ describe('With Policy:undefined user', () => {
     });
 
     it('undefined user compared with field', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/undefined user compared with field`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(uuid())
             posts Post[]
@@ -135,11 +122,8 @@ describe('With Policy:undefined user', () => {
     });
 
     it('undefined user compared with field more', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/undefined user compared with field more`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(uuid())
             posts Post[]
@@ -173,11 +157,8 @@ describe('With Policy:undefined user', () => {
     });
 
     it('undefined user non-id field', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/undefined user non-id field`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(uuid())
             posts Post[]

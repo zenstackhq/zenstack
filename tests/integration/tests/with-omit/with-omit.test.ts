@@ -1,9 +1,8 @@
-import { MODEL_PRELUDE, loadPrisma } from '../../utils/utils';
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('Omit test', () => {
     let origDir: string;
-    const suite = 'omit';
 
     beforeAll(async () => {
         origDir = path.resolve('.');
@@ -14,11 +13,8 @@ describe('Omit test', () => {
     });
 
     it('omit tests', async () => {
-        const { withOmit } = await loadPrisma(
-            `${suite}/test`,
+        const { withOmit } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model User {
             id String @id @default(cuid())
             password String @omit

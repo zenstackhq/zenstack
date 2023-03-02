@@ -1,5 +1,5 @@
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
-import { MODEL_PRELUDE, loadPrisma } from '../../utils';
 
 describe('With Policy: relation to-one filter', () => {
     let origDir: string;
@@ -14,8 +14,6 @@ describe('With Policy: relation to-one filter', () => {
     });
 
     const model = `
-    ${MODEL_PRELUDE}
-
     model M1 {
         id String @id @default(uuid())
         m2 M2?
@@ -48,7 +46,7 @@ describe('With Policy: relation to-one filter', () => {
     `;
 
     it('is filter', async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/is-filter`, model);
+        const { withPolicy } = await loadSchema(model);
 
         const db = withPolicy();
 
@@ -155,7 +153,7 @@ describe('With Policy: relation to-one filter', () => {
     });
 
     it('isNot filter', async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/isNot-filter`, model);
+        const { withPolicy } = await loadSchema(model);
 
         const db = withPolicy();
 
@@ -264,7 +262,7 @@ describe('With Policy: relation to-one filter', () => {
     });
 
     it('direct object filter', async () => {
-        const { withPolicy } = await loadPrisma(`${suite}/direct-object-filter`, model);
+        const { withPolicy } = await loadSchema(model);
 
         const db = withPolicy();
 

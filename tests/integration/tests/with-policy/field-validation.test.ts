@@ -1,15 +1,12 @@
-import { MODEL_PRELUDE, WeakDbClientContract, loadPrisma, run } from '../../utils';
+import { loadSchema, run, WeakDbClientContract } from '@zenstackhq/testtools';
 
 describe('With Policy: field validation', () => {
     let db: WeakDbClientContract;
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPolicy, prisma: _prisma } = await loadPrisma(
-            'field-validation',
+        const { withPolicy, prisma: _prisma } = await loadSchema(
             `
-            ${MODEL_PRELUDE}
-
             model User {
                 id String @id @default(cuid())
                 password String @length(8, 16)

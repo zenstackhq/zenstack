@@ -41,6 +41,7 @@
         "bcryptjs": "^2.4.3",
         "decimal.js": "^10.4.2",
         "sleep-promise": "^9.1.0",
-        "superjson": "^1.11.0"
+        "superjson": "^1.11.0",
+        "@zenstackhq/testtools": "workspace:*"
     }
 }

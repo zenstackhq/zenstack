@@ -1,4 +1,4 @@
-import { MODEL_PRELUDE, loadPrisma } from '../../utils/utils';
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('With Policy:toplevel operations', () => {
@@ -14,11 +14,8 @@ describe('With Policy:toplevel operations', () => {
     });
 
     it('read tests', async () => {
-        const { withPolicy, prisma } = await loadPrisma(
-            `${suite}/read`,
+        const { withPolicy, prisma } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             value Int
@@ -66,11 +63,8 @@ describe('With Policy:toplevel operations', () => {
     });
 
     it('write tests', async () => {
-        const { withPolicy } = await loadPrisma(
-            `${suite}/write`,
+        const { withPolicy } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             value Int
@@ -155,11 +149,8 @@ describe('With Policy:toplevel operations', () => {
     });
 
     it('delete tests', async () => {
-        const { withPolicy, prisma } = await loadPrisma(
-            `${suite}/delete`,
+        const { withPolicy, prisma } = await loadSchema(
             `
-        ${MODEL_PRELUDE}
-
         model Model {
             id String @id @default(uuid())
             value Int

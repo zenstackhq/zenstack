@@ -1,7 +1,7 @@
+import { run } from '@zenstackhq/testtools';
 import fs from 'fs';
 import fse from 'fs-extra';
 import path from 'path';
-import { run } from '../../utils';
 
 describe('tRPC Routers Generation Tests', () => {
     let origDir: string;
