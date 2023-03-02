@@ -8,45 +8,47 @@ import {
     DataModelFieldAttribute,
     DataSource,
     Enum,
+    EnumField,
     Expression,
     GeneratorDecl,
     InvocationExpr,
-    LiteralExpr,
-    Model,
     isArrayExpr,
     isInvocationExpr,
     isLiteralExpr,
     isReferenceExpr,
+    LiteralExpr,
+    Model,
 } from '@zenstackhq/language/ast';
 import {
+    getLiteral,
+    getLiteralArray,
     GUARD_FIELD_NAME,
     PluginError,
     PluginOptions,
-    TRANSACTION_FIELD_NAME,
-    getLiteral,
-    getLiteralArray,
     resolved,
+    TRANSACTION_FIELD_NAME,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { execSync } from '../../utils/exec-utils';
-import ZModelCodeGenerator from './zmodel-code-generator';
 import {
-    ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
-    Model as PrismaDataModel,
     DataSourceUrl as PrismaDataSourceUrl,
+    Enum as PrismaEnum,
     FieldAttribute as PrismaFieldAttribute,
     FieldReference as PrismaFieldReference,
     FieldReferenceArg as PrismaFieldReferenceArg,
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
-    PrismaModel,
+    Model as PrismaDataModel,
     ModelAttribute as PrismaModelAttribute,
+    ModelFieldType,
+    PrismaModel,
 } from './prisma-builder';
+import ZModelCodeGenerator from './zmodel-code-generator';
 
 /**
  * Generates Prisma schema file
@@ -293,7 +295,7 @@ export default class PrismaSchemaGenerator {
         );
     }
 
-    private generateModelAttribute(model: PrismaDataModel, attr: DataModelAttribute) {
+    private generateModelAttribute(model: PrismaDataModel | PrismaEnum, attr: DataModelAttribute) {
         model.attributes.push(
             new PrismaModelAttribute(
                 resolved(attr.decl).name,
@@ -303,10 +305,35 @@ export default class PrismaSchemaGenerator {
     }
 
     private generateEnum(prisma: PrismaModel, decl: Enum) {
-        prisma.addEnum(
-            decl.name,
-            decl.fields.map((f) => f.name)
+        const _enum = prisma.addEnum(decl.name);
+
+        for (const field of decl.fields) {
+            this.generateEnumField(_enum, field);
+        }
+
+        for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
+            this.generateModelAttribute(_enum, attr);
+        }
+
+        decl.attributes
+            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
+            .forEach((attr) => _enum.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
+
+        // user defined comments pass-through
+        decl.comments.forEach((c) => _enum.addComment(c));
+    }
+
+    private generateEnumField(_enum: PrismaEnum, field: EnumField) {
+        const attributes = field.attributes
+            .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
+            .map((attr) => this.makeFieldAttribute(attr));
+
+        const nonPrismaAttributes = field.attributes.filter(
+            (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
         );
+
+        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
+        _enum.addField(field.name, attributes, documentations);
     }
 
     private isStringLiteral(node: AstNode): node is LiteralExpr {

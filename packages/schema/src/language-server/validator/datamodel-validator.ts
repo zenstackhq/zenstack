@@ -1,23 +1,16 @@
 import {
     ArrayExpr,
-    Attribute,
-    AttributeParam,
     DataModel,
-    DataModelAttribute,
     DataModelField,
-    DataModelFieldAttribute,
-    isAttribute,
     isDataModel,
-    isDataModelField,
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
-import pluralize from 'pluralize';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
-import { assignableToAttributeParam, validateDuplicatedDeclarations } from './utils';
+import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
 
 /**
  * Validates data model declarations.
@@ -62,7 +55,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
 
-        field.attributes.forEach((attr) => this.validateAttributeApplication(attr, accept));
+        field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
 
         if (isDataModel(field.type.reference?.ref)) {
             this.validateRelationField(field, accept);
@@ -71,131 +64,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
         dm.attributes.forEach((attr) => {
-            this.validateAttributeApplication(attr, accept);
+            validateAttributeApplication(attr, accept);
         });
-    }
-
-    private validateAttributeApplication(
-        attr: DataModelAttribute | DataModelFieldAttribute,
-        accept: ValidationAcceptor
-    ) {
-        const decl = attr.decl.ref;
-        if (!decl) {
-            return;
-        }
-
-        const targetDecl = attr.$container;
-        if (decl.name === '@@@targetField' && !isAttribute(targetDecl)) {
-            accept('error', `attribute "${decl.name}" can only be used on attribute declarations`, { node: attr });
-            return;
-        }
-
-        if (isDataModelField(targetDecl) && !this.isValidAttributeTarget(decl, targetDecl)) {
-            accept('error', `attribute "${decl.name}" cannot be used on this type of field`, { node: attr });
-        }
-
-        const filledParams = new Set<AttributeParam>();
-
-        for (const arg of attr.args) {
-            let paramDecl: AttributeParam | undefined;
-            if (!arg.name) {
-                paramDecl = decl.params.find((p) => p.default && !filledParams.has(p));
-                if (!paramDecl) {
-                    accept('error', `Unexpected unnamed argument`, {
-                        node: arg,
-                    });
-                    return false;
-                }
-            } else {
-                paramDecl = decl.params.find((p) => p.name === arg.name);
-                if (!paramDecl) {
-                    accept('error', `Attribute "${decl.name}" doesn't have a parameter named "${arg.name}"`, {
-                        node: arg,
-                    });
-                    return false;
-                }
-            }
-
-            if (!assignableToAttributeParam(arg, paramDecl, attr)) {
-                accept('error', `Value is not assignable to parameter`, {
-                    node: arg,
-                });
-                return false;
-            }
-
-            if (filledParams.has(paramDecl)) {
-                accept('error', `Parameter "${paramDecl.name}" is already provided`, { node: arg });
-                return false;
-            }
-            filledParams.add(paramDecl);
-            arg.$resolvedParam = paramDecl;
-        }
-
-        const missingParams = decl.params.filter((p) => !p.type.optional && !filledParams.has(p));
-        if (missingParams.length > 0) {
-            accept(
-                'error',
-                `Required ${pluralize('parameter', missingParams.length)} not provided: ${missingParams
-                    .map((p) => p.name)
-                    .join(', ')}`,
-                { node: attr }
-            );
-            return false;
-        }
-
-        return true;
-    }
-
-    private isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataModelField) {
-        const targetField = attrDecl.attributes.find((attr) => attr.decl.ref?.name === '@@@targetField');
-        if (!targetField) {
-            // no field type constraint
-            return true;
-        }
-
-        const fieldTypes = (targetField.args[0].value as ArrayExpr).items.map(
-            (item) => (item as ReferenceExpr).target.ref?.name
-        );
-
-        let allowed = false;
-        for (const allowedType of fieldTypes) {
-            switch (allowedType) {
-                case 'StringField':
-                    allowed = allowed || targetDecl.type.type === 'String';
-                    break;
-                case 'IntField':
-                    allowed = allowed || targetDecl.type.type === 'Int';
-                    break;
-                case 'FloatField':
-                    allowed = allowed || targetDecl.type.type === 'Float';
-                    break;
-                case 'DecimalField':
-                    allowed = allowed || targetDecl.type.type === 'Decimal';
-                    break;
-                case 'BooleanField':
-                    allowed = allowed || targetDecl.type.type === 'Boolean';
-                    break;
-                case 'DateTimeField':
-                    allowed = allowed || targetDecl.type.type === 'DateTime';
-                    break;
-                case 'JsonField':
-                    allowed = allowed || targetDecl.type.type === 'Json';
-                    break;
-                case 'BytesField':
-                    allowed = allowed || targetDecl.type.type === 'Bytes';
-                    break;
-                case 'ModelField':
-                    allowed = allowed || isDataModel(targetDecl.type.reference?.ref);
-                    break;
-                default:
-                    break;
-            }
-            if (allowed) {
-                break;
-            }
-        }
-
-        return allowed;
     }
 
     private parseRelation(field: DataModelField, accept?: ValidationAcceptor) {

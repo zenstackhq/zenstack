@@ -61,4 +61,36 @@ describe('Prisma generator test', () => {
         expect(content).toContain(`/// @TypeGraphQL.omit(input: ['update', 'where', 'orderBy'])`);
         expect(content).toContain(`/// @TypeGraphQL.field(name: 'bar')`);
     });
+
+    it('enum mapping', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+
+            enum Role {
+                ADMIN @map('admin')
+                CUSTOMER @map('customer')
+                @@map('_Role')
+            }
+
+            model User {
+                id Int @id
+                role Role @default(CUSTOMER)
+              }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@zenstack/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        expect(content).toContain(`@@map("_Role")`);
+        expect(content).toContain(`@map("admin")`);
+        expect(content).toContain(`@map("customer")`);
+    });
 });

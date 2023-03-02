@@ -38,7 +38,9 @@ describe('Prisma Builder Tests', () => {
 
     it('enum', async () => {
         const model = new PrismaModel();
-        model.addEnum('UserRole', ['USER', 'ADMIN']);
+        const _enum = model.addEnum('UserRole');
+        _enum.addField('USER');
+        _enum.addField('ADMIN');
         await validate(model);
     });
 

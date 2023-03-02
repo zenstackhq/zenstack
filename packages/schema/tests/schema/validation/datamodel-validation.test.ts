@@ -28,7 +28,8 @@ describe('Data Model Validation Tests', () => {
                 id String @id
                 a String
                 b Boolean?
-                c Int[]
+                c Int[] @default([])
+                c1 Int[] @default([1, 2, 3])
                 d BigInt
                 e Float
                 f Decimal

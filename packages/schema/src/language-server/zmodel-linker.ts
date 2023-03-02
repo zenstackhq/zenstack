@@ -217,9 +217,13 @@ export class ZModelLinker extends DefaultLinker {
     private resolveArray(node: ArrayExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         node.items.forEach((item) => this.resolve(item, document, extraScopes));
 
-        const itemType = node.items[0].$resolvedType;
-        if (itemType?.decl) {
-            this.resolveToBuiltinTypeOrDecl(node, itemType.decl, true);
+        if (node.items.length > 0) {
+            const itemType = node.items[0].$resolvedType;
+            if (itemType?.decl) {
+                this.resolveToBuiltinTypeOrDecl(node, itemType.decl, true);
+            }
+        } else {
+            this.resolveToBuiltinTypeOrDecl(node, 'Any', true);
         }
     }
 
