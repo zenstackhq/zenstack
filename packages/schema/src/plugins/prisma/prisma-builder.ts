@@ -27,8 +27,8 @@ export class PrismaModel {
         return model;
     }
 
-    addEnum(name: string, fields: string[]): Enum {
-        const e = new Enum(name, fields);
+    addEnum(name: string): Enum {
+        const e = new Enum(name);
         this.enums.push(e);
         return e;
     }
@@ -281,12 +281,57 @@ export class FunctionCallArg {
     }
 }
 
-export class Enum {
-    constructor(public name: string, public fields: EnumField[]) {}
+export class Enum extends DeclarationBase {
+    public fields: EnumField[] = [];
+    public attributes: ModelAttribute[] = [];
+
+    constructor(public name: string, public documentations: string[] = []) {
+        super();
+    }
+
+    addField(name: string, attributes: FieldAttribute[] = [], documentations: string[] = []): EnumField {
+        const field = new EnumField(name, attributes, documentations);
+        this.fields.push(field);
+        return field;
+    }
+
+    addAttribute(name: string, args: AttributeArg[] = []): ModelAttribute {
+        const attr = new ModelAttribute(name, args);
+        this.attributes.push(attr);
+        return attr;
+    }
+
+    addComment(name: string): string {
+        this.documentations.push(name);
+        return name;
+    }
 
     toString(): string {
-        return `enum ${this.name} {\n` + indentString(this.fields.join('\n')) + '\n}';
+        return (
+            super.toString() +
+            `enum ${this.name} {\n` +
+            indentString([...this.fields, ...this.attributes].map((d) => d.toString()).join('\n')) +
+            '\n}'
+        );
     }
 }
 
-type EnumField = string;
+export class EnumField extends DeclarationBase {
+    constructor(public name: string, public attributes: FieldAttribute[] = [], public documentations: string[] = []) {
+        super();
+    }
+
+    addAttribute(name: string, args: AttributeArg[] = []): FieldAttribute {
+        const attr = new FieldAttribute(name, args);
+        this.attributes.push(attr);
+        return attr;
+    }
+
+    toString(): string {
+        return (
+            super.toString() +
+            this.name +
+            (this.attributes.length > 0 ? ' ' + this.attributes.map((a) => a.toString()).join(' ') : '')
+        );
+    }
+}

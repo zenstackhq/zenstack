@@ -177,6 +177,15 @@ describe('Attribute tests', () => {
                 @@map("__A")
             }
         `);
+
+        await loadModel(`
+            ${prelude}
+            enum Role {
+                ADMIN @map("admin")
+                CUSTOMER @map("customer")
+                @@map("_Role")
+            }
+        `);
     });
 
     it('attribute function coverage', async () => {

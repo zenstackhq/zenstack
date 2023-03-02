@@ -54,7 +54,7 @@ fragment ReferenceArgList:
     args+=ReferenceArg (',' args+=ReferenceArg)*;
 
 ReferenceArg:
-    name=('sort') ':' value=('Asc'| 'Desc');
+    name=('sort') ':' value=('Asc' | 'Desc');
 
 InvocationExpr:
     function=[FunctionDecl] '(' ArgumentList? ')';
@@ -145,14 +145,20 @@ DataModelField:
     name=ID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
-    (type=BuiltinType | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
+    (type=BuiltinType | reference=[TypeDeclaration:ID]) (array?='[' ']')? (optional?='?')?;
 
 // enum
 Enum:
-    TRIPLE_SLASH_COMMENT* 'enum' name=ID '{' (fields+=EnumField)+ '}';
+    (comments+=TRIPLE_SLASH_COMMENT)*
+    'enum' name=ID '{' (
+           fields+=EnumField
+           | attributes+=DataModelAttribute
+        )+ 
+    '}';
 
 EnumField:
-    TRIPLE_SLASH_COMMENT* name=ID;
+    (comments+=TRIPLE_SLASH_COMMENT)*
+    name=ID (attributes+=DataModelFieldAttribute)*;
 
 // function
 FunctionDecl:
@@ -162,7 +168,7 @@ FunctionParam:
     TRIPLE_SLASH_COMMENT* name=ID ':' type=FunctionParamType;
 
 FunctionParamType:
-    (type=ExpressionType | reference=[TypeDeclaration]) (array?='[]')?;
+    (type=ExpressionType | reference=[TypeDeclaration]) (array?='[' ']')?;
 
 QualifiedName returns string:
     ID ('.' ID)*;
@@ -192,7 +198,7 @@ AttributeParam:
 // FieldReference refers to fields declared in the current model
 // TransitiveFieldReference refers to fields declared in the model type of the current field
 AttributeParamType:
-    (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:ID]) (array?='[]')? (optional?='?')?;
+    (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:ID]) (array?='[' ']')? (optional?='?')?;
 
 type TypeDeclaration = DataModel | Enum;
 

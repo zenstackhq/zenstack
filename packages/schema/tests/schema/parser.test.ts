@@ -101,6 +101,7 @@ describe('Parsing Tests', () => {
                 id String @id
                 name String?
                 tags String[]
+                tagsWithDefault String[] @default([])
             }
         `;
         const doc = await loadModel(content, false);
@@ -330,10 +331,10 @@ describe('Parsing Tests', () => {
                 x Int
             }
 
-            function foo(a Int, b Int) Boolean {
+            function foo(a: Int, b: Int): Boolean {
             }
 
-            function bar(items N[]) Boolean {
+            function bar(items: N[]): Boolean {
             }
         `;
         const doc = await loadModel(content, false);
@@ -370,7 +371,7 @@ describe('Parsing Tests', () => {
                 y Int
             }
 
-            function foo(n N) Boolean {
+            function foo(n: N): Boolean {
                 n.x < 0
             }
         `;
