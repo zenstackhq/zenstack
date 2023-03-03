@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
-import { AUXILIARY_FIELDS, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
+import { AUXILIARY_FIELDS, CrudFailureReason, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
@@ -647,7 +647,7 @@ export class PolicyUtil {
     deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
         return new PrismaClientKnownRequestError(
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: 'P2004', meta: { reason: 'RESULT_NOT_READABLE' } }
+            { clientVersion: getVersion(), code: 'P2004', meta: { reason: CrudFailureReason.RESULT_NOT_READABLE } }
         );
     }
 

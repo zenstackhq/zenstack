@@ -1,5 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import { PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { CrudFailureReason, PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
 import { camelCase, paramCase } from 'change-case';
 import * as path from 'path';
@@ -35,7 +35,7 @@ function wrapReadbackErrorCheck(code: string) {
     return `try {
         ${code}
     } catch (err: any) {
-        if (err.info?.prisma && err.info?.code === 'P2004' && err.info?.reason === 'RESULT_NOT_READABLE') {
+        if (err.info?.prisma && err.info?.code === 'P2004' && err.info?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
             // unable to readback data
             return undefined;
         } else {

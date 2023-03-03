@@ -1,4 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
+import { CrudFailureReason } from '@zenstackhq/sdk';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
 import { uncapitalizeFirstLetter } from './utils/uncapitalizeFirstLetter';
 
@@ -24,11 +25,30 @@ export function generateProcedure(
     baseOpType: string
 ) {
     const procType = getProcedureTypeByOpName(baseOpType);
-    writer.write(`
-        ${opType}: procedure.input(${typeName}).${procType}(({ctx, input}) => db(ctx).${uncapitalizeFirstLetter(
-        modelName
-    )}.${opType.replace('One', '')}(input)),
+    const prismaMethod = opType.replace('One', '');
+
+    if (procType === 'query') {
+        writer.write(`
+        ${opType}: procedure.input(${typeName}).query(({ctx, input}) => db(ctx).${uncapitalizeFirstLetter(
+            modelName
+        )}.${prismaMethod}(input)),
     `);
+    } else if (procType === 'mutation') {
+        writer.write(`
+        ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => {
+            try {
+                return await db(ctx).${uncapitalizeFirstLetter(modelName)}.${prismaMethod}(input);
+            } catch (err: any) {
+                if (err.code === 'P2004' && err.meta?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
+                    // unable to readback data
+                    return undefined;
+                } else {
+                    throw err;
+                }
+            }
+        }),
+    `);
+    }
 }
 
 export function generateRouterSchemaImports(sourceFile: SourceFile, name: string) {
