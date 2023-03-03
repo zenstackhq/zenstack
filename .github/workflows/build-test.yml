@@ -47,10 +47,5 @@ jobs:
             - run: pnpm install --frozen-lockfile
             - run: pnpm run test
 
-    upload-cov:
-        needs: build-test
-        runs-on: ubuntu-latest
-        if: success() && github.ref == 'refs/heads/dev'
-        steps:
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@v3
