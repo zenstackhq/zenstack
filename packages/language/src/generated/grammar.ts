@@ -1603,13 +1603,22 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             ]
           },
           {
-            "$type": "Assignment",
-            "feature": "array",
-            "operator": "?=",
-            "terminal": {
-              "$type": "Keyword",
-              "value": "[]"
-            },
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "array",
+                "operator": "?=",
+                "terminal": {
+                  "$type": "Keyword",
+                  "value": "["
+                }
+              },
+              {
+                "$type": "Keyword",
+                "value": "]"
+              }
+            ],
             "cardinality": "?"
           },
           {
@@ -1638,11 +1647,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@56"
+            "$type": "Assignment",
+            "feature": "comments",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@56"
+              },
+              "arguments": []
             },
-            "arguments": [],
             "cardinality": "*"
           },
           {
@@ -1666,16 +1680,33 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "value": "{"
           },
           {
-            "$type": "Assignment",
-            "feature": "fields",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@30"
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "fields",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@30"
+                  },
+                  "arguments": []
+                }
               },
-              "arguments": []
-            },
+              {
+                "$type": "Assignment",
+                "feature": "attributes",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@43"
+                  },
+                  "arguments": []
+                }
+              }
+            ],
             "cardinality": "+"
           },
           {
@@ -1698,11 +1729,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "$type": "Group",
         "elements": [
           {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@56"
+            "$type": "Assignment",
+            "feature": "comments",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@56"
+              },
+              "arguments": []
             },
-            "arguments": [],
             "cardinality": "*"
           },
           {
@@ -1716,6 +1752,19 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
               },
               "arguments": []
             }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "attributes",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@42"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
           }
         ]
       },
@@ -1937,13 +1986,22 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             ]
           },
           {
-            "$type": "Assignment",
-            "feature": "array",
-            "operator": "?=",
-            "terminal": {
-              "$type": "Keyword",
-              "value": "[]"
-            },
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "array",
+                "operator": "?=",
+                "terminal": {
+                  "$type": "Keyword",
+                  "value": "["
+                }
+              },
+              {
+                "$type": "Keyword",
+                "value": "]"
+              }
+            ],
             "cardinality": "?"
           }
         ]
@@ -2334,13 +2392,22 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             ]
           },
           {
-            "$type": "Assignment",
-            "feature": "array",
-            "operator": "?=",
-            "terminal": {
-              "$type": "Keyword",
-              "value": "[]"
-            },
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "array",
+                "operator": "?=",
+                "terminal": {
+                  "$type": "Keyword",
+                  "value": "["
+                }
+              },
+              {
+                "$type": "Keyword",
+                "value": "]"
+              }
+            ],
             "cardinality": "?"
           },
           {

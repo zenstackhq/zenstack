@@ -172,9 +172,18 @@ describe('Attribute tests', () => {
             ${prelude}
             model A {
                 id String @id
-                x Int
+                x Int @map("_x")
                 y String
                 @@map("__A")
+            }
+        `);
+
+        await loadModel(`
+            ${prelude}
+            enum Role {
+                ADMIN @map("admin")
+                CUSTOMER @map("customer")
+                @@map("_Role")
             }
         `);
     });

@@ -8,7 +8,7 @@ import { createZModelServices } from '../src/language-server/zmodel-module';
 
 export class SchemaLoadingError extends Error {
     constructor(public readonly errors: string[]) {
-        super('Schema error');
+        super('Schema error:\n' + errors.join('\n'));
     }
 }
 
@@ -20,6 +20,15 @@ export async function loadModel(content: string, validate = true, verbose = true
         URI.file(path.resolve('src/res/stdlib.zmodel'))
     );
     const doc = shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(docPath));
+
+    if (doc.parseResult.lexerErrors.length > 0) {
+        throw new SchemaLoadingError(doc.parseResult.lexerErrors.map((e) => e.message));
+    }
+
+    if (doc.parseResult.parserErrors.length > 0) {
+        throw new SchemaLoadingError(doc.parseResult.parserErrors.map((e) => e.message));
+    }
+
     await shared.workspace.DocumentBuilder.build([stdLib, doc], {
         validationChecks: validate ? 'all' : 'none',
     });

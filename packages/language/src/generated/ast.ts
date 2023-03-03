@@ -176,7 +176,7 @@ export function isDataModel(item: unknown): item is DataModel {
 }
 
 export interface DataModelAttribute extends AstNode {
-    readonly $container: DataModel;
+    readonly $container: DataModel | Enum;
     readonly $type: 'DataModelAttribute';
     args: Array<AttributeArg>
     decl: Reference<Attribute>
@@ -204,7 +204,7 @@ export function isDataModelField(item: unknown): item is DataModelField {
 }
 
 export interface DataModelFieldAttribute extends AstNode {
-    readonly $container: DataModelField;
+    readonly $container: DataModelField | EnumField;
     readonly $type: 'DataModelFieldAttribute';
     args: Array<AttributeArg>
     decl: Reference<Attribute>
@@ -260,6 +260,8 @@ export function isDataSourceField(item: unknown): item is DataSourceField {
 export interface Enum extends AstNode {
     readonly $container: Model;
     readonly $type: 'Enum';
+    attributes: Array<DataModelAttribute>
+    comments: Array<string>
     fields: Array<EnumField>
     name: string
 }
@@ -273,6 +275,8 @@ export function isEnum(item: unknown): item is Enum {
 export interface EnumField extends AstNode {
     readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'EnumField';
+    attributes: Array<DataModelFieldAttribute>
+    comments: Array<string>
     name: string
 }
 
@@ -697,7 +701,18 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return {
                     name: 'Enum',
                     mandatory: [
+                        { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' },
                         { name: 'fields', type: 'array' }
+                    ]
+                };
+            }
+            case 'EnumField': {
+                return {
+                    name: 'EnumField',
+                    mandatory: [
+                        { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' }
                     ]
                 };
             }
