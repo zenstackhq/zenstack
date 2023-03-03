@@ -62,7 +62,7 @@ describe('Prisma generator test', () => {
         expect(content).toContain(`/// @TypeGraphQL.field(name: 'bar')`);
     });
 
-    it('enum mapping', async () => {
+    it('model and field mapping', async () => {
         const model = await loadModel(`
             datasource db {
                 provider = 'postgresql'
@@ -77,7 +77,9 @@ describe('Prisma generator test', () => {
 
             model User {
                 id Int @id
-                role Role @default(CUSTOMER)
+                role Role @default(CUSTOMER) @map('_role')
+
+                @@map('_User')
               }
         `);
 
@@ -89,6 +91,8 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
+        expect(content).toContain(`@@map("_User")`);
+        expect(content).toContain(`@map("_role")`);
         expect(content).toContain(`@@map("_Role")`);
         expect(content).toContain(`@map("admin")`);
         expect(content).toContain(`@map("customer")`);
