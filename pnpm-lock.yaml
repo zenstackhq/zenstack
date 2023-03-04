@@ -140,7 +140,6 @@ importers:
       deepcopy: ^2.1.0
       rimraf: ^3.0.2
       superjson: ^1.11.0
-      swr: ^1.3.0
       tslib: ^2.4.1
       typescript: ^4.9.3
       zod: ^3.19.1
@@ -156,7 +155,6 @@ importers:
       decimal.js: 10.4.2
       deepcopy: 2.1.0
       superjson: 1.11.0
-      swr: 1.3.0_react@18.2.0
       tslib: 2.4.1
       zod: 3.19.1
       zod-validation-error: 0.2.1_zod@3.19.1
@@ -8592,14 +8590,6 @@ packages:
   /supports-preserve-symlinks-flag/1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
-
-  /swr/1.3.0_react@18.2.0:
-    resolution: {integrity: sha512-dkghQrOl2ORX9HYrMDtPa7LTVHJjCTeZoB1dqTbnnEDlSvN8JEKpYIYurDfvbQFUUS8Cg8PceFVZNkW0KNNYPw==}
-    peerDependencies:
-      react: ^16.11.0 || ^17.0.0 || ^18.0.0
-    dependencies:
-      react: 18.2.0
-    dev: false
 
   /swr/2.0.3_react@18.2.0:
     resolution: {integrity: sha512-sGvQDok/AHEWTPfhUWXEHBVEXmgGnuahyhmRQbjl9XBYxT/MSlAzvXEKQpyM++bMPaI52vcWS2HiKNaW7+9OFw==}

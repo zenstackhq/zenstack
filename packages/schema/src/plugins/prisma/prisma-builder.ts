@@ -277,7 +277,13 @@ export class FunctionCallArg {
     constructor(public name: string | undefined, public value: any) {}
 
     toString(): string {
-        return this.name ? `${this.name}: ${this.value}` : this.value;
+        const val =
+            this.value === null || this.value === undefined
+                ? 'null'
+                : typeof this.value === 'string'
+                ? `"${this.value}"`
+                : this.value.toString();
+        return this.name ? `${this.name}: ${val}` : val;
     }
 }
 
