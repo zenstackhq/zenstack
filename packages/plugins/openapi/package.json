@@ -1,0 +1,47 @@
+{
+  "name": "@zenstackhq/openapi",
+  "displayName": "ZenStack OpenAPI Plugin",
+  "version": "1.0.0-alpha.53",
+  "description": "ZenStack plugin for generating OpenAPI specification",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zenstackhq/zenstack"
+  },
+  "publishConfig": {
+    "directory": "dist",
+    "linkDirectory": true
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
+    "watch": "tsc --watch",
+    "lint": "eslint src --ext ts",
+    "test": "jest",
+    "prepublishOnly": "pnpm build"
+  },
+  "keywords": [],
+  "author": "ZenStack Team",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/generator-helper": "^4.7.1",
+    "@zenstackhq/sdk": "workspace:*",
+    "openapi-types": "^12.1.0"
+  },
+  "devDependencies": {
+    "@prisma/internals": "^4.7.1",
+    "@types/jest": "^29.4.0",
+    "@types/tmp": "^0.2.3",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0",
+    "@zenstackhq/testtools": "workspace:*",
+    "copyfiles": "^2.4.1",
+    "eslint": "^8.35.0",
+    "jest": "^29.4.3",
+    "rimraf": "^3.0.2",
+    "tmp": "^0.2.1",
+    "ts-jest": "^29.0.5",
+    "typescript": "^4.9.5",
+    "zenstack": "workspace:*"
+  }
+}

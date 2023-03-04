@@ -2,7 +2,6 @@ import { Model } from '@zenstackhq/language/ast';
 import { PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
-import { LangiumServices } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import { URI } from 'vscode-uri';
@@ -80,7 +79,8 @@ Moving forward please edit this file and run "zenstack generate" to regenerate P
  * @param services Language services
  * @returns Parsed and validated AST
  */
-export async function loadDocument(fileName: string, services: LangiumServices): Promise<Model> {
+export async function loadDocument(fileName: string): Promise<Model> {
+    const services = createZModelServices(NodeFileSystem).ZModel;
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
         console.error(colors.yellow(`Please choose a file with extension: ${extensions}.`));
@@ -124,8 +124,7 @@ export async function loadDocument(fileName: string, services: LangiumServices):
 }
 
 export async function runPlugins(options: { schema: string; packageManager: PackageManagers | undefined }) {
-    const services = createZModelServices(NodeFileSystem).ZModel;
-    const model = await loadDocument(options.schema, services);
+    const model = await loadDocument(options.schema);
 
     const context: Context = {
         schema: model,

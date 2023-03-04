@@ -92,8 +92,10 @@ export default class PrismaSchemaGenerator {
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
-        // run 'prisma generate'
-        await execSync(`npx prisma generate --schema ${outFile}`);
+        if (options.prismaGenerate !== false) {
+            // run 'prisma generate'
+            await execSync(`npx prisma generate --schema ${outFile}`);
+        }
     }
 
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {

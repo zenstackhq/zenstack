@@ -29,7 +29,7 @@ export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     });
 }
 
-function getWorkspaceRoot(start: string) {
+export function getWorkspaceRoot(start: string) {
     let curr = start;
     while (curr && curr !== '/') {
         if (fs.existsSync(path.join(curr, 'pnpm-workspace.yaml'))) {
@@ -39,6 +39,11 @@ function getWorkspaceRoot(start: string) {
         }
     }
     return undefined;
+}
+
+export function getWorkspaceNpmCacheFolder(start: string) {
+    const root = getWorkspaceRoot(start);
+    return root ? path.join(root, '.npmcache') : './.npmcache';
 }
 
 const MODEL_PRELUDE = `
@@ -89,7 +94,7 @@ export async function loadSchema(schema: string) {
 
     fs.writeFileSync('schema.zmodel', `${MODEL_PRELUDE}\n${schema}`);
     run('npm install');
-    run('npx zenstack generate --no-dependency-check');
+    run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
     run('npx prisma db push');
 
     const PrismaClient = require(path.join(workDir, '.prisma')).PrismaClient;
