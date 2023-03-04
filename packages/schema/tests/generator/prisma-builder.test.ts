@@ -7,6 +7,7 @@ import {
     FieldReference,
     FieldReferenceArg,
     FunctionCall,
+    FunctionCallArg,
     ModelFieldType,
     PrismaModel,
 } from '../../src/plugins/prisma/prisma-builder';
@@ -94,6 +95,17 @@ describe('Prisma Builder Tests', () => {
         post.addField('id', 'String', [new FieldAttribute('@id')]);
         post.addField('slug', 'String');
         post.addField('space', 'String');
+        post.addField('tsid', 'String', [
+            new FieldAttribute('@default', [
+                new AttributeArg(
+                    undefined,
+                    new AttributeArgValue(
+                        'FunctionCall',
+                        new FunctionCall('dbgenerated', [new FunctionCallArg(undefined, 'timestamp_id()')])
+                    )
+                ),
+            ]),
+        ]);
         post.addAttribute('@@unique', [
             new AttributeArg(
                 'fields',
