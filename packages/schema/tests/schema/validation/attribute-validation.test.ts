@@ -81,6 +81,34 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain(`Attribute "@default" doesn't have a parameter named "foo"`);
+
+        expect(
+            await loadModelWithError(`
+        ${prelude}
+        model M {
+            id String @id()
+            dt DateTime @default('2020abc')
+        }
+        `)
+        ).toContain('Value is not assignable to parameter');
+
+        // auto-convert of string to date time
+        await loadModel(`
+            ${prelude}
+            model M {
+                id String @id()
+                dt DateTime @default('2000-01-01T00:00:00Z')
+            }
+        `);
+
+        // auto-convert of string to bytes
+        await loadModel(`
+            ${prelude}
+            model M {
+                id String @id()
+                dt Bytes @default('abc123')
+            }
+        `);
     });
 
     it('field attribute coverage', async () => {

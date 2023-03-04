@@ -370,5 +370,27 @@ describe('Data Model Validation Tests', () => {
             }
         `)
         ).toContain(`Could not resolve reference to ReferenceTarget named 'aId'.`);
+
+        // enum as foreign key
+        await loadModel(`
+            ${prelude}
+
+            enum Role {
+                ADMIN
+                USER
+            }
+            
+            model A {
+                id String @id
+                role Role @unique
+                bs B[]
+            }
+
+            model B {
+                id String @id
+                a A @relation(fields: [aRole], references: [role])
+                aRole Role
+            }
+        `);
     });
 });
