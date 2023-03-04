@@ -7,6 +7,7 @@ import {
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    Expression,
     ExpressionType,
     isArrayExpr,
     isAttribute,
@@ -54,10 +55,21 @@ export function getStringLiteral(node: AstNode | undefined): string | undefined 
     }
 }
 
+const isoDateTimeRegex = /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/i;
+
 /**
  * Determines if the given sourceType is assignable to a destination of destType
  */
-export function typeAssignable(destType: ExpressionType, sourceType: ExpressionType): boolean {
+export function typeAssignable(destType: ExpressionType, sourceType: ExpressionType, sourceExpr?: Expression): boolean {
+    // implicit conversion from ISO datetime string to datetime
+    if (destType === 'DateTime' && sourceType === 'String' && sourceExpr && isLiteralExpr(sourceExpr)) {
+        const literal = getStringLiteral(sourceExpr);
+        if (literal && isoDateTimeRegex.test(literal)) {
+            // implicitly convert to DateTime
+            sourceType = 'DateTime';
+        }
+    }
+
     switch (destType) {
         case 'Any':
             return true;
@@ -108,6 +120,19 @@ export function assignableToAttributeParam(
     let dstIsArray = param.type.array;
     const dstRef = param.type.reference;
 
+    // destination is field reference or transitive field reference, check if
+    // argument is reference or array or reference
+    if (dstType === 'FieldReference' || dstType === 'TransitiveFieldReference') {
+        if (dstIsArray) {
+            return (
+                isArrayExpr(arg.value) &&
+                !arg.value.items.find((item) => !isReferenceExpr(item) || !isDataModelField(item.target.ref))
+            );
+        } else {
+            return isReferenceExpr(arg.value) && isDataModelField(arg.value.target.ref);
+        }
+    }
+
     if (isEnum(argResolvedType.decl)) {
         // enum type
 
@@ -127,16 +152,7 @@ export function assignableToAttributeParam(
             return false;
         }
 
-        if (dstType === 'FieldReference' || dstType === 'TransitiveFieldReference') {
-            if (dstIsArray) {
-                return (
-                    isArrayExpr(arg.value) &&
-                    !arg.value.items.find((item) => !isReferenceExpr(item) || !isDataModelField(item.target.ref))
-                );
-            } else {
-                return isReferenceExpr(arg.value) && isDataModelField(arg.value.target.ref);
-            }
-        } else if (dstType === 'ContextType') {
+        if (dstType === 'ContextType') {
             // attribute parameter type is ContextType, need to infer type from
             // the attribute's container
             if (isDataModelField(attr.$container)) {
@@ -151,7 +167,8 @@ export function assignableToAttributeParam(
         }
 
         return (
-            typeAssignable(dstType, argResolvedType.decl) && (dstType === 'Any' || dstIsArray === argResolvedType.array)
+            typeAssignable(dstType, argResolvedType.decl, arg.value) &&
+            (dstType === 'Any' || dstIsArray === argResolvedType.array)
         );
     } else {
         // reference type
