@@ -8,8 +8,8 @@ import * as fs from 'fs';
 async function loadZModelAndDmmf(content: string) {
     const prelude = `
     datasource db {
-        provider = 'sqlite'
-        url = 'file:./test.db'
+        provider = 'postgresql'
+        url = env('DATABASE_URL')
     }
 `;
 
@@ -34,9 +34,30 @@ describe('Open API Plugin Tests', () => {
                 provider = '@zenstackhq/openapi'
             }
 
+            enum Role {
+                USER
+                ADMIN
+            }
+
             model User {
-                id String @id @default(cuid())
+                id String @id
                 email String @unique
+                role Role @default(USER)
+                posts Post[]
+            
+                @@allow('create,read', true)
+                @@allow('update,delete', auth() == this)
+            }
+            
+            model Post {
+                id String @id
+                title String
+                author User? @relation(fields: [authorId], references: [id])
+                authorId String?
+                published Boolean @default(false)
+            
+                @@allow('all', auth() == this)
+                @@allow('read', published)
             }
         `);
 
