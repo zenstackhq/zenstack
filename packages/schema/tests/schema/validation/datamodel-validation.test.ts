@@ -101,7 +101,7 @@ describe('Data Model Validation Tests', () => {
                 @@allow('all', x > 0)
             }
         `)
-        ).toContain(`Model must include a field with @id attribute`);
+        ).toContain(`Model must include a field with @id attribute or a model-level @@id attribute`);
 
         expect(
             await loadModelWithError(`
@@ -111,7 +111,7 @@ describe('Data Model Validation Tests', () => {
                 @@deny('all', x <= 0)
             }
         `)
-        ).toContain(`Model must include a field with @id attribute`);
+        ).toContain(`Model must include a field with @id attribute or a model-level @@id attribute`);
 
         expect(
             await loadModelWithError(`
@@ -120,7 +120,7 @@ describe('Data Model Validation Tests', () => {
                 x Int @gt(0)
             }
         `)
-        ).toContain(`Model must include a field with @id attribute`);
+        ).toContain(`Model must include a field with @id attribute or a model-level @@id attribute`);
 
         expect(
             await loadModelWithError(`
@@ -136,7 +136,28 @@ describe('Data Model Validation Tests', () => {
             await loadModelWithError(`
             ${prelude}
             model M {
+                x Int @id
+                y Int
+                @@id([x, y])
+            }
+        `)
+        ).toContain(`Model cannot have both field-level @id and model-level @@id attributes`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
                 x Int? @id
+            }
+        `)
+        ).toContain(`Field with @id attribute must not be optional`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                x Int?
+                @@id([x])
             }
         `)
         ).toContain(`Field with @id attribute must not be optional`);
@@ -154,7 +175,27 @@ describe('Data Model Validation Tests', () => {
             await loadModelWithError(`
             ${prelude}
             model M {
+                x Int[]
+                @@id([x])
+            }
+        `)
+        ).toContain(`Field with @id attribute must be of scalar type`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
                 x Json @id
+            }
+        `)
+        ).toContain(`Field with @id attribute must be of scalar type`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                x Json
+                @@id([x])
             }
         `)
         ).toContain(`Field with @id attribute must be of scalar type`);
@@ -167,6 +208,19 @@ describe('Data Model Validation Tests', () => {
             }
             model M {
                 myId Id @id
+            }
+        `)
+        ).toContain(`Field with @id attribute must be of scalar type`);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model Id {
+                id String @id
+            }
+            model M {
+                myId Id
+                @@id([myId])
             }
         `)
         ).toContain(`Field with @id attribute must be of scalar type`);
@@ -318,7 +372,9 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(`Field "aId" is part of a one-to-one relation and must be marked as @unique`);
+        ).toContain(
+            `Field "aId" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
+        );
 
         // missing @relation
         expect(
