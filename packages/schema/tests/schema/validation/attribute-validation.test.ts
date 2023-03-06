@@ -230,6 +230,8 @@ describe('Attribute tests', () => {
             ${prelude}
 
             model _String {
+                _string String @db.String
+                _string1 String @db.String(1)
                 _text String @db.Text
                 _ntext String @db.NText
                 _char String @db.Char(10)
@@ -252,6 +254,7 @@ describe('Attribute tests', () => {
             }
 
             model _Boolean {
+                _boolean Boolean @db.Boolean
                 _bit Boolean @db.Bit
                 _bit1 Boolean @db.Bit(1)
                 _tinyInt Boolean @db.TinyInt
@@ -259,6 +262,7 @@ describe('Attribute tests', () => {
             }
 
             model _Int {
+                _int Int @db.Int
                 _integer Int @db.Integer
                 _smallInt Int @db.SmallInt
                 _oid Int @db.Oid
@@ -273,11 +277,14 @@ describe('Attribute tests', () => {
             }
 
             model _BigInt {
+                _bigInt BigInt @db.BigInt
                 _unsignedBigInt BigInt @db.UnsignedBigInt
                 _int8 BigInt @db.Int8
             }
 
             model _FloatDecimal {
+                _float Float @db.Float
+                _decimal Decimal @db.Decimal
                 _doublePrecision Float @db.DoublePrecision
                 _real Float @db.Real
                 _double Float @db.Double
@@ -289,6 +296,7 @@ describe('Attribute tests', () => {
             }
 
             model _DateTime {
+                _dateTime DateTime @db.DateTime
                 _dateTime2 DateTime @db.DateTime2
                 _smallDateTime DateTime @db.SmallDateTime
                 _dateTimeOffset DateTime @db.DateTimeOffset
@@ -304,10 +312,12 @@ describe('Attribute tests', () => {
             }
 
             model _Json {
+                _json Json @db.Json
                 _jsonb Json @db.JsonB
             }
 
             model _Bytes {
+                _bytes Bytes @db.Bytes
                 _byteA Bytes @db.ByteA
                 _longBlob Bytes @db.LongBlob
                 _binary Bytes @db.Binary

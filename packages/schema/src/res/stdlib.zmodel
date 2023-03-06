@@ -160,8 +160,7 @@ attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma
 
 // String type modifiers
 
-// TODO: deal with keyword conflict
-// attribute @db.String(x: Int) @@@targetField([StringField]) @@@prisma
+attribute @db.String(_ x: Int?) @@@targetField([StringField]) @@@prisma
 attribute @db.Text() @@@targetField([StringField]) @@@prisma
 attribute @db.NText() @@@targetField([StringField]) @@@prisma
 attribute @db.Char(_ x: Int) @@@targetField([StringField]) @@@prisma
@@ -182,17 +181,15 @@ attribute @db.Citext() @@@targetField([StringField]) @@@prisma
 
 // Boolean type modifiers
 
-// TODO: deal with keyword conflict
-// attribute @db.Boolean() @@@targetField([BooleanField]) @@@prisma
+attribute @db.Boolean() @@@targetField([BooleanField]) @@@prisma
 attribute @db.TinyInt(_ x: Int?) @@@targetField([BooleanField]) @@@prisma
 attribute @db.Bool() @@@targetField([BooleanField]) @@@prisma
 
 // Int type modifiers
 
+attribute @db.Int() @@@targetField([IntField]) @@@prisma
 attribute @db.Integer() @@@targetField([IntField]) @@@prisma
 attribute @db.SmallInt() @@@targetField([IntField]) @@@prisma
-// TODO: deal with keyword conflict
-// attribute @db.Int() @@@targetField([IntField]) @@@prisma
 attribute @db.Oid() @@@targetField([IntField]) @@@prisma
 attribute @db.UnsignedInt() @@@targetField([IntField]) @@@prisma
 attribute @db.UnsignedSmallInt() @@@targetField([IntField]) @@@prisma
@@ -205,17 +202,15 @@ attribute @db.Int2() @@@targetField([IntField]) @@@prisma
 
 // BigInt type modifiers
 
-// TODO: deal with keyword conflict
-// attribute @db.BigInt() @@@targetField([BigIntField]) @@@prisma
+attribute @db.BigInt() @@@targetField([BigIntField]) @@@prisma
 attribute @db.UnsignedBigInt() @@@targetField([BigIntField]) @@@prisma
 attribute @db.Int8() @@@targetField([BigIntField]) @@@prisma
 
 // Float/Decimal type modifiers
 attribute @db.DoublePrecision() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Real() @@@targetField([FloatField, DecimalField]) @@@prisma
-// TODO: deal with keyword conflict
-// attribute @db.Float() @@@targetField([FloatField, DecimalField]) @@@prisma
-// attribute @db.Decimal() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Float() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Decimal() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Double() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Money() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.SmallMoney() @@@targetField([FloatField, DecimalField]) @@@prisma
@@ -224,8 +219,7 @@ attribute @db.Float4() @@@targetField([FloatField, DecimalField]) @@@prisma
 
 // DateTime type modifiers
 
-// TODO: deal with keyword conflict
-// attribute @db.DateTime(x: Int?) @@@targetField([DateTimeField]) @@@prisma
+attribute @db.DateTime(x: Int?) @@@targetField([DateTimeField]) @@@prisma
 attribute @db.DateTime2() @@@targetField([DateTimeField]) @@@prisma
 attribute @db.SmallDateTime() @@@targetField([DateTimeField]) @@@prisma
 attribute @db.DateTimeOffset() @@@targetField([DateTimeField]) @@@prisma
@@ -237,14 +231,12 @@ attribute @db.Timetz(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
 
 // Json type modifiers
 
-// TODO: deal with keyword conflict
-// attribute @db.Json() @@@targetField([JsonField]) @@@prisma
+attribute @db.Json() @@@targetField([JsonField]) @@@prisma
 attribute @db.JsonB() @@@targetField([JsonField]) @@@prisma
 
 // Bytes type modifiers
 
-// TODO: deal with keyword conflict
-// attribute @db.Bytes() @@@targetField([BytesField]) @@@prisma
+attribute @db.Bytes() @@@targetField([BytesField]) @@@prisma
 attribute @db.ByteA() @@@targetField([BytesField]) @@@prisma
 attribute @db.LongBlob() @@@targetField([BytesField]) @@@prisma
 attribute @db.Binary() @@@targetField([BytesField]) @@@prisma

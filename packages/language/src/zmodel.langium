@@ -171,7 +171,8 @@ FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration]) (array?='[' ']')?;
 
 QualifiedName returns string:
-    ID ('.' ID)*;
+    // TODO: is this the right way to deal with token precedence?
+    ID ('.' (ID|BuiltinType))*;
 
 // attribute-level attribute
 AttributeAttributeName returns string:
@@ -221,7 +222,7 @@ ExpressionType returns string:
     'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Any';
 
 BuiltinType returns string:
-    'String'|'Boolean'|'Int'|'BigInt'|'Float'|'Decimal'|'DateTime'|'Json'|'Bytes';
+    'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes';
 
 hidden terminal WS: /\s+/;
 terminal BOOLEAN returns boolean: /true|false/;
