@@ -39,6 +39,7 @@ enum ReferentialAction {
 enum AttributeTargetField {
     StringField
     IntField
+    BigIntField
     FloatField
     DecimalField
     BooleanField
@@ -51,43 +52,51 @@ enum AttributeTargetField {
 /*
  * Reads value from an environment variable.
  */
-function env(name: String): String {}
+function env(name: String): String {
+}
 
 /*
  * Gets the current login user.
  */
-function auth(): Any {}
+function auth(): Any {
+}
 
 /*
  * Gets current date-time (as DateTime type).
  */
-function now(): DateTime {}
+function now(): DateTime {
+}
 
 /*
  * Generates a globally unique identifier based on the UUID specs.
  */
-function uuid(): String {}
+function uuid(): String {
+}
 
 /*
  * Generates a globally unique identifier based on the CUID spec.
  */
-function cuid(): String {}
+function cuid(): String {
+}
 
 /*
  * Creates a sequence of integers in the underlying database and assign the incremented 
  * values to the ID values of the created records based on the sequence.
  */
-function autoincrement(): Int {}
+function autoincrement(): Int {
+}
 
 /*
  * Represents default values that cannot be expressed in the Prisma schema (such as random()).
  */
-function dbgenerated(expr: String): Any {}
+function dbgenerated(expr: String): Any {
+}
 
 /**
  * Gets entities value before an update. Only valid when used in a "update" policy rule.
  */
-function future(): Any {}
+function future(): Any {
+}
 
 /**
  * Marks an attribute to be only applicable to certain field types.
@@ -113,6 +122,11 @@ attribute @default(_ value: ContextType) @@@prisma
  * Defines a unique constraint for this field.
  */
 attribute @unique(map: String?) @@@prisma
+
+/*
+ * Defines a multi-field ID (composite ID) on the model.
+ */
+attribute @@id(_ fields: FieldReference[], name: String?, map: String?) @@@prisma
 
 /*
  * Defines a compound unique constraint for the specified fields.
@@ -143,6 +157,94 @@ attribute @@map(_ name: String) @@@prisma
  * Automatically stores the time when a record was last updated.
  */
 attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma
+
+// String type modifiers
+
+attribute @db.String(_ x: Int?) @@@targetField([StringField]) @@@prisma
+attribute @db.Text() @@@targetField([StringField]) @@@prisma
+attribute @db.NText() @@@targetField([StringField]) @@@prisma
+attribute @db.Char(_ x: Int) @@@targetField([StringField]) @@@prisma
+attribute @db.NChar(_ x: Int) @@@targetField([StringField]) @@@prisma
+attribute @db.VarChar(_ x: Int) @@@targetField([StringField]) @@@prisma
+attribute @db.NVarChar(_ x: Int) @@@targetField([StringField]) @@@prisma
+attribute @db.CatalogSingleChar() @@@targetField([StringField]) @@@prisma
+attribute @db.TinyText() @@@targetField([StringField]) @@@prisma
+attribute @db.MediumText() @@@targetField([StringField]) @@@prisma
+attribute @db.LongText() @@@targetField([StringField]) @@@prisma
+attribute @db.Bit(_ x: Int?) @@@targetField([StringField, BooleanField, BytesField]) @@@prisma
+attribute @db.VarBit(_ x: Int?) @@@targetField([StringField]) @@@prisma
+attribute @db.Uuid() @@@targetField([StringField]) @@@prisma
+attribute @db.UniqueIdentifier() @@@targetField([StringField]) @@@prisma
+attribute @db.Xml() @@@targetField([StringField]) @@@prisma
+attribute @db.Inet() @@@targetField([StringField]) @@@prisma
+attribute @db.Citext() @@@targetField([StringField]) @@@prisma
+
+// Boolean type modifiers
+
+attribute @db.Boolean() @@@targetField([BooleanField]) @@@prisma
+attribute @db.TinyInt(_ x: Int?) @@@targetField([BooleanField]) @@@prisma
+attribute @db.Bool() @@@targetField([BooleanField]) @@@prisma
+
+// Int type modifiers
+
+attribute @db.Int() @@@targetField([IntField]) @@@prisma
+attribute @db.Integer() @@@targetField([IntField]) @@@prisma
+attribute @db.SmallInt() @@@targetField([IntField]) @@@prisma
+attribute @db.Oid() @@@targetField([IntField]) @@@prisma
+attribute @db.UnsignedInt() @@@targetField([IntField]) @@@prisma
+attribute @db.UnsignedSmallInt() @@@targetField([IntField]) @@@prisma
+attribute @db.MediumInt() @@@targetField([IntField]) @@@prisma
+attribute @db.UnsignedMediumInt() @@@targetField([IntField]) @@@prisma
+attribute @db.UnsignedTinyInt() @@@targetField([IntField]) @@@prisma
+attribute @db.Year() @@@targetField([IntField]) @@@prisma
+attribute @db.Int4() @@@targetField([IntField]) @@@prisma
+attribute @db.Int2() @@@targetField([IntField]) @@@prisma
+
+// BigInt type modifiers
+
+attribute @db.BigInt() @@@targetField([BigIntField]) @@@prisma
+attribute @db.UnsignedBigInt() @@@targetField([BigIntField]) @@@prisma
+attribute @db.Int8() @@@targetField([BigIntField]) @@@prisma
+
+// Float/Decimal type modifiers
+attribute @db.DoublePrecision() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Real() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Float() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Decimal() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Double() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Money() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.SmallMoney() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Float8() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Float4() @@@targetField([FloatField, DecimalField]) @@@prisma
+
+// DateTime type modifiers
+
+attribute @db.DateTime(x: Int?) @@@targetField([DateTimeField]) @@@prisma
+attribute @db.DateTime2() @@@targetField([DateTimeField]) @@@prisma
+attribute @db.SmallDateTime() @@@targetField([DateTimeField]) @@@prisma
+attribute @db.DateTimeOffset() @@@targetField([DateTimeField]) @@@prisma
+attribute @db.Timestamp(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
+attribute @db.Timestamptz(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
+attribute @db.Date() @@@targetField([DateTimeField]) @@@prisma
+attribute @db.Time(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
+attribute @db.Timetz(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
+
+// Json type modifiers
+
+attribute @db.Json() @@@targetField([JsonField]) @@@prisma
+attribute @db.JsonB() @@@targetField([JsonField]) @@@prisma
+
+// Bytes type modifiers
+
+attribute @db.Bytes() @@@targetField([BytesField]) @@@prisma
+attribute @db.ByteA() @@@targetField([BytesField]) @@@prisma
+attribute @db.LongBlob() @@@targetField([BytesField]) @@@prisma
+attribute @db.Binary() @@@targetField([BytesField]) @@@prisma
+attribute @db.VarBinary() @@@targetField([BytesField]) @@@prisma
+attribute @db.TinyBlob() @@@targetField([BytesField]) @@@prisma
+attribute @db.Blob() @@@targetField([BytesField]) @@@prisma
+attribute @db.MediumBlob() @@@targetField([BytesField]) @@@prisma
+attribute @db.Image() @@@targetField([BytesField]) @@@prisma
 
 /*
  * Defines an access policy that allows a set of operations when the given condition is true.
