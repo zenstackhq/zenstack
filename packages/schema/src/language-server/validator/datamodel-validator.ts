@@ -23,6 +23,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
+        // TODO: check conflict of @id and @@id
+
         const idFields = dm.fields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
         if (idFields.length === 0) {
             const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
