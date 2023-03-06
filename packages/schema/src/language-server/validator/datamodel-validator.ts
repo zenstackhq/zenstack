@@ -10,6 +10,7 @@ import { ValidationAcceptor } from 'langium';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
+import { getIdFields, getUniqueFields } from '../utils';
 import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
 
 /**
@@ -18,35 +19,41 @@ import { validateAttributeApplication, validateDuplicatedDeclarations } from './
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(dm.fields, accept);
-        this.validateFields(dm, accept);
         this.validateAttributes(dm, accept);
+        this.validateFields(dm, accept);
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
-        // TODO: check conflict of @id and @@id
-
         const idFields = dm.fields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
-        if (idFields.length === 0) {
+        const modelLevelIds = getIdFields(dm);
+
+        if (idFields.length === 0 && modelLevelIds.length === 0) {
             const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
             if (allows.length > 0 || denies.length > 0 || hasFieldValidation) {
                 // TODO: relax this requirement to require only @unique fields
                 // when access policies or field valdaition is used, require an @id field
-                accept('error', 'Model must include a field with @id attribute', {
+                accept('error', 'Model must include a field with @id attribute or a model-level @@id attribute', {
                     node: dm,
                 });
             }
+        } else if (idFields.length > 0 && modelLevelIds.length > 0) {
+            accept('error', 'Model cannot have both field-level @id and model-level @@id attributes', {
+                node: dm,
+            });
         } else if (idFields.length > 1) {
             accept('error', 'Model can include at most one field with @id attribute', {
                 node: dm,
             });
         } else {
-            if (idFields[0].type.optional) {
-                accept('error', 'Field with @id attribute must not be optional', { node: idFields[0] });
-            }
-
-            if (idFields[0].type.array || !idFields[0].type.type || !SCALAR_TYPES.includes(idFields[0].type.type)) {
-                accept('error', 'Field with @id attribute must be of scalar type', { node: idFields[0] });
-            }
+            const fieldsToCheck = idFields.length > 0 ? idFields : modelLevelIds;
+            fieldsToCheck.forEach((idField) => {
+                if (idField.type.optional) {
+                    accept('error', 'Field with @id attribute must not be optional', { node: idField });
+                }
+                if (idField.type.array || !idField.type.type || !SCALAR_TYPES.includes(idField.type.type)) {
+                    accept('error', 'Field with @id attribute must be of scalar type', { node: idField });
+                }
+            });
         }
 
         dm.fields.forEach((field) => this.validateField(field, accept));
@@ -241,12 +248,21 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             //
             // UserData.userId field needs to be @unique
 
+            const containingModel = field.$container as DataModel;
+            const uniqueFieldList = getUniqueFields(containingModel);
+
             thisRelation.fields?.forEach((ref) => {
                 const refField = ref.target.ref as DataModelField;
-                if (refField && !refField.attributes.find((a) => a.decl.ref?.name === '@unique')) {
+                if (refField) {
+                    if (refField.attributes.find((a) => a.decl.ref?.name === '@unique')) {
+                        return;
+                    }
+                    if (uniqueFieldList.some((list) => list.includes(refField))) {
+                        return;
+                    }
                     accept(
                         'error',
-                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique`,
+                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
                         { node: refField }
                     );
                 }

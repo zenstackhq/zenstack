@@ -12,6 +12,7 @@ import { getAttributeArgs, getLiteral, PluginOptions, resolved } from '@zenstack
 import { camelCase } from 'change-case';
 import path from 'path';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
+import { getIdFields } from '../../language-server/utils';
 import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
@@ -142,12 +143,25 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
 }
 
 function isIdField(field: DataModelField) {
-    return field.attributes.some((attr) => attr.decl.ref?.name === '@id');
+    // field-level @id attribute
+    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
+        return true;
+    }
+
+    // model-level @@id attribute with a list of fields
+    const model = field.$container as DataModel;
+    const modelLevelIds = getIdFields(model);
+    if (modelLevelIds.includes(field)) {
+        return true;
+    }
+    return false;
 }
 
 function getUniqueConstraints(model: DataModel) {
     const constraints: Array<{ name: string; fields: string[] }> = [];
-    for (const attr of model.attributes.filter((attr) => attr.decl.ref?.name === '@@unique')) {
+    for (const attr of model.attributes.filter(
+        (attr) => attr.decl.ref?.name === '@@unique' || attr.decl.ref?.name === '@@id'
+    )) {
         const argsMap = getAttributeArgs(attr);
         if (argsMap.fields) {
             const fieldNames = (argsMap.fields as ArrayExpr).items.map(
