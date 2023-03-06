@@ -1,6 +1,6 @@
 {
   "name": "@zenstackhq/testtools",
-  "version": "1.0.0-alpha.55",
+  "version": "1.0.0-alpha.56",
   "description": "ZenStack Test Tools",
   "main": "index.js",
   "publishConfig": {
