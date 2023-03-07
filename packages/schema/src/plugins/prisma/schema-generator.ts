@@ -175,17 +175,17 @@ export default class PrismaSchemaGenerator {
             this.generateModelField(model, field);
         }
 
+        // add an "zenstack_guard" field for dealing with pure auth() related conditions
+        model.addField(GUARD_FIELD_NAME, 'Boolean', [
+            new PrismaFieldAttribute('@default', [
+                new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
+            ]),
+        ]);
+
         const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
         if ((!allowAll && !denyAll) || hasFieldValidation) {
             // generate auxiliary fields for policy check
-
-            // add an "zenstack_guard" field for dealing with pure auth() related conditions
-            model.addField(GUARD_FIELD_NAME, 'Boolean', [
-                new PrismaFieldAttribute('@default', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
-                ]),
-            ]);
 
             // add an "zenstack_transaction" field for tracking records created/updated with nested writes
             model.addField(TRANSACTION_FIELD_NAME, 'String?');
