@@ -80,7 +80,7 @@ export class Generator {
 }
 
 export class DeclarationBase {
-    public documentations: string[] = [];
+    constructor(public documentations: string[] = []) {}
 
     addComment(name: string): string {
         this.documentations.push(name);
@@ -91,17 +91,29 @@ export class DeclarationBase {
         return this.documentations.map((x) => `${x}\n`).join('');
     }
 }
-export class Model extends DeclarationBase {
+
+export class ContainerDeclaration extends DeclarationBase {
+    constructor(documentations: string[] = [], public attributes: (ContainerAttribute | PassThroughAttribute)[] = []) {
+        super(documentations);
+    }
+}
+
+export class FieldDeclaration extends DeclarationBase {
+    constructor(documentations: string[] = [], public attributes: (FieldAttribute | PassThroughAttribute)[] = []) {
+        super(documentations);
+    }
+}
+
+export class Model extends ContainerDeclaration {
     public fields: ModelField[] = [];
-    public attributes: ModelAttribute[] = [];
-    constructor(public name: string, public documentations: string[] = []) {
-        super();
+    constructor(public name: string, documentations: string[] = []) {
+        super(documentations);
     }
 
     addField(
         name: string,
         type: ModelFieldType | string,
-        attributes: FieldAttribute[] = [],
+        attributes: (FieldAttribute | PassThroughAttribute)[] = [],
         documentations: string[] = []
     ): ModelField {
         const field = new ModelField(name, type, attributes, documentations);
@@ -109,8 +121,8 @@ export class Model extends DeclarationBase {
         return field;
     }
 
-    addAttribute(name: string, args: AttributeArg[] = []): ModelAttribute {
-        const attr = new ModelAttribute(name, args);
+    addAttribute(name: string, args: AttributeArg[] = []) {
+        const attr = new ContainerAttribute(name, args);
         this.attributes.push(attr);
         return attr;
     }
@@ -145,14 +157,14 @@ export class ModelFieldType {
     }
 }
 
-export class ModelField extends DeclarationBase {
+export class ModelField extends FieldDeclaration {
     constructor(
         public name: string,
         public type: ModelFieldType | string,
-        public attributes: FieldAttribute[] = [],
-        public documentations: string[] = []
+        attributes: (FieldAttribute | PassThroughAttribute)[] = [],
+        documentations: string[] = []
     ) {
-        super();
+        super(documentations, attributes);
     }
 
     addAttribute(name: string, args: AttributeArg[] = []): FieldAttribute {
@@ -178,11 +190,22 @@ export class FieldAttribute {
     }
 }
 
-export class ModelAttribute {
+export class ContainerAttribute {
     constructor(public name: string, public args: AttributeArg[] = []) {}
 
     toString(): string {
         return `${this.name}(` + this.args.map((a) => a.toString()).join(', ') + `)`;
+    }
+}
+
+/**
+ * Represents @@prisma.passthrough and @prisma.passthrough
+ */
+export class PassThroughAttribute {
+    constructor(public text: string) {}
+
+    toString(): string {
+        return this.text;
     }
 }
 
@@ -287,22 +310,25 @@ export class FunctionCallArg {
     }
 }
 
-export class Enum extends DeclarationBase {
+export class Enum extends ContainerDeclaration {
     public fields: EnumField[] = [];
-    public attributes: ModelAttribute[] = [];
 
     constructor(public name: string, public documentations: string[] = []) {
-        super();
+        super(documentations);
     }
 
-    addField(name: string, attributes: FieldAttribute[] = [], documentations: string[] = []): EnumField {
+    addField(
+        name: string,
+        attributes: (FieldAttribute | PassThroughAttribute)[] = [],
+        documentations: string[] = []
+    ): EnumField {
         const field = new EnumField(name, attributes, documentations);
         this.fields.push(field);
         return field;
     }
 
-    addAttribute(name: string, args: AttributeArg[] = []): ModelAttribute {
-        const attr = new ModelAttribute(name, args);
+    addAttribute(name: string, args: AttributeArg[] = []) {
+        const attr = new ContainerAttribute(name, args);
         this.attributes.push(attr);
         return attr;
     }
@@ -323,7 +349,11 @@ export class Enum extends DeclarationBase {
 }
 
 export class EnumField extends DeclarationBase {
-    constructor(public name: string, public attributes: FieldAttribute[] = [], public documentations: string[] = []) {
+    constructor(
+        public name: string,
+        public attributes: (FieldAttribute | PassThroughAttribute)[] = [],
+        public documentations: string[] = []
+    ) {
         super();
     }
 

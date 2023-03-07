@@ -1,3 +1,4 @@
+import { getDMMF } from '@prisma/internals';
 import fs from 'fs';
 import tmp from 'tmp';
 import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
@@ -13,7 +14,7 @@ describe('Prisma generator test', () => {
 
             /// This is a comment
             model Foo {
-                id String @id
+                id String @id 
                 /// Comment for field value
                 value Int
             }
@@ -27,6 +28,7 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
         expect(content).toContain('/// This is a comment');
         expect(content).toContain('/// Comment for field value');
     });
@@ -57,6 +59,7 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
         expect(content).toContain(`/// @TypeGraphQL.omit(output: true, input: true)`);
         expect(content).toContain(`/// @TypeGraphQL.omit(input: ['update', 'where', 'orderBy'])`);
         expect(content).toContain(`/// @TypeGraphQL.field(name: 'bar')`);
@@ -91,10 +94,47 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
         expect(content).toContain(`@@map("_User")`);
         expect(content).toContain(`@map("_role")`);
         expect(content).toContain(`@@map("_Role")`);
         expect(content).toContain(`@map("admin")`);
         expect(content).toContain(`@map("customer")`);
+    });
+
+    it('attribute passthrough', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Foo {
+                id String @id 
+                name String @prisma.passthrough('@unique()')
+                x Int
+                y Int
+                @@prisma.passthrough('@@index([x, y])')
+            }
+
+            enum Role {
+                USER @prisma.passthrough('@map("__user")')
+                ADMIN @prisma.passthrough('@map("__admin")')
+
+                @@prisma.passthrough('@@map("__role")')
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@zenstack/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+        expect(content).toContain('@unique()');
+        expect(content).toContain('@@index([x, y])');
     });
 });
