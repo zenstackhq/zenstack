@@ -329,3 +329,13 @@ attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
  * Validates a number field is less than or equal to the given value.
  */
 attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+
+/*
+ * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.
+ */
+attribute @prisma.passthrough(_ text: String)
+
+/*
+ * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.
+ */
+attribute @@prisma.passthrough(_ text: String)

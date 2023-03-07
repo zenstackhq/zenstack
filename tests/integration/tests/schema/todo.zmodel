@@ -2,6 +2,27 @@
 * Sample model for a collaborative Todo app
 */
 
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./test.db'
+}
+
+generator js {
+    provider = 'prisma-client-js'
+    output = '../.prisma'
+    previewFeatures = ['clientExtensions']
+}
+
+plugin meta {
+    provider = '@zenstack/model-meta'
+    output = '.zenstack'
+}
+
+plugin policy {
+    provider = '@zenstack/access-policy'
+    output = '.zenstack'
+}
+
 /*
  * Model for a space in which users can collaborate on Lists and Todos
  */
