@@ -86,11 +86,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             dbOps.create(writeArgs)
         );
 
-        if (!this.utils.getEntityId(this.model, result)) {
+        const ids = this.utils.getEntityIds(this.model, result);
+        if (Object.keys(ids).length === 0) {
             throw this.utils.unknownError(`unexpected error: create didn't return an id`);
         }
 
-        return this.checkReadback(origArgs, this.utils.getEntityId(this.model, result), 'create', 'create');
+        return this.checkReadback(origArgs, ids, 'create', 'create');
     }
 
     async createMany(args: any, skipDuplicates?: boolean) {
@@ -136,10 +137,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             dbOps.update(writeArgs)
         );
 
-        if (!this.utils.getEntityId(this.model, result)) {
+        const ids = this.utils.getEntityIds(this.model, result);
+        if (Object.keys(ids).length === 0) {
             throw this.utils.unknownError(`unexpected error: update didn't return an id`);
         }
-        return this.checkReadback(origArgs, this.utils.getEntityId(this.model, result), 'update', 'update');
+        return this.checkReadback(origArgs, ids, 'update', 'update');
     }
 
     async updateMany(args: any) {
@@ -189,11 +191,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             dbOps.upsert(writeArgs)
         );
 
-        if (!this.utils.getEntityId(this.model, result)) {
+        const ids = this.utils.getEntityIds(this.model, result);
+        if (Object.keys(ids).length === 0) {
             throw this.utils.unknownError(`unexpected error: upsert didn't return an id`);
         }
 
-        return this.checkReadback(origArgs, this.utils.getEntityId(this.model, result), 'upsert', 'update');
+        return this.checkReadback(origArgs, ids, 'upsert', 'update');
     }
 
     async delete(args: any) {
@@ -283,9 +286,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private async checkReadback(origArgs: any, id: any, action: string, operation: PolicyOperationKind) {
-        const idField = this.utils.getIdField(this.model);
-        const readArgs = { select: origArgs.select, include: origArgs.include, where: { [idField.name]: id } };
+    private async checkReadback(
+        origArgs: any,
+        ids: Record<string, unknown>,
+        action: string,
+        operation: PolicyOperationKind
+    ) {
+        const readArgs = { select: origArgs.select, include: origArgs.include, where: ids };
         const result = await this.utils.readWithCheck(this.model, readArgs);
         if (result.length === 0) {
             this.logger.warn(`${action} result cannot be read back`);

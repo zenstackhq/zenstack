@@ -64,12 +64,12 @@ plugin policy {
 }
 `;
 
-export async function loadSchemaFromFile(schemaFile: string) {
+export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true) {
     const content = fs.readFileSync(schemaFile, { encoding: 'utf-8' });
-    return loadSchema(content);
+    return loadSchema(content, addPrelude, pushDb);
 }
 
-export async function loadSchema(schema: string) {
+export async function loadSchema(schema: string, addPrelude = true, pushDb = true) {
     const { name: workDir } = tmp.dirSync();
 
     const root = getWorkspaceRoot(__dirname);
@@ -87,10 +87,14 @@ export async function loadSchema(schema: string) {
     console.log('Workdir:', workDir);
     process.chdir(workDir);
 
-    fs.writeFileSync('schema.zmodel', `${MODEL_PRELUDE}\n${schema}`);
+    const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
+    fs.writeFileSync('schema.zmodel', content);
     run('npm install');
     run('npx zenstack generate --no-dependency-check');
-    run('npx prisma db push');
+
+    if (pushDb) {
+        run('npx prisma db push');
+    }
 
     const PrismaClient = require(path.join(workDir, '.prisma')).PrismaClient;
     const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });

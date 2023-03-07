@@ -1,6 +1,5 @@
 import {
     AstNode,
-    Attribute,
     AttributeArg,
     DataModel,
     DataModelAttribute,
@@ -36,6 +35,8 @@ import { execSync } from '../../utils/exec-utils';
 import {
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
+    ContainerAttribute as PrismaModelAttribute,
+    ContainerDeclaration as PrismaContainerDeclaration,
     DataSourceUrl as PrismaDataSourceUrl,
     Enum as PrismaEnum,
     FieldAttribute as PrismaFieldAttribute,
@@ -44,11 +45,14 @@ import {
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
     Model as PrismaDataModel,
-    ModelAttribute as PrismaModelAttribute,
     ModelFieldType,
+    PassThroughAttribute as PrismaPassThroughAttribute,
     PrismaModel,
 } from './prisma-builder';
 import ZModelCodeGenerator from './zmodel-code-generator';
+
+const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
+const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
 
 /**
  * Generates Prisma schema file
@@ -173,17 +177,17 @@ export default class PrismaSchemaGenerator {
             this.generateModelField(model, field);
         }
 
+        // add an "zenstack_guard" field for dealing with boolean conditions
+        model.addField(GUARD_FIELD_NAME, 'Boolean', [
+            new PrismaFieldAttribute('@default', [
+                new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
+            ]),
+        ]);
+
         const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
         if ((!allowAll && !denyAll) || hasFieldValidation) {
             // generate auxiliary fields for policy check
-
-            // add an "zenstack_guard" field for dealing with pure auth() related conditions
-            model.addField(GUARD_FIELD_NAME, 'Boolean', [
-                new PrismaFieldAttribute('@default', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
-                ]),
-            ]);
 
             // add an "zenstack_transaction" field for tracking records created/updated with nested writes
             model.addField(TRANSACTION_FIELD_NAME, 'String?');
@@ -199,20 +203,29 @@ export default class PrismaSchemaGenerator {
             ]);
         }
 
-        for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
-            this.generateModelAttribute(model, attr);
+        for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
+            this.generateContainerAttribute(model, attr);
         }
 
         decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
             .forEach((attr) => model.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
     }
 
-    private isPrismaAttribute(attr: Attribute) {
-        return !!attr.attributes.find((a) => a.decl.ref?.name === '@@@prisma');
+    private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
+        if (!attr.decl.ref) {
+            return false;
+        }
+        const attrDecl = resolved(attr.decl);
+        return (
+            !!attrDecl.attributes.find((a) => a.decl.ref?.name === '@@@prisma') ||
+            // the special pass-through attribute
+            attrDecl.name === MODEL_PASSTHROUGH_ATTR ||
+            attrDecl.name === FIELD_PASSTHROUGH_ATTR
+        );
     }
 
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
@@ -224,12 +237,10 @@ export default class PrismaSchemaGenerator {
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
         const attributes = field.attributes
-            .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter(
-            (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
-        );
+        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
 
@@ -240,10 +251,20 @@ export default class PrismaSchemaGenerator {
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
-        return new PrismaFieldAttribute(
-            resolved(attr.decl).name,
-            attr.args.map((arg) => this.makeAttributeArg(arg))
-        );
+        const attrName = resolved(attr.decl).name;
+        if (attrName === FIELD_PASSTHROUGH_ATTR) {
+            const text = getLiteral<string>(attr.args[0].value);
+            if (text) {
+                return new PrismaPassThroughAttribute(text);
+            } else {
+                throw new PluginError(`Invalid arguments for ${FIELD_PASSTHROUGH_ATTR} attribute`);
+            }
+        } else {
+            return new PrismaFieldAttribute(
+                attrName,
+                attr.args.map((arg) => this.makeAttributeArg(arg))
+            );
+        }
     }
 
     private makeAttributeArg(arg: AttributeArg): PrismaAttributeArg {
@@ -295,13 +316,21 @@ export default class PrismaSchemaGenerator {
         );
     }
 
-    private generateModelAttribute(model: PrismaDataModel | PrismaEnum, attr: DataModelAttribute) {
-        model.attributes.push(
-            new PrismaModelAttribute(
-                resolved(attr.decl).name,
-                attr.args.map((arg) => this.makeAttributeArg(arg))
-            )
-        );
+    private generateContainerAttribute(container: PrismaContainerDeclaration, attr: DataModelAttribute) {
+        const attrName = resolved(attr.decl).name;
+        if (attrName === MODEL_PASSTHROUGH_ATTR) {
+            const text = getLiteral<string>(attr.args[0].value);
+            if (text) {
+                container.attributes.push(new PrismaPassThroughAttribute(text));
+            }
+        } else {
+            container.attributes.push(
+                new PrismaModelAttribute(
+                    attrName,
+                    attr.args.map((arg) => this.makeAttributeArg(arg))
+                )
+            );
+        }
     }
 
     private generateEnum(prisma: PrismaModel, decl: Enum) {
@@ -311,12 +340,12 @@ export default class PrismaSchemaGenerator {
             this.generateEnumField(_enum, field);
         }
 
-        for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
-            this.generateModelAttribute(_enum, attr);
+        for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
+            this.generateContainerAttribute(_enum, attr);
         }
 
         decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
             .forEach((attr) => _enum.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
 
         // user defined comments pass-through
@@ -325,12 +354,10 @@ export default class PrismaSchemaGenerator {
 
     private generateEnumField(_enum: PrismaEnum, field: EnumField) {
         const attributes = field.attributes
-            .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter(
-            (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
-        );
+        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
         _enum.addField(field.name, attributes, documentations);

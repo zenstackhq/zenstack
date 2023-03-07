@@ -10,6 +10,10 @@ datasource db {
     url = 'file:./todo.db'
 }
 
+generator client {
+    provider = "prisma-client-js"
+}
+
 /*
  * User model
  */

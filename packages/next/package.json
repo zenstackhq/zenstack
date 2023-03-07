@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/next",
-    "version": "1.0.0-alpha.55",
+    "version": "1.0.0-alpha.60",
     "displayName": "ZenStack Next.js integration",
     "description": "ZenStack Next.js integration",
     "homepage": "https://zenstack.dev",
@@ -9,6 +9,7 @@
         "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
+        "test": "jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },

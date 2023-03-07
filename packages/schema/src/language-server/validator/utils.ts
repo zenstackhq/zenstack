@@ -267,6 +267,9 @@ function isValidAttributeTarget(attrDecl: Attribute, targetDecl: DataModelField)
             case 'IntField':
                 allowed = allowed || targetDecl.type.type === 'Int';
                 break;
+            case 'BigIntField':
+                allowed = allowed || targetDecl.type.type === 'BigInt';
+                break;
             case 'FloatField':
                 allowed = allowed || targetDecl.type.type === 'Float';
                 break;

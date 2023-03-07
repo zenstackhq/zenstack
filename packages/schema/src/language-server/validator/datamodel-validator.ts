@@ -10,7 +10,9 @@ import { ValidationAcceptor } from 'langium';
 import { analyzePolicies } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
+import { getIdFields, getUniqueFields } from '../utils';
 import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
+import { getLiteral } from '@zenstackhq/sdk';
 
 /**
  * Validates data model declarations.
@@ -18,33 +20,41 @@ import { validateAttributeApplication, validateDuplicatedDeclarations } from './
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(dm.fields, accept);
-        this.validateFields(dm, accept);
         this.validateAttributes(dm, accept);
+        this.validateFields(dm, accept);
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
         const idFields = dm.fields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
-        if (idFields.length === 0) {
+        const modelLevelIds = getIdFields(dm);
+
+        if (idFields.length === 0 && modelLevelIds.length === 0) {
             const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
             if (allows.length > 0 || denies.length > 0 || hasFieldValidation) {
                 // TODO: relax this requirement to require only @unique fields
                 // when access policies or field valdaition is used, require an @id field
-                accept('error', 'Model must include a field with @id attribute', {
+                accept('error', 'Model must include a field with @id attribute or a model-level @@id attribute', {
                     node: dm,
                 });
             }
+        } else if (idFields.length > 0 && modelLevelIds.length > 0) {
+            accept('error', 'Model cannot have both field-level @id and model-level @@id attributes', {
+                node: dm,
+            });
         } else if (idFields.length > 1) {
             accept('error', 'Model can include at most one field with @id attribute', {
                 node: dm,
             });
         } else {
-            if (idFields[0].type.optional) {
-                accept('error', 'Field with @id attribute must not be optional', { node: idFields[0] });
-            }
-
-            if (idFields[0].type.array || !idFields[0].type.type || !SCALAR_TYPES.includes(idFields[0].type.type)) {
-                accept('error', 'Field with @id attribute must be of scalar type', { node: idFields[0] });
-            }
+            const fieldsToCheck = idFields.length > 0 ? idFields : modelLevelIds;
+            fieldsToCheck.forEach((idField) => {
+                if (idField.type.optional) {
+                    accept('error', 'Field with @id attribute must not be optional', { node: idField });
+                }
+                if (idField.type.array || !idField.type.type || !SCALAR_TYPES.includes(idField.type.type)) {
+                    accept('error', 'Field with @id attribute must be of scalar type', { node: idField });
+                }
+            });
         }
 
         dm.fields.forEach((field) => this.validateField(field, accept));
@@ -109,8 +119,13 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         if (!fields || !references) {
-            if (accept) {
-                accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
+            if (this.isSelfRelation(field, name)) {
+                // self relations are partial
+                // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
+            } else {
+                if (accept) {
+                    accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
+                }
             }
         } else {
             // validate "fields" and "references" typing consistency
@@ -148,6 +163,35 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         return { attr: relAttr, name, fields, references, valid };
     }
 
+    private isSelfRelation(field: DataModelField, relationName?: string) {
+        if (field.type.reference?.ref === field.$container) {
+            // field directly references back to its type
+            return true;
+        }
+
+        if (relationName) {
+            // field's relation points to another type, and that type's opposite relation field
+            // points back
+            const oppositeModelFields = field.type.reference?.ref?.fields as DataModelField[];
+            if (oppositeModelFields) {
+                for (const oppositeField of oppositeModelFields) {
+                    // find the opposite relation with the matching name
+                    const relAttr = oppositeField.attributes.find((a) => a.decl.ref?.name === '@relation');
+                    if (relAttr) {
+                        const relNameExpr = relAttr.args.find((a) => !a.name || a.name === 'name');
+                        const relName = getLiteral<string>(relNameExpr?.value);
+                        if (relName === relationName && oppositeField.type.reference?.ref === field.$container) {
+                            // found an opposite relation field that points back to this field's type
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private validateRelationField(field: DataModelField, accept: ValidationAcceptor) {
         const thisRelation = this.parseRelation(field, accept);
         if (!thisRelation.valid) {
@@ -171,15 +215,20 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             );
             return;
         } else if (oppositeFields.length > 1) {
-            oppositeFields.forEach((f) =>
-                accept(
-                    'error',
-                    `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
-                        oppositeModel.name
-                    }" refer to the same relation to model "${field.$container.name}"`,
-                    { node: f }
-                )
-            );
+            oppositeFields.forEach((f) => {
+                if (this.isSelfRelation(f)) {
+                    // self relations are partial
+                    // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
+                } else {
+                    accept(
+                        'error',
+                        `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
+                            oppositeModel.name
+                        }" refer to the same relation to model "${field.$container.name}"`,
+                        { node: f }
+                    );
+                }
+            });
             return;
         }
 
@@ -207,13 +256,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 relationOwner = field;
             }
         } else {
-            [field, oppositeField].forEach((f) =>
-                accept(
-                    'error',
-                    'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
-                    { node: f }
-                )
-            );
+            [field, oppositeField].forEach((f) => {
+                if (!this.isSelfRelation(f, thisRelation.name)) {
+                    accept(
+                        'error',
+                        'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
+                        { node: f }
+                    );
+                }
+            });
             return;
         }
 
@@ -239,12 +290,21 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             //
             // UserData.userId field needs to be @unique
 
+            const containingModel = field.$container as DataModel;
+            const uniqueFieldList = getUniqueFields(containingModel);
+
             thisRelation.fields?.forEach((ref) => {
                 const refField = ref.target.ref as DataModelField;
-                if (refField && !refField.attributes.find((a) => a.decl.ref?.name === '@unique')) {
+                if (refField) {
+                    if (refField.attributes.find((a) => a.decl.ref?.name === '@unique')) {
+                        return;
+                    }
+                    if (uniqueFieldList.some((list) => list.includes(refField))) {
+                        return;
+                    }
                     accept(
                         'error',
-                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique`,
+                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
                         { node: refField }
                     );
                 }

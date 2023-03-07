@@ -2035,11 +2035,23 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "value": "."
               },
               {
-                "$type": "RuleCall",
-                "rule": {
-                  "$ref": "#/rules@53"
-                },
-                "arguments": []
+                "$type": "Alternatives",
+                "elements": [
+                  {
+                    "$type": "RuleCall",
+                    "rule": {
+                      "$ref": "#/rules@53"
+                    },
+                    "arguments": []
+                  },
+                  {
+                    "$type": "RuleCall",
+                    "rule": {
+                      "$ref": "#/rules@48"
+                    },
+                    "arguments": []
+                  }
+                ]
               }
             ],
             "cardinality": "*"

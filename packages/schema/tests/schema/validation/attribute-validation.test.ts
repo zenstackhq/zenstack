@@ -155,6 +155,15 @@ describe('Attribute tests', () => {
 
     it('model attribute coverage', async () => {
         await loadModel(`
+        ${prelude}
+            model A {
+                x Int
+                y String
+                @@id([x, y], name: 'x_y', map: '_x_y')
+            }
+        `);
+
+        await loadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -212,6 +221,111 @@ describe('Attribute tests', () => {
                 ADMIN @map("admin")
                 CUSTOMER @map("customer")
                 @@map("_Role")
+            }
+        `);
+    });
+
+    it('type modifier attribute coverage', async () => {
+        await loadModel(`
+            ${prelude}
+
+            model _String {
+                _string String @db.String
+                _string1 String @db.String(1)
+                _text String @db.Text
+                _ntext String @db.NText
+                _char String @db.Char(10)
+                _nchar String @db.NChar(10)
+                _varchar String @db.VarChar(10)
+                _nvarChar String @db.NVarChar(10)
+                _catalogSingleChar String @db.CatalogSingleChar
+                _tinyText String @db.TinyText
+                _mediumText String @db.MediumText
+                _longText String @db.LongText
+                _bit String @db.Bit
+                _bit1 String @db.Bit(1)
+                _varbit String @db.VarBit
+                _varbit1 String @db.VarBit(1)
+                _uuid String @db.Uuid
+                _uniqueIdentifier String @db.UniqueIdentifier
+                _xml String @db.Xml
+                _inet String @db.Inet
+                _citext String @db.Citext
+            }
+
+            model _Boolean {
+                _boolean Boolean @db.Boolean
+                _bit Boolean @db.Bit
+                _bit1 Boolean @db.Bit(1)
+                _tinyInt Boolean @db.TinyInt
+                _tinyInt1 Boolean @db.TinyInt(1)
+            }
+
+            model _Int {
+                _int Int @db.Int
+                _integer Int @db.Integer
+                _smallInt Int @db.SmallInt
+                _oid Int @db.Oid
+                _unsignedInt Int @db.UnsignedInt
+                _unsignedSmallInt Int @db.UnsignedSmallInt
+                _mediumInt Int @db.MediumInt
+                _unsignedMediumInt Int @db.UnsignedMediumInt
+                _unsignedTinyInt Int @db.UnsignedTinyInt
+                _year Int @db.Year
+                _int4 Int @db.Int4
+                _int2 Int @db.Int2
+            }
+
+            model _BigInt {
+                _bigInt BigInt @db.BigInt
+                _unsignedBigInt BigInt @db.UnsignedBigInt
+                _int8 BigInt @db.Int8
+            }
+
+            model _FloatDecimal {
+                _float Float @db.Float
+                _decimal Decimal @db.Decimal
+                _doublePrecision Float @db.DoublePrecision
+                _real Float @db.Real
+                _double Float @db.Double
+                _money Float @db.Money
+                _money1 Decimal @db.Money
+                _smallMoney Float @db.SmallMoney
+                _float8 Float @db.Float8
+                _float4 Float @db.Float4
+            }
+
+            model _DateTime {
+                _dateTime DateTime @db.DateTime
+                _dateTime2 DateTime @db.DateTime2
+                _smallDateTime DateTime @db.SmallDateTime
+                _dateTimeOffset DateTime @db.DateTimeOffset
+                _timestamp DateTime @db.Timestamp
+                _timestamp1 DateTime @db.Timestamp(1)
+                _timestamptz DateTime @db.Timestamptz
+                _timestamptz1 DateTime @db.Timestamptz(1)
+                _date DateTime @db.Date
+                _time DateTime @db.Time
+                _time1 DateTime @db.Time(1)
+                _timetz DateTime @db.Timetz
+                _timetz1 DateTime @db.Timetz(1)
+            }
+
+            model _Json {
+                _json Json @db.Json
+                _jsonb Json @db.JsonB
+            }
+
+            model _Bytes {
+                _bytes Bytes @db.Bytes
+                _byteA Bytes @db.ByteA
+                _longBlob Bytes @db.LongBlob
+                _binary Bytes @db.Binary
+                _varBinary Bytes @db.VarBinary
+                _tinyBlob Bytes @db.TinyBlob
+                _blob Bytes @db.Blob
+                _mediumBlob Bytes @db.MediumBlob
+                _image Bytes @db.Image
             }
         `);
     });
