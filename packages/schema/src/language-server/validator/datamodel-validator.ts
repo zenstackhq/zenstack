@@ -118,8 +118,13 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         if (!fields || !references) {
-            if (accept) {
-                accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
+            if (this.isSelfRelation(field, name)) {
+                // self relations are partial
+                // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
+            } else {
+                if (accept) {
+                    accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
+                }
             }
         } else {
             // validate "fields" and "references" typing consistency
@@ -157,6 +162,33 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         return { attr: relAttr, name, fields, references, valid };
     }
 
+    private isSelfRelation(field: DataModelField, relationName?: string) {
+        if (field.type.reference?.ref === field.$container) {
+            // field directly references back to its type
+            return true;
+        }
+
+        if (relationName) {
+            // field's relation points to another type, and that type's opposite relation field
+            // points back
+            const oppositeModelFields = field.type.reference?.ref?.fields as DataModelField[];
+            if (oppositeModelFields) {
+                for (const oppositeField of oppositeModelFields) {
+                    const { name: oppositeRelationName } = this.parseRelation(oppositeField);
+                    if (
+                        oppositeRelationName === relationName &&
+                        oppositeField.type.reference?.ref === field.$container
+                    ) {
+                        // found an opposite relation field that points back to this field's type
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private validateRelationField(field: DataModelField, accept: ValidationAcceptor) {
         const thisRelation = this.parseRelation(field, accept);
         if (!thisRelation.valid) {
@@ -180,15 +212,20 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             );
             return;
         } else if (oppositeFields.length > 1) {
-            oppositeFields.forEach((f) =>
-                accept(
-                    'error',
-                    `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
-                        oppositeModel.name
-                    }" refer to the same relation to model "${field.$container.name}"`,
-                    { node: f }
-                )
-            );
+            oppositeFields.forEach((f) => {
+                if (this.isSelfRelation(f)) {
+                    // self relations are partial
+                    // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
+                } else {
+                    accept(
+                        'error',
+                        `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
+                            oppositeModel.name
+                        }" refer to the same relation to model "${field.$container.name}"`,
+                        { node: f }
+                    );
+                }
+            });
             return;
         }
 
