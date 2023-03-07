@@ -12,6 +12,7 @@ import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getIdFields, getUniqueFields } from '../utils';
 import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
+import { getLiteral } from '@zenstackhq/sdk';
 
 /**
  * Validates data model declarations.
@@ -174,13 +175,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             const oppositeModelFields = field.type.reference?.ref?.fields as DataModelField[];
             if (oppositeModelFields) {
                 for (const oppositeField of oppositeModelFields) {
-                    const { name: oppositeRelationName } = this.parseRelation(oppositeField);
-                    if (
-                        oppositeRelationName === relationName &&
-                        oppositeField.type.reference?.ref === field.$container
-                    ) {
-                        // found an opposite relation field that points back to this field's type
-                        return true;
+                    // find the opposite relation with the matching name
+                    const relAttr = oppositeField.attributes.find((a) => a.decl.ref?.name === '@relation');
+                    if (relAttr) {
+                        const relNameExpr = relAttr.args.find((a) => !a.name || a.name === 'name');
+                        const relName = getLiteral<string>(relNameExpr?.value);
+                        if (relName === relationName && oppositeField.type.reference?.ref === field.$container) {
+                            // found an opposite relation field that points back to this field's type
+                            return true;
+                        }
                     }
                 }
             }
@@ -253,13 +256,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 relationOwner = field;
             }
         } else {
-            [field, oppositeField].forEach((f) =>
-                accept(
-                    'error',
-                    'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
-                    { node: f }
-                )
-            );
+            [field, oppositeField].forEach((f) => {
+                if (!this.isSelfRelation(f, thisRelation.name)) {
+                    accept(
+                        'error',
+                        'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
+                        { node: f }
+                    );
+                }
+            });
             return;
         }
 

@@ -486,7 +486,7 @@ describe('Data Model Validation Tests', () => {
                 name       String?
                 followedBy User[]  @relation("UserFollows")
                 following  User[]  @relation("UserFollows")
-            }            
+            }
         `);
 
         // many-to-many explicit
@@ -499,15 +499,28 @@ describe('Data Model Validation Tests', () => {
                 followedBy Follows[] @relation("following")
                 following  Follows[] @relation("follower")
             }
-              
+
             model Follows {
                 follower    User @relation("follower", fields: [followerId], references: [id])
                 followerId  Int
                 following   User @relation("following", fields: [followingId], references: [id])
                 followingId Int
-              
+
                 @@id([followerId, followingId])
-            }         
+            }
+        `);
+
+        await loadModel(`
+            ${prelude}
+            model User {
+                id         Int       @id
+                eventTypes EventType[] @relation("user_eventtype")
+            }
+
+            model EventType {
+                id         Int       @id
+                users User[] @relation("user_eventtype")
+            }
         `);
 
         // multiple self relations
@@ -522,7 +535,7 @@ describe('Data Model Validation Tests', () => {
                 students   User[]  @relation("TeacherStudents")
                 followedBy User[]  @relation("UserFollows")
                 following  User[]  @relation("UserFollows")
-            }       
+            }
         `);
     });
 });

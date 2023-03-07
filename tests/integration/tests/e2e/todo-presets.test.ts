@@ -9,7 +9,8 @@ describe('Todo Presets Tests', () => {
 
     beforeAll(async () => {
         const { withPresets, prisma: _prisma } = await loadSchemaFromFile(
-            path.join(__dirname, '../schema/todo.zmodel')
+            path.join(__dirname, '../schema/todo.zmodel'),
+            false
         );
         getDb = withPresets;
         prisma = _prisma;
