@@ -510,6 +510,19 @@ describe('Data Model Validation Tests', () => {
             }
         `);
 
+        await loadModel(`
+            ${prelude}
+            model User {
+                id         Int       @id
+                eventTypes EventType[] @relation("user_eventtype")
+            }
+
+            model EventType {
+                id         Int       @id
+                users User[] @relation("user_eventtype")
+            }
+        `);
+
         // multiple self relations
         // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations#defining-multiple-self-relations-on-the-same-model
         await loadModel(`

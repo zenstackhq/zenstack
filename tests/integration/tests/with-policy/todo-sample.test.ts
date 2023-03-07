@@ -7,7 +7,10 @@ describe('Todo Policy Tests', () => {
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(path.join(__dirname, '../schema/todo.zmodel'));
+        const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(
+            path.join(__dirname, '../schema/todo.zmodel'),
+            false
+        );
         getDb = withPolicy;
         prisma = _prisma;
     });

@@ -256,13 +256,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 relationOwner = field;
             }
         } else {
-            [field, oppositeField].forEach((f) =>
-                accept(
-                    'error',
-                    'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
-                    { node: f }
-                )
-            );
+            [field, oppositeField].forEach((f) => {
+                if (!this.isSelfRelation(f, thisRelation.name)) {
+                    accept(
+                        'error',
+                        'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
+                        { node: f }
+                    );
+                }
+            });
             return;
         }
 
