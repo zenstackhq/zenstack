@@ -55,3 +55,27 @@ export function getAttributeArgs(attr: DataModelAttribute | DataModelFieldAttrib
     }
     return result;
 }
+
+export function getAttributeArg(
+    attr: DataModelAttribute | DataModelFieldAttribute,
+    name: string
+): Expression | undefined {
+    for (const arg of attr.args) {
+        if (arg.$resolvedParam?.name === name) {
+            return arg.value;
+        }
+    }
+    return undefined;
+}
+
+export function getAttributeArgLiteral<T extends string | number | boolean>(
+    attr: DataModelAttribute | DataModelFieldAttribute,
+    name: string
+): T | undefined {
+    for (const arg of attr.args) {
+        if (arg.$resolvedParam?.name === name) {
+            return getLiteral<T>(arg.value);
+        }
+    }
+    return undefined;
+}
