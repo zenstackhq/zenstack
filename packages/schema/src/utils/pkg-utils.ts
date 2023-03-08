@@ -1,13 +1,24 @@
+import fs from 'fs';
 import path from 'path';
 import { execSync } from './exec-utils';
-import { findUpSync } from 'find-up';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
+function findUp(names: string[], cwd: string): string | undefined {
+    let dir = cwd;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const target = names.find((name) => fs.existsSync(path.join(dir, name)));
+        if (target) return target;
+
+        const up = path.resolve(dir, '..');
+        if (up === dir) return undefined; // it'll fail anyway
+        dir = up;
+    }
+}
+
 function getPackageManager(projectPath = '.'): PackageManagers {
-    const lockFile = findUpSync(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], {
-        cwd: projectPath,
-    });
+    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], projectPath);
 
     if (!lockFile) {
         // default use npm
@@ -23,7 +34,6 @@ function getPackageManager(projectPath = '.'): PackageManagers {
             return 'npm';
     }
 }
-
 export function installPackage(
     pkg: string,
     dev: boolean,
