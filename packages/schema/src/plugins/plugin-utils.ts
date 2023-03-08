@@ -6,7 +6,7 @@ export const RUNTIME_PACKAGE = '@zenstackhq/runtime';
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
 /**
- * Gets the nearest "node_modules" folder by walking up froma start path.
+ * Gets the nearest "node_modules" folder by walking up from start path.
  */
 export function getNodeModulesFolder(startPath?: string): string | undefined {
     startPath = startPath ?? process.cwd();
@@ -25,7 +25,9 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
  * @returns
  */
 export function getDefaultOutputFolder() {
-    const modulesFolder = getNodeModulesFolder();
+    // Find the real runtime module path, it might be a symlink in pnpm
+    const runtimeModulePath = require.resolve('@zenstackhq/runtime');
+    const modulesFolder = getNodeModulesFolder(runtimeModulePath);
     return modulesFolder ? path.join(modulesFolder, '.zenstack') : undefined;
 }
 
