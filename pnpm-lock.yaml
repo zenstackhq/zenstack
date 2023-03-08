@@ -70,6 +70,7 @@ importers:
       '@types/tmp': ^0.2.3
       '@typescript-eslint/eslint-plugin': ^5.54.0
       '@typescript-eslint/parser': ^5.54.0
+      '@zenstackhq/runtime': workspace:*
       '@zenstackhq/sdk': workspace:*
       '@zenstackhq/testtools': workspace:*
       change-case: ^4.1.2
@@ -85,6 +86,7 @@ importers:
       zenstack: workspace:*
     dependencies:
       '@prisma/generator-helper': 4.7.1
+      '@zenstackhq/runtime': link:../../runtime/dist
       '@zenstackhq/sdk': link:../../sdk/dist
       change-case: 4.1.2
       openapi-types: 12.1.0

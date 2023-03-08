@@ -1,7 +1,11 @@
 import {
     AstNode,
+    DataModel,
     DataModelAttribute,
+    DataModelField,
     DataModelFieldAttribute,
+    Enum,
+    EnumField,
     Expression,
     isArrayExpr,
     isLiteralExpr,
@@ -43,6 +47,12 @@ export function getLiteralArray<
 export default function indentString(string: string, count = 4): string {
     const indent = ' ';
     return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
+}
+
+export function hasAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
+    return !!(decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
+        (attr) => resolved(attr.decl).name === name
+    );
 }
 
 export function getAttributeArgs(attr: DataModelAttribute | DataModelFieldAttribute): Record<string, Expression> {

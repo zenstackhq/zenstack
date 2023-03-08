@@ -31,7 +31,7 @@ describe('Open API Plugin Tests', () => {
     it('run plugin', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
             plugin openapi {
-                provider = '@zenstackhq/openapi'
+                provider = '${process.cwd()}/dist'
             }
 
             enum Role {
@@ -41,6 +41,8 @@ describe('Open API Plugin Tests', () => {
 
             model User {
                 id String @id
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
                 email String @unique
                 role Role @default(USER)
                 posts Post[]
@@ -51,13 +53,22 @@ describe('Open API Plugin Tests', () => {
             
             model Post {
                 id String @id
+                createdAt DateTime @default(now())
+                updatedAt DateTime @updatedAt
                 title String
                 author User? @relation(fields: [authorId], references: [id])
                 authorId String?
                 published Boolean @default(false)
+                viewCount Int @default(0)
             
                 @@allow('all', auth() == this)
                 @@allow('read', published)
+            }
+
+            model Foo {
+                id String @id
+
+                @@openapi.ignore
             }
         `);
 
