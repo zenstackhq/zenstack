@@ -90,6 +90,7 @@
         "colors": "1.4.0",
         "commander": "^8.3.0",
         "cuid": "^2.1.8",
+        "find-up": "^6.3.0",
         "langium": "1.0.1",
         "mixpanel": "^0.17.0",
         "node-machine-id": "^1.1.12",

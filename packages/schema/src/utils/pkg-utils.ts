@@ -1,16 +1,26 @@
-import fs from 'fs';
 import path from 'path';
 import { execSync } from './exec-utils';
+import findUp from 'find-up';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
 function getPackageManager(projectPath = '.'): PackageManagers {
-    if (fs.existsSync(path.join(projectPath, 'yarn.lock'))) {
-        return 'yarn';
-    } else if (fs.existsSync(path.join(projectPath, 'pnpm-lock.yaml'))) {
-        return 'pnpm';
-    } else {
+    const lockFile = findUp.findUpSync(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], {
+        cwd: projectPath,
+    });
+
+    if (!lockFile) {
+        // default use npm
         return 'npm';
+    }
+
+    switch (path.basename(lockFile)) {
+        case 'yarn.lock':
+            return 'yarn';
+        case 'pnpm-lock.yaml':
+            return 'pnpm';
+        default:
+            return 'npm';
     }
 }
 
