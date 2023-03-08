@@ -4,26 +4,15 @@ import { ValidationAcceptor } from 'langium';
 import { getStringLiteral, validateDuplicatedDeclarations } from './utils';
 import { SUPPORTED_PROVIDERS } from '../constants';
 
-const supportedFields = ['provider', 'url', 'shadowDatabaseUrl', 'relationMode'];
-
 /**
  * Validates data source declarations.
  */
 export default class DataSourceValidator implements AstValidator<DataSource> {
     validate(ds: DataSource, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(ds.fields, accept);
-        this.validateFields(ds, accept);
         this.validateProvider(ds, accept);
         this.validateUrl(ds, accept);
         this.validateRelationMode(ds, accept);
-    }
-
-    private validateFields(ds: DataSource, accept: ValidationAcceptor) {
-        ds.fields.forEach((f) => {
-            if (!supportedFields.includes(f.name)) {
-                accept('error', `Unexpected field "${f.name}"`, { node: f });
-            }
-        });
     }
 
     private validateProvider(ds: DataSource, accept: ValidationAcceptor) {

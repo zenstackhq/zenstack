@@ -248,7 +248,7 @@ export interface DataSourceField extends AstNode {
     readonly $container: DataSource;
     readonly $type: 'DataSourceField';
     name: string
-    value: InvocationExpr | LiteralExpr
+    value: ArrayExpr | InvocationExpr | LiteralExpr
 }
 
 export const DataSourceField = 'DataSourceField';

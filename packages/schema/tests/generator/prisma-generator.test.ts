@@ -1,3 +1,5 @@
+/// <reference types="@types/jest" />
+
 import { getDMMF } from '@prisma/internals';
 import fs from 'fs';
 import tmp from 'tmp';
@@ -136,5 +138,56 @@ describe('Prisma generator test', () => {
         await getDMMF({ datamodel: content });
         expect(content).toContain('@unique()');
         expect(content).toContain('@@index([x, y])');
+    });
+
+    it('multi schema', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+                schemas = ['base', 'transactional']
+            }
+
+            generator client {
+                provider        = "prisma-client-js"
+                previewFeatures = ["multiSchema"]
+            }
+
+            model User {
+                id     Int     @id
+                orders Order[]
+              
+                @@schema("base")
+            }
+              
+            model Order {
+                id      Int  @id
+                user    User @relation(fields: [id], references: [id])
+                user_id Int
+              
+                @@schema("transactional")
+            }
+              
+            enum Size {
+                Small
+                Medium
+                Large
+              
+                @@schema("transactional")
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@zenstack/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+        expect(content).toContain('@@schema("base")');
+        expect(content).toContain('@@schema("base")');
+        expect(content).toContain('schemas = ["base","transactional"]');
     });
 });
