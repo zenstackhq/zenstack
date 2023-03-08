@@ -1,11 +1,11 @@
 import path from 'path';
 import { execSync } from './exec-utils';
-import findUp from 'find-up';
+import { findUpSync } from 'find-up';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
 function getPackageManager(projectPath = '.'): PackageManagers {
-    const lockFile = findUp.findUpSync(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], {
+    const lockFile = findUpSync(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], {
         cwd: projectPath,
     });
 
