@@ -258,7 +258,9 @@ export default class Transformer {
             name = `${name}Type`;
         }
         const end = `export const ${exportName}ObjectSchema = Schema`;
-        return `const Schema: z.ZodType<Prisma.${name}> = ${schema};\n\n ${end}`;
+        return `const Schema: z.ZodType<Omit<Prisma.${name}, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join(
+            '|'
+        )}>> = ${schema};\n\n ${end}`;
     }
 
     addFinalWrappers({ zodStringFields }: { zodStringFields: string[] }) {
