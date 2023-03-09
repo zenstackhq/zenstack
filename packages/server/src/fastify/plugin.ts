@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { handleRequest, LoggerConfig } from '@zenstackhq/openapi/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
+import { handleRequest, LoggerConfig } from '../openapi';
 
 export interface PluginOptions {
     prefix: string;

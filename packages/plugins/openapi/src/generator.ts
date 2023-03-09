@@ -1,16 +1,19 @@
 import { DMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS, PluginError, PluginOptions, hasAttribute } from '@zenstackhq/sdk';
+import { AUXILIARY_FIELDS, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { isDataModel, type Model } from '@zenstackhq/sdk/ast';
 import { camelCase } from 'change-case';
 import * as fs from 'fs';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import invariant from 'tiny-invariant';
 // TODO: move these to SDK
-import { addMissingInputObjectTypesForAggregate, resolveAggregateOperationSupport } from './utils/aggregate-helpers';
-import { addMissingInputObjectTypesForInclude } from './utils/include-helpers';
-import { addMissingInputObjectTypesForModelArgs } from './utils/modelArgs-helpers';
-import { addMissingInputObjectTypesForSelect } from './utils/select-helpers';
-import type { AggregateOperationSupport } from './utils/types';
+import {
+    addMissingInputObjectTypesForAggregate,
+    addMissingInputObjectTypesForInclude,
+    addMissingInputObjectTypesForModelArgs,
+    addMissingInputObjectTypesForSelect,
+    AggregateOperationSupport,
+    resolveAggregateOperationSupport,
+} from '@zenstackhq/sdk/dmmf-helpers';
 
 export class OpenAPIGenerator {
     private inputObjectTypes: DMMF.InputType[] = [];

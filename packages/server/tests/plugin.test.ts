@@ -1,7 +1,7 @@
 /// <reference types="@types/jest" />
 
 import fastify from 'fastify';
-import { ZenStackFastifyPlugin } from '../src';
+import { ZenStackFastifyPlugin } from '../src/fastify';
 import { loadSchema } from '@zenstackhq/testtools';
 
 const schema = `
