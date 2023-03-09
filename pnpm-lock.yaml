@@ -353,6 +353,7 @@ importers:
       '@types/supertest': ^2.0.12
       '@zenstackhq/openapi': workspace:*
       '@zenstackhq/runtime': workspace:*
+      '@zenstackhq/sdk': workspace:*
       '@zenstackhq/testtools': workspace:*
       copyfiles: ^2.4.1
       fastify: ^4.14.1
@@ -369,13 +370,14 @@ importers:
     dependencies:
       '@zenstackhq/openapi': link:../plugins/openapi/dist
       '@zenstackhq/runtime': link:../runtime/dist
-      '@zenstackhq/testtools': link:../testtools/dist
+      '@zenstackhq/sdk': link:../sdk/dist
       tiny-invariant: 1.3.1
       tmp: 0.2.1
     devDependencies:
       '@types/jest': 29.4.0
       '@types/react': 18.0.26
       '@types/supertest': 2.0.12
+      '@zenstackhq/testtools': link:../testtools/dist
       copyfiles: 2.4.1
       fastify: 4.14.1
       fastify-plugin: 4.5.0

@@ -6,6 +6,7 @@ import {
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
 import invariant from 'tiny-invariant';
+import { stripAuxFields } from './utils';
 
 type LoggerMethod = (message: string, code?: string) => void;
 
@@ -124,6 +125,7 @@ export async function handleRequest({
             return { status: 400, body: { message: `unknown model name: ${model}` } };
         }
         const result = await prisma[model][dbOp](args);
+        stripAuxFields(result);
         return { status: resCode, body: result };
     } catch (err) {
         if (isPrismaClientKnownRequestError(err)) {

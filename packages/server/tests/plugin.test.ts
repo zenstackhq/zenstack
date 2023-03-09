@@ -68,6 +68,13 @@ describe('Fastify plugin tests', () => {
             })
         );
 
+        // aux fields should have been removed
+        const data = r.json();
+        expect(data.zenstack_guard).toBeUndefined();
+        expect(data.zenstack_transaction).toBeUndefined();
+        expect(data.posts[0].zenstack_guard).toBeUndefined();
+        expect(data.posts[0].zenstack_transaction).toBeUndefined();
+
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/findMany'),
