@@ -1,4 +1,5 @@
 import {
+    ArrayExpr,
     AstNode,
     AttributeArg,
     DataModel,
@@ -48,6 +49,7 @@ import {
     ModelFieldType,
     PassThroughAttribute as PrismaPassThroughAttribute,
     PrismaModel,
+    SimpleField,
 } from './prisma-builder';
 import ZModelCodeGenerator from './zmodel-code-generator';
 
@@ -96,14 +98,19 @@ export default class PrismaSchemaGenerator {
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
-        // run 'prisma generate'
-        await execSync(`npx prisma generate --schema ${outFile}`);
+        const generateClient = options.generateClient !== false;
+
+        if (generateClient) {
+            // run 'prisma generate'
+            await execSync(`npx prisma generate --schema ${outFile}`);
+        }
     }
 
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
         let provider: string | undefined = undefined;
         let url: PrismaDataSourceUrl | undefined = undefined;
         let shadowDatabaseUrl: PrismaDataSourceUrl | undefined = undefined;
+        const restFields: SimpleField[] = [];
 
         for (const f of dataSource.fields) {
             switch (f.name) {
@@ -133,6 +140,19 @@ export default class PrismaSchemaGenerator {
                     shadowDatabaseUrl = r;
                     break;
                 }
+
+                default: {
+                    // rest fields
+                    const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
+                    if (value === undefined) {
+                        throw new PluginError(
+                            `Invalid value for datasource field ${f.name}: value must be a string or an array of strings`
+                        );
+                    } else {
+                        restFields.push({ name: f.name, value });
+                    }
+                    break;
+                }
             }
         }
 
@@ -143,10 +163,10 @@ export default class PrismaSchemaGenerator {
             throw new PluginError('Datasource is missing "url" field');
         }
 
-        prisma.addDataSource(dataSource.name, provider, url, shadowDatabaseUrl);
+        prisma.addDataSource(dataSource.name, provider, url, shadowDatabaseUrl, restFields);
     }
 
-    private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr) {
+    private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr | ArrayExpr) {
         if (this.isStringLiteral(fieldValue)) {
             return new PrismaDataSourceUrl(fieldValue.value as string, false);
         } else if (

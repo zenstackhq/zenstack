@@ -26,16 +26,6 @@ describe('Datasource Validation Tests', () => {
         ).toContain('Duplicated declaration name "provider"');
     });
 
-    it('unknown fields', async () => {
-        expect(
-            await loadModelWithError(`
-                datasource db {
-                    x = 1
-                }
-        `)
-        ).toContain('Unexpected field "x"');
-    });
-
     it('invalid provider value', async () => {
         expect(
             await loadModelWithError(`
