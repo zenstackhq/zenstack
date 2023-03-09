@@ -13,7 +13,7 @@ DataSource:
     TRIPLE_SLASH_COMMENT* 'datasource' name=ID '{' (fields+=DataSourceField)* '}';
 
 DataSourceField:
-    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr|InvocationExpr);
+    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr | InvocationExpr | ArrayExpr);
 
 // generator
 GeneratorDecl:
