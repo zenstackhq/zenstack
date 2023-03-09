@@ -4,9 +4,23 @@ import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { handleRequest, LoggerConfig } from '../openapi';
 
+/**
+ * Fastify plugin options
+ */
 export interface PluginOptions {
+    /**
+     * Url prefix, e.g.: /api
+     */
     prefix: string;
+
+    /**
+     * Callback for gettign a PrismaClient for the given request
+     */
     getPrisma: (request: FastifyRequest, reply: FastifyReply) => unknown | Promise<unknown>;
+
+    /**
+     * Logger settings
+     */
     logger?: LoggerConfig;
 }
 

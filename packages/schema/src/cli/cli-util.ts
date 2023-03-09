@@ -98,6 +98,7 @@ export async function loadDocument(fileName: string): Promise<Model> {
         URI.file(path.resolve(path.join(__dirname, '../res', STD_LIB_MODULE_NAME)))
     );
 
+    // load documents provided by plugins
     const pluginDocuments = await getPluginDocuments(services, fileName);
 
     // load the document
@@ -127,8 +128,11 @@ export async function loadDocument(fileName: string): Promise<Model> {
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
+    // parse the user document (without validation)
     const parseResult = services.parser.LangiumParser.parse(fs.readFileSync(fileName, { encoding: 'utf-8' }));
     const parsed = parseResult.value as Model;
+
+    // traverse plugins and collect "plugin.zmodel" documents
     const result: LangiumDocument[] = [];
     parsed.declarations.forEach((decl) => {
         if (isPlugin(decl)) {
@@ -148,7 +152,6 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
                         }
                     } catch {
                         console.warn(`Unable to load plugin from ${provider}, skipping`);
-                        // noop
                     }
                 }
             }

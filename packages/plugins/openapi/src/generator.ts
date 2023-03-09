@@ -1,3 +1,5 @@
+// Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
+
 import { DMMF } from '@prisma/generator-helper';
 import { AUXILIARY_FIELDS, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { isDataModel, type Model } from '@zenstackhq/sdk/ast';
@@ -5,7 +7,6 @@ import { camelCase } from 'change-case';
 import * as fs from 'fs';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import invariant from 'tiny-invariant';
-// TODO: move these to SDK
 import {
     addMissingInputObjectTypesForAggregate,
     addMissingInputObjectTypesForInclude,
@@ -17,6 +18,9 @@ import {
 import YAML from 'yaml';
 import * as path from 'path';
 
+/**
+ * Generates OpenAPI specification.
+ */
 export class OpenAPIGenerator {
     private inputObjectTypes: DMMF.InputType[] = [];
     private outputObjectTypes: DMMF.OutputType[] = [];
@@ -35,6 +39,7 @@ export class OpenAPIGenerator {
         this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
         this.outputObjectTypes.push(...this.dmmf.schema.outputObjectTypes.prisma);
 
+        // add input object types that are missing from Prisma dmmf
         addMissingInputObjectTypesForModelArgs(this.inputObjectTypes, this.dmmf.datamodel.models);
         addMissingInputObjectTypesForInclude(this.inputObjectTypes, this.dmmf.datamodel.models);
         addMissingInputObjectTypesForSelect(this.inputObjectTypes, this.outputObjectTypes, this.dmmf.datamodel.models);

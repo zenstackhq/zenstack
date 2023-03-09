@@ -31,14 +31,9 @@ export type RequestHandlerOptions = {
     logger?: LoggerConfig | null;
 };
 
-function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
-    if (logger === undefined) {
-        console.error(`@zenstackhq/openapi: error ${code ? '[' + code + ']' : ''}, ${message}`);
-    } else if (logger?.error) {
-        logger.error(message, code);
-    }
-}
-
+/**
+ * OpenApi request context.
+ */
 export type RequestContext = {
     method: string;
     path: string;
@@ -48,11 +43,17 @@ export type RequestContext = {
     logger?: LoggerConfig;
 };
 
+/**
+ * OpenApi response.
+ */
 export type Response = {
     status: number;
     body: unknown;
 };
 
+/**
+ * Handles OpenApi requests
+ */
 export async function handleRequest({
     method,
     path,
@@ -176,4 +177,12 @@ export async function handleRequest({
 
 function unmarshal(value: string) {
     return JSON.parse(value);
+}
+
+function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
+    if (logger === undefined) {
+        console.error(`@zenstackhq/openapi: error ${code ? '[' + code + ']' : ''}, ${message}`);
+    } else if (logger?.error) {
+        logger.error(message, code);
+    }
 }
