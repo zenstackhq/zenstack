@@ -140,7 +140,6 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
                         const pluginEntrance = require.resolve(`${provider}`);
                         const pluginModelFile = path.join(path.dirname(pluginEntrance), PLUGIN_MODULE_NAME);
                         if (fs.existsSync(pluginModelFile)) {
-                            console.log('Including zmodel module from:', pluginModelFile);
                             result.push(
                                 services.shared.workspace.LangiumDocuments.getOrCreateDocument(
                                     URI.file(pluginModelFile)

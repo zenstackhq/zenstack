@@ -6,7 +6,7 @@ import { handleRequest, LoggerConfig } from '../openapi';
 
 export interface PluginOptions {
     prefix: string;
-    getPrisma: (request: FastifyRequest, reply: FastifyReply) => Promise<DbClientContract> | DbClientContract;
+    getPrisma: (request: FastifyRequest, reply: FastifyReply) => unknown | Promise<unknown>;
     logger?: LoggerConfig;
 }
 
@@ -20,7 +20,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     }
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
-        const prisma = await options.getPrisma(request, reply);
+        const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
         if (!prisma) {
             throw new Error('unable to get prisma from request context');
         }

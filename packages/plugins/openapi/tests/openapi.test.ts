@@ -19,7 +19,7 @@ async function loadZModelAndDmmf(content: string) {
     const model = await loadDocument(modelFile);
 
     const { name: prismaFile } = tmp.fileSync({ postfix: '.prisma' });
-    await prismaPlugin(model, { schemaPath: modelFile, output: prismaFile, prismaGenerate: false });
+    await prismaPlugin(model, { schemaPath: modelFile, output: prismaFile, generateClient: false });
 
     const prismaContent = fs.readFileSync(prismaFile, { encoding: 'utf-8' });
 
@@ -72,6 +72,6 @@ describe('Open API Plugin Tests', () => {
             }
         `);
 
-        generate(model, { schemaPath: modelFile, output: 'openapi.json' }, dmmf);
+        generate(model, { schemaPath: modelFile, output: 'openapi.yaml' }, dmmf);
     });
 });

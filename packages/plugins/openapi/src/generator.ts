@@ -14,6 +14,8 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
+import YAML from 'yaml';
+import * as path from 'path';
 
 export class OpenAPIGenerator {
     private inputObjectTypes: DMMF.InputType[] = [];
@@ -56,7 +58,12 @@ export class OpenAPIGenerator {
             paths,
         };
 
-        fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
+        const ext = path.extname(output);
+        if (ext && (ext.toLowerCase() === '.yaml' || ext.toLowerCase() === '.yml')) {
+            fs.writeFileSync(output, YAML.stringify(openapi));
+        } else {
+            fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
+        }
     }
 
     private pruneComponents(components: OAPI.ComponentsObject) {
@@ -134,18 +141,18 @@ export class OpenAPIGenerator {
         }
 
         type OperationDefinition = {
-            key: string;
             method: 'get' | 'post' | 'put' | 'patch' | 'delete';
-            operation?: string;
+            operation: string;
             description: string;
             inputType?: object;
             outputType: object;
             successCode?: number;
         };
 
-        const definitions: OperationDefinition[] = [
-            {
-                key: 'createOne',
+        const definitions: OperationDefinition[] = [];
+
+        if (ops['createOne']) {
+            definitions.push({
                 method: 'post',
                 operation: 'create',
                 inputType: this.component(
@@ -163,10 +170,13 @@ export class OpenAPIGenerator {
                 outputType: this.ref(model.name),
                 description: `Create a new ${model.name}`,
                 successCode: 201,
-            },
-            {
-                key: 'createMany',
+            });
+        }
+
+        if (ops['createMany']) {
+            definitions.push({
                 method: 'post',
+                operation: 'createMany',
                 inputType: this.component(
                     `${model.name}CreateManyArgs`,
                     {
@@ -180,10 +190,13 @@ export class OpenAPIGenerator {
                 outputType: this.ref('BatchPayload'),
                 description: `Create several ${model.name}`,
                 successCode: 201,
-            },
-            {
-                key: 'findUnique',
+            });
+        }
+
+        if (ops['findUnique']) {
+            definitions.push({
                 method: 'get',
+                operation: 'findUnique',
                 inputType: this.component(
                     `${model.name}FindUniqueArgs`,
                     {
@@ -198,10 +211,13 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Find one unique ${model.name}`,
-            },
-            {
-                key: 'findFirst',
+            });
+        }
+
+        if (ops['findFirst']) {
+            definitions.push({
                 method: 'get',
+                operation: 'findFirst',
                 inputType: this.component(
                     `${model.name}FindFirstArgs`,
                     {
@@ -216,10 +232,13 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Find the first ${model.name} matching the given condition`,
-            },
-            {
-                key: 'findMany',
+            });
+        }
+
+        if (ops['findMany']) {
+            definitions.push({
                 method: 'get',
+                operation: 'findMany',
                 inputType: this.component(
                     `${model.name}FindManyArgs`,
                     {
@@ -234,9 +253,11 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.array(this.ref(model.name)),
                 description: `Find a list of ${model.name}`,
-            },
-            {
-                key: 'updateOne',
+            });
+        }
+
+        if (ops['updateOne']) {
+            definitions.push({
                 method: 'patch',
                 operation: 'update',
                 inputType: this.component(
@@ -254,9 +275,12 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Update a ${model.name}`,
-            },
-            {
-                key: 'updateMany',
+            });
+        }
+
+        if (ops['updateMany']) {
+            definitions.push({
+                operation: 'updateMany',
                 method: 'patch',
                 inputType: this.component(
                     `${model.name}UpdateManyArgs`,
@@ -271,9 +295,11 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref('BatchPayload'),
                 description: `Update ${model.name}s matching the given condition`,
-            },
-            {
-                key: 'upsertOne',
+            });
+        }
+
+        if (ops['upsertOne']) {
+            definitions.push({
                 method: 'post',
                 operation: 'upsert',
                 inputType: this.component(
@@ -292,10 +318,13 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Upsert a ${model.name}`,
-            },
-            {
-                key: 'deleteOne',
+            });
+        }
+
+        if (ops['deleteOne']) {
+            definitions.push({
                 method: 'delete',
+                operation: 'delete',
                 inputType: this.component(
                     `${model.name}DeleteUniqueArgs`,
                     {
@@ -310,10 +339,13 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Delete one unique ${model.name}`,
-            },
-            {
-                key: 'deleteMany',
+            });
+        }
+
+        if (ops['deleteMany']) {
+            definitions.push({
                 method: 'delete',
+                operation: 'deleteMany',
                 inputType: this.component(
                     `${model.name}DeleteManyArgs`,
                     {
@@ -326,27 +358,32 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref('BatchPayload'),
                 description: `Delete ${model.name}s matching the given condition`,
-            },
-            {
-                key: 'count',
-                method: 'get',
-                inputType: this.component(
-                    `${model.name}CountArgs`,
-                    {
-                        type: 'object',
-                        properties: {
-                            select: this.ref(`${model.name}Select`),
-                            where: this.ref(`${model.name}WhereInput`),
-                        },
+            });
+        }
+
+        // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
+        definitions.push({
+            method: 'get',
+            operation: 'count',
+            inputType: this.component(
+                `${model.name}CountArgs`,
+                {
+                    type: 'object',
+                    properties: {
+                        select: this.ref(`${model.name}Select`),
+                        where: this.ref(`${model.name}WhereInput`),
                     },
-                    components
-                ),
-                outputType: this.oneOf({ type: 'integer' }, this.ref(`${model.name}CountAggregateOutputType`)),
-                description: `Find a list of ${model.name}`,
-            },
-            {
-                key: 'aggregate',
+                },
+                components
+            ),
+            outputType: this.oneOf({ type: 'integer' }, this.ref(`${model.name}CountAggregateOutputType`)),
+            description: `Find a list of ${model.name}`,
+        });
+
+        if (ops['aggregate']) {
+            definitions.push({
                 method: 'get',
+                operation: 'aggregate',
                 inputType: this.component(
                     `${model.name}AggregateArgs`,
                     {
@@ -364,10 +401,13 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(`Aggregate${model.name}`),
                 description: `Aggregate ${model.name}s`,
-            },
-            {
-                key: 'groupBy',
+            });
+        }
+
+        if (ops['groupBy']) {
+            definitions.push({
                 method: 'get',
+                operation: 'groupBy',
                 inputType: this.component(
                     `${model.name}GroupByArgs`,
                     {
@@ -386,60 +426,56 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.array(this.ref(`${model.name}GroupByOutputType`)),
                 description: `Group ${model.name}s by fields`,
-            },
-        ];
+            });
+        }
 
-        for (const { key, method, operation, description, inputType, outputType, successCode } of definitions) {
-            if (ops[key] || key === 'count' /* prisma operation list doesn't contain 'count' */) {
-                const op = operation ?? key;
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const def: any = {
-                    operationId: `${op}${model.name}`,
-                    responses: {
-                        [successCode !== undefined ? successCode : '200']: {
-                            description: 'Successful operation',
-                            content: {
-                                'application/json': {
-                                    schema: outputType,
-                                },
+        for (const { method, operation, description, inputType, outputType, successCode } of definitions) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const def: any = {
+                operationId: `${operation}${model.name}`,
+                responses: {
+                    [successCode !== undefined ? successCode : '200']: {
+                        description: 'Successful operation',
+                        content: {
+                            'application/json': {
+                                schema: outputType,
                             },
-                        },
-                        '400': {
-                            description: 'Invalid request',
-                        },
-                        '403': {
-                            description: 'Forbidden',
                         },
                     },
-                };
+                    '400': {
+                        description: 'Invalid request',
+                    },
+                    '403': {
+                        description: 'Forbidden',
+                    },
+                },
+            };
 
-                if (inputType) {
-                    if (['post', 'put', 'patch'].includes(method)) {
-                        def.requestBody = {
-                            description,
-                            content: {
-                                'application/json': {
-                                    schema: inputType,
-                                },
-                            },
-                        };
-                    } else {
-                        def.parameters = [
-                            {
-                                name: 'q',
-                                in: 'query',
-                                required: true,
+            if (inputType) {
+                if (['post', 'put', 'patch'].includes(method)) {
+                    def.requestBody = {
+                        description,
+                        content: {
+                            'application/json': {
                                 schema: inputType,
                             },
-                        ] satisfies OAPI.ParameterObject[];
-                    }
+                        },
+                    };
+                } else {
+                    def.parameters = [
+                        {
+                            name: 'q',
+                            in: 'query',
+                            required: true,
+                            schema: inputType,
+                        },
+                    ] satisfies OAPI.ParameterObject[];
                 }
-
-                result[`/${camelCase(model.name)}/${op}`] = {
-                    [method]: def,
-                };
             }
+
+            result[`/${camelCase(model.name)}/${operation}`] = {
+                [method]: def,
+            };
         }
         return result;
     }
