@@ -4,16 +4,36 @@ import { execSync } from './exec-utils';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
-function getPackageManager(projectPath = '.'): PackageManagers {
-    if (fs.existsSync(path.join(projectPath, 'yarn.lock'))) {
-        return 'yarn';
-    } else if (fs.existsSync(path.join(projectPath, 'pnpm-lock.yaml'))) {
-        return 'pnpm';
-    } else {
-        return 'npm';
+function findUp(names: string[], cwd: string): string | undefined {
+    let dir = cwd;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const target = names.find((name) => fs.existsSync(path.join(dir, name)));
+        if (target) return target;
+
+        const up = path.resolve(dir, '..');
+        if (up === dir) return undefined; // it'll fail anyway
+        dir = up;
     }
 }
 
+function getPackageManager(projectPath = '.'): PackageManagers {
+    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], projectPath);
+
+    if (!lockFile) {
+        // default use npm
+        return 'npm';
+    }
+
+    switch (path.basename(lockFile)) {
+        case 'yarn.lock':
+            return 'yarn';
+        case 'pnpm-lock.yaml':
+            return 'pnpm';
+        default:
+            return 'npm';
+    }
+}
 export function installPackage(
     pkg: string,
     dev: boolean,
