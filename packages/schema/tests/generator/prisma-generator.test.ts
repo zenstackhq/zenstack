@@ -182,6 +182,7 @@ describe('Prisma generator test', () => {
             provider: '@zenstack/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            generateClient: false,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
