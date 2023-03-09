@@ -1,6 +1,11 @@
 import indentString from './indent-string';
 
 /**
+ * Field used by datasource and generator declarations.
+ */
+export type SimpleField = { name: string; value: string | string[] };
+
+/**
  * Prisma schema builder
  */
 export class PrismaModel {
@@ -9,13 +14,19 @@ export class PrismaModel {
     private models: Model[] = [];
     private enums: Enum[] = [];
 
-    addDataSource(name: string, provider: string, url: DataSourceUrl, shadowDatabaseUrl?: DataSourceUrl): DataSource {
-        const ds = new DataSource(name, provider, url, shadowDatabaseUrl);
+    addDataSource(
+        name: string,
+        provider: string,
+        url: DataSourceUrl,
+        shadowDatabaseUrl?: DataSourceUrl,
+        restFields: SimpleField[] = []
+    ): DataSource {
+        const ds = new DataSource(name, provider, url, shadowDatabaseUrl, restFields);
         this.datasources.push(ds);
         return ds;
     }
 
-    addGenerator(name: string, fields: Array<{ name: string; value: string | string[] }>): Generator {
+    addGenerator(name: string, fields: SimpleField[]): Generator {
         const generator = new Generator(name, fields);
         this.generators.push(generator);
         return generator;
@@ -45,15 +56,21 @@ export class DataSource {
         public name: string,
         public provider: string,
         public url: DataSourceUrl,
-        public shadowDatabaseUrl?: DataSourceUrl
+        public shadowDatabaseUrl?: DataSourceUrl,
+        public restFields: SimpleField[] = []
     ) {}
 
     toString(): string {
+        const restFields =
+            this.restFields.length > 0
+                ? this.restFields.map((f) => indentString(`${f.name} = ${JSON.stringify(f.value)}`)).join('\n')
+                : '';
         return (
             `datasource ${this.name} {\n` +
             indentString(`provider="${this.provider}"\n`) +
             indentString(`url=${this.url}\n`) +
             (this.shadowDatabaseUrl ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`) : '') +
+            (restFields ? restFields + '\n' : '') +
             `}`
         );
     }
@@ -68,7 +85,7 @@ export class DataSourceUrl {
 }
 
 export class Generator {
-    constructor(public name: string, public fields: Array<{ name: string; value: string | string[] }>) {}
+    constructor(public name: string, public fields: SimpleField[]) {}
 
     toString(): string {
         return (
