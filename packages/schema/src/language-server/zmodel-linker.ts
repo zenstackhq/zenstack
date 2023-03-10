@@ -12,18 +12,19 @@ import {
     FunctionParam,
     FunctionParamType,
     InvocationExpr,
+    isArrayExpr,
+    isDataModel,
+    isDataModelField,
+    isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    ObjectExpr,
     ReferenceExpr,
     ReferenceTarget,
     ResolvedShape,
     ThisExpr,
     UnaryExpr,
-    isArrayExpr,
-    isDataModel,
-    isDataModelField,
-    isReferenceExpr,
 } from '@zenstackhq/language/ast';
 import {
     AstNode,
@@ -31,12 +32,12 @@ import {
     AstNodeDescriptionProvider,
     DefaultLinker,
     DocumentState,
+    interruptAndCheck,
+    isReference,
     LangiumDocument,
     LangiumServices,
     LinkingError,
     Reference,
-    interruptAndCheck,
-    isReference,
     streamContents,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
@@ -141,6 +142,10 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveBinary(node as BinaryExpr, document, extraScopes);
                 break;
 
+            case ObjectExpr:
+                this.resolveObject(node as ObjectExpr, document, extraScopes);
+                break;
+
             case ThisExpr:
                 this.resolveThis(node as ThisExpr, document, extraScopes);
                 break;
@@ -198,6 +203,11 @@ export class ZModelLinker extends DefaultLinker {
     private resolveUnary(node: UnaryExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         this.resolve(node.operand, document, extraScopes);
         node.$resolvedType = node.operand.$resolvedType;
+    }
+
+    private resolveObject(node: ObjectExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        node.fields.forEach((field) => this.resolve(field.value, document, extraScopes));
+        this.resolveToBuiltinTypeOrDecl(node, 'Object');
     }
 
     private resolveReference(node: ReferenceExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {

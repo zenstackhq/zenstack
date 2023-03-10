@@ -1,5 +1,5 @@
+import { getWorkspaceNpmCacheFolder } from '@zenstackhq/testtools';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as tmp from 'tmp';
 import { createProgram } from '../../src/cli';
 import { execSync } from '../../src/utils/exec-utils';
@@ -22,13 +22,13 @@ describe('CLI Tests', () => {
     });
 
     function createNpmrc() {
-        fs.writeFileSync('.npmrc', `cache=${path.join(__dirname, '../.npmcache')}`);
+        fs.writeFileSync('.npmrc', `cache=${getWorkspaceNpmCacheFolder(__dirname)}`);
     }
 
     it('init project t3 std', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
             npm_config_user_agent: 'npm',
-            npm_config_cache: path.join(__dirname, '../.npmcache'),
+            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
         });
         createNpmrc();
 
@@ -41,7 +41,7 @@ describe('CLI Tests', () => {
     it('init project t3 non-std prisma schema', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
             npm_config_user_agent: 'npm',
-            npm_config_cache: path.join(__dirname, '../.npmcache'),
+            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
         });
         createNpmrc();
         fs.renameSync('prisma/schema.prisma', 'prisma/my.prisma');

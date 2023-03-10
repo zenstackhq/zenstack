@@ -1,13 +1,13 @@
-import { Model } from '@zenstackhq/language/ast';
-import { PluginError } from '@zenstackhq/sdk';
+import { isPlugin, Model } from '@zenstackhq/language/ast';
+import { getLiteral, PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
-import { LangiumServices } from 'langium';
+import { LangiumDocument } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import { URI } from 'vscode-uri';
-import { STD_LIB_MODULE_NAME } from '../language-server/constants';
-import { createZModelServices } from '../language-server/zmodel-module';
+import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
+import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { Context } from '../types';
 import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
 import { CliError } from './cli-error';
@@ -80,7 +80,8 @@ Moving forward please edit this file and run "zenstack generate" to regenerate P
  * @param services Language services
  * @returns Parsed and validated AST
  */
-export async function loadDocument(fileName: string, services: LangiumServices): Promise<Model> {
+export async function loadDocument(fileName: string): Promise<Model> {
+    const services = createZModelServices(NodeFileSystem).ZModel;
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
         console.error(colors.yellow(`Please choose a file with extension: ${extensions}.`));
@@ -97,11 +98,14 @@ export async function loadDocument(fileName: string, services: LangiumServices):
         URI.file(path.resolve(path.join(__dirname, '../res', STD_LIB_MODULE_NAME)))
     );
 
+    // load documents provided by plugins
+    const pluginDocuments = await getPluginDocuments(services, fileName);
+
     // load the document
     const document = services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
 
-    // build the document together with standard library
-    await services.shared.workspace.DocumentBuilder.build([stdLib, document], {
+    // build the document together with standard library and plugin modules
+    await services.shared.workspace.DocumentBuilder.build([stdLib, ...pluginDocuments, document], {
         validationChecks: 'all',
     });
 
@@ -123,9 +127,41 @@ export async function loadDocument(fileName: string, services: LangiumServices):
     return document.parseResult.value as Model;
 }
 
+export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
+    // parse the user document (without validation)
+    const parseResult = services.parser.LangiumParser.parse(fs.readFileSync(fileName, { encoding: 'utf-8' }));
+    const parsed = parseResult.value as Model;
+
+    // traverse plugins and collect "plugin.zmodel" documents
+    const result: LangiumDocument[] = [];
+    parsed.declarations.forEach((decl) => {
+        if (isPlugin(decl)) {
+            const providerField = decl.fields.find((f) => f.name === 'provider');
+            if (providerField) {
+                const provider = getLiteral<string>(providerField.value);
+                if (provider) {
+                    try {
+                        const pluginEntrance = require.resolve(`${provider}`);
+                        const pluginModelFile = path.join(path.dirname(pluginEntrance), PLUGIN_MODULE_NAME);
+                        if (fs.existsSync(pluginModelFile)) {
+                            result.push(
+                                services.shared.workspace.LangiumDocuments.getOrCreateDocument(
+                                    URI.file(pluginModelFile)
+                                )
+                            );
+                        }
+                    } catch {
+                        console.warn(`Unable to load plugin from ${provider}, skipping`);
+                    }
+                }
+            }
+        }
+    });
+    return result;
+}
+
 export async function runPlugins(options: { schema: string; packageManager: PackageManagers | undefined }) {
-    const services = createZModelServices(NodeFileSystem).ZModel;
-    const model = await loadDocument(options.schema, services);
+    const model = await loadDocument(options.schema);
 
     const context: Context = {
         schema: model,

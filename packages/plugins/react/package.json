@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/react",
     "displayName": "ZenStack plugin and runtime for ReactJS",
-    "version": "1.0.0-alpha.62",
+    "version": "1.0.0-alpha.72",
     "description": "ZenStack plugin and runtime for ReactJS",
     "main": "index.js",
     "repository": {

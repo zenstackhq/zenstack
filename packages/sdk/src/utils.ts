@@ -1,10 +1,15 @@
 import {
     AstNode,
+    DataModel,
     DataModelAttribute,
+    DataModelField,
     DataModelFieldAttribute,
+    Enum,
+    EnumField,
     Expression,
     isArrayExpr,
     isLiteralExpr,
+    isObjectExpr,
     Reference,
 } from '@zenstackhq/language/ast';
 
@@ -40,9 +45,38 @@ export function getLiteralArray<
     return arr.map((item) => getLiteral<T>(item));
 }
 
+export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined {
+    if (!expr || !isObjectExpr(expr)) {
+        return undefined;
+    }
+    const result: Record<string, unknown> = {};
+    for (const field of expr.fields) {
+        let fieldValue: unknown;
+        if (isLiteralExpr(field.value)) {
+            fieldValue = getLiteral(field.value);
+        } else if (isArrayExpr(field.value)) {
+            fieldValue = getLiteralArray(field.value);
+        } else if (isObjectExpr(field.value)) {
+            fieldValue = getObjectLiteral(field.value);
+        }
+        if (fieldValue === undefined) {
+            return undefined;
+        } else {
+            result[field.name] = fieldValue;
+        }
+    }
+    return result as T;
+}
+
 export default function indentString(string: string, count = 4): string {
     const indent = ' ';
     return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
+}
+
+export function hasAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
+    return !!(decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
+        (attr) => resolved(attr.decl).name === name
+    );
 }
 
 export function getAttributeArgs(attr: DataModelAttribute | DataModelFieldAttribute): Record<string, Expression> {

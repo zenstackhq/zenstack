@@ -60,12 +60,13 @@ export default class Transformer {
     async generateEnumSchemas() {
         for (const enumType of this.enumTypes) {
             const { name, values } = enumType;
+            const filteredValues = values.filter((v) => !AUXILIARY_FIELDS.includes(v));
 
             await writeFileSafely(
                 path.join(Transformer.outputPath, `schemas/enums/${name}.schema.ts`),
                 `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                     `${name}`,
-                    `z.enum(${JSON.stringify(values)})`
+                    `z.enum(${JSON.stringify(filteredValues)})`
                 )}`
             );
         }
@@ -257,7 +258,9 @@ export default class Transformer {
             name = `${name}Type`;
         }
         const end = `export const ${exportName}ObjectSchema = Schema`;
-        return `const Schema: z.ZodType<Prisma.${name}> = ${schema};\n\n ${end}`;
+        return `const Schema: z.ZodType<Omit<Prisma.${name}, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join(
+            '|'
+        )}>> = ${schema};\n\n ${end}`;
     }
 
     addFinalWrappers({ zodStringFields }: { zodStringFields: string[] }) {

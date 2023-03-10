@@ -1,4 +1,4 @@
-import { STD_LIB_MODULE_NAME } from '../constants';
+import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../constants';
 import { isDataSource, Model } from '@zenstackhq/language/ast';
 import { AstValidator } from '../types';
 import { ValidationAcceptor } from 'langium';
@@ -11,7 +11,10 @@ export default class SchemaValidator implements AstValidator<Model> {
     validate(model: Model, accept: ValidationAcceptor): void {
         validateDuplicatedDeclarations(model.declarations, accept);
 
-        if (!model.$document?.uri.path.endsWith(STD_LIB_MODULE_NAME)) {
+        if (
+            !model.$document?.uri.path.endsWith(STD_LIB_MODULE_NAME) &&
+            !model.$document?.uri.path.endsWith(PLUGIN_MODULE_NAME)
+        ) {
             this.validateDataSources(model, accept);
         }
     }

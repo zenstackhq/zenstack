@@ -1,0 +1,3009 @@
+openapi: 3.0.0
+info:
+  title: ZenStack Generated API
+  version: 1.0.0
+components:
+  schemas:
+    Role:
+      type: string
+      enum:
+        - USER
+        - ADMIN
+    PostScalarFieldEnum:
+      type: string
+      enum:
+        - id
+        - createdAt
+        - updatedAt
+        - title
+        - authorId
+        - published
+        - viewCount
+    QueryMode:
+      type: string
+      enum:
+        - default
+        - insensitive
+    SortOrder:
+      type: string
+      enum:
+        - asc
+        - desc
+    UserScalarFieldEnum:
+      type: string
+      enum:
+        - id
+        - createdAt
+        - updatedAt
+        - email
+        - role
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        posts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Post"
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - email
+        - role
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        author:
+          $ref: "#/components/schemas/User"
+        authorId:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - title
+        - published
+        - viewCount
+    UserWhereInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/UserWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/UserWhereInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserWhereInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/UserWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/UserWhereInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        createdAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        updatedAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        email:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        role:
+          oneOf:
+            - $ref: "#/components/schemas/EnumRoleFilter"
+            - $ref: "#/components/schemas/Role"
+        posts:
+          $ref: "#/components/schemas/PostListRelationFilter"
+    UserOrderByWithRelationInput:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/SortOrder"
+        createdAt:
+          $ref: "#/components/schemas/SortOrder"
+        updatedAt:
+          $ref: "#/components/schemas/SortOrder"
+        email:
+          $ref: "#/components/schemas/SortOrder"
+        role:
+          $ref: "#/components/schemas/SortOrder"
+        posts:
+          $ref: "#/components/schemas/PostOrderByRelationAggregateInput"
+    UserWhereUniqueInput:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+    UserScalarWhereWithAggregatesInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/UserScalarWhereWithAggregatesInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/UserScalarWhereWithAggregatesInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserScalarWhereWithAggregatesInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/UserScalarWhereWithAggregatesInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/UserScalarWhereWithAggregatesInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringWithAggregatesFilter"
+            - type: string
+        createdAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeWithAggregatesFilter"
+            - type: string
+              format: date-time
+        updatedAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeWithAggregatesFilter"
+            - type: string
+              format: date-time
+        email:
+          oneOf:
+            - $ref: "#/components/schemas/StringWithAggregatesFilter"
+            - type: string
+        role:
+          oneOf:
+            - $ref: "#/components/schemas/EnumRoleWithAggregatesFilter"
+            - $ref: "#/components/schemas/Role"
+    PostWhereInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostWhereInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        createdAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        updatedAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        title:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        author:
+          oneOf:
+            - $ref: "#/components/schemas/UserRelationFilter"
+            - $ref: "#/components/schemas/UserWhereInput"
+        authorId:
+          oneOf:
+            - $ref: "#/components/schemas/StringNullableFilter"
+            - type: string
+        published:
+          oneOf:
+            - $ref: "#/components/schemas/BoolFilter"
+            - type: boolean
+        viewCount:
+          oneOf:
+            - $ref: "#/components/schemas/IntFilter"
+            - type: integer
+    PostOrderByWithRelationInput:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/SortOrder"
+        createdAt:
+          $ref: "#/components/schemas/SortOrder"
+        updatedAt:
+          $ref: "#/components/schemas/SortOrder"
+        title:
+          $ref: "#/components/schemas/SortOrder"
+        author:
+          $ref: "#/components/schemas/UserOrderByWithRelationInput"
+        authorId:
+          $ref: "#/components/schemas/SortOrder"
+        published:
+          $ref: "#/components/schemas/SortOrder"
+        viewCount:
+          $ref: "#/components/schemas/SortOrder"
+    PostWhereUniqueInput:
+      type: object
+      properties:
+        id:
+          type: string
+    PostScalarWhereWithAggregatesInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/PostScalarWhereWithAggregatesInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostScalarWhereWithAggregatesInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostScalarWhereWithAggregatesInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/PostScalarWhereWithAggregatesInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostScalarWhereWithAggregatesInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringWithAggregatesFilter"
+            - type: string
+        createdAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeWithAggregatesFilter"
+            - type: string
+              format: date-time
+        updatedAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeWithAggregatesFilter"
+            - type: string
+              format: date-time
+        title:
+          oneOf:
+            - $ref: "#/components/schemas/StringWithAggregatesFilter"
+            - type: string
+        authorId:
+          oneOf:
+            - $ref: "#/components/schemas/StringNullableWithAggregatesFilter"
+            - type: string
+        published:
+          oneOf:
+            - $ref: "#/components/schemas/BoolWithAggregatesFilter"
+            - type: boolean
+        viewCount:
+          oneOf:
+            - $ref: "#/components/schemas/IntWithAggregatesFilter"
+            - type: integer
+    UserCreateInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        posts:
+          $ref: "#/components/schemas/PostCreateNestedManyWithoutAuthorInput"
+      required:
+        - id
+        - email
+    UserUpdateInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        email:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        role:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/EnumRoleFieldUpdateOperationsInput"
+        posts:
+          $ref: "#/components/schemas/PostUpdateManyWithoutAuthorNestedInput"
+    UserCreateManyInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+      required:
+        - id
+        - email
+    UserUpdateManyMutationInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        email:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        role:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/EnumRoleFieldUpdateOperationsInput"
+    PostCreateInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        author:
+          $ref: "#/components/schemas/UserCreateNestedOneWithoutPostsInput"
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - id
+        - title
+    PostUpdateInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        title:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        author:
+          $ref: "#/components/schemas/UserUpdateOneWithoutPostsNestedInput"
+        published:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        viewCount:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+    PostCreateManyInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        authorId:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - id
+        - title
+    PostUpdateManyMutationInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        title:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        published:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        viewCount:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+    StringFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringFilter"
+    DateTimeFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeFilter"
+    EnumRoleFilter:
+      type: object
+      properties:
+        equals:
+          $ref: "#/components/schemas/Role"
+        in:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        notIn:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        not:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/NestedEnumRoleFilter"
+    PostListRelationFilter:
+      type: object
+      properties:
+        every:
+          $ref: "#/components/schemas/PostWhereInput"
+        some:
+          $ref: "#/components/schemas/PostWhereInput"
+        none:
+          $ref: "#/components/schemas/PostWhereInput"
+    BoolFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolFilter"
+    StringNullableFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringNullableFilter"
+    PostOrderByRelationAggregateInput:
+      type: object
+      properties:
+        _count:
+          $ref: "#/components/schemas/SortOrder"
+    StringWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedStringFilter"
+        _max:
+          $ref: "#/components/schemas/NestedStringFilter"
+    DateTimeWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+        _max:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+    EnumRoleWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          $ref: "#/components/schemas/Role"
+        in:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        notIn:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        not:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/NestedEnumRoleWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedEnumRoleFilter"
+        _max:
+          $ref: "#/components/schemas/NestedEnumRoleFilter"
+    BoolWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBoolFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBoolFilter"
+    StringNullableWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        mode:
+          $ref: "#/components/schemas/QueryMode"
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringNullableWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntNullableFilter"
+        _min:
+          $ref: "#/components/schemas/NestedStringNullableFilter"
+        _max:
+          $ref: "#/components/schemas/NestedStringNullableFilter"
+    UserRelationFilter:
+      type: object
+      properties:
+        is:
+          $ref: "#/components/schemas/UserWhereInput"
+        isNot:
+          $ref: "#/components/schemas/UserWhereInput"
+    IntFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntFilter"
+    IntWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _max:
+          $ref: "#/components/schemas/NestedIntFilter"
+    PostCreateNestedManyWithoutAuthorInput:
+      type: object
+      properties:
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/PostCreateWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostCreateWithoutAuthorInput"
+            - $ref: "#/components/schemas/PostUncheckedCreateWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostUncheckedCreateWithoutAuthorInput"
+        connectOrCreate:
+          oneOf:
+            - $ref: "#/components/schemas/PostCreateOrConnectWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostCreateOrConnectWithoutAuthorInput"
+        createMany:
+          $ref: "#/components/schemas/PostCreateManyAuthorInputEnvelope"
+        connect:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereUniqueInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereUniqueInput"
+    StringFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: string
+    DateTimeFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: string
+          format: date-time
+    EnumRoleFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          $ref: "#/components/schemas/Role"
+    PostUpdateManyWithoutAuthorNestedInput:
+      type: object
+      properties:
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/PostCreateWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostCreateWithoutAuthorInput"
+            - $ref: "#/components/schemas/PostUncheckedCreateWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostUncheckedCreateWithoutAuthorInput"
+        connectOrCreate:
+          oneOf:
+            - $ref: "#/components/schemas/PostCreateOrConnectWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostCreateOrConnectWithoutAuthorInput"
+        upsert:
+          oneOf:
+            - $ref: "#/components/schemas/PostUpsertWithWhereUniqueWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostUpsertWithWhereUniqueWithoutAuthorInput"
+        createMany:
+          $ref: "#/components/schemas/PostCreateManyAuthorInputEnvelope"
+        set:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereUniqueInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereUniqueInput"
+        disconnect:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereUniqueInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereUniqueInput"
+        delete:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereUniqueInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereUniqueInput"
+        connect:
+          oneOf:
+            - $ref: "#/components/schemas/PostWhereUniqueInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostWhereUniqueInput"
+        update:
+          oneOf:
+            - $ref: "#/components/schemas/PostUpdateWithWhereUniqueWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostUpdateWithWhereUniqueWithoutAuthorInput"
+        updateMany:
+          oneOf:
+            - $ref: "#/components/schemas/PostUpdateManyWithWhereWithoutAuthorInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostUpdateManyWithWhereWithoutAuthorInput"
+        deleteMany:
+          oneOf:
+            - $ref: "#/components/schemas/PostScalarWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostScalarWhereInput"
+    BoolFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: boolean
+    UserCreateNestedOneWithoutPostsInput:
+      type: object
+      properties:
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/UserCreateWithoutPostsInput"
+            - $ref: "#/components/schemas/UserUncheckedCreateWithoutPostsInput"
+        connectOrCreate:
+          $ref: "#/components/schemas/UserCreateOrConnectWithoutPostsInput"
+        connect:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+    UserUpdateOneWithoutPostsNestedInput:
+      type: object
+      properties:
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/UserCreateWithoutPostsInput"
+            - $ref: "#/components/schemas/UserUncheckedCreateWithoutPostsInput"
+        connectOrCreate:
+          $ref: "#/components/schemas/UserCreateOrConnectWithoutPostsInput"
+        upsert:
+          $ref: "#/components/schemas/UserUpsertWithoutPostsInput"
+        disconnect:
+          type: boolean
+        delete:
+          type: boolean
+        connect:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+        update:
+          oneOf:
+            - $ref: "#/components/schemas/UserUpdateWithoutPostsInput"
+            - $ref: "#/components/schemas/UserUncheckedUpdateWithoutPostsInput"
+    IntFieldUpdateOperationsInput:
+      type: object
+      properties:
+        set:
+          type: integer
+        increment:
+          type: integer
+        decrement:
+          type: integer
+        multiply:
+          type: integer
+        divide:
+          type: integer
+    NestedStringFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringFilter"
+    NestedDateTimeFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeFilter"
+    NestedEnumRoleFilter:
+      type: object
+      properties:
+        equals:
+          $ref: "#/components/schemas/Role"
+        in:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        notIn:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        not:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/NestedEnumRoleFilter"
+    NestedBoolFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolFilter"
+    NestedStringNullableFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringNullableFilter"
+    NestedStringWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedStringFilter"
+        _max:
+          $ref: "#/components/schemas/NestedStringFilter"
+    NestedIntFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntFilter"
+    NestedDateTimeWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+          format: date-time
+        in:
+          type: array
+          items:
+            type: string
+            format: date-time
+        notIn:
+          type: array
+          items:
+            type: string
+            format: date-time
+        lt:
+          type: string
+          format: date-time
+        lte:
+          type: string
+          format: date-time
+        gt:
+          type: string
+          format: date-time
+        gte:
+          type: string
+          format: date-time
+        not:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/NestedDateTimeWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+        _max:
+          $ref: "#/components/schemas/NestedDateTimeFilter"
+    NestedEnumRoleWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          $ref: "#/components/schemas/Role"
+        in:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        notIn:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        not:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/NestedEnumRoleWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedEnumRoleFilter"
+        _max:
+          $ref: "#/components/schemas/NestedEnumRoleFilter"
+    NestedBoolWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: boolean
+        not:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/NestedBoolWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedBoolFilter"
+        _max:
+          $ref: "#/components/schemas/NestedBoolFilter"
+    NestedStringNullableWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: string
+        in:
+          type: array
+          items:
+            type: string
+        notIn:
+          type: array
+          items:
+            type: string
+        lt:
+          type: string
+        lte:
+          type: string
+        gt:
+          type: string
+        gte:
+          type: string
+        contains:
+          type: string
+        startsWith:
+          type: string
+        endsWith:
+          type: string
+        not:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/NestedStringNullableWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntNullableFilter"
+        _min:
+          $ref: "#/components/schemas/NestedStringNullableFilter"
+        _max:
+          $ref: "#/components/schemas/NestedStringNullableFilter"
+    NestedIntNullableFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntNullableFilter"
+    NestedIntWithAggregatesFilter:
+      type: object
+      properties:
+        equals:
+          type: integer
+        in:
+          type: array
+          items:
+            type: integer
+        notIn:
+          type: array
+          items:
+            type: integer
+        lt:
+          type: integer
+        lte:
+          type: integer
+        gt:
+          type: integer
+        gte:
+          type: integer
+        not:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/NestedIntWithAggregatesFilter"
+        _count:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _avg:
+          $ref: "#/components/schemas/NestedFloatFilter"
+        _sum:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _min:
+          $ref: "#/components/schemas/NestedIntFilter"
+        _max:
+          $ref: "#/components/schemas/NestedIntFilter"
+    NestedFloatFilter:
+      type: object
+      properties:
+        equals:
+          type: number
+        in:
+          type: array
+          items:
+            type: number
+        notIn:
+          type: array
+          items:
+            type: number
+        lt:
+          type: number
+        lte:
+          type: number
+        gt:
+          type: number
+        gte:
+          type: number
+        not:
+          oneOf:
+            - type: number
+            - $ref: "#/components/schemas/NestedFloatFilter"
+    PostCreateWithoutAuthorInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - id
+        - title
+    PostUncheckedCreateWithoutAuthorInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - id
+        - title
+    PostCreateOrConnectWithoutAuthorInput:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/PostCreateWithoutAuthorInput"
+            - $ref: "#/components/schemas/PostUncheckedCreateWithoutAuthorInput"
+      required:
+        - where
+        - create
+    PostCreateManyAuthorInputEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostCreateManyAuthorInput"
+        skipDuplicates:
+          type: boolean
+      required:
+        - data
+    PostUpsertWithWhereUniqueWithoutAuthorInput:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+        update:
+          oneOf:
+            - $ref: "#/components/schemas/PostUpdateWithoutAuthorInput"
+            - $ref: "#/components/schemas/PostUncheckedUpdateWithoutAuthorInput"
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/PostCreateWithoutAuthorInput"
+            - $ref: "#/components/schemas/PostUncheckedCreateWithoutAuthorInput"
+      required:
+        - where
+        - update
+        - create
+    PostUpdateWithWhereUniqueWithoutAuthorInput:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/PostUpdateWithoutAuthorInput"
+            - $ref: "#/components/schemas/PostUncheckedUpdateWithoutAuthorInput"
+      required:
+        - where
+        - data
+    PostUpdateManyWithWhereWithoutAuthorInput:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostScalarWhereInput"
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/PostUpdateManyMutationInput"
+            - $ref: "#/components/schemas/PostUncheckedUpdateManyWithoutPostsInput"
+      required:
+        - where
+        - data
+    PostScalarWhereInput:
+      type: object
+      properties:
+        AND:
+          oneOf:
+            - $ref: "#/components/schemas/PostScalarWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostScalarWhereInput"
+        OR:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostScalarWhereInput"
+        NOT:
+          oneOf:
+            - $ref: "#/components/schemas/PostScalarWhereInput"
+            - type: array
+              items:
+                $ref: "#/components/schemas/PostScalarWhereInput"
+        id:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        createdAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        updatedAt:
+          oneOf:
+            - $ref: "#/components/schemas/DateTimeFilter"
+            - type: string
+              format: date-time
+        title:
+          oneOf:
+            - $ref: "#/components/schemas/StringFilter"
+            - type: string
+        authorId:
+          oneOf:
+            - $ref: "#/components/schemas/StringNullableFilter"
+            - type: string
+        published:
+          oneOf:
+            - $ref: "#/components/schemas/BoolFilter"
+            - type: boolean
+        viewCount:
+          oneOf:
+            - $ref: "#/components/schemas/IntFilter"
+            - type: integer
+    UserCreateWithoutPostsInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+      required:
+        - id
+        - email
+    UserUncheckedCreateWithoutPostsInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+      required:
+        - id
+        - email
+    UserCreateOrConnectWithoutPostsInput:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/UserCreateWithoutPostsInput"
+            - $ref: "#/components/schemas/UserUncheckedCreateWithoutPostsInput"
+      required:
+        - where
+        - create
+    UserUpsertWithoutPostsInput:
+      type: object
+      properties:
+        update:
+          oneOf:
+            - $ref: "#/components/schemas/UserUpdateWithoutPostsInput"
+            - $ref: "#/components/schemas/UserUncheckedUpdateWithoutPostsInput"
+        create:
+          oneOf:
+            - $ref: "#/components/schemas/UserCreateWithoutPostsInput"
+            - $ref: "#/components/schemas/UserUncheckedCreateWithoutPostsInput"
+      required:
+        - update
+        - create
+    UserUpdateWithoutPostsInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        email:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        role:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/EnumRoleFieldUpdateOperationsInput"
+    UserUncheckedUpdateWithoutPostsInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        email:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        role:
+          oneOf:
+            - $ref: "#/components/schemas/Role"
+            - $ref: "#/components/schemas/EnumRoleFieldUpdateOperationsInput"
+    PostCreateManyAuthorInput:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+      required:
+        - id
+        - title
+    PostUpdateWithoutAuthorInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        title:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        published:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        viewCount:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+    PostUncheckedUpdateWithoutAuthorInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        title:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        published:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        viewCount:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+    PostUncheckedUpdateManyWithoutPostsInput:
+      type: object
+      properties:
+        id:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        createdAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        updatedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - $ref: "#/components/schemas/DateTimeFieldUpdateOperationsInput"
+        title:
+          oneOf:
+            - type: string
+            - $ref: "#/components/schemas/StringFieldUpdateOperationsInput"
+        published:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/BoolFieldUpdateOperationsInput"
+        viewCount:
+          oneOf:
+            - type: integer
+            - $ref: "#/components/schemas/IntFieldUpdateOperationsInput"
+    UserArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+    UserInclude:
+      type: object
+      properties:
+        posts:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/PostFindManyArgs"
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/UserCountOutputTypeArgs"
+    PostInclude:
+      type: object
+      properties:
+        author:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/UserArgs"
+    UserCountOutputTypeSelect:
+      type: object
+      properties:
+        posts:
+          type: boolean
+    UserCountOutputTypeArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserCountOutputTypeSelect"
+    UserSelect:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        email:
+          type: boolean
+        role:
+          type: boolean
+        posts:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/PostFindManyArgs"
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/UserCountOutputTypeArgs"
+    PostSelect:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        title:
+          type: boolean
+        author:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/UserArgs"
+        authorId:
+          type: boolean
+        published:
+          type: boolean
+        viewCount:
+          type: boolean
+    UserCountAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        email:
+          type: boolean
+        role:
+          type: boolean
+        _all:
+          type: boolean
+    UserMinAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        email:
+          type: boolean
+        role:
+          type: boolean
+    UserMaxAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        email:
+          type: boolean
+        role:
+          type: boolean
+    PostCountAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        title:
+          type: boolean
+        authorId:
+          type: boolean
+        published:
+          type: boolean
+        viewCount:
+          type: boolean
+        _all:
+          type: boolean
+    PostAvgAggregateInput:
+      type: object
+      properties:
+        viewCount:
+          type: boolean
+    PostSumAggregateInput:
+      type: object
+      properties:
+        viewCount:
+          type: boolean
+    PostMinAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        title:
+          type: boolean
+        authorId:
+          type: boolean
+        published:
+          type: boolean
+        viewCount:
+          type: boolean
+    PostMaxAggregateInput:
+      type: object
+      properties:
+        id:
+          type: boolean
+        createdAt:
+          type: boolean
+        updatedAt:
+          type: boolean
+        title:
+          type: boolean
+        authorId:
+          type: boolean
+        published:
+          type: boolean
+        viewCount:
+          type: boolean
+    AggregateUser:
+      type: object
+      properties:
+        _count:
+          $ref: "#/components/schemas/UserCountAggregateOutputType"
+        _min:
+          $ref: "#/components/schemas/UserMinAggregateOutputType"
+        _max:
+          $ref: "#/components/schemas/UserMaxAggregateOutputType"
+    UserGroupByOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+        _count:
+          $ref: "#/components/schemas/UserCountAggregateOutputType"
+        _min:
+          $ref: "#/components/schemas/UserMinAggregateOutputType"
+        _max:
+          $ref: "#/components/schemas/UserMaxAggregateOutputType"
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - email
+        - role
+    AggregatePost:
+      type: object
+      properties:
+        _count:
+          $ref: "#/components/schemas/PostCountAggregateOutputType"
+        _avg:
+          $ref: "#/components/schemas/PostAvgAggregateOutputType"
+        _sum:
+          $ref: "#/components/schemas/PostSumAggregateOutputType"
+        _min:
+          $ref: "#/components/schemas/PostMinAggregateOutputType"
+        _max:
+          $ref: "#/components/schemas/PostMaxAggregateOutputType"
+    PostGroupByOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        authorId:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+        _count:
+          $ref: "#/components/schemas/PostCountAggregateOutputType"
+        _avg:
+          $ref: "#/components/schemas/PostAvgAggregateOutputType"
+        _sum:
+          $ref: "#/components/schemas/PostSumAggregateOutputType"
+        _min:
+          $ref: "#/components/schemas/PostMinAggregateOutputType"
+        _max:
+          $ref: "#/components/schemas/PostMaxAggregateOutputType"
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - title
+        - published
+        - viewCount
+    UserCountAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: integer
+        createdAt:
+          type: integer
+        updatedAt:
+          type: integer
+        email:
+          type: integer
+        role:
+          type: integer
+        _all:
+          type: integer
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - email
+        - role
+        - _all
+    UserMinAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+    UserMaxAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        email:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+    PostCountAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: integer
+        createdAt:
+          type: integer
+        updatedAt:
+          type: integer
+        title:
+          type: integer
+        authorId:
+          type: integer
+        published:
+          type: integer
+        viewCount:
+          type: integer
+        _all:
+          type: integer
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - title
+        - authorId
+        - published
+        - viewCount
+        - _all
+    PostAvgAggregateOutputType:
+      type: object
+      properties:
+        viewCount:
+          type: number
+    PostSumAggregateOutputType:
+      type: object
+      properties:
+        viewCount:
+          type: integer
+    PostMinAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        authorId:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+    PostMaxAggregateOutputType:
+      type: object
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        title:
+          type: string
+        authorId:
+          type: string
+        published:
+          type: boolean
+        viewCount:
+          type: integer
+    BatchPayload:
+      type: object
+      properties:
+        count:
+          type: integer
+    UserCreateArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        data:
+          $ref: "#/components/schemas/UserCreateInput"
+    UserCreateManyArgs:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/UserCreateManyInput"
+    UserFindUniqueArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        where:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+    UserFindFirstArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+    UserFindManyArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+    UserUpdateArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        where:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+        data:
+          $ref: "#/components/schemas/UserUpdateInput"
+    UserUpdateManyArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+        data:
+          $ref: "#/components/schemas/UserUpdateManyMutationInput"
+    UserUpsertArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        where:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+        create:
+          $ref: "#/components/schemas/UserCreateInput"
+        update:
+          $ref: "#/components/schemas/UserUpdateInput"
+    UserDeleteUniqueArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        include:
+          $ref: "#/components/schemas/UserInclude"
+        where:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+    UserDeleteManyArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+    UserCountArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/UserSelect"
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+    UserAggregateArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+        orderBy:
+          $ref: "#/components/schemas/UserOrderByWithRelationInput"
+        cursor:
+          $ref: "#/components/schemas/UserWhereUniqueInput"
+        take:
+          type: integer
+        skip:
+          type: integer
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/UserCountAggregateInput"
+        _min:
+          $ref: "#/components/schemas/UserMinAggregateInput"
+        _max:
+          $ref: "#/components/schemas/UserMaxAggregateInput"
+    UserGroupByArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/UserWhereInput"
+        orderBy:
+          $ref: "#/components/schemas/UserOrderByWithRelationInput"
+        by:
+          $ref: "#/components/schemas/UserScalarFieldEnum"
+        having:
+          $ref: "#/components/schemas/UserScalarWhereWithAggregatesInput"
+        take:
+          type: integer
+        skip:
+          type: integer
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/UserCountAggregateInput"
+        _min:
+          $ref: "#/components/schemas/UserMinAggregateInput"
+        _max:
+          $ref: "#/components/schemas/UserMaxAggregateInput"
+    PostCreateArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        data:
+          $ref: "#/components/schemas/PostCreateInput"
+    PostCreateManyArgs:
+      type: object
+      properties:
+        data:
+          $ref: "#/components/schemas/PostCreateManyInput"
+    PostFindUniqueArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+    PostFindFirstArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+    PostFindManyArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+    PostUpdateArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+        data:
+          $ref: "#/components/schemas/PostUpdateInput"
+    PostUpdateManyArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+        data:
+          $ref: "#/components/schemas/PostUpdateManyMutationInput"
+    PostUpsertArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+        create:
+          $ref: "#/components/schemas/PostCreateInput"
+        update:
+          $ref: "#/components/schemas/PostUpdateInput"
+    PostDeleteUniqueArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        include:
+          $ref: "#/components/schemas/PostInclude"
+        where:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+    PostDeleteManyArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+    PostCountArgs:
+      type: object
+      properties:
+        select:
+          $ref: "#/components/schemas/PostSelect"
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+    PostAggregateArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+        orderBy:
+          $ref: "#/components/schemas/PostOrderByWithRelationInput"
+        cursor:
+          $ref: "#/components/schemas/PostWhereUniqueInput"
+        take:
+          type: integer
+        skip:
+          type: integer
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/PostCountAggregateInput"
+        _min:
+          $ref: "#/components/schemas/PostMinAggregateInput"
+        _max:
+          $ref: "#/components/schemas/PostMaxAggregateInput"
+        _sum:
+          $ref: "#/components/schemas/PostSumAggregateInput"
+        _avg:
+          $ref: "#/components/schemas/PostAvgAggregateInput"
+    PostGroupByArgs:
+      type: object
+      properties:
+        where:
+          $ref: "#/components/schemas/PostWhereInput"
+        orderBy:
+          $ref: "#/components/schemas/PostOrderByWithRelationInput"
+        by:
+          $ref: "#/components/schemas/PostScalarFieldEnum"
+        having:
+          $ref: "#/components/schemas/PostScalarWhereWithAggregatesInput"
+        take:
+          type: integer
+        skip:
+          type: integer
+        _count:
+          oneOf:
+            - type: boolean
+            - $ref: "#/components/schemas/PostCountAggregateInput"
+        _min:
+          $ref: "#/components/schemas/PostMinAggregateInput"
+        _max:
+          $ref: "#/components/schemas/PostMaxAggregateInput"
+        _sum:
+          $ref: "#/components/schemas/PostSumAggregateInput"
+        _avg:
+          $ref: "#/components/schemas/PostAvgAggregateInput"
+paths:
+  /user/create:
+    post:
+      operationId: createUser
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Create a new User
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateArgs"
+  /user/createMany:
+    post:
+      operationId: createManyUser
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchPayload"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Create several User
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateManyArgs"
+  /user/findUnique:
+    get:
+      operationId: findUniqueUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserFindUniqueArgs"
+  /user/findFirst:
+    get:
+      operationId: findFirstUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserFindFirstArgs"
+  /user/findMany:
+    get:
+      operationId: findManyUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserFindManyArgs"
+  /user/update:
+    patch:
+      operationId: updateUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Update a User
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateArgs"
+  /user/updateMany:
+    patch:
+      operationId: updateManyUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchPayload"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Update Users matching the given condition
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateManyArgs"
+  /user/upsert:
+    post:
+      operationId: upsertUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Upsert a User
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpsertArgs"
+  /user/delete:
+    delete:
+      operationId: deleteUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserDeleteUniqueArgs"
+  /user/deleteMany:
+    delete:
+      operationId: deleteManyUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchPayload"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserDeleteManyArgs"
+  /user/count:
+    get:
+      operationId: countUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: integer
+                  - $ref: "#/components/schemas/UserCountAggregateOutputType"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserCountArgs"
+  /user/aggregate:
+    get:
+      operationId: aggregateUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AggregateUser"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserAggregateArgs"
+  /user/groupBy:
+    get:
+      operationId: groupByUser
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserGroupByOutputType"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserGroupByArgs"
+  /post/create:
+    post:
+      operationId: createPost
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Create a new Post
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostCreateArgs"
+  /post/createMany:
+    post:
+      operationId: createManyPost
+      responses:
+        "201":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchPayload"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Create several Post
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostCreateManyArgs"
+  /post/findUnique:
+    get:
+      operationId: findUniquePost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostFindUniqueArgs"
+  /post/findFirst:
+    get:
+      operationId: findFirstPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostFindFirstArgs"
+  /post/findMany:
+    get:
+      operationId: findManyPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostFindManyArgs"
+  /post/update:
+    patch:
+      operationId: updatePost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Update a Post
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUpdateArgs"
+  /post/updateMany:
+    patch:
+      operationId: updateManyPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchPayload"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Update Posts matching the given condition
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUpdateManyArgs"
+  /post/upsert:
+    post:
+      operationId: upsertPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      requestBody:
+        description: Upsert a Post
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostUpsertArgs"
+  /post/delete:
+    delete:
+      operationId: deletePost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostDeleteUniqueArgs"
+  /post/deleteMany:
+    delete:
+      operationId: deleteManyPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchPayload"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostDeleteManyArgs"
+  /post/count:
+    get:
+      operationId: countPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: integer
+                  - $ref: "#/components/schemas/PostCountAggregateOutputType"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostCountArgs"
+  /post/aggregate:
+    get:
+      operationId: aggregatePost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AggregatePost"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostAggregateArgs"
+  /post/groupBy:
+    get:
+      operationId: groupByPost
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostGroupByOutputType"
+        "400":
+          description: Invalid request
+        "403":
+          description: Forbidden
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/PostGroupByArgs"
