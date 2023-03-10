@@ -1,9 +1,12 @@
+/// <reference types="@types/jest" />
+
+import { getDMMF } from '@prisma/internals';
+import OpenAPIParser from '@readme/openapi-parser';
+import * as fs from 'fs';
+import * as tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
-import { getDMMF } from '@prisma/internals';
 import generate from '../src';
-import * as tmp from 'tmp';
-import * as fs from 'fs';
 
 async function loadZModelAndDmmf(content: string) {
     const prelude = `
@@ -47,8 +50,18 @@ describe('Open API Plugin Tests', () => {
                 role Role @default(USER)
                 posts Post[]
             
-                @@allow('create,read', true)
-                @@allow('update,delete', auth() == this)
+                @@openapi.meta({
+                    findMany: {
+                        description: 'Find users matching the given conditions'
+                    },
+                    delete: {
+                        method: 'put',
+                        path: 'dodelete',
+                        description: 'Delete a unique user',
+                        summary: 'Delete a user yeah yeah',
+                        tags: ['delete', 'user']
+                    },
+                })
             }
             
             model Post {
@@ -61,8 +74,11 @@ describe('Open API Plugin Tests', () => {
                 published Boolean @default(false)
                 viewCount Int @default(0)
             
-                @@allow('all', auth() == this)
-                @@allow('read', published)
+                @@openapi.meta({
+                    findMany: {
+                        ignore: true
+                    }
+                })
             }
 
             model Foo {
@@ -72,6 +88,19 @@ describe('Open API Plugin Tests', () => {
             }
         `);
 
-        generate(model, { schemaPath: modelFile, output: 'openapi.yaml' }, dmmf);
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+        generate(model, { schemaPath: modelFile, output }, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/user/findMany']?.['get']?.description).toBe('Find users matching the given conditions');
+        const del = api.paths?.['/user/dodelete']?.['put'];
+        expect(del?.description).toBe('Delete a unique user');
+        expect(del?.summary).toBe('Delete a user yeah yeah');
+        expect(del?.tags).toEqual(expect.arrayContaining(['delete', 'user']));
+        expect(api.paths?.['/post/findMany']).toBeUndefined();
+
+        expect(api.paths?.['/foo/findMany']).toBeUndefined();
     });
 });

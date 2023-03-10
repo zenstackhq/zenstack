@@ -1,1 +1,9 @@
+/*
+ * Mark a data model to be ignored when generating OpenAPI specification.
+ */
 attribute @@openapi.ignore()
+
+/*
+ * Provide metadata for a data model for generating OpenAPI specification.
+ */
+attribute @@openapi.meta(_ meta: Object)

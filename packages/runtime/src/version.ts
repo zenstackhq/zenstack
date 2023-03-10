@@ -3,6 +3,10 @@ export function getVersion() {
     try {
         return require('./package.json').version;
     } catch {
-        return require('../package.json').version;
+        try {
+            return require('../package.json').version;
+        } catch {
+            return 'unknown';
+        }
     }
 }

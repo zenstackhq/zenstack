@@ -9,6 +9,7 @@ import {
     Expression,
     isArrayExpr,
     isLiteralExpr,
+    isObjectExpr,
     Reference,
 } from '@zenstackhq/language/ast';
 
@@ -42,6 +43,29 @@ export function getLiteralArray<
         return undefined;
     }
     return arr.map((item) => getLiteral<T>(item));
+}
+
+export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined {
+    if (!expr || !isObjectExpr(expr)) {
+        return undefined;
+    }
+    const result: Record<string, unknown> = {};
+    for (const field of expr.fields) {
+        let fieldValue: unknown;
+        if (isLiteralExpr(field.value)) {
+            fieldValue = getLiteral(field.value);
+        } else if (isArrayExpr(field.value)) {
+            fieldValue = getLiteralArray(field.value);
+        } else if (isObjectExpr(field.value)) {
+            fieldValue = getObjectLiteral(field.value);
+        }
+        if (fieldValue === undefined) {
+            return undefined;
+        } else {
+            result[field.name] = fieldValue;
+        }
+    }
+    return result as T;
 }
 
 export default function indentString(string: string, count = 4): string {

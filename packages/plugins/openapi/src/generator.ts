@@ -2,11 +2,7 @@
 
 import { DMMF } from '@prisma/generator-helper';
 import { AUXILIARY_FIELDS, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
-import { isDataModel, type Model } from '@zenstackhq/sdk/ast';
-import { camelCase } from 'change-case';
-import * as fs from 'fs';
-import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
-import invariant from 'tiny-invariant';
+import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
     addMissingInputObjectTypesForInclude,
@@ -15,8 +11,13 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
-import YAML from 'yaml';
+import { camelCase } from 'change-case';
+import * as fs from 'fs';
+import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
+import invariant from 'tiny-invariant';
+import YAML from 'yaml';
+import { getModelResourceMeta } from './meta';
 
 /**
  * Generates OpenAPI specification.
@@ -130,13 +131,27 @@ export class OpenAPIGenerator {
 
         for (const model of this.dmmf.datamodel.models) {
             if (includeModels.includes(model.name)) {
-                result = { ...result, ...this.generatePathsForModel(model, components) } as OAPI.PathsObject;
+                const zmodel = this.model.declarations.find(
+                    (d) => isDataModel(d) && d.name === model.name
+                ) as DataModel;
+                if (zmodel) {
+                    result = {
+                        ...result,
+                        ...this.generatePathsForModel(model, zmodel, components),
+                    } as OAPI.PathsObject;
+                } else {
+                    console.warn(`Unable to load ZModel definition for: ${model.name}}`);
+                }
             }
         }
         return result;
     }
 
-    private generatePathsForModel(model: DMMF.Model, components: OAPI.ComponentsObject): OAPI.PathItemObject {
+    private generatePathsForModel(
+        model: DMMF.Model,
+        zmodel: DataModel,
+        components: OAPI.ComponentsObject
+    ): OAPI.PathItemObject {
         const result: OAPI.PathItemObject & Record<string, unknown> = {};
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ops: (DMMF.ModelMapping & { createOne?: string | null } & Record<string, any>) | undefined =
@@ -434,10 +449,28 @@ export class OpenAPIGenerator {
             });
         }
 
+        // get meta specified with @@openapi.meta
+        const resourceMeta = getModelResourceMeta(zmodel);
+
         for (const { method, operation, description, inputType, outputType, successCode } of definitions) {
+            const meta = resourceMeta?.[operation];
+
+            if (meta?.ignore === true) {
+                continue;
+            }
+
+            const resolvedMethod = meta?.method ?? method;
+            let resolvedPath = meta?.path ?? operation;
+            if (resolvedPath.startsWith('/')) {
+                resolvedPath = resolvedPath.substring(1);
+            }
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const def: any = {
                 operationId: `${operation}${model.name}`,
+                description: meta?.description ?? description,
+                tags: meta?.tags,
+                summary: meta?.summary,
                 responses: {
                     [successCode !== undefined ? successCode : '200']: {
                         description: 'Successful operation',
@@ -457,9 +490,8 @@ export class OpenAPIGenerator {
             };
 
             if (inputType) {
-                if (['post', 'put', 'patch'].includes(method)) {
+                if (['post', 'put', 'patch'].includes(resolvedMethod)) {
                     def.requestBody = {
-                        description,
                         content: {
                             'application/json': {
                                 schema: inputType,
@@ -478,8 +510,8 @@ export class OpenAPIGenerator {
                 }
             }
 
-            result[`/${camelCase(model.name)}/${operation}`] = {
-                [method]: def,
+            result[`/${camelCase(model.name)}/${resolvedPath}`] = {
+                [resolvedMethod]: def,
             };
         }
         return result;
