@@ -154,6 +154,16 @@ attribute @map(_ name: String) @@@prisma
 attribute @@map(_ name: String) @@@prisma
 
 /*
+* Exclude a field from the Prisma Client (for example, a model that you do not want Prisma users to update).
+ */
+attribute @ignore() @@@prisma
+
+/*
+* Exclude a model from the Prisma Client (for example, a model that you do not want Prisma users to update).
+ */
+attribute @@ignore() @@@prisma
+
+/*
  * Automatically stores the time when a record was last updated.
  */
 attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma

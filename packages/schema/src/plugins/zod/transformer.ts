@@ -4,8 +4,8 @@ import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import indentString from '@zenstackhq/sdk/utils';
 import path from 'path';
+import { Project } from 'ts-morph';
 import { AggregateOperationSupport, TransformerParams } from './types';
-import { writeFileSafely } from './utils/writeFileSafely';
 
 export default class Transformer {
     name: string;
@@ -23,6 +23,7 @@ export default class Transformer {
     private hasJson = false;
     private static prismaClientOutputPath = '@prisma/client';
     private static isCustomPrismaClientOutputPath = false;
+    private project: Project;
 
     constructor(params: TransformerParams) {
         this.name = params.name ?? '';
@@ -31,6 +32,7 @@ export default class Transformer {
         this.modelOperations = params.modelOperations ?? [];
         this.aggregateOperationSupport = params.aggregateOperationSupport ?? {};
         this.enumTypes = params.enumTypes ?? [];
+        this.project = params.project;
     }
 
     static setOutputPath(outPath: string) {
@@ -51,13 +53,12 @@ export default class Transformer {
             const { name, values } = enumType;
             const filteredValues = values.filter((v) => !AUXILIARY_FIELDS.includes(v));
 
-            await writeFileSafely(
-                path.join(Transformer.outputPath, `schemas/enums/${name}.schema.ts`),
-                `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
-                    `${name}`,
-                    `z.enum(${JSON.stringify(filteredValues)})`
-                )}`
-            );
+            const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
+            const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
+                `${name}`,
+                `z.enum(${JSON.stringify(filteredValues)})`
+            )}`;
+            this.project.createSourceFile(filePath, content, { overwrite: true });
         }
     }
 
@@ -72,11 +73,11 @@ export default class Transformer {
     async generateObjectSchema() {
         const zodObjectSchemaFields = this.generateObjectSchemaFields();
         const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields);
+        const objectSchemaName = this.resolveObjectSchemaName();
 
-        await writeFileSafely(
-            path.join(Transformer.outputPath, `schemas/objects/${this.name}.schema.ts`),
-            '/* eslint-disable */\n' + objectSchema
-        );
+        const filePath = path.join(Transformer.outputPath, `objects/${objectSchemaName}.schema.ts`);
+        const content = '/* eslint-disable */\n' + objectSchema;
+        this.project.createSourceFile(filePath, content, { overwrite: true });
     }
 
     generateObjectSchemaFields() {
@@ -255,9 +256,9 @@ export default class Transformer {
         if (Transformer.isCustomPrismaClientOutputPath) {
             /**
              * If a custom location was designated for the prisma client, we need to figure out the
-             * relative path from {outputPath}/schemas/objects to {prismaClientCustomPath}
+             * relative path from {outputPath}/objects to {prismaClientCustomPath}
              */
-            const fromPath = path.join(Transformer.outputPath, 'schemas', 'objects');
+            const fromPath = path.join(Transformer.outputPath, 'objects');
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const toPath = Transformer.prismaClientOutputPath!;
             const relativePathFromOutputToPrismaClient = path
@@ -353,6 +354,10 @@ export default class Transformer {
         wrapped += '\n';
         wrapped += '})';
         return wrapped;
+    }
+
+    resolveObjectSchemaName() {
+        return this.name;
     }
 
     async generateModelSchemas() {
@@ -479,45 +484,46 @@ export default class Transformer {
                 codeBody += `upsert: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  }),`;
             }
 
+            const aggregateOperations = [];
+            if (this.aggregateOperationSupport[modelName].count) {
+                imports.push(
+                    `import { ${modelName}CountAggregateInputObjectSchema } from './objects/${modelName}CountAggregateInput.schema'`
+                );
+                aggregateOperations.push(
+                    `_count: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional()`
+                );
+            }
+            if (this.aggregateOperationSupport[modelName].min) {
+                imports.push(
+                    `import { ${modelName}MinAggregateInputObjectSchema } from './objects/${modelName}MinAggregateInput.schema'`
+                );
+                aggregateOperations.push(`_min: ${modelName}MinAggregateInputObjectSchema.optional()`);
+            }
+            if (this.aggregateOperationSupport[modelName].max) {
+                imports.push(
+                    `import { ${modelName}MaxAggregateInputObjectSchema } from './objects/${modelName}MaxAggregateInput.schema'`
+                );
+                aggregateOperations.push(`_max: ${modelName}MaxAggregateInputObjectSchema.optional()`);
+            }
+            if (this.aggregateOperationSupport[modelName].avg) {
+                imports.push(
+                    `import { ${modelName}AvgAggregateInputObjectSchema } from './objects/${modelName}AvgAggregateInput.schema'`
+                );
+                aggregateOperations.push(`_avg: ${modelName}AvgAggregateInputObjectSchema.optional()`);
+            }
+            if (this.aggregateOperationSupport[modelName].sum) {
+                imports.push(
+                    `import { ${modelName}SumAggregateInputObjectSchema } from './objects/${modelName}SumAggregateInput.schema'`
+                );
+                aggregateOperations.push(`_sum: ${modelName}SumAggregateInputObjectSchema.optional()`);
+            }
+
             if (aggregate) {
                 imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                const aggregateOperations = [];
-                if (this.aggregateOperationSupport[modelName].count) {
-                    imports.push(
-                        `import { ${modelName}CountAggregateInputObjectSchema } from './objects/${modelName}CountAggregateInput.schema'`
-                    );
-                    aggregateOperations.push(
-                        `_count: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional()`
-                    );
-                }
-                if (this.aggregateOperationSupport[modelName].min) {
-                    imports.push(
-                        `import { ${modelName}MinAggregateInputObjectSchema } from './objects/${modelName}MinAggregateInput.schema'`
-                    );
-                    aggregateOperations.push(`_min: ${modelName}MinAggregateInputObjectSchema.optional()`);
-                }
-                if (this.aggregateOperationSupport[modelName].max) {
-                    imports.push(
-                        `import { ${modelName}MaxAggregateInputObjectSchema } from './objects/${modelName}MaxAggregateInput.schema'`
-                    );
-                    aggregateOperations.push(`_max: ${modelName}MaxAggregateInputObjectSchema.optional()`);
-                }
-                if (this.aggregateOperationSupport[modelName].avg) {
-                    imports.push(
-                        `import { ${modelName}AvgAggregateInputObjectSchema } from './objects/${modelName}AvgAggregateInput.schema'`
-                    );
-                    aggregateOperations.push(`_avg: ${modelName}AvgAggregateInputObjectSchema.optional()`);
-                }
-                if (this.aggregateOperationSupport[modelName].sum) {
-                    imports.push(
-                        `import { ${modelName}SumAggregateInputObjectSchema } from './objects/${modelName}SumAggregateInput.schema'`
-                    );
-                    aggregateOperations.push(`_sum: ${modelName}SumAggregateInputObjectSchema.optional()`);
-                }
 
                 codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
                     ', '
@@ -531,27 +537,28 @@ export default class Transformer {
                     `import { ${modelName}ScalarWhereWithAggregatesInputObjectSchema } from './objects/${modelName}ScalarWhereWithAggregatesInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema)  }),`;
+                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema), ${aggregateOperations.join(
+                    ', '
+                )} }),`;
             }
 
             imports = [...new Set(imports)];
 
-            await writeFileSafely(
-                path.join(Transformer.outputPath, `schemas/${modelName}.schema.ts`),
-                `
-/* eslint-disable */
-${imports.join(';\n')}
+            const filePath = path.join(Transformer.outputPath, `${modelName}.schema.ts`);
+            const content = `
+            /* eslint-disable */
+            ${imports.join(';\n')}
+            
+            export const ${modelName}Schema = {
+            ${indentString(codeBody, 4)}
+            };
+                        `;
 
-export const ${modelName}Schema = {
-${indentString(codeBody, 4)}
-};
-            `
-            );
+            this.project.createSourceFile(filePath, content, { overwrite: true });
         }
 
-        await writeFileSafely(
-            path.join(Transformer.outputPath, 'schemas/index.ts'),
-            `
+        const indexFilePath = path.join(Transformer.outputPath, 'index.ts');
+        const indexContent = `
 /* eslint-disable */
 ${globalImports.join(';\n')}
 
@@ -560,8 +567,8 @@ ${indentString(globalExport, 4)}
 };
 
 export default schemas;
-`
-        );
+`;
+        this.project.createSourceFile(indexFilePath, indexContent, { overwrite: true });
     }
 
     generateImportStatements(imports: (string | undefined)[]) {

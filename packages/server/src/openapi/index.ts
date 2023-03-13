@@ -5,7 +5,10 @@ import {
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
+import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
+import { capitalCase } from 'change-case';
 import invariant from 'tiny-invariant';
+import { fromZodError } from 'zod-validation-error';
 import { stripAuxFields } from './utils';
 
 type LoggerMethod = (message: string, code?: string) => void;
@@ -41,6 +44,7 @@ export type RequestContext = {
     requestBody: unknown;
     prisma: DbClientContract;
     logger?: LoggerConfig;
+    zodSchemas?: ModelZodSchema;
 };
 
 /**
@@ -50,6 +54,38 @@ export type Response = {
     status: number;
     body: unknown;
 };
+
+function getZodSchema(zodSchemas: ModelZodSchema | undefined, model: string, operation: keyof DbOperations) {
+    if (!zodSchemas) {
+        zodSchemas = getModelZodSchemas();
+    }
+    if (zodSchemas[model]) {
+        return zodSchemas[model][operation];
+    } else if (zodSchemas[capitalCase(model)]) {
+        return zodSchemas[capitalCase(model)][operation];
+    } else {
+        return undefined;
+    }
+}
+
+function zodValidate(
+    zodSchemas: ModelZodSchema | undefined,
+    model: string,
+    operation: keyof DbOperations,
+    args: unknown
+) {
+    const zodSchema = getZodSchema(zodSchemas, model, operation);
+    if (zodSchema) {
+        const parseResult = zodSchema.safeParse(args);
+        if (parseResult.success) {
+            return { data: parseResult.data, error: undefined };
+        } else {
+            return { data: undefined, error: fromZodError(parseResult.error).message };
+        }
+    } else {
+        return { data: args, error: undefined };
+    }
+}
 
 /**
  * Handles OpenApi requests
@@ -61,6 +97,7 @@ export async function handleRequest({
     requestBody,
     prisma,
     logger,
+    zodSchemas,
 }: RequestContext): Promise<Response> {
     const parts = path.split('/');
     if (parts.length < 2) {
@@ -85,6 +122,7 @@ export async function handleRequest({
                 return { status: 400, body: { message: 'invalid request method, only POST is supported' } };
             }
             args = requestBody;
+
             // TODO: upsert's status code should be conditional
             resCode = 201;
             break;
@@ -119,6 +157,13 @@ export async function handleRequest({
 
         default:
             return { status: 400, body: { message: 'invalid operation: ' + op } };
+    }
+
+    const { data, error } = zodValidate(zodSchemas, model, dbOp, args);
+    if (error) {
+        return { status: 400, body: { message: error } };
+    } else {
+        args = data;
     }
 
     try {
