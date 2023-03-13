@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
+import { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { handleRequest, LoggerConfig } from '../openapi';
@@ -22,6 +23,11 @@ export interface PluginOptions {
      * Logger settings
      */
     logger?: LoggerConfig;
+
+    /**
+     * Path to the generated zod schemas
+     */
+    zodSchemas?: ModelZodSchema;
 }
 
 const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, done) => {
@@ -47,6 +53,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
             requestBody: request.body,
             prisma,
             logger: options.logger,
+            zodSchemas: options.zodSchemas,
         });
 
         reply.status(response.status).send(response.body);

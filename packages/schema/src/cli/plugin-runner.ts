@@ -30,7 +30,7 @@ export class PluginRunner {
         }> = [];
 
         const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
-        const prereqPlugins = ['@zenstack/prisma', '@zenstack/model-meta', '@zenstack/access-policy'];
+        const prereqPlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy', '@core/zod'];
         const allPluginProviders = prereqPlugins.concat(
             pluginDecls
                 .map((p) => this.getPluginProvider(p))
@@ -72,7 +72,7 @@ export class PluginRunner {
                     options,
                 });
 
-                if (pluginProvider === '@zenstack/prisma' && options.output) {
+                if (pluginProvider === '@core/prisma' && options.output) {
                     // record custom prisma output path
                     prismaOutput = options.output as string;
                 }
@@ -93,7 +93,7 @@ export class PluginRunner {
         let dmmf: DMMF.Document | undefined = undefined;
         for (const { name, provider, run, options } of plugins) {
             await this.runPlugin(name, run, context, options, dmmf, warnings);
-            if (provider === '@zenstack/prisma') {
+            if (provider === '@core/prisma') {
                 // load prisma DMMF
                 dmmf = await getDMMF({
                     datamodel: fs.readFileSync(prismaOutput, { encoding: 'utf-8' }),
@@ -152,8 +152,8 @@ export class PluginRunner {
 
     private getPluginModulePath(provider: string) {
         let pluginModulePath = provider;
-        if (pluginModulePath.startsWith('@zenstack/')) {
-            pluginModulePath = pluginModulePath.replace(/^@zenstack/, path.join(__dirname, '../plugins'));
+        if (pluginModulePath.startsWith('@core/')) {
+            pluginModulePath = pluginModulePath.replace(/^@core/, path.join(__dirname, '../plugins'));
         }
         return pluginModulePath;
     }

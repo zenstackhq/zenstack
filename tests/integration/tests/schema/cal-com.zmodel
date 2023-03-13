@@ -13,13 +13,18 @@ generator client {
 }
 
 plugin meta {
-    provider = '@zenstack/model-meta'
+    provider = '@core/model-meta'
     output = '.zenstack'
 }
 
 plugin policy {
-    provider = '@zenstack/access-policy'
+    provider = '@core/access-policy'
     output = '.zenstack'
+}
+
+plugin zod {
+    provider = '@core/zod'
+    output = '.zenstack/zod'
 }
 
 enum SchedulingType {

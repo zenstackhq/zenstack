@@ -5,7 +5,10 @@ import {
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
+import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
+import { capitalCase } from 'change-case';
 import invariant from 'tiny-invariant';
+import { fromZodError } from 'zod-validation-error';
 import { stripAuxFields } from './utils';
 
 type LoggerMethod = (message: string, code?: string) => void;
@@ -37,10 +40,11 @@ export type RequestHandlerOptions = {
 export type RequestContext = {
     method: string;
     path: string;
-    query: Record<string, string | string[]>;
-    requestBody: unknown;
+    query?: Record<string, string | string[]>;
+    requestBody?: unknown;
     prisma: DbClientContract;
     logger?: LoggerConfig;
+    zodSchemas?: ModelZodSchema;
 };
 
 /**
@@ -50,6 +54,38 @@ export type Response = {
     status: number;
     body: unknown;
 };
+
+function getZodSchema(zodSchemas: ModelZodSchema | undefined, model: string, operation: keyof DbOperations) {
+    if (!zodSchemas) {
+        zodSchemas = getModelZodSchemas();
+    }
+    if (zodSchemas[model]) {
+        return zodSchemas[model][operation];
+    } else if (zodSchemas[capitalCase(model)]) {
+        return zodSchemas[capitalCase(model)][operation];
+    } else {
+        return undefined;
+    }
+}
+
+function zodValidate(
+    zodSchemas: ModelZodSchema | undefined,
+    model: string,
+    operation: keyof DbOperations,
+    args: unknown
+) {
+    const zodSchema = getZodSchema(zodSchemas, model, operation);
+    if (zodSchema) {
+        const parseResult = zodSchema.safeParse(args);
+        if (parseResult.success) {
+            return { data: parseResult.data, error: undefined };
+        } else {
+            return { data: undefined, error: fromZodError(parseResult.error).message };
+        }
+    } else {
+        return { data: args, error: undefined };
+    }
+}
 
 /**
  * Handles OpenApi requests
@@ -61,12 +97,14 @@ export async function handleRequest({
     requestBody,
     prisma,
     logger,
+    zodSchemas,
 }: RequestContext): Promise<Response> {
     const parts = path.split('/');
     if (parts.length < 2) {
         return { status: 400, body: { error: 'invalid request path' } };
     }
 
+    method = method.toUpperCase();
     const op = parts.pop();
     const model = parts.pop();
 
@@ -84,7 +122,12 @@ export async function handleRequest({
             if (method !== 'POST') {
                 return { status: 400, body: { message: 'invalid request method, only POST is supported' } };
             }
+            if (!requestBody) {
+                return { status: 400, body: { message: 'missing request body' } };
+            }
+
             args = requestBody;
+
             // TODO: upsert's status code should be conditional
             resCode = 201;
             break;
@@ -98,7 +141,7 @@ export async function handleRequest({
             if (method !== 'GET') {
                 return { status: 400, body: { message: 'invalid request method, only GET is supported' } };
             }
-            args = query.q ? unmarshal(query.q as string) : {};
+            args = query?.q ? unmarshal(query.q as string) : {};
             break;
 
         case 'update':
@@ -106,6 +149,10 @@ export async function handleRequest({
             if (method !== 'PUT' && method !== 'PATCH') {
                 return { status: 400, body: { message: 'invalid request method, only PUT AND PATCH are supported' } };
             }
+            if (!requestBody) {
+                return { status: 400, body: { message: 'missing request body' } };
+            }
+
             args = requestBody;
             break;
 
@@ -114,11 +161,18 @@ export async function handleRequest({
             if (method !== 'DELETE') {
                 return { status: 400, body: { message: 'invalid request method, only DELETE is supported' } };
             }
-            args = query.q ? unmarshal(query.q as string) : {};
+            args = query?.q ? unmarshal(query.q as string) : {};
             break;
 
         default:
             return { status: 400, body: { message: 'invalid operation: ' + op } };
+    }
+
+    const { data, error } = zodValidate(zodSchemas, model, dbOp, args);
+    if (error) {
+        return { status: 400, body: { message: error } };
+    } else {
+        args = data;
     }
 
     try {

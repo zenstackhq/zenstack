@@ -27,10 +27,14 @@ function makeUrl(path: string, q?: object) {
 
 describe('Fastify plugin tests', () => {
     it('run plugin', async () => {
-        const { prisma } = await loadSchema(schema);
+        const { prisma, zodSchemas } = await loadSchema(schema);
 
         const app = fastify();
-        app.register(ZenStackFastifyPlugin, { prefix: '/api', getPrisma: () => prisma });
+        app.register(ZenStackFastifyPlugin, {
+            prefix: '/api',
+            getPrisma: () => prisma,
+            zodSchemas,
+        });
 
         let r = await app.inject({
             method: 'GET',
