@@ -40,8 +40,8 @@ export type RequestHandlerOptions = {
 export type RequestContext = {
     method: string;
     path: string;
-    query: Record<string, string | string[]>;
-    requestBody: unknown;
+    query?: Record<string, string | string[]>;
+    requestBody?: unknown;
     prisma: DbClientContract;
     logger?: LoggerConfig;
     zodSchemas?: ModelZodSchema;
@@ -104,6 +104,7 @@ export async function handleRequest({
         return { status: 400, body: { error: 'invalid request path' } };
     }
 
+    method = method.toUpperCase();
     const op = parts.pop();
     const model = parts.pop();
 
@@ -121,6 +122,10 @@ export async function handleRequest({
             if (method !== 'POST') {
                 return { status: 400, body: { message: 'invalid request method, only POST is supported' } };
             }
+            if (!requestBody) {
+                return { status: 400, body: { message: 'missing request body' } };
+            }
+
             args = requestBody;
 
             // TODO: upsert's status code should be conditional
@@ -136,7 +141,7 @@ export async function handleRequest({
             if (method !== 'GET') {
                 return { status: 400, body: { message: 'invalid request method, only GET is supported' } };
             }
-            args = query.q ? unmarshal(query.q as string) : {};
+            args = query?.q ? unmarshal(query.q as string) : {};
             break;
 
         case 'update':
@@ -144,6 +149,10 @@ export async function handleRequest({
             if (method !== 'PUT' && method !== 'PATCH') {
                 return { status: 400, body: { message: 'invalid request method, only PUT AND PATCH are supported' } };
             }
+            if (!requestBody) {
+                return { status: 400, body: { message: 'missing request body' } };
+            }
+
             args = requestBody;
             break;
 
@@ -152,7 +161,7 @@ export async function handleRequest({
             if (method !== 'DELETE') {
                 return { status: 400, body: { message: 'invalid request method, only DELETE is supported' } };
             }
-            args = query.q ? unmarshal(query.q as string) : {};
+            args = query?.q ? unmarshal(query.q as string) : {};
             break;
 
         default:
