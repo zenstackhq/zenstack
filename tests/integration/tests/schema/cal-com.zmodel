@@ -22,6 +22,11 @@ plugin policy {
     output = '.zenstack'
 }
 
+plugin zod {
+    provider = '@core/zod'
+    output = '.zenstack/zod'
+}
+
 enum SchedulingType {
     ROUND_ROBIN @map("roundRobin")
     COLLECTIVE  @map("collective")
