@@ -387,14 +387,8 @@ export default class Transformer {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const model = findModelByName(this.models, modelName)!;
 
-            const {
-                selectImport,
-                includeImport,
-                selectZodSchemaLine,
-                includeZodSchemaLine,
-                selectZodSchemaLineLazy,
-                includeZodSchemaLineLazy,
-            } = this.resolveSelectIncludeImportAndZodSchemaLine(model);
+            const { selectImport, includeImport, selectZodSchemaLineLazy, includeZodSchemaLineLazy } =
+                this.resolveSelectIncludeImportAndZodSchemaLine(model);
 
             let imports = [`import { z } from 'zod'`, selectImport, includeImport];
             let codeBody = '';
@@ -403,7 +397,7 @@ export default class Transformer {
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `findUnique: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema }),`;
+                codeBody += `findUnique: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema }),`;
             }
 
             if (findFirst) {
@@ -413,7 +407,7 @@ export default class Transformer {
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
             }
 
             if (findMany) {
@@ -430,7 +424,7 @@ export default class Transformer {
                 imports.push(
                     `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`
                 );
-                codeBody += `create: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}CreateInputObjectSchema  }),`;
+                codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${modelName}CreateInputObjectSchema  }),`;
             }
 
             if (createMany) {
@@ -444,7 +438,7 @@ export default class Transformer {
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `'delete': z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                codeBody += `'delete': z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
             }
 
             if (deleteMany) {
@@ -459,7 +453,7 @@ export default class Transformer {
                     `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `update: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}UpdateInputObjectSchema, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${modelName}UpdateInputObjectSchema, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
             }
 
             if (updateMany) {
@@ -476,7 +470,7 @@ export default class Transformer {
                     `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`,
                     `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`
                 );
-                codeBody += `upsert: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  }),`;
+                codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  }),`;
             }
 
             if (aggregate) {
