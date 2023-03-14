@@ -24,7 +24,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
-            provider: '@zenstack/prisma',
+            provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
         });
@@ -55,7 +55,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
-            provider: '@zenstack/prisma',
+            provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
         });
@@ -90,7 +90,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
-            provider: '@zenstack/prisma',
+            provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
         });
@@ -129,7 +129,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
-            provider: '@zenstack/prisma',
+            provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
         });
@@ -179,7 +179,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
-            provider: '@zenstack/prisma',
+            provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
             generateClient: false,

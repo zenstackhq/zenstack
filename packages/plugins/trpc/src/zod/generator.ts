@@ -1,17 +1,14 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import { Dictionary } from '@prisma/internals';
-import { PluginOptions, getLiteral } from '@zenstackhq/sdk';
-import { DataSource, Model, isDataSource } from '@zenstackhq/sdk/ast';
-import { promises as fs } from 'fs';
+import { getLiteral, PluginOptions } from '@zenstackhq/sdk';
+import { DataSource, isDataSource, Model } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypes,
-    hideInputObjectTypesAndRelatedFields,
-    resolveAddMissingInputObjectTypeOptions,
-    resolveModelsComments,
-} from './helpers';
-import { resolveAggregateOperationSupport } from './helpers/aggregate-helpers';
+    AggregateOperationSupport,
+    resolveAggregateOperationSupport,
+} from '@zenstackhq/sdk/dmmf-helpers';
+import { promises as fs } from 'fs';
 import Transformer from './transformer';
-import { AggregateOperationSupport } from './types';
 import removeDir from './utils/removeDir';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
@@ -22,11 +19,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const modelOperations = prismaClientDmmf.mappings.modelOperations;
     const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma;
     const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma;
-    const enumTypes = prismaClientDmmf.schema.enumTypes;
     const models: DMMF.Model[] = prismaClientDmmf.datamodel.models;
-    const hiddenModels: string[] = [];
-    const hiddenFields: string[] = [];
-    resolveModelsComments(models, modelOperations, enumTypes, hiddenModels, hiddenFields);
 
     await generateEnumSchemas(prismaClientDmmf.schema.enumTypes.prisma, prismaClientDmmf.schema.enumTypes.model ?? []);
 
@@ -41,19 +34,9 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const generatorConfigOptions: Dictionary<string> = {};
     Object.entries(options).forEach(([k, v]) => (generatorConfigOptions[k] = v as string));
 
-    const addMissingInputObjectTypeOptions = resolveAddMissingInputObjectTypeOptions(generatorConfigOptions);
-    addMissingInputObjectTypes(
-        inputObjectTypes,
-        outputObjectTypes,
-        models,
-        modelOperations,
-        dataSourceProvider,
-        addMissingInputObjectTypeOptions
-    );
+    addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
 
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
-
-    hideInputObjectTypesAndRelatedFields(inputObjectTypes, hiddenModels, hiddenFields);
 
     await generateObjectSchemas(inputObjectTypes);
     await generateModelSchemas(models, modelOperations, aggregateOperationSupport);

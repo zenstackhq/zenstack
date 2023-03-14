@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import indentString from '@zenstackhq/sdk/utils';
 import path from 'path';
-import { checkModelHasModelRelation, findModelByName, isMongodbRawOp } from './helpers';
-import { isAggregateInputType } from './helpers/aggregate-helpers';
 import { AggregateOperationSupport, TransformerParams } from './types';
 import { writeFileSafely } from './utils/writeFileSafely';
 
@@ -24,8 +23,6 @@ export default class Transformer {
     private hasJson = false;
     private static prismaClientOutputPath = '@prisma/client';
     private static isCustomPrismaClientOutputPath = false;
-    private static isGenerateSelect = false;
-    private static isGenerateInclude = false;
 
     constructor(params: TransformerParams) {
         this.name = params.name ?? '';
@@ -40,14 +37,6 @@ export default class Transformer {
         this.outputPath = outPath;
     }
 
-    static setIsGenerateSelect(isGenerateSelect: boolean) {
-        this.isGenerateSelect = isGenerateSelect;
-    }
-
-    static setIsGenerateInclude(isGenerateInclude: boolean) {
-        this.isGenerateInclude = isGenerateInclude;
-    }
-
     static getOutputPath() {
         return this.outputPath;
     }
@@ -60,12 +49,13 @@ export default class Transformer {
     async generateEnumSchemas() {
         for (const enumType of this.enumTypes) {
             const { name, values } = enumType;
+            const filteredValues = values.filter((v) => !AUXILIARY_FIELDS.includes(v));
 
             await writeFileSafely(
                 path.join(Transformer.outputPath, `schemas/enums/${name}.schema.ts`),
                 `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                     `${name}`,
-                    `z.enum(${JSON.stringify(values)})`
+                    `z.enum(${JSON.stringify(filteredValues)})`
                 )}`
             );
         }
@@ -82,10 +72,9 @@ export default class Transformer {
     async generateObjectSchema() {
         const zodObjectSchemaFields = this.generateObjectSchemaFields();
         const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields);
-        const objectSchemaName = this.resolveObjectSchemaName();
 
         await writeFileSafely(
-            path.join(Transformer.outputPath, `schemas/objects/${objectSchemaName}.schema.ts`),
+            path.join(Transformer.outputPath, `schemas/objects/${this.name}.schema.ts`),
             '/* eslint-disable */\n' + objectSchema
         );
     }
@@ -245,19 +234,14 @@ export default class Transformer {
 
     generateExportObjectSchemaStatement(schema: string) {
         let name = this.name;
-        let exportName = this.name;
-        if (Transformer.provider === 'mongodb') {
-            if (isMongodbRawOp(name)) {
-                name = Transformer.rawOpsMap[name];
-                exportName = name.replace('Args', '');
-            }
-        }
 
         if (isAggregateInputType(name)) {
             name = `${name}Type`;
         }
-        const end = `export const ${exportName}ObjectSchema = Schema`;
-        return `const Schema: z.ZodType<Prisma.${name}> = ${schema};\n\n ${end}`;
+        const end = `export const ${this.name}ObjectSchema = Schema`;
+        return `const Schema: z.ZodType<Omit<Prisma.${name}, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join(
+            '|'
+        )}>> = ${schema};\n\n ${end}`;
     }
 
     addFinalWrappers({ zodStringFields }: { zodStringFields: string[] }) {
@@ -371,16 +355,6 @@ export default class Transformer {
         return wrapped;
     }
 
-    resolveObjectSchemaName() {
-        let name = this.name;
-        let exportName = this.name;
-        if (isMongodbRawOp(name)) {
-            name = Transformer.rawOpsMap[name];
-            exportName = name.replace('Args', '');
-        }
-        return exportName;
-    }
-
     async generateModelSchemas() {
         const globalImports: string[] = [];
         let globalExport = '';
@@ -413,14 +387,8 @@ export default class Transformer {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const model = findModelByName(this.models, modelName)!;
 
-            const {
-                selectImport,
-                includeImport,
-                selectZodSchemaLine,
-                includeZodSchemaLine,
-                selectZodSchemaLineLazy,
-                includeZodSchemaLineLazy,
-            } = this.resolveSelectIncludeImportAndZodSchemaLine(model);
+            const { selectImport, includeImport, selectZodSchemaLineLazy, includeZodSchemaLineLazy } =
+                this.resolveSelectIncludeImportAndZodSchemaLine(model);
 
             let imports = [`import { z } from 'zod'`, selectImport, includeImport];
             let codeBody = '';
@@ -429,7 +397,7 @@ export default class Transformer {
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `findUnique: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema }),`;
+                codeBody += `findUnique: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema }),`;
             }
 
             if (findFirst) {
@@ -439,7 +407,7 @@ export default class Transformer {
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
             }
 
             if (findMany) {
@@ -456,7 +424,7 @@ export default class Transformer {
                 imports.push(
                     `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`
                 );
-                codeBody += `create: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}CreateInputObjectSchema  }),`;
+                codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${modelName}CreateInputObjectSchema  }),`;
             }
 
             if (createMany) {
@@ -470,7 +438,7 @@ export default class Transformer {
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `'delete': z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                codeBody += `'delete': z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
             }
 
             if (deleteMany) {
@@ -485,7 +453,7 @@ export default class Transformer {
                     `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `update: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} data: ${modelName}UpdateInputObjectSchema, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${modelName}UpdateInputObjectSchema, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
             }
 
             if (updateMany) {
@@ -502,7 +470,7 @@ export default class Transformer {
                     `import { ${modelName}CreateInputObjectSchema } from './objects/${modelName}CreateInput.schema'`,
                     `import { ${modelName}UpdateInputObjectSchema } from './objects/${modelName}UpdateInput.schema'`
                 );
-                codeBody += `upsert: z.object({ ${selectZodSchemaLine} ${includeZodSchemaLine} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  }),`;
+                codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: ${modelName}CreateInputObjectSchema, update: ${modelName}UpdateInputObjectSchema  }),`;
             }
 
             if (aggregate) {
@@ -602,27 +570,22 @@ export default schemas;
 
         const hasRelationToAnotherModel = checkModelHasModelRelation(model);
 
-        const selectImport = Transformer.isGenerateSelect
-            ? `import { ${modelName}SelectObjectSchema } from './objects/${modelName}Select.schema'`
-            : '';
+        const selectImport = `import { ${modelName}SelectObjectSchema } from './objects/${modelName}Select.schema'`;
 
-        const includeImport =
-            Transformer.isGenerateInclude && hasRelationToAnotherModel
-                ? `import { ${modelName}IncludeObjectSchema } from './objects/${modelName}Include.schema'`
-                : '';
+        const includeImport = hasRelationToAnotherModel
+            ? `import { ${modelName}IncludeObjectSchema } from './objects/${modelName}Include.schema'`
+            : '';
 
         let selectZodSchemaLine = '';
         let includeZodSchemaLine = '';
         let selectZodSchemaLineLazy = '';
         let includeZodSchemaLineLazy = '';
 
-        if (Transformer.isGenerateSelect) {
-            const zodSelectObjectSchema = `${modelName}SelectObjectSchema.optional()`;
-            selectZodSchemaLine = `select: ${zodSelectObjectSchema},`;
-            selectZodSchemaLineLazy = `select: z.lazy(() => ${zodSelectObjectSchema}),`;
-        }
+        const zodSelectObjectSchema = `${modelName}SelectObjectSchema.optional()`;
+        selectZodSchemaLine = `select: ${zodSelectObjectSchema},`;
+        selectZodSchemaLineLazy = `select: z.lazy(() => ${zodSelectObjectSchema}),`;
 
-        if (Transformer.isGenerateInclude && hasRelationToAnotherModel) {
+        if (hasRelationToAnotherModel) {
             const zodIncludeObjectSchema = `${modelName}IncludeObjectSchema.optional()`;
             includeZodSchemaLine = `include: ${zodIncludeObjectSchema},`;
             includeZodSchemaLineLazy = `include: z.lazy(() => ${zodIncludeObjectSchema}),`;

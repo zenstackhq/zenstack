@@ -123,7 +123,16 @@ PrimaryExpr infers Expression:
     InvocationExpr |
     ArrayExpr|
     ReferenceExpr |
-    UnaryExpr;
+    UnaryExpr |
+    ObjectExpr;
+
+ObjectExpr:
+    '{'
+        (fields+=FieldInitializer (',' fields+=FieldInitializer)* ','?)?
+    '}';
+
+FieldInitializer:
+    name=ID ':' value=(Expression);
 
 fragment ArgumentList:
     args+=Argument (',' args+=Argument)*;
@@ -219,7 +228,7 @@ AttributeArg:
     (name=ID ':')? value=Expression;
 
 ExpressionType returns string:
-    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Any';
+    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Object' | 'Any';
 
 BuiltinType returns string:
     'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes';

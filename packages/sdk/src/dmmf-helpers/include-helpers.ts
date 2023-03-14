@@ -1,19 +1,15 @@
 import { DMMF } from '@prisma/generator-helper';
 import { checkIsModelRelationField, checkModelHasModelRelation, checkModelHasManyModelRelation } from './model-helpers';
 
-export function addMissingInputObjectTypesForInclude(
-    inputObjectTypes: DMMF.InputType[],
-    models: DMMF.Model[],
-    isGenerateSelect: boolean
-) {
+export function addMissingInputObjectTypesForInclude(inputObjectTypes: DMMF.InputType[], models: DMMF.Model[]) {
     // generate input object types necessary to support ModelInclude with relation support
-    const generatedIncludeInputObjectTypes = generateModelIncludeInputObjectTypes(models, isGenerateSelect);
+    const generatedIncludeInputObjectTypes = generateModelIncludeInputObjectTypes(models);
 
     for (const includeInputObjectType of generatedIncludeInputObjectTypes) {
         inputObjectTypes.push(includeInputObjectType);
     }
 }
-function generateModelIncludeInputObjectTypes(models: DMMF.Model[], isGenerateSelect: boolean) {
+function generateModelIncludeInputObjectTypes(models: DMMF.Model[]) {
     const modelIncludeInputObjectTypes: DMMF.InputType[] = [];
     for (const model of models) {
         const { name: modelName, fields: modelFields } = model;
@@ -57,14 +53,12 @@ function generateModelIncludeInputObjectTypes(models: DMMF.Model[], isGenerateSe
         const shouldAddCountField = hasManyRelationToAnotherModel;
         if (shouldAddCountField) {
             const inputTypes: DMMF.SchemaArgInputType[] = [{ isList: false, type: 'Boolean', location: 'scalar' }];
-            if (isGenerateSelect) {
-                inputTypes.push({
-                    isList: false,
-                    type: `${modelName}CountOutputTypeArgs`,
-                    location: 'inputObjectTypes',
-                    namespace: 'prisma',
-                });
-            }
+            inputTypes.push({
+                isList: false,
+                type: `${modelName}CountOutputTypeArgs`,
+                location: 'inputObjectTypes',
+                namespace: 'prisma',
+            });
             const _countField: DMMF.SchemaArg = {
                 name: '_count',
                 isRequired: false,

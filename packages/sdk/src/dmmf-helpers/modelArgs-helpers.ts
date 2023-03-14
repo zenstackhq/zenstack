@@ -1,48 +1,37 @@
 import { DMMF } from '@prisma/generator-helper';
 import { checkModelHasModelRelation } from './model-helpers';
 
-export function addMissingInputObjectTypesForModelArgs(
-    inputObjectTypes: DMMF.InputType[],
-    models: DMMF.Model[],
-    isGenerateSelect: boolean,
-    isGenerateInclude: boolean
-) {
-    const modelArgsInputObjectTypes = generateModelArgsInputObjectTypes(models, isGenerateSelect, isGenerateInclude);
+export function addMissingInputObjectTypesForModelArgs(inputObjectTypes: DMMF.InputType[], models: DMMF.Model[]) {
+    const modelArgsInputObjectTypes = generateModelArgsInputObjectTypes(models);
 
     for (const modelArgsInputObjectType of modelArgsInputObjectTypes) {
         inputObjectTypes.push(modelArgsInputObjectType);
     }
 }
-function generateModelArgsInputObjectTypes(
-    models: DMMF.Model[],
-    isGenerateSelect: boolean,
-    isGenerateInclude: boolean
-) {
+function generateModelArgsInputObjectTypes(models: DMMF.Model[]) {
     const modelArgsInputObjectTypes: DMMF.InputType[] = [];
     for (const model of models) {
         const { name: modelName } = model;
         const fields: DMMF.SchemaArg[] = [];
 
-        if (isGenerateSelect) {
-            const selectField: DMMF.SchemaArg = {
-                name: 'select',
-                isRequired: false,
-                isNullable: false,
-                inputTypes: [
-                    {
-                        isList: false,
-                        type: `${modelName}Select`,
-                        location: 'inputObjectTypes',
-                        namespace: 'prisma',
-                    },
-                ],
-            };
-            fields.push(selectField);
-        }
+        const selectField: DMMF.SchemaArg = {
+            name: 'select',
+            isRequired: false,
+            isNullable: false,
+            inputTypes: [
+                {
+                    isList: false,
+                    type: `${modelName}Select`,
+                    location: 'inputObjectTypes',
+                    namespace: 'prisma',
+                },
+            ],
+        };
+        fields.push(selectField);
 
         const hasRelationToAnotherModel = checkModelHasModelRelation(model);
 
-        if (isGenerateInclude && hasRelationToAnotherModel) {
+        if (hasRelationToAnotherModel) {
             const includeField: DMMF.SchemaArg = {
                 name: 'include',
                 isRequired: false,

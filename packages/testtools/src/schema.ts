@@ -29,7 +29,7 @@ export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     });
 }
 
-function getWorkspaceRoot(start: string) {
+export function getWorkspaceRoot(start: string) {
     let curr = start;
     while (curr && curr !== '/') {
         if (fs.existsSync(path.join(curr, 'pnpm-workspace.yaml'))) {
@@ -39,6 +39,11 @@ function getWorkspaceRoot(start: string) {
         }
     }
     return undefined;
+}
+
+export function getWorkspaceNpmCacheFolder(start: string) {
+    const root = getWorkspaceRoot(start);
+    return root ? path.join(root, '.npmcache') : './.npmcache';
 }
 
 const MODEL_PRELUDE = `
@@ -54,13 +59,18 @@ generator js {
 }
 
 plugin meta {
-    provider = '@zenstack/model-meta'
+    provider = '@core/model-meta'
     output = '.zenstack'
 }
 
 plugin policy {
-    provider = '@zenstack/access-policy'
+    provider = '@core/access-policy'
     output = '.zenstack'
+}
+
+plugin zod {
+    provider = '@core/zod'
+    output = '.zenstack/zod'
 }
 `;
 
@@ -90,7 +100,7 @@ export async function loadSchema(schema: string, addPrelude = true, pushDb = tru
     const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
     fs.writeFileSync('schema.zmodel', content);
     run('npm install');
-    run('npx zenstack generate --no-dependency-check');
+    run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
 
     if (pushDb) {
         run('npx prisma db push');
@@ -101,6 +111,7 @@ export async function loadSchema(schema: string, addPrelude = true, pushDb = tru
 
     const policy = require(path.join(workDir, '.zenstack/policy')).default;
     const modelMeta = require(path.join(workDir, '.zenstack/model-meta')).default;
+    const zodSchemas = require(path.join(workDir, '.zenstack/zod')).default;
 
     return {
         prisma,
@@ -108,5 +119,6 @@ export async function loadSchema(schema: string, addPrelude = true, pushDb = tru
         withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
         withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
         withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+        zodSchemas,
     };
 }

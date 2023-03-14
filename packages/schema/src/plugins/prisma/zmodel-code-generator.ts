@@ -7,10 +7,12 @@ import {
     DataModelAttribute,
     DataModelFieldAttribute,
     Expression,
+    FieldInitializer,
     InvocationExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    ObjectExpr,
     ReferenceArg,
     ReferenceExpr,
     ThisExpr,
@@ -63,12 +65,22 @@ export default class ZModelCodeGenerator {
                 return this.generateMemberExpr(ast as MemberAccessExpr);
             case InvocationExpr:
                 return this.generateInvocationExpr(ast as InvocationExpr);
+            case ObjectExpr:
+                return this.generateObjectExpr(ast as ObjectExpr);
             case NullExpr:
             case ThisExpr:
                 return (ast as NullExpr | ThisExpr).value;
             default:
                 throw new Error(`Not implemented: ${ast}`);
         }
+    }
+
+    generateObjectExpr(ast: ObjectExpr) {
+        return `{ ${ast.fields.map((field) => this.generateObjectField(field)).join(', ')} }`;
+    }
+
+    generateObjectField(field: FieldInitializer) {
+        return `${field.name}: ${this.generateExpression(field.value)}`;
     }
 
     generateArrayExpr(ast: ArrayExpr) {

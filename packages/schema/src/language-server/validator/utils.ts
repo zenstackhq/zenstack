@@ -83,7 +83,7 @@ export function typeAssignable(destType: ExpressionType, sourceType: ExpressionT
 /**
  * Maps a ZModel builtin type to expression type
  */
-export function mapBuiltinTypeToExpressionType(type: BuiltinType | 'Any' | 'Null'): ExpressionType | 'Any' {
+export function mapBuiltinTypeToExpressionType(type: BuiltinType | 'Any' | 'Object' | 'Null'): ExpressionType | 'Any' {
     switch (type) {
         case 'Any':
         case 'Boolean':
@@ -100,6 +100,8 @@ export function mapBuiltinTypeToExpressionType(type: BuiltinType | 'Any' | 'Null
         case 'Json':
         case 'Bytes':
             return 'Any';
+        case 'Object':
+            return 'Object';
     }
 }
 
