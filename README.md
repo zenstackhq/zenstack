@@ -104,11 +104,36 @@ The following diagram gives a high-level overview of how it works.
 ## Features
 
 -   Access control and data validation rules right inside your Prisma schema
--   Auto-generated RESTful API and client library
+-   Auto-generated OpenAPI (RESTful) specifications, services, and client libraries
 -   End-to-end type safety
 -   Extensible: custom attributes, functions, and a plugin system
--   Framework agnostic
+-   A framework-agnostic core with framework-specific adapters
 -   Uncompromised performance
+
+### Plugins
+
+-   Prisma schema generator
+-   Zod schema generator
+-   React hooks generator
+-   OpenAPI specification generator
+-   [tRPC](https://trpc.io) router generator
+-   🙋🏻 [Request for a plugin](https://go.zenstack.dev/chat)
+
+### Framework adapters
+
+-   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next)
+-   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
+-   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
+-   Nuxt.js (Future)
+-   SvelteKit (Future)
+-   🙋🏻 [Request for an adapter](https://go.zenstack.dev/chat)
+
+### Prisma schema extensions
+
+-   [Custom attributes and functions](https://zenstack.dev/docs/reference/zmodel-language#custom-attributes-and-functions)
+-   Multi-file schema (coming soon)
+-   String-typed JSON field (coming soon)
+-   🙋🏻 [Request for an extension](https://go.zenstack.dev/chat)
 
 ## Examples
 

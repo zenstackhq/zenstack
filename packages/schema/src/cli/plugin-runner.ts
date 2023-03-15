@@ -30,7 +30,7 @@ export class PluginRunner {
         }> = [];
 
         const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
-        const prereqPlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy', '@core/zod'];
+        const prereqPlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy'];
         const allPluginProviders = prereqPlugins.concat(
             pluginDecls
                 .map((p) => this.getPluginProvider(p))
