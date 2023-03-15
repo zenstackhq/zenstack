@@ -14,6 +14,8 @@ export function getModelZodSchemas(): ModelZodSchema {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('.zenstack/zod').default;
     } catch {
-        throw new Error('Model meta cannot be loaded');
+        throw new Error(
+            'Zod schemas cannot be loaded. Please make sure "@core/zod" plugin is enabled in schema.zmodel.'
+        );
     }
 }

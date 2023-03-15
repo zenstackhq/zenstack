@@ -5,7 +5,7 @@ import {
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
-import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
+import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { capitalCase } from 'change-case';
 import invariant from 'tiny-invariant';
 import { fromZodError } from 'zod-validation-error';
@@ -55,10 +55,7 @@ export type Response = {
     body: unknown;
 };
 
-function getZodSchema(zodSchemas: ModelZodSchema | undefined, model: string, operation: keyof DbOperations) {
-    if (!zodSchemas) {
-        zodSchemas = getModelZodSchemas();
-    }
+function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
     if (zodSchemas[model]) {
         return zodSchemas[model][operation];
     } else if (zodSchemas[capitalCase(model)]) {
@@ -74,7 +71,7 @@ function zodValidate(
     operation: keyof DbOperations,
     args: unknown
 ) {
-    const zodSchema = getZodSchema(zodSchemas, model, operation);
+    const zodSchema = zodSchemas && getZodSchema(zodSchemas, model, operation);
     if (zodSchema) {
         const parseResult = zodSchema.safeParse(args);
         if (parseResult.success) {
@@ -168,11 +165,13 @@ export async function handleRequest({
             return { status: 400, body: { message: 'invalid operation: ' + op } };
     }
 
-    const { data, error } = zodValidate(zodSchemas, model, dbOp, args);
-    if (error) {
-        return { status: 400, body: { message: error } };
-    } else {
-        args = data;
+    if (zodSchemas) {
+        const { data, error } = zodValidate(zodSchemas, model, dbOp, args);
+        if (error) {
+            return { status: 400, body: { message: error } };
+        } else {
+            args = data;
+        }
     }
 
     try {

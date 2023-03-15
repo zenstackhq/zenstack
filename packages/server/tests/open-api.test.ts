@@ -3,23 +3,7 @@
 
 import { loadSchema } from '@zenstackhq/testtools';
 import { handleRequest } from '../src/openapi';
-
-const schema = `
-model User {
-    id String @id @default(cuid())
-    email String @unique
-    posts Post[]
-}
-
-model Post {
-    id String @id @default(cuid())
-    title String
-    author User? @relation(fields: [authorId], references: [id])
-    authorId String?
-    published Boolean @default(false)
-    viewCount Int @default(0)
-}
-`;
+import { schema } from './utils';
 
 describe('OpenAPI server tests', () => {
     it('crud', async () => {
@@ -148,7 +132,15 @@ describe('OpenAPI server tests', () => {
     it('validation error', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 
+        // without validation
         let r = await handleRequest({
+            method: 'get',
+            path: '/api/post/findUnique',
+            prisma,
+        });
+        expect(r.status).toBe(400);
+
+        r = await handleRequest({
             method: 'get',
             path: '/api/post/findUnique',
             prisma,

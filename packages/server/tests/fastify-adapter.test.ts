@@ -1,31 +1,11 @@
 /// <reference types="@types/jest" />
 
+import { loadSchema } from '@zenstackhq/testtools';
 import fastify from 'fastify';
 import { ZenStackFastifyPlugin } from '../src/fastify';
-import { loadSchema } from '@zenstackhq/testtools';
+import { makeUrl, schema } from './utils';
 
-const schema = `
-model User {
-    id String @id @default(cuid())
-    email String @unique
-    posts Post[]
-}
-
-model Post {
-    id String @id @default(cuid())
-    title String
-    author User? @relation(fields: [authorId], references: [id])
-    authorId String?
-    published Boolean @default(false)
-    viewCount Int @default(0)
-}
-`;
-
-function makeUrl(path: string, q?: object) {
-    return q ? `${path}?q=${encodeURIComponent(JSON.stringify(q))}` : path;
-}
-
-describe('Fastify plugin tests', () => {
+describe('Fastify adapter tests', () => {
     it('run plugin', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 
@@ -60,7 +40,6 @@ describe('Fastify plugin tests', () => {
                 },
             },
         });
-
         expect(r.statusCode).toBe(201);
         expect(r.json()).toEqual(
             expect.objectContaining({
@@ -71,7 +50,6 @@ describe('Fastify plugin tests', () => {
                 ]),
             })
         );
-
         // aux fields should have been removed
         const data = r.json();
         expect(data.zenstack_guard).toBeUndefined();
