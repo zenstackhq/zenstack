@@ -20,6 +20,7 @@ import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
 import { enumerate, formatObject, getModelFields } from '../utils';
 import { Logger } from './logger';
+import pluralize from 'pluralize';
 
 /**
  * Access policy enforcement utilities
@@ -664,10 +665,10 @@ export class PolicyUtil {
         }
     }
 
-    deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
+    deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string, reason?: CrudFailureReason) {
         return new PrismaClientKnownRequestError(
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: 'P2004', meta: { reason: CrudFailureReason.RESULT_NOT_READABLE } }
+            { clientVersion: getVersion(), code: 'P2004', meta: { reason } }
         );
     }
 
@@ -716,7 +717,11 @@ export class PolicyUtil {
             const entities = await db[model].findMany(guardedQuery);
             if (entities.length < count) {
                 this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
-                throw this.deniedByPolicy(model, operation, `${count - entities.length} entities failed policy check`);
+                throw this.deniedByPolicy(
+                    model,
+                    operation,
+                    `${count - entities.length} ${pluralize('entity', count - entities.length)} failed policy check`
+                );
             }
 
             // TODO: push down schema check to the database
@@ -731,7 +736,11 @@ export class PolicyUtil {
             const guardedCount = (await db[model].count(guardedQuery)) as number;
             if (guardedCount < count) {
                 this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
-                throw this.deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
+                throw this.deniedByPolicy(
+                    model,
+                    operation,
+                    `${count - guardedCount} ${pluralize('entity', count - guardedCount)} failed policy check`
+                );
             }
         }
     }
