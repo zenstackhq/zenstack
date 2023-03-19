@@ -6,6 +6,8 @@ import { resolveField } from './model-meta';
 import { ModelMeta } from './types';
 import { Enumerable, ensureArray, getModelFields } from './utils';
 
+type NestingPathItem = { field?: FieldInfo; where: any; unique: boolean };
+
 /**
  * Context for visiting
  */
@@ -23,7 +25,7 @@ export type VisitorContext = {
     /**
      * A top-down path of all nested update conditions and corresponding field till now
      */
-    nestingPath: { field?: FieldInfo; where: any }[];
+    nestingPath: NestingPathItem[];
 };
 
 /**
@@ -107,7 +109,7 @@ export class NestedWriteVisitor {
         data: any,
         parent: any,
         field: FieldInfo | undefined,
-        nestingPath: { field?: FieldInfo; where: any }[]
+        nestingPath: NestingPathItem[]
     ): Promise<void> {
         if (!data) {
             return;
@@ -120,7 +122,7 @@ export class NestedWriteVisitor {
         // visit payload
         switch (action) {
             case 'create':
-                context.nestingPath.push({ field, where: {} });
+                context.nestingPath.push({ field, where: {}, unique: false });
                 if (this.callback.create) {
                     await this.callback.create(model, data, context);
                 }
@@ -130,7 +132,7 @@ export class NestedWriteVisitor {
             case 'createMany':
                 // skip the 'data' layer so as to keep consistency with 'create'
                 if (data.data) {
-                    context.nestingPath.push({ field, where: {} });
+                    context.nestingPath.push({ field, where: {}, unique: false });
                     if (this.callback.create) {
                         await this.callback.create(model, data.data, context);
                     }
@@ -139,7 +141,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'connectOrCreate':
-                context.nestingPath.push({ field, where: data.where });
+                context.nestingPath.push({ field, where: data.where, unique: true });
                 if (this.callback.connectOrCreate) {
                     await this.callback.connectOrCreate(model, data, context);
                 }
@@ -147,21 +149,24 @@ export class NestedWriteVisitor {
                 break;
 
             case 'connect':
-                context.nestingPath.push({ field, where: data });
+                context.nestingPath.push({ field, where: data, unique: true });
                 if (this.callback.connect) {
                     await this.callback.connect(model, data, context);
                 }
                 break;
 
             case 'disconnect':
-                context.nestingPath.push({ field, where: data });
+                // disconnect has two forms:
+                //   if relation is to-many, the payload is a unique filter object
+                //   if relation is to-one, the payload can only be boolean `true`
+                context.nestingPath.push({ field, where: data, unique: typeof data === 'object' });
                 if (this.callback.disconnect) {
                     await this.callback.disconnect(model, data, context);
                 }
                 break;
 
             case 'update':
-                context.nestingPath.push({ field, where: data.where });
+                context.nestingPath.push({ field, where: data.where, unique: false });
                 if (this.callback.update) {
                     await this.callback.update(model, data, context);
                 }
@@ -169,7 +174,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'updateMany':
-                context.nestingPath.push({ field, where: data.where });
+                context.nestingPath.push({ field, where: data.where, unique: false });
                 if (this.callback.updateMany) {
                     await this.callback.updateMany(model, data, context);
                 }
@@ -177,7 +182,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'upsert':
-                context.nestingPath.push({ field, where: data.where });
+                context.nestingPath.push({ field, where: data.where, unique: true });
                 if (this.callback.upsert) {
                     await this.callback.upsert(model, data, context);
                 }
@@ -186,14 +191,14 @@ export class NestedWriteVisitor {
                 break;
 
             case 'delete':
-                context.nestingPath.push({ field, where: data.where });
+                context.nestingPath.push({ field, where: data.where, unique: false });
                 if (this.callback.delete) {
                     await this.callback.delete(model, data, context);
                 }
                 break;
 
             case 'deleteMany':
-                context.nestingPath.push({ field, where: data.where });
+                context.nestingPath.push({ field, where: data.where, unique: false });
                 if (this.callback.deleteMany) {
                     await this.callback.deleteMany(model, data, context);
                 }

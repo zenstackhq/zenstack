@@ -421,7 +421,7 @@ export class PolicyUtil {
             let currField: FieldInfo | undefined;
 
             for (let i = context.nestingPath.length - 1; i >= 0; i--) {
-                const { field, where } = context.nestingPath[i];
+                const { field, where, unique } = context.nestingPath[i];
 
                 if (!result) {
                     // first segment (bottom), just use its where clause
@@ -437,6 +437,11 @@ export class PolicyUtil {
                     currQuery[currField.backLink] = { ...where };
                     currQuery = currQuery[currField.backLink];
                     currField = field;
+                }
+
+                if (unique) {
+                    // hit a unique filter, no need to traverse further up
+                    break;
                 }
             }
             return result;
@@ -557,6 +562,19 @@ export class PolicyUtil {
             }
         };
 
+        // process relation updates: connect, connectOrCreate, and disconnect
+        const processRelationUpdate = async (model: string, args: any, context: VisitorContext) => {
+            if (context.field?.backLink) {
+                // fetch the backlink field of the model being connected
+                const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
+                if (backLinkField.isRelationOwner) {
+                    // the target side of relation owns the relation,
+                    // mark it as updated
+                    await processUpdate(model, args, context);
+                }
+            }
+        };
+
         // use a visitor to process args before conducting the write action
         const visitor = new NestedWriteVisitor(this.modelMeta, {
             create: async (model, args) => {
@@ -571,20 +589,20 @@ export class PolicyUtil {
                         await processCreate(model, oneArgs.create);
                     }
                     if (oneArgs.where) {
-                        await processUpdate(model, oneArgs.where, context);
+                        await processRelationUpdate(model, oneArgs.where, context);
                     }
                 }
             },
 
             connect: async (model, args, context) => {
                 for (const oneArgs of enumerate(args)) {
-                    await processUpdate(model, oneArgs, context);
+                    await processRelationUpdate(model, oneArgs, context);
                 }
             },
 
             disconnect: async (model, args, context) => {
                 for (const oneArgs of enumerate(args)) {
-                    await processUpdate(model, oneArgs, context);
+                    await processRelationUpdate(model, oneArgs, context);
                 }
             },
 
@@ -607,7 +625,7 @@ export class PolicyUtil {
                     }
 
                     if (oneArgs.update) {
-                        await processUpdate(model, { where: oneArgs.where }, context);
+                        await processUpdate(model, oneArgs.where, context);
                     }
                 }
             },

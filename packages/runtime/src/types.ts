@@ -56,14 +56,50 @@ export type RuntimeAttribute = {
  * Runtime information of a data model field
  */
 export type FieldInfo = {
+    /**
+     * Field name
+     */
     name: string;
+
+    /**
+     * Field type name
+     */
     type: string;
+
+    /**
+     * If the field is an ID field or part of a multi-field ID
+     */
     isId: boolean;
+
+    /**
+     * If the field type is a data model (or an optional/array of data model)
+     */
     isDataModel: boolean;
+
+    /**
+     * If the field is an array
+     */
     isArray: boolean;
+
+    /**
+     * If the field is optional
+     */
     isOptional: boolean;
+
+    /**
+     * Attributes on the field
+     */
     attributes: RuntimeAttribute[];
+
+    /**
+     * If the field is a relation field, the field name of the reverse side of the relation
+     */
     backLink?: string;
+
+    /**
+     * If the field is the owner side of a relation
+     */
+    isRelationOwner: boolean;
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
