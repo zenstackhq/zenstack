@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "1.0.0-alpha.78",
+    "version": "1.0.0-alpha.79",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
