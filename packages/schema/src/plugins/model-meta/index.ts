@@ -8,7 +8,7 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { RuntimeAttribute } from '@zenstackhq/runtime';
-import { getAttributeArgs, getLiteral, PluginOptions, resolved } from '@zenstackhq/sdk';
+import { getAttributeArgs, getLiteral, hasAttribute, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import path from 'path';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
@@ -67,7 +67,8 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     isArray: ${f.type.array},
                     isOptional: ${f.type.optional},
                     attributes: ${JSON.stringify(getFieldAttributes(f))},
-                    backLink: ${backlink ? "'" + backlink + "'" : 'undefined'}   
+                    backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
+                    isRelationOwner: ${isRelationOwner(f)},
                 },`);
                     }
                 });
@@ -110,10 +111,10 @@ function getBackLink(field: DataModelField) {
             if (relName) {
                 const otherRelName = getRelationName(otherField);
                 if (relName === otherRelName) {
-                    return otherField.name;
+                    return otherField;
                 }
             } else {
-                return otherField.name;
+                return otherField;
             }
         }
     }
@@ -176,4 +177,8 @@ function getUniqueConstraints(model: DataModel) {
         }
     }
     return constraints;
+}
+
+function isRelationOwner(field: DataModelField) {
+    return hasAttribute(field, '@relation');
 }

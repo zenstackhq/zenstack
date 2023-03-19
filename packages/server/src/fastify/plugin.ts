@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
-import { ModelZodSchema } from '@zenstackhq/runtime/zod';
+import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import { handleRequest, LoggerConfig } from '../openapi';
@@ -15,7 +15,7 @@ export interface PluginOptions {
     prefix: string;
 
     /**
-     * Callback for gettign a PrismaClient for the given request
+     * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (request: FastifyRequest, reply: FastifyReply) => unknown | Promise<unknown>;
 
@@ -25,11 +25,14 @@ export interface PluginOptions {
     logger?: LoggerConfig;
 
     /**
-     * Path to the generated zod schemas
+     * Zod schemas for validating request input. Pass `true` to load from standard location (need to enable `@core/zod` plugin in schema.zmodel).
      */
-    zodSchemas?: ModelZodSchema;
+    zodSchemas?: ModelZodSchema | boolean;
 }
 
+/**
+ * Fastify plugin for handling CRUD requests.
+ */
 const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, done) => {
     const prefix = options.prefix ?? '';
 
@@ -37,6 +40,13 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         console.log(`ZenStackPlugin installing routes at prefix: ${prefix}`);
     } else {
         options.logger?.info?.(`ZenStackPlugin installing routes at prefix: ${prefix}`);
+    }
+
+    let schemas: ModelZodSchema | undefined;
+    if (typeof options.zodSchemas === 'object') {
+        schemas = options.zodSchemas;
+    } else if (options.zodSchemas === true) {
+        schemas = getModelZodSchemas();
     }
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
@@ -53,7 +63,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
             requestBody: request.body,
             prisma,
             logger: options.logger,
-            zodSchemas: options.zodSchemas,
+            zodSchemas: schemas,
         });
 
         reply.status(response.status).send(response.body);
