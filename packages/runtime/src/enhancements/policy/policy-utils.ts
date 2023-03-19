@@ -378,9 +378,18 @@ export class PolicyUtil {
         //     model => { ids, entity value }
         const updatedModels = new Map<string, Array<{ ids: Record<string, unknown>; value: any }>>();
 
+        function addUpdatedEntity(model: string, ids: Record<string, unknown>, entity: any) {
+            let modelEntities = updatedModels.get(model);
+            if (!modelEntities) {
+                modelEntities = [];
+                updatedModels.set(model, modelEntities);
+            }
+            modelEntities.push({ ids, value: entity });
+        }
+
         const idFields = this.getIdFields(model);
         if (args.select) {
-            // make sure 'id' field is selected, we need it to
+            // make sure id fields are selected, we need it to
             // read back the updated entity
             for (const idField of idFields) {
                 if (!args.select[idField.name]) {
@@ -434,7 +443,7 @@ export class PolicyUtil {
         };
 
         // args processor for update/upsert
-        const processUpdate = async (model: string, args: any, context: VisitorContext) => {
+        const processUpdate = async (model: string, where: any, context: VisitorContext) => {
             const preGuard = await this.getAuthGuard(model, 'update');
             if (preGuard === false) {
                 throw this.deniedByPolicy(model, 'update');
@@ -475,11 +484,10 @@ export class PolicyUtil {
                     const subQuery = await buildReversedQuery(context);
                     await this.checkPolicyForFilter(model, subQuery, 'update', this.db);
                 } else {
-                    // non-nested update, check policies directly
-                    if (!args.where) {
-                        throw this.unknownError(`Missing 'where' in update args`);
+                    if (!where) {
+                        throw this.unknownError(`Missing 'where' parameter`);
                     }
-                    await this.checkPolicyForFilter(model, args.where, 'update', this.db);
+                    await this.checkPolicyForFilter(model, where, 'update', this.db);
                 }
             }
 
@@ -507,12 +515,6 @@ export class PolicyUtil {
 
             // post-update check is needed if there's post-update rule or validation schema
             if (postGuard !== true || schema) {
-                let modelEntities = updatedModels.get(model);
-                if (!modelEntities) {
-                    modelEntities = [];
-                    updatedModels.set(model, modelEntities);
-                }
-
                 // fetch preValue selection (analyzed from the post-update rules)
                 const preValueSelect = await this.getPreValueSelect(model);
                 const filter = await buildReversedQuery(context);
@@ -531,10 +533,11 @@ export class PolicyUtil {
 
                 const query = { where: filter, select };
                 this.logger.info(`fetching pre-update entities for ${model}: ${formatObject(query)})}`);
+
                 const entities = await this.db[model].findMany(query);
-                entities.forEach((entity) =>
-                    modelEntities?.push({ ids: this.getEntityIds(model, entity), value: entity })
-                );
+                entities.forEach((entity) => {
+                    addUpdatedEntity(model, this.getEntityIds(model, entity), entity);
+                });
             }
         };
 
@@ -562,17 +565,32 @@ export class PolicyUtil {
                 }
             },
 
-            connectOrCreate: async (model, args) => {
+            connectOrCreate: async (model, args, context) => {
                 for (const oneArgs of enumerate(args)) {
                     if (oneArgs.create) {
                         await processCreate(model, oneArgs.create);
                     }
+                    if (oneArgs.where) {
+                        await processUpdate(model, oneArgs.where, context);
+                    }
+                }
+            },
+
+            connect: async (model, args, context) => {
+                for (const oneArgs of enumerate(args)) {
+                    await processUpdate(model, oneArgs, context);
+                }
+            },
+
+            disconnect: async (model, args, context) => {
+                for (const oneArgs of enumerate(args)) {
+                    await processUpdate(model, oneArgs, context);
                 }
             },
 
             update: async (model, args, context) => {
                 for (const oneArgs of enumerate(args)) {
-                    await processUpdate(model, oneArgs, context);
+                    await processUpdate(model, oneArgs.where, context);
                 }
             },
 
@@ -589,7 +607,7 @@ export class PolicyUtil {
                     }
 
                     if (oneArgs.update) {
-                        await processUpdate(model, { where: oneArgs.where, data: oneArgs.update }, context);
+                        await processUpdate(model, { where: oneArgs.where }, context);
                     }
                 }
             },

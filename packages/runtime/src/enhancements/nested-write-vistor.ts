@@ -38,6 +38,10 @@ export type NestedWriterVisitorCallback = {
         context: VisitorContext
     ) => Promise<void>;
 
+    connect?: (model: string, args: Enumerable<object>, context: VisitorContext) => Promise<void>;
+
+    disconnect?: (model: string, args: Enumerable<object>, context: VisitorContext) => Promise<void>;
+
     update?: (model: string, args: Enumerable<{ where: object; data: any }>, context: VisitorContext) => Promise<void>;
 
     updateMany?: (
@@ -140,6 +144,20 @@ export class NestedWriteVisitor {
                     await this.callback.connectOrCreate(model, data, context);
                 }
                 fieldContainers.push(...ensureArray(data).map((d) => d.create));
+                break;
+
+            case 'connect':
+                context.nestingPath.push({ field, where: data });
+                if (this.callback.connect) {
+                    await this.callback.connect(model, data, context);
+                }
+                break;
+
+            case 'disconnect':
+                context.nestingPath.push({ field, where: data });
+                if (this.callback.disconnect) {
+                    await this.callback.disconnect(model, data, context);
+                }
                 break;
 
             case 'update':

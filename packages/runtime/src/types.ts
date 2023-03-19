@@ -77,8 +77,10 @@ export const PrismaWriteActions = [
     'update',
     'updateMany',
     'upsert',
+    'connect',
+    'disconnect',
     'delete',
     'deleteMany',
 ] as const;
 
-export type PrismaWriteActionType = typeof PrismaWriteActions[number];
+export type PrismaWriteActionType = (typeof PrismaWriteActions)[number];

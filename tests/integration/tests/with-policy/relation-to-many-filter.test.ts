@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy: relation to-many filter', () => {
     let origDir: string;
-    const suite = 'relation-to-many-filter';
 
     beforeAll(async () => {
         origDir = path.resolve('.');
