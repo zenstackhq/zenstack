@@ -91,7 +91,7 @@ describe('With Policy:deep nested', () => {
                             },
                             m4: {
                                 create: [
-                                    { id: 'm4-1', value: 21 },
+                                    { id: 'm4-1', value: 22 },
                                     { id: 'm4-2', value: 22 },
                                 ],
                             },
@@ -403,7 +403,7 @@ describe('With Policy:deep nested', () => {
                 where: { myId: '1' },
                 include: { m2: { select: { m4: true } } },
             })
-        ).toBeRejectedByPolicy(['result not readable']);
+        ).toBeRejectedByPolicy(['result is not allowed to be read back']);
 
         await expect(db.m4.findMany()).resolves.toHaveLength(0);
 

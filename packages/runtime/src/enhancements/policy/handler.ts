@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PrismaClientValidationError } from '@prisma/client/runtime';
+import { CrudFailureReason } from '@zenstackhq/sdk';
 import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
 import { ModelMeta, PolicyDef } from '../types';
@@ -227,7 +228,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.modelClient.delete(args);
 
         if (!readResult) {
-            throw this.utils.deniedByPolicy(this.model, 'delete', 'result not readable');
+            throw this.utils.deniedByPolicy(
+                this.model,
+                'delete',
+                'result is not allowed to be read back',
+                CrudFailureReason.RESULT_NOT_READABLE
+            );
         } else {
             return readResult;
         }
@@ -296,7 +302,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const result = await this.utils.readWithCheck(this.model, readArgs);
         if (result.length === 0) {
             this.logger.warn(`${action} result cannot be read back`);
-            throw this.utils.deniedByPolicy(this.model, operation, 'result is not allowed to be read back');
+            throw this.utils.deniedByPolicy(
+                this.model,
+                operation,
+                'result is not allowed to be read back',
+                CrudFailureReason.RESULT_NOT_READABLE
+            );
         } else if (result.length > 1) {
             throw this.utils.unknownError('write unexpected resulted in multiple readback entities');
         }

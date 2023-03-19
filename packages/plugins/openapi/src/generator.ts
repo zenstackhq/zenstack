@@ -27,6 +27,7 @@ export class OpenAPIGenerator {
     private outputObjectTypes: DMMF.OutputType[] = [];
     private usedComponents: Set<string> = new Set<string>();
     private aggregateOperationSupport: AggregateOperationSupport;
+    private includedModels: DataModel[];
 
     constructor(private model: Model, private options: PluginOptions, private dmmf: DMMF.Document) {}
 
@@ -39,6 +40,9 @@ export class OpenAPIGenerator {
         // input types
         this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
         this.outputObjectTypes.push(...this.dmmf.schema.outputObjectTypes.prisma);
+        this.includedModels = this.model.declarations.filter(
+            (d): d is DataModel => isDataModel(d) && !hasAttribute(d, '@@openapi.ignore')
+        );
 
         // add input object types that are missing from Prisma dmmf
         addMissingInputObjectTypesForModelArgs(this.inputObjectTypes, this.dmmf.datamodel.models);
@@ -59,7 +63,13 @@ export class OpenAPIGenerator {
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
+                description: this.getOption('description', undefined),
+                summary: this.getOption('summary', undefined),
             },
+            tags: this.includedModels.map((model) => ({
+                name: camelCase(model.name),
+                description: `${model.name} operations`,
+            })),
             components,
             paths,
         };
@@ -125,12 +135,10 @@ export class OpenAPIGenerator {
     private generatePaths(components: OAPI.ComponentsObject): OAPI.PathsObject {
         let result: OAPI.PathsObject = {};
 
-        const includeModels = this.model.declarations
-            .filter((d) => isDataModel(d) && !hasAttribute(d, '@@openapi.ignore'))
-            .map((d) => d.name);
+        const includeModelNames = this.includedModels.map((d) => d.name);
 
         for (const model of this.dmmf.datamodel.models) {
-            if (includeModels.includes(model.name)) {
+            if (includeModelNames.includes(model.name)) {
                 const zmodel = this.model.declarations.find(
                     (d) => isDataModel(d) && d.name === model.name
                 ) as DataModel;
@@ -465,11 +473,16 @@ export class OpenAPIGenerator {
                 resolvedPath = resolvedPath.substring(1);
             }
 
+            let prefix = this.getOption('prefix', '');
+            if (prefix.endsWith('/')) {
+                prefix = prefix.substring(0, prefix.length - 1);
+            }
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const def: any = {
                 operationId: `${operation}${model.name}`,
                 description: meta?.description ?? description,
-                tags: meta?.tags,
+                tags: meta?.tags || [camelCase(model.name)],
                 summary: meta?.summary,
                 responses: {
                     [successCode !== undefined ? successCode : '200']: {
@@ -504,13 +517,17 @@ export class OpenAPIGenerator {
                             name: 'q',
                             in: 'query',
                             required: true,
-                            schema: inputType,
+                            content: {
+                                'application/json': {
+                                    schema: inputType,
+                                },
+                            },
                         },
                     ] satisfies OAPI.ParameterObject[];
                 }
             }
 
-            result[`/${camelCase(model.name)}/${resolvedPath}`] = {
+            result[`${prefix}/${camelCase(model.name)}/${resolvedPath}`] = {
                 [resolvedMethod]: def,
             };
         }
@@ -546,8 +563,14 @@ export class OpenAPIGenerator {
         return this.ref(name);
     }
 
-    private getOption(name: string, defaultValue: string) {
-        return this.options[name] ? (this.options[name] as string) : defaultValue;
+    private getOption<T extends string | undefined>(
+        name: string,
+        defaultValue: T
+    ): T extends string ? string : string | undefined {
+        const value = this.options[name];
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        return typeof value === 'string' ? value : defaultValue;
     }
 
     private generateComponents() {
