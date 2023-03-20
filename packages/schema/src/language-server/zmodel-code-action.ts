@@ -66,11 +66,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
 
             const container = getContainerOfType(cstNode?.element, isDataModel) as DataModel;
 
-            const idField = container.fields.find((f) =>
-                f.attributes.find((attr) => attr.decl.ref?.name === '@id')
-            ) as DataModelField;
-
-            if (container && container.$cstNode && idField) {
+            if (container && container.$cstNode) {
                 // indent
                 let indent = '\t';
                 const formatOptions = this.formatter.getFormatOptions();
@@ -79,17 +75,41 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                 }
                 indent = indent.repeat(this.formatter.getIndent());
 
-                const typeName = container.name;
-                const fieldName = this.lowerCaseFirstLetter(typeName);
+                let newText = '';
+                if (astNode.type.array) {
+                    //post Post[]
+                    const idField = container.fields.find((f) =>
+                        f.attributes.find((attr) => attr.decl.ref?.name === '@id')
+                    ) as DataModelField;
 
-                // might already exist
-                let referenceField = '';
+                    // if no id field, we can't generate reference
+                    if (!idField) {
+                        return undefined;
+                    }
 
-                const idFieldName = idField.name;
-                const referenceIdFieldName = fieldName + this.upperCaseFirstLetter(idFieldName);
+                    const typeName = container.name;
+                    const fieldName = this.lowerCaseFirstLetter(typeName);
 
-                if (!oppositeModel.fields.find((f) => f.name === referenceIdFieldName)) {
-                    referenceField = '\n' + indent + `${referenceIdFieldName} ${idField.type.type}`;
+                    // might already exist
+                    let referenceField = '';
+
+                    const idFieldName = idField.name;
+                    const referenceIdFieldName = fieldName + this.upperCaseFirstLetter(idFieldName);
+
+                    if (!oppositeModel.fields.find((f) => f.name === referenceIdFieldName)) {
+                        referenceField = '\n' + indent + `${referenceIdFieldName} ${idField.type.type}`;
+                    }
+
+                    newText =
+                        '\n' +
+                        indent +
+                        `${fieldName} ${typeName} @relation(fields: [${referenceIdFieldName}], references: [${idFieldName}])` +
+                        referenceField;
+                } else {
+                    // user User @relation(fields: [userAbc], references: [id])
+                    const typeName = container.name;
+                    const fieldName = this.lowerCaseFirstLetter(typeName);
+                    newText = '\n' + indent + `${fieldName} ${typeName}[]`;
                 }
 
                 return {
@@ -107,11 +127,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                                         end: lastField.$cstNode!.range.end,
                                     },
-                                    newText:
-                                        '\n' +
-                                        indent +
-                                        `${fieldName} ${typeName} @relation(fields: [${referenceIdFieldName}], references: [${idFieldName}])` +
-                                        referenceField,
+                                    newText,
                                 },
                             ],
                         },
