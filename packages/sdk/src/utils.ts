@@ -8,10 +8,19 @@ import {
     EnumField,
     Expression,
     isArrayExpr,
+    isDataModel,
     isLiteralExpr,
     isObjectExpr,
+    Model,
     Reference,
 } from '@zenstackhq/language/ast';
+
+/**
+ * Gets data models that are not ignored
+ */
+export function getDataModels(model: Model) {
+    return model.declarations.filter((d): d is DataModel => isDataModel(d) && !hasAttribute(d, '@@ignore'));
+}
 
 export function resolved<T extends AstNode>(ref: Reference<T>): T {
     if (!ref.ref) {

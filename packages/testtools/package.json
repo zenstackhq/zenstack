@@ -1,6 +1,6 @@
 {
   "name": "@zenstackhq/testtools",
-  "version": "1.0.0-alpha.79",
+  "version": "1.0.0-alpha.80",
   "description": "ZenStack Test Tools",
   "main": "index.js",
   "publishConfig": {
@@ -19,14 +19,18 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^4.7.0",
+    "@prisma/generator-helper": "^4.7.1",
+    "@prisma/internals": "^4.7.1",
     "@zenstackhq/runtime": "workspace:*",
-    "tmp": "^0.2.1"
+    "@zenstackhq/language": "workspace:*",
+    "prisma": "~4.7.0",
+    "tmp": "^0.2.1",
+    "zenstack": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^18.14.2",
     "@types/tmp": "^0.2.3",
     "copyfiles": "^2.4.1",
-    "prisma": "~4.7.0",
     "rimraf": "^3.0.2",
     "typescript": "^4.9.5"
   }
