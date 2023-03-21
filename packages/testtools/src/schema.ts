@@ -1,10 +1,15 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { DMMF } from '@prisma/generator-helper';
+import { getDMMF } from '@prisma/internals';
+import type { Model } from '@zenstackhq/language/ast';
 import { withOmit, withPassword, withPolicy, withPresets, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import tmp from 'tmp';
+import { loadDocument } from 'zenstack/cli/cli-util';
+import prismaPlugin from 'zenstack/plugins/prisma';
 
 export type WeakDbOperations = {
     [key in keyof DbOperations]: (...args: any[]) => Promise<any>;
@@ -54,7 +59,6 @@ datasource db {
 
 generator js {
     provider = 'prisma-client-js'
-    output = '../.prisma'
     previewFeatures = ['clientExtensions']
 }
 
@@ -79,8 +83,14 @@ export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, 
     return loadSchema(content, addPrelude, pushDb);
 }
 
-export async function loadSchema(schema: string, addPrelude = true, pushDb = true) {
-    const { name: workDir } = tmp.dirSync();
+export async function loadSchema(
+    schema: string,
+    addPrelude = true,
+    pushDb = true,
+    extraDependencies: string[] = [],
+    compile = false
+) {
+    const { name: projectRoot } = tmp.dirSync();
 
     const root = getWorkspaceRoot(__dirname);
     if (!root) {
@@ -89,13 +99,15 @@ export async function loadSchema(schema: string, addPrelude = true, pushDb = tru
     console.log('Workspace root:', root);
 
     const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });
-    fs.writeFileSync(path.join(workDir, 'package.json'), pkgContent.replaceAll('<root>', root));
+    fs.writeFileSync(path.join(projectRoot, 'package.json'), pkgContent.replaceAll('<root>', root));
 
     const npmrcContent = fs.readFileSync(path.join(__dirname, '.npmrc.template'), { encoding: 'utf-8' });
-    fs.writeFileSync(path.join(workDir, '.npmrc'), npmrcContent.replaceAll('<root>', root));
+    fs.writeFileSync(path.join(projectRoot, '.npmrc'), npmrcContent.replaceAll('<root>', root));
 
-    console.log('Workdir:', workDir);
-    process.chdir(workDir);
+    console.log('Workdir:', projectRoot);
+    process.chdir(projectRoot);
+
+    schema = schema.replaceAll('$projectRoot', projectRoot);
 
     const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
     fs.writeFileSync('schema.zmodel', content);
@@ -106,14 +118,26 @@ export async function loadSchema(schema: string, addPrelude = true, pushDb = tru
         run('npx prisma db push');
     }
 
-    const PrismaClient = require(path.join(workDir, '.prisma')).PrismaClient;
+    const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
     const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
 
-    const policy = require(path.join(workDir, '.zenstack/policy')).default;
-    const modelMeta = require(path.join(workDir, '.zenstack/model-meta')).default;
-    const zodSchemas = require(path.join(workDir, '.zenstack/zod')).default;
+    extraDependencies.forEach((dep) => {
+        console.log(`Installing dependency ${dep}`);
+        run(`npm install ${dep}`);
+    });
+
+    if (compile) {
+        console.log('Compiling...');
+        run('npx tsc --init');
+        run('npx tsc --project tsconfig.json');
+    }
+
+    const policy = require(path.join(projectRoot, '.zenstack/policy')).default;
+    const modelMeta = require(path.join(projectRoot, '.zenstack/model-meta')).default;
+    const zodSchemas = require(path.join(projectRoot, '.zenstack/zod')).default;
 
     return {
+        projectDir: projectRoot,
         prisma,
         withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
         withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
@@ -121,4 +145,33 @@ export async function loadSchema(schema: string, addPrelude = true, pushDb = tru
         withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
         zodSchemas,
     };
+}
+
+/**
+ * Load ZModel and Prisma DMM from a string without creating a NPM project.
+ * @param content
+ * @returns
+ */
+export async function loadZModelAndDmmf(
+    content: string
+): Promise<{ model: Model; dmmf: DMMF.Document; modelFile: string }> {
+    const prelude = `
+    datasource db {
+        provider = 'postgresql'
+        url = env('DATABASE_URL')
+    }
+`;
+
+    const { name: modelFile } = tmp.fileSync({ postfix: '.zmodel' });
+    fs.writeFileSync(modelFile, `${prelude}\n${content}`);
+
+    const model = await loadDocument(modelFile);
+
+    const { name: prismaFile } = tmp.fileSync({ postfix: '.prisma' });
+    await prismaPlugin(model, { schemaPath: modelFile, output: prismaFile, generateClient: false });
+
+    const prismaContent = fs.readFileSync(prismaFile, { encoding: 'utf-8' });
+
+    const dmmf = await getDMMF({ datamodel: prismaContent });
+    return { model, dmmf, modelFile };
 }

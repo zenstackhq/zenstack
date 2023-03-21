@@ -1,7 +1,7 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { AUXILIARY_FIELDS, getDataModels, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -28,6 +28,7 @@ export class OpenAPIGenerator {
     private usedComponents: Set<string> = new Set<string>();
     private aggregateOperationSupport: AggregateOperationSupport;
     private includedModels: DataModel[];
+    private warnings: string[] = [];
 
     constructor(private model: Model, private options: PluginOptions, private dmmf: DMMF.Document) {}
 
@@ -40,9 +41,7 @@ export class OpenAPIGenerator {
         // input types
         this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
         this.outputObjectTypes.push(...this.dmmf.schema.outputObjectTypes.prisma);
-        this.includedModels = this.model.declarations.filter(
-            (d): d is DataModel => isDataModel(d) && !hasAttribute(d, '@@openapi.ignore')
-        );
+        this.includedModels = getDataModels(this.model).filter((d) => !hasAttribute(d, '@@openapi.ignore'));
 
         // add input object types that are missing from Prisma dmmf
         addMissingInputObjectTypesForModelArgs(this.inputObjectTypes, this.dmmf.datamodel.models);
@@ -80,6 +79,8 @@ export class OpenAPIGenerator {
         } else {
             fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
         }
+
+        return this.warnings;
     }
 
     private pruneComponents(components: OAPI.ComponentsObject) {
@@ -148,7 +149,7 @@ export class OpenAPIGenerator {
                         ...this.generatePathsForModel(model, zmodel, components),
                     } as OAPI.PathsObject;
                 } else {
-                    console.warn(`Unable to load ZModel definition for: ${model.name}}`);
+                    this.warnings.push(`Unable to load ZModel definition for: ${model.name}}`);
                 }
             }
         }
@@ -159,13 +160,14 @@ export class OpenAPIGenerator {
         model: DMMF.Model,
         zmodel: DataModel,
         components: OAPI.ComponentsObject
-    ): OAPI.PathItemObject {
+    ): OAPI.PathItemObject | undefined {
         const result: OAPI.PathItemObject & Record<string, unknown> = {};
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const ops: (DMMF.ModelMapping & { createOne?: string | null } & Record<string, any>) | undefined =
             this.dmmf.mappings.modelOperations.find((ops) => ops.model === model.name);
         if (!ops) {
-            throw new PluginError(`No operations found for model ${model.name}`);
+            this.warnings.push(`Unable to find mapping for model ${model.name}`);
+            return undefined;
         }
 
         type OperationDefinition = {
