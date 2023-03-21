@@ -8,7 +8,7 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { RuntimeAttribute } from '@zenstackhq/runtime';
-import { getAttributeArgs, getLiteral, hasAttribute, PluginOptions, resolved } from '@zenstackhq/sdk';
+import { getAttributeArgs, getDataModels, getLiteral, hasAttribute, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import path from 'path';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
@@ -24,7 +24,7 @@ export default async function run(model: Model, options: PluginOptions) {
         return;
     }
 
-    const dataModels = model.declarations.filter((d): d is DataModel => isDataModel(d));
+    const dataModels = getDataModels(model);
 
     const project = new Project();
 

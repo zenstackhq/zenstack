@@ -1,6 +1,6 @@
 import { DMMF } from '@prisma/generator-helper';
-import { CrudFailureReason, PluginError, PluginOptions } from '@zenstackhq/sdk';
-import { DataModel, isDataModel, Model } from '@zenstackhq/sdk/ast';
+import { CrudFailureReason, getDataModels, PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { camelCase, paramCase } from 'change-case';
 import * as path from 'path';
 import { Project } from 'ts-morph';
@@ -18,13 +18,17 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const project = new Project();
     const warnings: string[] = [];
-    const models = model.declarations.filter((d): d is DataModel => isDataModel(d));
+    const models = getDataModels(model);
 
     generateIndex(project, outDir, models);
 
-    models.forEach((model) => {
-        const mapping = dmmf.mappings.modelOperations.find((op) => op.model === model.name);
-        generateModelHooks(project, outDir, model, mapping);
+    models.forEach((dataModel) => {
+        const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
+        if (!mapping) {
+            warnings.push(`Unable to find mapping for model ${dataModel.name}`);
+            return;
+        }
+        generateModelHooks(project, outDir, dataModel, mapping);
     });
 
     await project.save();
@@ -44,12 +48,7 @@ function wrapReadbackErrorCheck(code: string) {
     }`;
 }
 
-function generateModelHooks(
-    project: Project,
-    outDir: string,
-    model: DataModel,
-    mapping: DMMF.ModelMapping | undefined
-) {
+function generateModelHooks(project: Project, outDir: string, model: DataModel, mapping: DMMF.ModelMapping) {
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
@@ -86,7 +85,7 @@ function generateModelHooks(
 
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping?.create || (mapping as any)?.createOne) {
+    if (mapping.create || (mapping as any).createOne) {
         methods.push('create');
         const argsType = `Prisma.${model.name}CreateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -112,7 +111,7 @@ function generateModelHooks(
     }
 
     // createMany
-    if (mapping?.createMany) {
+    if (mapping.createMany) {
         methods.push('createMany');
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -136,7 +135,7 @@ function generateModelHooks(
     }
 
     // findMany
-    if (mapping?.findMany) {
+    if (mapping.findMany) {
         methods.push('findMany');
         const argsType = `Prisma.${model.name}FindManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -163,7 +162,7 @@ function generateModelHooks(
     }
 
     // findUnique
-    if (mapping?.findUnique) {
+    if (mapping.findUnique) {
         methods.push('findUnique');
         const argsType = `Prisma.${model.name}FindUniqueArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -190,7 +189,7 @@ function generateModelHooks(
     }
 
     // findFirst
-    if (mapping?.findFirst) {
+    if (mapping.findFirst) {
         methods.push('findFirst');
         const argsType = `Prisma.${model.name}FindFirstArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -219,7 +218,7 @@ function generateModelHooks(
     // update
     // update is somehow named "updateOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping?.update || (mapping as any).updateOne) {
+    if (mapping.update || (mapping as any).updateOne) {
         methods.push('update');
         const argsType = `Prisma.${model.name}UpdateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -245,7 +244,7 @@ function generateModelHooks(
     }
 
     // updateMany
-    if (mapping?.updateMany) {
+    if (mapping.updateMany) {
         methods.push('updateMany');
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -271,7 +270,7 @@ function generateModelHooks(
     // upsert
     // upsert is somehow named "upsertOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping?.upsert || (mapping as any).upsertOne) {
+    if (mapping.upsert || (mapping as any).upsertOne) {
         methods.push('upsert');
         const argsType = `Prisma.${model.name}UpsertArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -299,7 +298,7 @@ function generateModelHooks(
     // del
     // delete is somehow named "deleteOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (mapping?.delete || (mapping as any).deleteOne) {
+    if (mapping.delete || (mapping as any).deleteOne) {
         methods.push('del');
         const argsType = `Prisma.${model.name}DeleteArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -325,7 +324,7 @@ function generateModelHooks(
     }
 
     // deleteMany
-    if (mapping?.deleteMany) {
+    if (mapping.deleteMany) {
         methods.push('deleteMany');
         const argsType = `Prisma.${model.name}DeleteManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -349,7 +348,7 @@ function generateModelHooks(
     }
 
     // aggregate
-    if (mapping?.aggregate) {
+    if (mapping.aggregate) {
         methods.push('aggregate');
         const argsType = `Prisma.${model.name}AggregateArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
@@ -376,7 +375,7 @@ function generateModelHooks(
     }
 
     // groupBy
-    if (mapping?.groupBy) {
+    if (mapping.groupBy) {
         methods.push('groupBy');
         const returnType = `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`;
         useFunc
@@ -453,7 +452,7 @@ function generateModelHooks(
     }
 
     // count
-    if (mapping?.count) {
+    if (mapping.count) {
         methods.push('count');
         const argsType = `Prisma.${model.name}CountArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;

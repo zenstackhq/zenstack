@@ -14,7 +14,7 @@ import {
     Model,
 } from '@zenstackhq/language/ast';
 import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
-import { getLiteral, GUARD_FIELD_NAME, PluginError, PluginOptions, resolved } from '@zenstackhq/sdk';
+import { getDataModels, getLiteral, GUARD_FIELD_NAME, PluginError, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';
 import path from 'path';
@@ -60,7 +60,7 @@ export default class PolicyGenerator {
             });
         }
 
-        const models = model.declarations.filter((d) => isDataModel(d)) as DataModel[];
+        const models = getDataModels(model);
 
         const policyMap: Record<string, Record<string, string | boolean | object>> = {};
         for (const model of models) {
