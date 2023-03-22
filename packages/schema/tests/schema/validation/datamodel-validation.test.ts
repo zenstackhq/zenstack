@@ -257,6 +257,23 @@ describe('Data Model Validation Tests', () => {
             }
         `);
 
+        // many-to-many implicit
+        //https://www.prisma.io/docs/concepts/components/prisma-schema/relations/many-to-many-relations#implicit-many-to-many-relations
+        await loadModel(`
+        ${prelude}
+        model Post {
+            id         Int        @id @default(autoincrement())
+            title      String
+            categories Category[]
+          }
+          
+          model Category {
+            id    Int    @id @default(autoincrement())
+            name  String
+            posts Post[]
+          }
+        `);
+
         // one-to-one incomplete
         expect(
             await loadModelWithError(`
