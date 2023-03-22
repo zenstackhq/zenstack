@@ -256,15 +256,18 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 relationOwner = field;
             }
         } else {
-            [field, oppositeField].forEach((f) => {
-                if (!this.isSelfRelation(f, thisRelation.name)) {
-                    accept(
-                        'error',
-                        'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
-                        { node: f }
-                    );
-                }
-            });
+            // if both the field is array, then it's an implicit many-to-many relation
+            if (!(field.type.array && oppositeField.type.array)) {
+                [field, oppositeField].forEach((f) => {
+                    if (!this.isSelfRelation(f, thisRelation.name)) {
+                        accept(
+                            'error',
+                            'Field for one side of relation must carry @relation attribute with both "fields" and "references" fields',
+                            { node: f }
+                        );
+                    }
+                });
+            }
             return;
         }
 
