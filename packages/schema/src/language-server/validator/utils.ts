@@ -122,6 +122,10 @@ export function assignableToAttributeParam(
     let dstIsArray = param.type.array;
     const dstRef = param.type.reference;
 
+    if (dstType === 'Any' && !dstIsArray) {
+        return true;
+    }
+
     // destination is field reference or transitive field reference, check if
     // argument is reference or array or reference
     if (dstType === 'FieldReference' || dstType === 'TransitiveFieldReference') {
@@ -168,10 +172,7 @@ export function assignableToAttributeParam(
             }
         }
 
-        return (
-            typeAssignable(dstType, argResolvedType.decl, arg.value) &&
-            (dstType === 'Any' || dstIsArray === argResolvedType.array)
-        );
+        return typeAssignable(dstType, argResolvedType.decl, arg.value) && dstIsArray === argResolvedType.array;
     } else {
         // reference type
         return dstRef?.ref === argResolvedType.decl && dstIsArray === argResolvedType.array;

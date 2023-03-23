@@ -3,7 +3,11 @@ import {
     DataModelAttribute,
     Expression,
     isDataModel,
+    isDataModelField,
+    isEnumField,
     isInvocationExpr,
+    isMemberAccessExpr,
+    isReferenceExpr,
     Model,
 } from '@zenstackhq/language/ast';
 import { PolicyOperationKind } from '@zenstackhq/runtime';
@@ -102,4 +106,18 @@ export function getIdField(dataModel: DataModel) {
 
 export function isAuthInvocation(expr: Expression) {
     return isInvocationExpr(expr) && expr.function.ref?.name === 'auth' && isFromStdlib(expr.function.ref);
+}
+
+export function isEnumFieldReference(expr: Expression) {
+    return isReferenceExpr(expr) && isEnumField(expr.target.ref);
+}
+
+export function isDataModelFieldReference(expr: Expression): boolean {
+    if (isReferenceExpr(expr)) {
+        return isDataModelField(expr.target.ref);
+    } else if (isMemberAccessExpr(expr)) {
+        return true;
+    } else {
+        return false;
+    }
 }

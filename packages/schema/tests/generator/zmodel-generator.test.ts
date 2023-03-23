@@ -2,7 +2,7 @@ import { loadModel } from '../utils';
 import ZModelCodeGenerator from '../../src/plugins/prisma/zmodel-code-generator';
 import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/language/ast';
 
-describe('Code Generator Tests', () => {
+describe('ZModel Generator Tests', () => {
     const generator = new ZModelCodeGenerator();
 
     function checkAttribute(ast: DataModelAttribute | DataModelFieldAttribute, expected: string) {

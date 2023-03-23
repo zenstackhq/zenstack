@@ -366,6 +366,139 @@ describe('Attribute tests', () => {
         ).toContain(`Value is not assignable to parameter`);
     });
 
+    it('filter function check', async () => {
+        await loadModel(`
+            ${prelude}
+            enum E {
+                E1
+                E2
+            }
+
+            model M {
+                id String @id
+                s String
+                e E
+                es E[]
+
+                @@allow('all', e in [E1, E2])
+                @@allow('all', contains(s, 'a'))
+                @@allow('all', contains(s, 'a', true))
+                @@allow('all', search(s, 'a'))
+                @@allow('all', startsWith(s, 'a'))
+                @@allow('all', endsWith(s, 'a'))
+                @@allow('all', has(es, E1))
+                @@allow('all', hasSome(es, [E1]))
+                @@allow('all', hasEvery(es, [E1]))
+                @@allow('all', isEmpty(es))
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@allow('all', contains(s))
+            }
+        `)
+        ).toContain('missing argument for parameter "search"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@allow('all', contains('a', s))
+            }
+        `)
+        ).toContain('first argument must be a field reference');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                s1 String
+                @@allow('all', contains(s, s1))
+            }
+        `)
+        ).toContain('second argument must be a literal, an enum, or an array of them');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@allow('all', contains(i, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int[]
+                @@allow('all', 1 in i)
+            }
+        `)
+        ).toContain('left operand of "in" must be a field reference');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@allow('all', i in 1)
+            }
+        `)
+        ).toContain('right operand of "in" must be an array of literals or enum values');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model N { 
+                id String @id 
+                m M @relation(fields: [mId], references: [id])
+                mId String
+            }
+            model M {
+                id String @id
+                n N?
+                @@allow('all', n in [1])
+            }
+        `)
+        ).toContain('left operand of "in" must be of scalar type');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@allow('all', has(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int[]
+                @@allow('all', hasSome(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+    });
+
     it('auth function check', async () => {
         expect(
             await loadModelWithError(`

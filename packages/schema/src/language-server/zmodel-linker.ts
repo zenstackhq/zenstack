@@ -184,6 +184,7 @@ export class ZModelLinker extends DefaultLinker {
             case '!=':
             case '&&':
             case '||':
+            case 'in':
                 this.resolve(node.left, document, extraScopes);
                 this.resolve(node.right, document, extraScopes);
                 this.resolveToBuiltinTypeOrDecl(node, 'Boolean');

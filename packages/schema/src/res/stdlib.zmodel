@@ -98,6 +98,30 @@ function dbgenerated(expr: String): Any {
 function future(): Any {
 }
 
+function contains(field: String, search: String, caseSensitive: Boolean?): Boolean {
+}
+
+function search(field: String, search: String): Boolean {
+}
+
+function startsWith(field: String, search: String): Boolean {
+}
+
+function endsWith(field: String, search: String): Boolean {
+}
+
+function has(field: Any[], search: Any): Boolean {
+}
+
+function hasEvery(field: Any[], search: Any[]): Boolean {
+}
+
+function hasSome(field: Any[], search: Any[]): Boolean {
+}
+
+function isEmpty(field: Any[]): Boolean {
+}
+
 /**
  * Marks an attribute to be only applicable to certain field types.
  */

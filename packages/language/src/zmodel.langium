@@ -94,11 +94,18 @@ CollectionPredicateExpr infers Expression:
 //         right=MultDivExpr
 //     )*;
 
-ComparisonExpr infers Expression:
+InExpr infers Expression:
     CollectionPredicateExpr (
         {infer BinaryExpr.left=current}
-        operator=('>'|'<'|'>='|'<=')
+        operator=('in')
         right=CollectionPredicateExpr
+    )*;
+
+ComparisonExpr infers Expression:
+    InExpr (
+        {infer BinaryExpr.left=current}
+        operator=('>'|'<'|'>='|'<=')
+        right=InExpr
     )*;
 
 EqualityExpr infers Expression:
@@ -174,7 +181,7 @@ FunctionDecl:
     TRIPLE_SLASH_COMMENT* 'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
 
 FunctionParam:
-    TRIPLE_SLASH_COMMENT* name=ID ':' type=FunctionParamType;
+    TRIPLE_SLASH_COMMENT* name=ID ':' type=FunctionParamType (optional?='?')?;
 
 FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration]) (array?='[' ']')?;
