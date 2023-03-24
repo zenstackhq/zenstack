@@ -8,14 +8,12 @@ env:
     DO_NOT_TRACK: '1'
 
 on:
-    push:
-        branches: ['dev', 'main', 'canary']
     pull_request:
         branches: ['dev', 'main', 'canary']
 
 jobs:
     build-test:
-        runs-on: ubuntu-latest
+        runs-on: buildjet-4vcpu-ubuntu-2204
 
         strategy:
             matrix:

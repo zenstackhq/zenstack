@@ -98,6 +98,54 @@ function dbgenerated(expr: String): Any {
 function future(): Any {
 }
 
+/*
+ * If the field value contains the search string
+ */
+function contains(field: String, search: String, caseSensitive: Boolean?): Boolean {
+}
+
+/*
+ * If the field value matches the search condition with [full-text-search](https://www.prisma.io/docs/concepts/components/prisma-client/full-text-search). Need to enable "fullTextSearch" preview feature to use.
+ */
+function search(field: String, search: String): Boolean {
+}
+
+/*
+ * If the field value starts with the search string
+ */
+function startsWith(field: String, search: String): Boolean {
+}
+
+/*
+ * If the field value ends with the search string
+ */
+function endsWith(field: String, search: String): Boolean {
+}
+
+/*
+ * If the field value (a list) has the given search value
+ */
+function has(field: Any[], search: Any): Boolean {
+}
+
+/*
+ * If the field value (a list) has every element of the search list
+ */
+function hasEvery(field: Any[], search: Any[]): Boolean {
+}
+
+/*
+ * If the field value (a list) has at least one element of the search list
+ */
+function hasSome(field: Any[], search: Any[]): Boolean {
+}
+
+/*
+ * If the field value (a list) is empty
+ */
+function isEmpty(field: Any[]): Boolean {
+}
+
 /**
  * Marks an attribute to be only applicable to certain field types.
  */

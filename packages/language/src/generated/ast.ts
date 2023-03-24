@@ -150,7 +150,7 @@ export interface BinaryExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr;
     readonly $type: 'BinaryExpr';
     left: Expression
-    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '^' | '||'
+    operator: '!' | '!=' | '&&' | '<' | '<=' | '==' | '>' | '>=' | '?' | '^' | 'in' | '||'
     right: Expression
 }
 
@@ -318,6 +318,7 @@ export interface FunctionParam extends AstNode {
     readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'FunctionParam';
     name: string
+    optional: boolean
     type: FunctionParamType
 }
 
@@ -749,6 +750,14 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     name: 'FunctionDecl',
                     mandatory: [
                         { name: 'params', type: 'array' }
+                    ]
+                };
+            }
+            case 'FunctionParam': {
+                return {
+                    name: 'FunctionParam',
+                    mandatory: [
+                        { name: 'optional', type: 'boolean' }
                     ]
                 };
             }

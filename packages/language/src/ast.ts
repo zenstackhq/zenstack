@@ -28,10 +28,11 @@ export const BinaryExprOperatorPriority: Record<BinaryExpr['operator'], number> 
     '<': 3,
     '>=': 3,
     '<=': 3,
+    in: 4,
     //CollectionPredicateExpr
-    '^': 4,
-    '?': 4,
-    '!': 4,
+    '^': 5,
+    '?': 5,
+    '!': 5,
 };
 
 declare module './generated/ast' {

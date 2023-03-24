@@ -322,10 +322,8 @@ describe('Expression Writer Tests', () => {
             (model) => model.attributes[0].args[1].value,
             `{
                 foo: {
-                    is: {
-                        x : {
-                            lte: 0
-                        }
+                    x : {
+                        lte: 0
                     }
                 }
             }`
@@ -351,10 +349,8 @@ describe('Expression Writer Tests', () => {
                 NOT:
                 {
                     foo: {
-                        is: {
-                            x : {
-                                gt: 0
-                            }
+                        x : {
+                            gt: 0
                         }
                     }
                 }
@@ -380,9 +376,7 @@ describe('Expression Writer Tests', () => {
             `{
                 NOT: {
                     foo: {
-                        is: {
-                            x: true
-                        }
+                        x: true
                     }
                 }
             }`
@@ -413,13 +407,9 @@ describe('Expression Writer Tests', () => {
             (model) => model.attributes[0].args[1].value,
             `{
                 foo: {
-                    is: {
-                        bar: {
-                            is: {
-                                x : {
-                                    lte: 0
-                                }
-                            }
+                    bar: {
+                        x : {
+                            lte: 0
                         }
                     }
                 }
@@ -534,12 +524,10 @@ describe('Expression Writer Tests', () => {
             (model) => model.attributes[0].args[1].value,
             `{
                 foo: {
-                    is: {
-                        bars: {
-                            some: {
-                                x: {
-                                    lte: 0
-                                }
+                    bars: {
+                        some: {
+                            x: {
+                                lte: 0
                             }
                         }
                     }
@@ -594,10 +582,8 @@ describe('Expression Writer Tests', () => {
                 { zenstack_guard : false } : 
                 {
                     owner: {
-                        is: {
-                            id: {
-                                equals: (user ? user.id : null)
-                            }
+                        id: {
+                            equals: (user ? user.id : null)
                         }
                     }
                 }
@@ -623,11 +609,9 @@ describe('Expression Writer Tests', () => {
                 { zenstack_guard : false } : 
                 {
                     owner: {
-                        is: {
-                            id: {
-                                not: {
-                                    equals: (user ? user.id : null)
-                                }
+                        id: {
+                            not: {
+                                equals: (user ? user.id : null)
                             }
                         }
                     }
@@ -653,13 +637,201 @@ describe('Expression Writer Tests', () => {
                 { zenstack_guard : false } : 
                 {
                     owner: {
-                        is: {
-                            id: {
-                                equals: (user ? user.id : null)
-                            }
+                        id: {
+                            equals: (user ? user.id : null)
                         }
                     }
                 }`
+        );
+    });
+
+    it('filter operators', async () => {
+        await check(
+            `
+            enum Role {
+                USER
+                ADMIN
+            }
+            model Test {
+                id String @id
+                role Role
+                @@allow('all', role in [USER, ADMIN])
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                role: { in: [Role.USER, Role.ADMIN] }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                value String
+                @@allow('all', contains(value, 'foo'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                value: { contains: 'foo' }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                value String
+                @@allow('all', contains(value, 'foo', true))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                value: { contains: 'foo', mode: 'insensitive' }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                value String
+                @@allow('all', contains(value, 'foo', false))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                value: { contains: 'foo' }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Foo {
+                id String @id 
+                value String
+                test Test @relation(fields: [testId], references: [id])
+                testId String @unique
+            }
+            model Test {
+                id String @id
+                foo Foo?
+                @@allow('all', search(foo.value, 'foo'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                foo: {
+                    value: { search: 'foo' }
+                }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                value String
+                @@allow('all', startsWith(value, 'foo') && endsWith(value, 'bar'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                AND: [ { value: { startsWith: 'foo' } }, { value: { endsWith: 'bar' } } ]
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                value String
+                @@allow('all', !startsWith(value, 'foo'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                NOT: { value: { startsWith: 'foo' } }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                values Int[]
+                @@allow('all', has(values, 1))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                values: { has: 1 }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                values Int[]
+                @@allow('all', hasSome(values, [1, 2]))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                values: { hasSome: [1, 2] }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                values Int[]
+                @@allow('all', hasEvery(values, [1, 2]))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                values: { hasEvery: [1, 2] }
+            }
+            `
+        );
+
+        await check(
+            `
+            model Test {
+                id String @id
+                values Int[]
+                @@allow('all', isEmpty(values))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                values: { isEmpty: true }
+            }
+            `
         );
     });
 });
