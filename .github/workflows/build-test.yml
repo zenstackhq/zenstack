@@ -8,8 +8,6 @@ env:
     DO_NOT_TRACK: '1'
 
 on:
-    push:
-        branches: ['dev', 'main', 'canary']
     pull_request:
         branches: ['dev', 'main', 'canary']
 

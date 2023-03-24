@@ -1,7 +1,4 @@
-import { AuthUser } from '@zenstackhq/runtime';
 import { loadSchema, run, type WeakDbClientContract } from '@zenstackhq/testtools';
-import Decimal from 'decimal.js';
-import superjson from 'superjson';
 
 describe('Filter Function Coverage Tests', () => {
     it('contains case-sensitive', async () => {
