@@ -374,11 +374,22 @@ describe('Attribute tests', () => {
                 E2
             }
 
+            model N {
+                id String @id
+                e E
+                es E[]
+                s String
+                i Int
+                m M @relation(fields: [mId], references: [id])
+                mId String @unique
+            }
+
             model M {
                 id String @id
                 s String
                 e E
                 es E[]
+                n N?
 
                 @@allow('all', e in [E1, E2])
                 @@allow('all', contains(s, 'a'))
@@ -390,6 +401,18 @@ describe('Attribute tests', () => {
                 @@allow('all', hasSome(es, [E1]))
                 @@allow('all', hasEvery(es, [E1]))
                 @@allow('all', isEmpty(es))
+
+                @@allow('all', n.e in [E1, E2])
+                @@allow('all', n.i in [1, 2])
+                @@allow('all', contains(n.s, 'a'))
+                @@allow('all', contains(n.s, 'a', true))
+                @@allow('all', search(n.s, 'a'))
+                @@allow('all', startsWith(n.s, 'a'))
+                @@allow('all', endsWith(n.s, 'a'))
+                @@allow('all', has(n.es, E1))
+                @@allow('all', hasSome(n.es, [E1]))
+                @@allow('all', hasEvery(n.es, [E1]))
+                @@allow('all', isEmpty(n.es))
             }
         `);
 

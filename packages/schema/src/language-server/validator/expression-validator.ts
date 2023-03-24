@@ -22,6 +22,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             }
         }
 
+        // extra validations by expression type
         switch (expr.$type) {
             case 'BinaryExpr':
                 this.validateBinaryExpr(expr, accept);

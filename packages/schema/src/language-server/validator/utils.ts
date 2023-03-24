@@ -175,7 +175,7 @@ export function assignableToAttributeParam(
         return typeAssignable(dstType, argResolvedType.decl, arg.value) && dstIsArray === argResolvedType.array;
     } else {
         // reference type
-        return dstRef?.ref === argResolvedType.decl && dstIsArray === argResolvedType.array;
+        return (dstRef?.ref === argResolvedType.decl || dstType === 'Any') && dstIsArray === argResolvedType.array;
     }
 }
 

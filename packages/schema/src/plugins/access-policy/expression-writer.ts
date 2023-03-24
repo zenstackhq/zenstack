@@ -22,6 +22,7 @@ import TypeScriptExpressionTransformer from './typescript-expression-transformer
 import { isFutureExpr } from './utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
+
 type FilterOperators =
     | 'is'
     | 'some'

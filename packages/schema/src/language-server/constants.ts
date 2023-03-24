@@ -18,10 +18,16 @@ export const STD_LIB_MODULE_NAME = 'stdlib.zmodel';
  */
 export const PLUGIN_MODULE_NAME = 'plugin.zmodel';
 
+/**
+ * Validation issues
+ */
 export enum IssueCodes {
     MissingOppositeRelation = 'miss-opposite-relation',
 }
 
+/**
+ * Filter operation function names (mapped to Prisma filter operators)
+ */
 export const FILTER_OPERATOR_FUNCTIONS = [
     'contains',
     'search',

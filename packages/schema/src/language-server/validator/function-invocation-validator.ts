@@ -15,7 +15,7 @@ import { isFromStdlib } from '../utils';
 import { typeAssignable } from './utils';
 
 /**
- * Validates expressions.
+ * InvocationExpr validation
  */
 export default class FunctionInvocationValidator implements AstValidator<Expression> {
     validate(expr: InvocationExpr, accept: ValidationAcceptor): void {
@@ -30,10 +30,12 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         }
 
         if (isFromStdlib(funcDecl)) {
-            if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
-                // validate filter operators
+            // validate standard library functions
 
-                // first argument must be a field reference
+            if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
+                // filter operation functions
+
+                // first argument must refer to a model field
                 const firstArg = expr.args?.[0]?.value;
                 if (firstArg) {
                     if (!isDataModelFieldReference(firstArg)) {
@@ -79,13 +81,14 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                 }
             }
         }
+        // TODO: do we need to complain for extra arguments?
         return success;
     }
 
     private validateInvocationArg(arg: Argument, param: FunctionParam, accept: ValidationAcceptor) {
         const argResolvedType = arg?.value?.$resolvedType;
         if (!argResolvedType) {
-            accept('error', 'argument cannot be resolved', { node: arg });
+            accept('error', 'argument type cannot be resolved', { node: arg });
             return false;
         }
 
@@ -99,6 +102,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         const dstRef = param.type.reference;
 
         if (dstType === 'Any' && !dstIsArray) {
+            // scalar 'any' can be assigned with anything
             return true;
         }
 
