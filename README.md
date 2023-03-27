@@ -1,6 +1,8 @@
 <div align="center">
+    <a href="https://zenstack.dev">
     <img src="https://user-images.githubusercontent.com/104139426/214809937-4ed30485-a683-4fea-b737-928c48e86fd7.png" style="max-width: 512px; width: 100%; height: auto; margin-bottom: 1rem;"
     >
+    </a>
     <div></div>
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/v/zenstack">
@@ -99,7 +101,7 @@ The following diagram gives a high-level overview of how it works.
 -   [Documentation](https://zenstack.dev/docs)
 -   [Community chat](https://go.zenstack.dev/chat)
 -   [Twitter](https://twitter.com/zenstackhq)
--   [Blog](https://dev.to/zenstack)
+-   [Blog](https://zenstack.dev/blog)
 
 ## Features
 
