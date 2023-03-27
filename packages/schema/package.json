@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "1.0.0-alpha.81",
+    "version": "1.0.0-alpha.85",
     "author": {
         "name": "ZenStack Team"
     },
@@ -90,7 +90,7 @@
         "colors": "1.4.0",
         "commander": "^8.3.0",
         "cuid": "^2.1.8",
-        "langium": "1.0.1",
+        "langium": "1.1.0",
         "mixpanel": "^0.17.0",
         "node-machine-id": "^1.1.12",
         "ora": "^5.4.1",
@@ -119,6 +119,7 @@
         "@types/vscode": "^1.56.0",
         "@typescript-eslint/eslint-plugin": "^5.42.0",
         "@typescript-eslint/parser": "^5.42.0",
+        "@zenstackhq/testtools": "workspace:*",
         "concurrently": "^7.4.0",
         "copyfiles": "^2.4.1",
         "dotenv": "^16.0.3",
@@ -134,7 +135,7 @@
         "ts-node": "^10.9.1",
         "tsc-alias": "^1.7.0",
         "typescript": "^4.8.4",
-        "vsce": "^2.13.0",
-        "@zenstackhq/testtools": "workspace:*"
+        "vitest": "^0.29.7",
+        "vsce": "^2.13.0"
     }
 }
