@@ -3137,19 +3137,19 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "SimpleType",
             "typeRef": {
-              "$ref": "#/rules@34"
+              "$ref": "#/rules@35"
             }
           },
           {
             "$type": "SimpleType",
             "typeRef": {
-              "$ref": "#/rules@29"
+              "$ref": "#/rules@30"
             }
           },
           {
             "$type": "SimpleType",
             "typeRef": {
-              "$ref": "#/rules@32"
+              "$ref": "#/rules@33"
             }
           }
         ]
@@ -3164,13 +3164,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "SimpleType",
             "typeRef": {
-              "$ref": "#/rules@28"
+              "$ref": "#/rules@29"
             }
           },
           {
             "$type": "SimpleType",
             "typeRef": {
-              "$ref": "#/rules@31"
+              "$ref": "#/rules@32"
             }
           }
         ]
