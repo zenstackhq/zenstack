@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-describe('With Policy:undefined user', () => {
+describe('With Policy: auth() test', () => {
     let origDir: string;
     const suite = 'undefined-user';
 
@@ -182,13 +182,12 @@ describe('With Policy:undefined user', () => {
         const db = withPolicy();
         await expect(db.user.create({ data: { id: 'user1', role: 'USER' } })).toResolveTruthy();
         await expect(db.post.create({ data: { id: '1', title: 'abc', authorId: 'user1' } })).toResolveTruthy();
-
         await expect(db.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        const authDb = withPolicy({ role: 'USER' });
-        await expect(db.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
+        const authDb = withPolicy({ id: 'user1', role: 'USER' });
+        await expect(authDb.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        const authDb1 = withPolicy({ role: 'ADMIN' });
+        const authDb1 = withPolicy({ id: 'user2', role: 'ADMIN' });
         await expect(authDb1.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();
     });
 });

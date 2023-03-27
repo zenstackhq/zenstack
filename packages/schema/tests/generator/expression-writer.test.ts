@@ -119,13 +119,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `!user ? 
-            { zenstack_guard: false } : 
-            {
-                id: {
-                    equals: (user ? user.id: null)
-                }
-            }`
+            `(user == null) ? { zenstack_guard: false } : { id: user.id }`
         );
 
         await check(
@@ -137,15 +131,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `!user ? 
-            { zenstack_guard: false } : 
-            {
-                id: {
-                    not: {
-                        equals: (user ? user.id: null)
-                    }
-                }
-            }`
+            `(user == null) ? { zenstack_guard: true } : { NOT: { id: user.id } }`
         );
 
         await check(
@@ -536,33 +522,113 @@ describe('Expression Writer Tests', () => {
         );
     });
 
-    it('auth check', async () => {
+    it('auth null check', async () => {
         await check(
             `
-            model User { id String @id }
+            model User {
+                id String @id
+            }
+
             model Test {
                 id String @id
-                @@deny('all', auth() == null)
+                @@allow('all', auth() == null)
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ ${GUARD_FIELD_NAME}: user == null }`
+            `{ zenstack_guard: (user == null) }`,
+            '{ id: "1" }'
         );
 
         await check(
             `
-            model User { id String @id }
+            model User {
+                x String
+                y String
+                @@id([x, y])
+            }
+
+            model Test {
+                id String @id
+                @@allow('all', auth() == null)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{ zenstack_guard: (user == null) }`,
+            '{ x: "1", y: "2" }'
+        );
+
+        await check(
+            `
+            model User {
+                id String @id
+            }
+
             model Test {
                 id String @id
                 @@allow('all', auth() != null)
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ ${GUARD_FIELD_NAME}: user != null }`
+            `{ zenstack_guard: (user != null) }`,
+            '{ id: "1" }'
+        );
+
+        await check(
+            `
+            model User {
+                x String
+                y String
+                @@id([x, y])
+            }
+
+            model Test {
+                id String @id
+                @@allow('all', auth() != null)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{ zenstack_guard: (user != null) }`,
+            '{ x: "1", y: "2" }'
         );
     });
 
-    it('auth check against field', async () => {
+    it('auth boolean field check', async () => {
+        await check(
+            `
+            model User {
+                id String @id
+                admin Boolean
+            }
+
+            model Test {
+                id String @id
+                @@allow('all', auth().admin)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{ zenstack_guard: !!(user?.admin ?? null) }`,
+            '{ id: "1", admin: true }'
+        );
+
+        await check(
+            `
+            model User {
+                id String @id
+                admin Boolean
+            }
+
+            model Test {
+                id String @id
+                @@deny('all', !auth().admin)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{ NOT: { zenstack_guard: !!(user?.admin ?? null) } }`,
+            '{ id: "1", admin: true }'
+        );
+    });
+
+    it('auth check against field single id', async () => {
         await check(
             `
             model User {
@@ -578,16 +644,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `!user ? 
-                { zenstack_guard : false } : 
-                {
-                    owner: {
-                        id: {
-                            equals: (user ? user.id : null)
-                        }
-                    }
-                }
-            `
+            `(user==null) ? { zenstack_guard: false } : { owner: { is: { id : user.id } } }`
         );
 
         await check(
@@ -605,17 +662,12 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `!user ? 
-                { zenstack_guard : false } : 
-                {
-                    owner: {
-                        id: {
-                            not: {
-                                equals: (user ? user.id : null)
-                            }
-                        }
-                    }
-                }`
+            `(user==null) ? { zenstack_guard: true } : 
+            { 
+                owner: {
+                    isNot: { id: user.id }
+                }
+            }`
         );
 
         await check(
@@ -633,15 +685,261 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `!user ? 
+            `((user?.id??null)==null) ?
                 { zenstack_guard : false } : 
-                {
-                    owner: {
-                        id: {
-                            equals: (user ? user.id : null)
-                        }
-                    }
-                }`
+                { owner: { id: { equals: (user?.id ?? null) } } }`
+        );
+    });
+
+    it('auth check against field multi-id', async () => {
+        await check(
+            `
+            model User {
+                x String
+                y String
+                t Test?
+                @@id([x, y])
+            }
+
+            model Test {
+                id String @id
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth() == owner)
+            }
+            `,
+            (model) => model.attributes[1].args[1].value,
+            `(user==null) ? 
+                { zenstack_guard: false } : 
+                { owner: { is: { x: user.x, y: user.y } } }`,
+            '{ x: "1", y: "2" }'
+        );
+
+        await check(
+            `
+            model User {
+                x String
+                y String
+                t Test?
+                @@id([x, y])
+            }
+
+            model Test {
+                id String @id
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth() != owner)
+            }
+            `,
+            (model) => model.attributes[1].args[1].value,
+            `(user==null) ? 
+                { zenstack_guard: true } : 
+                { owner: { isNot: { x: user.x, y: user.y } } }`,
+            '{ x: "1", y: "2" }'
+        );
+
+        await check(
+            `
+            model User {
+                x String
+                y String
+                t Test?
+                @@id([x, y])
+            }
+
+            model Test {
+                id String @id
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth().x == owner.x && auth().y == owner.y)
+            }
+            `,
+            (model) => model.attributes[1].args[1].value,
+            `{ 
+                AND: [
+                    ((user?.x??null)==null) ? { zenstack_guard: false } : { owner: { x: { equals: (user?.x ?? null) } } },
+                    ((user?.y??null)==null) ? { zenstack_guard: false } : { owner: { y: { equals: (user?.y ?? null) } } }
+                ]
+            }`,
+            '{ x: "1", y: "2" }'
+        );
+    });
+
+    it('auth check against nullable field', async () => {
+        await check(
+            `
+            model User {
+                id String @id
+                t Test?
+            }
+
+            model Test {
+                id String @id
+                owner User? @relation(fields: [ownerId], references: [id])
+                ownerId String? @unique
+                @@allow('all', auth() == owner)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                owner: {
+                    is: (user == null) ? null : { id: user.id }
+                }
+            }`
+        );
+
+        await check(
+            `
+                model User {
+                    id String @id
+                    t Test?
+                }
+
+                model Test {
+                    id String @id
+                    owner User? @relation(fields: [ownerId], references: [id])
+                    ownerId String? @unique
+                    @@deny('all', auth() != owner)
+                }
+                `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                owner: {
+                    isNot: (user == null) ? null : { id: user.id }
+                }
+            }`
+        );
+
+        await check(
+            `
+                model User {
+                    id String @id
+                    t Test?
+                }
+
+                model Test {
+                    id String @id
+                    owner User? @relation(fields: [ownerId], references: [id])
+                    ownerId String? @unique
+                    @@allow('all', auth().id == owner.id)
+                }
+                `,
+            (model) => model.attributes[0].args[1].value,
+            `((user?.id??null)==null) ? { zenstack_guard: false } : { owner: { id: { equals: (user?.id ?? null) } } }`
+        );
+    });
+
+    it('auth check short-circuit [TBD]', async () => {
+        await check(
+            `
+                model User {
+                    id String @id
+                    t Test?
+                }
+
+                model Test {
+                    id String @id
+                    owner User @relation(fields: [ownerId], references: [id])
+                    ownerId String @unique
+                    value Int
+                    @@allow('all', auth() != null && auth().id == owner.id && value > 0)
+                }
+                `,
+            (model) => model.attributes[0].args[1].value,
+            `{
+                AND: [
+                    { 
+                        AND: [
+                            { zenstack_guard: (user!=null) },
+                            ((user?.id??null)==null) ? {zenstack_guard:false} : { owner: { id: { equals: (user?.id??null) } } } 
+                        ]
+                    },
+                    { value: { gt: 0 } }
+                ]
+            }`
+        );
+
+        await check(
+            `
+                model User {
+                    id String @id
+                    t Test?
+                }
+
+                model Test {
+                    id String @id
+                    owner User @relation(fields: [ownerId], references: [id])
+                    ownerId String @unique
+                    value Int
+                    @@deny('all', auth() == null || auth().id != owner.id || value <= 0)
+                }
+                `,
+            (model) => model.attributes[0].args[1].value,
+            `{ 
+                OR: [
+                    { 
+                        OR: [
+                            { zenstack_guard:(user==null) },
+                            ((user?.id??null)==null) ? {zenstack_guard:true} : { owner : { id: { not: { equals: (user?.id??null) } } } }
+                        ]
+                    },
+                    { value: { lte: 0 } }
+                ]
+            }`
+        );
+    });
+
+    it('relation field null check', async () => {
+        await check(
+            `
+            model M {
+                id String @id
+                s String?
+                t Test @relation(fields: [tId], references: [id])
+                tId String @unique
+            }
+
+            model Test {
+                id String @id
+                m M?
+                @@allow('all', m == null || m.s == null)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                OR: [{ m: { equals: null } }, { m: { s: { equals: null } } }]
+            }
+            `
+        );
+
+        await check(
+            `
+            model M {
+                id String @id
+                s String?
+                t Test @relation(fields: [tId], references: [id])
+                tId String @unique
+            }
+
+            model Test {
+                id String @id
+                m M?
+                @@deny('all', m != null || m.s != null)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `
+            {
+                OR: [{ m: { not: { equals: null } } }, { m: { s: { not: { equals: null } } } }]
+            }
+            `
         );
     });
 
@@ -836,7 +1134,7 @@ describe('Expression Writer Tests', () => {
     });
 });
 
-async function check(schema: string, getExpr: (model: DataModel) => Expression, expected: string) {
+async function check(schema: string, getExpr: (model: DataModel) => Expression, expected: string, userInit?: string) {
     if (!schema.includes('datasource ')) {
         schema =
             `
@@ -860,7 +1158,7 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
     // inject user variable
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'user', initializer: '{ id: "user1" }' }],
+        declarations: [{ name: 'user', initializer: userInit ?? '{ id: "user1" }' }],
     });
 
     // inject enums
@@ -894,6 +1192,7 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
     sf.formatText();
 
     await project.save();
+    console.log('Source saved:', sourcePath);
 
     if (project.getPreEmitDiagnostics().length > 0) {
         for (const d of project.getPreEmitDiagnostics()) {

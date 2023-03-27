@@ -1,6 +1,6 @@
 import { BinaryExpr, Expression, isArrayExpr, isBinaryExpr, isEnum, isLiteralExpr } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
-import { isAuthInvocation, isDataModelFieldReference, isEnumFieldReference } from '../../utils/ast-utils';
+import { getDataModelFieldReference, isAuthInvocation, isEnumFieldReference } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 
 /**
@@ -33,7 +33,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
     private validateBinaryExpr(expr: BinaryExpr, accept: ValidationAcceptor) {
         switch (expr.operator) {
             case 'in': {
-                if (!isDataModelFieldReference(expr.left)) {
+                if (!getDataModelFieldReference(expr.left)) {
                     accept('error', 'left operand of "in" must be a field reference', { node: expr.left });
                 }
 

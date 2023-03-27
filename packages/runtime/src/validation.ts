@@ -18,3 +18,17 @@ export function validate(validator: z.ZodType, data: unknown) {
         throw new ValidationError(fromZodError(err as z.ZodError).message);
     }
 }
+
+/**
+ * Check if the given object has all the given fields, not null or undefined
+ * @param obj
+ * @param fields
+ * @returns
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function hasAllFields(obj: any, fields: string[]) {
+    if (typeof obj !== 'object' || !obj) {
+        return false;
+    }
+    return fields.every((f) => obj[f] !== undefined && obj[f] !== null);
+}

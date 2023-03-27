@@ -8,7 +8,7 @@ import {
     isLiteralExpr,
 } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
-import { isDataModelFieldReference, isEnumFieldReference } from '../../utils/ast-utils';
+import { getDataModelFieldReference, isEnumFieldReference } from '../../utils/ast-utils';
 import { FILTER_OPERATOR_FUNCTIONS } from '../constants';
 import { AstValidator } from '../types';
 import { isFromStdlib } from '../utils';
@@ -38,7 +38,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                 // first argument must refer to a model field
                 const firstArg = expr.args?.[0]?.value;
                 if (firstArg) {
-                    if (!isDataModelFieldReference(firstArg)) {
+                    if (!getDataModelFieldReference(firstArg)) {
                         accept('error', 'first argument must be a field reference', { node: firstArg });
                     }
                 }
