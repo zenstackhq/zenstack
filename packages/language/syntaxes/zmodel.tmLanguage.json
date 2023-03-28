@@ -1,71 +1,69 @@
 {
-  "name": "zmodel",
-  "scopeName": "source.zmodel",
-  "fileTypes": [
-    ".zmodel"
-  ],
-  "patterns": [
-    {
-      "include": "#comments"
-    },
-    {
-      "name": "keyword.control.zmodel",
-      "match": "\\b(Any|Asc|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|Desc|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|attribute|datasource|enum|function|generator|in|model|plugin|sort)\\b"
-    },
-    {
-      "name": "string.quoted.double.zmodel",
-      "begin": "\"",
-      "end": "\"",
-      "patterns": [
+    "name": "zmodel",
+    "scopeName": "source.zmodel",
+    "fileTypes": [".zmodel"],
+    "patterns": [
         {
-          "include": "#string-character-escape"
-        }
-      ]
-    },
-    {
-      "name": "string.quoted.single.zmodel",
-      "begin": "'",
-      "end": "'",
-      "patterns": [
-        {
-          "include": "#string-character-escape"
-        }
-      ]
-    }
-  ],
-  "repository": {
-    "comments": {
-      "patterns": [
-        {
-          "name": "comment.block.zmodel",
-          "begin": "/\\*",
-          "beginCaptures": {
-            "0": {
-              "name": "punctuation.definition.comment.zmodel"
-            }
-          },
-          "end": "\\*/",
-          "endCaptures": {
-            "0": {
-              "name": "punctuation.definition.comment.zmodel"
-            }
-          }
+            "include": "#comments"
         },
         {
-          "begin": "//",
-          "beginCaptures": {
-            "1": {
-              "name": "punctuation.whitespace.comment.leading.zmodel"
-            }
-          },
-          "end": "(?=$)",
-          "name": "comment.line.zmodel"
+            "name": "keyword.control.zmodel",
+            "match": "\\b(Any|Asc|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|Desc|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|attribute|datasource|enum|function|generator|in|model|plugin|sort)\\b"
+        },
+        {
+            "name": "string.quoted.double.zmodel",
+            "begin": "\"",
+            "end": "\"",
+            "patterns": [
+                {
+                    "include": "#string-character-escape"
+                }
+            ]
+        },
+        {
+            "name": "string.quoted.single.zmodel",
+            "begin": "'",
+            "end": "'",
+            "patterns": [
+                {
+                    "include": "#string-character-escape"
+                }
+            ]
         }
-      ]
-    },
-    "string-character-escape": {
-      "name": "constant.character.escape.zmodel",
-      "match": "\\\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|u\\{[0-9A-Fa-f]+\\}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.|$)"
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.block.zmodel",
+                    "begin": "/\\*",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.comment.zmodel"
+                        }
+                    },
+                    "end": "\\*/",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.comment.zmodel"
+                        }
+                    }
+                },
+                {
+                    "begin": "//",
+                    "beginCaptures": {
+                        "1": {
+                            "name": "punctuation.whitespace.comment.leading.zmodel"
+                        }
+                    },
+                    "end": "(?=$)",
+                    "name": "comment.line.zmodel"
+                }
+            ]
+        },
+        "string-character-escape": {
+            "name": "constant.character.escape.zmodel",
+            "match": "\\\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|u\\{[0-9A-Fa-f]+\\}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.|$)"
+        }
     }
-  }
 }
