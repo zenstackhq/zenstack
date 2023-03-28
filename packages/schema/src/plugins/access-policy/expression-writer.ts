@@ -341,7 +341,7 @@ export class ExpressionWriter {
                 // wrap a 'not'
                 this.writer.write('not: ');
                 this.block(() => {
-                    this.writer.write(`${this.mapOperator(operator)}: `);
+                    this.writer.write(`${this.mapOperator('==')}: `);
                     writeOperand();
                 });
             } else {

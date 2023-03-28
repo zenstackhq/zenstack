@@ -914,7 +914,7 @@ describe('Expression Writer Tests', () => {
             (model) => model.attributes[0].args[1].value,
             `
             {
-                OR: [{ m: { equals: null } }, { m: { s: { equals: null } } }]
+                OR: [{ m: { is: null } }, { m: { s: { equals: null } } }]
             }
             `
         );
@@ -937,7 +937,7 @@ describe('Expression Writer Tests', () => {
             (model) => model.attributes[0].args[1].value,
             `
             {
-                OR: [{ m: { not: { equals: null } } }, { m: { s: { not: { equals: null } } } }]
+                OR: [{ m: { isNot: null } }, { m: { s: { not: { equals: null } } } }]
             }
             `
         );
