@@ -21,7 +21,7 @@ import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
-import { analyzePolicies, getIdField } from '../../utils/ast-utils';
+import { analyzePolicies, getIdFields } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder, RUNTIME_PACKAGE } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import { isFutureExpr } from './utils';
@@ -42,9 +42,8 @@ export default class PolicyGenerator {
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
 
         sf.addImportDeclaration({
-            namedImports: [{ name: 'QueryContext' }],
+            namedImports: [{ name: 'type QueryContext' }, { name: 'hasAllFields' }],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
-            isTypeOnly: true,
         });
 
         sf.addImportDeclaration({
@@ -329,13 +328,17 @@ export default class PolicyGenerator {
             if (!userModel) {
                 throw new PluginError('User model not found');
             }
-            const userIdField = getIdField(userModel);
-            if (!userIdField) {
+            const userIdFields = getIdFields(userModel);
+            if (!userIdFields || userIdFields.length === 0) {
                 throw new PluginError('User model does not have an id field');
             }
 
             // normalize user to null to avoid accidentally use undefined in filter
-            func.addStatements(`const user = context.user ?? null;`);
+            func.addStatements(
+                `const user = hasAllFields(context.user, [${userIdFields
+                    .map((f) => "'" + f.name + "'")
+                    .join(', ')}]) ? context.user : null;`
+            );
         }
 
         // r = <guard object>;
