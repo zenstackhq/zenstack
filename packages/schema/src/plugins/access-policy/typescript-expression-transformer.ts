@@ -1,5 +1,6 @@
 import {
     ArrayExpr,
+    BinaryExpr,
     Expression,
     InvocationExpr,
     isEnumField,
@@ -9,6 +10,7 @@ import {
     NullExpr,
     ReferenceExpr,
     ThisExpr,
+    UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { PluginError } from '@zenstackhq/sdk';
 import { isAuthInvocation } from '../../utils/ast-utils';
@@ -53,6 +55,12 @@ export default class TypeScriptExpressionTransformer {
             case MemberAccessExpr:
                 return this.memberAccess(expr as MemberAccessExpr);
 
+            case UnaryExpr:
+                return this.unary(expr as UnaryExpr);
+
+            case BinaryExpr:
+                return this.binary(expr as BinaryExpr);
+
             default:
                 throw new PluginError(`Unsupported expression type: ${expr.$type}`);
         }
@@ -78,7 +86,7 @@ export default class TypeScriptExpressionTransformer {
             return expr.member.ref.name;
         } else {
             // normalize field access to null instead of undefined to avoid accidentally use undefined in filter
-            return `(${this.transform(expr.operand)} ? ${this.transform(expr.operand)}.${expr.member.ref.name} : null)`;
+            return `(${this.transform(expr.operand)}?.${expr.member.ref.name} ?? null)`;
         }
     }
 
@@ -123,5 +131,13 @@ export default class TypeScriptExpressionTransformer {
         } else {
             return expr.value.toString();
         }
+    }
+
+    private unary(expr: UnaryExpr): string {
+        return `(${expr.operator} ${this.transform(expr.operand)})`;
+    }
+
+    private binary(expr: BinaryExpr): string {
+        return `(${this.transform(expr.left)} ${expr.operator} ${this.transform(expr.right)})`;
     }
 }

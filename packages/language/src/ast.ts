@@ -14,6 +14,7 @@ export type ResolvedShape = ExpressionType | AbstractDeclaration;
 export type ResolvedType = {
     decl?: ResolvedShape;
     array?: boolean;
+    nullable?: boolean;
 };
 
 export const BinaryExprOperatorPriority: Record<BinaryExpr['operator'], number> = {

@@ -68,4 +68,89 @@ describe('With Policy: multiple id fields', () => {
             })
         ).toResolveTruthy();
     });
+
+    it('multi-id auth', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+            model User {
+                x String
+                y String
+                m M?
+                n N?
+                p P?
+                q Q?
+                @@id([x, y])
+                @@allow('all', true)
+            }
+
+            model M {
+                id String @id @default(cuid())
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth() == owner)
+            }
+
+            model N {
+                id String @id @default(cuid())
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth().x == owner.x && auth().y == owner.y)
+            }
+
+            model P {
+                id String @id @default(cuid())
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth() != owner)
+            }
+
+            model Q {
+                id String @id @default(cuid())
+                owner User @relation(fields: [ownerX, ownerY], references: [x, y])
+                ownerX String
+                ownerY String
+                @@unique([ownerX, ownerY])
+                @@allow('all', auth() != null)
+            }
+            `
+        );
+
+        await prisma.user.create({ data: { x: '1', y: '1' } });
+        await prisma.user.create({ data: { x: '1', y: '2' } });
+
+        const anonDb = withPolicy({});
+
+        await expect(
+            anonDb.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            anonDb.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            anonDb.n.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            anonDb.n.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })
+        ).toBeRejectedByPolicy();
+
+        const db = withPolicy({ x: '1', y: '1' });
+
+        await expect(db.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toBeRejectedByPolicy();
+        await expect(db.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })).toResolveTruthy();
+        await expect(db.n.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toBeRejectedByPolicy();
+        await expect(db.n.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })).toResolveTruthy();
+        await expect(db.p.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })).toBeRejectedByPolicy();
+        await expect(db.p.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toResolveTruthy();
+
+        await expect(
+            withPolicy(undefined).q.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })
+        ).toBeRejectedByPolicy();
+        await expect(db.q.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toResolveTruthy();
+    });
 });

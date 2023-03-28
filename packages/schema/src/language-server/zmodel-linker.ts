@@ -15,6 +15,7 @@ import {
     isArrayExpr,
     isDataModel,
     isDataModelField,
+    isDataModelFieldType,
     isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
@@ -249,7 +250,7 @@ export class ZModelLinker extends DefaultLinker {
                 const model = getContainingModel(node);
                 const userModel = model?.declarations.find((d) => isDataModel(d) && d.name === 'User');
                 if (userModel) {
-                    node.$resolvedType = { decl: userModel };
+                    node.$resolvedType = { decl: userModel, nullable: true };
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
                 // future() function is resolved to current model
@@ -447,19 +448,24 @@ export class ZModelLinker extends DefaultLinker {
     //#region Utils
 
     private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType) {
+        let nullable = false;
+        if (isDataModelFieldType(type)) {
+            nullable = type.optional;
+        }
         if (type.type) {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
-            node.$resolvedType = { decl: mappedType, array: type.array };
+            node.$resolvedType = { decl: mappedType, array: type.array, nullable: nullable };
         } else if (type.reference) {
             node.$resolvedType = {
                 decl: type.reference.ref,
                 array: type.array,
+                nullable: nullable,
             };
         }
     }
 
-    private resolveToBuiltinTypeOrDecl(node: AstNode, type: ResolvedShape, array = false) {
-        node.$resolvedType = { decl: type, array };
+    private resolveToBuiltinTypeOrDecl(node: AstNode, type: ResolvedShape, array = false, nullable = false) {
+        node.$resolvedType = { decl: type, array, nullable };
     }
 
     //#endregion
