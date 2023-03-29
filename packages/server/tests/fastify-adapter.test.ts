@@ -112,4 +112,33 @@ describe('Fastify adapter tests', () => {
         expect(r.statusCode).toBe(200);
         expect(r.json().count).toBe(1);
     });
+
+    it('invalid path or args', async () => {
+        const { prisma, zodSchemas } = await loadSchema(schema);
+
+        const app = fastify();
+        app.register(ZenStackFastifyPlugin, {
+            prefix: '/api',
+            getPrisma: () => prisma,
+            zodSchemas,
+        });
+
+        let r = await app.inject({
+            method: 'GET',
+            url: '/api/post/',
+        });
+        expect(r.statusCode).toBe(400);
+
+        r = await app.inject({
+            method: 'GET',
+            url: '/api/post/findMany/abc',
+        });
+        expect(r.statusCode).toBe(400);
+
+        r = await app.inject({
+            method: 'GET',
+            url: '/api/post/findMany?q=abc',
+        });
+        expect(r.statusCode).toBe(400);
+    });
 });
