@@ -138,7 +138,11 @@ export async function handleRequest({
             if (method !== 'GET') {
                 return { status: 400, body: { message: 'invalid request method, only GET is supported' } };
             }
-            args = query?.q ? unmarshal(query.q as string) : {};
+            try {
+                args = query?.q ? unmarshal(query.q as string) : {};
+            } catch {
+                return { status: 400, body: { message: 'query param must contain valid JSON' } };
+            }
             break;
 
         case 'update':
@@ -158,7 +162,11 @@ export async function handleRequest({
             if (method !== 'DELETE') {
                 return { status: 400, body: { message: 'invalid request method, only DELETE is supported' } };
             }
-            args = query?.q ? unmarshal(query.q as string) : {};
+            try {
+                args = query?.q ? unmarshal(query.q as string) : {};
+            } catch {
+                return { status: 400, body: { message: 'query param must contain valid JSON' } };
+            }
             break;
 
         default:
