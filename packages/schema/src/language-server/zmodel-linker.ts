@@ -19,6 +19,7 @@ import {
     isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
+    Model,
     NullExpr,
     ObjectExpr,
     ReferenceExpr,
@@ -38,6 +39,7 @@ import {
     LangiumDocument,
     LangiumServices,
     LinkingError,
+    Mutable,
     Reference,
     streamContents,
 } from 'langium';
@@ -70,6 +72,8 @@ export class ZModelLinker extends DefaultLinker {
             return;
         }
 
+        this.mergeAbstractBaseModel(document);
+
         for (const node of streamContents(document.parseResult.value)) {
             await interruptAndCheck(cancelToken);
             this.resolve(node, document);
@@ -88,6 +92,32 @@ export class ZModelLinker extends DefaultLinker {
             const reference: Reference<AstNode> = (container as any)[property];
             this.doLink({ reference, container, property }, document);
         }
+    }
+
+    //#endregion
+
+    //#region abstract DataModel
+
+    private mergeAbstractBaseModel(document: LangiumDocument) {
+        const model = document.parseResult.value as Model;
+
+        model.declarations.forEach((decl) => {
+            if (decl.$type === 'DataModel') {
+                const dataModel = decl as DataModel;
+                if (dataModel.superTypes.length > 0) {
+                    const superType = dataModel.superTypes[0].ref as DataModel;
+
+                    superType.fields.forEach((field) => {
+                        const cloneField = Object.assign({}, field);
+                        const mutable = cloneField as Mutable<AstNode>;
+                        // update container
+                        mutable.$container = dataModel;
+                        mutable.$containerIndex = mutable.$containerIndex || 0 + dataModel.fields.length;
+                        dataModel.fields.push(mutable as DataModelField);
+                    });
+                }
+            }
+        });
     }
 
     //#endregion

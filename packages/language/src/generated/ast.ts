@@ -166,7 +166,9 @@ export interface DataModel extends AstNode {
     attributes: Array<DataModelAttribute>
     comments: Array<string>
     fields: Array<DataModelField>
+    isAbstract: boolean
     name: string
+    superTypes: Array<Reference<DataModel>>
 }
 
 export const DataModel = 'DataModel';
@@ -615,6 +617,9 @@ export class ZModelAstReflection extends AbstractAstReflection {
             case 'FunctionParamType:reference': {
                 return TypeDeclaration;
             }
+            case 'DataModel:superTypes': {
+                return DataModel;
+            }
             case 'InvocationExpr:function': {
                 return FunctionDecl;
             }
@@ -680,7 +685,9 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     mandatory: [
                         { name: 'attributes', type: 'array' },
                         { name: 'comments', type: 'array' },
-                        { name: 'fields', type: 'array' }
+                        { name: 'fields', type: 'array' },
+                        { name: 'isAbstract', type: 'boolean' },
+                        { name: 'superTypes', type: 'array' }
                     ]
                 };
             }

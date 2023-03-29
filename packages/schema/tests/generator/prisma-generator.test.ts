@@ -191,4 +191,39 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('schemas = ["base","transactional"]');
     });
+
+    it('abstract model', async () => {
+        const model = await loadModel(`
+        datasource db {
+            provider = 'postgresql'
+            url = env('URL')
+        }
+        abstract model Base {
+            id String @id
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+        }
+
+        model Post extends Base {
+            title String
+            published Boolean @default(false)
+        }
+    `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            generateClient: false,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        const dmmf = await getDMMF({ datamodel: content });
+
+        expect(dmmf.datamodel.models.length).toBe(1);
+        const post = dmmf.datamodel.models[0];
+        expect(post.name).toBe('Post');
+        expect(post.fields.length).toBe(6);
+    });
 });
