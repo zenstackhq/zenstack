@@ -58,7 +58,7 @@ export class OpenAPIGenerator {
         this.pruneComponents(components);
 
         const openapi: OAPI.Document = {
-            openapi: '3.0.0',
+            openapi: '3.1.0',
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
