@@ -87,4 +87,21 @@ describe('Express adapter tests', () => {
         expect(r.status).toBe(200);
         expect(r.body.count).toBe(1);
     });
+
+    it('invalid path or args', async () => {
+        const { prisma, zodSchemas } = await loadSchema(schema);
+
+        const app = express();
+        app.use(bodyParser.json());
+        app.use('/api', ZenStackMiddleware({ getPrisma: () => prisma, zodSchemas }));
+
+        let r = await request(app).get('/api/post/');
+        expect(r.status).toBe(400);
+
+        r = await request(app).get('/api/post/findMany/abc');
+        expect(r.status).toBe(400);
+
+        r = await request(app).get('/api/post/findMany?q=abc');
+        expect(r.status).toBe(400);
+    });
 });

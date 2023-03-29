@@ -7,7 +7,6 @@ import {
 } from '@zenstackhq/runtime';
 import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { capitalCase } from 'change-case';
-import invariant from 'tiny-invariant';
 import { fromZodError } from 'zod-validation-error';
 import { stripAuxFields } from './utils';
 
@@ -96,18 +95,15 @@ export async function handleRequest({
     logger,
     zodSchemas,
 }: RequestContext): Promise<Response> {
-    const parts = path.split('/');
-    if (parts.length < 2) {
-        return { status: 400, body: { error: 'invalid request path' } };
-    }
-
-    method = method.toUpperCase();
+    const parts = path.split('/').filter((p) => !!p);
     const op = parts.pop();
     const model = parts.pop();
 
-    invariant(op);
-    invariant(model);
+    if (parts.length !== 0 || !op || !model) {
+        return { status: 400, body: { message: 'invalid request path' } };
+    }
 
+    method = method.toUpperCase();
     const dbOp = op as keyof DbOperations;
     let args: unknown;
     let resCode = 200;
