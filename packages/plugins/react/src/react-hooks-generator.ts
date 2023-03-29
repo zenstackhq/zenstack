@@ -451,8 +451,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             ]);
     }
 
-    // count
-    if (mapping.count) {
+    {
+        // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
         methods.push('count');
         const argsType = `Prisma.${model.name}CountArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
