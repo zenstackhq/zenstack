@@ -22,7 +22,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     generateIndex(project, outDir, models);
 
-    models.forEach((dataModel) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    models.forEach((dataModel: any) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
         if (!mapping) {
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
@@ -61,9 +62,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/react/runtime';`,
-        `import * as request from '@zenstackhq/react/react-query-runtime';`,
-        `import { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query;`
+        `import { RequestHandlerContext } from '@zenstackhq/react/runtime';`,
+        `import { type RequestOptions } from '@zenstackhq/react/runtime/swr';`,
+        `import * as request from '@zenstackhq/react/runtime/swr';`,
     ]);
 
     const useFunc = sf.addFunction({
@@ -71,10 +72,15 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         isExported: true,
     });
 
+    const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
     const modelRouteName = camelCase(model.name);
 
     useFunc.addStatements([
         'const { endpoint } = useContext(RequestHandlerContext);',
+        `const prefixesToMutate = [${prefixesToMutate
+            .map((prefix) => '`${endpoint}/' + modelRouteName + '/' + prefix + '`')
+            .join(', ')}];`,
+        'const mutate = request.getMutate(prefixesToMutate);',
     ]);
 
     const methods: string[] = [];
@@ -86,8 +92,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}CreateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'create',
@@ -98,16 +102,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args',
                         type: inputType,
                     },
-                    {
-                        name: "options",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/create\`, args, options);`
+                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/create\`, args, mutate);`
                 ),
             ]);
     }
@@ -118,8 +118,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'createMany',
@@ -130,15 +128,11 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args',
                         type: inputType,
                     },
-                    {
-                        name: "options?",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
-                `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/createMany\`, args, options);`,
+                `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/createMany\`, args, mutate);`,
             ]);
     }
 
@@ -148,8 +142,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}FindManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Array<Prisma.${model.name}GetPayload<T>>`;
-        const optionsType = `UseMutationOptions<${returnType}>`
-
         useFunc
             .addFunction({
                 name: 'findMany',
@@ -161,13 +153,13 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                     },
                     {
                         name: 'options?',
-                        type: optionsType,
+                        type: `RequestOptions<${returnType}>`,
                     },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(model.name, \`\${endpoint}/${modelRouteName}/findMany\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findMany\`, args, options);`,
             ]);
     }
 
@@ -177,8 +169,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}FindUniqueArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        const optionsType = `UseMutationOptions<${returnType}>`
-        
         useFunc
             .addFunction({
                 name: 'findUnique',
@@ -189,14 +179,14 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         type: inputType,
                     },
                     {
-                        name: "options?",
-                        type: optionsType
-                    }
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(model.name, \`\${endpoint}/${modelRouteName}/findUnique\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findUnique\`, args, options);`,
             ]);
     }
 
@@ -206,8 +196,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}FindFirstArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        const optionsType = `UseMutationOptions<${returnType}>`
-
         useFunc
             .addFunction({
                 name: 'findFirst',
@@ -218,14 +206,14 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         type: inputType,
                     },
                     {
-                        name: "options?",
-                        type: optionsType
-                    }
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
                 ],
             })
             .addBody()
             .addStatements([
-                `return request.get<${returnType}>(model.name, \`\${endpoint}/${modelRouteName}/findFirst\`, args, options);`,
+                `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findFirst\`, args, options);`,
             ]);
     }
 
@@ -237,8 +225,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpdateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'update',
@@ -249,16 +235,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args',
                         type: inputType,
                     },
-                    {
-                        name: "options?",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/update\`, args, options);`
+                    `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/update\`, args, mutate);`
                 ),
             ]);
     }
@@ -269,8 +251,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'updateMany',
@@ -281,15 +261,11 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args',
                         type: inputType,
                     },
-                    {
-                        name: "options?",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
-                `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/updateMany\`, args, options);`,
+                `return await request.put<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/updateMany\`, args, mutate);`,
             ]);
     }
 
@@ -301,8 +277,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpsertArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'upsert',
@@ -313,16 +287,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args',
                         type: inputType,
                     },
-                    {
-                        name: "options?",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, options);`
+                    `return await request.post<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/upsert\`, args, mutate);`
                 ),
             ]);
     }
@@ -335,8 +305,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}DeleteArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'del',
@@ -347,16 +315,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args?',
                         type: inputType,
                     },
-                    {
-                        name: "options?",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
                 wrapReadbackErrorCheck(
-                    `return await request.del<${returnType}>(\`\${endpoint}/${modelRouteName}/delete\`, args, options);`
+                    `return await request.del<${returnType}>(\`\${endpoint}/${modelRouteName}/delete\`, args, mutate);`
                 ),
             ]);
     }
@@ -367,8 +331,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}DeleteManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        const optionsType = `Omit<UseMutationOptions<${returnType}, unknown, ${inputType}>, 'mutationFn'>`
-
         useFunc
             .addFunction({
                 name: 'deleteMany',
@@ -379,15 +341,11 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         name: 'args?',
                         type: inputType,
                     },
-                    {
-                        name: "options?",
-                        type: optionsType
-                    }
                 ],
             })
             .addBody()
             .addStatements([
-                `return await request.del<${returnType}>(\`\${endpoint}/${modelRouteName}/deleteMany\`, args, options);`,
+                `return await request.del<${returnType}>(\`\${endpoint}/${modelRouteName}/deleteMany\`, args, mutate);`,
             ]);
     }
 
@@ -397,8 +355,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}AggregateArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
         const returnType = `Prisma.Get${model.name}AggregateType<T>`;
-        const optionsType = `UseMutationOptions<${returnType}>`
-
         useFunc
             .addFunction({
                 name: 'aggregate',
@@ -409,9 +365,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                         type: inputType,
                     },
                     {
-                        name: "options?",
-                        type: optionsType
-                    }
+                        name: 'options?',
+                        type: `RequestOptions<${returnType}>`,
+                    },
                 ],
             })
             .addBody()
@@ -424,8 +380,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     if (mapping.groupBy) {
         methods.push('groupBy');
         const returnType = `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`;
-        const optionsType = `UseMutationOptions<${returnType}>`
-
         useFunc
             .addFunction({
                 name: 'groupBy',
@@ -489,7 +443,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                     },
                     {
                         name: 'options?',
-                        type: optionsType,
+                        type: `RequestOptions<${returnType}>`,
                     },
                 ],
             })
@@ -499,14 +453,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             ]);
     }
 
-    // count
-    if (mapping.count) {
+    // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
+    {
         methods.push('count');
         const argsType = `Prisma.${model.name}CountArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
         const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`;
-        const optionsType = `UseMutationOptions<${returnType}>`
-
         useFunc
             .addFunction({
                 name: 'count',
@@ -518,7 +470,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                     },
                     {
                         name: 'options?',
-                        type: optionsType,
+                        type: `RequestOptions<${returnType}>`,
                     },
                 ],
             })

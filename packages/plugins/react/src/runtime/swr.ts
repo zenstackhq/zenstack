@@ -1,8 +1,7 @@
-import { createContext } from 'react';
-import superjson from 'superjson';
-import useSWR, { useSWRConfig } from 'swr';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
-import { registerSerializers } from './serialization-utils';
+import useSWR, { useSWRConfig } from 'swr';
+import { makeUrl } from '.';
+import { marshal, registerSerializers, unmarshal } from '../serialization-utils';
 
 /**
  * Client request options
@@ -35,19 +34,6 @@ const fetcher = async (url: string, options?: RequestInit) => {
         throw err;
     }
 };
-
-function marshal(value: unknown) {
-    return superjson.stringify(value);
-}
-
-function unmarshal(value: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return superjson.parse<any>(value);
-}
-
-function makeUrl(url: string, args: unknown) {
-    return args ? url + `?q=${encodeURIComponent(marshal(args))}` : url;
-}
 
 /**
  * Makes a GET request with SWR.
@@ -144,22 +130,3 @@ export function getMutate(prefixes: string[]): Mutator {
         return Promise.all(mutations);
     };
 }
-
-/**
- * Context type for configuring react hooks.
- */
-export type RequestHandlerContext = {
-    endpoint: string;
-};
-
-/**
- * Context for configuring react hooks.
- */
-export const RequestHandlerContext = createContext<RequestHandlerContext>({
-    endpoint: '/api/model',
-});
-
-/**
- * Context provider.
- */
-export const Provider = RequestHandlerContext.Provider;
