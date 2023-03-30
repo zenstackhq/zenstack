@@ -1,7 +1,7 @@
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
-import { makeUrl } from '.';
-import { marshal, registerSerializers, unmarshal } from '../serialization-utils';
+import { marshal, registerSerializers } from '../serialization-utils';
+import { fetcher, makeUrl } from './utils';
 
 /**
  * Client request options
@@ -14,26 +14,6 @@ export type RequestOptions<T> = {
 
 // register superjson custom serializers
 registerSerializers();
-
-const fetcher = async (url: string, options?: RequestInit) => {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-        const error: Error & { info?: unknown; status?: number } = new Error(
-            'An error occurred while fetching the data.'
-        );
-        error.info = await res.json();
-        error.status = res.status;
-        throw error;
-    }
-
-    const textResult = await res.text();
-    try {
-        return unmarshal(textResult);
-    } catch (err) {
-        console.error(`Unable to deserialize data:`, textResult);
-        throw err;
-    }
-};
 
 /**
  * Makes a GET request with SWR.

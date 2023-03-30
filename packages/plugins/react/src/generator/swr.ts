@@ -312,7 +312,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                 typeParameters: [`T extends ${argsType}`],
                 parameters: [
                     {
-                        name: 'args?',
+                        name: 'args',
                         type: inputType,
                     },
                 ],

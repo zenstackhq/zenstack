@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/next",
-    "version": "1.0.0-alpha.89",
+    "version": "1.0.0-alpha.94",
     "displayName": "ZenStack Next.js integration",
     "description": "ZenStack Next.js integration",
     "homepage": "https://zenstack.dev",
@@ -21,12 +21,10 @@
     "author": "",
     "license": "MIT",
     "peerDependencies": {
-        "next": "^12.3.1 || ^13",
-        "react": "^17.0.2 || ^18"
+        "next": "^12.3.1 || ^13"
     },
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
-        "@zenstackhq/testtools": "workspace:*",
         "tmp": "^0.2.1"
     },
     "devDependencies": {
@@ -40,6 +38,7 @@
         "superjson": "^1.11.0",
         "supertest": "^6.3.3",
         "ts-jest": "^29.0.5",
-        "typescript": "^4.9.4"
+        "typescript": "^4.9.4",
+        "@zenstackhq/testtools": "workspace:*"
     }
 }
