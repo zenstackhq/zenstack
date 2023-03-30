@@ -1,7 +1,7 @@
-import { DMMF } from '@prisma/generator-helper';
-import { PluginOptions } from '@zenstackhq/sdk';
-import { Model } from '@zenstackhq/sdk/ast';
-import { generate } from './react-hooks-generator';
+import type { DMMF } from '@prisma/generator-helper';
+import type { PluginOptions } from '@zenstackhq/sdk';
+import type { Model } from '@zenstackhq/sdk/ast';
+import { generate } from './generator';
 
 export const name = 'React';
 

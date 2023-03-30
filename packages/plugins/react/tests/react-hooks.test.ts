@@ -13,14 +13,7 @@ describe('React Hooks Plugin Tests', () => {
         process.chdir(origDir);
     });
 
-    it('run plugin', async () => {
-        await loadSchema(
-            `
-plugin react {
-    provider = '${process.cwd()}/dist'
-    output = '$projectRoot/hooks'
-}
-
+    const sharedModel = `
 model User {
     id String @id
     createdAt DateTime @default(now())
@@ -45,10 +38,39 @@ model Foo {
     id String @id
     @@ignore
 }
+    `;
+
+    it('swr generator', async () => {
+        await loadSchema(
+            `
+plugin react {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+}
+
+${sharedModel}
         `,
             true,
             false,
-            [`${origDir}/dist`, 'react', '@types/react'],
+            [`${origDir}/dist`, 'react', '@types/react', 'swr'],
+            true
+        );
+    });
+
+    it('react-query generator', async () => {
+        await loadSchema(
+            `
+plugin react {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    fetcher = 'react-query'
+}
+
+${sharedModel}
+        `,
+            true,
+            false,
+            [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query'],
             true
         );
     });
