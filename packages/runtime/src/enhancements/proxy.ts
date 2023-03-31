@@ -165,7 +165,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
     name = 'unnamed_enhancer',
     inTransaction = false
 ) {
-    const models = Object.keys(modelMeta.fields);
+    const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             // enhancer metadata
@@ -206,7 +206,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 }
             }
 
-            if (typeof prop !== 'string' || prop.startsWith('$') || !models.includes(prop)) {
+            if (typeof prop !== 'string' || prop.startsWith('$') || !models.includes(prop.toLowerCase())) {
                 // skip non-model fields
                 return Reflect.get(target, prop, receiver);
             }

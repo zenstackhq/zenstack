@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMutation, UseMutationOptions, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
+import {
+    useMutation,
+    useQuery,
+    useQueryClient,
+    type MutateFunction,
+    type QueryClient,
+    type UseMutationOptions,
+    type UseQueryOptions,
+} from '@tanstack/react-query';
 import { marshal, registerSerializers } from '../serialization-utils';
 import { fetcher, makeUrl } from './utils';
 
@@ -43,19 +51,17 @@ export function postMutation<T, R = any>(
     invalidateQueries = true
 ) {
     const queryClient = useQueryClient();
-    const mutation = useMutation<R, unknown, T>({
-        mutationFn: (data: any) =>
-            fetcher<R>(url, {
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json',
-                },
-                body: marshal(data),
-            }),
-        ...options,
-        onSuccess: invalidateQueries ? () => queryClient.invalidateQueries([QUERY_KEY_PREFIX + model]) : undefined,
-    });
+    const mutationFn = (data: any) =>
+        fetcher<R>(url, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: marshal(data),
+        });
 
+    const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = useMutation<R, unknown, T>(finalOptions);
     return mutation;
 }
 
@@ -75,19 +81,17 @@ export function putMutation<T, R = any>(
     invalidateQueries = true
 ) {
     const queryClient = useQueryClient();
-    const mutation = useMutation<R, unknown, T>({
-        mutationFn: (data: any) =>
-            fetcher<R>(url, {
-                method: 'PUT',
-                headers: {
-                    'content-type': 'application/json',
-                },
-                body: marshal(data),
-            }),
-        ...options,
-        onSuccess: invalidateQueries ? () => queryClient.invalidateQueries([QUERY_KEY_PREFIX + model]) : undefined,
-    });
+    const mutationFn = (data: any) =>
+        fetcher<R>(url, {
+            method: 'PUT',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: marshal(data),
+        });
 
+    const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = useMutation<R, unknown, T>(finalOptions);
     return mutation;
 }
 
@@ -107,14 +111,31 @@ export function deleteMutation<T, R = any>(
     invalidateQueries = true
 ) {
     const queryClient = useQueryClient();
-    const mutation = useMutation<R, unknown, T>({
-        mutationFn: (data: any) =>
-            fetcher<R>(makeUrl(url, data), {
-                method: 'DELETE',
-            }),
-        ...options,
-        onSuccess: invalidateQueries ? () => queryClient.invalidateQueries([QUERY_KEY_PREFIX + model]) : undefined,
-    });
+    const mutationFn = (data: any) =>
+        fetcher<R>(makeUrl(url, data), {
+            method: 'DELETE',
+        });
 
+    const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = useMutation<R, unknown, T>(finalOptions);
     return mutation;
+}
+
+function mergeOptions<T, R = any>(
+    model: string,
+    options: Omit<UseMutationOptions<R, unknown, T, unknown>, 'mutationFn'> | undefined,
+    invalidateQueries: boolean,
+    mutationFn: MutateFunction<R, unknown, T>,
+    queryClient: QueryClient
+): UseMutationOptions<R, unknown, T, unknown> {
+    const result = { ...options, mutationFn };
+    if (options?.onSuccess || invalidateQueries) {
+        result.onSuccess = (...args) => {
+            if (invalidateQueries) {
+                queryClient.invalidateQueries([QUERY_KEY_PREFIX + model]);
+            }
+            return options?.onSuccess?.(...args);
+        };
+    }
+    return result;
 }
