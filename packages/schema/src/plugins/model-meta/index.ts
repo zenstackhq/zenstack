@@ -7,7 +7,7 @@ import {
     Model,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { RuntimeAttribute } from '@zenstackhq/runtime';
+import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import { getAttributeArgs, getDataModels, getLiteral, hasAttribute, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import path from 'path';

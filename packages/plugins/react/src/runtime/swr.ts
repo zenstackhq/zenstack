@@ -1,8 +1,7 @@
-import { createContext } from 'react';
-import superjson from 'superjson';
-import useSWR, { useSWRConfig } from 'swr';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
-import { registerSerializers } from './serialization-utils';
+import useSWR, { useSWRConfig } from 'swr';
+import { marshal, registerSerializers } from '../serialization-utils';
+import { fetcher, makeUrl } from './utils';
 
 /**
  * Client request options
@@ -15,39 +14,6 @@ export type RequestOptions<T> = {
 
 // register superjson custom serializers
 registerSerializers();
-
-const fetcher = async (url: string, options?: RequestInit) => {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-        const error: Error & { info?: unknown; status?: number } = new Error(
-            'An error occurred while fetching the data.'
-        );
-        error.info = await res.json();
-        error.status = res.status;
-        throw error;
-    }
-
-    const textResult = await res.text();
-    try {
-        return unmarshal(textResult);
-    } catch (err) {
-        console.error(`Unable to deserialize data:`, textResult);
-        throw err;
-    }
-};
-
-function marshal(value: unknown) {
-    return superjson.stringify(value);
-}
-
-function unmarshal(value: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return superjson.parse<any>(value);
-}
-
-function makeUrl(url: string, args: unknown) {
-    return args ? url + `?q=${encodeURIComponent(marshal(args))}` : url;
-}
 
 /**
  * Makes a GET request with SWR.
@@ -144,22 +110,3 @@ export function getMutate(prefixes: string[]): Mutator {
         return Promise.all(mutations);
     };
 }
-
-/**
- * Context type for configuring react hooks.
- */
-export type RequestHandlerContext = {
-    endpoint: string;
-};
-
-/**
- * Context for configuring react hooks.
- */
-export const RequestHandlerContext = createContext<RequestHandlerContext>({
-    endpoint: '/api/model',
-});
-
-/**
- * Context provider.
- */
-export const Provider = RequestHandlerContext.Provider;

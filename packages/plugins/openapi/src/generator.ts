@@ -58,7 +58,7 @@ export class OpenAPIGenerator {
         this.pruneComponents(components);
 
         const openapi: OAPI.Document = {
-            openapi: '3.1.0',
+            openapi: this.getOption('specVersion', '3.1.0'),
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
@@ -180,6 +180,7 @@ export class OpenAPIGenerator {
         };
 
         const definitions: OperationDefinition[] = [];
+        const hasRelation = zmodel.fields.some((f) => isDataModel(f.$resolvedType?.decl));
 
         if (ops['createOne']) {
             definitions.push({
@@ -191,7 +192,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             data: this.ref(`${model.name}CreateInput`),
                         },
                     },
@@ -233,7 +234,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             where: this.ref(`${model.name}WhereUniqueInput`),
                         },
                     },
@@ -254,7 +255,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             where: this.ref(`${model.name}WhereInput`),
                         },
                     },
@@ -275,7 +276,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             where: this.ref(`${model.name}WhereInput`),
                         },
                     },
@@ -296,7 +297,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             where: this.ref(`${model.name}WhereUniqueInput`),
                             data: this.ref(`${model.name}UpdateInput`),
                         },
@@ -338,7 +339,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             where: this.ref(`${model.name}WhereUniqueInput`),
                             create: this.ref(`${model.name}CreateInput`),
                             update: this.ref(`${model.name}UpdateInput`),
@@ -361,7 +362,7 @@ export class OpenAPIGenerator {
                         type: 'object',
                         properties: {
                             select: this.ref(`${model.name}Select`),
-                            include: this.ref(`${model.name}Include`),
+                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
                             where: this.ref(`${model.name}WhereUniqueInput`),
                         },
                     },

@@ -13,7 +13,7 @@ import {
     MemberAccessExpr,
     Model,
 } from '@zenstackhq/language/ast';
-import { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
+import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import { getDataModels, getLiteral, GUARD_FIELD_NAME, PluginError, PluginOptions, resolved } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';

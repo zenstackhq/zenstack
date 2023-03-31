@@ -19,3 +19,12 @@ export function registerSerializers() {
         'decimal.js'
     );
 }
+
+export function marshal(value: unknown) {
+    return superjson.stringify(value);
+}
+
+export function unmarshal(value: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return superjson.parse<any>(value);
+}

@@ -39,21 +39,34 @@ export function installPackage(
     dev: boolean,
     pkgManager: PackageManagers | undefined = undefined,
     tag = 'latest',
-    projectPath = '.'
+    projectPath = '.',
+    exactVersion = true
 ) {
     const manager = pkgManager ?? getPackageManager(projectPath);
-    console.log(`Installing package "${pkg}" with ${manager}`);
+    console.log(`Installing package "${pkg}@${tag}" with ${manager}`);
     switch (manager) {
         case 'yarn':
-            execSync(`yarn --cwd "${projectPath}" add ${pkg}@${tag} ${dev ? ' --dev' : ''} --ignore-engines`);
+            execSync(
+                `yarn --cwd "${projectPath}" add ${exactVersion ? '--exact' : ''} ${pkg}@${tag} ${
+                    dev ? ' --dev' : ''
+                } --ignore-engines`
+            );
             break;
 
         case 'pnpm':
-            execSync(`pnpm add -C "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}@${tag}`);
+            execSync(
+                `pnpm add -C "${projectPath}" ${exactVersion ? '--save-exact' : ''} ${
+                    dev ? ' --save-dev' : ''
+                } ${pkg}@${tag}`
+            );
             break;
 
         default:
-            execSync(`npm install --prefix "${projectPath}" ${dev ? ' --save-dev' : ''} ${pkg}@${tag}`);
+            execSync(
+                `npm install --prefix "${projectPath}" ${exactVersion ? '--save-exact' : ''} ${
+                    dev ? ' --save-dev' : ''
+                } ${pkg}@${tag}`
+            );
             break;
     }
 }
@@ -63,11 +76,13 @@ export function ensurePackage(
     dev: boolean,
     pkgManager: PackageManagers | undefined = undefined,
     tag = 'latest',
-    projectPath = '.'
+    projectPath = '.',
+    exactVersion = false
 ) {
+    const resolvePath = path.resolve(projectPath);
     try {
-        require(pkg);
-    } catch {
-        installPackage(pkg, dev, pkgManager, tag, projectPath);
+        require.resolve(pkg, { paths: [resolvePath] });
+    } catch (err) {
+        installPackage(pkg, dev, pkgManager, tag, resolvePath, exactVersion);
     }
 }

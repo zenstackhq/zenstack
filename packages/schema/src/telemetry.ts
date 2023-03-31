@@ -16,6 +16,7 @@ export type TelemetryEvents =
     | 'cli:start'
     | 'cli:complete'
     | 'cli:error'
+    | 'cli:crash'
     | 'cli:command:start'
     | 'cli:command:complete'
     | 'cli:command:error'
@@ -50,19 +51,26 @@ export class Telemetry {
         });
 
         const errorHandler = async (err: Error) => {
-            this.track('cli:error', {
-                message: err.message,
-                stack: err.stack,
-            });
-            if (this.mixpanel) {
-                // a small delay to ensure telemetry is sent
-                await sleep(this.exitWait);
-            }
-
             if (err instanceof CliError || err instanceof CommanderError) {
+                this.track('cli:error', {
+                    message: err.message,
+                    stack: err.stack,
+                });
+                if (this.mixpanel) {
+                    // a small delay to ensure telemetry is sent
+                    await sleep(this.exitWait);
+                }
                 // error already logged
             } else {
                 console.error('\nAn unexpected error occurred:\n', err);
+                this.track('cli:crash', {
+                    message: err.message,
+                    stack: err.stack,
+                });
+                if (this.mixpanel) {
+                    // a small delay to ensure telemetry is sent
+                    await sleep(this.exitWait);
+                }
             }
 
             process.exit(1);

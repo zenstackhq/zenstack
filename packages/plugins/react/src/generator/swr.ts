@@ -61,8 +61,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/react/runtime';`,
-        `import * as request from '@zenstackhq/react/runtime';`,
+        `import { RequestHandlerContext } from '@zenstackhq/react/runtime';`,
+        `import { type RequestOptions } from '@zenstackhq/react/runtime/swr';`,
+        `import * as request from '@zenstackhq/react/runtime/swr';`,
     ]);
 
     const useFunc = sf.addFunction({
@@ -310,7 +311,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                 typeParameters: [`T extends ${argsType}`],
                 parameters: [
                     {
-                        name: 'args?',
+                        name: 'args',
                         type: inputType,
                     },
                 ],
@@ -451,8 +452,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             ]);
     }
 
-    // count
-    if (mapping.count) {
+    // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
+    {
         methods.push('count');
         const argsType = `Prisma.${model.name}CountArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
