@@ -22,8 +22,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     generateIndex(project, outDir, models);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    models.forEach((dataModel: any) => {
+    models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
         if (!mapping) {
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
