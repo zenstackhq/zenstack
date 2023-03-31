@@ -1,4 +1,4 @@
-import { PolicyOperationKind } from '@zenstackhq/runtime';
+import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import fs from 'fs';
 import path from 'path';
 
