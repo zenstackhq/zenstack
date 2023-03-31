@@ -180,7 +180,7 @@ export class OpenAPIGenerator {
         };
 
         const definitions: OperationDefinition[] = [];
-        const hasRelation = zmodel.fields.some((f) => isDataModel(f.$resolvedType?.decl));
+        const hasRelation = zmodel.fields.some((f) => isDataModel(f.type.reference?.ref));
 
         if (ops['createOne']) {
             definitions.push({
