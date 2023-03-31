@@ -1,5 +1,9 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+/// <reference types="@types/jest" />
+
 import { getWorkspaceNpmCacheFolder } from '@zenstackhq/testtools';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as tmp from 'tmp';
 import { createProgram } from '../../src/cli';
 import { execSync } from '../../src/utils/exec-utils';
@@ -25,7 +29,7 @@ describe('CLI Tests', () => {
         fs.writeFileSync('.npmrc', `cache=${getWorkspaceNpmCacheFolder(__dirname)}`);
     }
 
-    it('init project t3 std', async () => {
+    it('init project t3 npm std', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
             npm_config_user_agent: 'npm',
             npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
@@ -33,9 +37,44 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        program.parse(['init'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
+
+        checkDependency('zenstack', true, true);
+        checkDependency('@zenstackhq/runtime', false, true);
+    });
+
+    it('init project t3 yarn std', async () => {
+        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
+            npm_config_user_agent: 'yarn',
+            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+        });
+        createNpmrc();
+
+        const program = createProgram();
+        program.parse(['init'], { from: 'user' });
+
+        expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
+
+        checkDependency('zenstack', true, true);
+        checkDependency('@zenstackhq/runtime', false, true);
+    });
+
+    it('init project t3 pnpm std', async () => {
+        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
+            npm_config_user_agent: 'pnpm',
+            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+        });
+        createNpmrc();
+
+        const program = createProgram();
+        program.parse(['init'], { from: 'user' });
+
+        expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
+
+        checkDependency('zenstack', true, true);
+        checkDependency('@zenstackhq/runtime', false, true);
     });
 
     it('init project t3 non-std prisma schema', async () => {
@@ -58,6 +97,9 @@ describe('CLI Tests', () => {
         const program = createProgram();
         program.parse(['init', '--tag', 'latest'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toBeTruthy();
+
+        checkDependency('prisma', true, false);
+        checkDependency('@prisma/client', false, false);
     });
 
     it('init project existing zmodel', async () => {
@@ -67,7 +109,7 @@ describe('CLI Tests', () => {
             provider = 'sqlite'
             url = 'file:./todo.db'
         }
-                `;
+        `;
         fs.writeFileSync('schema.zmodel', origZModelContent);
         createNpmrc();
         const program = createProgram();
@@ -75,3 +117,19 @@ describe('CLI Tests', () => {
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(origZModelContent);
     });
 });
+
+function checkDependency(pkg: string, isDev: boolean, requireExactVersion = true) {
+    const pkgJson = require(path.resolve('./package.json'));
+
+    if (isDev) {
+        expect(pkgJson.devDependencies[pkg]).toBeTruthy();
+        if (requireExactVersion) {
+            expect(pkgJson.devDependencies[pkg]).not.toMatch(/^[\^~].*/);
+        }
+    } else {
+        expect(pkgJson.dependencies[pkg]).toBeTruthy();
+        if (requireExactVersion) {
+            expect(pkgJson.dependencies[pkg]).not.toMatch(/^[\^~].*/);
+        }
+    }
+}

@@ -13,7 +13,7 @@ import {
     Model,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { PolicyOperationKind } from '@zenstackhq/runtime';
+import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import { getLiteral } from '@zenstackhq/sdk';
 import { isFromStdlib } from '../language-server/utils';
 
