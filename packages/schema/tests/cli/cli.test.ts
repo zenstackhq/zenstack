@@ -37,7 +37,7 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init'], { from: 'user' });
+        program.parse(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -53,7 +53,7 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init'], { from: 'user' });
+        program.parse(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -69,7 +69,7 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init'], { from: 'user' });
+        program.parse(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
