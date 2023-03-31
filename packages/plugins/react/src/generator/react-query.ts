@@ -1,7 +1,7 @@
 import { DMMF } from '@prisma/generator-helper';
 import { getDataModels, PluginError, PluginOptions } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
-import { paramCase, pascalCase } from 'change-case';
+import { camelCase, paramCase, pascalCase } from 'change-case';
 import * as path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 
@@ -71,7 +71,9 @@ function generateQueryHook(
 
     func.addStatements([
         'const { endpoint } = useContext(RequestHandlerContext);',
-        `return request.query<${returnType}>('${model}', \`\${endpoint}/${model}/${operation}\`, args, options);`,
+        `return request.query<${returnType}>('${model}', \`\${endpoint}/${camelCase(
+            model
+        )}/${operation}\`, args, options);`,
     ]);
 }
 
@@ -117,7 +119,7 @@ function generateMutationHook(
                 initializer: `
                     request.${httpVerb}Mutation<${argsType}, ${
                     overrideReturnType ?? model
-                }>('${model}', \`\${endpoint}/${model}/${operation}\`, options, invalidateQueries)
+                }>('${model}', \`\${endpoint}/${camelCase(model)}/${operation}\`, options, invalidateQueries)
                 `,
             },
         ],
@@ -173,7 +175,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
 
     // createMany
     if (mapping.createMany) {
-        generateMutationHook(sf, model.name, 'createMany', 'post');
+        generateMutationHook(sf, model.name, 'createMany', 'post', 'Prisma.BatchPayload');
     }
 
     // findMany
