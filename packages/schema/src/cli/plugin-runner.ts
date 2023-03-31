@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
-import { Plugin, isPlugin } from '@zenstackhq/language/ast';
-import { PluginFunction, PluginOptions, getLiteral, getLiteralArray } from '@zenstackhq/sdk';
+import { isPlugin, Plugin } from '@zenstackhq/language/ast';
+import { getLiteral, getLiteralArray, PluginError, PluginFunction, PluginOptions } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
 import telemetry from '../telemetry';
 import { Context } from '../types';
-import { CliError } from './cli-error';
 
 /**
  * ZenStack code generator
@@ -44,9 +43,9 @@ export class PluginRunner {
                 const options: PluginOptions = { schemaPath: context.schemaPath };
 
                 plugin.fields.forEach((f) => {
-                    const value = getLiteral(f.value) || getLiteralArray(f.value);
-                    if (!value) {
-                        throw new CliError(`Invalid plugin value for ${f.name}`);
+                    const value = getLiteral(f.value) ?? getLiteralArray(f.value);
+                    if (value === undefined) {
+                        throw new PluginError(`Invalid plugin value for ${f.name}`);
                     }
                     options[f.name] = value;
                 });
@@ -58,12 +57,12 @@ export class PluginRunner {
                     pluginModule = require(pluginModulePath);
                 } catch (err) {
                     console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
-                    throw new CliError(`Unable to load plugin module ${pluginProvider}`);
+                    throw new PluginError(`Unable to load plugin module ${pluginProvider}`);
                 }
 
                 if (!pluginModule.default || typeof pluginModule.default !== 'function') {
                     console.error(`Plugin provider ${pluginProvider} is missing a default function export`);
-                    throw new CliError(`Plugin provider ${pluginProvider} is missing a default function export`);
+                    throw new PluginError(`Plugin provider ${pluginProvider} is missing a default function export`);
                 }
                 plugins.push({
                     name: this.getPluginName(pluginModule, pluginProvider),
