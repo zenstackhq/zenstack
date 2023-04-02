@@ -2,8 +2,8 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
-import { handleRequest } from '../src/openapi';
-import { schema } from './utils';
+import { default as handleRequest } from '../../../src/api/prisma';
+import { schema } from '../../utils';
 
 describe('OpenAPI server tests', () => {
     it('crud', async () => {

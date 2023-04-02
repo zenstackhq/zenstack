@@ -4,8 +4,9 @@ import { loadSchema } from '@zenstackhq/testtools';
 import bodyParser from 'body-parser';
 import express from 'express';
 import request from 'supertest';
-import { ZenStackMiddleware } from '../src/express';
-import { makeUrl, schema } from './utils';
+import { ZenStackMiddleware } from '../../../src/express';
+import { makeUrl, schema } from '../../utils';
+import REST from '../../../src/api/rest';
 
 describe('Express adapter tests', () => {
     it('run plugin', async () => {
@@ -13,7 +14,7 @@ describe('Express adapter tests', () => {
 
         const app = express();
         app.use(bodyParser.json());
-        app.use('/api', ZenStackMiddleware({ getPrisma: () => prisma, zodSchemas }));
+        app.use('/api', ZenStackMiddleware({ getPrisma: () => prisma, zodSchemas, api: REST }));
 
         let r = await request(app).get(makeUrl('/api/post/1'));
         expect(r.status).toBe(404);

@@ -1,94 +1,15 @@
 import {
-    DbClientContract,
     DbOperations,
     isPrismaClientKnownRequestError,
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
-import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { pascalCase } from 'change-case';
-import { fromZodError } from 'zod-validation-error';
-import { stripAuxFields } from './utils';
-
-export * from './utils';
-
-type LoggerMethod = (message: string, code?: string) => void;
+import { RequestContext, Response, logError, stripAuxFields, zodValidate } from '../utils';
 
 /**
- * Logger config.
+ * Handles HTTP requests with a Prisma format
  */
-export type LoggerConfig = {
-    debug?: LoggerMethod;
-    info?: LoggerMethod;
-    warn?: LoggerMethod;
-    error?: LoggerMethod;
-};
-
-/**
- * Options for initializing a Next.js API endpoint request handler.
- * @see requestHandler
- */
-export type RequestHandlerOptions = {
-    /**
-     * Logger configuration. By default log to console. Set to null to turn off logging.
-     */
-    logger?: LoggerConfig | null;
-};
-
-/**
- * OpenApi request context.
- */
-export type RequestContext = {
-    method: string;
-    path: string;
-    query?: Record<string, string | string[]>;
-    requestBody?: unknown;
-    prisma: DbClientContract;
-    logger?: LoggerConfig;
-    zodSchemas?: ModelZodSchema;
-};
-
-/**
- * OpenApi response.
- */
-export type Response = {
-    status: number;
-    body: unknown;
-};
-
-function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
-    if (zodSchemas[model]) {
-        return zodSchemas[model][operation];
-    } else if (zodSchemas[pascalCase(model)]) {
-        return zodSchemas[pascalCase(model)][operation];
-    } else {
-        return undefined;
-    }
-}
-
-export function zodValidate(
-    zodSchemas: ModelZodSchema | undefined,
-    model: string,
-    operation: keyof DbOperations,
-    args: unknown
-) {
-    const zodSchema = zodSchemas && getZodSchema(zodSchemas, model, operation);
-    if (zodSchema) {
-        const parseResult = zodSchema.safeParse(args);
-        if (parseResult.success) {
-            return { data: parseResult.data, error: undefined };
-        } else {
-            return { data: undefined, error: fromZodError(parseResult.error).message };
-        }
-    } else {
-        return { data: args, error: undefined };
-    }
-}
-
-/**
- * Handles OpenApi requests
- */
-export async function handleRequest({
+export default async function handleRequest({
     method,
     path,
     query,
@@ -236,12 +157,4 @@ export async function handleRequest({
 
 function unmarshal(value: string) {
     return JSON.parse(value);
-}
-
-export function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
-    if (logger === undefined) {
-        console.error(`@zenstackhq/openapi: error ${code ? '[' + code + ']' : ''}, ${message}`);
-    } else if (logger?.error) {
-        logger.error(message, code);
-    }
 }

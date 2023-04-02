@@ -1,8 +1,8 @@
 import { DataDocument, Serializer } from 'ts-japi';
-import { logError, RequestContext, stripAuxFields, zodValidate } from '@zenstackhq/server/openapi';
+import { logError, RequestContext, stripAuxFields, zodValidate } from '../utils';
 
 /**
- * OpenApi response.
+ * JSON:API response
  */
 export type Response = {
     status: number;
@@ -40,9 +40,9 @@ async function serializeItems(model: string, items: Item | Item[]): Promise<Part
 }
 
 /**
- * Handles OpenApi requests
+ * Handles HTTP request
  */
-export async function handleRequest({
+export default async function handleRequest({
     method,
     path,
     query,

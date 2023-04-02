@@ -2,8 +2,8 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
-import { handleRequest } from '../src/api';
-import { schema } from './utils';
+import { default as handleRequest } from '../../../src/api/rest';
+import { schema } from '../../utils';
 
 let prisma: any;
 let zodSchemas: any;
