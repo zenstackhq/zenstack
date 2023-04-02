@@ -2,7 +2,12 @@
 import { DbClientContract } from '@zenstackhq/runtime';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
-import { handleRequest, LoggerConfig } from '../openapi';
+import {
+    handleRequest as handleRequestOpenAPI,
+    LoggerConfig,
+    RequestContext,
+    Response as ResponseOpenAPI,
+} from '../openapi';
 
 /**
  * Express middleware options
@@ -24,35 +29,40 @@ export interface MiddlewareOptions {
     zodSchemas?: ModelZodSchema | boolean;
 }
 
+type HandleRequestFn = (req: RequestContext) => Promise<ResponseOpenAPI>;
+type Factory = (options: MiddlewareOptions) => Handler;
+
 /**
  * Creates an Express middleware for handling CRUD requests.
  */
-const factory = (options: MiddlewareOptions): Handler => {
-    let schemas: ModelZodSchema | undefined;
-    if (typeof options.zodSchemas === 'object') {
-        schemas = options.zodSchemas;
-    } else if (options.zodSchemas === true) {
-        schemas = getModelZodSchemas();
-    }
-
-    return async (request, response) => {
-        const prisma = (await options.getPrisma(request, response)) as DbClientContract;
-        if (!prisma) {
-            throw new Error('unable to get prisma from request context');
+export function buildMiddlewareFactory(handleRequest: HandleRequestFn): Factory {
+    return (options: MiddlewareOptions): Handler => {
+        let schemas: ModelZodSchema | undefined;
+        if (typeof options.zodSchemas === 'object') {
+            schemas = options.zodSchemas;
+        } else if (options.zodSchemas === true) {
+            schemas = getModelZodSchemas();
         }
 
-        const r = await handleRequest({
-            method: request.method,
-            path: request.path,
-            query: request.query as Record<string, string | string[]>,
-            requestBody: request.body,
-            prisma,
-            logger: options.logger,
-            zodSchemas: schemas,
-        });
+        return async (request, response) => {
+            const prisma = (await options.getPrisma(request, response)) as DbClientContract;
+            if (!prisma) {
+                throw new Error('unable to get prisma from request context');
+            }
 
-        response.status(r.status).json(r.body);
+            const r = await handleRequest({
+                method: request.method,
+                path: request.path,
+                query: request.query as Record<string, string | string[]>,
+                requestBody: request.body,
+                prisma,
+                logger: options.logger,
+                zodSchemas: schemas,
+            });
+
+            response.status(r.status).json(r.body);
+        };
     };
-};
+}
 
-export default factory;
+export default buildMiddlewareFactory(handleRequestOpenAPI);

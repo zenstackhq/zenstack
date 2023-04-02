@@ -10,6 +10,8 @@ import { pascalCase } from 'change-case';
 import { fromZodError } from 'zod-validation-error';
 import { stripAuxFields } from './utils';
 
+export * from './utils';
+
 type LoggerMethod = (message: string, code?: string) => void;
 
 /**
@@ -64,7 +66,7 @@ function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyo
     }
 }
 
-function zodValidate(
+export function zodValidate(
     zodSchemas: ModelZodSchema | undefined,
     model: string,
     operation: keyof DbOperations,
@@ -236,7 +238,7 @@ function unmarshal(value: string) {
     return JSON.parse(value);
 }
 
-function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
+export function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
     if (logger === undefined) {
         console.error(`@zenstackhq/openapi: error ${code ? '[' + code + ']' : ''}, ${message}`);
     } else if (logger?.error) {
