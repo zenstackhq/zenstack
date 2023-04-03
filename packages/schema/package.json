@@ -66,7 +66,7 @@
     "main": "./bundle/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
-        "vscode:prepublish": "pnpm lint && pnpm bundle",
+        "vscode:prepublish": "pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
         "clean": "rimraf bundle dist",
         "build": "pnpm clean && pnpm lint && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js",
@@ -130,7 +130,6 @@
         "eslint": "^8.27.0",
         "eslint-plugin-jest": "^27.1.7",
         "jest": "^29.2.1",
-        "langium-cli": "^1.0.0",
         "prisma": "^4.0.0",
         "renamer": "^4.0.0",
         "rimraf": "^3.0.2",
