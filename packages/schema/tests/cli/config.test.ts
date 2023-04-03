@@ -63,7 +63,7 @@ describe('CLI Config Tests', () => {
         expect(config.guardFieldName).toBe('myGuardField');
 
         // default value
-        expect(config.transactionFieldName).toBe(TRANSACTION_FIELD_NAME);
+        expect(config.transactionFieldName).toBe('myTransactionField');
     });
 
     it('config not found', async () => {

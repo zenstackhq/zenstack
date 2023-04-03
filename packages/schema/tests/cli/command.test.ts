@@ -37,7 +37,7 @@ describe('CLI Command Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -53,7 +53,7 @@ describe('CLI Command Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -69,7 +69,7 @@ describe('CLI Command Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -86,7 +86,7 @@ describe('CLI Command Tests', () => {
         fs.renameSync('prisma/schema.prisma', 'prisma/my.prisma');
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest', '--prisma', 'prisma/my.prisma'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest', '--prisma', 'prisma/my.prisma'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/my.prisma', 'utf-8'));
     });
@@ -96,7 +96,7 @@ describe('CLI Command Tests', () => {
         fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
         createNpmrc();
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toBeTruthy();
     });
 
@@ -111,7 +111,7 @@ describe('CLI Command Tests', () => {
         fs.writeFileSync('schema.zmodel', origZModelContent);
         createNpmrc();
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(origZModelContent);
     });
 });
