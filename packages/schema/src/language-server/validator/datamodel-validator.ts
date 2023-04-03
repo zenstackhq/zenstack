@@ -57,19 +57,23 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             });
         }
 
-        dm.$resolvedFields.forEach((field) => this.validateField(field, accept));
+        dm.fields.forEach((field) => this.validateField(field, dm, accept));
+
+        if (!dm.isAbstract) {
+            dm.$resolvedFields
+                .filter((x) => isDataModel(x.type.reference?.ref))
+                .forEach((y) => {
+                    this.validateRelationField(y, accept);
+                });
+        }
     }
 
-    private validateField(field: DataModelField, accept: ValidationAcceptor): void {
+    private validateField(field: DataModelField, dataModel: DataModel, accept: ValidationAcceptor): void {
         if (field.type.array && field.type.optional) {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
 
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
-
-        if (isDataModel(field.type.reference?.ref) && !(field.$container as DataModel).isAbstract) {
-            this.validateRelationField(field, accept);
-        }
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
@@ -216,20 +220,22 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             );
             return;
         } else if (oppositeFields.length > 1) {
-            oppositeFields.forEach((f) => {
-                if (this.isSelfRelation(f)) {
-                    // self relations are partial
-                    // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
-                } else {
-                    accept(
-                        'error',
-                        `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
-                            oppositeModel.name
-                        }" refer to the same relation to model "${field.$container.name}"`,
-                        { node: f }
-                    );
-                }
-            });
+            oppositeFields
+                .filter((x) => !x.$isInherited)
+                .forEach((f) => {
+                    if (this.isSelfRelation(f)) {
+                        // self relations are partial
+                        // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
+                    } else {
+                        accept(
+                            'error',
+                            `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
+                                oppositeModel.name
+                            }" refer to the same relation to model "${field.$container.name}"`,
+                            { node: f }
+                        );
+                    }
+                });
             return;
         }
 

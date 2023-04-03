@@ -39,6 +39,7 @@ import {
     LangiumDocument,
     LangiumServices,
     LinkingError,
+    Mutable,
     Reference,
     streamContents,
 } from 'langium';
@@ -108,7 +109,12 @@ export class ZModelLinker extends DefaultLinker {
                     const superTypeDecl = superType.ref;
                     if (superTypeDecl) {
                         superTypeDecl.fields.forEach((field) => {
-                            dataModel.$resolvedFields.push(field);
+                            const cloneField = Object.assign({}, field);
+                            cloneField.$isInherited = true;
+                            const mutable = cloneField as Mutable<AstNode>;
+                            // update container
+                            mutable.$container = dataModel;
+                            dataModel.$resolvedFields.push(cloneField);
                         });
                     }
                 });

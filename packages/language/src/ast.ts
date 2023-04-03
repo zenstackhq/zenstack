@@ -50,6 +50,10 @@ declare module './generated/ast' {
          */
         $resolvedFields: Array<DataModelField>;
     }
+
+    interface DataModelField {
+        $isInherited?: boolean;
+    }
 }
 
 declare module 'langium' {
