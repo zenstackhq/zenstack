@@ -192,8 +192,6 @@ export default class PrismaSchemaGenerator {
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel) {
-        if (decl.isAbstract) return;
-
         const model = prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);

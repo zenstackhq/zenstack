@@ -39,7 +39,6 @@ import {
     LangiumDocument,
     LangiumServices,
     LinkingError,
-    Mutable,
     Reference,
     streamContents,
 } from 'langium';
@@ -72,7 +71,7 @@ export class ZModelLinker extends DefaultLinker {
             return;
         }
 
-        this.mergeAbstractBaseModel(document);
+        this.resolveBaseModels(document);
 
         for (const node of streamContents(document.parseResult.value)) {
             await interruptAndCheck(cancelToken);
@@ -98,24 +97,21 @@ export class ZModelLinker extends DefaultLinker {
 
     //#region abstract DataModel
 
-    private mergeAbstractBaseModel(document: LangiumDocument) {
+    private resolveBaseModels(document: LangiumDocument) {
         const model = document.parseResult.value as Model;
 
         model.declarations.forEach((decl) => {
             if (decl.$type === 'DataModel') {
                 const dataModel = decl as DataModel;
-                if (dataModel.superTypes.length > 0) {
-                    const superType = dataModel.superTypes[0].ref as DataModel;
-
-                    superType.fields.forEach((field) => {
-                        const cloneField = Object.assign({}, field);
-                        const mutable = cloneField as Mutable<AstNode>;
-                        // update container
-                        mutable.$container = dataModel;
-                        mutable.$containerIndex = mutable.$containerIndex || 0 + dataModel.fields.length;
-                        dataModel.fields.push(mutable as DataModelField);
-                    });
-                }
+                dataModel.$resolvedFields = [...dataModel.fields];
+                dataModel.superTypes.forEach((superType) => {
+                    const superTypeDecl = superType.ref;
+                    if (superTypeDecl) {
+                        superTypeDecl.fields.forEach((field) => {
+                            dataModel.$resolvedFields.push(field);
+                        });
+                    }
+                });
             }
         });
     }
@@ -327,7 +323,7 @@ export class ZModelLinker extends DefaultLinker {
 
         if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
             const modelDecl = operandResolved.decl as DataModel;
-            const provider = (name: string) => modelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => modelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
         }
 
@@ -343,7 +339,7 @@ export class ZModelLinker extends DefaultLinker {
         const resolvedType = node.left.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
             const dataModelDecl = resolvedType.decl;
-            const provider = (name: string) => dataModelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => dataModelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
@@ -405,7 +401,7 @@ export class ZModelLinker extends DefaultLinker {
             const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
             if (transtiveDataModel) {
                 // resolve references in the context of the transitive data model
-                const scopeProvider = (name: string) => transtiveDataModel.fields.find((f) => f.name === name);
+                const scopeProvider = (name: string) => transtiveDataModel.$resolvedFields.find((f) => f.name === name);
                 if (isArrayExpr(node.value)) {
                     node.value.items.forEach((item) => {
                         if (isReferenceExpr(item)) {

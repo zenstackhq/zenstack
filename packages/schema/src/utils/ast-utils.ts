@@ -15,6 +15,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { PolicyOperationKind } from '@zenstackhq/runtime';
 import { getLiteral } from '@zenstackhq/sdk';
+import { AstNode, Mutable } from 'langium';
 import { isFromStdlib } from '../language-server/utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
@@ -31,7 +32,7 @@ export function analyzePolicies(dataModel: DataModel) {
     const read = toStaticPolicy('read', allows, denies);
     const update = toStaticPolicy('update', allows, denies);
     const del = toStaticPolicy('delete', allows, denies);
-    const hasFieldValidation = dataModel.fields.some((field) =>
+    const hasFieldValidation = dataModel.$resolvedFields.some((field) =>
         field.attributes.some((attr) => VALIDATION_ATTRIBUTES.includes(attr.decl.$refText))
     );
 
@@ -46,6 +47,30 @@ export function analyzePolicies(dataModel: DataModel) {
         denyAll: create === false && read === false && update === false && del === false,
         hasFieldValidation,
     };
+}
+
+export function mergeBaseModel(model: Model) {
+    model.declarations
+        .filter((x) => x.$type === 'DataModel')
+        .forEach((decl) => {
+            const dataModel = decl as DataModel;
+
+            dataModel.superTypes.forEach((superType) => {
+                const superTypeDecl = superType.ref;
+                if (superTypeDecl) {
+                    superTypeDecl.fields.forEach((field) => {
+                        const cloneField = Object.assign({}, field);
+                        const mutable = cloneField as Mutable<AstNode>;
+                        // update container
+                        mutable.$container = dataModel;
+                        dataModel.fields.push(mutable as DataModelField);
+                    });
+                }
+            });
+        });
+
+    // remove abstract models
+    model.declarations = model.declarations.filter((x) => !(x.$type == 'DataModel' && x.isAbstract));
 }
 
 function toStaticPolicy(
@@ -104,7 +129,9 @@ export const VALIDATION_ATTRIBUTES = [
 ];
 
 export function getIdFields(dataModel: DataModel) {
-    const fieldLevelId = dataModel.fields.find((f) => f.attributes.some((attr) => attr.decl.$refText === '@id'));
+    const fieldLevelId = dataModel.$resolvedFields.find((f) =>
+        f.attributes.some((attr) => attr.decl.$refText === '@id')
+    );
     if (fieldLevelId) {
         return [fieldLevelId];
     } else {

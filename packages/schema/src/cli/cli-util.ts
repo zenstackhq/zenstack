@@ -9,6 +9,7 @@ import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { Context } from '../types';
+import { mergeBaseModel } from '../utils/ast-utils';
 import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
 import { CliError } from './cli-error';
 import { PluginRunner } from './plugin-runner';
@@ -124,7 +125,11 @@ export async function loadDocument(fileName: string): Promise<Model> {
         throw new CliError('schema validation errors');
     }
 
-    return document.parseResult.value as Model;
+    const result = document.parseResult.value as Model;
+
+    mergeBaseModel(result);
+
+    return result;
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {

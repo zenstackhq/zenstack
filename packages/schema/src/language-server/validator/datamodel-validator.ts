@@ -19,13 +19,13 @@ import { getLiteral } from '@zenstackhq/sdk';
  */
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
-        validateDuplicatedDeclarations(dm.fields, accept);
+        validateDuplicatedDeclarations(dm.$resolvedFields, accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
-        const idFields = dm.fields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
+        const idFields = dm.$resolvedFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
         const modelLevelIds = getIdFields(dm);
 
         if (idFields.length === 0 && modelLevelIds.length === 0) {
@@ -57,7 +57,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             });
         }
 
-        dm.fields.forEach((field) => this.validateField(field, accept));
+        dm.$resolvedFields.forEach((field) => this.validateField(field, accept));
     }
 
     private validateField(field: DataModelField, accept: ValidationAcceptor): void {
@@ -172,8 +172,9 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         if (relationName) {
             // field's relation points to another type, and that type's opposite relation field
             // points back
-            const oppositeModelFields = field.type.reference?.ref?.fields as DataModelField[];
-            if (oppositeModelFields) {
+            const oppositeModel = field.type.reference?.ref as DataModel;
+            if (oppositeModel) {
+                const oppositeModelFields = oppositeModel.$resolvedFields as DataModelField[];
                 for (const oppositeField of oppositeModelFields) {
                     // find the opposite relation with the matching name
                     const relAttr = oppositeField.attributes.find((a) => a.decl.ref?.name === '@relation');
@@ -201,7 +202,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
-        let oppositeFields = oppositeModel.fields.filter((f) => f.type.reference?.ref === field.$container);
+        let oppositeFields = oppositeModel.$resolvedFields.filter((f) => f.type.reference?.ref === field.$container);
         oppositeFields = oppositeFields.filter((f) => {
             const fieldRel = this.parseRelation(f);
             return fieldRel.valid && fieldRel.name === thisRelation.name;

@@ -78,7 +78,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                 let newText = '';
                 if (astNode.type.array) {
                     //post Post[]
-                    const idField = container.fields.find((f) =>
+                    const idField = container.$resolvedFields.find((f) =>
                         f.attributes.find((attr) => attr.decl.ref?.name === '@id')
                     ) as DataModelField;
 
@@ -96,7 +96,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     const idFieldName = idField.name;
                     const referenceIdFieldName = fieldName + this.upperCaseFirstLetter(idFieldName);
 
-                    if (!oppositeModel.fields.find((f) => f.name === referenceIdFieldName)) {
+                    if (!oppositeModel.$resolvedFields.find((f) => f.name === referenceIdFieldName)) {
                         referenceField = '\n' + indent + `${referenceIdFieldName} ${idField.type.type}`;
                     }
 
