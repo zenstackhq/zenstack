@@ -8,7 +8,7 @@ import * as tmp from 'tmp';
 import { createProgram } from '../../src/cli';
 import { execSync } from '../../src/utils/exec-utils';
 
-describe('CLI Tests', () => {
+describe('CLI Command Tests', () => {
     let projDir: string;
     let origDir: string;
 
