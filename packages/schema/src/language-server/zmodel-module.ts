@@ -23,7 +23,7 @@ import { ZModelValidationRegistry, ZModelValidator } from './validator/zmodel-va
 import { ZModelCodeActionProvider } from './zmodel-code-action';
 import { ZModelFormatter } from './zmodel-formatter';
 import { ZModelLinker } from './zmodel-linker';
-import { ZModelScopeComputation } from './zmodel-scope';
+import { ZModelScopeComputation, ZModelScopeProvider } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
 
 /**
@@ -50,6 +50,7 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
     references: {
         ScopeComputation: (services) => new ZModelScopeComputation(services),
         Linker: (services) => new ZModelLinker(services),
+        ScopeProvider: (services) => new ZModelScopeProvider(services),
     },
     validation: {
         ValidationRegistry: (services) => new ZModelValidationRegistry(services),

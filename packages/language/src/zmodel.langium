@@ -1,9 +1,14 @@
 grammar ZModel
 
+
 entry Model:
+    imports+=ModelImport*
     (
         declarations+=AbstractDeclaration
     )*;
+
+ModelImport:
+    'import' path=STRING  ';'?;
 
 AbstractDeclaration:
     DataSource | GeneratorDecl| Plugin | DataModel | Enum | FunctionDecl | Attribute;

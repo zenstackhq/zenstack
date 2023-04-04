@@ -1,14 +1,24 @@
-import { isEnumField } from '@zenstackhq/language/ast';
+import { isEnumField, isModel } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
     DefaultScopeComputation,
+    DefaultScopeProvider,
+    EMPTY_SCOPE,
+    equalURI,
+    getContainerOfType,
     interruptAndCheck,
     LangiumDocument,
     LangiumServices,
+    ReferenceInfo,
+    Scope,
+    stream,
     streamAllContents,
+    StreamScope,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
+import { resolveImportUri } from '../utils/ast-utils';
+import { STD_LIB_MODULE_NAME } from './constants';
 
 /**
  * Custom Langium ScopeComputation implementation which adds enum fields into global scope
@@ -40,5 +50,27 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
         }
 
         return result;
+    }
+}
+
+export class ZModelScopeProvider extends DefaultScopeProvider {
+    constructor(services: LangiumServices) {
+        super(services);
+    }
+
+    protected override getGlobalScope(referenceType: string, context: ReferenceInfo): Scope {
+        const model = getContainerOfType(context.container, isModel);
+        if (!model) {
+            return EMPTY_SCOPE;
+        }
+        const importedUris = stream(model.imports).map(resolveImportUri).nonNullable();
+        const importedElements = this.indexManager
+            .allElements(referenceType)
+            .filter(
+                (des) =>
+                    des.documentUri.path.endsWith(STD_LIB_MODULE_NAME) ||
+                    importedUris.some((importedUri) => equalURI(des.documentUri, importedUri))
+            );
+        return new StreamScope(importedElements);
     }
 }

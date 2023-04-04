@@ -11,10 +11,13 @@ import {
     isMemberAccessExpr,
     isReferenceExpr,
     Model,
+    ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import { getLiteral } from '@zenstackhq/sdk';
+import { getDocument } from 'langium';
+import { URI, Utils } from 'vscode-uri';
 import { isFromStdlib } from '../language-server/utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
@@ -140,4 +143,16 @@ export function getDataModelFieldReference(expr: Expression): DataModelField | u
     } else {
         return undefined;
     }
+}
+
+export function resolveImportUri(imp: ModelImport): URI | undefined {
+    if (imp.path === undefined || imp.path.length === 0) {
+        return undefined;
+    }
+    const dirUri = Utils.dirname(getDocument(imp).uri);
+    let grammarPath = imp.path;
+    if (!grammarPath.endsWith('.zmodel')) {
+        grammarPath += '.zmodel';
+    }
+    return Utils.resolvePath(dirUri, grammarPath);
 }
