@@ -191,4 +191,35 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('schemas = ["base","transactional"]');
     });
+
+    it('custom aux field names', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Foo {
+                id String @id 
+                value Int
+                @@allow('create', value > 0)
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(
+            model,
+            {
+                provider: '@core/prisma',
+                schemaPath: 'schema.zmodel',
+                output: name,
+            },
+            { guardFieldName: 'myGuardField', transactionFieldName: 'myTransactionField' }
+        );
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+        expect(content).toContain('@map("myGuardField")');
+        expect(content).toContain('@map("myTransactionField")');
+    });
 });
