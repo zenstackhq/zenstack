@@ -89,7 +89,7 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
             if (entry.isDirectory) {
                 const name = Utils.basename(entry.uri);
                 if (name === 'node_modules') {
-                    pluginModels.forEach(async (plugin) => {
+                    for (const plugin of pluginModels) {
                         const path = Utils.joinPath(entry.uri, plugin, PLUGIN_MODULE_NAME);
                         try {
                             this.fileSystemProvider.readFileSync(path);
@@ -105,7 +105,7 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
                         } catch {
                             //no-op
                         }
-                    });
+                    }
                 } else {
                     await this.loadPluginModels(workspaceFolder, entry.uri, pluginModels, collector);
                 }
