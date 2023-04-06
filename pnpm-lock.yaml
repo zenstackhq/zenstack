@@ -104,6 +104,12 @@ importers:
       yaml:
         specifier: ^2.2.1
         version: 2.2.1
+      zod:
+        specifier: ^3.19.1
+        version: 3.19.1
+      zod-validation-error:
+        specifier: ^0.2.1
+        version: 0.2.1(zod@3.19.1)
     devDependencies:
       '@prisma/internals':
         specifier: ^4.7.1
