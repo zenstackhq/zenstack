@@ -1,7 +1,7 @@
 import { isPlugin, Model } from '@zenstackhq/language/ast';
 import { getLiteral } from '@zenstackhq/sdk';
 import { DefaultWorkspaceManager, interruptAndCheck, LangiumDocument } from 'langium';
-import path, { resolve } from 'path';
+import path from 'path';
 import { CancellationToken, WorkspaceFolder } from 'vscode-languageserver';
 import { URI, Utils } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
