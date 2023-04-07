@@ -37,9 +37,7 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
                 this.langiumDocuments.addDocument(document);
             }
         };
-        // Even though we don't await the initialization of the workspace manager,
-        // we can still assume that all library documents and file documents are loaded by the time we start building documents.
-        // The mutex prevents anything from performing a workspace build until we check the cancellation token
+
         await this.loadAdditionalDocuments(folders, collector);
         await Promise.all(
             folders
@@ -63,13 +61,22 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
             });
         });
 
-        console.log(`Used plugin documents: ${Array.from(this.pluginModels)}`);
+        if (this.pluginModels.size > 0) {
+            console.log(`Used plugin documents: ${Array.from(this.pluginModels)}`);
 
-        await Promise.all(
-            folders
-                .map((wf) => [wf, this.getRootFolder(wf)] as [WorkspaceFolder, URI])
-                .map(async (entry) => this.loadPluginModels(...entry, new Set(this.pluginModels), collector))
-        );
+            // the loaded plugin models would be removed from the set
+            const unLoadedPluginModels = new Set(this.pluginModels);
+
+            await Promise.all(
+                folders
+                    .map((wf) => [wf, this.getRootFolder(wf)] as [WorkspaceFolder, URI])
+                    .map(async (entry) => this.loadPluginModels(...entry, unLoadedPluginModels, collector))
+            );
+
+            if (unLoadedPluginModels.size > 0) {
+                console.warn(`The following plugin documents could not be loaded: ${Array.from(unLoadedPluginModels)}`);
+            }
+        }
 
         // Only after creating all documents do we check whether we need to cancel the initialization
         // The document builder will later pick up on all unprocessed documents
@@ -83,19 +90,34 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
         pluginModels: Set<string>,
         collector: (document: LangiumDocument) => void
     ): Promise<void> {
-        const content = await this.fileSystemProvider.readDirectory(folderPath);
+        const content = await (
+            await this.fileSystemProvider.readDirectory(folderPath)
+        ).sort((a, b) => {
+            // make sure the node_moudules folder is always the first one to be checked
+            // so it could be early exited if the plugin is found
+            if (a.isDirectory && b.isDirectory) {
+                const aName = Utils.basename(a.uri);
+                if (aName === 'node_modules') {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else {
+                return 0;
+            }
+        });
 
         for (const entry of content) {
             if (entry.isDirectory) {
                 const name = Utils.basename(entry.uri);
                 if (name === 'node_modules') {
-                    for (const plugin of pluginModels) {
+                    for (const plugin of Array.from(pluginModels)) {
                         const path = Utils.joinPath(entry.uri, plugin, PLUGIN_MODULE_NAME);
                         try {
                             this.fileSystemProvider.readFileSync(path);
                             const document = this.langiumDocuments.getOrCreateDocument(path);
                             collector(document);
-                            console.log(`Adding plugin document from ${path}`);
+                            console.log(`Adding plugin document from ${path.path}`);
 
                             pluginModels.delete(plugin);
                             // early exit if all plugins are loaded
@@ -103,7 +125,8 @@ export default class ZModelWorkspaceManager extends DefaultWorkspaceManager {
                                 return;
                             }
                         } catch {
-                            //no-op
+                            // no-op. The module might be found in another node_modules folder
+                            // will show the warning message eventually if not found
                         }
                     }
                 } else {
