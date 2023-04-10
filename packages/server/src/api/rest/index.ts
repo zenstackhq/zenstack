@@ -95,7 +95,7 @@ export default async function handleRequest({
             let createError;
 
             if (zodSchemas) {
-                const createValidationResult = zodValidate(zodSchemas, model, 'create', { data: requestBody });
+                const createValidationResult = zodValidate(zodSchemas, model, 'create', createRequest);
                 createRequest = createValidationResult.data;
                 createError = createValidationResult.error;
             }
