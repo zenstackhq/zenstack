@@ -6,13 +6,12 @@ import {
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import { analyzePolicies, getLiteral } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
-import { analyzePolicies } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getIdFields, getUniqueFields } from '../utils';
 import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
-import { getLiteral } from '@zenstackhq/sdk';
 
 /**
  * Validates data model declarations.

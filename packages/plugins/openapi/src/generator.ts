@@ -1,7 +1,14 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS, getDataModels, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
+import {
+    analyzePolicies,
+    AUXILIARY_FIELDS,
+    getDataModels,
+    hasAttribute,
+    PluginError,
+    PluginOptions,
+} from '@zenstackhq/sdk';
 import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -201,10 +208,14 @@ export class OpenAPIGenerator {
             inputType?: object;
             outputType: object;
             successCode?: number;
+            security?: Array<Record<string, string[]>>;
         };
 
         const definitions: OperationDefinition[] = [];
         const hasRelation = zmodel.fields.some((f) => isDataModel(f.type.reference?.ref));
+
+        // analyze access policies to determine default security
+        const { create, read, update, delete: del } = analyzePolicies(zmodel);
 
         if (ops['createOne']) {
             definitions.push({
@@ -225,6 +236,7 @@ export class OpenAPIGenerator {
                 outputType: this.ref(model.name),
                 description: `Create a new ${model.name}`,
                 successCode: 201,
+                security: create === true ? [] : undefined,
             });
         }
 
@@ -245,6 +257,7 @@ export class OpenAPIGenerator {
                 outputType: this.ref('BatchPayload'),
                 description: `Create several ${model.name}`,
                 successCode: 201,
+                security: create === true ? [] : undefined,
             });
         }
 
@@ -266,6 +279,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Find one unique ${model.name}`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -287,6 +301,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Find the first ${model.name} matching the given condition`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -308,6 +323,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.array(this.ref(model.name)),
                 description: `Find a list of ${model.name}`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -330,6 +346,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Update a ${model.name}`,
+                security: update === true ? [] : undefined,
             });
         }
 
@@ -350,6 +367,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref('BatchPayload'),
                 description: `Update ${model.name}s matching the given condition`,
+                security: update === true ? [] : undefined,
             });
         }
 
@@ -373,6 +391,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Upsert a ${model.name}`,
+                security: create === true && update == true ? [] : undefined,
             });
         }
 
@@ -394,6 +413,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Delete one unique ${model.name}`,
+                security: del === true ? [] : undefined,
             });
         }
 
@@ -413,6 +433,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref('BatchPayload'),
                 description: `Delete ${model.name}s matching the given condition`,
+                security: del === true ? [] : undefined,
             });
         }
 
@@ -433,6 +454,7 @@ export class OpenAPIGenerator {
             ),
             outputType: this.oneOf({ type: 'integer' }, this.ref(`${model.name}CountAggregateOutputType`)),
             description: `Find a list of ${model.name}`,
+            security: read === true ? [] : undefined,
         });
 
         if (ops['aggregate']) {
@@ -456,6 +478,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(`Aggregate${model.name}`),
                 description: `Aggregate ${model.name}s`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -481,13 +504,14 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.array(this.ref(`${model.name}GroupByOutputType`)),
                 description: `Group ${model.name}s by fields`,
+                security: read === true ? [] : undefined,
             });
         }
 
         // get meta specified with @@openapi.meta
         const resourceMeta = getModelResourceMeta(zmodel);
 
-        for (const { method, operation, description, inputType, outputType, successCode } of definitions) {
+        for (const { method, operation, description, inputType, outputType, successCode, security } of definitions) {
             const meta = resourceMeta?.[operation];
 
             if (meta?.ignore === true) {
@@ -511,7 +535,8 @@ export class OpenAPIGenerator {
                 description: meta?.description ?? description,
                 tags: meta?.tags || [camelCase(model.name)],
                 summary: meta?.summary,
-                security: meta?.security,
+                // security priority: operation-level > model-level > inferred
+                security: meta?.security ?? resourceMeta?.security ?? security,
                 deprecated: meta?.deprecated,
                 responses: {
                     [successCode !== undefined ? successCode : '200']: {

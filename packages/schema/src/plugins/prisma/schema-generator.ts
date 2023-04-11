@@ -20,6 +20,7 @@ import {
     Model,
 } from '@zenstackhq/language/ast';
 import {
+    analyzePolicies,
     getLiteral,
     getLiteralArray,
     GUARD_FIELD_NAME,
@@ -31,13 +32,13 @@ import {
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import { analyzePolicies } from '../../utils/ast-utils';
 import { execSync } from '../../utils/exec-utils';
 import {
+    ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
-    ContainerAttribute as PrismaModelAttribute,
     ContainerDeclaration as PrismaContainerDeclaration,
+    Model as PrismaDataModel,
     DataSourceUrl as PrismaDataSourceUrl,
     Enum as PrismaEnum,
     FieldAttribute as PrismaFieldAttribute,
@@ -45,10 +46,9 @@ import {
     FieldReferenceArg as PrismaFieldReferenceArg,
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
-    Model as PrismaDataModel,
-    ModelFieldType,
-    PassThroughAttribute as PrismaPassThroughAttribute,
     PrismaModel,
+    ContainerAttribute as PrismaModelAttribute,
+    PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
 import ZModelCodeGenerator from './zmodel-code-generator';
