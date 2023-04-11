@@ -196,19 +196,20 @@ model User {
         );
     });
 
-    it('security override', async () => {
+    it('security model level override', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
     provider = '${process.cwd()}/dist'
+    securitySchemes = { 
+        myBasic: { type: 'http', scheme: 'basic' }
+    }
 }
 
 model User {
     id String @id
 
     @@openapi.meta({
-        findMany: {
-            security: []
-        }
+        security: []
     })
 }
         `);
@@ -221,6 +222,65 @@ model User {
 
         const api = await OpenAPIParser.validate(output);
         expect(api.paths?.['/user/findMany']?.['get']?.security).toHaveLength(0);
+    });
+
+    it('security operation level override', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+    securitySchemes = { 
+        myBasic: { type: 'http', scheme: 'basic' }
+    }
+}
+
+model User {
+    id String @id
+
+    @@allow('read', true)
+
+    @@openapi.meta({
+        security: [],
+        findMany: {
+            security: [{ myBasic: [] }]
+        }
+    })
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/user/findMany']?.['get']?.security).toHaveLength(1);
+    });
+
+    it('security inferred', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+    securitySchemes = { 
+        myBasic: { type: 'http', scheme: 'basic' }
+    }
+}
+
+model User {
+    id String @id
+    @@allow('create', true)
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/user/create']?.['post']?.security).toHaveLength(0);
+        expect(api.paths?.['/user/findMany']?.['get']?.security).toBeUndefined();
     });
 
     it('v3.1.0 fields', async () => {

@@ -15,6 +15,7 @@ import {
 } from '@zenstackhq/language/ast';
 import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
+    analyzePolicies,
     getDataModels,
     getLiteral,
     GUARD_FIELD_NAME,
@@ -29,7 +30,7 @@ import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
-import { analyzePolicies, getIdFields } from '../../utils/ast-utils';
+import { getIdFields } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import { isFutureExpr } from './utils';

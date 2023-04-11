@@ -529,6 +529,9 @@ importers:
         specifier: ^16.0.0
         version: 16.0.0
     devDependencies:
+      '@zenstackhq/runtime':
+        specifier: workspace:*
+        version: link:../runtime/dist
       copyfiles:
         specifier: ^2.4.1
         version: 2.4.1
