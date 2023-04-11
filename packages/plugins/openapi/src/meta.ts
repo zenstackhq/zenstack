@@ -6,6 +6,7 @@ import { DataModel } from '@zenstackhq/sdk/ast';
  */
 export type ModelMeta = {
     tagDescription?: string;
+    security?: Array<Record<string, string[]>>;
 };
 
 /**

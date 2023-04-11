@@ -51,7 +51,7 @@ export function getLiteralArray<
     if (!arr) {
         return undefined;
     }
-    return arr.map((item) => getLiteral<T>(item));
+    return arr.map((item) => getLiteral<T>(item) ?? getObjectLiteral<T>(item));
 }
 
 export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined {
