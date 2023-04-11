@@ -17,7 +17,8 @@ export type PluginOptions = { provider?: string; schemaPath: string } & Record<s
 export type PluginFunction = (
     model: Model,
     options: PluginOptions,
-    dmmf?: DMMF.Document
+    dmmf?: DMMF.Document,
+    config?: Record<string, string>
 ) => Promise<string[]> | string[] | Promise<void> | void;
 
 /**

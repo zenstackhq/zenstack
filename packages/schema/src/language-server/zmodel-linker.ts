@@ -66,10 +66,6 @@ export class ZModelLinker extends DefaultLinker {
     //#region Reference linking
 
     async link(document: LangiumDocument, cancelToken = CancellationToken.None): Promise<void> {
-        if (document.parseResult.lexerErrors?.length > 0 || document.parseResult.parserErrors?.length > 0) {
-            return;
-        }
-
         for (const node of streamContents(document.parseResult.value)) {
             await interruptAndCheck(cancelToken);
             this.resolve(node, document);

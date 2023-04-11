@@ -17,7 +17,9 @@ import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
+import { fromZodError } from 'zod-validation-error';
 import { getModelResourceMeta } from './meta';
+import { SecuritySchemesSchema } from './schema';
 
 /**
  * Generates OpenAPI specification.
@@ -54,6 +56,13 @@ export class OpenAPIGenerator {
         const components = this.generateComponents();
         const paths = this.generatePaths(components);
 
+        // generate security schemes, and root-level security
+        this.generateSecuritySchemes(components);
+        let security: OAPI.Document['security'] | undefined = undefined;
+        if (components.securitySchemes && Object.keys(components.securitySchemes).length > 0) {
+            security = Object.keys(components.securitySchemes).map((scheme) => ({ [scheme]: [] }));
+        }
+
         // prune unused component schemas
         this.pruneComponents(components);
 
@@ -62,15 +71,19 @@ export class OpenAPIGenerator {
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
-                description: this.getOption('description', undefined),
-                summary: this.getOption('summary', undefined),
+                description: this.getOption('description'),
+                summary: this.getOption('summary'),
             },
-            tags: this.includedModels.map((model) => ({
-                name: camelCase(model.name),
-                description: `${model.name} operations`,
-            })),
+            tags: this.includedModels.map((model) => {
+                const meta = getModelResourceMeta(model);
+                return {
+                    name: camelCase(model.name),
+                    description: meta?.tagDescription ?? `${model.name} operations`,
+                };
+            }),
             components,
             paths,
+            security,
         };
 
         const ext = path.extname(output);
@@ -81,6 +94,17 @@ export class OpenAPIGenerator {
         }
 
         return this.warnings;
+    }
+
+    private generateSecuritySchemes(components: OAPI.ComponentsObject) {
+        const securitySchemes = this.getOption<Record<string, string>[]>('securitySchemes');
+        if (securitySchemes) {
+            const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
+            if (!parsed.success) {
+                throw new PluginError(`"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
+            }
+            components.securitySchemes = parsed.data;
+        }
     }
 
     private pruneComponents(components: OAPI.ComponentsObject) {
@@ -482,11 +506,13 @@ export class OpenAPIGenerator {
             }
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const def: any = {
+            const def: OAPI.OperationObject = {
                 operationId: `${operation}${model.name}`,
                 description: meta?.description ?? description,
                 tags: meta?.tags || [camelCase(model.name)],
                 summary: meta?.summary,
+                security: meta?.security,
+                deprecated: meta?.deprecated,
                 responses: {
                     [successCode !== undefined ? successCode : '200']: {
                         description: 'Successful operation',
@@ -566,14 +592,13 @@ export class OpenAPIGenerator {
         return this.ref(name);
     }
 
-    private getOption<T extends string | undefined>(
-        name: string,
-        defaultValue: T
-    ): T extends string ? string : string | undefined {
+    private getOption<T = string>(name: string): T | undefined;
+    private getOption<T = string, D extends T = T>(name: string, defaultValue: D): T;
+    private getOption<T = string>(name: string, defaultValue?: T): T | undefined {
         const value = this.options[name];
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        return typeof value === 'string' ? value : defaultValue;
+        return value === undefined ? defaultValue : value;
     }
 
     private generateComponents() {

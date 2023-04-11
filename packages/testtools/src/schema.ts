@@ -34,13 +34,17 @@ export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     });
 }
 
+function normalizePath(p: string) {
+    return p ? p.split(path.sep).join(path.posix.sep) : p;
+}
+
 export function getWorkspaceRoot(start: string) {
-    let curr = start;
+    let curr = normalizePath(start);
     while (curr && curr !== '/') {
         if (fs.existsSync(path.join(curr, 'pnpm-workspace.yaml'))) {
             return curr;
         } else {
-            curr = path.dirname(curr);
+            curr = normalizePath(path.dirname(curr));
         }
     }
     return undefined;
@@ -93,9 +97,11 @@ export async function loadSchema(
     const { name: projectRoot } = tmp.dirSync();
 
     const root = getWorkspaceRoot(__dirname);
+
     if (!root) {
         throw new Error('Could not find workspace root');
     }
+
     console.log('Workspace root:', root);
 
     const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });

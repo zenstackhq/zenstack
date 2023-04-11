@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
 import { isPlugin, Plugin } from '@zenstackhq/language/ast';
 import { getLiteral, getLiteralArray, PluginError, PluginFunction, PluginOptions } from '@zenstackhq/sdk';
@@ -8,7 +8,8 @@ import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
 import telemetry from '../telemetry';
-import { Context } from '../types';
+import type { Context } from '../types';
+import { config } from './config';
 
 /**
  * ZenStack code generator
@@ -133,7 +134,7 @@ export class PluginRunner {
                     plugin: name,
                 },
                 async () => {
-                    let result = run(context.schema, options, dmmf);
+                    let result = run(context.schema, options, dmmf, config);
                     if (result instanceof Promise) {
                         result = await result;
                     }

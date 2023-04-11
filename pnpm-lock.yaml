@@ -104,6 +104,12 @@ importers:
       yaml:
         specifier: ^2.2.1
         version: 2.2.1
+      zod:
+        specifier: ^3.19.1
+        version: 3.19.1
+      zod-validation-error:
+        specifier: ^0.2.1
+        version: 0.2.1(zod@3.19.1)
     devDependencies:
       '@prisma/internals':
         specifier: ^4.7.1
@@ -415,6 +421,9 @@ importers:
       zod:
         specifier: ^3.19.1
         version: 3.19.1
+      zod-validation-error:
+        specifier: ^0.2.1
+        version: 0.2.1(zod@3.19.1)
     devDependencies:
       '@types/async-exit-hook':
         specifier: ^2.0.0
@@ -473,9 +482,6 @@ importers:
       jest:
         specifier: ^29.2.1
         version: 29.2.1(@types/node@14.18.32)(ts-node@10.9.1)
-      langium-cli:
-        specifier: ^1.0.0
-        version: 1.0.0
       prisma:
         specifier: ^4.0.0
         version: 4.7.0
@@ -4278,11 +4284,6 @@ packages:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
     dev: true
 
-  /at-least-node@1.0.0:
-    resolution: {integrity: sha512-+q/t7Ekv1EDY2l6Gda6LLiX14rU9TV20Wa3ofeQmwPFZbOMo9DXrLbOjFaaclkXKWidIaopwAObQDqwWtGUjqg==}
-    engines: {node: '>= 4.0.0'}
-    dev: true
-
   /atomic-sleep@1.0.0:
     resolution: {integrity: sha512-kNOjDqAh7px0XWNI+4QbzoiR/nTkHAWNud2uvnJquD1/x5a7EQZMJT0AczqK0Qn67oY/TTQ1LbUKajZpp3I9tQ==}
     engines: {node: '>=8.0.0'}
@@ -5023,6 +5024,7 @@ packages:
   /commander@8.3.0:
     resolution: {integrity: sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==}
     engines: {node: '>= 12'}
+    dev: false
 
   /commander@9.4.1:
     resolution: {integrity: sha512-5EEkTNyHNGFPD2H+c/dXXfQZYa/scCKasxWcXJaWnNJ99pnQN9Vnmqow+p+PlFPE63Q6mThaZws1T+HxfpgtPw==}
@@ -6582,16 +6584,6 @@ packages:
       graceful-fs: 4.2.10
       jsonfile: 4.0.0
       universalify: 0.1.2
-    dev: true
-
-  /fs-extra@9.1.0:
-    resolution: {integrity: sha512-hcg3ZmepS30/7BSFqRvoo3DOMQu7IjqxO5nCDt+zM9XWjb33Wg7ziNT+Qvqbuc3+gWpzO02JubVyk2G4Zvo1OQ==}
-    engines: {node: '>=10'}
-    dependencies:
-      at-least-node: 1.0.0
-      graceful-fs: 4.2.10
-      jsonfile: 6.1.0
-      universalify: 2.0.0
     dev: true
 
   /fs-jetpack@5.1.0:
@@ -9281,19 +9273,6 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /langium-cli@1.0.0:
-    resolution: {integrity: sha512-F5RZu3/PrlRfebMM6irtHDk2cj5PdUzM4y3M5kNu8k5IC3gIhc4QN+aDD2XHYz8hQSA+bCRUIDwCdhy/7VN4cg==}
-    engines: {node: '>=12.0.0'}
-    hasBin: true
-    dependencies:
-      chalk: 4.1.2
-      commander: 8.3.0
-      fs-extra: 9.1.0
-      jsonschema: 1.4.1
-      langium: 1.0.1
-      lodash: 4.17.21
-    dev: true
-
   /langium-cli@1.1.0:
     resolution: {integrity: sha512-vnv037FHqXqMeNiNF90v47VrJGiJPzH721UIbbHcu6Nfx0C1UC6SmQhGHtZIDRovT5qJsiXRIPDTZYrIkm4KJQ==}
     engines: {node: '>=14.0.0'}
@@ -9305,17 +9284,6 @@ packages:
       jsonschema: 1.4.1
       langium: 1.1.0
       lodash: 4.17.21
-    dev: true
-
-  /langium@1.0.1:
-    resolution: {integrity: sha512-9w5NRsspYOOXV56q1EhXeFJWkboAVKZDzIEqPLraMQPQy6fvq104wlVwgvF6w9H4IcCpDHCsHJLsfzQMWBsjAA==}
-    engines: {node: '>=14.0.0'}
-    dependencies:
-      chevrotain: 10.4.2
-      chevrotain-allstar: 0.1.4
-      vscode-languageserver: 8.0.2
-      vscode-languageserver-textdocument: 1.0.7
-      vscode-uri: 3.0.7
     dev: true
 
   /langium@1.1.0:
@@ -12058,6 +12026,7 @@ packages:
 
   /vscode-languageserver-textdocument@1.0.7:
     resolution: {integrity: sha512-bFJH7UQxlXT8kKeyiyu41r22jCZXG8kuuVVA33OEJn1diWOZK5n8zBSPZFHVBOu8kXZ6h0LIRhf5UnCo61J4Hg==}
+    dev: false
 
   /vscode-languageserver-textdocument@1.0.8:
     resolution: {integrity: sha512-1bonkGqQs5/fxGT5UchTgjGVnfysL0O8v1AYMBjqTbWQTFn721zaPGDYFkOKtfDgFiSgXM3KwaG3FMGfW4Ed9Q==}

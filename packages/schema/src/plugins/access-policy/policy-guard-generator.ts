@@ -14,7 +14,15 @@ import {
     Model,
 } from '@zenstackhq/language/ast';
 import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
-import { getDataModels, getLiteral, GUARD_FIELD_NAME, PluginError, PluginOptions, resolved } from '@zenstackhq/sdk';
+import {
+    getDataModels,
+    getLiteral,
+    GUARD_FIELD_NAME,
+    PluginError,
+    PluginOptions,
+    resolved,
+    RUNTIME_PACKAGE,
+} from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';
 import path from 'path';
@@ -22,7 +30,7 @@ import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } fro
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { analyzePolicies, getIdFields } from '../../utils/ast-utils';
-import { ALL_OPERATION_KINDS, getDefaultOutputFolder, RUNTIME_PACKAGE } from '../plugin-utils';
+import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import { isFutureExpr } from './utils';
 import { ZodSchemaGenerator } from './zod-schema-generator';
