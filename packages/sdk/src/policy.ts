@@ -1,4 +1,3 @@
-import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import type { DataModel, DataModelAttribute } from './ast';
 import { getLiteral } from './utils';
 
@@ -42,7 +41,7 @@ export function analyzePolicies(dataModel: DataModel) {
 }
 
 function toStaticPolicy(
-    operation: PolicyOperationKind,
+    operation: string,
     allows: DataModelAttribute[],
     denies: DataModelAttribute[]
 ): boolean | undefined {
@@ -68,7 +67,7 @@ function toStaticPolicy(
     return undefined;
 }
 
-function forOperation(operation: PolicyOperationKind, rules: DataModelAttribute[]) {
+function forOperation(operation: string, rules: DataModelAttribute[]) {
     return rules.filter((rule) => {
         const ops = getLiteral<string>(rule.args[0].value);
         if (!ops) {
