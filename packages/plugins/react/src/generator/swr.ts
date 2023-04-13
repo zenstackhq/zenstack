@@ -378,7 +378,16 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     // groupBy
     if (mapping.groupBy) {
         methods.push('groupBy');
-        const returnType = `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`;
+        const returnType = `{} extends InputErrors ? 
+        Array<Prisma.PickArray<Prisma.${model.name}GroupByOutputType, T['by']> &
+          {
+            [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
+              ? T[P] extends boolean
+                ? number
+                : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+          }
+        > : InputErrors`;
         useFunc
             .addFunction({
                 name: 'groupBy',
