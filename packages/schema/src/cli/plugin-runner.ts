@@ -9,6 +9,7 @@ import ora from 'ora';
 import path from 'path';
 import telemetry from '../telemetry';
 import type { Context } from '../types';
+import { getVersion } from '../utils/version-utils';
 import { config } from './config';
 
 /**
@@ -19,7 +20,7 @@ export class PluginRunner {
      * Runs a series of nested generators
      */
     async run(context: Context): Promise<void> {
-        const version = require('../package.json').version;
+        const version = getVersion();
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
         const plugins: Array<{

@@ -34,7 +34,7 @@ export function getLiteral<T extends string | number | boolean | any = any>(
     expr: Expression | undefined
 ): T | undefined {
     if (!isLiteralExpr(expr)) {
-        return undefined;
+        return getObjectLiteral<T>(expr);
     }
     return expr.value as T;
 }
@@ -51,7 +51,7 @@ export function getLiteralArray<
     if (!arr) {
         return undefined;
     }
-    return arr.map((item) => getLiteral<T>(item) ?? getObjectLiteral<T>(item));
+    return arr.map((item) => getLiteral<T>(item));
 }
 
 export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined {
