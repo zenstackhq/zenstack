@@ -91,7 +91,6 @@ describe('CLI Command Tests', () => {
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/my.prisma', 'utf-8'));
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
     it('init project empty project', async () => {
         fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
         createNpmrc();
