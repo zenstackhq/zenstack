@@ -5,10 +5,10 @@ import { fromZodError } from 'zod-validation-error';
 import { CliError } from './cli-error';
 
 const schema = z
-    .object( {
+    .object({
         guardFieldName: z.string().default( GUARD_FIELD_NAME ),
         transactionFieldName: z.string().default( TRANSACTION_FIELD_NAME ),
-    } )
+    })
     .strict();
 
 export type ConfigType = z.infer<typeof schema>;
