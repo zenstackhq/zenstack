@@ -6,14 +6,14 @@ import { CliError } from './cli-error';
 
 const schema = z
     .object({
-        guardFieldName: z.string().default( GUARD_FIELD_NAME ),
-        transactionFieldName: z.string().default( TRANSACTION_FIELD_NAME ),
+        guardFieldName: z.string().default(GUARD_FIELD_NAME),
+        transactionFieldName: z.string().default(TRANSACTION_FIELD_NAME),
     })
     .strict();
 
 export type ConfigType = z.infer<typeof schema>;
 
-export let config: ConfigType = schema.parse( {} );
+export let config: ConfigType = schema.parse({});
 
 /**
  * Loads and validates CLI configuration file.
