@@ -44,6 +44,8 @@ export function isReferenceTarget(item: unknown): item is ReferenceTarget {
     return reflection.isInstance(item, ReferenceTarget);
 }
 
+export type RegularID = 'in' | string;
+
 export type TypeDeclaration = DataModel | Enum;
 
 export const TypeDeclaration = 'TypeDeclaration';
@@ -55,7 +57,7 @@ export function isTypeDeclaration(item: unknown): item is TypeDeclaration {
 export interface Argument extends AstNode {
     readonly $container: InvocationExpr;
     readonly $type: 'Argument';
-    name?: string
+    name?: RegularID
     value: Expression
 }
 
@@ -94,7 +96,7 @@ export function isAttribute(item: unknown): item is Attribute {
 export interface AttributeArg extends AstNode {
     readonly $container: AttributeAttribute | DataModelAttribute | DataModelFieldAttribute;
     readonly $type: 'AttributeArg';
-    name?: string
+    name?: RegularID
     value: Expression
 }
 
@@ -121,7 +123,7 @@ export interface AttributeParam extends AstNode {
     readonly $container: Attribute;
     readonly $type: 'AttributeParam';
     default: boolean
-    name: string
+    name: RegularID
     type: AttributeParamType
 }
 
@@ -166,7 +168,7 @@ export interface DataModel extends AstNode {
     attributes: Array<DataModelAttribute>
     comments: Array<string>
     fields: Array<DataModelField>
-    name: string
+    name: RegularID
 }
 
 export const DataModel = 'DataModel';
@@ -193,7 +195,7 @@ export interface DataModelField extends AstNode {
     readonly $type: 'DataModelField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
-    name: string
+    name: RegularID
     type: DataModelFieldType
 }
 
@@ -235,7 +237,7 @@ export interface DataSource extends AstNode {
     readonly $container: Model;
     readonly $type: 'DataSource';
     fields: Array<DataSourceField>
-    name: string
+    name: RegularID
 }
 
 export const DataSource = 'DataSource';
@@ -247,7 +249,7 @@ export function isDataSource(item: unknown): item is DataSource {
 export interface DataSourceField extends AstNode {
     readonly $container: DataSource;
     readonly $type: 'DataSourceField';
-    name: string
+    name: RegularID
     value: ArrayExpr | InvocationExpr | LiteralExpr
 }
 
@@ -263,7 +265,7 @@ export interface Enum extends AstNode {
     attributes: Array<DataModelAttribute>
     comments: Array<string>
     fields: Array<EnumField>
-    name: string
+    name: RegularID
 }
 
 export const Enum = 'Enum';
@@ -277,7 +279,7 @@ export interface EnumField extends AstNode {
     readonly $type: 'EnumField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
-    name: string
+    name: RegularID
 }
 
 export const EnumField = 'EnumField';
@@ -289,7 +291,7 @@ export function isEnumField(item: unknown): item is EnumField {
 export interface FieldInitializer extends AstNode {
     readonly $container: ObjectExpr;
     readonly $type: 'FieldInitializer';
-    name: string
+    name: RegularID
     value: Expression
 }
 
@@ -303,7 +305,7 @@ export interface FunctionDecl extends AstNode {
     readonly $container: Model;
     readonly $type: 'FunctionDecl';
     expression?: Expression
-    name: string
+    name: RegularID
     params: Array<FunctionParam>
     returnType: FunctionParamType
 }
@@ -317,7 +319,7 @@ export function isFunctionDecl(item: unknown): item is FunctionDecl {
 export interface FunctionParam extends AstNode {
     readonly $container: DataModel | Enum | FunctionDecl;
     readonly $type: 'FunctionParam';
-    name: string
+    name: RegularID
     optional: boolean
     type: FunctionParamType
 }
@@ -346,7 +348,7 @@ export interface GeneratorDecl extends AstNode {
     readonly $container: Model;
     readonly $type: 'GeneratorDecl';
     fields: Array<GeneratorField>
-    name: string
+    name: RegularID
 }
 
 export const GeneratorDecl = 'GeneratorDecl';
@@ -358,7 +360,7 @@ export function isGeneratorDecl(item: unknown): item is GeneratorDecl {
 export interface GeneratorField extends AstNode {
     readonly $container: GeneratorDecl;
     readonly $type: 'GeneratorField';
-    name: string
+    name: RegularID
     value: ArrayExpr | LiteralExpr
 }
 
@@ -445,7 +447,7 @@ export interface Plugin extends AstNode {
     readonly $container: Model;
     readonly $type: 'Plugin';
     fields: Array<PluginField>
-    name: string
+    name: RegularID
 }
 
 export const Plugin = 'Plugin';
@@ -457,8 +459,8 @@ export function isPlugin(item: unknown): item is Plugin {
 export interface PluginField extends AstNode {
     readonly $container: Plugin;
     readonly $type: 'PluginField';
-    name: string
-    value: ArrayExpr | LiteralExpr
+    name: RegularID
+    value: ArrayExpr | LiteralExpr | ObjectExpr
 }
 
 export const PluginField = 'PluginField';

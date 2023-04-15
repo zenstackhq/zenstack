@@ -1,21 +1,6 @@
 import { DMMF } from '@prisma/generator-helper';
-import { CrudFailureReason } from '@zenstackhq/sdk';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
 import { uncapitalizeFirstLetter } from './utils/uncapitalizeFirstLetter';
-
-export const generatetRPCImport = (sourceFile: SourceFile) => {
-    sourceFile.addImportDeclaration({
-        moduleSpecifier: '@trpc/server',
-        namespaceImport: 'trpc',
-    });
-};
-
-export const generateRouterImport = (sourceFile: SourceFile, modelNamePlural: string, modelNameCamelCase: string) => {
-    sourceFile.addImportDeclaration({
-        moduleSpecifier: `./${modelNameCamelCase}.router`,
-        namedImports: [`${modelNamePlural}Router`],
-    });
-};
 
 export function generateProcedure(
     writer: CodeBlockWriter,
@@ -29,30 +14,25 @@ export function generateProcedure(
 
     if (procType === 'query') {
         writer.write(`
-        ${opType}: procedure.input(${typeName}).query(({ctx, input}) => db(ctx).${uncapitalizeFirstLetter(
+        ${opType}: procedure.input(${typeName}).query(({ctx, input}) => checkRead(db(ctx).${uncapitalizeFirstLetter(
             modelName
-        )}.${prismaMethod}(input)),
+        )}.${prismaMethod}(input))),
     `);
     } else if (procType === 'mutation') {
         writer.write(`
-        ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => {
-            try {
-                return await db(ctx).${uncapitalizeFirstLetter(modelName)}.${prismaMethod}(input);
-            } catch (err: any) {
-                if (err.code === 'P2004' && err.meta?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
-                    // unable to readback data
-                    return undefined;
-                } else {
-                    throw err;
-                }
-            }
-        }),
+        ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => checkMutate(db(ctx).${uncapitalizeFirstLetter(
+            modelName
+        )}.${prismaMethod}(input))),
     `);
     }
 }
 
 export function generateRouterSchemaImports(sourceFile: SourceFile, name: string) {
     sourceFile.addStatements(`import { ${name}Schema } from '../schemas/${name}.schema';`);
+}
+
+export function generateHelperImport(sourceFile: SourceFile) {
+    sourceFile.addStatements(`import { checkRead, checkMutate } from '../helper';`);
 }
 
 export const getInputTypeByOpName = (opName: string, modelName: string) => {

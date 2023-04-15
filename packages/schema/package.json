@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "1.0.0-alpha.98",
+    "version": "1.0.0-alpha.102",
     "author": {
         "name": "ZenStack Team"
     },
@@ -92,6 +92,7 @@
         "colors": "1.4.0",
         "commander": "^8.3.0",
         "cuid": "^2.1.8",
+        "get-latest-version": "^5.0.1",
         "langium": "1.1.0",
         "mixpanel": "^0.17.0",
         "node-machine-id": "^1.1.12",
@@ -108,7 +109,7 @@
         "vscode-languageserver-textdocument": "^1.0.7",
         "vscode-uri": "^3.0.6",
         "zod": "^3.19.1",
-        "get-latest-version": "^5.0.1"
+        "zod-validation-error": "^0.2.1"
     },
     "devDependencies": {
         "@types/async-exit-hook": "^2.0.0",

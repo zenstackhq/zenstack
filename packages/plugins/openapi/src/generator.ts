@@ -1,7 +1,14 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS, getDataModels, hasAttribute, PluginError, PluginOptions } from '@zenstackhq/sdk';
+import {
+    analyzePolicies,
+    AUXILIARY_FIELDS,
+    getDataModels,
+    hasAttribute,
+    PluginError,
+    PluginOptions,
+} from '@zenstackhq/sdk';
 import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -17,7 +24,9 @@ import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
+import { fromZodError } from 'zod-validation-error';
 import { getModelResourceMeta } from './meta';
+import { SecuritySchemesSchema } from './schema';
 
 /**
  * Generates OpenAPI specification.
@@ -54,6 +63,13 @@ export class OpenAPIGenerator {
         const components = this.generateComponents();
         const paths = this.generatePaths(components);
 
+        // generate security schemes, and root-level security
+        this.generateSecuritySchemes(components);
+        let security: OAPI.Document['security'] | undefined = undefined;
+        if (components.securitySchemes && Object.keys(components.securitySchemes).length > 0) {
+            security = Object.keys(components.securitySchemes).map((scheme) => ({ [scheme]: [] }));
+        }
+
         // prune unused component schemas
         this.pruneComponents(components);
 
@@ -62,15 +78,19 @@ export class OpenAPIGenerator {
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
-                description: this.getOption('description', undefined),
-                summary: this.getOption('summary', undefined),
+                description: this.getOption('description'),
+                summary: this.getOption('summary'),
             },
-            tags: this.includedModels.map((model) => ({
-                name: camelCase(model.name),
-                description: `${model.name} operations`,
-            })),
+            tags: this.includedModels.map((model) => {
+                const meta = getModelResourceMeta(model);
+                return {
+                    name: camelCase(model.name),
+                    description: meta?.tagDescription ?? `${model.name} operations`,
+                };
+            }),
             components,
             paths,
+            security,
         };
 
         const ext = path.extname(output);
@@ -81,6 +101,17 @@ export class OpenAPIGenerator {
         }
 
         return this.warnings;
+    }
+
+    private generateSecuritySchemes(components: OAPI.ComponentsObject) {
+        const securitySchemes = this.getOption<Record<string, string>[]>('securitySchemes');
+        if (securitySchemes) {
+            const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
+            if (!parsed.success) {
+                throw new PluginError(`"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
+            }
+            components.securitySchemes = parsed.data;
+        }
     }
 
     private pruneComponents(components: OAPI.ComponentsObject) {
@@ -177,10 +208,14 @@ export class OpenAPIGenerator {
             inputType?: object;
             outputType: object;
             successCode?: number;
+            security?: Array<Record<string, string[]>>;
         };
 
         const definitions: OperationDefinition[] = [];
         const hasRelation = zmodel.fields.some((f) => isDataModel(f.type.reference?.ref));
+
+        // analyze access policies to determine default security
+        const { create, read, update, delete: del } = analyzePolicies(zmodel);
 
         if (ops['createOne']) {
             definitions.push({
@@ -201,6 +236,7 @@ export class OpenAPIGenerator {
                 outputType: this.ref(model.name),
                 description: `Create a new ${model.name}`,
                 successCode: 201,
+                security: create === true ? [] : undefined,
             });
         }
 
@@ -221,6 +257,7 @@ export class OpenAPIGenerator {
                 outputType: this.ref('BatchPayload'),
                 description: `Create several ${model.name}`,
                 successCode: 201,
+                security: create === true ? [] : undefined,
             });
         }
 
@@ -242,6 +279,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Find one unique ${model.name}`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -263,6 +301,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Find the first ${model.name} matching the given condition`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -284,6 +323,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.array(this.ref(model.name)),
                 description: `Find a list of ${model.name}`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -306,6 +346,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Update a ${model.name}`,
+                security: update === true ? [] : undefined,
             });
         }
 
@@ -326,6 +367,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref('BatchPayload'),
                 description: `Update ${model.name}s matching the given condition`,
+                security: update === true ? [] : undefined,
             });
         }
 
@@ -349,6 +391,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Upsert a ${model.name}`,
+                security: create === true && update == true ? [] : undefined,
             });
         }
 
@@ -370,6 +413,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(model.name),
                 description: `Delete one unique ${model.name}`,
+                security: del === true ? [] : undefined,
             });
         }
 
@@ -389,6 +433,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref('BatchPayload'),
                 description: `Delete ${model.name}s matching the given condition`,
+                security: del === true ? [] : undefined,
             });
         }
 
@@ -409,6 +454,7 @@ export class OpenAPIGenerator {
             ),
             outputType: this.oneOf({ type: 'integer' }, this.ref(`${model.name}CountAggregateOutputType`)),
             description: `Find a list of ${model.name}`,
+            security: read === true ? [] : undefined,
         });
 
         if (ops['aggregate']) {
@@ -432,6 +478,7 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.ref(`Aggregate${model.name}`),
                 description: `Aggregate ${model.name}s`,
+                security: read === true ? [] : undefined,
             });
         }
 
@@ -457,13 +504,14 @@ export class OpenAPIGenerator {
                 ),
                 outputType: this.array(this.ref(`${model.name}GroupByOutputType`)),
                 description: `Group ${model.name}s by fields`,
+                security: read === true ? [] : undefined,
             });
         }
 
         // get meta specified with @@openapi.meta
         const resourceMeta = getModelResourceMeta(zmodel);
 
-        for (const { method, operation, description, inputType, outputType, successCode } of definitions) {
+        for (const { method, operation, description, inputType, outputType, successCode, security } of definitions) {
             const meta = resourceMeta?.[operation];
 
             if (meta?.ignore === true) {
@@ -482,11 +530,14 @@ export class OpenAPIGenerator {
             }
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const def: any = {
+            const def: OAPI.OperationObject = {
                 operationId: `${operation}${model.name}`,
                 description: meta?.description ?? description,
                 tags: meta?.tags || [camelCase(model.name)],
                 summary: meta?.summary,
+                // security priority: operation-level > model-level > inferred
+                security: meta?.security ?? resourceMeta?.security ?? security,
+                deprecated: meta?.deprecated,
                 responses: {
                     [successCode !== undefined ? successCode : '200']: {
                         description: 'Successful operation',
@@ -566,14 +617,13 @@ export class OpenAPIGenerator {
         return this.ref(name);
     }
 
-    private getOption<T extends string | undefined>(
-        name: string,
-        defaultValue: T
-    ): T extends string ? string : string | undefined {
+    private getOption<T = string>(name: string): T | undefined;
+    private getOption<T = string, D extends T = T>(name: string, defaultValue: D): T;
+    private getOption<T = string>(name: string, defaultValue?: T): T | undefined {
         const value = this.options[name];
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        return typeof value === 'string' ? value : defaultValue;
+        return value === undefined ? defaultValue : value;
     }
 
     private generateComponents() {

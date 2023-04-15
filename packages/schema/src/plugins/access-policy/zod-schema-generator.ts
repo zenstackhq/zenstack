@@ -1,8 +1,7 @@
 import { DataModel, DataModelField, DataModelFieldAttribute, isDataModelField } from '@zenstackhq/language/ast';
-import { AUXILIARY_FIELDS, getLiteral } from '@zenstackhq/sdk';
+import { AUXILIARY_FIELDS, VALIDATION_ATTRIBUTES, getLiteral } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { CodeBlockWriter } from 'ts-morph';
-import { VALIDATION_ATTRIBUTES } from '../../utils/ast-utils';
 
 /**
  * Writes Zod schema for data models.

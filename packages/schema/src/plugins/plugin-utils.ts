@@ -2,7 +2,6 @@ import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import fs from 'fs';
 import path from 'path';
 
-export const RUNTIME_PACKAGE = '@zenstackhq/runtime';
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
 /**

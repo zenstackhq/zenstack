@@ -22,3 +22,8 @@ export enum CrudFailureReason {
      */
     RESULT_NOT_READABLE = 'RESULT_NOT_READABLE',
 }
+
+/**
+ * @zenstackhq/runtime package name
+ */
+export const RUNTIME_PACKAGE = '@zenstackhq/runtime';
