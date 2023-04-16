@@ -1,6 +1,6 @@
 import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import fs from 'fs';
-import z from 'zod';
+import z, { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CliError } from './cli-error';
 
@@ -20,21 +20,20 @@ export let config: ConfigType = schema.parse({});
  * @returns
  */
 export function loadConfig(filename: string) {
-    if (!fs.existsSync(filename)) {
-        return;
-    }
-
-    let content: unknown;
     try {
-        content = JSON.parse(fs.readFileSync(filename, 'utf-8'));
-    } catch {
-        throw new CliError(`Config is not a valid JSON file: ${filename}`);
+        const fileData = fs.readFileSync(filename, `utf-8`);
+        const content = JSON.parse(fileData);
+        config = schema.parse(content);
+    } catch (err: any) {
+        if (err?.code === `ENOENT`) {
+            throw new CliError(`Config file could not be found: ${filename}`);
+        }
+        if (err instanceof SyntaxError) {
+            throw new CliError(`Config is not a valid JSON file: ${filename}`);
+        }
+        if (err instanceof ZodError) {
+            throw new CliError(`Config file ${filename} is not valid: ${fromZodError(err)}`);
+        }
+        throw new CliError(`Error loading config: ${filename}`);
     }
-
-    const parsed = schema.safeParse(content);
-    if (!parsed.success) {
-        throw new CliError(`Config file ${filename} is not valid: ${fromZodError(parsed.error)}`);
-    }
-
-    config = parsed.data;
 }
