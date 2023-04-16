@@ -144,8 +144,8 @@ export function createProgram() {
             configFile = DEFAULT_CONFIG_FILE;
         }
 
-        if ( configFile ) {
-            loadConfig( configFile );
+        if (configFile) {
+            loadConfig(configFile);
         }
     });
 

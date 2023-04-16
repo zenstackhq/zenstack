@@ -70,16 +70,16 @@ describe('CLI Config Tests', () => {
         const configFile = `my.config.json`;
         await expect(
             program.parseAsync(['init', '--tag', 'latest', '--config', configFile], { from: 'user' })
-        ).rejects.toThrow( /Config file could not be found/i );
-    } );
+        ).rejects.toThrow(/Config file could not be found/i);
+    });
 
     it('custom config file is not json', async () => {
         const program = createProgram();
         const configFile = `my.config.json`;
         fs.writeFileSync(configFile, ` 😬 😬 😬`);
         await expect(
-            program.parseAsync( [ 'init', '--tag', 'latest', '--config', configFile ], {from: 'user'} )
-        ).rejects.toThrow( /Config is not a valid JSON file/i );
+            program.parseAsync(['init', '--tag', 'latest', '--config', configFile], { from: 'user' })
+        ).rejects.toThrow(/Config is not a valid JSON file/i);
     });
 
     it('valid custom config file', async () => {
@@ -99,6 +99,6 @@ describe('CLI Config Tests', () => {
         const program = createProgram();
         await expect(
             program.parseAsync(['init', '--tag', 'latest', '--config', 'my.config.json'], { from: 'user' })
-        ).rejects.toThrow( /Config file my.config.json is not valid/i );
+        ).rejects.toThrow(/Config file my.config.json is not valid/i);
     });
 });
