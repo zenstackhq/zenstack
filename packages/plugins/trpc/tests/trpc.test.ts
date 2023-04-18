@@ -1,9 +1,11 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
+import fs from 'fs';
 
 describe('tRPC Plugin Tests', () => {
     let origDir: string;
+    let projDir: string;
 
     beforeAll(() => {
         origDir = process.cwd();
@@ -11,10 +13,13 @@ describe('tRPC Plugin Tests', () => {
 
     afterEach(() => {
         process.chdir(origDir);
+        if (projDir) {
+            fs.rmSync(projDir, { recursive: true, force: true });
+        }
     });
 
     it('run plugin', async () => {
-        await loadSchema(
+        const { projectDir } = await loadSchema(
             `
 plugin trpc {
     provider = '${process.cwd()}/dist'
@@ -51,5 +56,6 @@ model Foo {
             [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
             true
         );
+        projDir = projectDir;
     });
 });

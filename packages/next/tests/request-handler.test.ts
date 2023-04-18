@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { loadSchema } from '@zenstackhq/testtools';
+import fs from 'fs';
 import { createServer, RequestListener } from 'http';
 import { apiResolver } from 'next/dist/server/api-utils/node';
 import superjson from 'superjson';
@@ -36,6 +37,7 @@ function makeTestClient(apiPath: string, options: RequestHandlerOptions, queryAr
 
 describe('request handler tests', () => {
     let origDir: string;
+    let projDir: string;
 
     beforeEach(() => {
         origDir = process.cwd();
@@ -43,6 +45,9 @@ describe('request handler tests', () => {
 
     afterEach(() => {
         process.chdir(origDir);
+        if (projDir) {
+            fs.rmSync(projDir, { recursive: true, force: true });
+        }
     });
 
     it('simple crud', async () => {
@@ -53,7 +58,8 @@ model M {
 }
         `;
 
-        const { prisma } = await loadSchema(model);
+        const { prisma, projectDir } = await loadSchema(model);
+        projDir = projectDir;
 
         await makeTestClient('/m/create', { getPrisma: () => prisma })
             .post('/')
@@ -174,7 +180,8 @@ model M {
 }
         `;
 
-        const { withPresets } = await loadSchema(model);
+        const { withPresets, projectDir } = await loadSchema(model);
+        projDir = projectDir;
 
         await makeTestClient('/m/create', { getPrisma: () => withPresets() })
             .post('/m/create')
