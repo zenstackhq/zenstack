@@ -31,7 +31,7 @@
         "prettier": "^2.8.3",
         "ts-morph": "^16.0.0",
         "tslib": "^2.4.1",
-        "zod": "^3.19.1"
+        "zod": "3.21.1"
     },
     "devDependencies": {
         "@types/jest": "^29.5.0",
