@@ -114,7 +114,7 @@ export default class Transformer {
             } else if (inputType.type === 'Boolean') {
                 result.push(this.wrapWithZodValidators('z.boolean()', field, inputType));
             } else if (inputType.type === 'DateTime') {
-                result.push(this.wrapWithZodValidators('z.date()', field, inputType));
+                result.push(this.wrapWithZodValidators('z.union([z.date(), z.string().datetime()])', field, inputType));
             } else if (inputType.type === 'Json') {
                 this.hasJson = true;
 
