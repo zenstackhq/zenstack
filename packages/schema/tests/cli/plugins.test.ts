@@ -20,7 +20,7 @@ describe('CLI Plugins Tests', () => {
     });
 
     afterEach(() => {
-        // fs.rmSync(projDir, { recursive: true, force: true });
+        fs.rmSync(projDir, { recursive: true, force: true });
         process.chdir(origDir);
     });
 
