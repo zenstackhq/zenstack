@@ -2,7 +2,8 @@
 import { DbClientContract } from '@zenstackhq/runtime';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
-import { handleRequest, LoggerConfig } from '../openapi';
+import { HandleRequestFn, LoggerConfig } from '../api/utils';
+import PrismaAPI from '../api/prisma';
 
 /**
  * Express middleware options
@@ -22,6 +23,11 @@ export interface MiddlewareOptions {
      * Zod schemas for validating request input. Pass `true` to load from standard location (need to enable `@core/zod` plugin in schema.zmodel).
      */
     zodSchemas?: ModelZodSchema | boolean;
+
+    /**
+     * API format to use from `@zenstackhq/server/api`
+     */
+    api?: HandleRequestFn;
 }
 
 /**
@@ -34,6 +40,8 @@ const factory = (options: MiddlewareOptions): Handler => {
     } else if (options.zodSchemas === true) {
         schemas = getModelZodSchemas();
     }
+
+    const handleRequest = options.api || PrismaAPI;
 
     return async (request, response) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
