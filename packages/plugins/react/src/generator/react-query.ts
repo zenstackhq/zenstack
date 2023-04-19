@@ -234,7 +234,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const typeParameters = [
             `T extends Prisma.${model.name}GroupByArgs`,
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
-            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.UserGroupByArgs['orderBy'] }: { orderBy?: Prisma.UserGroupByArgs['orderBy'] },`,
+            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
             `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
             `ByFields extends Prisma.TupleToUnion<T['by']>`,
             `ByValid extends Prisma.Has<ByFields, OrderFields>`,
@@ -285,13 +285,24 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             }[OrderFields]`,
         ];
 
+        const returnType = `{} extends InputErrors ? 
+        Array<Prisma.PickArray<Prisma.${model.name}GroupByOutputType, T['by']> &
+          {
+            [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
+              ? T[P] extends boolean
+                ? number
+                : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+          }
+        > : InputErrors`;
+
         generateQueryHook(
             sf,
             model.name,
             'groupBy',
             false,
             false,
-            `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`,
+            returnType,
             `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`,
             typeParameters
         );

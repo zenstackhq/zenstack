@@ -157,7 +157,7 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
                             );
                         }
                     } catch {
-                        console.warn(`Unable to load plugin from ${provider}, skipping`);
+                        // noop
                     }
                 }
             }

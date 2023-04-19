@@ -34,7 +34,7 @@ export function getLiteral<T extends string | number | boolean | any = any>(
     expr: Expression | undefined
 ): T | undefined {
     if (!isLiteralExpr(expr)) {
-        return undefined;
+        return getObjectLiteral<T>(expr);
     }
     return expr.value as T;
 }

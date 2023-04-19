@@ -20,6 +20,7 @@ import {
     Model,
 } from '@zenstackhq/language/ast';
 import {
+    analyzePolicies,
     getLiteral,
     getLiteralArray,
     GUARD_FIELD_NAME,
@@ -31,13 +32,13 @@ import {
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import { analyzePolicies } from '../../utils/ast-utils';
 import { execSync } from '../../utils/exec-utils';
 import {
+    ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
-    ContainerAttribute as PrismaModelAttribute,
     ContainerDeclaration as PrismaContainerDeclaration,
+    Model as PrismaDataModel,
     DataSourceUrl as PrismaDataSourceUrl,
     Enum as PrismaEnum,
     FieldAttribute as PrismaFieldAttribute,
@@ -45,10 +46,9 @@ import {
     FieldReferenceArg as PrismaFieldReferenceArg,
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
-    Model as PrismaDataModel,
-    ModelFieldType,
-    PassThroughAttribute as PrismaPassThroughAttribute,
     PrismaModel,
+    ContainerAttribute as PrismaModelAttribute,
+    PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
 import ZModelCodeGenerator from './zmodel-code-generator';
@@ -69,7 +69,7 @@ export default class PrismaSchemaGenerator {
 
 `;
 
-    async generate(model: Model, options: PluginOptions) {
+    async generate(model: Model, options: PluginOptions, config?: Record<string, string>) {
         const prisma = new PrismaModel();
 
         for (const decl of model.declarations) {
@@ -83,7 +83,7 @@ export default class PrismaSchemaGenerator {
                     break;
 
                 case DataModel:
-                    this.generateModel(prisma, decl as DataModel);
+                    this.generateModel(prisma, decl as DataModel, config);
                     break;
 
                 case GeneratorDecl:
@@ -191,18 +191,25 @@ export default class PrismaSchemaGenerator {
         );
     }
 
-    private generateModel(prisma: PrismaModel, decl: DataModel) {
+    private generateModel(prisma: PrismaModel, decl: DataModel, config?: Record<string, string>) {
         const model = prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);
         }
 
         // add an "zenstack_guard" field for dealing with boolean conditions
-        model.addField(GUARD_FIELD_NAME, 'Boolean', [
+        const guardField = model.addField(GUARD_FIELD_NAME, 'Boolean', [
             new PrismaFieldAttribute('@default', [
                 new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
             ]),
         ]);
+
+        if (config?.guardFieldName && config?.guardFieldName !== GUARD_FIELD_NAME) {
+            // generate a @map to rename field in the database
+            guardField.addAttribute('@map', [
+                new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('String', config.guardFieldName)),
+            ]);
+        }
 
         const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
@@ -210,7 +217,7 @@ export default class PrismaSchemaGenerator {
             // generate auxiliary fields for policy check
 
             // add an "zenstack_transaction" field for tracking records created/updated with nested writes
-            model.addField(TRANSACTION_FIELD_NAME, 'String?');
+            const transactionField = model.addField(TRANSACTION_FIELD_NAME, 'String?');
 
             // create an index for "zenstack_transaction" field
             model.addAttribute('@@index', [
@@ -221,6 +228,16 @@ export default class PrismaSchemaGenerator {
                     ])
                 ),
             ]);
+
+            if (config?.transactionFieldName && config?.transactionFieldName !== TRANSACTION_FIELD_NAME) {
+                // generate a @map to rename field in the database
+                transactionField.addAttribute('@map', [
+                    new PrismaAttributeArg(
+                        undefined,
+                        new PrismaAttributeArgValue('String', config.transactionFieldName)
+                    ),
+                ]);
+            }
         }
 
         for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
