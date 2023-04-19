@@ -3,7 +3,6 @@
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
-import cuid from 'cuid';
 import deepcopy from 'deepcopy';
 import pluralize from 'pluralize';
 import { fromZodError } from 'zod-validation-error';
@@ -21,7 +20,7 @@ import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
 import { enumerate, formatObject, getModelFields } from '../utils';
 import { Logger } from './logger';
-alize from 'pluralize';
+import { createId } from '@paralleldrive/cuid2';
 
 /**
  * Access policy enforcement utilities
