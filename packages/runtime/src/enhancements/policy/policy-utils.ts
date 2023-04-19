@@ -5,6 +5,7 @@ import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIEL
 import { camelCase } from 'change-case';
 import cuid from 'cuid';
 import deepcopy from 'deepcopy';
+import pluralize from 'pluralize';
 import { fromZodError } from 'zod-validation-error';
 import {
     AuthUser,
@@ -20,7 +21,7 @@ import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
 import { enumerate, formatObject, getModelFields } from '../utils';
 import { Logger } from './logger';
-import pluralize from 'pluralize';
+alize from 'pluralize';
 
 /**
  * Access policy enforcement utilities
@@ -400,7 +401,7 @@ export class PolicyUtil {
 
         // use a transaction to conduct write, so in case any create or nested create
         // fails access policies, we can roll back the entire operation
-        const transactionId = cuid();
+        const transactionId = createId();
 
         // args processor for create
         const processCreate = async (model: string, args: any) => {

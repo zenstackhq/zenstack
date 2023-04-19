@@ -9,7 +9,7 @@ env:
 
 on:
     pull_request:
-        branches: ['dev', 'main', 'canary']
+        branches: ['dev', 'main']
 
 jobs:
     build-test:
@@ -18,7 +18,6 @@ jobs:
         strategy:
             matrix:
                 node-version: [16.x]
-                # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
         steps:
             - uses: actions/checkout@v3
@@ -32,13 +31,7 @@ jobs:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile
-            - run: |
-                  if [[ $GITHUB_REF == 'refs/heads/canary' ]]; then
-                      DEFAULT_NPM_TAG=canary pnpm run build
-                  else
-                      DEFAULT_NPM_TAG=latest pnpm run build
-                  fi
-
+            - run: DEFAULT_NPM_TAG=latest pnpm run build
             - run: pnpm lint
 
             # install again for internal dependencies

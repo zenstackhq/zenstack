@@ -1,6 +1,6 @@
+import { createId } from '@paralleldrive/cuid2';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
-import cuid from 'cuid';
 import { init, Mixpanel } from 'mixpanel';
 import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
@@ -30,7 +30,7 @@ export type TelemetryEvents =
 export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
     private readonly hostId = machineIdSync();
-    private readonly sessionid = cuid();
+    private readonly sessionid = createId();
     private readonly _os = os.platform();
     private readonly version = getVersion();
     private exitWait = 200;
