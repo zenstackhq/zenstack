@@ -1,18 +1,21 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import { Dictionary } from '@prisma/internals';
-import { getLiteral, PluginOptions } from '@zenstackhq/sdk';
-import { DataSource, isDataSource, Model } from '@zenstackhq/sdk/ast';
+import { PluginOptions, getLiteral } from '@zenstackhq/sdk';
+import { DataSource, Model, isDataSource } from '@zenstackhq/sdk/ast';
 import {
-    addMissingInputObjectTypes,
     AggregateOperationSupport,
+    addMissingInputObjectTypes,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
 import { promises as fs } from 'fs';
+import path from 'path';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
+import { writeFileSafely } from './utils/writeFileSafely';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    await handleGeneratorOutputValue((options.output as string) ?? './generated');
+    const output = (options.output as string) ?? './generated';
+    await handleGeneratorOutputValue(output);
 
     const prismaClientDmmf = dmmf;
 
@@ -38,7 +41,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
 
-    await generateObjectSchemas(inputObjectTypes);
+    await generateObjectSchemas(inputObjectTypes, output);
     await generateModelSchemas(models, modelOperations, aggregateOperationSupport);
 }
 
@@ -61,13 +64,19 @@ async function generateEnumSchemas(prismaSchemaEnum: DMMF.SchemaEnum[], modelSch
     await transformer.generateEnumSchemas();
 }
 
-async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[]) {
+async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], output: string) {
+    const moduleNames: string[] = [];
     for (let i = 0; i < inputObjectTypes.length; i += 1) {
         const fields = inputObjectTypes[i]?.fields;
         const name = inputObjectTypes[i]?.name;
         const transformer = new Transformer({ name, fields });
-        await transformer.generateObjectSchema();
+        const moduleName = await transformer.generateObjectSchema();
+        moduleNames.push(moduleName);
     }
+    await writeFileSafely(
+        path.join(output, `schemas/objects/index.ts`),
+        moduleNames.map((name) => `export * from './${name}';`).join('\n')
+    );
 }
 
 async function generateModelSchemas(

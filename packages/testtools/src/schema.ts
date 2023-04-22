@@ -147,7 +147,7 @@ export async function loadSchema(
 
         const policy = require(path.join(projectRoot, '.zenstack/policy')).default;
         const modelMeta = require(path.join(projectRoot, '.zenstack/model-meta')).default;
-        const zodSchemas = require(path.join(projectRoot, '.zenstack/zod')).default;
+        const zodSchemas = require(path.join(projectRoot, '.zenstack/zod'));
 
         return {
             projectDir: projectRoot,

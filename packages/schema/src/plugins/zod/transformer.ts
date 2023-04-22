@@ -60,6 +60,11 @@ export default class Transformer {
             )}`;
             this.project.createSourceFile(filePath, content, { overwrite: true });
         }
+        this.project.createSourceFile(
+            path.join(Transformer.outputPath, `enums/index.ts`),
+            this.enumTypes.map((enumType) => `export * from './${enumType.name}.schema';`).join('\n'),
+            { overwrite: true }
+        );
     }
 
     generateImportZodStatement() {
@@ -70,7 +75,7 @@ export default class Transformer {
         return `export const ${name}Schema = ${schema}`;
     }
 
-    async generateObjectSchema() {
+    generateObjectSchema() {
         const zodObjectSchemaFields = this.generateObjectSchemaFields();
         const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields);
         const objectSchemaName = this.resolveObjectSchemaName();
@@ -78,6 +83,7 @@ export default class Transformer {
         const filePath = path.join(Transformer.outputPath, `objects/${objectSchemaName}.schema.ts`);
         const content = '/* eslint-disable */\n' + objectSchema;
         this.project.createSourceFile(filePath, content, { overwrite: true });
+        return `${objectSchemaName}.schema`;
     }
 
     generateObjectSchemaFields() {
@@ -396,7 +402,7 @@ export default class Transformer {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } = modelOperation;
 
-            globalExports.push(`export { ${modelName}Schema } from './${modelName}.schema'`);
+            globalExports.push(`export { ${modelName}Schema as ${modelName} } from './${modelName}.schema'`);
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const model = findModelByName(this.models, modelName)!;

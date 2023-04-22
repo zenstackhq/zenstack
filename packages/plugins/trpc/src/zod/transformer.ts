@@ -59,6 +59,11 @@ export default class Transformer {
                 )}`
             );
         }
+
+        await writeFileSafely(
+            path.join(Transformer.outputPath, `schemas/enums/index.ts`),
+            this.enumTypes.map((enumType) => `export * from './${enumType.name}.schema';`).join('\n')
+        );
     }
 
     generateImportZodStatement() {
@@ -77,6 +82,7 @@ export default class Transformer {
             path.join(Transformer.outputPath, `schemas/objects/${this.name}.schema.ts`),
             '/* eslint-disable */\n' + objectSchema
         );
+        return `${this.name}.schema`;
     }
 
     generateObjectSchemaFields() {
@@ -391,7 +397,7 @@ export default class Transformer {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } = modelOperation;
 
-            globalExports.push(`import { ${modelName}Schema } from './${modelName}.schema'`);
+            globalExports.push(`export { ${modelName}Schema as ${modelName} } from './${modelName}.schema'`);
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const model = findModelByName(this.models, modelName)!;

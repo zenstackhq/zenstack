@@ -56,7 +56,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
 
-    await generateObjectSchemas(inputObjectTypes, project);
+    await generateObjectSchemas(inputObjectTypes, project, output);
     await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project);
 
     // emit if generated into standard location or compilation is forced
@@ -94,13 +94,20 @@ async function generateEnumSchemas(
     await transformer.generateEnumSchemas();
 }
 
-async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], project: Project) {
+async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], project: Project, output: string) {
+    const moduleNames: string[] = [];
     for (let i = 0; i < inputObjectTypes.length; i += 1) {
         const fields = inputObjectTypes[i]?.fields;
         const name = inputObjectTypes[i]?.name;
         const transformer = new Transformer({ name, fields, project });
-        await transformer.generateObjectSchema();
+        const moduleName = transformer.generateObjectSchema();
+        moduleNames.push(moduleName);
     }
+    project.createSourceFile(
+        path.join(output, 'objects/index.ts'),
+        moduleNames.map((name) => `export * from './${name}';`).join('\n'),
+        { overwrite: true }
+    );
 }
 
 async function generateModelSchemas(
