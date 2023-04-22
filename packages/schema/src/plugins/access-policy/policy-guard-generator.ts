@@ -16,6 +16,8 @@ import {
 import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
     analyzePolicies,
+    createProject,
+    emitProject,
     getDataModels,
     getLiteral,
     GUARD_FIELD_NAME,
@@ -23,11 +25,12 @@ import {
     PluginOptions,
     resolved,
     RUNTIME_PACKAGE,
+    saveProject,
 } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import { streamAllContents } from 'langium';
 import path from 'path';
-import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields } from '../../utils/ast-utils';
@@ -47,17 +50,12 @@ export default class PolicyGenerator {
             return;
         }
 
-        const project = new Project();
+        const project = createProject();
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'type QueryContext' }, { name: 'hasAllFields' }],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
-        });
-
-        sf.addImportDeclaration({
-            namedImports: [{ name: 'z' }],
-            moduleSpecifier: 'zod',
         });
 
         // import enums
@@ -76,6 +74,8 @@ export default class PolicyGenerator {
         }
 
         const zodGenerator = new ZodSchemaGenerator();
+
+        let fieldSchemaGenerated = false;
 
         sf.addVariableStatement({
             declarationKind: VariableDeclarationKind.Const,
@@ -104,18 +104,33 @@ export default class PolicyGenerator {
                             writer.writeLine(',');
 
                             writer.write('schema:');
-                            zodGenerator.generate(writer, models);
+                            if (zodGenerator.generate(writer, models)) {
+                                fieldSchemaGenerated = true;
+                            }
                         });
                     },
                 },
             ],
         });
 
+        if (fieldSchemaGenerated) {
+            sf.addImportDeclaration({
+                namedImports: [{ name: 'z' }],
+                moduleSpecifier: 'zod',
+            });
+        }
+
         sf.addStatements('export default policy');
 
-        sf.formatText();
-        await project.save();
-        await project.emit();
+        // emit if generated into standard location or compilation is forced
+        const shouldCompile = !options.output || options.compile === true;
+        if (!shouldCompile || options.preserveTsFiles === true) {
+            // save ts files
+            await saveProject(project);
+        }
+        if (shouldCompile) {
+            await emitProject(project);
+        }
     }
 
     private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {

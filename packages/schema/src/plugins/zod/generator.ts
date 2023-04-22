@@ -1,10 +1,10 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import { Dictionary } from '@prisma/internals';
-import { emitProject, getLiteral, PluginOptions } from '@zenstackhq/sdk';
-import { DataSource, isDataSource, Model } from '@zenstackhq/sdk/ast';
+import { PluginOptions, createProject, emitProject, getLiteral, saveProject } from '@zenstackhq/sdk';
+import { DataSource, Model, isDataSource } from '@zenstackhq/sdk/ast';
 import {
-    addMissingInputObjectTypes,
     AggregateOperationSupport,
+    addMissingInputObjectTypes,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
 import { promises as fs } from 'fs';
@@ -33,7 +33,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma;
     const models: DMMF.Model[] = prismaClientDmmf.datamodel.models;
 
-    const project = new Project();
+    const project = createProject();
 
     await generateEnumSchemas(
         prismaClientDmmf.schema.enumTypes.prisma,
@@ -59,7 +59,15 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     await generateObjectSchemas(inputObjectTypes, project);
     await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project);
 
-    await emitProject(project);
+    // emit if generated into standard location or compilation is forced
+    const shouldCompile = !options.output || options.compile === true;
+    if (!shouldCompile || options.preserveTsFiles === true) {
+        // save ts files
+        await saveProject(project);
+    }
+    if (shouldCompile) {
+        await emitProject(project);
+    }
 }
 
 async function handleGeneratorOutputValue(output: string) {

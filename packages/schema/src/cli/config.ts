@@ -24,6 +24,7 @@ export function loadConfig(filename: string) {
         const fileData = fs.readFileSync(filename, `utf-8`);
         const content = JSON.parse(fileData);
         config = schema.parse(content);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
         if (err?.code === `ENOENT`) {
             throw new CliError(`Config file could not be found: ${filename}`);

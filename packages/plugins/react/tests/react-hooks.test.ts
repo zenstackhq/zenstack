@@ -1,11 +1,9 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
-import fs from 'fs';
 
 describe('React Hooks Plugin Tests', () => {
     let origDir: string;
-    let projDir: string;
 
     beforeAll(() => {
         origDir = process.cwd();
@@ -13,9 +11,6 @@ describe('React Hooks Plugin Tests', () => {
 
     afterEach(() => {
         process.chdir(origDir);
-        if (projDir) {
-            fs.rmSync(projDir, { recursive: true, force: true });
-        }
     });
 
     const sharedModel = `
@@ -46,7 +41,7 @@ model Foo {
     `;
 
     it('swr generator', async () => {
-        const { projectDir } = await loadSchema(
+        await loadSchema(
             `
 plugin react {
     provider = '${process.cwd()}/dist'
@@ -60,11 +55,10 @@ ${sharedModel}
             [`${origDir}/dist`, 'react', '@types/react', 'swr'],
             true
         );
-        projDir = projectDir;
     });
 
     it('react-query generator', async () => {
-        const { projectDir } = await loadSchema(
+        await loadSchema(
             `
 plugin react {
     provider = '${process.cwd()}/dist'
@@ -79,6 +73,5 @@ ${sharedModel}
             [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query'],
             true
         );
-        projDir = projectDir;
     });
 });

@@ -69,16 +69,22 @@ generator js {
 plugin meta {
     provider = '@core/model-meta'
     output = '.zenstack'
+    compile = true
+    preserveTsFiles = true
 }
 
 plugin policy {
     provider = '@core/access-policy'
     output = '.zenstack'
+    compile = true
+    preserveTsFiles = true
 }
 
 plugin zod {
     provider = '@core/zod'
     output = '.zenstack/zod'
+    compile = true
+    preserveTsFiles = true
 }
 `;
 
@@ -94,7 +100,7 @@ export async function loadSchema(
     extraDependencies: string[] = [],
     compile = false
 ) {
-    const { name: projectRoot } = tmp.dirSync();
+    const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
     try {
         const root = getWorkspaceRoot(__dirname);

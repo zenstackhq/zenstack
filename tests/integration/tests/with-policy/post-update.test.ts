@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy: post update', () => {
     let origDir: string;
-    const suite = 'post-update';
 
     beforeAll(async () => {
         origDir = path.resolve('.');

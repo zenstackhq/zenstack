@@ -1,5 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import { CrudFailureReason, PluginError, PluginOptions, RUNTIME_PACKAGE } from '@zenstackhq/sdk';
+import { CrudFailureReason, PluginError, PluginOptions, RUNTIME_PACKAGE, saveProject } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import { camelCase } from 'change-case';
 import { promises as fs } from 'fs';
@@ -42,7 +42,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     createAppRouter(outDir, modelOperations, hiddenModels);
     createHelper(outDir);
 
-    await project.save();
+    await saveProject(project);
 }
 
 function createAppRouter(outDir: string, modelOperations: DMMF.ModelMapping[], hiddenModels: string[]) {

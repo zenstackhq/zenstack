@@ -21,8 +21,8 @@
     "@prisma/client": "^4.7.0",
     "@prisma/generator-helper": "^4.7.1",
     "@prisma/internals": "^4.7.1",
-    "@zenstackhq/runtime": "workspace:*",
     "@zenstackhq/language": "workspace:*",
+    "@zenstackhq/runtime": "workspace:*",
     "prisma": "~4.7.0",
     "tmp": "^0.2.1",
     "zenstack": "workspace:*"

@@ -113,10 +113,11 @@ export default class Transformer {
             } else if (inputType.type === 'Boolean') {
                 result.push(this.wrapWithZodValidators('z.boolean()', field, inputType));
             } else if (inputType.type === 'DateTime') {
-                result.push(this.wrapWithZodValidators('z.date()', field, inputType));
+                result.push(this.wrapWithZodValidators(['z.date()', 'z.string().datetime()'], field, inputType));
+            } else if (inputType.type === 'Bytes') {
+                result.push(this.wrapWithZodValidators('z.number().array()', field, inputType));
             } else if (inputType.type === 'Json') {
                 this.hasJson = true;
-
                 result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
             } else if (inputType.type === 'True') {
                 result.push(this.wrapWithZodValidators('z.literal(true)', field, inputType));
@@ -158,19 +159,29 @@ export default class Transformer {
     }
 
     wrapWithZodValidators(
-        mainValidator: string,
+        mainValidators: string | string[],
         field: PrismaDMMF.SchemaArg,
         inputType: PrismaDMMF.SchemaArgInputType
     ) {
         let line = '';
-        line = mainValidator;
 
-        if (inputType.isList) {
-            line += '.array()';
-        }
+        const base = Array.isArray(mainValidators) ? mainValidators : [mainValidators];
 
-        if (!field.isRequired) {
-            line += '.optional()';
+        line += base
+            .map((validator) => {
+                let r = validator;
+                if (inputType.isList) {
+                    r += '.array()';
+                }
+                if (!field.isRequired) {
+                    r += '.optional()';
+                }
+                return r;
+            })
+            .join(', ');
+
+        if (base.length > 1) {
+            line = `z.union([${line}])`;
         }
 
         return line;
@@ -356,8 +367,7 @@ export default class Transformer {
     }
 
     async generateModelSchemas() {
-        const globalImports: string[] = [];
-        let globalExport = '';
+        const globalExports: string[] = [];
 
         for (const modelOperation of this.modelOperations) {
             const {
@@ -381,8 +391,7 @@ export default class Transformer {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } = modelOperation;
 
-            globalImports.push(`import { ${modelName}Schema } from './${modelName}.schema'`);
-            globalExport += `${modelName}: ${modelName}Schema,`;
+            globalExports.push(`import { ${modelName}Schema } from './${modelName}.schema'`);
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const model = findModelByName(this.models, modelName)!;
@@ -547,13 +556,7 @@ ${indentString(codeBody, 4)}
             path.join(Transformer.outputPath, 'schemas/index.ts'),
             `
 /* eslint-disable */
-${globalImports.join(';\n')}
-
-const schemas = {
-${indentString(globalExport, 4)}
-};
-
-export default schemas;
+${globalExports.join(';\n')}
 `
         );
     }

@@ -1,5 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import { getDataModels, PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { PluginError, PluginOptions, createProject, getDataModels, saveProject } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { camelCase, paramCase, pascalCase } from 'change-case';
 import * as path from 'path';
@@ -16,7 +16,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         outDir = path.join(path.dirname(options.schemaPath), outDir);
     }
 
-    const project = new Project();
+    const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
@@ -31,7 +31,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         generateModelHooks(project, outDir, dataModel, mapping);
     });
 
-    await project.save();
+    await saveProject(project);
     return warnings;
 }
 
@@ -319,12 +319,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`
         );
     }
-
-    sf.formatText();
 }
 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.formatText();
 }
