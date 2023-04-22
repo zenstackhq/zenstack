@@ -1189,7 +1189,6 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
             },
         ],
     });
-    sf.formatText();
 
     await project.save();
     console.log('Source saved:', sourcePath);

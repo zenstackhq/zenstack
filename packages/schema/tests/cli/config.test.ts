@@ -9,21 +9,18 @@ import { config } from '../../src/cli/config';
 import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 
 describe('CLI Config Tests', () => {
-    let projDir: string;
     let origDir: string;
 
     beforeEach(() => {
         origDir = process.cwd();
-        const r = tmp.dirSync();
-        projDir = r.name;
-        console.log(`Project dir: ${projDir}`);
-        process.chdir(projDir);
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        console.log(`Project dir: ${r.name}`);
+        process.chdir(r.name);
 
         fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
     });
 
     afterEach(() => {
-        fs.rmSync(projDir, { recursive: true, force: true });
         process.chdir(origDir);
     });
 

@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy: multi-field unique', () => {
     let origDir: string;
-    const suite = 'multi-field-unique';
 
     beforeAll(async () => {
         origDir = path.resolve('.');

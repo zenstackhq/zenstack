@@ -139,7 +139,9 @@ describe('OpenAPI server tests', () => {
             prisma,
         });
         expect(r.status).toBe(400);
+        expect((r.body as any).message).toContain('Argument where is missing');
 
+        // with validation
         r = await handleRequest({
             method: 'get',
             path: '/post/findUnique',

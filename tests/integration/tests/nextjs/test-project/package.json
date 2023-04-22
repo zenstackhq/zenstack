@@ -16,7 +16,8 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "typescript": "4.9.4",
-    "@prisma/client": "^4.7.0"
+    "@prisma/client": "^4.7.0",
+    "@zenstackhq/runtime": "../../../../../../packages/runtime/dist"
   },
   "devDependencies": {
     "prisma": "^4.7.0"

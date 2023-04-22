@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy: auth() test', () => {
     let origDir: string;
-    const suite = 'undefined-user';
 
     beforeAll(async () => {
         origDir = path.resolve('.');

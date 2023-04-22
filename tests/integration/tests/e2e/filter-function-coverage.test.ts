@@ -1,4 +1,4 @@
-import { loadSchema, run, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Filter Function Coverage Tests', () => {
     it('contains case-sensitive', async () => {
