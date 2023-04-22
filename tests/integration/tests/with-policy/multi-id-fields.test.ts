@@ -1,4 +1,4 @@
-import { loadSchema, cleanup } from '@zenstackhq/testtools';
+import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('With Policy: multiple id fields', () => {
