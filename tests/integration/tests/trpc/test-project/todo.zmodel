@@ -7,6 +7,20 @@ generator js {
     provider = 'prisma-client-js'
 }
 
+plugin meta {
+    provider = '@core/model-meta'
+    output = '.zenstack'
+    compile = true
+    preserveTsFiles = true
+}
+
+plugin policy {
+    provider = '@core/access-policy'
+    output = '.zenstack'
+    compile = true
+    preserveTsFiles = true
+}
+
 plugin trpc {
     provider = '@zenstackhq/trpc'
     output = 'server/routers/generated'
@@ -16,7 +30,6 @@ model User {
     id String @id
     name String
     posts Post[]
-
     @@allow('create,read', true)
     @@allow('update,delete', auth() == this)
 }
@@ -27,7 +40,6 @@ model Post {
     author User? @relation(fields: [authorId], references: [id])
     authorId String?
     published Boolean @default(false)
-
     @@allow('all', auth() == this)
     @@allow('read', published)
 }

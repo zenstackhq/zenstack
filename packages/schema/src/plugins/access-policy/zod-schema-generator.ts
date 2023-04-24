@@ -8,6 +8,7 @@ import { CodeBlockWriter } from 'ts-morph';
  */
 export class ZodSchemaGenerator {
     generate(writer: CodeBlockWriter, models: DataModel[]) {
+        let generated = false;
         writer.inlineBlock(() => {
             models.forEach((model) => {
                 const fields = model.fields.filter(
@@ -22,6 +23,7 @@ export class ZodSchemaGenerator {
                     return;
                 }
 
+                generated = true;
                 writer.write(`${camelCase(model.name)}: z.object(`);
                 writer.inlineBlock(() => {
                     fields.forEach((field) => {
@@ -31,6 +33,7 @@ export class ZodSchemaGenerator {
                 writer.writeLine(').partial(),');
             });
         });
+        return generated;
     }
 
     private hasValidationAttributes(field: DataModelField) {

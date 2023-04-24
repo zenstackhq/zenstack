@@ -8,10 +8,20 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
-import { getAttributeArgs, getDataModels, getLiteral, hasAttribute, PluginOptions, resolved } from '@zenstackhq/sdk';
+import {
+    createProject,
+    emitProject,
+    getAttributeArgs,
+    getDataModels,
+    getLiteral,
+    hasAttribute,
+    PluginOptions,
+    resolved,
+    saveProject,
+} from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
 import path from 'path';
-import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
+import { CodeBlockWriter, VariableDeclarationKind } from 'ts-morph';
 import { getIdFields } from '../../language-server/utils';
 import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
 
@@ -26,7 +36,7 @@ export default async function run(model: Model, options: PluginOptions) {
 
     const dataModels = getDataModels(model);
 
-    const project = new Project();
+    const project = createProject();
 
     if (!options.output) {
         ensureNodeModuleFolder(output);
@@ -39,10 +49,15 @@ export default async function run(model: Model, options: PluginOptions) {
     });
     sf.addStatements('export default metadata;');
 
-    sf.formatText();
-
-    await project.save();
-    await project.emit();
+    // emit if generated into standard location or compilation is forced
+    const shouldCompile = !options.output || options.compile === true;
+    if (!shouldCompile || options.preserveTsFiles === true) {
+        // save ts files
+        await saveProject(project);
+    }
+    if (shouldCompile) {
+        await emitProject(project);
+    }
 }
 
 function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter) {

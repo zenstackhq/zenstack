@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy:toplevel operations', () => {
     let origDir: string;
-    const suite = 'toplevel';
 
     beforeAll(async () => {
         origDir = path.resolve('.');
