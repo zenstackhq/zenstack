@@ -22,6 +22,10 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             }
         }
 
+        if (expr.$resolvedType?.decl === 'Unsupported') {
+            accept('error', 'Field of "Unsupported" type cannot be used in expressions', { node: expr });
+        }
+
         // extra validations by expression type
         switch (expr.$type) {
             case 'BinaryExpr':

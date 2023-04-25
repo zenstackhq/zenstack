@@ -6,6 +6,7 @@ import {
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    DataModelFieldType,
     DataSource,
     Enum,
     EnumField,
@@ -32,6 +33,7 @@ import {
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import { getStringLiteral } from '../../language-server/validator/utils';
 import { execSync } from '../../utils/exec-utils';
 import {
     ModelFieldType,
@@ -265,8 +267,22 @@ export default class PrismaSchemaGenerator {
         );
     }
 
+    private getUnsupportedFieldType(fieldType: DataModelFieldType) {
+        if (fieldType.unsupported) {
+            const value = getStringLiteral(fieldType.unsupported.value);
+            if (value) {
+                return `Unsupported("${value}")`;
+            } else {
+                return undefined;
+            }
+        } else {
+            return undefined;
+        }
+    }
+
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
-        const fieldType = field.type.type || field.type.reference?.ref?.name;
+        const fieldType =
+            field.type.type || field.type.reference?.ref?.name || this.getUnsupportedFieldType(field.type);
         if (!fieldType) {
             throw new PluginError(`Field type is not resolved: ${field.$container.name}.${field.name}`);
         }
