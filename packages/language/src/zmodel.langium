@@ -162,7 +162,10 @@ DataModelField:
     name=RegularID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
-    (type=BuiltinType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
+    (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
+
+UnsupportedFieldType:
+    'Unsupported' '(' (value=LiteralExpr) ')';
 
 // enum
 Enum:
@@ -241,7 +244,7 @@ AttributeArg:
     (name=RegularID ':')? value=Expression;
 
 ExpressionType returns string:
-    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Object' | 'Any';
+    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Object' | 'Any' | 'Unsupported';
 
 BuiltinType returns string:
     'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes';

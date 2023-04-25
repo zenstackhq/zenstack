@@ -76,6 +76,7 @@ describe('Parsing Tests', () => {
                 createdAt DateTime
                 metadata Json
                 content Bytes
+                unsupported Unsupported('foo')
             }
         `;
         const doc = await loadModel(content, false);
@@ -93,6 +94,7 @@ describe('Parsing Tests', () => {
                 'Bytes',
             ])
         );
+        expect(model.fields.find((f) => f.name === 'unsupported')?.type.unsupported?.value.value).toBe('foo');
     });
 
     it('model field modifiers', async () => {
