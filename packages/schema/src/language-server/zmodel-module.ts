@@ -54,7 +54,7 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
     },
     validation: {
         ValidationRegistry: (services) => new ZModelValidationRegistry(services),
-        ZModelValidator: () => new ZModelValidator(),
+        ZModelValidator: (services) => new ZModelValidator(services),
     },
     lsp: {
         Formatter: () => new ZModelFormatter(),

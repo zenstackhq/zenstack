@@ -42,6 +42,7 @@ import {
     streamContents,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
+import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
@@ -244,9 +245,14 @@ export class ZModelLinker extends DefaultLinker {
             if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
-                const userModel = model?.declarations.find((d) => isDataModel(d) && d.name === 'User');
-                if (userModel) {
-                    node.$resolvedType = { decl: userModel, nullable: true };
+
+                if (model) {
+                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find(
+                        (d) => isDataModel(d) && d.name === 'User'
+                    );
+                    if (userModel) {
+                        node.$resolvedType = { decl: userModel, nullable: true };
+                    }
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
                 // future() function is resolved to current model

@@ -9,6 +9,7 @@ import {
     isEnumField,
     isInvocationExpr,
     isMemberAccessExpr,
+    isModel,
     isReferenceExpr,
     Model,
     ModelImport,
@@ -16,7 +17,7 @@ import {
 } from '@zenstackhq/language/ast';
 import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import { getLiteral } from '@zenstackhq/sdk';
-import { getDocument } from 'langium';
+import { getDocument, LangiumDocuments } from 'langium';
 import { URI, Utils } from 'vscode-uri';
 import { isFromStdlib } from '../language-server/utils';
 
@@ -155,4 +156,52 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
         grammarPath += '.zmodel';
     }
     return Utils.resolvePath(dirUri, grammarPath);
+}
+
+export function resolveTransitiveImports(documents: LangiumDocuments, model: Model): Model[] {
+    return resolveTransitiveImportsInternal(documents, model);
+}
+
+function resolveTransitiveImportsInternal(
+    documents: LangiumDocuments,
+    model: Model,
+    initialModel = model,
+    visited: Set<URI> = new Set(),
+    models: Set<Model> = new Set()
+): Model[] {
+    const doc = getDocument(model);
+    if (initialModel !== model) {
+        models.add(model);
+    }
+    if (!visited.has(doc.uri)) {
+        visited.add(doc.uri);
+        for (const imp of model.imports) {
+            const importedGrammar = resolveImport(documents, imp);
+            if (importedGrammar) {
+                resolveTransitiveImportsInternal(documents, importedGrammar, initialModel, visited, models);
+            }
+        }
+    }
+    return Array.from(models);
+}
+
+export function resolveImport(documents: LangiumDocuments, imp: ModelImport): Model | undefined {
+    const resolvedUri = resolveImportUri(imp);
+    try {
+        if (resolvedUri) {
+            const resolvedDocument = documents.getOrCreateDocument(resolvedUri);
+            const node = resolvedDocument.parseResult.value;
+            if (isModel(node)) {
+                return node;
+            }
+        }
+    } catch {
+        // NOOP
+    }
+    return undefined;
+}
+
+export function getAllDeclarationsFromImports(documents: LangiumDocuments, model: Model) {
+    const imports = resolveTransitiveImports(documents, model);
+    return model.declarations.concat(...imports.map((imp) => imp.declarations));
 }
