@@ -1,4 +1,4 @@
-import { isEnumField, isModel } from '@zenstackhq/language/ast';
+import { isEnumField, isModel, isPlugin } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
@@ -18,7 +18,7 @@ import {
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
 import { resolveImportUri } from '../utils/ast-utils';
-import { STD_LIB_MODULE_NAME } from './constants';
+import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
 
 /**
  * Custom Langium ScopeComputation implementation which adds enum fields into global scope
@@ -63,6 +63,9 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         if (!model) {
             return EMPTY_SCOPE;
         }
+
+        model.declarations.filter((x) => isPlugin(x));
+
         const importedUris = stream(model.imports).map(resolveImportUri).nonNullable();
         const importedElements = this.indexManager.allElements(referenceType).filter(
             (des) =>
@@ -70,6 +73,8 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                 equalURI(des.documentUri, model.$document?.uri) ||
                 // allow stdlib
                 des.documentUri.path.endsWith(STD_LIB_MODULE_NAME) ||
+                // allow plugin models
+                des.documentUri.path.endsWith(PLUGIN_MODULE_NAME) ||
                 // allow imported documents
                 importedUris.some((importedUri) => (des.documentUri, importedUri))
         );
