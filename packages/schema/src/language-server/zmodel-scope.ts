@@ -64,13 +64,15 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
             return EMPTY_SCOPE;
         }
         const importedUris = stream(model.imports).map(resolveImportUri).nonNullable();
-        const importedElements = this.indexManager
-            .allElements(referenceType)
-            .filter(
-                (des) =>
-                    des.documentUri.path.endsWith(STD_LIB_MODULE_NAME) ||
-                    importedUris.some((importedUri) => equalURI(des.documentUri, importedUri))
-            );
+        const importedElements = this.indexManager.allElements(referenceType).filter(
+            (des) =>
+                // allow current document
+                equalURI(des.documentUri, model.$document?.uri) ||
+                // allow stdlib
+                des.documentUri.path.endsWith(STD_LIB_MODULE_NAME) ||
+                // allow imported documents
+                importedUris.some((importedUri) => (des.documentUri, importedUri))
+        );
         return new StreamScope(importedElements);
     }
 }
