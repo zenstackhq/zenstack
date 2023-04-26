@@ -6,13 +6,12 @@ import {
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import { analyzePolicies, getLiteral } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
-import { analyzePolicies } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getIdFields, getUniqueFields } from '../utils';
 import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
-import { getLiteral } from '@zenstackhq/sdk';
 
 /**
  * Validates data model declarations.
@@ -63,6 +62,10 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     private validateField(field: DataModelField, accept: ValidationAcceptor): void {
         if (field.type.array && field.type.optional) {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
+        }
+
+        if (field.type.unsupported && typeof field.type.unsupported.value.value !== 'string') {
+            accept('error', 'Unsupported type argument must be a string literal', { node: field.type.unsupported });
         }
 
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));

@@ -8,20 +8,17 @@ import * as tmp from 'tmp';
 import { createProgram } from '../../src/cli';
 import { execSync } from '../../src/utils/exec-utils';
 
-describe('CLI Tests', () => {
-    let projDir: string;
+describe('CLI Command Tests', () => {
     let origDir: string;
 
     beforeEach(() => {
         origDir = process.cwd();
-        const r = tmp.dirSync();
-        projDir = r.name;
-        console.log(`Project dir: ${projDir}`);
-        process.chdir(projDir);
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        console.log(`Project dir: ${r.name}`);
+        process.chdir(r.name);
     });
 
     afterEach(() => {
-        fs.rmSync(projDir, { recursive: true, force: true });
         process.chdir(origDir);
     });
 
@@ -37,7 +34,7 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -53,7 +50,7 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -69,7 +66,7 @@ describe('CLI Tests', () => {
         createNpmrc();
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/schema.prisma', 'utf-8'));
 
@@ -86,17 +83,16 @@ describe('CLI Tests', () => {
         fs.renameSync('prisma/schema.prisma', 'prisma/my.prisma');
 
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest', '--prisma', 'prisma/my.prisma'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest', '--prisma', 'prisma/my.prisma'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(fs.readFileSync('prisma/my.prisma', 'utf-8'));
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
     it('init project empty project', async () => {
         fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
         createNpmrc();
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toBeTruthy();
     });
 
@@ -111,7 +107,7 @@ describe('CLI Tests', () => {
         fs.writeFileSync('schema.zmodel', origZModelContent);
         createNpmrc();
         const program = createProgram();
-        program.parse(['init', '--tag', 'latest'], { from: 'user' });
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(origZModelContent);
     });
 });

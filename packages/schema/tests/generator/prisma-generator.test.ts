@@ -9,6 +9,49 @@ import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';
 
 describe('Prisma generator test', () => {
+    it('field type coverage', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+
+            model User {
+                id String @id
+                age Int
+                serial BigInt
+                height Float
+                salary Decimal
+                activated Boolean
+                createdAt DateTime
+                metadata Json
+                content Bytes
+                unsupported Unsupported('foo')
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+
+        expect(content).toContain('id String');
+        expect(content).toContain('age Int');
+        expect(content).toContain('serial BigInt');
+        expect(content).toContain('height Float');
+        expect(content).toContain('salary Decimal');
+        expect(content).toContain('activated Boolean');
+        expect(content).toContain('createdAt DateTime');
+        expect(content).toContain('metadata Json');
+        expect(content).toContain('content Bytes');
+        expect(content).toContain('unsupported Unsupported("foo")');
+    });
+
     it('triple slash comments', async () => {
         const model = await loadModel(`
             datasource db {
@@ -192,6 +235,36 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('schemas = ["base","transactional"]');
+    });
+    it('custom aux field names', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Foo {
+                id String @id 
+                value Int
+                @@allow('create', value > 0)
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(
+            model,
+            {
+                provider: '@core/prisma',
+                schemaPath: 'schema.zmodel',
+                output: name,
+            },
+            { guardFieldName: 'myGuardField', transactionFieldName: 'myTransactionField' }
+        );
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+        expect(content).toContain('@map("myGuardField")');
+        expect(content).toContain('@map("myTransactionField")');
     });
 
     it('multi files', async () => {

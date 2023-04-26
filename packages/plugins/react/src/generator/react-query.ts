@@ -1,5 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import { getDataModels, PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { PluginError, PluginOptions, createProject, getDataModels, saveProject } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { camelCase, paramCase, pascalCase } from 'change-case';
 import * as path from 'path';
@@ -16,7 +16,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         outDir = path.join(path.dirname(options.schemaPath), outDir);
     }
 
-    const project = new Project();
+    const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
@@ -31,7 +31,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         generateModelHooks(project, outDir, dataModel, mapping);
     });
 
-    await project.save();
+    await saveProject(project);
     return warnings;
 }
 
@@ -234,7 +234,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const typeParameters = [
             `T extends Prisma.${model.name}GroupByArgs`,
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
-            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.UserGroupByArgs['orderBy'] }: { orderBy?: Prisma.UserGroupByArgs['orderBy'] },`,
+            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
             `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
             `ByFields extends Prisma.TupleToUnion<T['by']>`,
             `ByValid extends Prisma.Has<ByFields, OrderFields>`,
@@ -285,13 +285,24 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             }[OrderFields]`,
         ];
 
+        const returnType = `{} extends InputErrors ? 
+        Array<Prisma.PickArray<Prisma.${model.name}GroupByOutputType, T['by']> &
+          {
+            [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
+              ? T[P] extends boolean
+                ? number
+                : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+          }
+        > : InputErrors`;
+
         generateQueryHook(
             sf,
             model.name,
             'groupBy',
             false,
             false,
-            `{} extends InputErrors ? Prisma.Get${model.name}GroupByPayload<T> : InputErrors`,
+            returnType,
             `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`,
             typeParameters
         );
@@ -308,12 +319,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`
         );
     }
-
-    sf.formatText();
 }
 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.formatText();
 }

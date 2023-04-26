@@ -25,7 +25,8 @@ export interface PluginOptions {
     logger?: LoggerConfig;
 
     /**
-     * Zod schemas for validating request input. Pass `true` to load from standard location (need to enable `@core/zod` plugin in schema.zmodel).
+     * Zod schemas for validating request input. Pass `true` to load from standard location
+     * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
      */
     zodSchemas?: ModelZodSchema | boolean;
 }

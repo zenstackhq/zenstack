@@ -1,7 +1,7 @@
-import { loadSchema, run, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Filter Function Coverage Tests', () => {
-    it('contains case-sensitive', async () => {
+    it('contains case-sensitive field', async () => {
         const { withPresets } = await loadSchema(
             `
             model Foo {
@@ -16,7 +16,27 @@ describe('Filter Function Coverage Tests', () => {
         await expect(withPresets().foo.create({ data: { string: 'bac' } })).toResolveTruthy();
     });
 
-    it('startsWith', async () => {
+    it('contains case-sensitive non-field', async () => {
+        const { withPresets } = await loadSchema(
+            `
+            model User {
+                id String @id
+                name String
+            }
+
+            model Foo {
+                id String @id @default(cuid())
+                @@allow('all', contains(auth().name, 'a'))
+            }
+            `
+        );
+
+        await expect(withPresets().foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'bcd' }).foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'bac' }).foo.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('startsWith field', async () => {
         const { withPresets } = await loadSchema(
             `
             model Foo {
@@ -31,7 +51,27 @@ describe('Filter Function Coverage Tests', () => {
         await expect(withPresets().foo.create({ data: { string: 'abc' } })).toResolveTruthy();
     });
 
-    it('endsWith', async () => {
+    it('startsWith non-field', async () => {
+        const { withPresets } = await loadSchema(
+            `
+            model User {
+                id String @id
+                name String
+            }
+
+            model Foo {
+                id String @id @default(cuid())
+                @@allow('all', startsWith(auth().name, 'a'))
+            }
+            `
+        );
+
+        await expect(withPresets().foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'bac' }).foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'abc' }).foo.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('endsWith field', async () => {
         const { withPresets } = await loadSchema(
             `
             model Foo {
@@ -46,7 +86,27 @@ describe('Filter Function Coverage Tests', () => {
         await expect(withPresets().foo.create({ data: { string: 'bca' } })).toResolveTruthy();
     });
 
-    it('in', async () => {
+    it('endsWith non-field', async () => {
+        const { withPresets } = await loadSchema(
+            `
+            model User {
+                id String @id
+                name String
+            }
+
+            model Foo {
+                id String @id @default(cuid())
+                @@allow('all', endsWith(auth().name, 'a'))
+            }
+            `
+        );
+
+        await expect(withPresets().foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'bac' }).foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'bca' }).foo.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('in left field', async () => {
         const { withPresets } = await loadSchema(
             `
             model Foo {
@@ -59,5 +119,25 @@ describe('Filter Function Coverage Tests', () => {
 
         await expect(withPresets().foo.create({ data: { string: 'c' } })).toBeRejectedByPolicy();
         await expect(withPresets().foo.create({ data: { string: 'b' } })).toResolveTruthy();
+    });
+
+    it('in non-field', async () => {
+        const { withPresets } = await loadSchema(
+            `
+            model User {
+                id String @id
+                name String
+            }
+
+            model Foo {
+                id String @id @default(cuid())
+                @@allow('all', auth().name in ['abc', 'bcd'])
+            }
+            `
+        );
+
+        await expect(withPresets().foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'abd' }).foo.create({ data: {} })).toBeRejectedByPolicy();
+        await expect(withPresets({ id: 'user1', name: 'abc' }).foo.create({ data: {} })).toResolveTruthy();
     });
 });

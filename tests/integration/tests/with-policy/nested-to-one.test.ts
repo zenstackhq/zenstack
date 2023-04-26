@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy:nested to-one', () => {
     let origDir: string;
-    const suite = 'nested-to-one';
 
     beforeAll(async () => {
         origDir = path.resolve('.');

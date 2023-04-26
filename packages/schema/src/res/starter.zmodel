@@ -7,7 +7,7 @@
  */
 datasource db {
     provider = 'sqlite'
-    url = 'file:./todo.db'
+    url = 'file:./dev.db'
 }
 
 generator client {

@@ -2,15 +2,19 @@
 import { ZModelLanguageMetaData } from '@zenstackhq/language/module';
 import colors from 'colors';
 import { Command, Option } from 'commander';
+import fs from 'fs';
 import * as semver from 'semver';
 import telemetry from '../telemetry';
 import { PackageManagers } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
 import { dumpInfo, initProject, runPlugins } from './cli-util';
+import { loadConfig } from './config';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.0.0';
+
+const DEFAULT_CONFIG_FILE = 'zenstack.config.json';
 
 export const initAction = async (
     projectPath: string,
@@ -97,6 +101,8 @@ export function createProgram() {
         './schema.zmodel'
     );
 
+    const configOption = new Option('-c, --config [file]', 'config file');
+
     const pmOption = new Option('-p, --package-manager <pm>', 'package manager to use').choices([
         'npm',
         'yarn',
@@ -114,6 +120,7 @@ export function createProgram() {
     program
         .command('init')
         .description('Initialize an existing project for ZenStack.')
+        .addOption(configOption)
         .addOption(pmOption)
         .addOption(new Option('--prisma <file>', 'location of Prisma schema file to bootstrap from'))
         .addOption(new Option('--tag [tag]', 'the NPM package tag to use when installing dependencies'))
@@ -124,9 +131,24 @@ export function createProgram() {
         .command('generate')
         .description('Run code generation.')
         .addOption(schemaOption)
+        .addOption(configOption)
         .addOption(pmOption)
         .addOption(noDependencyCheck)
         .action(generateAction);
+
+    // make sure config is loaded before actions run
+    program.hook('preAction', async (_, actionCommand) => {
+        let configFile: string | undefined = actionCommand.opts().config;
+
+        if (!configFile && fs.existsSync(DEFAULT_CONFIG_FILE)) {
+            configFile = DEFAULT_CONFIG_FILE;
+        }
+
+        if (configFile) {
+            loadConfig(configFile);
+        }
+    });
+
     return program;
 }
 

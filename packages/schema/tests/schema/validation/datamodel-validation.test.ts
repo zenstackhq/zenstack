@@ -40,6 +40,41 @@ describe('Data Model Validation Tests', () => {
         `);
     });
 
+    it('Unsupported type valid arg', async () => {
+        await loadModel(`
+            ${prelude}
+            model M {
+                id String @id
+                a Unsupported('foo')
+            }
+        `);
+    });
+
+    it('Unsupported type invalid arg', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                a Unsupported(123)
+            }
+        `)
+        ).toContain('Unsupported type argument must be a string literal');
+    });
+
+    it('Unsupported type used in expression', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                a Unsupported('a')
+                @@allow('all', a == 'a')
+            }
+        `)
+        ).toContain('Field of "Unsupported" type cannot be used in expressions');
+    });
+
     it('mix array and optional', async () => {
         expect(
             await loadModelWithError(`
