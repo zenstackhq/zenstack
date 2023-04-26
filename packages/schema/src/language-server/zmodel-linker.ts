@@ -447,7 +447,14 @@ export class ZModelLinker extends DefaultLinker {
         let nullable = false;
         if (isDataModelFieldType(type)) {
             nullable = type.optional;
+
+            // referencing a field of 'Unsupported' type
+            if (type.unsupported) {
+                node.$resolvedType = { decl: 'Unsupported', array: type.array, nullable };
+                return;
+            }
         }
+
         if (type.type) {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
             node.$resolvedType = { decl: mappedType, array: type.array, nullable: nullable };

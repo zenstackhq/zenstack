@@ -64,6 +64,10 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
 
+        if (field.type.unsupported && typeof field.type.unsupported.value.value !== 'string') {
+            accept('error', 'Unsupported type argument must be a string literal', { node: field.type.unsupported });
+        }
+
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
 
         if (isDataModel(field.type.reference?.ref)) {

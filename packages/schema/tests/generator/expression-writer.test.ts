@@ -943,7 +943,7 @@ describe('Expression Writer Tests', () => {
         );
     });
 
-    it('filter operators', async () => {
+    it('filter operators field access', async () => {
         await check(
             `
             enum Role {
@@ -1134,6 +1134,153 @@ describe('Expression Writer Tests', () => {
     });
 });
 
+it('filter operators non-field access', async () => {
+    const userInit = `{ id: 'user1', email: 'test@zenstack.dev', roles: [Role.ADMIN] }`;
+    const prelude = `        
+        enum Role {
+            USER
+            ADMIN
+        }
+
+        model User {
+            id String @id
+            email String
+            roles Role[]
+        }
+    `;
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', ADMIN in auth().roles)
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            roles Role[]
+            @@allow('all', ADMIN in roles)
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{roles:{has:Role.ADMIN}}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', contains(auth().email, 'test'))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.email?.includes('test')??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', contains(auth().email, 'test', true))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', startsWith(auth().email, 'test'))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.email?.startsWith('test')??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', endsWith(auth().email, 'test'))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.email?.endsWith('test')??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', has(auth().roles, ADMIN))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', hasEvery(auth().roles, [ADMIN, USER]))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', hasSome(auth().roles, [USER, ADMIN]))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)}`,
+        userInit
+    );
+
+    await check(
+        `
+        ${prelude}
+        model Test {
+            id String @id
+            @@allow('all', isEmpty(auth().roles))
+        }
+        `,
+        (model) => model.attributes[0].args[1].value,
+        `{zenstack_guard:(user?.roles?.length===0??false)}`,
+        userInit
+    );
+});
+
 async function check(schema: string, getExpr: (model: DataModel) => Expression, expected: string, userInit?: string) {
     if (!schema.includes('datasource ')) {
         schema =
@@ -1155,12 +1302,6 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
         overwrite: true,
     });
 
-    // inject user variable
-    sf.addVariableStatement({
-        declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'user', initializer: userInit ?? '{ id: "user1" }' }],
-    });
-
     // inject enums
     model.declarations
         .filter((d) => isEnum(d))
@@ -1180,6 +1321,12 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
             });
         });
 
+    // inject user variable
+    sf.addVariableStatement({
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [{ name: 'user', initializer: userInit ?? '{ id: "user1" }' }],
+    });
+
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [
@@ -1197,7 +1344,6 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
         for (const d of project.getPreEmitDiagnostics()) {
             console.warn(`${d.getLineNumber()}: ${d.getMessageText()}`);
         }
-        console.log(`Generated source: ${sourcePath}`);
         throw new Error('Compilation errors occurred');
     }
 
