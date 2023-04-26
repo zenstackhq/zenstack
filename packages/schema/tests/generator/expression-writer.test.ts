@@ -1158,7 +1158,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.roles??null)?.includes(Role.ADMIN)??false)}`,
+        `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
         userInit
     );
 
@@ -1185,7 +1185,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.email??null)?.includes('test')??false)}`,
+        `{zenstack_guard:(user?.email?.includes('test')??false)}`,
         userInit
     );
 
@@ -1198,7 +1198,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.email??null)?.toLowerCase().includes('test'?.toLowerCase())??false)}`,
+        `{zenstack_guard:(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)}`,
         userInit
     );
 
@@ -1211,7 +1211,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.email??null)?.startsWith('test')??false)}`,
+        `{zenstack_guard:(user?.email?.startsWith('test')??false)}`,
         userInit
     );
 
@@ -1224,7 +1224,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.email??null)?.endsWith('test')??false)}`,
+        `{zenstack_guard:(user?.email?.endsWith('test')??false)}`,
         userInit
     );
 
@@ -1237,7 +1237,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.roles??null)?.includes(Role.ADMIN)??false)}`,
+        `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
         userInit
     );
 
@@ -1250,7 +1250,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:([Role.ADMIN,Role.USER]?.every((item)=>(user?.roles??null)?.includes(item))??false)}`,
+        `{zenstack_guard:([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)}`,
         userInit
     );
 
@@ -1263,7 +1263,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:([Role.USER,Role.ADMIN]?.some((item)=>(user?.roles??null)?.includes(item))??false)}`,
+        `{zenstack_guard:([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)}`,
         userInit
     );
 
@@ -1276,7 +1276,7 @@ it('filter operators non-field access', async () => {
         }
         `,
         (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:((user?.roles??null)?.length===0??false)}`,
+        `{zenstack_guard:(user?.roles?.length===0??false)}`,
         userInit
     );
 });

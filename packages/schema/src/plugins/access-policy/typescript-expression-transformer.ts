@@ -29,17 +29,17 @@ export default class TypeScriptExpressionTransformer {
     constructor(private readonly isPostGuard = false) {}
 
     /**
-     *
-     * @param expr
+     * Transforms the given expression to a TypeScript expression.
+     * @param normalizeUndefined if undefined values should be normalized to null
      * @returns
      */
-    transform(expr: Expression): string {
+    transform(expr: Expression, normalizeUndefined = true): string {
         switch (expr.$type) {
             case LiteralExpr:
                 return this.literal(expr as LiteralExpr);
 
             case ArrayExpr:
-                return this.array(expr as ArrayExpr);
+                return this.array(expr as ArrayExpr, normalizeUndefined);
 
             case NullExpr:
                 return this.null();
@@ -51,16 +51,16 @@ export default class TypeScriptExpressionTransformer {
                 return this.reference(expr as ReferenceExpr);
 
             case InvocationExpr:
-                return this.invocation(expr as InvocationExpr);
+                return this.invocation(expr as InvocationExpr, normalizeUndefined);
 
             case MemberAccessExpr:
-                return this.memberAccess(expr as MemberAccessExpr);
+                return this.memberAccess(expr as MemberAccessExpr, normalizeUndefined);
 
             case UnaryExpr:
-                return this.unary(expr as UnaryExpr);
+                return this.unary(expr as UnaryExpr, normalizeUndefined);
 
             case BinaryExpr:
-                return this.binary(expr as BinaryExpr);
+                return this.binary(expr as BinaryExpr, normalizeUndefined);
 
             default:
                 throw new PluginError(`Unsupported expression type: ${expr.$type}`);
@@ -73,7 +73,7 @@ export default class TypeScriptExpressionTransformer {
         return 'id';
     }
 
-    private memberAccess(expr: MemberAccessExpr) {
+    private memberAccess(expr: MemberAccessExpr, normalizeUndefined: boolean) {
         if (!expr.member.ref) {
             throw new PluginError(`Unresolved MemberAccessExpr`);
         }
@@ -86,12 +86,16 @@ export default class TypeScriptExpressionTransformer {
             }
             return expr.member.ref.name;
         } else {
-            // normalize field access to null instead of undefined to avoid accidentally use undefined in filter
-            return `(${this.transform(expr.operand)}?.${expr.member.ref.name} ?? null)`;
+            if (normalizeUndefined) {
+                // normalize field access to null instead of undefined to avoid accidentally use undefined in filter
+                return `(${this.transform(expr.operand, normalizeUndefined)}?.${expr.member.ref.name} ?? null)`;
+            } else {
+                return `${this.transform(expr.operand, normalizeUndefined)}?.${expr.member.ref.name}`;
+            }
         }
     }
 
-    private invocation(expr: InvocationExpr) {
+    private invocation(expr: InvocationExpr, normalizeUndefined: boolean) {
         if (!expr.function.ref) {
             throw new PluginError(`Unresolved InvocationExpr`);
         }
@@ -101,36 +105,43 @@ export default class TypeScriptExpressionTransformer {
         } else if (FILTER_OPERATOR_FUNCTIONS.includes(expr.function.ref.name)) {
             // arguments are already type-checked
 
-            const arg0 = this.transform(expr.args[0].value);
+            const arg0 = this.transform(expr.args[0].value, false);
             let result: string;
             switch (expr.function.ref.name) {
                 case 'contains': {
                     const caseInsensitive = getLiteral<boolean>(expr.args[2]?.value) === true;
                     if (caseInsensitive) {
                         result = `${arg0}?.toLowerCase().includes(${this.transform(
-                            expr.args[1].value
+                            expr.args[1].value,
+                            normalizeUndefined
                         )}?.toLowerCase())`;
                     } else {
-                        result = `${arg0}?.includes(${this.transform(expr.args[1].value)})`;
+                        result = `${arg0}?.includes(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     }
                     break;
                 }
                 case 'search':
                     throw new PluginError('"search" function must be used against a field');
                 case 'startsWith':
-                    result = `${arg0}?.startsWith(${this.transform(expr.args[1].value)})`;
+                    result = `${arg0}?.startsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
                 case 'endsWith':
-                    result = `${arg0}?.endsWith(${this.transform(expr.args[1].value)})`;
+                    result = `${arg0}?.endsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
                 case 'has':
-                    result = `${arg0}?.includes(${this.transform(expr.args[1].value)})`;
+                    result = `${arg0}?.includes(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
                 case 'hasEvery':
-                    result = `${this.transform(expr.args[1].value)}?.every((item) => ${arg0}?.includes(item))`;
+                    result = `${this.transform(
+                        expr.args[1].value,
+                        normalizeUndefined
+                    )}?.every((item) => ${arg0}?.includes(item))`;
                     break;
                 case 'hasSome':
-                    result = `${this.transform(expr.args[1].value)}?.some((item) => ${arg0}?.includes(item))`;
+                    result = `${this.transform(
+                        expr.args[1].value,
+                        normalizeUndefined
+                    )}?.some((item) => ${arg0}?.includes(item))`;
                     break;
                 case 'isEmpty':
                     result = `${arg0}?.length === 0`;
@@ -168,8 +179,8 @@ export default class TypeScriptExpressionTransformer {
         return 'null';
     }
 
-    private array(expr: ArrayExpr) {
-        return `[${expr.items.map((item) => this.transform(item)).join(', ')}]`;
+    private array(expr: ArrayExpr, normalizeUndefined: boolean) {
+        return `[${expr.items.map((item) => this.transform(item, normalizeUndefined)).join(', ')}]`;
     }
 
     private literal(expr: LiteralExpr) {
@@ -180,15 +191,18 @@ export default class TypeScriptExpressionTransformer {
         }
     }
 
-    private unary(expr: UnaryExpr): string {
-        return `(${expr.operator} ${this.transform(expr.operand)})`;
+    private unary(expr: UnaryExpr, normalizeUndefined: boolean): string {
+        return `(${expr.operator} ${this.transform(expr.operand, normalizeUndefined)})`;
     }
 
-    private binary(expr: BinaryExpr): string {
+    private binary(expr: BinaryExpr, normalizeUndefined: boolean): string {
         if (expr.operator === 'in') {
-            return `(${this.transform(expr.right)}?.includes(${this.transform(expr.left)}) ?? false)`;
+            return `(${this.transform(expr.right, false)}?.includes(${this.transform(
+                expr.left,
+                normalizeUndefined
+            )}) ?? false)`;
         } else {
-            return `(${this.transform(expr.left)} ${expr.operator} ${this.transform(expr.right)})`;
+            return `(${this.transform(expr.left)} ${expr.operator} ${this.transform(expr.right, normalizeUndefined)})`;
         }
     }
 }

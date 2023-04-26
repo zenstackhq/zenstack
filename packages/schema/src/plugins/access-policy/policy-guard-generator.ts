@@ -52,6 +52,7 @@ export default class PolicyGenerator {
 
         const project = createProject();
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
+        sf.addStatements('/* eslint-disable */');
 
         sf.addImportDeclaration({
             namedImports: [{ name: 'type QueryContext' }, { name: 'hasAllFields' }],
@@ -361,7 +362,7 @@ export default class PolicyGenerator {
             func.addStatements(
                 `const user = hasAllFields(context.user, [${userIdFields
                     .map((f) => "'" + f.name + "'")
-                    .join(', ')}]) ? context.user : null;`
+                    .join(', ')}]) ? context.user as any : null;`
             );
         }
 
