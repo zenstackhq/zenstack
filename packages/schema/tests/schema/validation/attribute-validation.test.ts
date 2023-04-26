@@ -470,7 +470,7 @@ describe('Attribute tests', () => {
                 @@allow('all', i in 1)
             }
         `)
-        ).toContain('right operand of "in" must be an array of literals or enum values');
+        ).toContain('right operand of "in" must be an array');
 
         expect(
             await loadModelWithError(`
