@@ -466,17 +466,6 @@ describe('Attribute tests', () => {
             ${prelude}
             model M {
                 id String @id
-                i Int[]
-                @@allow('all', 1 in i)
-            }
-        `)
-        ).toContain('left operand of "in" must be a field reference');
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id
                 i Int
                 @@allow('all', i in 1)
             }

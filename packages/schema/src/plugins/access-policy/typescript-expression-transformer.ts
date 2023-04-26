@@ -12,7 +12,8 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { PluginError } from '@zenstackhq/sdk';
+import { getLiteral, PluginError } from '@zenstackhq/sdk';
+import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { isFutureExpr } from './utils';
 
@@ -91,8 +92,54 @@ export default class TypeScriptExpressionTransformer {
     }
 
     private invocation(expr: InvocationExpr) {
+        if (!expr.function.ref) {
+            throw new PluginError(`Unresolved InvocationExpr`);
+        }
+
         if (isAuthInvocation(expr)) {
             return 'user';
+        } else if (FILTER_OPERATOR_FUNCTIONS.includes(expr.function.ref.name)) {
+            // arguments are already type-checked
+
+            const arg0 = this.transform(expr.args[0].value);
+            let result: string;
+            switch (expr.function.ref.name) {
+                case 'contains': {
+                    const caseInsensitive = getLiteral<boolean>(expr.args[2]?.value) === true;
+                    if (caseInsensitive) {
+                        result = `${arg0}?.toLowerCase().includes(${this.transform(
+                            expr.args[1].value
+                        )}?.toLowerCase())`;
+                    } else {
+                        result = `${arg0}?.includes(${this.transform(expr.args[1].value)})`;
+                    }
+                    break;
+                }
+                case 'search':
+                    throw new PluginError('"search" function must be used against a field');
+                case 'startsWith':
+                    result = `${arg0}?.startsWith(${this.transform(expr.args[1].value)})`;
+                    break;
+                case 'endsWith':
+                    result = `${arg0}?.endsWith(${this.transform(expr.args[1].value)})`;
+                    break;
+                case 'has':
+                    result = `${arg0}?.includes(${this.transform(expr.args[1].value)})`;
+                    break;
+                case 'hasEvery':
+                    result = `${this.transform(expr.args[1].value)}?.every((item) => ${arg0}?.includes(item))`;
+                    break;
+                case 'hasSome':
+                    result = `${this.transform(expr.args[1].value)}?.some((item) => ${arg0}?.includes(item))`;
+                    break;
+                case 'isEmpty':
+                    result = `${arg0}?.length === 0`;
+                    break;
+                default:
+                    throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
+            }
+
+            return `(${result} ?? false)`;
         } else {
             throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
         }
@@ -138,6 +185,10 @@ export default class TypeScriptExpressionTransformer {
     }
 
     private binary(expr: BinaryExpr): string {
-        return `(${this.transform(expr.left)} ${expr.operator} ${this.transform(expr.right)})`;
+        if (expr.operator === 'in') {
+            return `(${this.transform(expr.right)}?.includes(${this.transform(expr.left)}) ?? false)`;
+        } else {
+            return `(${this.transform(expr.left)} ${expr.operator} ${this.transform(expr.right)})`;
+        }
     }
 }
