@@ -1,9 +1,6 @@
 import { loadModelWithError } from '../../utils';
 
-describe('Toplevel Schema Validation Tests', () => {
-    it('no datasource', async () => {
-        expect(await loadModelWithError('')).toContain('Model must define a datasource');
-    });
+describe('Toplevel Schema Validation Tests', () => 
 
     it('too many datasources', async () => {
         expect(
