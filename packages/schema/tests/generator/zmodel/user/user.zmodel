@@ -1,0 +1,17 @@
+import "../schema"
+model User {
+    id Int @id() @default(autoincrement())
+    email String @unique()
+    name String?
+    posts Post[]
+    role UserRole
+
+    // make user profile public
+    @@allow('read', true)
+}
+
+
+enum UserRole {
+    USER
+    ADMIN
+}

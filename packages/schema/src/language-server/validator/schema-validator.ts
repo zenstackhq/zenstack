@@ -3,7 +3,7 @@ import { isDataSource, Model } from '@zenstackhq/language/ast';
 import { AstValidator } from '../types';
 import { LangiumDocuments, ValidationAcceptor } from 'langium';
 import { validateDuplicatedDeclarations } from './utils';
-import { resolveTransitiveImports } from '../../utils/ast-utils';
+import { getAllDeclarationsFromImports, resolveTransitiveImports } from '../../utils/ast-utils';
 
 /**
  * Validates toplevel schema.
@@ -35,7 +35,7 @@ export default class SchemaValidator implements AstValidator<Model> {
     }
 
     private validateDataSources(model: Model, accept: ValidationAcceptor) {
-        const dataSources = model.declarations.filter((d) => isDataSource(d));
+        const dataSources = getAllDeclarationsFromImports(this.documents, model).filter((d) => isDataSource(d));
         if (dataSources.length > 1) {
             accept('error', 'Multiple datasource declarations are not allowed', { node: dataSources[1] });
         }
