@@ -43,6 +43,7 @@ export default async function run(model: Model, options: PluginOptions) {
     }
 
     const sf = project.createSourceFile(path.join(output, 'model-meta.ts'), undefined, { overwrite: true });
+    sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(dataModels, writer) }],

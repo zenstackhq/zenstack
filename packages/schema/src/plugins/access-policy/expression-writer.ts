@@ -153,14 +153,35 @@ export class ExpressionWriter {
     }
 
     private writeIn(expr: BinaryExpr) {
+        const leftIsFieldAccess = this.isFieldAccess(expr.left);
+        const rightIsFieldAccess = this.isFieldAccess(expr.right);
+
         this.block(() => {
-            this.writeFieldCondition(
-                expr.left,
-                () => {
-                    this.plain(expr.right);
-                },
-                'in'
-            );
+            if (!leftIsFieldAccess && !rightIsFieldAccess) {
+                // 'in' without referencing fields
+                this.guard(() => this.plain(expr));
+            } else if (leftIsFieldAccess && !rightIsFieldAccess) {
+                // 'in' with left referencing a field, right is an array literal
+                this.writeFieldCondition(
+                    expr.left,
+                    () => {
+                        this.plain(expr.right);
+                    },
+                    'in'
+                );
+            } else if (!leftIsFieldAccess && rightIsFieldAccess) {
+                // 'in' with right referencing an array field, left is a literal
+                // transform it into a 'has' filter
+                this.writeFieldCondition(
+                    expr.right,
+                    () => {
+                        this.plain(expr.left);
+                    },
+                    'has'
+                );
+            } else {
+                throw new PluginError('"in" operator cannot be used with field references on both sides');
+            }
         });
     }
 
@@ -520,6 +541,12 @@ export class ExpressionWriter {
         }
 
         if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
+            if (!expr.args.some((arg) => this.isFieldAccess(arg.value))) {
+                // filter functions without referencing fields
+                this.block(() => this.guard(() => this.plain(expr)));
+                return;
+            }
+
             let valueArg = expr.args[1]?.value;
 
             // isEmpty function is zero arity, it's mapped to a boolean literal
