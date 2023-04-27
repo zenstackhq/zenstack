@@ -3,6 +3,8 @@
 import { getDMMF } from '@prisma/internals';
 import fs from 'fs';
 import tmp from 'tmp';
+import path from 'path';
+import { loadDocument } from '../../src/cli/cli-util';
 import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';
 
@@ -234,7 +236,6 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('schemas = ["base","transactional"]');
     });
-
     it('custom aux field names', async () => {
         const model = await loadModel(`
             datasource db {
@@ -264,5 +265,22 @@ describe('Prisma generator test', () => {
         await getDMMF({ datamodel: content });
         expect(content).toContain('@map("myGuardField")');
         expect(content).toContain('@map("myTransactionField")');
+    });
+
+    it('multi files', async () => {
+        const model = await loadDocument(path.join(__dirname, './zmodel/schema.zmodel'));
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        const dmmf = await getDMMF({ datamodel: content });
+
+        expect(dmmf.datamodel.models.length).toBe(2);
+        expect(dmmf.datamodel.enums[0].name).toBe('UserRole');
     });
 });

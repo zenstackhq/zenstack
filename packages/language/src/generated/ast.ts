@@ -412,12 +412,25 @@ export function isMemberAccessExpr(item: unknown): item is MemberAccessExpr {
 export interface Model extends AstNode {
     readonly $type: 'Model';
     declarations: Array<AbstractDeclaration>
+    imports: Array<ModelImport>
 }
 
 export const Model = 'Model';
 
 export function isModel(item: unknown): item is Model {
     return reflection.isInstance(item, Model);
+}
+
+export interface ModelImport extends AstNode {
+    readonly $container: Model;
+    readonly $type: 'ModelImport';
+    path: string
+}
+
+export const ModelImport = 'ModelImport';
+
+export function isModelImport(item: unknown): item is ModelImport {
+    return reflection.isInstance(item, ModelImport);
 }
 
 export interface NullExpr extends AstNode {
@@ -563,6 +576,7 @@ export interface ZModelAstType {
     LiteralExpr: LiteralExpr
     MemberAccessExpr: MemberAccessExpr
     Model: Model
+    ModelImport: ModelImport
     NullExpr: NullExpr
     ObjectExpr: ObjectExpr
     Plugin: Plugin
@@ -579,7 +593,7 @@ export interface ZModelAstType {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeAttribute', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'GeneratorField', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'NullExpr', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeAttribute', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'GeneratorField', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -813,7 +827,8 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return {
                     name: 'Model',
                     mandatory: [
-                        { name: 'declarations', type: 'array' }
+                        { name: 'declarations', type: 'array' },
+                        { name: 'imports', type: 'array' }
                     ]
                 };
             }

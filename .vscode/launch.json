@@ -41,7 +41,7 @@
             "request": "attach",
             "skipFiles": ["<node_internals>/**"],
             "sourceMaps": true,
-            "outFiles": ["${workspaceFolder}/bundle/**/*.js"]
+            "outFiles": ["${workspaceFolder}/packages/schema/bundle/**/*.js"]
         },
         {
             "name": "Todo sample: debug server-side",

@@ -1,9 +1,9 @@
-import { isPlugin, Model } from '@zenstackhq/language/ast';
+import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
 import { getLiteral, PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import getLatestVersion from 'get-latest-version';
-import { LangiumDocument } from 'langium';
+import { getDocument, LangiumDocument, LangiumDocuments } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import ora from 'ora';
 import path from 'path';
@@ -12,6 +12,7 @@ import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { Context } from '../types';
+import { resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
 import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
@@ -107,13 +108,22 @@ export async function loadDocument(fileName: string): Promise<Model> {
     // load documents provided by plugins
     const pluginDocuments = await getPluginDocuments(services, fileName);
 
+    const langiumDocuments = services.shared.workspace.LangiumDocuments;
     // load the document
-    const document = services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+    const document = langiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+
+    // load all imports
+    const importedURIs = eagerLoadAllImports(document, langiumDocuments);
+
+    const importedDocuments = importedURIs.map((uri) => langiumDocuments.getOrCreateDocument(uri));
 
     // build the document together with standard library and plugin modules
-    await services.shared.workspace.DocumentBuilder.build([stdLib, ...pluginDocuments, document], {
-        validationChecks: 'all',
-    });
+    await services.shared.workspace.DocumentBuilder.build(
+        [stdLib, ...pluginDocuments, document, ...importedDocuments],
+        {
+            validationChecks: 'all',
+        }
+    );
 
     const validationErrors = (document.diagnostics ?? []).filter((e) => e.severity === 1);
     if (validationErrors.length > 0) {
@@ -130,7 +140,51 @@ export async function loadDocument(fileName: string): Promise<Model> {
         throw new CliError('schema validation errors');
     }
 
-    return document.parseResult.value as Model;
+    const model = document.parseResult.value as Model;
+
+    mergeImportsDeclarations(langiumDocuments, model);
+
+    validationAfterMerge(model);
+    return model;
+}
+
+// check global unique thing after merge imports
+function validationAfterMerge(model: Model) {
+    const dataSources = model.declarations.filter((d) => isDataSource(d));
+    if (dataSources.length == 0) {
+        console.error(colors.red('Validation errors: Model must define a datasource'));
+        throw new CliError('schema validation errors');
+    } else if (dataSources.length > 1) {
+        console.error(colors.red('Validation errors: Multiple datasource declarations are not allowed'));
+        throw new CliError('schema validation errors');
+    }
+}
+
+export function eagerLoadAllImports(
+    document: LangiumDocument,
+    documents: LangiumDocuments,
+    uris: Set<string> = new Set()
+) {
+    const uriString = document.uri.toString();
+    if (!uris.has(uriString)) {
+        uris.add(uriString);
+        const model = document.parseResult.value as Model;
+
+        for (const imp of model.imports) {
+            const importedModel = resolveImport(documents, imp);
+            if (importedModel) {
+                const importedDoc = getDocument(importedModel);
+                eagerLoadAllImports(importedDoc, documents, uris);
+            }
+        }
+    }
+
+    return Array.from(uris).map((e) => URI.parse(e));
+}
+
+export function mergeImportsDeclarations(documents: LangiumDocuments, model: Model) {
+    const importedModels = resolveTransitiveImports(documents, model);
+    model.declarations.push(...importedModels.flatMap((m) => m.declarations));
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
