@@ -19,7 +19,7 @@ export default class SchemaValidator implements AstValidator<Model> {
 
         for (const declaration of model.declarations) {
             if (importedNames.has(declaration.name)) {
-                accept('error', `A ${declaration.name} already exists in an imported models`, {
+                accept('error', `A ${declaration.name} already exists in an imported module`, {
                     node: declaration,
                     property: 'name',
                 });

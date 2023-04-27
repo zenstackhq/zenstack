@@ -1,4 +1,4 @@
-import { isPlugin, Model } from '@zenstackhq/language/ast';
+import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
 import { getLiteral, PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
@@ -143,7 +143,21 @@ export async function loadDocument(fileName: string): Promise<Model> {
     const model = document.parseResult.value as Model;
 
     mergeImportsDeclarations(langiumDocuments, model);
+
+    validationAfterMerge(model);
     return model;
+}
+
+// check global unique thing after merge imports
+function validationAfterMerge(model: Model) {
+    const dataSources = model.declarations.filter((d) => isDataSource(d));
+    if (dataSources.length == 0) {
+        console.error(colors.red('Validation errors: Model must define a datasource'));
+        throw new CliError('schema validation errors');
+    } else if (dataSources.length > 1) {
+        console.error(colors.red('Validation errors: Multiple datasource declarations are not allowed'));
+        throw new CliError('schema validation errors');
+    }
 }
 
 export function eagerLoadAllImports(

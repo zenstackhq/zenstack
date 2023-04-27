@@ -1,4 +1,4 @@
-import { isEnumField, isModel, isPlugin } from '@zenstackhq/language/ast';
+import { isEnumField, isModel } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
@@ -63,8 +63,6 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         if (!model) {
             return EMPTY_SCOPE;
         }
-
-        model.declarations.filter((x) => isPlugin(x));
 
         const importedUris = stream(model.imports).map(resolveImportUri).nonNullable();
         const importedElements = this.indexManager.allElements(referenceType).filter(
