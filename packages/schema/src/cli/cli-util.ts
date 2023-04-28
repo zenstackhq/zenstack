@@ -125,7 +125,11 @@ export async function loadDocument(fileName: string): Promise<Model> {
         }
     );
 
-    const validationErrors = (document.diagnostics ?? []).filter((e) => e.severity === 1);
+    const validationErrors = langiumDocuments.all
+        .flatMap((d) => d.diagnostics ?? [])
+        .filter((e) => e.severity === 1)
+        .toArray();
+
     if (validationErrors.length > 0) {
         console.error(colors.red('Validation errors:'));
         for (const validationError of validationErrors) {

@@ -7,7 +7,7 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { analyzePolicies, getLiteral } from '@zenstackhq/sdk';
-import { ValidationAcceptor } from 'langium';
+import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getIdFields, getUniqueFields } from '../utils';
@@ -213,17 +213,49 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
-        let oppositeFields = oppositeModel.$resolvedFields.filter((f) => f.type.reference?.ref === field.$container);
+        // Use name because the current document might be updated
+        let oppositeFields = oppositeModel.$resolvedFields.filter(
+            (f) => f.type.reference?.ref?.name === field.$container.name
+        );
         oppositeFields = oppositeFields.filter((f) => {
             const fieldRel = this.parseRelation(f);
             return fieldRel.valid && fieldRel.name === thisRelation.name;
         });
 
         if (oppositeFields.length === 0) {
+            const node = field.$isInherited ? field.$container : field;
+            const info: DiagnosticInfo<AstNode, string> = { node, code: IssueCodes.MissingOppositeRelation };
+
+            let relationFieldDocUri: string;
+            let relationDataModelName: string;
+
+            if (field.$isInherited) {
+                info.property = 'name';
+                const container = field.$container as DataModel;
+                const abstractContainer = container.superTypes.find((x) =>
+                    x.ref?.fields.find((f) => f.name === field.name)
+                )?.ref as DataModel;
+
+                relationFieldDocUri = getDocument(abstractContainer).textDocument.uri;
+                relationDataModelName = abstractContainer.name;
+            } else {
+                relationFieldDocUri = getDocument(field).textDocument.uri;
+                relationDataModelName = field.$container.name;
+            }
+
+            const data: MissingOppositeRelationData = {
+                relationFieldName: field.name,
+                relationDataModelName,
+                relationFieldDocUri,
+                dataModelName: field.$container.name,
+            };
+
+            info.data = data;
+
             accept(
                 'error',
                 `The relation field "${field.name}" on model "${field.$container.name}" is missing an opposite relation field on model "${oppositeModel.name}"`,
-                { node: field, code: IssueCodes.MissingOppositeRelation }
+                info
             );
             return;
         } else if (oppositeFields.length > 1) {
@@ -328,4 +360,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             });
         }
     }
+}
+
+export interface MissingOppositeRelationData {
+    relationDataModelName: string;
+    relationFieldName: string;
+    // it might be the abstract model in the imported document
+    relationFieldDocUri: string;
+
+    // the name of DataModel that the relation field belongs to.
+    // the document is the same with the error node.
+    dataModelName: string;
 }
