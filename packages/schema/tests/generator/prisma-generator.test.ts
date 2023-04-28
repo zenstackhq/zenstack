@@ -302,7 +302,7 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@map("myTransactionField")');
     });
 
-    it('multi files', async () => {
+    it('abstract multi files', async () => {
         const model = await loadDocument(path.join(__dirname, './zmodel/schema.zmodel'));
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
@@ -316,7 +316,7 @@ describe('Prisma generator test', () => {
         const content = fs.readFileSync(name, 'utf-8');
         const dmmf = await getDMMF({ datamodel: content });
 
-        expect(dmmf.datamodel.models.length).toBe(2);
+        expect(dmmf.datamodel.models.length).toBe(3);
         expect(dmmf.datamodel.enums[0].name).toBe('UserRole');
     });
 });
