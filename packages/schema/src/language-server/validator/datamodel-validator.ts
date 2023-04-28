@@ -77,6 +77,10 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
+
+        if (isDataModel(field.type.reference?.ref)) {
+            this.validateRelationField(field, accept);
+        }
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
