@@ -1,5 +1,5 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchema, run, WeakDbClientContract } from '@zenstackhq/testtools';
+import { WeakDbClientContract, loadSchema, run } from '@zenstackhq/testtools';
 
 describe('Prisma Methods Tests', () => {
     let getDb: (user?: AuthUser) => WeakDbClientContract;

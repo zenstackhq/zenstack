@@ -1,14 +1,20 @@
 import { DMMF } from '@prisma/generator-helper';
-import { PluginError, PluginOptions } from '@zenstackhq/sdk';
+import { CrudFailureReason, PluginError, PluginOptions, RUNTIME_PACKAGE, saveProject } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
+import { camelCase } from 'change-case';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { generate as PrismaZodGenerator } from './zod/generator';
-import { generateProcedure, generateRouterSchemaImports, getInputTypeByOpName, resolveModelsComments } from './helpers';
+import { Project } from 'ts-morph';
+import {
+    generateHelperImport,
+    generateProcedure,
+    generateRouterSchemaImports,
+    getInputTypeByOpName,
+    resolveModelsComments,
+} from './helpers';
 import { project } from './project';
 import removeDir from './utils/removeDir';
-import { camelCase } from 'change-case';
-import { Project } from 'ts-morph';
+import { generate as PrismaZodGenerator } from './zod/generator';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let outDir = options.output as string;
@@ -33,6 +39,13 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
+    createAppRouter(outDir, modelOperations, hiddenModels);
+    createHelper(outDir);
+
+    await saveProject(project);
+}
+
+function createAppRouter(outDir: string, modelOperations: DMMF.ModelMapping[], hiddenModels: string[]) {
     const appRouter = project.createSourceFile(path.resolve(outDir, 'routers', `index.ts`), undefined, {
         overwrite: true,
     });
@@ -110,7 +123,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     });
 
     appRouter.formatText();
-    await project.save();
 }
 
 function generateModelCreateRouter(
@@ -133,6 +145,7 @@ function generateModelCreateRouter(
     ]);
 
     generateRouterSchemaImports(modelRouter, model);
+    generateHelperImport(modelRouter);
 
     modelRouter
         .addFunction({
@@ -161,4 +174,109 @@ function generateModelCreateRouter(
         });
 
     modelRouter.formatText();
+}
+
+function createHelper(outDir: string) {
+    const sf = project.createSourceFile(path.resolve(outDir, 'helper.ts'), undefined, {
+        overwrite: true,
+    });
+
+    sf.addStatements(`import { TRPCError } from '@trpc/server';`);
+    sf.addStatements(`import { isPrismaClientKnownRequestError } from '${RUNTIME_PACKAGE}';`);
+
+    const checkMutate = sf.addFunction({
+        name: 'checkMutate',
+        typeParameters: [{ name: 'T' }],
+        parameters: [
+            {
+                name: 'promise',
+                type: 'Promise<T>',
+            },
+        ],
+        isAsync: true,
+        isExported: true,
+        returnType: 'Promise<T | undefined>',
+    });
+
+    checkMutate.setBodyText(
+        `try {
+            return await promise;
+        } catch (err: any) {
+            if (isPrismaClientKnownRequestError(err)) {
+                if (err.code === 'P2004') {
+                    if (err.meta?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
+                        // unable to readback data
+                        return undefined;
+                    } else {
+                        // rejected by policy
+                        throw new TRPCError({
+                            code: 'FORBIDDEN',
+                            message: err.message,
+                            cause: err,
+                        });
+                    }
+                } else {
+                    // request error
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: err.message,
+                        cause: err,
+                    });
+                }
+            } else {
+                throw err;
+            }
+        }
+    `
+    );
+    checkMutate.formatText();
+
+    const checkRead = sf.addFunction({
+        name: 'checkRead',
+        typeParameters: [{ name: 'T' }],
+        parameters: [
+            {
+                name: 'promise',
+                type: 'Promise<T>',
+            },
+        ],
+        isAsync: true,
+        isExported: true,
+        returnType: 'Promise<T>',
+    });
+
+    checkRead.setBodyText(
+        `try {
+            return await promise;
+        } catch (err: any) {
+            if (isPrismaClientKnownRequestError(err)) {
+                if (err.code === 'P2004') {
+                    // rejected by policy
+                    throw new TRPCError({
+                        code: 'FORBIDDEN',
+                        message: err.message,
+                        cause: err,
+                    });
+                } else if (err.code === 'P2025') {
+                    // not found
+                    throw new TRPCError({
+                        code: 'NOT_FOUND',
+                        message: err.message,
+                        cause: err,
+                    });
+                } else {
+                    // request error
+                    throw new TRPCError({
+                        code: 'BAD_REQUEST',
+                        message: err.message,
+                        cause: err,
+                    })
+                }
+            } else {
+                throw err;
+            }
+        }
+    `
+    );
+    checkRead.formatText();
 }

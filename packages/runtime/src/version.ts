@@ -4,6 +4,7 @@ export function getVersion() {
         return require('./package.json').version;
     } catch {
         try {
+            // dev environment
             return require('../package.json').version;
         } catch {
             return 'unknown';

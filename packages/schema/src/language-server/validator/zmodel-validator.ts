@@ -42,6 +42,7 @@ export class ZModelValidationRegistry extends ValidationRegistry {
  * Implementation of custom validations.
  */
 export class ZModelValidator {
+    constructor(protected readonly services: ZModelServices) {}
     private shouldCheck(node: AstNode) {
         let doc: LangiumDocument | undefined;
         let currNode: AstNode | undefined = node;
@@ -57,7 +58,8 @@ export class ZModelValidator {
     }
 
     checkModel(node: Model, accept: ValidationAcceptor): void {
-        this.shouldCheck(node) && new SchemaValidator().validate(node, accept);
+        this.shouldCheck(node) &&
+            new SchemaValidator(this.services.shared.workspace.LangiumDocuments).validate(node, accept);
     }
 
     checkDataSource(node: DataSource, accept: ValidationAcceptor): void {

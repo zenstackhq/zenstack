@@ -1,33 +1,38 @@
 grammar ZModel
 
+
 entry Model:
+    imports+=ModelImport*
     (
         declarations+=AbstractDeclaration
     )*;
+
+ModelImport:
+    'import' path=STRING  ';'?;
 
 AbstractDeclaration:
     DataSource | GeneratorDecl| Plugin | DataModel | Enum | FunctionDecl | Attribute;
 
 // datasource
 DataSource:
-    TRIPLE_SLASH_COMMENT* 'datasource' name=ID '{' (fields+=DataSourceField)* '}';
+    TRIPLE_SLASH_COMMENT* 'datasource' name=RegularID '{' (fields+=DataSourceField)* '}';
 
 DataSourceField:
-    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr | InvocationExpr | ArrayExpr);
+    TRIPLE_SLASH_COMMENT* name=RegularID '=' value=(LiteralExpr | InvocationExpr | ArrayExpr);
 
 // generator
 GeneratorDecl:
-    TRIPLE_SLASH_COMMENT* 'generator' name=ID '{' (fields+=GeneratorField)* '}';
+    TRIPLE_SLASH_COMMENT* 'generator' name=RegularID '{' (fields+=GeneratorField)* '}';
 
 GeneratorField:
-    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr | ArrayExpr);
+    TRIPLE_SLASH_COMMENT* name=RegularID '=' value=(LiteralExpr | ArrayExpr);
 
 // plugin
 Plugin:
-    TRIPLE_SLASH_COMMENT* 'plugin' name=ID '{' (fields+=PluginField)* '}';
+    TRIPLE_SLASH_COMMENT* 'plugin' name=RegularID '{' (fields+=PluginField)* '}';
 
 PluginField:
-    TRIPLE_SLASH_COMMENT* name=ID '=' value=(LiteralExpr | ArrayExpr);
+    TRIPLE_SLASH_COMMENT* name=RegularID '=' value=(LiteralExpr | ArrayExpr | ObjectExpr);
 
 // expression
 Expression:
@@ -48,13 +53,22 @@ NullExpr:
     value=NULL;
 
 ReferenceExpr:
-    target=[ReferenceTarget:ID] ('(' ReferenceArgList ')')?;
+    target=[ReferenceTarget:RegularID] ('(' ReferenceArgList ')')?;
 
 fragment ReferenceArgList:
     args+=ReferenceArg (',' args+=ReferenceArg)*;
 
 ReferenceArg:
     name=('sort') ':' value=('Asc' | 'Desc');
+
+
+ObjectExpr:
+    '{'
+        (fields+=FieldInitializer (',' fields+=FieldInitializer)* ','?)?
+    '}';
+
+FieldInitializer:
+    name=RegularID ':' value=(Expression);
 
 InvocationExpr:
     function=[FunctionDecl] '(' ArgumentList? ')';
@@ -133,41 +147,36 @@ PrimaryExpr infers Expression:
     UnaryExpr |
     ObjectExpr;
 
-ObjectExpr:
-    '{'
-        (fields+=FieldInitializer (',' fields+=FieldInitializer)* ','?)?
-    '}';
-
-FieldInitializer:
-    name=ID ':' value=(Expression);
-
 fragment ArgumentList:
     args+=Argument (',' args+=Argument)*;
 
 Argument:
-    (name=ID ':')? value=Expression;
+    (name=RegularID ':')? value=Expression;
 
 // model
 DataModel:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    (isAbstract?='abstract')? 'model' name=ID  
+    (isAbstract?='abstract')? 'model' name=RegularID  
     ('extends' superTypes+=[DataModel] (',' superTypes+=[DataModel])*)? '{' (
-            fields+=DataModelField
+        fields+=DataModelField
             | attributes+=DataModelAttribute
         )+
     '}';
 
 DataModelField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=ID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
+    name=RegularID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
 
 DataModelFieldType:
-    (type=BuiltinType | reference=[TypeDeclaration:ID]) (array?='[' ']')? (optional?='?')?;
+    (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
+
+UnsupportedFieldType:
+    'Unsupported' '(' (value=LiteralExpr) ')';
 
 // enum
 Enum:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    'enum' name=ID '{' (
+    'enum' name=RegularID '{' (
            fields+=EnumField
            | attributes+=DataModelAttribute
         )+ 
@@ -175,21 +184,26 @@ Enum:
 
 EnumField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=ID (attributes+=DataModelFieldAttribute)*;
+    name=RegularID (attributes+=DataModelFieldAttribute)*;
 
 // function
 FunctionDecl:
-    TRIPLE_SLASH_COMMENT* 'function' name=ID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
+    TRIPLE_SLASH_COMMENT* 'function' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
 
 FunctionParam:
-    TRIPLE_SLASH_COMMENT* name=ID ':' type=FunctionParamType (optional?='?')?;
+    TRIPLE_SLASH_COMMENT* name=RegularID ':' type=FunctionParamType (optional?='?')?;
 
 FunctionParamType:
-    (type=ExpressionType | reference=[TypeDeclaration]) (array?='[' ']')?;
+    (type=ExpressionType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')?;
 
 QualifiedName returns string:
     // TODO: is this the right way to deal with token precedence?
     ID ('.' (ID|BuiltinType))*;
+
+// https://github.com/langium/langium/discussions/1012
+RegularID returns string:
+    // include keywords that we'd like to work as ID in most places
+    ID | 'in';
 
 // attribute-level attribute
 AttributeAttributeName returns string:
@@ -211,12 +225,12 @@ Attribute:
     TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=AttributeAttribute)*;
 
 AttributeParam:
-    TRIPLE_SLASH_COMMENT* (default?='_')? name=ID ':' type=AttributeParamType;
+    TRIPLE_SLASH_COMMENT* (default?='_')? name=RegularID ':' type=AttributeParamType;
 
 // FieldReference refers to fields declared in the current model
 // TransitiveFieldReference refers to fields declared in the model type of the current field
 AttributeParamType:
-    (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:ID]) (array?='[' ']')? (optional?='?')?;
+    (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
 
 type TypeDeclaration = DataModel | Enum;
 
@@ -233,10 +247,10 @@ fragment AttributeArgList:
     args+=AttributeArg (',' args+=AttributeArg)*;
 
 AttributeArg:
-    (name=ID ':')? value=Expression;
+    (name=RegularID ':')? value=Expression;
 
 ExpressionType returns string:
-    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Object' | 'Any';
+    'String' | 'Int' | 'Float' | 'Boolean' | 'DateTime' | 'Null' | 'Object' | 'Any' | 'Unsupported';
 
 BuiltinType returns string:
     'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes';

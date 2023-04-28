@@ -99,9 +99,10 @@ function future(): Any {
 }
 
 /*
- * If the field value contains the search string
+ * If the field value contains the search string. By default, the search is case-sensitive,
+ * but you can override the behavior with the "caseInSensitive" argument.
  */
-function contains(field: String, search: String, caseSensitive: Boolean?): Boolean {
+function contains(field: String, search: String, caseInSensitive: Boolean?): Boolean {
 }
 
 /*

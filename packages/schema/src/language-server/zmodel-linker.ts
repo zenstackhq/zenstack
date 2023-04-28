@@ -19,7 +19,6 @@ import {
     isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
-    Model,
     NullExpr,
     ObjectExpr,
     ReferenceExpr,
@@ -39,11 +38,11 @@ import {
     LangiumDocument,
     LangiumServices,
     LinkingError,
-    Mutable,
     Reference,
     streamContents,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
+import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
@@ -72,8 +71,6 @@ export class ZModelLinker extends DefaultLinker {
             return;
         }
 
-        this.resolveBaseModels(document);
-
         for (const node of streamContents(document.parseResult.value)) {
             await interruptAndCheck(cancelToken);
             this.resolve(node, document);
@@ -92,34 +89,6 @@ export class ZModelLinker extends DefaultLinker {
             const reference: Reference<AstNode> = (container as any)[property];
             this.doLink({ reference, container, property }, document);
         }
-    }
-
-    //#endregion
-
-    //#region abstract DataModel
-
-    private resolveBaseModels(document: LangiumDocument) {
-        const model = document.parseResult.value as Model;
-
-        model.declarations.forEach((decl) => {
-            if (decl.$type === 'DataModel') {
-                const dataModel = decl as DataModel;
-                dataModel.$resolvedFields = [...dataModel.fields];
-                dataModel.superTypes.forEach((superType) => {
-                    const superTypeDecl = superType.ref;
-                    if (superTypeDecl) {
-                        superTypeDecl.fields.forEach((field) => {
-                            const cloneField = Object.assign({}, field);
-                            cloneField.$isInherited = true;
-                            const mutable = cloneField as Mutable<AstNode>;
-                            // update container
-                            mutable.$container = dataModel;
-                            dataModel.$resolvedFields.push(cloneField);
-                        });
-                    }
-                });
-            }
-        });
     }
 
     //#endregion
@@ -280,9 +249,14 @@ export class ZModelLinker extends DefaultLinker {
             if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
-                const userModel = model?.declarations.find((d) => isDataModel(d) && d.name === 'User');
-                if (userModel) {
-                    node.$resolvedType = { decl: userModel, nullable: true };
+
+                if (model) {
+                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find(
+                        (d) => isDataModel(d) && d.name === 'User'
+                    );
+                    if (userModel) {
+                        node.$resolvedType = { decl: userModel, nullable: true };
+                    }
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
                 // future() function is resolved to current model
@@ -483,7 +457,14 @@ export class ZModelLinker extends DefaultLinker {
         let nullable = false;
         if (isDataModelFieldType(type)) {
             nullable = type.optional;
+
+            // referencing a field of 'Unsupported' type
+            if (type.unsupported) {
+                node.$resolvedType = { decl: 'Unsupported', array: type.array, nullable };
+                return;
+            }
         }
+
         if (type.type) {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
             node.$resolvedType = { decl: mappedType, array: type.array, nullable: nullable };

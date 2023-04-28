@@ -4,6 +4,7 @@ import {
     CodeActionProvider,
     findDeclarationNodeAtOffset,
     getContainerOfType,
+    getDocument,
     IndexManager,
     LangiumDocument,
     LangiumServices,
@@ -112,6 +113,9 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     newText = '\n' + indent + `${fieldName} ${typeName}[]`;
                 }
 
+                // the opposite model might be in the imported file
+                const targetDocument = getDocument(oppositeModel);
+
                 return {
                     title: `Add opposite relation fields on ${oppositeModel.name}`,
                     kind: CodeActionKind.QuickFix,
@@ -119,7 +123,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     isPreferred: false,
                     edit: {
                         changes: {
-                            [document.textDocument.uri]: [
+                            [targetDocument.textDocument.uri]: [
                                 {
                                     range: {
                                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

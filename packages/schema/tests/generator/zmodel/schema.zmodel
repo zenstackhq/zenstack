@@ -1,0 +1,14 @@
+import "user/user"
+
+datasource db {
+    provider = 'postgresql'
+    url = env('URL')
+}
+
+model Post {
+    id Int @id() @default(autoincrement())
+    author User? @relation(fields: [authorId], references: [id])
+    authorId Int?
+    // author has full access
+    @@allow('all', auth() == author)
+}

@@ -1,16 +1,20 @@
-import { isPlugin, Model } from '@zenstackhq/language/ast';
+import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
 import { getLiteral, PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
-import { LangiumDocument } from 'langium';
+import getLatestVersion from 'get-latest-version';
+import { getDocument, LangiumDocument, LangiumDocuments } from 'langium';
 import { NodeFileSystem } from 'langium/node';
+import ora from 'ora';
 import path from 'path';
+import semver from 'semver';
 import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { Context } from '../types';
-import { mergeBaseModel } from '../utils/ast-utils';
+import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
 import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
+import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
 import { PluginRunner } from './plugin-runner';
 
@@ -21,7 +25,7 @@ export async function initProject(
     projectPath: string,
     prismaSchema: string | undefined,
     packageManager: PackageManagers | undefined,
-    tag: string
+    tag?: string
 ) {
     if (!fs.existsSync(projectPath)) {
         console.error(`Path does not exist: ${projectPath}`);
@@ -57,6 +61,8 @@ export async function initProject(
 
     ensurePackage('prisma', true, packageManager, 'latest', projectPath);
     ensurePackage('@prisma/client', false, packageManager, 'latest', projectPath);
+
+    tag = tag ?? getVersion();
     installPackage('zenstack', true, packageManager, tag, projectPath);
     installPackage('@zenstackhq/runtime', false, packageManager, tag, projectPath);
 
@@ -102,13 +108,22 @@ export async function loadDocument(fileName: string): Promise<Model> {
     // load documents provided by plugins
     const pluginDocuments = await getPluginDocuments(services, fileName);
 
+    const langiumDocuments = services.shared.workspace.LangiumDocuments;
     // load the document
-    const document = services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+    const document = langiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+
+    // load all imports
+    const importedURIs = eagerLoadAllImports(document, langiumDocuments);
+
+    const importedDocuments = importedURIs.map((uri) => langiumDocuments.getOrCreateDocument(uri));
 
     // build the document together with standard library and plugin modules
-    await services.shared.workspace.DocumentBuilder.build([stdLib, ...pluginDocuments, document], {
-        validationChecks: 'all',
-    });
+    await services.shared.workspace.DocumentBuilder.build(
+        [stdLib, ...pluginDocuments, document, ...importedDocuments],
+        {
+            validationChecks: 'all',
+        }
+    );
 
     const validationErrors = (document.diagnostics ?? []).filter((e) => e.severity === 1);
     if (validationErrors.length > 0) {
@@ -125,11 +140,56 @@ export async function loadDocument(fileName: string): Promise<Model> {
         throw new CliError('schema validation errors');
     }
 
-    const result = document.parseResult.value as Model;
+    const model = document.parseResult.value as Model;
 
-    mergeBaseModel(result);
+    mergeImportsDeclarations(langiumDocuments, model);
 
-    return result;
+    validationAfterMerge(model);
+
+    mergeBaseModel(model);
+
+    return model;
+}
+
+// check global unique thing after merge imports
+function validationAfterMerge(model: Model) {
+    const dataSources = model.declarations.filter((d) => isDataSource(d));
+    if (dataSources.length == 0) {
+        console.error(colors.red('Validation errors: Model must define a datasource'));
+        throw new CliError('schema validation errors');
+    } else if (dataSources.length > 1) {
+        console.error(colors.red('Validation errors: Multiple datasource declarations are not allowed'));
+        throw new CliError('schema validation errors');
+    }
+}
+
+export function eagerLoadAllImports(
+    document: LangiumDocument,
+    documents: LangiumDocuments,
+    uris: Set<string> = new Set()
+) {
+    const uriString = document.uri.toString();
+    if (!uris.has(uriString)) {
+        uris.add(uriString);
+        const model = document.parseResult.value as Model;
+
+        for (const imp of model.imports) {
+            const importedModel = resolveImport(documents, imp);
+            if (importedModel) {
+                const importedDoc = getDocument(importedModel);
+                eagerLoadAllImports(importedDoc, documents, uris);
+            }
+        }
+    }
+
+    return Array.from(uris)
+        .filter((x) => uriString != x)
+        .map((e) => URI.parse(e));
+}
+
+export function mergeImportsDeclarations(documents: LangiumDocuments, model: Model) {
+    const importedModels = resolveTransitiveImports(documents, model);
+    model.declarations.push(...importedModels.flatMap((m) => m.declarations));
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
@@ -156,7 +216,7 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
                             );
                         }
                     } catch {
-                        console.warn(`Unable to load plugin from ${provider}, skipping`);
+                        // noop
                     }
                 }
             }
@@ -182,6 +242,57 @@ export async function runPlugins(options: { schema: string; packageManager: Pack
             throw new CliError(err.message);
         } else {
             throw err;
+        }
+    }
+}
+
+export async function dumpInfo(projectPath: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let pkgJson: any;
+    const resolvedPath = path.resolve(projectPath);
+    try {
+        pkgJson = require(path.join(resolvedPath, 'package.json'));
+    } catch {
+        console.error('Unable to locate package.json. Are you in a valid project directory?');
+        return;
+    }
+    const packages = [
+        'zenstack',
+        ...Object.keys(pkgJson.dependencies ?? {}).filter((p) => p.startsWith('@zenstackhq/')),
+        ...Object.keys(pkgJson.devDependencies ?? {}).filter((p) => p.startsWith('@zenstackhq/')),
+    ];
+
+    const versions = new Set<string>();
+    for (const pkg of packages) {
+        try {
+            const resolved = require.resolve(`${pkg}/package.json`, { paths: [resolvedPath] });
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const version = require(resolved).version;
+            versions.add(version);
+            console.log(`    ${colors.green(pkg.padEnd(20))}\t${version}`);
+        } catch {
+            // noop
+        }
+    }
+
+    if (versions.size > 1) {
+        console.warn(colors.yellow('WARNING: Multiple versions of Zenstack packages detected. This may cause issues.'));
+    } else if (versions.size > 0) {
+        const spinner = ora('Checking npm registry').start();
+        const latest = await getLatestVersion('zenstack');
+
+        if (!latest) {
+            spinner.fail('unable to check for latest version');
+        } else {
+            spinner.succeed();
+            const version = [...versions][0];
+            if (semver.gt(latest, version)) {
+                console.log(`A newer version of Zenstack is available: ${latest}.`);
+            } else if (semver.gt(version, latest)) {
+                console.log('You are using a pre-release version of Zenstack.');
+            } else {
+                console.log('You are using the latest version of Zenstack.');
+            }
         }
     }
 }

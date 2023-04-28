@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('With Policy:deep nested', () => {
     let origDir: string;
-    const suite = 'deep-nested';
 
     const model = `
     // M1 - M2 -  M3

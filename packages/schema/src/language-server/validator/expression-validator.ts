@@ -1,6 +1,6 @@
-import { BinaryExpr, Expression, isArrayExpr, isBinaryExpr, isEnum, isLiteralExpr } from '@zenstackhq/language/ast';
+import { BinaryExpr, Expression, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
-import { getDataModelFieldReference, isAuthInvocation, isEnumFieldReference } from '../../utils/ast-utils';
+import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 
 /**
@@ -22,6 +22,10 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             }
         }
 
+        if (expr.$resolvedType?.decl === 'Unsupported') {
+            accept('error', 'Field of "Unsupported" type cannot be used in expressions', { node: expr });
+        }
+
         // extra validations by expression type
         switch (expr.$type) {
             case 'BinaryExpr':
@@ -33,21 +37,12 @@ export default class ExpressionValidator implements AstValidator<Expression> {
     private validateBinaryExpr(expr: BinaryExpr, accept: ValidationAcceptor) {
         switch (expr.operator) {
             case 'in': {
-                if (!getDataModelFieldReference(expr.left)) {
-                    accept('error', 'left operand of "in" must be a field reference', { node: expr.left });
-                }
-
                 if (typeof expr.left.$resolvedType?.decl !== 'string' && !isEnum(expr.left.$resolvedType?.decl)) {
                     accept('error', 'left operand of "in" must be of scalar type', { node: expr.left });
                 }
 
-                if (
-                    !(
-                        isArrayExpr(expr.right) &&
-                        expr.right.items.every((item) => isLiteralExpr(item) || isEnumFieldReference(item))
-                    )
-                ) {
-                    accept('error', 'right operand of "in" must be an array of literals or enum values', {
+                if (!expr.right.$resolvedType?.array) {
+                    accept('error', 'right operand of "in" must be an array', {
                         node: expr.right,
                     });
                 }
