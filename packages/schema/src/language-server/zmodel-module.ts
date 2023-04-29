@@ -25,6 +25,7 @@ import { ZModelFormatter } from './zmodel-formatter';
 import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation, ZModelScopeProvider } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
+import { ZModelDefinitionProvider } from './zmodel-definition';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -59,6 +60,7 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
     lsp: {
         Formatter: () => new ZModelFormatter(),
         CodeActionProvider: (services) => new ZModelCodeActionProvider(services),
+        DefinitionProvider: (services) => new ZModelDefinitionProvider(services),
     },
 };
 
