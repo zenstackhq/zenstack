@@ -56,7 +56,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             });
         }
 
-        dm.fields.forEach((field) => this.validateField(field, dm, accept));
+        dm.fields.forEach((field) => this.validateField(field, accept));
 
         if (!dm.isAbstract) {
             dm.$resolvedFields
@@ -67,7 +67,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
     }
 
-    private validateField(field: DataModelField, dataModel: DataModel, accept: ValidationAcceptor): void {
+    private validateField(field: DataModelField, accept: ValidationAcceptor): void {
         if (field.type.array && field.type.optional) {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
@@ -77,10 +77,6 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
-
-        if (isDataModel(field.type.reference?.ref) && !(field.$container as DataModel).isAbstract) {
-            this.validateRelationField(field, accept);
-        }
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
