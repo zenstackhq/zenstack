@@ -316,9 +316,16 @@ describe('Prisma generator test', () => {
         const content = fs.readFileSync(name, 'utf-8');
         const dmmf = await getDMMF({ datamodel: content });
 
-        console.log(content);
-
         expect(dmmf.datamodel.models.length).toBe(3);
         expect(dmmf.datamodel.enums[0].name).toBe('UserRole');
+
+        const post = dmmf.datamodel.models.find((m) => m.name === 'Post');
+
+        expect(post!.documentation?.replace(/\s/g, '')).toBe(
+            `@@allow('delete', ownerId == auth()) @@allow('read', owner == auth())`.replace(/\s/g, '')
+        );
+
+        const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');
+        expect(todo!.documentation?.replace(/\s/g, '')).toBe(`@@allow('read', owner == auth())`.replace(/\s/g, ''));
     });
 });

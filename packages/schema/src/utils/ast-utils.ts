@@ -69,6 +69,14 @@ export function mergeBaseModel(model: Model) {
                         mutable.$container = dataModel;
                         dataModel.fields.push(mutable as DataModelField);
                     });
+
+                    superTypeDecl.attributes.forEach((attr) => {
+                        const cloneAttr = Object.assign({}, attr);
+                        const mutable = cloneAttr as Mutable<AstNode>;
+                        // update container
+                        mutable.$container = dataModel;
+                        dataModel.attributes.push(mutable as DataModelAttribute);
+                    });
                 }
             });
         });
