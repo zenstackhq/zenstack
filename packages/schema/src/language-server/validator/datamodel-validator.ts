@@ -18,6 +18,7 @@ import { validateAttributeApplication, validateDuplicatedDeclarations } from './
  */
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
+        this.validateBaseAbstractModel(dm, accept);
         validateDuplicatedDeclarations(dm.$resolvedFields, accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
@@ -355,6 +356,17 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 }
             });
         }
+    }
+
+    private validateBaseAbstractModel(model: DataModel, accept: ValidationAcceptor) {
+        model.superTypes.forEach((superType, index) => {
+            if (!superType.ref?.isAbstract)
+                accept('error', `Model ${superType.$refText} cannot be extended because it's not abstract`, {
+                    node: model,
+                    property: 'superTypes',
+                    index,
+                });
+        });
     }
 }
 

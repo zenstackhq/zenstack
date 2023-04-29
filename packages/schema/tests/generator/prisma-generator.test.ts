@@ -321,11 +321,11 @@ describe('Prisma generator test', () => {
 
         const post = dmmf.datamodel.models.find((m) => m.name === 'Post');
 
-        expect(post!.documentation?.replace(/\s/g, '')).toBe(
+        expect(post?.documentation?.replace(/\s/g, '')).toBe(
             `@@allow('delete', ownerId == auth()) @@allow('read', owner == auth())`.replace(/\s/g, '')
         );
 
         const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');
-        expect(todo!.documentation?.replace(/\s/g, '')).toBe(`@@allow('read', owner == auth())`.replace(/\s/g, ''));
+        expect(todo?.documentation?.replace(/\s/g, '')).toBe(`@@allow('read', owner == auth())`.replace(/\s/g, ''));
     });
 });

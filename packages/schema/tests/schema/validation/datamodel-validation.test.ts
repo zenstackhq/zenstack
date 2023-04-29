@@ -590,4 +590,25 @@ describe('Data Model Validation Tests', () => {
             }
         `);
     });
+
+    it('abstract base type', async () => {
+        const errors = await loadModelWithError(`
+                    ${prelude}
+
+                    abstract model Base {
+                        id String @id
+                    }
+
+                    model A {
+                        a String
+                    }
+        
+                    model B extends Base,A {
+                        b String
+                    }
+                `);
+        expect(errors.length).toBe(1);
+
+        expect(errors[0]).toEqual(`Model A cannot be extended because it's not abstract`);
+    });
 });
