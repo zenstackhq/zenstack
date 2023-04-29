@@ -211,9 +211,9 @@ function resolveTransitiveImportsInternal(
     if (!visited.has(doc.uri)) {
         visited.add(doc.uri);
         for (const imp of model.imports) {
-            const importedGrammar = resolveImport(documents, imp);
-            if (importedGrammar) {
-                resolveTransitiveImportsInternal(documents, importedGrammar, initialModel, visited, models);
+            const importedModel = resolveImport(documents, imp);
+            if (importedModel) {
+                resolveTransitiveImportsInternal(documents, importedModel, initialModel, visited, models);
             }
         }
     }

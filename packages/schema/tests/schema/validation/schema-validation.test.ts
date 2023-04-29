@@ -24,4 +24,18 @@ describe('Toplevel Schema Validation Tests', () => {
         `)
         ).toContain('Duplicated declaration name "X"');
     });
+
+    it('not exsited import', async () => {
+        expect(
+            await loadModelWithError(`
+                import 'models/abc'
+                datasource db1 {
+                    provider = 'postgresql'
+                    url = env('DATABASE_URL')
+                }
+
+                model X {id String @id }
+        `)
+        ).toContain('Cannot find model file models/abc.zmodel');
+    });
 });
