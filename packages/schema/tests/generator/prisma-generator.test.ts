@@ -236,6 +236,41 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('schemas = ["base","transactional"]');
     });
+
+    it('abstract model', async () => {
+        const model = await loadModel(`
+        datasource db {
+            provider = 'postgresql'
+            url = env('URL')
+        }
+        abstract model Base {
+            id String @id
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+        }
+
+        model Post extends Base {
+            title String
+            published Boolean @default(false)
+        }
+    `);
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            generateClient: false,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        const dmmf = await getDMMF({ datamodel: content });
+
+        expect(dmmf.datamodel.models.length).toBe(1);
+        const post = dmmf.datamodel.models[0];
+        expect(post.name).toBe('Post');
+        expect(post.fields.length).toBe(6);
+    });
+
     it('custom aux field names', async () => {
         const model = await loadModel(`
             datasource db {
@@ -267,7 +302,7 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@map("myTransactionField")');
     });
 
-    it('multi files', async () => {
+    it('abstract multi files', async () => {
         const model = await loadDocument(path.join(__dirname, './zmodel/schema.zmodel'));
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
@@ -275,12 +310,22 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            generateClient: false,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
         const dmmf = await getDMMF({ datamodel: content });
 
-        expect(dmmf.datamodel.models.length).toBe(2);
+        expect(dmmf.datamodel.models.length).toBe(3);
         expect(dmmf.datamodel.enums[0].name).toBe('UserRole');
+
+        const post = dmmf.datamodel.models.find((m) => m.name === 'Post');
+
+        expect(post?.documentation?.replace(/\s/g, '')).toBe(
+            `@@allow('delete', ownerId == auth()) @@allow('read', owner == auth())`.replace(/\s/g, '')
+        );
+
+        const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');
+        expect(todo?.documentation?.replace(/\s/g, '')).toBe(`@@allow('read', owner == auth())`.replace(/\s/g, ''));
     });
 });

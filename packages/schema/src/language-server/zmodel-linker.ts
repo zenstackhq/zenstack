@@ -67,6 +67,10 @@ export class ZModelLinker extends DefaultLinker {
     //#region Reference linking
 
     async link(document: LangiumDocument, cancelToken = CancellationToken.None): Promise<void> {
+        if (document.parseResult.lexerErrors?.length > 0 || document.parseResult.parserErrors?.length > 0) {
+            return;
+        }
+
         for (const node of streamContents(document.parseResult.value)) {
             await interruptAndCheck(cancelToken);
             this.resolve(node, document);
@@ -154,6 +158,10 @@ export class ZModelLinker extends DefaultLinker {
 
             case AttributeArg:
                 this.resolveAttributeArg(node as AttributeArg, document, extraScopes);
+                break;
+
+            case DataModel:
+                this.resolveDataModel(node as DataModel, document, extraScopes);
                 break;
 
             default:
@@ -299,7 +307,7 @@ export class ZModelLinker extends DefaultLinker {
 
         if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
             const modelDecl = operandResolved.decl as DataModel;
-            const provider = (name: string) => modelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => modelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
         }
 
@@ -315,7 +323,7 @@ export class ZModelLinker extends DefaultLinker {
         const resolvedType = node.left.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
             const dataModelDecl = resolvedType.decl;
-            const provider = (name: string) => dataModelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => dataModelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
@@ -377,7 +385,7 @@ export class ZModelLinker extends DefaultLinker {
             const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
             if (transtiveDataModel) {
                 // resolve references in the context of the transitive data model
-                const scopeProvider = (name: string) => transtiveDataModel.fields.find((f) => f.name === name);
+                const scopeProvider = (name: string) => transtiveDataModel.$resolvedFields.find((f) => f.name === name);
                 if (isArrayExpr(node.value)) {
                     node.value.items.forEach((item) => {
                         if (isReferenceExpr(item)) {
@@ -430,6 +438,17 @@ export class ZModelLinker extends DefaultLinker {
             const index = arg.$container.args.findIndex((a) => a === arg);
             return attr.params[index];
         }
+    }
+
+    private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        if (node.superTypes.length > 0) {
+            const providers = node.superTypes.map(
+                (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
+            );
+            extraScopes = [...providers, ...extraScopes];
+        }
+
+        return this.resolveDefault(node, document, extraScopes);
     }
 
     private resolveDefault(node: AstNode, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {

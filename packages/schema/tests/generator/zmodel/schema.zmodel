@@ -5,10 +5,14 @@ datasource db {
     url = env('URL')
 }
 
-model Post {
-    id Int @id() @default(autoincrement())
-    author User? @relation(fields: [authorId], references: [id])
-    authorId Int?
-    // author has full access
-    @@allow('all', auth() == author)
+model Post extends Basic {
+    title String
+    content String?
+
+    @@allow('delete', ownerId == auth())
+}
+
+model Todo extends Basic {
+    title String
+    isCompleted Boolean
 }

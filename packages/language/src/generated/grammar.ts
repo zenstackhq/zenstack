@@ -1681,6 +1681,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "cardinality": "*"
           },
           {
+            "$type": "Assignment",
+            "feature": "isAbstract",
+            "operator": "?=",
+            "terminal": {
+              "$type": "Keyword",
+              "value": "abstract"
+            },
+            "cardinality": "?"
+          },
+          {
             "$type": "Keyword",
             "value": "model"
           },
@@ -1695,6 +1705,50 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
               },
               "arguments": []
             }
+          },
+          {
+            "$type": "Group",
+            "elements": [
+              {
+                "$type": "Keyword",
+                "value": "extends"
+              },
+              {
+                "$type": "Assignment",
+                "feature": "superTypes",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "CrossReference",
+                  "type": {
+                    "$ref": "#/rules@30"
+                  },
+                  "deprecatedSyntax": false
+                }
+              },
+              {
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Keyword",
+                    "value": ","
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "superTypes",
+                    "operator": "+=",
+                    "terminal": {
+                      "$type": "CrossReference",
+                      "type": {
+                        "$ref": "#/rules@30"
+                      },
+                      "deprecatedSyntax": false
+                    }
+                  }
+                ],
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
           },
           {
             "$type": "Keyword",

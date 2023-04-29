@@ -12,7 +12,7 @@ import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { Context } from '../types';
-import { resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
+import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
 import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
@@ -125,7 +125,11 @@ export async function loadDocument(fileName: string): Promise<Model> {
         }
     );
 
-    const validationErrors = (document.diagnostics ?? []).filter((e) => e.severity === 1);
+    const validationErrors = langiumDocuments.all
+        .flatMap((d) => d.diagnostics ?? [])
+        .filter((e) => e.severity === 1)
+        .toArray();
+
     if (validationErrors.length > 0) {
         console.error(colors.red('Validation errors:'));
         for (const validationError of validationErrors) {
@@ -145,6 +149,9 @@ export async function loadDocument(fileName: string): Promise<Model> {
     mergeImportsDeclarations(langiumDocuments, model);
 
     validationAfterMerge(model);
+
+    mergeBaseModel(model);
+
     return model;
 }
 
@@ -179,7 +186,9 @@ export function eagerLoadAllImports(
         }
     }
 
-    return Array.from(uris).map((e) => URI.parse(e));
+    return Array.from(uris)
+        .filter((x) => uriString != x)
+        .map((e) => URI.parse(e));
 }
 
 export function mergeImportsDeclarations(documents: LangiumDocuments, model: Model) {

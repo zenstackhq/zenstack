@@ -1,4 +1,4 @@
-import { isEnumField, isModel } from '@zenstackhq/language/ast';
+import { isEnumField, isModel, Model, DataModel } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
@@ -10,6 +10,8 @@ import {
     interruptAndCheck,
     LangiumDocument,
     LangiumServices,
+    Mutable,
+    PrecomputedScopes,
     ReferenceInfo,
     Scope,
     stream,
@@ -50,6 +52,42 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
         }
 
         return result;
+    }
+
+    override computeLocalScopes(
+        document: LangiumDocument<AstNode>,
+        cancelToken?: CancellationToken | undefined
+    ): Promise<PrecomputedScopes> {
+        const result = super.computeLocalScopes(document, cancelToken);
+
+        //the $resolvedFields would be used in Linking stage for all the documents
+        //so we need to set it at the end of the scope computation
+        this.resolveBaseModels(document);
+        return result;
+    }
+
+    private resolveBaseModels(document: LangiumDocument) {
+        const model = document.parseResult.value as Model;
+
+        model.declarations.forEach((decl) => {
+            if (decl.$type === 'DataModel') {
+                const dataModel = decl as DataModel;
+                dataModel.$resolvedFields = [...dataModel.fields];
+                dataModel.superTypes.forEach((superType) => {
+                    const superTypeDecl = superType.ref;
+                    if (superTypeDecl) {
+                        superTypeDecl.fields.forEach((field) => {
+                            const cloneField = Object.assign({}, field);
+                            cloneField.$isInherited = true;
+                            const mutable = cloneField as Mutable<AstNode>;
+                            // update container
+                            mutable.$container = dataModel;
+                            dataModel.$resolvedFields.push(cloneField);
+                        });
+                    }
+                });
+            }
+        });
     }
 }
 

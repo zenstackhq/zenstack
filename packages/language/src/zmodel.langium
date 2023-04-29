@@ -156,8 +156,9 @@ Argument:
 // model
 DataModel:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    'model' name=RegularID '{' (
-            fields+=DataModelField
+    (isAbstract?='abstract')? 'model' name=RegularID  
+    ('extends' superTypes+=[DataModel] (',' superTypes+=[DataModel])*)? '{' (
+        fields+=DataModelField
             | attributes+=DataModelAttribute
         )+
     '}';
