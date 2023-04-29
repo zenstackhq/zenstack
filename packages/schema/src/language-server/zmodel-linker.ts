@@ -160,6 +160,10 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveAttributeArg(node as AttributeArg, document, extraScopes);
                 break;
 
+            case DataModel:
+                this.resolveDataModel(node as DataModel, document, extraScopes);
+                break;
+
             default:
                 this.resolveDefault(node, document, extraScopes);
                 break;
@@ -434,6 +438,17 @@ export class ZModelLinker extends DefaultLinker {
             const index = arg.$container.args.findIndex((a) => a === arg);
             return attr.params[index];
         }
+    }
+
+    private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        if (node.superTypes.length > 0) {
+            const providers = node.superTypes.map(
+                (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
+            );
+            extraScopes = [...providers, ...extraScopes];
+        }
+
+        return this.resolveDefault(node, document, extraScopes);
     }
 
     private resolveDefault(node: AstNode, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {

@@ -316,6 +316,8 @@ describe('Prisma generator test', () => {
         const content = fs.readFileSync(name, 'utf-8');
         const dmmf = await getDMMF({ datamodel: content });
 
+        console.log(content);
+
         expect(dmmf.datamodel.models.length).toBe(3);
         expect(dmmf.datamodel.enums[0].name).toBe('UserRole');
     });
