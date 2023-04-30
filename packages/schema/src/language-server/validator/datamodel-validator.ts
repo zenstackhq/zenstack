@@ -7,7 +7,7 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { analyzePolicies, getLiteral } from '@zenstackhq/sdk';
-import { ValidationAcceptor } from 'langium';
+import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getIdFields, getUniqueFields } from '../utils';
@@ -18,13 +18,14 @@ import { validateAttributeApplication, validateDuplicatedDeclarations } from './
  */
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
-        validateDuplicatedDeclarations(dm.fields, accept);
+        this.validateBaseAbstractModel(dm, accept);
+        validateDuplicatedDeclarations(dm.$resolvedFields, accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
-        const idFields = dm.fields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
+        const idFields = dm.$resolvedFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
         const modelLevelIds = getIdFields(dm);
 
         if (idFields.length === 0 && modelLevelIds.length === 0) {
@@ -57,6 +58,14 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         }
 
         dm.fields.forEach((field) => this.validateField(field, accept));
+
+        if (!dm.isAbstract) {
+            dm.$resolvedFields
+                .filter((x) => isDataModel(x.type.reference?.ref))
+                .forEach((y) => {
+                    this.validateRelationField(y, accept);
+                });
+        }
     }
 
     private validateField(field: DataModelField, accept: ValidationAcceptor): void {
@@ -64,11 +73,11 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
 
-        field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
-
-        if (isDataModel(field.type.reference?.ref)) {
-            this.validateRelationField(field, accept);
+        if (field.type.unsupported && typeof field.type.unsupported.value.value !== 'string') {
+            accept('error', 'Unsupported type argument must be a string literal', { node: field.type.unsupported });
         }
+
+        field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
@@ -171,8 +180,9 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         if (relationName) {
             // field's relation points to another type, and that type's opposite relation field
             // points back
-            const oppositeModelFields = field.type.reference?.ref?.fields as DataModelField[];
-            if (oppositeModelFields) {
+            const oppositeModel = field.type.reference?.ref as DataModel;
+            if (oppositeModel) {
+                const oppositeModelFields = oppositeModel.$resolvedFields as DataModelField[];
                 for (const oppositeField of oppositeModelFields) {
                     // find the opposite relation with the matching name
                     const relAttr = oppositeField.attributes.find((a) => a.decl.ref?.name === '@relation');
@@ -200,34 +210,68 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
-        let oppositeFields = oppositeModel.fields.filter((f) => f.type.reference?.ref === field.$container);
+        // Use name because the current document might be updated
+        let oppositeFields = oppositeModel.$resolvedFields.filter(
+            (f) => f.type.reference?.ref?.name === field.$container.name
+        );
         oppositeFields = oppositeFields.filter((f) => {
             const fieldRel = this.parseRelation(f);
             return fieldRel.valid && fieldRel.name === thisRelation.name;
         });
 
         if (oppositeFields.length === 0) {
+            const node = field.$isInherited ? field.$container : field;
+            const info: DiagnosticInfo<AstNode, string> = { node, code: IssueCodes.MissingOppositeRelation };
+
+            let relationFieldDocUri: string;
+            let relationDataModelName: string;
+
+            if (field.$isInherited) {
+                info.property = 'name';
+                const container = field.$container as DataModel;
+                const abstractContainer = container.superTypes.find((x) =>
+                    x.ref?.fields.find((f) => f.name === field.name)
+                )?.ref as DataModel;
+
+                relationFieldDocUri = getDocument(abstractContainer).textDocument.uri;
+                relationDataModelName = abstractContainer.name;
+            } else {
+                relationFieldDocUri = getDocument(field).textDocument.uri;
+                relationDataModelName = field.$container.name;
+            }
+
+            const data: MissingOppositeRelationData = {
+                relationFieldName: field.name,
+                relationDataModelName,
+                relationFieldDocUri,
+                dataModelName: field.$container.name,
+            };
+
+            info.data = data;
+
             accept(
                 'error',
                 `The relation field "${field.name}" on model "${field.$container.name}" is missing an opposite relation field on model "${oppositeModel.name}"`,
-                { node: field, code: IssueCodes.MissingOppositeRelation }
+                info
             );
             return;
         } else if (oppositeFields.length > 1) {
-            oppositeFields.forEach((f) => {
-                if (this.isSelfRelation(f)) {
-                    // self relations are partial
-                    // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
-                } else {
-                    accept(
-                        'error',
-                        `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
-                            oppositeModel.name
-                        }" refer to the same relation to model "${field.$container.name}"`,
-                        { node: f }
-                    );
-                }
-            });
+            oppositeFields
+                .filter((x) => !x.$isInherited)
+                .forEach((f) => {
+                    if (this.isSelfRelation(f)) {
+                        // self relations are partial
+                        // https://www.prisma.io/docs/concepts/components/prisma-schema/relations/self-relations
+                    } else {
+                        accept(
+                            'error',
+                            `Fields ${oppositeFields.map((f) => '"' + f.name + '"').join(', ')} on model "${
+                                oppositeModel.name
+                            }" refer to the same relation to model "${field.$container.name}"`,
+                            { node: f }
+                        );
+                    }
+                });
             return;
         }
 
@@ -313,4 +357,26 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             });
         }
     }
+
+    private validateBaseAbstractModel(model: DataModel, accept: ValidationAcceptor) {
+        model.superTypes.forEach((superType, index) => {
+            if (!superType.ref?.isAbstract)
+                accept('error', `Model ${superType.$refText} cannot be extended because it's not abstract`, {
+                    node: model,
+                    property: 'superTypes',
+                    index,
+                });
+        });
+    }
+}
+
+export interface MissingOppositeRelationData {
+    relationDataModelName: string;
+    relationFieldName: string;
+    // it might be the abstract model in the imported document
+    relationFieldDocUri: string;
+
+    // the name of DataModel that the relation field belongs to.
+    // the document is the same with the error node.
+    dataModelName: string;
 }

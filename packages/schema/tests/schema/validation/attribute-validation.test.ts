@@ -466,22 +466,11 @@ describe('Attribute tests', () => {
             ${prelude}
             model M {
                 id String @id
-                i Int[]
-                @@allow('all', 1 in i)
-            }
-        `)
-        ).toContain('left operand of "in" must be a field reference');
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id
                 i Int
                 @@allow('all', i in 1)
             }
         `)
-        ).toContain('right operand of "in" must be an array of literals or enum values');
+        ).toContain('right operand of "in" must be an array');
 
         expect(
             await loadModelWithError(`

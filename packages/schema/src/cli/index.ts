@@ -139,16 +139,13 @@ export function createProgram() {
     // make sure config is loaded before actions run
     program.hook('preAction', async (_, actionCommand) => {
         let configFile: string | undefined = actionCommand.opts().config;
+
         if (!configFile && fs.existsSync(DEFAULT_CONFIG_FILE)) {
             configFile = DEFAULT_CONFIG_FILE;
         }
 
         if (configFile) {
-            if (fs.existsSync(configFile)) {
-                loadConfig(configFile);
-            } else {
-                throw new CliError(`Config file ${configFile} not found`);
-            }
+            loadConfig(configFile);
         }
     });
 

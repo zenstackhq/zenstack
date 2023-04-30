@@ -37,8 +37,16 @@ export function validateDuplicatedDeclarations(
 
     for (const [name, decls] of Object.entries<AstNode[]>(groupByName)) {
         if (decls.length > 1) {
+            let errorField = decls[1];
+            if (decls[0].$type === 'DataModelField') {
+                const nonInheritedFields = decls.filter((x) => !(x as DataModelField).$isInherited);
+                if (nonInheritedFields.length > 0) {
+                    errorField = nonInheritedFields.slice(-1)[0];
+                }
+            }
+
             accept('error', `Duplicated declaration name "${name}"`, {
-                node: decls[1],
+                node: errorField,
             });
         }
     }
@@ -83,7 +91,9 @@ export function typeAssignable(destType: ExpressionType, sourceType: ExpressionT
 /**
  * Maps a ZModel builtin type to expression type
  */
-export function mapBuiltinTypeToExpressionType(type: BuiltinType | 'Any' | 'Object' | 'Null'): ExpressionType | 'Any' {
+export function mapBuiltinTypeToExpressionType(
+    type: BuiltinType | 'Any' | 'Object' | 'Null' | 'Unsupported'
+): ExpressionType | 'Any' {
     switch (type) {
         case 'Any':
         case 'Boolean':
@@ -102,6 +112,8 @@ export function mapBuiltinTypeToExpressionType(type: BuiltinType | 'Any' | 'Obje
             return 'Any';
         case 'Object':
             return 'Object';
+        case 'Unsupported':
+            return 'Unsupported';
     }
 }
 

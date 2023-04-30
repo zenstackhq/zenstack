@@ -8,19 +8,16 @@ import * as tmp from 'tmp';
 import { createProgram } from '../../src/cli';
 
 describe('CLI Plugins Tests', () => {
-    let projDir: string;
     let origDir: string;
 
     beforeEach(() => {
         origDir = process.cwd();
-        const r = tmp.dirSync();
-        projDir = r.name;
-        console.log(`Project dir: ${projDir}`);
-        process.chdir(projDir);
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        console.log(`Project dir: ${r.name}`);
+        process.chdir(r.name);
     });
 
     afterEach(() => {
-        // fs.rmSync(projDir, { recursive: true, force: true });
         process.chdir(origDir);
     });
 

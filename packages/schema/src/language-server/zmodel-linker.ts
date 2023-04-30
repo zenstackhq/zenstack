@@ -42,6 +42,7 @@ import {
     streamContents,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
+import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
@@ -66,6 +67,10 @@ export class ZModelLinker extends DefaultLinker {
     //#region Reference linking
 
     async link(document: LangiumDocument, cancelToken = CancellationToken.None): Promise<void> {
+        if (document.parseResult.lexerErrors?.length > 0 || document.parseResult.parserErrors?.length > 0) {
+            return;
+        }
+
         for (const node of streamContents(document.parseResult.value)) {
             await interruptAndCheck(cancelToken);
             this.resolve(node, document);
@@ -153,6 +158,10 @@ export class ZModelLinker extends DefaultLinker {
 
             case AttributeArg:
                 this.resolveAttributeArg(node as AttributeArg, document, extraScopes);
+                break;
+
+            case DataModel:
+                this.resolveDataModel(node as DataModel, document, extraScopes);
                 break;
 
             default:
@@ -244,9 +253,14 @@ export class ZModelLinker extends DefaultLinker {
             if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
-                const userModel = model?.declarations.find((d) => isDataModel(d) && d.name === 'User');
-                if (userModel) {
-                    node.$resolvedType = { decl: userModel, nullable: true };
+
+                if (model) {
+                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find(
+                        (d) => isDataModel(d) && d.name === 'User'
+                    );
+                    if (userModel) {
+                        node.$resolvedType = { decl: userModel, nullable: true };
+                    }
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
                 // future() function is resolved to current model
@@ -293,7 +307,7 @@ export class ZModelLinker extends DefaultLinker {
 
         if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
             const modelDecl = operandResolved.decl as DataModel;
-            const provider = (name: string) => modelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => modelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
         }
 
@@ -309,7 +323,7 @@ export class ZModelLinker extends DefaultLinker {
         const resolvedType = node.left.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
             const dataModelDecl = resolvedType.decl;
-            const provider = (name: string) => dataModelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => dataModelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
@@ -371,7 +385,7 @@ export class ZModelLinker extends DefaultLinker {
             const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
             if (transtiveDataModel) {
                 // resolve references in the context of the transitive data model
-                const scopeProvider = (name: string) => transtiveDataModel.fields.find((f) => f.name === name);
+                const scopeProvider = (name: string) => transtiveDataModel.$resolvedFields.find((f) => f.name === name);
                 if (isArrayExpr(node.value)) {
                     node.value.items.forEach((item) => {
                         if (isReferenceExpr(item)) {
@@ -426,6 +440,17 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
+    private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        if (node.superTypes.length > 0) {
+            const providers = node.superTypes.map(
+                (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
+            );
+            extraScopes = [...providers, ...extraScopes];
+        }
+
+        return this.resolveDefault(node, document, extraScopes);
+    }
+
     private resolveDefault(node: AstNode, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         for (const [property, value] of Object.entries(node)) {
             if (!property.startsWith('$')) {
@@ -447,7 +472,14 @@ export class ZModelLinker extends DefaultLinker {
         let nullable = false;
         if (isDataModelFieldType(type)) {
             nullable = type.optional;
+
+            // referencing a field of 'Unsupported' type
+            if (type.unsupported) {
+                node.$resolvedType = { decl: 'Unsupported', array: type.array, nullable };
+                return;
+            }
         }
+
         if (type.type) {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
             node.$resolvedType = { decl: mappedType, array: type.array, nullable: nullable };

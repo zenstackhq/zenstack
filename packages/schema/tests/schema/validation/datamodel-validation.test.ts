@@ -40,6 +40,41 @@ describe('Data Model Validation Tests', () => {
         `);
     });
 
+    it('Unsupported type valid arg', async () => {
+        await loadModel(`
+            ${prelude}
+            model M {
+                id String @id
+                a Unsupported('foo')
+            }
+        `);
+    });
+
+    it('Unsupported type invalid arg', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                a Unsupported(123)
+            }
+        `)
+        ).toContain('Unsupported type argument must be a string literal');
+    });
+
+    it('Unsupported type used in expression', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                a Unsupported('a')
+                @@allow('all', a == 'a')
+            }
+        `)
+        ).toContain('Field of "Unsupported" type cannot be used in expressions');
+    });
+
     it('mix array and optional', async () => {
         expect(
             await loadModelWithError(`
@@ -554,5 +589,26 @@ describe('Data Model Validation Tests', () => {
                 following  User[]  @relation("UserFollows")
             }
         `);
+    });
+
+    it('abstract base type', async () => {
+        const errors = await loadModelWithError(`
+                    ${prelude}
+
+                    abstract model Base {
+                        id String @id
+                    }
+
+                    model A {
+                        a String
+                    }
+        
+                    model B extends Base,A {
+                        b String
+                    }
+                `);
+        expect(errors.length).toBe(1);
+
+        expect(errors[0]).toEqual(`Model A cannot be extended because it's not abstract`);
     });
 });

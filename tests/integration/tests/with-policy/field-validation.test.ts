@@ -1,8 +1,7 @@
-import { loadSchema, run, WeakDbClientContract } from '@zenstackhq/testtools';
+import { WeakDbClientContract, loadSchema, run } from '@zenstackhq/testtools';
 
 describe('With Policy: field validation', () => {
     let db: WeakDbClientContract;
-    let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
         const { withPolicy, prisma: _prisma } = await loadSchema(
@@ -49,7 +48,6 @@ describe('With Policy: field validation', () => {
 `
         );
         db = withPolicy();
-        prisma = _prisma;
     });
 
     beforeEach(() => {

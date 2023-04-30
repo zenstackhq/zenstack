@@ -43,6 +43,17 @@ declare module './generated/ast' {
          */
         $resolvedParam?: AttributeParam;
     }
+
+    interface DataModel {
+        /**
+         * Resolved fields, include inherited fields
+         */
+        $resolvedFields: Array<DataModelField>;
+    }
+
+    interface DataModelField {
+        $isInherited?: boolean;
+    }
 }
 
 declare module 'langium' {
