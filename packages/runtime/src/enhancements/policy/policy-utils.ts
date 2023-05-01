@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { createId } from '@paralleldrive/cuid2';
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import { camelCase } from 'change-case';
@@ -18,14 +19,15 @@ import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate, formatObject, getModelFields } from '../utils';
+import { enumerate, getModelFields } from '../utils';
 import { Logger } from './logger';
-import { createId } from '@paralleldrive/cuid2';
 
 /**
  * Access policy enforcement utilities
  */
 export class PolicyUtil {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     private readonly logger: Logger;
 
     constructor(
@@ -240,7 +242,9 @@ export class PolicyUtil {
         // recursively inject read guard conditions into the query args
         await this.injectNestedReadConditions(model, args);
 
-        this.logger.info(`Reading with validation for ${model}: ${formatObject(args)}`);
+        // DEBUG
+        // this.logger.info(`Reading with validation for ${model}: ${formatObject(args)}`);
+
         const result: any[] = await this.db[model].findMany(args);
 
         await Promise.all(result.map((item) => this.postProcessForRead(item, model, args, 'read')));
@@ -266,7 +270,8 @@ export class PolicyUtil {
         }
 
         if (flattened) {
-            this.logger.info(`Filter flattened: ${JSON.stringify(args)}`);
+            // DEBUG
+            // this.logger.info(`Filter flattened: ${JSON.stringify(args)}`);
         }
     }
 
@@ -352,7 +357,9 @@ export class PolicyUtil {
                 continue;
             }
 
-            this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
+            // DEBUG
+            // this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
+
             await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
 
             // recurse
@@ -537,7 +544,8 @@ export class PolicyUtil {
                 }
 
                 const query = { where: filter, select };
-                this.logger.info(`fetching pre-update entities for ${model}: ${formatObject(query)})}`);
+                // DEBUG
+                // this.logger.info(`fetching pre-update entities for ${model}: ${formatObject(query)})}`);
 
                 const entities = await this.db[model].findMany(query);
                 entities.forEach((entity) => {
@@ -731,7 +739,8 @@ export class PolicyUtil {
         operation: PolicyOperationKind,
         db: Record<string, DbOperations>
     ) {
-        this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
+        // DEBUG
+        // this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
 
         const queryFilter = deepcopy(filter);
 
@@ -752,7 +761,8 @@ export class PolicyUtil {
             // we've got schemas, so have to fetch entities and validate them
             const entities = await db[model].findMany(guardedQuery);
             if (entities.length < count) {
-                this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                // DEBUG
+                // this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
                 throw this.deniedByPolicy(
                     model,
                     operation,
@@ -764,14 +774,16 @@ export class PolicyUtil {
             const schemaCheckErrors = entities.map((entity) => schema.safeParse(entity)).filter((r) => !r.success);
             if (schemaCheckErrors.length > 0) {
                 const error = schemaCheckErrors.map((r) => !r.success && fromZodError(r.error).message).join(', ');
-                this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
+                // DEBUG
+                // this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
                 throw this.deniedByPolicy(model, operation, `entities failed schema check: [${error}]`);
             }
         } else {
             // count entities with policy injected and see if any of them are filtered out
             const guardedCount = (await db[model].count(guardedQuery)) as number;
             if (guardedCount < count) {
-                this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                // DEBUG
+                // this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
                 throw this.deniedByPolicy(
                     model,
                     operation,
@@ -787,7 +799,8 @@ export class PolicyUtil {
         db: Record<string, DbOperations>,
         preValue: any
     ) {
-        this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
+        // DEBUG
+        // this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
 
         const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
 
@@ -799,7 +812,8 @@ export class PolicyUtil {
 
         // see if we get fewer items with policy, if so, reject with an throw
         if (!entity) {
-            this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
+            // DEBUG
+            // this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
             throw this.deniedByPolicy(model, 'postUpdate');
         }
 
@@ -809,7 +823,8 @@ export class PolicyUtil {
             const schemaCheckResult = schema.safeParse(entity);
             if (!schemaCheckResult.success) {
                 const error = fromZodError(schemaCheckResult.error).message;
-                this.logger.info(`entity ${model} failed schema check for operation postUpdate: ${error}`);
+                // DEBUG
+                // this.logger.info(`entity ${model} failed schema check for operation postUpdate: ${error}`);
                 throw this.deniedByPolicy(model, 'postUpdate', `entity failed schema check: ${error}`);
             }
         }
