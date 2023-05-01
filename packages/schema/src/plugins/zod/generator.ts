@@ -59,8 +59,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     await generateObjectSchemas(inputObjectTypes, project, output);
     await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project);
 
-    // emit if generated into standard location or compilation is forced
-    const shouldCompile = !options.output || options.compile === true;
+    const shouldCompile = options.compile !== false;
     if (!shouldCompile || options.preserveTsFiles === true) {
         // save ts files
         await saveProject(project);
