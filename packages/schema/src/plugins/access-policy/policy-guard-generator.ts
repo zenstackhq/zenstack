@@ -123,8 +123,7 @@ export default class PolicyGenerator {
 
         sf.addStatements('export default policy');
 
-        // emit if generated into standard location or compilation is forced
-        const shouldCompile = !options.output || options.compile === true;
+        const shouldCompile = options.compile !== false;
         if (!shouldCompile || options.preserveTsFiles === true) {
             // save ts files
             await saveProject(project);
