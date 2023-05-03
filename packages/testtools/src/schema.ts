@@ -150,6 +150,8 @@ export async function loadSchema(
             withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
             withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
             withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+            policy,
+            modelMeta,
             zodSchemas,
         };
     } catch (err) {

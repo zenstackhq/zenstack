@@ -202,7 +202,10 @@ export default class TypeScriptExpressionTransformer {
                 normalizeUndefined
             )}) ?? false)`;
         } else {
-            return `(${this.transform(expr.left)} ${expr.operator} ${this.transform(expr.right, normalizeUndefined)})`;
+            return `(${this.transform(expr.left, normalizeUndefined)} ${expr.operator} ${this.transform(
+                expr.right,
+                normalizeUndefined
+            )})`;
         }
     }
 }
