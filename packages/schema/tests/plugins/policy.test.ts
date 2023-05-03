@@ -1,6 +1,16 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Policy plugin tests', () => {
+    let origDir: string;
+
+    beforeEach(() => {
+        origDir = process.cwd();
+    });
+
+    afterEach(() => {
+        process.chdir(origDir);
+    });
+
     it('short-circuit', async () => {
         const model = `
 model User {
