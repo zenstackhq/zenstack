@@ -17,10 +17,9 @@ import {
 } from '@zenstackhq/language/ast';
 import { PolicyOperationKind } from '@zenstackhq/runtime';
 import { getLiteral } from '@zenstackhq/sdk';
-import { AstNode, Mutable } from 'langium';
-import { isFromStdlib } from '../language-server/utils';
-import { getDocument, LangiumDocuments } from 'langium';
+import { AstNode, getDocument, LangiumDocuments, Mutable } from 'langium';
 import { URI, Utils } from 'vscode-uri';
+import { isFromStdlib } from '../language-server/utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(
@@ -163,8 +162,8 @@ export function getIdFields(dataModel: DataModel) {
     return [];
 }
 
-export function isAuthInvocation(expr: Expression) {
-    return isInvocationExpr(expr) && expr.function.ref?.name === 'auth' && isFromStdlib(expr.function.ref);
+export function isAuthInvocation(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
 }
 
 export function isEnumFieldReference(expr: Expression) {

@@ -321,6 +321,10 @@ export class PolicyUtil {
      * omitted.
      */
     async postProcessForRead(entityData: any, model: string, args: any, operation: PolicyOperationKind) {
+        if (typeof entityData !== 'object' || !entityData) {
+            return;
+        }
+
         const ids = this.getEntityIds(model, entityData);
         if (Object.keys(ids).length === 0) {
             return;
@@ -739,6 +743,14 @@ export class PolicyUtil {
         operation: PolicyOperationKind,
         db: Record<string, DbOperations>
     ) {
+        const guard = await this.getAuthGuard(model, operation);
+        const schema = (operation === 'create' || operation === 'update') && (await this.getModelSchema(model));
+
+        if (guard === true && !schema) {
+            // unconditionally allowed
+            return;
+        }
+
         // DEBUG
         // this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
 
@@ -750,12 +762,18 @@ export class PolicyUtil {
         await this.flattenGeneratedUniqueField(model, queryFilter);
 
         const count = (await db[model].count({ where: queryFilter })) as number;
-        const guard = await this.getAuthGuard(model, operation);
+        if (count === 0) {
+            // there's nothing to filter out
+            return;
+        }
+
+        if (guard === false) {
+            // unconditionally denied
+            throw this.deniedByPolicy(model, operation, `${count} ${pluralize('entity', count)} failed policy check`);
+        }
 
         // build a query condition with policy injected
         const guardedQuery = { where: this.and(queryFilter, guard) };
-
-        const schema = (operation === 'create' || operation === 'update') && (await this.getModelSchema(model));
 
         if (schema) {
             // we've got schemas, so have to fetch entities and validate them
