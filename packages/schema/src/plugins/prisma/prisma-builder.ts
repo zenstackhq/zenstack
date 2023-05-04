@@ -1,4 +1,3 @@
-//import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import indentString from './indent-string';
 
