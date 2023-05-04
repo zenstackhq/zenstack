@@ -25,8 +25,8 @@ export class ZModelFormatter extends AbstractFormatter {
         } else if (ast.isAbstractDeclaration(node)) {
             const bracesOpen = formatter.keyword('{');
             const bracesClose = formatter.keyword('}');
-            // this line decide the indent count return by this.getIndent()
-            formatter.interior(bracesOpen, bracesClose).prepend(Formatting.indent());
+            // allow extra blank lines between declarations
+            formatter.interior(bracesOpen, bracesClose).prepend(Formatting.indent({ allowMore: true }));
             bracesOpen.prepend(Formatting.oneSpace());
             bracesClose.prepend(Formatting.newLine());
         } else if (ast.isModel(node)) {
