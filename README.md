@@ -133,8 +133,8 @@ The following diagram gives a high-level overview of how it works.
 ### Prisma schema extensions
 
 -   [Custom attributes and functions](https://zenstack.dev/docs/reference/zmodel-language#custom-attributes-and-functions)
--   Multi-file schema (coming soon)
--   String-typed JSON field (coming soon)
+-   [Multi-file schema and model inheritance](https://zenstack.dev/docs/guides/multiple-schema)
+-   Strong-typed JSON field (coming soon)
 -   🙋🏻 [Request for an extension](https://go.zenstack.dev/chat)
 
 ## Examples
