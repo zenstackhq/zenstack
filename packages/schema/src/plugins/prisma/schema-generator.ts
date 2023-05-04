@@ -100,6 +100,11 @@ export default class PrismaSchemaGenerator {
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
+        if (options.format === true) {
+            // run 'prisma format'
+            await execSync(`npx prisma format --schema ${outFile}`);
+        }
+
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {

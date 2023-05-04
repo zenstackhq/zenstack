@@ -332,4 +332,34 @@ describe('Prisma generator test', () => {
         const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');
         expect(todo?.documentation?.replace(/\s/g, '')).toBe(`@@allow('read', owner == auth())`.replace(/\s/g, ''));
     });
+
+    it('format prisma', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Post {
+                id Int @id() @default(autoincrement())
+                title String
+                content String?
+                published Boolean @default(false)
+                @@allow('read', published)
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: true,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        const expected = fs.readFileSync(path.join(__dirname, './prisma/format.prisma'), 'utf-8');
+
+        expect(content).toBe(expected);
+    });
 });
