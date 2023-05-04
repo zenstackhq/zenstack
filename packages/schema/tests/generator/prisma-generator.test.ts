@@ -300,6 +300,10 @@ describe('Prisma generator test', () => {
         await getDMMF({ datamodel: content });
         expect(content).toContain('@map("myGuardField")');
         expect(content).toContain('@map("myTransactionField")');
+        expect(content).toContain('value Int\n\n    zenstack_guard');
+        expect(content).toContain(
+            'zenstack_transaction String? @map("myTransactionField")\n\n    @@index([zenstack_transaction])'
+        );
     });
 
     it('abstract multi files', async () => {
