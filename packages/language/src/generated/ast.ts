@@ -44,7 +44,7 @@ export function isReferenceTarget(item: unknown): item is ReferenceTarget {
     return reflection.isInstance(item, ReferenceTarget);
 }
 
-export type RegularID = 'in' | string;
+export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'in' | 'model' | 'plugin' | 'sort' | string;
 
 export type TypeDeclaration = DataModel | Enum;
 

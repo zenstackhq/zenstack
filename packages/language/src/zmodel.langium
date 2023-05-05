@@ -203,7 +203,7 @@ QualifiedName returns string:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'in';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'sort';
 
 // attribute-level attribute
 AttributeAttributeName returns string:
