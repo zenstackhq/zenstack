@@ -2451,7 +2451,35 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           },
           {
             "$type": "Keyword",
+            "value": "model"
+          },
+          {
+            "$type": "Keyword",
+            "value": "enum"
+          },
+          {
+            "$type": "Keyword",
+            "value": "attribute"
+          },
+          {
+            "$type": "Keyword",
+            "value": "datasource"
+          },
+          {
+            "$type": "Keyword",
+            "value": "plugin"
+          },
+          {
+            "$type": "Keyword",
+            "value": "abstract"
+          },
+          {
+            "$type": "Keyword",
             "value": "in"
+          },
+          {
+            "$type": "Keyword",
+            "value": "sort"
           }
         ]
       },

@@ -159,7 +159,11 @@ describe('Attribute tests', () => {
             model A {
                 x Int
                 y String
-                @@id([x, y], name: 'x_y', map: '_x_y')
+                @@id([x, y], name: 'x_y', map: '_x_y', length: 10, sort: 'Asc', clustered: true)
+            }
+
+            model B {
+                id String @id(map: '_id', length: 10, sort: 'Asc', clustered: true)
             }
         `);
 
@@ -169,7 +173,7 @@ describe('Attribute tests', () => {
                 id String @id
                 x Int
                 y String
-                @@unique([x, y])
+                @@unique([x, y], name: 'x_y', map: '_x_y', length: 10, sort: 'Asc', clustered: true)
             }
         `);
 
@@ -180,6 +184,14 @@ describe('Attribute tests', () => {
                 x Int
                 y String
                 @@unique(fields: [x, y])
+            }
+        `);
+
+        await loadModel(`
+        ${prelude}
+            model A {
+                id String @id
+                x Int @unique(map: '_x', length: 10, sort: 'Asc', clustered: true)
             }
         `);
 
@@ -202,6 +214,13 @@ describe('Attribute tests', () => {
                 x Int
                 y String
                 @@index([x, y])
+            }
+
+            model B {
+                id String @id
+                x Int
+                y String
+                @@index([x(sort: Asc), y(sort: Desc)], name: 'myindex', map: '_myindex', length: 10, sort: 'asc', clustered: true, type: BTree)
             }
         `);
 
