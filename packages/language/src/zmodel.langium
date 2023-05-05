@@ -1,9 +1,14 @@
 grammar ZModel
 
+
 entry Model:
+    imports+=ModelImport*
     (
         declarations+=AbstractDeclaration
     )*;
+
+ModelImport:
+    'import' path=STRING  ';'?;
 
 AbstractDeclaration:
     DataSource | GeneratorDecl| Plugin | DataModel | Enum | FunctionDecl | Attribute;
@@ -151,8 +156,9 @@ Argument:
 // model
 DataModel:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    'model' name=RegularID '{' (
-            fields+=DataModelField
+    (isAbstract?='abstract')? 'model' name=RegularID  
+    ('extends' superTypes+=[DataModel] (',' superTypes+=[DataModel])*)? '{' (
+        fields+=DataModelField
             | attributes+=DataModelAttribute
         )+
     '}';

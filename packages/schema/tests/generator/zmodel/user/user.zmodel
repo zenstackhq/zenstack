@@ -1,0 +1,28 @@
+import "../schema"
+model User {
+    id String @id() @default(uuid())
+    email String @unique()
+    name String?
+    posts Post[]
+    todos Todo[]
+    role UserRole
+
+    // make user profile public
+    @@allow('read', true)
+}
+
+
+enum UserRole {
+    USER
+    ADMIN
+}
+
+abstract model Basic {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    ownerId String
+
+    @@allow('read', owner == auth())
+}

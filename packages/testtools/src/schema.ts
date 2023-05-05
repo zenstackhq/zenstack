@@ -69,22 +69,16 @@ generator js {
 plugin meta {
     provider = '@core/model-meta'
     output = '.zenstack'
-    compile = true
-    preserveTsFiles = true
 }
 
 plugin policy {
     provider = '@core/access-policy'
     output = '.zenstack'
-    compile = true
-    preserveTsFiles = true
 }
 
 plugin zod {
     provider = '@core/zod'
     output = '.zenstack/zod'
-    compile = true
-    preserveTsFiles = true
 }
 `;
 
@@ -156,6 +150,8 @@ export async function loadSchema(
             withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
             withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
             withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+            policy,
+            modelMeta,
             zodSchemas,
         };
     } catch (err) {

@@ -1,11 +1,11 @@
-import { DataModel, DataModelField, isDataModel } from '@zenstackhq/language/ast';
+import { DataModel, DataModelField, Model, isDataModel } from '@zenstackhq/language/ast';
 import {
     AstReflection,
     CodeActionProvider,
-    findDeclarationNodeAtOffset,
-    getContainerOfType,
+    getDocument,
     IndexManager,
     LangiumDocument,
+    LangiumDocuments,
     LangiumServices,
     MaybePromise,
 } from 'langium';
@@ -13,16 +13,19 @@ import {
 import { CodeAction, CodeActionKind, CodeActionParams, Command, Diagnostic } from 'vscode-languageserver';
 import { IssueCodes } from './constants';
 import { ZModelFormatter } from './zmodel-formatter';
+import { MissingOppositeRelationData } from './validator/datamodel-validator';
 
 export class ZModelCodeActionProvider implements CodeActionProvider {
     protected readonly reflection: AstReflection;
     protected readonly indexManager: IndexManager;
     protected readonly formatter: ZModelFormatter;
+    protected readonly documents: LangiumDocuments;
 
     constructor(services: LangiumServices) {
         this.reflection = services.shared.AstReflection;
         this.indexManager = services.shared.workspace.IndexManager;
         this.formatter = services.lsp.Formatter as ZModelFormatter;
+        this.documents = services.shared.workspace.LangiumDocuments;
     }
 
     getCodeActions(
@@ -51,20 +54,34 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
     }
 
     private fixMissingOppositeRelation(diagnostic: Diagnostic, document: LangiumDocument): CodeAction | undefined {
-        const offset = document.textDocument.offsetAt(diagnostic.range.start);
-        const rootCst = document.parseResult.value.$cstNode;
+        const data = diagnostic.data as MissingOppositeRelationData;
+
+        const rootCst =
+            data.relationFieldDocUri == document.textDocument.uri
+                ? document.parseResult.value
+                : this.documents.all.find((doc) => doc.textDocument.uri === data.relationFieldDocUri)?.parseResult
+                      .value;
 
         if (rootCst) {
-            const cstNode = findDeclarationNodeAtOffset(rootCst, offset);
+            const fieldModel = rootCst as Model;
+            const fieldAstNode = (
+                fieldModel.declarations.find(
+                    (x) => isDataModel(x) && x.name === data.relationDataModelName
+                ) as DataModel
+            )?.fields.find((x) => x.name === data.relationFieldName) as DataModelField;
 
-            const astNode = cstNode?.element as DataModelField;
+            if (!fieldAstNode) return undefined;
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const oppositeModel = astNode.type.reference!.ref! as DataModel;
+            const oppositeModel = fieldAstNode.type.reference!.ref! as DataModel;
 
             const lastField = oppositeModel.fields[oppositeModel.fields.length - 1];
 
-            const container = getContainerOfType(cstNode?.element, isDataModel) as DataModel;
+            const currentModel = document.parseResult.value as Model;
+
+            const container = currentModel.declarations.find(
+                (decl) => decl.name === data.dataModelName && isDataModel(decl)
+            ) as DataModel;
 
             if (container && container.$cstNode) {
                 // indent
@@ -76,9 +93,9 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                 indent = indent.repeat(this.formatter.getIndent());
 
                 let newText = '';
-                if (astNode.type.array) {
+                if (fieldAstNode.type.array) {
                     //post Post[]
-                    const idField = container.fields.find((f) =>
+                    const idField = container.$resolvedFields.find((f) =>
                         f.attributes.find((attr) => attr.decl.ref?.name === '@id')
                     ) as DataModelField;
 
@@ -96,7 +113,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     const idFieldName = idField.name;
                     const referenceIdFieldName = fieldName + this.upperCaseFirstLetter(idFieldName);
 
-                    if (!oppositeModel.fields.find((f) => f.name === referenceIdFieldName)) {
+                    if (!oppositeModel.$resolvedFields.find((f) => f.name === referenceIdFieldName)) {
                         referenceField = '\n' + indent + `${referenceIdFieldName} ${idField.type.type}`;
                     }
 
@@ -112,6 +129,9 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     newText = '\n' + indent + `${fieldName} ${typeName}[]`;
                 }
 
+                // the opposite model might be in the imported file
+                const targetDocument = getDocument(oppositeModel);
+
                 return {
                     title: `Add opposite relation fields on ${oppositeModel.name}`,
                     kind: CodeActionKind.QuickFix,
@@ -119,7 +139,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     isPreferred: false,
                     edit: {
                         changes: {
-                            [document.textDocument.uri]: [
+                            [targetDocument.textDocument.uri]: [
                                 {
                                     range: {
                                         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

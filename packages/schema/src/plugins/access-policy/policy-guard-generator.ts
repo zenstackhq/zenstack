@@ -9,6 +9,7 @@ import {
     isInvocationExpr,
     isMemberAccessExpr,
     isReferenceExpr,
+    isThisExpr,
     isUnaryExpr,
     MemberAccessExpr,
     Model,
@@ -33,9 +34,10 @@ import path from 'path';
 import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
-import { getIdFields } from '../../utils/ast-utils';
+import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
+import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 import { isFutureExpr } from './utils';
 import { ZodSchemaGenerator } from './zod-schema-generator';
 
@@ -123,8 +125,7 @@ export default class PolicyGenerator {
 
         sf.addStatements('export default policy');
 
-        // emit if generated into standard location or compilation is forced
-        const shouldCompile = !options.output || options.compile === true;
+        const shouldCompile = options.compile !== false;
         if (!shouldCompile || options.preserveTsFiles === true) {
             // save ts files
             await saveProject(project);
@@ -333,18 +334,9 @@ export default class PolicyGenerator {
             .addBody();
 
         // check if any allow or deny rule contains 'auth()' invocation
-        let hasAuthRef = false;
-        for (const node of [...denies, ...allows]) {
-            for (const child of streamAllContents(node)) {
-                if (isInvocationExpr(child) && resolved(child.function).name === 'auth') {
-                    hasAuthRef = true;
-                    break;
-                }
-            }
-            if (hasAuthRef) {
-                break;
-            }
-        }
+        const hasAuthRef = [...denies, ...allows].some((rule) =>
+            streamAllContents(rule).some((child) => isAuthInvocation(child))
+        );
 
         if (hasAuthRef) {
             const userModel = model.$container.declarations.find(
@@ -366,47 +358,73 @@ export default class PolicyGenerator {
             );
         }
 
-        // r = <guard object>;
-        func.addStatements((writer) => {
-            writer.write('return ');
-            const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
-            const writeDenies = () => {
-                writer.conditionalWrite(denies.length > 1, '{ AND: [');
-                denies.forEach((expr, i) => {
-                    writer.inlineBlock(() => {
-                        writer.write('NOT: ');
-                        exprWriter.write(expr);
+        const hasFieldAccess = [...denies, ...allows].some((rule) =>
+            streamAllContents(rule).some(
+                (child) =>
+                    // this.???
+                    isThisExpr(child) ||
+                    // future().???
+                    isFutureExpr(child) ||
+                    // field reference
+                    (isReferenceExpr(child) && isDataModelField(child.target.ref))
+            )
+        );
+
+        if (!hasFieldAccess) {
+            // none of the rules reference model fields, we can compile down to a plain boolean
+            // function in this case (so we can skip doing SQL queries when validating)
+            func.addStatements((writer) => {
+                const transformer = new TypeScriptExpressionTransformer(kind === 'postUpdate');
+                denies.forEach((rule) => {
+                    writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
+                });
+                allows.forEach((rule) => {
+                    writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
+                });
+                writer.write('return false;');
+            });
+        } else {
+            func.addStatements((writer) => {
+                writer.write('return ');
+                const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
+                const writeDenies = () => {
+                    writer.conditionalWrite(denies.length > 1, '{ AND: [');
+                    denies.forEach((expr, i) => {
+                        writer.inlineBlock(() => {
+                            writer.write('NOT: ');
+                            exprWriter.write(expr);
+                        });
+                        writer.conditionalWrite(i !== denies.length - 1, ',');
                     });
-                    writer.conditionalWrite(i !== denies.length - 1, ',');
-                });
-                writer.conditionalWrite(denies.length > 1, ']}');
-            };
+                    writer.conditionalWrite(denies.length > 1, ']}');
+                };
 
-            const writeAllows = () => {
-                writer.conditionalWrite(allows.length > 1, '{ OR: [');
-                allows.forEach((expr, i) => {
-                    exprWriter.write(expr);
-                    writer.conditionalWrite(i !== allows.length - 1, ',');
-                });
-                writer.conditionalWrite(allows.length > 1, ']}');
-            };
+                const writeAllows = () => {
+                    writer.conditionalWrite(allows.length > 1, '{ OR: [');
+                    allows.forEach((expr, i) => {
+                        exprWriter.write(expr);
+                        writer.conditionalWrite(i !== allows.length - 1, ',');
+                    });
+                    writer.conditionalWrite(allows.length > 1, ']}');
+                };
 
-            if (allows.length > 0 && denies.length > 0) {
-                writer.write('{ AND: [');
-                writeDenies();
-                writer.write(',');
-                writeAllows();
-                writer.write(']}');
-            } else if (denies.length > 0) {
-                writeDenies();
-            } else if (allows.length > 0) {
-                writeAllows();
-            } else {
-                // disallow any operation
-                writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
-            }
-            writer.write(';');
-        });
+                if (allows.length > 0 && denies.length > 0) {
+                    writer.write('{ AND: [');
+                    writeDenies();
+                    writer.write(',');
+                    writeAllows();
+                    writer.write(']}');
+                } else if (denies.length > 0) {
+                    writeDenies();
+                } else if (allows.length > 0) {
+                    writeAllows();
+                } else {
+                    // disallow any operation
+                    writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
+                }
+                writer.write(';');
+            });
+        }
         return func;
     }
 }

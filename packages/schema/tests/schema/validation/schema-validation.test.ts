@@ -1,10 +1,6 @@
 import { loadModelWithError } from '../../utils';
 
 describe('Toplevel Schema Validation Tests', () => {
-    it('no datasource', async () => {
-        expect(await loadModelWithError('')).toContain('Model must define a datasource');
-    });
-
     it('too many datasources', async () => {
         expect(
             await loadModelWithError(`
@@ -27,5 +23,19 @@ describe('Toplevel Schema Validation Tests', () => {
                 model X { id String @id }
         `)
         ).toContain('Duplicated declaration name "X"');
+    });
+
+    it('not exsited import', async () => {
+        expect(
+            await loadModelWithError(`
+                import 'models/abc'
+                datasource db1 {
+                    provider = 'postgresql'
+                    url = env('DATABASE_URL')
+                }
+
+                model X {id String @id }
+        `)
+        ).toContain('Cannot find model file models/abc.zmodel');
     });
 });
