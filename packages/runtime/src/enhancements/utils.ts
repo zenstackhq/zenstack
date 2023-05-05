@@ -1,5 +1,7 @@
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import * as util from 'util';
+import { ModelMeta } from './types';
+import { camelCase } from 'change-case';
 
 /**
  * Wraps a value into array if it's not already one
@@ -13,6 +15,21 @@ export function ensureArray<T>(value: T): T[] {
  */
 export function getModelFields(data: object) {
     return data ? Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f)) : [];
+}
+
+/**
+ * Gets id fields for the given model.
+ */
+export function getIdFields(modelMeta: ModelMeta, model: string) {
+    const fields = modelMeta.fields[camelCase(model)];
+    if (!fields) {
+        throw new Error(`Unable to load fields for ${model}`);
+    }
+    const result = Object.values(fields).filter((f) => f.isId);
+    if (result.length === 0) {
+        throw new Error(`model ${model} does not have an id field`);
+    }
+    return result;
 }
 
 /**
@@ -31,6 +48,9 @@ export function enumerate<T>(x: Enumerable<T>) {
     }
 }
 
+/**
+ * Formats an object for pretty printing.
+ */
 export function formatObject(value: unknown) {
     return util.formatWithOptions({ depth: 10 }, value);
 }

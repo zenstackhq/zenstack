@@ -19,7 +19,7 @@ import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate, getModelFields } from '../utils';
+import { enumerate, getIdFields, getModelFields } from '../utils';
 import { Logger } from './logger';
 
 /**
@@ -856,15 +856,7 @@ export class PolicyUtil {
      * Gets "id" field for a given model.
      */
     getIdFields(model: string) {
-        const fields = this.modelMeta.fields[camelCase(model)];
-        if (!fields) {
-            throw this.unknownError(`Unable to load fields for ${model}`);
-        }
-        const result = Object.values(fields).filter((f) => f.isId);
-        if (result.length === 0) {
-            throw this.unknownError(`model ${model} does not have an id field`);
-        }
-        return result;
+        return getIdFields(this.modelMeta, model);
     }
 
     /**

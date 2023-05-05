@@ -1,59 +1,11 @@
-import { DbClientContract, DbOperations } from '@zenstackhq/runtime';
+import { DbOperations } from '@zenstackhq/runtime';
 import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { pascalCase } from 'change-case';
 import { fromZodError } from 'zod-validation-error';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import { LoggerConfig } from './types';
 
-type LoggerMethod = (message: string, code?: string) => void;
-
-/**
- * Logger config.
- */
-export type LoggerConfig = {
-    debug?: LoggerMethod;
-    info?: LoggerMethod;
-    warn?: LoggerMethod;
-    error?: LoggerMethod;
-};
-
-/**
- * Options for initializing a Next.js API endpoint request handler.
- * @see requestHandler
- */
-export type RequestHandlerOptions = {
-    /**
-     * Logger configuration. By default log to console. Set to null to turn off logging.
-     */
-    logger?: LoggerConfig | null;
-};
-
-/**
- * API request context
- */
-export type RequestContext = {
-    method: string;
-    path: string;
-    query?: Record<string, string | string[]>;
-    requestBody?: unknown;
-    prisma: DbClientContract;
-    logger?: LoggerConfig;
-    zodSchemas?: ModelZodSchema;
-};
-
-/**
- * API response
- */
-export type Response = {
-    status: number;
-    body: unknown;
-};
-
-/**
- *
- */
-export type HandleRequestFn = (req: RequestContext) => Promise<Response>;
-
-function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
+export function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
     if (zodSchemas[model]) {
         return zodSchemas[model][operation];
     } else if (zodSchemas[pascalCase(model)]) {

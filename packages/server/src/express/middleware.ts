@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
+import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
-import { HandleRequestFn, LoggerConfig } from '../api/utils';
-import PrismaAPI from '../api/prisma';
+import PrismaAPIHandler from '../api/prisma';
+import { ApiRequestHandler, LoggerConfig } from '../api/types';
 
 /**
  * Express middleware options
@@ -26,9 +27,15 @@ export interface MiddlewareOptions {
     zodSchemas?: ModelZodSchema | boolean;
 
     /**
+     * Model metadata. By default loaded from `node_modules/.zenstack/model-meta` . You can use this
+     * option to override with an explicitly loaded one.
+     */
+    modelMeta?: ModelMeta;
+
+    /**
      * API format to use from `@zenstackhq/server/api`
      */
-    api?: HandleRequestFn;
+    api?: ApiRequestHandler;
 }
 
 /**
@@ -42,7 +49,7 @@ const factory = (options: MiddlewareOptions): Handler => {
         schemas = getModelZodSchemas();
     }
 
-    const handleRequest = options.api || PrismaAPI;
+    const handler = options.api || new PrismaAPIHandler({ logger: options.logger, zodSchemas: schemas });
 
     return async (request, response) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
@@ -50,14 +57,12 @@ const factory = (options: MiddlewareOptions): Handler => {
             throw new Error('unable to get prisma from request context');
         }
 
-        const r = await handleRequest({
+        const r = await handler.handleRequest({
             method: request.method,
             path: request.path,
-            query: request.query as Record<string, string | string[]>,
+            query: request.query as Record<string, string>,
             requestBody: request.body,
             prisma,
-            logger: options.logger,
-            zodSchemas: schemas,
         });
 
         response.status(r.status).json(r.body);
