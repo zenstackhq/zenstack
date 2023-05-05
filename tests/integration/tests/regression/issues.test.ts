@@ -54,4 +54,65 @@ describe('GitHub issues regression', () => {
         expect(queried.posts[0].zenstack_guard).toBeUndefined();
         expect(queried.posts[0].zenstack_transaction).toBeUndefined();
     });
+
+    it('issue 392', async () => {
+        await loadSchema(
+            `
+            model M1 {
+                m2_id String @id
+                m2 M2 @relation(fields: [m2_id], references: [id])
+            }
+              
+            model M2 {
+                id String @id  
+                m1 M1?
+            }
+              `
+        );
+
+        await loadSchema(
+            `
+            model M1 {
+                id String @id
+                m2_id String @unique
+                m2 M2 @relation(fields: [m2_id], references: [id])
+            }
+              
+            model M2 {
+                id String @id  
+                m1 M1?
+            }
+              `
+        );
+
+        await loadSchema(
+            `
+            model M1 {
+                m2_id String
+                m2 M2 @relation(fields: [m2_id], references: [id])
+                @@id([m2_id])
+            }
+              
+            model M2 {
+                id String @id  
+                m1 M1?
+            }
+              `
+        );
+
+        await loadSchema(
+            `
+            model M1 {
+                m2_id String
+                m2 M2 @relation(fields: [m2_id], references: [id])
+                @@unique([m2_id])
+            }
+              
+            model M2 {
+                id String @id  
+                m1 M1?
+            }
+              `
+        );
+    });
 });
