@@ -31,6 +31,7 @@
         "ts-japi": "^1.8.0",
         "url-pattern": "^1.0.3",
         "zod": "3.21.1",
+        "upper-case-first": "^2.0.2",
         "zod-validation-error": "^0.2.1"
     },
     "devDependencies": {
@@ -38,6 +39,7 @@
         "@types/express": "^4.17.17",
         "@types/jest": "^29.5.0",
         "@types/supertest": "^2.0.12",
+        "@types/upper-case-first": "^1.1.2",
         "@zenstackhq/testtools": "workspace:*",
         "body-parser": "^1.20.2",
         "copyfiles": "^2.4.1",

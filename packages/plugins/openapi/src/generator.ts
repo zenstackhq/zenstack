@@ -18,7 +18,7 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import * as fs from 'fs';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
@@ -84,7 +84,7 @@ export class OpenAPIGenerator {
             tags: this.includedModels.map((model) => {
                 const meta = getModelResourceMeta(model);
                 return {
-                    name: camelCase(model.name),
+                    name: lowerCaseFirst(model.name),
                     description: meta?.tagDescription ?? `${model.name} operations`,
                 };
             }),
@@ -533,7 +533,7 @@ export class OpenAPIGenerator {
             const def: OAPI.OperationObject = {
                 operationId: `${operation}${model.name}`,
                 description: meta?.description ?? description,
-                tags: meta?.tags || [camelCase(model.name)],
+                tags: meta?.tags || [lowerCaseFirst(model.name)],
                 summary: meta?.summary,
                 // security priority: operation-level > model-level > inferred
                 security: meta?.security ?? resourceMeta?.security ?? security,
@@ -581,7 +581,7 @@ export class OpenAPIGenerator {
                 }
             }
 
-            result[`${prefix}/${camelCase(model.name)}/${resolvedPath}`] = {
+            result[`${prefix}/${lowerCaseFirst(model.name)}/${resolvedPath}`] = {
                 [resolvedMethod]: def,
             };
         }

@@ -1,7 +1,7 @@
 import { DMMF } from '@prisma/generator-helper';
 import { CrudFailureReason, PluginError, PluginOptions, RUNTIME_PACKAGE, saveProject } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { Project } from 'ts-morph';
@@ -116,7 +116,7 @@ function createAppRouter(outDir: string, modelOperations: DMMF.ModelMapping[], h
                     moduleSpecifier: `./${model}.router`,
                 });
 
-                writer.writeLine(`${camelCase(model)}: create${model}Router<Config>(router, procedure),`);
+                writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router<Config>(router, procedure),`);
             }
         });
         writer.write(');');

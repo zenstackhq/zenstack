@@ -95,6 +95,9 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
+      lower-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       openapi-types:
         specifier: ^12.1.0
         version: 12.1.0
@@ -120,6 +123,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.0
         version: 29.5.0
+      '@types/lower-case-first':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
@@ -172,12 +178,18 @@ importers:
       decimal.js:
         specifier: ^10.4.2
         version: 10.4.2
+      lower-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       superjson:
         specifier: ^1.11.0
         version: 1.12.1
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
+      upper-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
     devDependencies:
       '@tanstack/react-query':
         specifier: ^4.28.0
@@ -185,12 +197,18 @@ importers:
       '@types/jest':
         specifier: ^29.5.0
         version: 29.5.0
+      '@types/lower-case-first':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@types/react':
         specifier: ^18.0.26
         version: 18.0.26
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
+      '@types/upper-case-first':
+        specifier: ^1.1.2
+        version: 1.1.2
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../../testtools/dist
@@ -234,6 +252,9 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
+      lower-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       prettier:
         specifier: ^2.8.3
         version: 2.8.3
@@ -250,6 +271,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.0
         version: 29.5.0
+      '@types/lower-case-first':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@types/prettier':
         specifier: ^2.7.2
         version: 2.7.2
@@ -302,6 +326,9 @@ importers:
       deepcopy:
         specifier: ^2.1.0
         version: 2.1.0
+      lower-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       pluralize:
         specifier: ^8.0.0
         version: 8.0.0
@@ -321,6 +348,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.0
         version: 29.5.0
+      '@types/lower-case-first':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@types/node':
         specifier: ^14.18.29
         version: 14.18.32
@@ -376,6 +406,9 @@ importers:
       langium:
         specifier: 1.1.0
         version: 1.1.0
+      lower-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       mixpanel:
         specifier: ^0.17.0
         version: 0.17.0
@@ -400,6 +433,9 @@ importers:
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
+      upper-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       uuid:
         specifier: ^9.0.0
         version: 9.0.0
@@ -431,6 +467,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.0
         version: 29.5.0
+      '@types/lower-case-first':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@types/node':
         specifier: ^14.18.32
         version: 14.18.32
@@ -443,6 +482,9 @@ importers:
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
+      '@types/upper-case-first':
+        specifier: ^1.1.2
+        version: 1.1.2
       '@types/uuid':
         specifier: ^8.3.4
         version: 8.3.4
@@ -560,6 +602,9 @@ importers:
       ts-japi:
         specifier: ^1.8.0
         version: 1.8.0
+      upper-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       url-pattern:
         specifier: ^1.0.3
         version: 1.0.3
@@ -582,6 +627,9 @@ importers:
       '@types/supertest':
         specifier: ^2.0.12
         version: 2.0.12
+      '@types/upper-case-first':
+        specifier: ^1.1.2
+        version: 1.1.2
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../testtools/dist
@@ -2625,6 +2673,13 @@ packages:
       '@types/node': 18.14.2
     dev: true
 
+  /@types/lower-case-first@1.0.1:
+    resolution: {integrity: sha512-Sko9LlGuUr1oqpqD2dTznreWYDWpt0OsgQxPEGudt41Rbp0iFTd3gkbo5j0MpeJCgp/Q2WRTd6MTjjZ9ax0USg==}
+    deprecated: This is a stub types definition for lower-case-first (https://github.com/blakeembrey/lower-case-first). lower-case-first provides its own type definitions, so you don't need @types/lower-case-first installed!
+    dependencies:
+      lower-case-first: 2.0.2
+    dev: true
+
   /@types/mime@3.0.1:
     resolution: {integrity: sha512-Y4XFY5VJAuw0FgAqPNd6NNoV44jbq9Bz2L7Rh/J6jLTiHBSBJa9fxqQIvkIld4GsoDOcCbvzOUAbLPsSKKg+uA==}
     dev: true
@@ -2722,6 +2777,13 @@ packages:
 
   /@types/tmp@0.2.3:
     resolution: {integrity: sha512-dDZH/tXzwjutnuk4UacGgFRwV+JSLaXL1ikvidfJprkb7L9Nx1njcRHHmi3Dsvt7pgqqTEeucQuOrWHPFgzVHA==}
+    dev: true
+
+  /@types/upper-case-first@1.1.2:
+    resolution: {integrity: sha512-YOy6ArS6hUf7d/vzYcL78OBH7+l5t98Kpn0AHrgUnetgChU2r7ku1je12Ysqh0leOHbkz+y+6R8v5hzSDE9U7g==}
+    deprecated: This is a stub types definition for upper-case-first (https://github.com/blakeembrey/upper-case-first). upper-case-first provides its own type definitions, so you don't need @types/upper-case-first installed!
+    dependencies:
+      upper-case-first: 2.0.2
     dev: true
 
   /@types/uuid@8.3.4:
@@ -7097,6 +7159,11 @@ packages:
       get-func-name: 2.0.0
     dev: true
 
+  /lower-case-first@2.0.2:
+    resolution: {integrity: sha512-EVm/rR94FJTZi3zefZ82fLWab+GX14LJN4HrWBcuo6Evmsl9hEfnqxgcHCKb9q+mNf6EVdsjx/qucYFIIB84pg==}
+    dependencies:
+      tslib: 2.4.1
+
   /lower-case@2.0.2:
     resolution: {integrity: sha512-7fm3l3NAF9WfN6W3JOmf5drwpVqX78JtoGJ3A6W0a6ZnldM41w2fV5D490psKFTpMds8TJse/eHLFFsNHHjHgg==}
     dependencies:
@@ -9408,7 +9475,6 @@ packages:
     resolution: {integrity: sha512-514ppYHBaKwfJRK/pNC6c/OxfGa0obSnAl106u97Ed0I625Nin96KAjttZF6ZL3e1XLtphxnqrOi9iWgm+u+bg==}
     dependencies:
       tslib: 2.4.1
-    dev: false
 
   /upper-case@2.0.2:
     resolution: {integrity: sha512-KgdgDGJt2TpuwBUIjgG6lzw2GWFRCW9Qkfkiv0DxqHHLYJHmtmdUIKcZd8rHgFSjopVTlw6ggzCm1b8MFQwikg==}

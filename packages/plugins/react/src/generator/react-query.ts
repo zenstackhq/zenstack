@@ -1,9 +1,11 @@
 import { DMMF } from '@prisma/generator-helper';
 import { PluginError, PluginOptions, createProject, getDataModels, saveProject } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
-import { camelCase, paramCase, pascalCase } from 'change-case';
+import { paramCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import * as path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { upperCaseFirst } from 'upper-case-first';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let outDir = options.output as string;
@@ -45,7 +47,7 @@ function generateQueryHook(
     overrideInputType?: string,
     overrideTypeParameters?: string[]
 ) {
-    const capOperation = pascalCase(operation);
+    const capOperation = upperCaseFirst(operation);
 
     const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -71,7 +73,7 @@ function generateQueryHook(
 
     func.addStatements([
         'const { endpoint } = useContext(RequestHandlerContext);',
-        `return request.query<${returnType}>('${model}', \`\${endpoint}/${camelCase(
+        `return request.query<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
         )}/${operation}\`, args, options);`,
     ]);
@@ -84,7 +86,7 @@ function generateMutationHook(
     httpVerb: 'post' | 'put' | 'delete',
     overrideReturnType?: string
 ) {
-    const capOperation = pascalCase(operation);
+    const capOperation = upperCaseFirst(operation);
 
     const argsType = `Prisma.${model}${capOperation}Args`;
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
@@ -119,7 +121,7 @@ function generateMutationHook(
                 initializer: `
                     request.${httpVerb}Mutation<${argsType}, ${
                     overrideReturnType ?? model
-                }>('${model}', \`\${endpoint}/${camelCase(model)}/${operation}\`, options, invalidateQueries)
+                }>('${model}', \`\${endpoint}/${lowerCaseFirst(model)}/${operation}\`, options, invalidateQueries)
                 `,
             },
         ],
