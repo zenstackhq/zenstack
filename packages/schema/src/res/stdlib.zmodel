@@ -160,7 +160,7 @@ attribute @@@prisma()
 /*
  * Defines an ID on the model.
  */
-attribute @id(map: String?) @@@prisma
+attribute @id(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
 /*
  * Defines a default value for a field.
@@ -170,22 +170,34 @@ attribute @default(_ value: ContextType) @@@prisma
 /*
  * Defines a unique constraint for this field.
  */
-attribute @unique(map: String?) @@@prisma
+attribute @unique(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
 /*
  * Defines a multi-field ID (composite ID) on the model.
  */
-attribute @@id(_ fields: FieldReference[], name: String?, map: String?) @@@prisma
+attribute @@id(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
 /*
  * Defines a compound unique constraint for the specified fields.
  */
-attribute @@unique(_ fields: FieldReference[], name: String?, map: String?) @@@prisma
+attribute @@unique(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
+
+/*
+ * Index types
+ */
+enum IndexType {
+    BTree
+    Hash
+    Gist
+    Gin
+    SpGist
+    Brin
+}
 
 /*
  * Defines an index in the database.
  */
-attribute @@index(_ fields: FieldReference[], map: String?) @@@prisma
+attribute @@index(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?, type: IndexType?) @@@prisma
 
 /*
  * Defines meta information about the relation.

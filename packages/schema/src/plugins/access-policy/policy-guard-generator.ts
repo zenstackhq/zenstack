@@ -28,7 +28,7 @@ import {
     RUNTIME_PACKAGE,
     saveProject,
 } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
@@ -90,7 +90,7 @@ export default class PolicyGenerator {
                             writer.write('guard:');
                             writer.inlineBlock(() => {
                                 for (const [model, map] of Object.entries(policyMap)) {
-                                    writer.write(`${camelCase(model)}:`);
+                                    writer.write(`${lowerCaseFirst(model)}:`);
                                     writer.inlineBlock(() => {
                                         for (const [op, func] of Object.entries(map)) {
                                             if (typeof func === 'object') {

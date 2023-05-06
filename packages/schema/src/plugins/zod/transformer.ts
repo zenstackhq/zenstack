@@ -3,6 +3,7 @@ import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import indentString from '@zenstackhq/sdk/utils';
+import { upperCaseFirst } from 'upper-case-first';
 import path from 'path';
 import { Project } from 'ts-morph';
 import { AggregateOperationSupport, TransformerParams } from './types';
@@ -425,9 +426,13 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
+                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from './enums/${upperCaseFirst(
+                        modelName
+                    )}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
+                    modelName
+                )}ScalarFieldEnumSchema).optional() }),`;
             }
 
             if (findMany) {
@@ -435,9 +440,13 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
+                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from './enums/${upperCaseFirst(
+                        modelName
+                    )}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  }),`;
+                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
+                    modelName
+                )}ScalarFieldEnumSchema).optional()  }),`;
             }
 
             if (createOne) {
@@ -494,37 +503,39 @@ export default class Transformer {
             }
 
             const aggregateOperations = [];
-            if (this.aggregateOperationSupport[modelName].count) {
+            // DMMF messed up the model name casing used in the aggregate operations,
+            const modelNameVar = upperCaseFirst(modelName);
+            if (this.aggregateOperationSupport[modelNameVar]?.count) {
                 imports.push(
-                    `import { ${modelName}CountAggregateInputObjectSchema } from './objects/${modelName}CountAggregateInput.schema'`
+                    `import { ${modelNameVar}CountAggregateInputObjectSchema } from './objects/${modelNameVar}CountAggregateInput.schema'`
                 );
                 aggregateOperations.push(
-                    `_count: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional()`
+                    `_count: z.union([ z.literal(true), ${modelNameVar}CountAggregateInputObjectSchema ]).optional()`
                 );
             }
-            if (this.aggregateOperationSupport[modelName].min) {
+            if (this.aggregateOperationSupport[modelNameVar]?.min) {
                 imports.push(
-                    `import { ${modelName}MinAggregateInputObjectSchema } from './objects/${modelName}MinAggregateInput.schema'`
+                    `import { ${modelNameVar}MinAggregateInputObjectSchema } from './objects/${modelNameVar}MinAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_min: ${modelName}MinAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_min: ${modelNameVar}MinAggregateInputObjectSchema.optional()`);
             }
-            if (this.aggregateOperationSupport[modelName].max) {
+            if (this.aggregateOperationSupport[modelNameVar]?.max) {
                 imports.push(
-                    `import { ${modelName}MaxAggregateInputObjectSchema } from './objects/${modelName}MaxAggregateInput.schema'`
+                    `import { ${modelNameVar}MaxAggregateInputObjectSchema } from './objects/${modelNameVar}MaxAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_max: ${modelName}MaxAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_max: ${modelNameVar}MaxAggregateInputObjectSchema.optional()`);
             }
-            if (this.aggregateOperationSupport[modelName].avg) {
+            if (this.aggregateOperationSupport[modelNameVar]?.avg) {
                 imports.push(
-                    `import { ${modelName}AvgAggregateInputObjectSchema } from './objects/${modelName}AvgAggregateInput.schema'`
+                    `import { ${modelNameVar}AvgAggregateInputObjectSchema } from './objects/${modelNameVar}AvgAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_avg: ${modelName}AvgAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_avg: ${modelNameVar}AvgAggregateInputObjectSchema.optional()`);
             }
-            if (this.aggregateOperationSupport[modelName].sum) {
+            if (this.aggregateOperationSupport[modelNameVar]?.sum) {
                 imports.push(
-                    `import { ${modelName}SumAggregateInputObjectSchema } from './objects/${modelName}SumAggregateInput.schema'`
+                    `import { ${modelNameVar}SumAggregateInputObjectSchema } from './objects/${modelNameVar}SumAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_sum: ${modelName}SumAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_sum: ${modelNameVar}SumAggregateInputObjectSchema.optional()`);
             }
 
             if (aggregate) {
@@ -544,11 +555,13 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithAggregationInputObjectSchema } from './objects/${modelName}OrderByWithAggregationInput.schema'`,
                     `import { ${modelName}ScalarWhereWithAggregatesInputObjectSchema } from './objects/${modelName}ScalarWhereWithAggregatesInput.schema'`,
-                    `import { ${modelName}ScalarFieldEnumSchema } from './enums/${modelName}ScalarFieldEnum.schema'`
+                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from './enums/${upperCaseFirst(
+                        modelName
+                    )}ScalarFieldEnum.schema'`
                 );
-                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema), ${aggregateOperations.join(
-                    ', '
-                )} }),`;
+                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${upperCaseFirst(
+                    modelName
+                )}ScalarFieldEnumSchema), ${aggregateOperations.join(', ')} }),`;
             }
 
             imports = [...new Set(imports)];

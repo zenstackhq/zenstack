@@ -19,7 +19,7 @@ import {
     resolved,
     saveProject,
 } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { CodeBlockWriter, VariableDeclarationKind } from 'ts-morph';
 import { getIdFields } from '../../language-server/utils';
@@ -65,7 +65,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
         writer.write('fields:');
         writer.block(() => {
             for (const model of dataModels) {
-                writer.write(`${camelCase(model.name)}:`);
+                writer.write(`${lowerCaseFirst(model.name)}:`);
                 writer.block(() => {
                     for (const f of model.fields) {
                         const backlink = getBackLink(f);
@@ -95,7 +95,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
         writer.write('uniqueConstraints:');
         writer.block(() => {
             for (const model of dataModels) {
-                writer.write(`${camelCase(model.name)}:`);
+                writer.write(`${lowerCaseFirst(model.name)}:`);
                 writer.block(() => {
                     for (const constraint of getUniqueConstraints(model)) {
                         writer.write(`${constraint.name}: {

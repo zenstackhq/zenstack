@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createId } from '@paralleldrive/cuid2';
-import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
 import deepcopy from 'deepcopy';
+import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
 import { fromZodError } from 'zod-validation-error';
 import {
@@ -19,7 +18,7 @@ import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate, getModelFields } from '../utils';
+import { enumerate, getModelFields, prismaClientKnownRequestError, prismaClientUnknownRequestError } from '../utils';
 import { Logger } from './logger';
 
 /**
@@ -97,7 +96,7 @@ export class PolicyUtil {
      * otherwise returns a guard object
      */
     async getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): Promise<boolean | object> {
-        const guard = this.policy.guard[camelCase(model)];
+        const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -114,7 +113,7 @@ export class PolicyUtil {
     }
 
     private async getPreValueSelect(model: string): Promise<object | undefined> {
-        const guard = this.policy.guard[camelCase(model)];
+        const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -122,7 +121,7 @@ export class PolicyUtil {
     }
 
     private async getModelSchema(model: string) {
-        return this.policy.schema[camelCase(model)];
+        return this.policy.schema[lowerCaseFirst(model)];
     }
 
     /**
@@ -247,7 +246,7 @@ export class PolicyUtil {
 
         const result: any[] = await this.db[model].findMany(args);
 
-        await Promise.all(result.map((item) => this.postProcessForRead(item, model, args, 'read')));
+        await this.postProcessForRead(result, model, args, 'read');
 
         return result;
     }
@@ -255,7 +254,7 @@ export class PolicyUtil {
     // flatten unique constraint filters
     async flattenGeneratedUniqueField(model: string, args: any) {
         // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[camelCase(model)];
+        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
         let flattened = false;
         if (uniqueConstraints) {
             for (const [field, value] of Object.entries<any>(args)) {
@@ -320,54 +319,47 @@ export class PolicyUtil {
      * (which can't be trimmed at query time) and removes fields that should be
      * omitted.
      */
-    async postProcessForRead(entityData: any, model: string, args: any, operation: PolicyOperationKind) {
-        if (typeof entityData !== 'object' || !entityData) {
-            return;
-        }
-
-        const ids = this.getEntityIds(model, entityData);
-        if (Object.keys(ids).length === 0) {
-            return;
-        }
-
-        // strip auxiliary fields
-        for (const auxField of AUXILIARY_FIELDS) {
-            if (auxField in entityData) {
-                delete entityData[auxField];
-            }
-        }
-
-        const injectTarget = args.select ?? args.include;
-        if (!injectTarget) {
-            return;
-        }
-
-        // to-one relation data cannot be trimmed by injected guards, we have to
-        // post-check them
-
-        for (const field of getModelFields(injectTarget)) {
-            if (!entityData?.[field]) {
+    async postProcessForRead(data: any, model: string, args: any, operation: PolicyOperationKind) {
+        for (const entityData of enumerate(data)) {
+            if (typeof entityData !== 'object' || !entityData) {
                 continue;
             }
 
-            const fieldInfo = resolveField(this.modelMeta, model, field);
-            if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray) {
+            // strip auxiliary fields
+            for (const auxField of AUXILIARY_FIELDS) {
+                if (auxField in entityData) {
+                    delete entityData[auxField];
+                }
+            }
+
+            const injectTarget = args.select ?? args.include;
+            if (!injectTarget) {
                 continue;
             }
 
-            const ids = this.getEntityIds(fieldInfo.type, entityData[field]);
+            // recurse into nested entities
+            for (const field of Object.keys(injectTarget)) {
+                const fieldData = entityData[field];
+                if (typeof fieldData !== 'object' || !fieldData) {
+                    continue;
+                }
 
-            if (Object.keys(ids).length === 0) {
-                continue;
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (fieldInfo && fieldInfo.isDataModel && !fieldInfo.isArray) {
+                    // to-one relation data cannot be trimmed by injected guards, we have to
+                    // post-check them
+                    const ids = this.getEntityIds(fieldInfo.type, fieldData);
+
+                    if (Object.keys(ids).length !== 0) {
+                        // DEBUG
+                        // this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
+                        await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                    }
+                }
+
+                // recurse
+                await this.postProcessForRead(fieldData, fieldInfo.type, injectTarget[field], operation);
             }
-
-            // DEBUG
-            // this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
-
-            await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
-
-            // recurse
-            await this.postProcessForRead(entityData[field], fieldInfo.type, injectTarget[field], operation);
         }
     }
 
@@ -714,21 +706,22 @@ export class PolicyUtil {
     }
 
     deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string, reason?: CrudFailureReason) {
-        return new PrismaClientKnownRequestError(
+        return prismaClientKnownRequestError(
+            this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
             { clientVersion: getVersion(), code: 'P2004', meta: { reason } }
         );
     }
 
     notFound(model: string) {
-        return new PrismaClientKnownRequestError(`entity not found for model ${model}`, {
+        return prismaClientKnownRequestError(this.db, `entity not found for model ${model}`, {
             clientVersion: getVersion(),
             code: 'P2025',
         });
     }
 
     unknownError(message: string) {
-        return new PrismaClientUnknownRequestError(message, {
+        return prismaClientUnknownRequestError(this.db, message, {
             clientVersion: getVersion(),
         });
     }
@@ -863,7 +856,7 @@ export class PolicyUtil {
      * Gets "id" field for a given model.
      */
     getIdFields(model: string) {
-        const fields = this.modelMeta.fields[camelCase(model)];
+        const fields = this.modelMeta.fields[lowerCaseFirst(model)];
         if (!fields) {
             throw this.unknownError(`Unable to load fields for ${model}`);
         }

@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/react",
     "displayName": "ZenStack plugin and runtime for ReactJS",
-    "version": "1.0.0-alpha.113",
+    "version": "1.0.0-alpha.114",
     "description": "ZenStack plugin and runtime for ReactJS",
     "main": "index.js",
     "repository": {
@@ -28,26 +28,30 @@
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
         "decimal.js": "^10.4.2",
+        "lower-case-first": "^2.0.2",
         "superjson": "^1.11.0",
-        "ts-morph": "^16.0.0"
+        "ts-morph": "^16.0.0",
+        "upper-case-first": "^2.0.2"
     },
     "peerDependencies": {
+        "@tanstack/react-query": "4.x",
         "react": "^17.0.2 || ^18",
         "react-dom": "^17.0.2 || ^18",
-        "swr": "2.x",
-        "@tanstack/react-query": "4.x"
+        "swr": "2.x"
     },
     "devDependencies": {
         "@tanstack/react-query": "^4.28.0",
         "@types/jest": "^29.5.0",
+        "@types/lower-case-first": "^1.0.1",
         "@types/react": "^18.0.26",
         "@types/tmp": "^0.2.3",
+        "@types/upper-case-first": "^1.1.2",
         "@zenstackhq/testtools": "workspace:*",
         "copyfiles": "^2.4.1",
         "jest": "^29.5.0",
-        "rimraf": "^3.0.2",
         "react": "^17.0.2 || ^18",
         "react-dom": "^17.0.2 || ^18",
+        "rimraf": "^3.0.2",
         "swr": "^2.0.3",
         "ts-jest": "^29.0.5",
         "typescript": "^4.9.4"

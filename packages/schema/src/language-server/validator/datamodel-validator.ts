@@ -342,7 +342,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             thisRelation.fields?.forEach((ref) => {
                 const refField = ref.target.ref as DataModelField;
                 if (refField) {
-                    if (refField.attributes.find((a) => a.decl.ref?.name === '@unique')) {
+                    if (refField.attributes.find((a) => a.decl.ref?.name === '@id' || a.decl.ref?.name === '@unique')) {
                         return;
                     }
                     if (uniqueFieldList.some((list) => list.includes(refField))) {
