@@ -1,5 +1,5 @@
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { format } from 'util';
+import { isPrismaClientKnownRequestError } from '@zenstackhq/runtime/error';
 
 export const toBeRejectedByPolicy = async function (received: Promise<unknown>, expectedMessages?: string[]) {
     if (!(received instanceof Promise)) {
@@ -133,7 +133,13 @@ export const toResolveNull = async function (received: Promise<unknown>) {
 };
 
 function expectPrismaCode(err: any, code: string) {
-    const errCode = (err as PrismaClientKnownRequestError).code;
+    if (!isPrismaClientKnownRequestError(err)) {
+        return {
+            message: () => `expected PrismaClientKnownRequestError', got ${err}`,
+            pass: false,
+        };
+    }
+    const errCode = err.code;
     if (errCode !== code) {
         return {
             message: () => `expected PrismaClientKnownRequestError.code 'P2004', got ${errCode ?? err}`,
