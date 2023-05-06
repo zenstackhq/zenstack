@@ -1,4 +1,4 @@
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import { ModelMeta } from './types';
 
 /**
@@ -17,5 +17,5 @@ export function getDefaultModelMeta(): ModelMeta {
  * Resolves a model field to its metadata. Returns undefined if not found.
  */
 export function resolveField(modelMeta: ModelMeta, model: string, field: string) {
-    return modelMeta.fields[camelCase(model)][field];
+    return modelMeta.fields[lowerCaseFirst(model)][field];
 }

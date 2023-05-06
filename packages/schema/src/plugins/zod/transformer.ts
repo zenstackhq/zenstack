@@ -3,7 +3,7 @@ import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import indentString from '@zenstackhq/sdk/utils';
-import { pascalCase } from 'change-case';
+import { upperCaseFirst } from 'upper-case-first';
 import path from 'path';
 import { Project } from 'ts-morph';
 import { AggregateOperationSupport, TransformerParams } from './types';
@@ -426,11 +426,11 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${pascalCase(modelName)}ScalarFieldEnumSchema } from './enums/${pascalCase(
+                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from './enums/${upperCaseFirst(
                         modelName
                     )}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${pascalCase(
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
                     modelName
                 )}ScalarFieldEnumSchema).optional() }),`;
             }
@@ -440,11 +440,11 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from './objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from './objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${pascalCase(modelName)}ScalarFieldEnumSchema } from './enums/${pascalCase(
+                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from './enums/${upperCaseFirst(
                         modelName
                     )}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${pascalCase(
+                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
                     modelName
                 )}ScalarFieldEnumSchema).optional()  }),`;
             }
@@ -504,7 +504,7 @@ export default class Transformer {
 
             const aggregateOperations = [];
             // DMMF messed up the model name casing used in the aggregate operations,
-            const modelNameVar = pascalCase(modelName);
+            const modelNameVar = upperCaseFirst(modelName);
             if (this.aggregateOperationSupport[modelNameVar]?.count) {
                 imports.push(
                     `import { ${modelNameVar}CountAggregateInputObjectSchema } from './objects/${modelNameVar}CountAggregateInput.schema'`
@@ -555,11 +555,11 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from './objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithAggregationInputObjectSchema } from './objects/${modelName}OrderByWithAggregationInput.schema'`,
                     `import { ${modelName}ScalarWhereWithAggregatesInputObjectSchema } from './objects/${modelName}ScalarWhereWithAggregatesInput.schema'`,
-                    `import { ${pascalCase(modelName)}ScalarFieldEnumSchema } from './enums/${pascalCase(
+                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from './enums/${upperCaseFirst(
                         modelName
                     )}ScalarFieldEnum.schema'`
                 );
-                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${pascalCase(
+                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${upperCaseFirst(
                     modelName
                 )}ScalarFieldEnumSchema), ${aggregateOperations.join(', ')} }),`;
             }

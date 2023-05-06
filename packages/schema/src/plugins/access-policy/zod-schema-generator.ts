@@ -1,6 +1,6 @@
 import { DataModel, DataModelField, DataModelFieldAttribute, isDataModelField } from '@zenstackhq/language/ast';
 import { AUXILIARY_FIELDS, VALIDATION_ATTRIBUTES, getLiteral } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter } from 'ts-morph';
 
 /**
@@ -24,7 +24,7 @@ export class ZodSchemaGenerator {
                 }
 
                 generated = true;
-                writer.write(`${camelCase(model.name)}: z.object(`);
+                writer.write(`${lowerCaseFirst(model.name)}: z.object(`);
                 writer.inlineBlock(() => {
                     fields.forEach((field) => {
                         writer.writeLine(`${field.name}: ${this.makeFieldValidator(field)},`);
