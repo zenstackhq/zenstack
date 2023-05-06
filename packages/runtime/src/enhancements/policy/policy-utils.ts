@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createId } from '@paralleldrive/cuid2';
-import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
-import { lowerCaseFirst } from 'lower-case-first';
 import deepcopy from 'deepcopy';
+import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
 import { fromZodError } from 'zod-validation-error';
 import {
@@ -19,7 +18,7 @@ import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate, getModelFields } from '../utils';
+import { enumerate, getModelFields, prismaClientKnownRequestError, prismaClientUnknownRequestError } from '../utils';
 import { Logger } from './logger';
 
 /**
@@ -707,21 +706,22 @@ export class PolicyUtil {
     }
 
     deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string, reason?: CrudFailureReason) {
-        return new PrismaClientKnownRequestError(
+        return prismaClientKnownRequestError(
+            this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
             { clientVersion: getVersion(), code: 'P2004', meta: { reason } }
         );
     }
 
     notFound(model: string) {
-        return new PrismaClientKnownRequestError(`entity not found for model ${model}`, {
+        return prismaClientKnownRequestError(this.db, `entity not found for model ${model}`, {
             clientVersion: getVersion(),
             code: 'P2025',
         });
     }
 
     unknownError(message: string) {
-        return new PrismaClientUnknownRequestError(message, {
+        return prismaClientUnknownRequestError(this.db, message, {
             clientVersion: getVersion(),
         });
     }
