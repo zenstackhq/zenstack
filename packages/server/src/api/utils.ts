@@ -1,6 +1,6 @@
 import { DbOperations } from '@zenstackhq/runtime';
 import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { pascalCase } from 'change-case';
+import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { LoggerConfig } from './types';
@@ -8,8 +8,8 @@ import { LoggerConfig } from './types';
 export function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
     if (zodSchemas[model]) {
         return zodSchemas[model][operation];
-    } else if (zodSchemas[pascalCase(model)]) {
-        return zodSchemas[pascalCase(model)][operation];
+    } else if (zodSchemas[upperCaseFirst(model)]) {
+        return zodSchemas[upperCaseFirst(model)][operation];
     } else {
         return undefined;
     }

@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import type { FieldInfo } from '@zenstackhq/runtime';
+import { FieldInfo, enumerate } from '@zenstackhq/runtime';
 import { DbClientContract, getIdFields } from '@zenstackhq/runtime';
 import { getDefaultModelMeta, resolveField } from '@zenstackhq/runtime/enhancements/model-meta';
 import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { DataDocument, Linker, Relator, Serializer } from 'ts-japi';
+import { DataDocument, Linker, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { ApiRequestHandler, LoggerConfig, RequestContext } from '../types';
 import { getZodSchema, stripAuxFields } from '../utils';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 
 /**
  * JSON:API response
@@ -34,7 +34,7 @@ const urlPatterns = {
     collection: new UrlPattern('/:type'),
     single: new UrlPattern('/:type/:id'),
     fetchRelationship: new UrlPattern('/:type/:id/:relationship'),
-    relationships: new UrlPattern('/:type/:id(/relationships/:relationship)'),
+    relationship: new UrlPattern('/:type/:id(/relationships/:relationship)'),
 };
 
 // const DEFAULT_MAX_ROWS = 1000;
@@ -85,120 +85,75 @@ export default class RequestHandler implements ApiRequestHandler {
                 errors: [{ status: 400, code: 'invalid-id', title: 'Resource ID is invalid' }],
             },
         },
+        invalidPayload: {
+            status: 400,
+            body: {
+                errors: [
+                    {
+                        status: 400,
+                        code: 'invalid-payload',
+                        title: 'Invalid payload',
+                    },
+                ],
+            },
+        },
+        invalidRelationData: {
+            status: 400,
+            body: {
+                errors: [
+                    {
+                        status: 400,
+                        code: 'invalid-payload',
+                        title: 'Invalid payload',
+                        detail: 'Invalid relationship data',
+                    },
+                ],
+            },
+        },
+        invalidRelation: {
+            status: 400,
+            body: {
+                errors: [
+                    { status: 400, code: 'invalid-payload', title: 'Invalid payload', detail: 'Invalid relationship' },
+                ],
+            },
+        },
     };
 
     private modelMeta: ModelMeta;
-    // private maxRows: number;
+
+    private createPayloadSchema = z.object({
+        data: z.object({
+            type: z.string(),
+            attributes: z.object({}).passthrough(),
+            relationships: z
+                .record(
+                    z.object({
+                        data: z.union([
+                            z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
+                            z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
+                        ]),
+                    })
+                )
+                .optional(),
+        }),
+    });
+
+    private createSingleRelationSchema = z.object({
+        data: z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
+    });
+
+    // private updateSingleRelationSchema = z.object({
+    //     data: z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }).nullable(),
+    // });
+
+    private updateCollectionRelationSchema = z.object({
+        data: z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
+    });
 
     constructor(private readonly options: Options) {
         this.modelMeta = this.options.modelMeta || getDefaultModelMeta();
-        // this.maxRows = this.options.maxRows ?? DEFAULT_MAX_ROWS;
-
         this.buildSerializers();
-    }
-
-    private makeLinkUrl(path: string) {
-        return `${this.options.endpointBase}${path}`;
-    }
-
-    private buildSerializers() {
-        const linkers: Record<string, Linker<any>> = {};
-
-        for (const model of Object.keys(this.modelMeta.fields)) {
-            const ids = getIdFields(this.modelMeta, model);
-            if (ids.length !== 1) {
-                continue;
-            }
-
-            const linker = new Linker((items) =>
-                Array.isArray(items)
-                    ? this.makeLinkUrl(`/${model}/`)
-                    : this.makeLinkUrl(`/${model}/${items[ids[0].name]}`)
-            );
-            linkers[model] = linker;
-
-            let projection: Record<string, 0> | null = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
-                if (fieldMeta.isDataModel) {
-                    projection[field] = 0;
-                }
-            }
-            if (Object.keys(projection).length === 0) {
-                projection = null;
-            }
-
-            const serializer = new Serializer(model, {
-                idKey: ids[0].name,
-                linkers: {
-                    resource: linker,
-                    document: linker,
-                },
-                projection,
-            });
-            this.serializers.set(model, serializer);
-        }
-
-        // set relators
-        for (const model of Object.keys(this.modelMeta.fields)) {
-            const serializer = this.serializers.get(model);
-            if (!serializer) {
-                continue;
-            }
-
-            const relators: Record<string, Relator<any>> = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
-                if (!fieldMeta.isDataModel) {
-                    continue;
-                }
-                const fieldSerializer = this.serializers.get(camelCase(fieldMeta.type));
-                if (!fieldSerializer) {
-                    continue;
-                }
-                const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
-                if (fieldIds.length === 1) {
-                    const relator = new Relator(async (data) => (data as any)[field], fieldSerializer, {
-                        linkers: {
-                            related: new Linker((primary, related) =>
-                                fieldMeta.isArray
-                                    ? this.makeLinkUrl(`/${camelCase(model)}/${this.getId(model, primary)}/${field}`)
-                                    : this.makeLinkUrl(
-                                          `/${camelCase(model)}/${this.getId(model, primary)}/${field}/${this.getId(
-                                              fieldMeta.type,
-                                              related
-                                          )}`
-                                      )
-                            ),
-                            relationship: new Linker((primary, related) =>
-                                fieldMeta.isArray
-                                    ? this.makeLinkUrl(
-                                          `/${camelCase(model)}/${this.getId(model, primary)}/relationships/${field}`
-                                      )
-                                    : this.makeLinkUrl(
-                                          `/${camelCase(model)}/${this.getId(
-                                              model,
-                                              primary
-                                          )}/relationships/${field}/${this.getId(fieldMeta.type, related)}`
-                                      )
-                            ),
-                        },
-                    });
-                    relators[field] = relator;
-                }
-            }
-            serializer.setRelators(relators);
-        }
-    }
-
-    getId(model: string, data: any) {
-        if (!data) {
-            return undefined;
-        }
-        const ids = getIdFields(this.modelMeta, model);
-        if (ids.length === 1) {
-            return data[ids[0].name];
-        } else {
-            return undefined;
-        }
     }
 
     async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
@@ -208,34 +163,46 @@ export default class RequestHandler implements ApiRequestHandler {
             case 'GET': {
                 let match = urlPatterns.single.match(path);
                 if (match) {
-                    if (!match.relationship) {
-                        return this.processSingleRead(prisma, match.type, match.id, query);
-                    } else {
-                        return this.processRelationshipRead(prisma, match.type, match.id, match.relationship, query);
-                    }
-                } else {
-                    match = urlPatterns.collection.match(path);
-                    if (match) {
-                        return this.processCollectionRead(prisma, match.type, query);
-                    } else {
-                        return this.errors.invalidPath;
-                    }
+                    return this.processSingleRead(prisma, match.type, match.id, query);
                 }
+
+                match = urlPatterns.fetchRelationship.match(path);
+                if (match) {
+                    return this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
+                }
+
+                match = urlPatterns.relationship.match(path);
+                if (match) {
+                    return this.processReadRelationship(prisma, match.type, match.id, match.relationship, query);
+                }
+
+                match = urlPatterns.collection.match(path);
+                if (match) {
+                    return this.processCollectionRead(prisma, match.type, query);
+                }
+
+                return this.errors.invalidPath;
             }
 
             case 'POST': {
-                const match = urlPatterns.collection.match(path);
-                if (!match.relationship) {
+                let match = urlPatterns.collection.match(path);
+                if (match) {
                     return this.processCreate(prisma, match.type, query, requestBody);
-                } else {
+                }
+
+                match = urlPatterns.relationship.match(path);
+                if (match) {
                     return this.processCreateRelationship(
                         prisma,
                         match.type,
-                        match.relationship as string,
+                        match.id,
+                        match.relationship,
                         query,
                         requestBody
                     );
                 }
+
+                return this.errors.invalidPath;
             }
 
             // TODO: PUT for full update
@@ -276,25 +243,6 @@ export default class RequestHandler implements ApiRequestHandler {
         }
     }
 
-    private makeIdFilter(model: string, resourceId: string) {
-        const idFields = getIdFields(this.modelMeta, model);
-        if (idFields.length === 0) {
-            throw this.errors.noId;
-        } else if (idFields.length > 1) {
-            throw this.errors.multiId;
-        }
-
-        const idField = idFields[0];
-        let idValue: any = resourceId;
-        if (['Int', 'BigInt'].includes(idField.type)) {
-            idValue = parseInt(idValue);
-            if (isNaN(idValue)) {
-                throw this.errors.invalidId;
-            }
-        }
-        return { [idField.name]: idValue };
-    }
-
     private async processSingleRead(
         prisma: DbClientContract,
         type: string,
@@ -308,7 +256,9 @@ export default class RequestHandler implements ApiRequestHandler {
             return err as Response;
         }
 
-        const entity = await prisma[type].findUnique({ where: idFilter });
+        const args = { where: idFilter };
+        this.includeRelationshipIds(type, args, 'include');
+        const entity = await prisma[type].findUnique(args);
         if (entity) {
             return {
                 status: 200,
@@ -319,7 +269,7 @@ export default class RequestHandler implements ApiRequestHandler {
         }
     }
 
-    private async processRelationshipRead(
+    private async processFetchRelated(
         prisma: DbClientContract,
         type: string,
         resourceId: string,
@@ -342,7 +292,52 @@ export default class RequestHandler implements ApiRequestHandler {
         if (entity && entity[relationship]) {
             return {
                 status: 200,
-                body: await this.serializeItems(type, entity[relationship] as Item),
+                body: await this.serializeItems(relationField.type, entity[relationship] as Item, {
+                    linkers: {
+                        document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
+                    },
+                }),
+            };
+        } else {
+            return this.errors.notFound;
+        }
+    }
+
+    private async processReadRelationship(
+        prisma: DbClientContract,
+        type: string,
+        resourceId: string,
+        relationship: string,
+        query: Record<string, string> | undefined
+    ): Promise<Response> {
+        let idFilter: { [key: string]: unknown };
+        try {
+            idFilter = this.makeIdFilter(type, resourceId);
+        } catch (err) {
+            return err as Response;
+        }
+
+        const relationField = resolveField(this.modelMeta, type, relationship);
+        if (!relationField || !relationField.isDataModel) {
+            return this.errors.invalidPath;
+        }
+
+        const args = { where: idFilter, select: this.makeIdSelect(type) };
+        this.includeRelationshipIds(type, args, 'select');
+        const entity: any = await prisma[type].findUnique(args);
+        if (entity && entity[relationship]) {
+            const serialized: any = await this.serializeItems(relationField.type, entity[relationship] as Item, {
+                linkers: {
+                    document: new Linker(() =>
+                        this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)
+                    ),
+                },
+                onlyIdentifier: true,
+            });
+
+            return {
+                status: 200,
+                body: serialized,
             };
         } else {
             return this.errors.notFound;
@@ -352,24 +347,26 @@ export default class RequestHandler implements ApiRequestHandler {
     private async processCollectionRead(
         prisma: DbClientContract,
         type: string,
-        _query: Record<string, string> | undefined
+        query: Record<string, string> | undefined
     ): Promise<Response> {
         const args: any = {};
-        const relationFields: string[] = [];
-        for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[type])) {
-            if (fieldMeta.isDataModel) {
-                const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
-                if (fieldIds.length === 1) {
-                    args.include = { [field]: { select: { [fieldIds[0].name]: true } } };
-                }
-                relationFields.push(field);
-            }
-        }
+        this.includeRelationshipIds(type, args, 'include');
         const entities = await prisma[type].findMany(args);
         return {
             status: 200,
             body: await this.serializeItems(type, entities as Item[]),
         };
+    }
+
+    private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
+        for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
+            if (fieldMeta.isDataModel) {
+                const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
+                if (fieldIds.length === 1) {
+                    args[mode] = { ...args[mode], [field]: { select: { [fieldIds[0].name]: true } } };
+                }
+            }
+        }
     }
 
     private async processCreate(
@@ -378,9 +375,7 @@ export default class RequestHandler implements ApiRequestHandler {
         _query: Record<string, string | string[]> | undefined,
         requestBody: unknown
     ): Promise<Response> {
-        const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'create') : undefined;
-        const schema = this.makeCreateSchema(dataSchema);
-        const parsed = schema.safeParse(requestBody);
+        const parsed = this.createPayloadSchema.safeParse(requestBody);
         if (!parsed.success) {
             return {
                 status: 400,
@@ -401,25 +396,145 @@ export default class RequestHandler implements ApiRequestHandler {
 
         const attributes = parsedPayload.data?.attributes;
         if (!attributes) {
-            return {
-                status: 400,
-                body: {
-                    errors: [
-                        {
-                            status: 400,
-                            code: 'invalid-payload',
-                            title: 'Invalid payload',
-                            detail: 'The request payload must contain a "data" field with "attributes" field in it',
-                        },
-                    ],
-                },
-            };
+            return this.errors.invalidPayload;
         }
 
-        const entity = await prisma[type].create({ data: attributes });
+        const createPayload: any = { data: { ...attributes } };
+
+        const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'create') : undefined;
+        if (dataSchema) {
+            const dataParsed = dataSchema.safeParse(createPayload);
+            if (!dataParsed.success) {
+                return {
+                    status: 400,
+                    body: {
+                        errors: [
+                            {
+                                status: 400,
+                                code: 'invalid-payload',
+                                title: 'Invalid payload',
+                                detail: fromZodError(dataParsed.error).message,
+                            },
+                        ],
+                    },
+                };
+            }
+        }
+
+        const relationships = parsedPayload.data?.relationships;
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return this.errors.invalidRelationData;
+                }
+
+                const relationField = resolveField(this.modelMeta, type, key);
+                if (!relationField) {
+                    return this.errors.invalidRelation;
+                }
+
+                const relationIds = getIdFields(this.modelMeta, relationField.type);
+                if (relationIds.length > 1) {
+                    return this.errors.multiId;
+                } else if (relationIds.length === 0) {
+                    return this.errors.noId;
+                }
+                const relId = relationIds[0];
+
+                if (relationField.isArray) {
+                    createPayload.data[key] = {
+                        connect: enumerate(data.data).map((item: any) => ({
+                            [relId.name]: this.coerce(relId.type, item.id),
+                        })),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return this.errors.invalidRelationData;
+                    }
+                    createPayload.data[key] = {
+                        connect: { [relId.name]: this.coerce(relId.type, data.data.id) },
+                    };
+                }
+                createPayload.include = {
+                    ...createPayload.include,
+                    [key]: { select: { [relId.name]: true } },
+                };
+            }
+        }
+
+        const entity = await prisma[type].create(createPayload);
         return {
             status: 201,
             body: await this.serializeItems(type, entity as Item),
+        };
+    }
+
+    private async processCreateRelationship(
+        prisma: DbClientContract,
+        type: string,
+        resourceId: string,
+        relationship: string,
+        query: Record<string, string> | undefined,
+        requestBody: unknown
+    ): Promise<Response> {
+        const modelIdFields = getIdFields(this.modelMeta, type);
+
+        const relationField = resolveField(this.modelMeta, type, relationship);
+        if (!relationField) {
+            return this.errors.invalidRelation;
+        }
+
+        const idFields = getIdFields(this.modelMeta, relationField.type);
+        if (idFields.length > 1) {
+            return this.errors.multiId;
+        } else if (idFields.length === 0) {
+            return this.errors.noId;
+        }
+
+        const updateArgs: any = {
+            where: this.makeIdFilter(type, resourceId),
+            select: { [modelIdFields[0].name]: true, [relationship]: { select: { [idFields[0].name]: true } } },
+        };
+        let entity: any;
+
+        if (!relationField.isArray) {
+            const parsed = this.createSingleRelationSchema.safeParse(requestBody);
+            if (!parsed.success) {
+                return this.errors.invalidPayload;
+            }
+
+            updateArgs.data = {
+                [relationship]: {
+                    connect: { [idFields[0].name]: this.coerce(idFields[0].type, parsed.data.data.id) },
+                },
+            };
+
+            entity = await prisma[type].update(updateArgs);
+        } else {
+            const parsed = this.updateCollectionRelationSchema.safeParse(requestBody);
+            if (!parsed.success) {
+                return this.errors.invalidPayload;
+            }
+            updateArgs.data = {
+                [relationship]: {
+                    connect: enumerate(parsed.data.data).map((item: any) => ({
+                        [idFields[0].name]: this.coerce(idFields[0].type, item.id),
+                    })),
+                },
+            };
+            entity = await prisma[type].update(updateArgs);
+        }
+
+        const serialized: any = await this.serializeItems(relationField.type, entity[relationship] as Item, {
+            linkers: {
+                document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)),
+            },
+            onlyIdentifier: true,
+        });
+
+        return {
+            status: 200,
+            body: serialized, // serialized.data.relationships[relationship],
         };
     }
 
@@ -437,16 +552,6 @@ export default class RequestHandler implements ApiRequestHandler {
         prisma: DbClientContract,
         _type: any,
         _resourceId: string,
-        _query: Record<string, string> | undefined,
-        _requestBody: unknown
-    ): Response | PromiseLike<Response> {
-        throw new Error('Function not implemented.');
-    }
-
-    private processCreateRelationship(
-        prisma: DbClientContract,
-        _type: any,
-        _relationship: string,
         _query: Record<string, string> | undefined,
         _requestBody: unknown
     ): Response | PromiseLike<Response> {
@@ -475,23 +580,121 @@ export default class RequestHandler implements ApiRequestHandler {
         throw new Error('Function not implemented.');
     }
 
-    private makeCreateSchema(dataSchema?: z.ZodSchema) {
-        return z.object({
-            data: z.object({
-                type: z.string(),
-                attributes: dataSchema ?? z.object({}).optional(),
-                relationships: z
-                    .record(
-                        z.object({
-                            data: z.object({ type: z.string(), id: z.string() }),
-                        })
-                    )
-                    .optional(),
-            }),
-        });
+    private makeLinkUrl(path: string) {
+        return `${this.options.endpointBase}${path}`;
     }
 
-    private async serializeItems(model: string, items: Item | Item[]): Promise<Partial<DataDocument<any>>> {
+    private buildSerializers() {
+        const linkers: Record<string, Linker<any>> = {};
+
+        for (const model of Object.keys(this.modelMeta.fields)) {
+            const ids = getIdFields(this.modelMeta, model);
+            if (ids.length !== 1) {
+                continue;
+            }
+
+            const linker = new Linker((items) =>
+                Array.isArray(items)
+                    ? this.makeLinkUrl(`/${model}`)
+                    : this.makeLinkUrl(`/${model}/${this.getId(model, items)}`)
+            );
+            linkers[model] = linker;
+
+            let projection: Record<string, 0> | null = {};
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
+                if (fieldMeta.isDataModel) {
+                    projection[field] = 0;
+                }
+            }
+            if (Object.keys(projection).length === 0) {
+                projection = null;
+            }
+
+            const serializer = new Serializer(model, {
+                idKey: ids[0].name,
+                linkers: {
+                    resource: linker,
+                    document: linker,
+                },
+                projection,
+            });
+            this.serializers.set(model, serializer);
+        }
+
+        // set relators
+        for (const model of Object.keys(this.modelMeta.fields)) {
+            const serializer = this.serializers.get(model);
+            if (!serializer) {
+                continue;
+            }
+
+            const relators: Record<string, Relator<any>> = {};
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
+                if (!fieldMeta.isDataModel) {
+                    continue;
+                }
+                const fieldSerializer = this.serializers.get(lowerCaseFirst(fieldMeta.type));
+                if (!fieldSerializer) {
+                    continue;
+                }
+                const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
+                if (fieldIds.length === 1) {
+                    const relator = new Relator(async (data) => (data as any)[field], fieldSerializer, {
+                        linkers: {
+                            related: new Linker((primary, related) =>
+                                !related || Array.isArray(related)
+                                    ? this.makeLinkUrl(
+                                          `/${lowerCaseFirst(model)}/${this.getId(model, primary)}/${field}`
+                                      )
+                                    : this.makeLinkUrl(
+                                          `/${lowerCaseFirst(model)}/${this.getId(
+                                              model,
+                                              primary
+                                          )}/${field}/${this.getId(fieldMeta.type, related)}`
+                                      )
+                            ),
+                            relationship: new Linker((primary, related) =>
+                                !related || Array.isArray(related)
+                                    ? this.makeLinkUrl(
+                                          `/${lowerCaseFirst(model)}/${this.getId(
+                                              model,
+                                              primary
+                                          )}/relationships/${field}`
+                                      )
+                                    : this.makeLinkUrl(
+                                          `/${lowerCaseFirst(model)}/${this.getId(
+                                              model,
+                                              primary
+                                          )}/relationships/${field}/${this.getId(fieldMeta.type, related)}`
+                                      )
+                            ),
+                        },
+                    });
+                    relators[field] = relator;
+                }
+            }
+            serializer.setRelators(relators);
+        }
+    }
+
+    private getId(model: string, data: any) {
+        if (!data) {
+            return undefined;
+        }
+        const ids = getIdFields(this.modelMeta, model);
+        if (ids.length === 1) {
+            return data[ids[0].name];
+        } else {
+            return undefined;
+        }
+    }
+
+    private async serializeItems(
+        model: string,
+        items: Item | Item[],
+        options?: Partial<SerializerOptions<any>>
+    ): Promise<Partial<DataDocument<any>>> {
+        model = lowerCaseFirst(model);
         const serializer = this.serializers.get(model);
         if (!serializer) {
             throw new Error(`serializer not found for model ${model}`);
@@ -500,6 +703,35 @@ export default class RequestHandler implements ApiRequestHandler {
         stripAuxFields(items);
 
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return JSON.parse(JSON.stringify(await serializer.serialize(items)));
+        return JSON.parse(JSON.stringify(await serializer.serialize(items, options)));
+    }
+
+    private makeIdFilter(model: string, resourceId: string) {
+        const idFields = getIdFields(this.modelMeta, model);
+        if (idFields.length === 0) {
+            throw this.errors.noId;
+        } else if (idFields.length > 1) {
+            throw this.errors.multiId;
+        }
+
+        const idField = idFields[0];
+        return { [idField.name]: this.coerce(idField.type, resourceId) };
+    }
+
+    private makeIdSelect(model: string) {
+        const idFields = getIdFields(this.modelMeta, model);
+        if (idFields.length === 0) {
+            throw this.errors.noId;
+        } else if (idFields.length > 1) {
+            throw this.errors.multiId;
+        }
+        return { [idFields[0].name]: true };
+    }
+
+    private coerce(type: string, id: any) {
+        if ((type === 'Int' || type === 'BigInt') && typeof id === 'string') {
+            return parseInt(id);
+        }
+        return id;
     }
 }

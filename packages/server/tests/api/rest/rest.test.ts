@@ -152,7 +152,7 @@ describe('REST server tests', () => {
             it('returns a single item when the ID is specified', async () => {
                 // Create a user first
                 await prisma.user.create({
-                    data: { myId: 'user1', email: 'user1@abc.com' },
+                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
                 });
 
                 const r = await handler.handleRequest({
@@ -165,7 +165,117 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
                     jsonapi: { version: '1.0' },
-                    data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
+                    data: {
+                        type: 'user',
+                        id: 'user1',
+                        attributes: { email: 'user1@abc.com' },
+                        links: {
+                            self: 'http://localhost/api/user/user1',
+                        },
+                        relationships: {
+                            posts: {
+                                links: {
+                                    self: 'http://localhost/api/user/user1/relationships/posts',
+                                    related: 'http://localhost/api/user/user1/posts',
+                                },
+                                data: [
+                                    {
+                                        type: 'post',
+                                        id: 1,
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                });
+            });
+
+            it('fetch a related resource', async () => {
+                // Create a user first
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1/posts',
+                    },
+                    data: [
+                        {
+                            type: 'post',
+                            id: 1,
+                            attributes: {
+                                title: 'Post1',
+                                authorId: 'user1',
+                                published: false,
+                                viewCount: 0,
+                            },
+                            links: {
+                                self: 'http://localhost/api/post/1',
+                            },
+                            relationships: {
+                                author: {
+                                    links: {
+                                        self: 'http://localhost/api/post/1/relationships/author',
+                                        related: 'http://localhost/api/post/1/author',
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it('fetch a relationship', async () => {
+                // Create a user first
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1/relationships/posts',
+                    },
+                    data: [
+                        {
+                            type: 'post',
+                            id: 1,
+                        },
+                    ],
                 });
             });
 
@@ -190,22 +300,225 @@ describe('REST server tests', () => {
         });
 
         describe('POST', () => {
-            it('creates an item', async () => {
+            it('creates an item without relation', async () => {
                 const r = await handler.handleRequest({
                     method: 'post',
                     path: '/user',
                     query: {},
                     requestBody: {
-                        id: 'user1',
-                        email: 'user1@abc.com',
+                        data: { type: 'user', attributes: { myId: 'user1', email: 'user1@abc.com' } },
                     },
                     prisma,
                 });
+                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(201);
                 expect(r.body).toEqual({
                     jsonapi: { version: '1.0' },
                     data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
+                });
+            });
+
+            it('creates an item with collection relations', async () => {
+                await prisma.post.create({
+                    data: { id: 1, title: 'Post1' },
+                });
+                await prisma.post.create({
+                    data: { id: 2, title: 'Post2' },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'post',
+                    path: '/user',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'user',
+                            attributes: { myId: 'user1', email: 'user1@abc.com' },
+                            relationships: {
+                                posts: {
+                                    data: [
+                                        { type: 'post', id: 1 },
+                                        { type: 'post', id: 2 },
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(201);
+                expect(r.body).toMatchObject({
+                    jsonapi: { version: '1.0' },
+                    data: {
+                        type: 'user',
+                        id: 'user1',
+                        attributes: {
+                            email: 'user1@abc.com',
+                        },
+                        links: {
+                            self: 'http://localhost/api/user/user1',
+                        },
+                        relationships: {
+                            posts: {
+                                links: {
+                                    self: 'http://localhost/api/user/user1/relationships/posts',
+                                    related: 'http://localhost/api/user/user1/posts',
+                                },
+                                data: [
+                                    {
+                                        type: 'post',
+                                        id: 1,
+                                    },
+                                    {
+                                        type: 'post',
+                                        id: 2,
+                                    },
+                                ],
+                            },
+                        },
+                    },
+                });
+            });
+
+            it('creates an item with single relation', async () => {
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com' },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'post',
+                    path: '/post',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'post',
+                            attributes: { title: 'Post1' },
+                            relationships: {
+                                author: {
+                                    data: { type: 'user', id: 'user1' },
+                                },
+                            },
+                        },
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(201);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/post/1',
+                    },
+                    data: {
+                        type: 'post',
+                        id: 1,
+                        attributes: {
+                            title: 'Post1',
+                            authorId: 'user1',
+                            published: false,
+                            viewCount: 0,
+                        },
+                        links: {
+                            self: 'http://localhost/api/post/1',
+                        },
+                        relationships: {
+                            author: {
+                                links: {
+                                    self: 'http://localhost/api/post/1/relationships/author/user1',
+                                    related: 'http://localhost/api/post/1/author/user1',
+                                },
+                                data: {
+                                    type: 'user',
+                                    id: 'user1',
+                                },
+                            },
+                        },
+                    },
+                });
+            });
+
+            it('create single relation', async () => {
+                await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                await prisma.post.create({
+                    data: { id: 1, title: 'Post1' },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'post',
+                    path: '/post/1/relationships/author',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                        },
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/post/1/relationships/author',
+                    },
+                    data: {
+                        type: 'user',
+                        id: 'user1',
+                    },
+                });
+            });
+
+            it('create a collection of relations', async () => {
+                await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                await prisma.post.create({
+                    data: { id: 1, title: 'Post1' },
+                });
+                await prisma.post.create({
+                    data: { id: 2, title: 'Post2' },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'post',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: {
+                        data: [
+                            { type: 'post', id: 1 },
+                            { type: 'post', id: 2 },
+                        ],
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1/relationships/posts',
+                    },
+                    data: [
+                        {
+                            type: 'post',
+                            id: 1,
+                        },
+                        {
+                            type: 'post',
+                            id: 2,
+                        },
+                    ],
                 });
             });
         });

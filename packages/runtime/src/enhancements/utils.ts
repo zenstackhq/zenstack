@@ -1,7 +1,7 @@
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import * as util from 'util';
 import { ModelMeta } from './types';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 
 /**
  * Wraps a value into array if it's not already one
@@ -21,7 +21,7 @@ export function getModelFields(data: object) {
  * Gets id fields for the given model.
  */
 export function getIdFields(modelMeta: ModelMeta, model: string) {
-    const fields = modelMeta.fields[camelCase(model)];
+    const fields = modelMeta.fields[lowerCaseFirst(model)];
     if (!fields) {
         throw new Error(`Unable to load fields for ${model}`);
     }
