@@ -6,7 +6,7 @@ import {
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
 import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { pascalCase } from 'change-case';
+import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { stripAuxFields } from './utils';
 
@@ -57,8 +57,8 @@ export type Response = {
 function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
     if (zodSchemas[model]) {
         return zodSchemas[model][operation];
-    } else if (zodSchemas[pascalCase(model)]) {
-        return zodSchemas[pascalCase(model)][operation];
+    } else if (zodSchemas[upperCaseFirst(model)]) {
+        return zodSchemas[upperCaseFirst(model)][operation];
     } else {
         return undefined;
     }

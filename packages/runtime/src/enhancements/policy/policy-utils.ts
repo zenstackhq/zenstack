@@ -3,7 +3,7 @@
 import { createId } from '@paralleldrive/cuid2';
 import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import deepcopy from 'deepcopy';
 import pluralize from 'pluralize';
 import { fromZodError } from 'zod-validation-error';
@@ -97,7 +97,7 @@ export class PolicyUtil {
      * otherwise returns a guard object
      */
     async getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): Promise<boolean | object> {
-        const guard = this.policy.guard[camelCase(model)];
+        const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -114,7 +114,7 @@ export class PolicyUtil {
     }
 
     private async getPreValueSelect(model: string): Promise<object | undefined> {
-        const guard = this.policy.guard[camelCase(model)];
+        const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -122,7 +122,7 @@ export class PolicyUtil {
     }
 
     private async getModelSchema(model: string) {
-        return this.policy.schema[camelCase(model)];
+        return this.policy.schema[lowerCaseFirst(model)];
     }
 
     /**
@@ -255,7 +255,7 @@ export class PolicyUtil {
     // flatten unique constraint filters
     async flattenGeneratedUniqueField(model: string, args: any) {
         // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[camelCase(model)];
+        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
         let flattened = false;
         if (uniqueConstraints) {
             for (const [field, value] of Object.entries<any>(args)) {
@@ -856,7 +856,7 @@ export class PolicyUtil {
      * Gets "id" field for a given model.
      */
     getIdFields(model: string) {
-        const fields = this.modelMeta.fields[camelCase(model)];
+        const fields = this.modelMeta.fields[lowerCaseFirst(model)];
         if (!fields) {
             throw this.unknownError(`Unable to load fields for ${model}`);
         }

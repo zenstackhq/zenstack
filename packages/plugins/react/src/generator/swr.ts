@@ -8,7 +8,8 @@ import {
     saveProject,
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
-import { camelCase, paramCase } from 'change-case';
+import { paramCase } from 'change-case';
+import { lowerCaseFirst } from 'lower-case-first';
 import * as path from 'path';
 import { Project } from 'ts-morph';
 
@@ -79,7 +80,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
 
     const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
-    const modelRouteName = camelCase(model.name);
+    const modelRouteName = lowerCaseFirst(model.name);
 
     useFunc.addStatements([
         'const { endpoint } = useContext(RequestHandlerContext);',
