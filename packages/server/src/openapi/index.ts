@@ -221,7 +221,8 @@ export async function handleRequest({
                 },
             };
         } else {
-            logError(logger, (err as Error).message);
+            const _err = err as Error;
+            logError(logger, _err.message + (_err.stack ? '\n' + _err.stack : ''));
             return {
                 status: 400,
                 body: {
@@ -238,7 +239,7 @@ function unmarshal(value: string) {
 
 function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
     if (logger === undefined) {
-        console.error(`@zenstackhq/openapi: error ${code ? '[' + code + ']' : ''}, ${message}`);
+        console.error(`@zenstackhq/server: error ${code ? '[' + code + ']' : ''}, ${message}`);
     } else if (logger?.error) {
         logger.error(message, code);
     }
