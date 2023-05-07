@@ -61,7 +61,7 @@ describe('REST server tests', () => {
                         version: '1.0',
                     },
                     links: {
-                        self: 'http://localhost/api/user/',
+                        self: 'http://localhost/api/user',
                     },
                 });
             });
@@ -98,7 +98,7 @@ describe('REST server tests', () => {
                 expect(r.body).toMatchObject({
                     jsonapi: { version: '1.0' },
                     links: {
-                        self: 'http://localhost/api/user/',
+                        self: 'http://localhost/api/user',
                     },
                     data: [
                         {
@@ -313,7 +313,7 @@ describe('REST server tests', () => {
                 console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(201);
-                expect(r.body).toEqual({
+                expect(r.body).toMatchObject({
                     jsonapi: { version: '1.0' },
                     data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
                 });
@@ -525,12 +525,17 @@ describe('REST server tests', () => {
 
         describe('PUT', () => {
             it('updates an item if it exists', async () => {
-                // Create a user first
                 await prisma.user.create({
                     data: {
-                        id: 'user1',
+                        myId: 'user1',
                         email: 'user1@abc.com',
                     },
+                });
+                await prisma.post.create({
+                    data: { id: 1, title: 'Post1' },
+                });
+                await prisma.post.create({
+                    data: { id: 2, title: 'Post2' },
                 });
 
                 const r = await handler.handleRequest({
@@ -538,15 +543,59 @@ describe('REST server tests', () => {
                     path: '/user/user1',
                     query: {},
                     requestBody: {
-                        email: 'newemail@abc.com',
+                        data: {
+                            type: 'user',
+                            attributes: { email: 'user2@abc.com' },
+                            relationships: {
+                                posts: {
+                                    data: [
+                                        { type: 'post', id: 1 },
+                                        { type: 'post', id: 2 },
+                                    ],
+                                },
+                            },
+                        },
                     },
                     prisma,
                 });
+                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
-                expect(r.body).toEqual({
-                    jsonapi: { version: '1.0' },
-                    data: { type: 'user', id: 'user1', attributes: { email: 'newemail@abc.com' } },
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1',
+                    },
+                    data: {
+                        type: 'user',
+                        id: 'user1',
+                        attributes: {
+                            email: 'user2@abc.com',
+                        },
+                        links: {
+                            self: 'http://localhost/api/user/user1',
+                        },
+                        relationships: {
+                            posts: {
+                                links: {
+                                    self: 'http://localhost/api/user/user1/relationships/posts',
+                                    related: 'http://localhost/api/user/user1/posts',
+                                },
+                                data: [
+                                    {
+                                        type: 'post',
+                                        id: 1,
+                                    },
+                                    {
+                                        type: 'post',
+                                        id: 2,
+                                    },
+                                ],
+                            },
+                        },
+                    },
                 });
             });
 

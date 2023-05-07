@@ -42,6 +42,14 @@ export function logError(logger: LoggerConfig | undefined | null, message: strin
     }
 }
 
+export function logWarning(logger: LoggerConfig | undefined | null, message: string, code?: string) {
+    if (logger === undefined) {
+        console.warn(`@zenstackhq/server: error ${code ? '[' + code + ']' : ''}, ${message}`);
+    } else if (logger?.warn) {
+        logger.warn(message, code);
+    }
+}
+
 /**
  * Recursively strip auxiliary fields from the given data.
  */

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldInfo, enumerate } from '@zenstackhq/runtime';
 import { DbClientContract, getIdFields } from '@zenstackhq/runtime';
-import { getDefaultModelMeta, resolveField } from '@zenstackhq/runtime/enhancements/model-meta';
+import { getDefaultModelMeta } from '@zenstackhq/runtime/enhancements/model-meta';
 import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { DataDocument, Linker, Relator, Serializer, SerializerOptions } from 'ts-japi';
@@ -10,7 +10,7 @@ import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { ApiRequestHandler, LoggerConfig, RequestContext } from '../types';
-import { getZodSchema, stripAuxFields } from '../utils';
+import { getZodSchema, logWarning, stripAuxFields } from '../utils';
 import { lowerCaseFirst } from 'lower-case-first';
 
 /**
@@ -31,10 +31,11 @@ export type Item = {
 };
 
 const urlPatterns = {
+    base: new UrlPattern('/:type(/:id)'),
     collection: new UrlPattern('/:type'),
     single: new UrlPattern('/:type/:id'),
     fetchRelationship: new UrlPattern('/:type/:id/:relationship'),
-    relationship: new UrlPattern('/:type/:id(/relationships/:relationship)'),
+    relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
 };
 
 // const DEFAULT_MAX_ROWS = 1000;
@@ -51,6 +52,32 @@ export default class RequestHandler implements ApiRequestHandler {
     private serializers = new Map<string, Serializer>();
 
     private readonly errors = {
+        unsupportedModel: {
+            status: 400,
+            body: {
+                errors: [
+                    {
+                        status: 400,
+                        code: 'unsupported-model',
+                        title: 'Unsupported model type',
+                        detail: 'The model type is not supported due to not having a single ID field',
+                    },
+                ],
+            },
+        },
+        unsupportedRelationship: {
+            status: 400,
+            body: {
+                errors: [
+                    {
+                        status: 400,
+                        code: 'unsupported-relationship',
+                        title: 'Unsupported relationship',
+                        detail: 'The relationship is not supported',
+                    },
+                ],
+            },
+        },
         invalidPath: {
             status: 400,
             body: {
@@ -122,7 +149,7 @@ export default class RequestHandler implements ApiRequestHandler {
 
     private modelMeta: ModelMeta;
 
-    private createPayloadSchema = z.object({
+    private createUpdatePayloadSchema = z.object({
         data: z.object({
             type: z.string(),
             attributes: z.object({}).passthrough(),
@@ -151,9 +178,73 @@ export default class RequestHandler implements ApiRequestHandler {
         data: z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
     });
 
+    private readonly typeMap: Record<
+        string,
+        {
+            idField: string;
+            idFieldType: string;
+            relationships: Record<
+                string,
+                { type: string; idField: string; idFieldType: string; isCollection: boolean }
+            >;
+        }
+    > = {};
+
     constructor(private readonly options: Options) {
         this.modelMeta = this.options.modelMeta || getDefaultModelMeta();
+        this.buildTypeMap();
         this.buildSerializers();
+    }
+
+    private buildTypeMap() {
+        for (const [model, fields] of Object.entries(this.modelMeta.fields)) {
+            const idFields = getIdFields(this.modelMeta, model);
+            if (idFields.length === 0) {
+                logWarning(this.options.logger, `Not including model ${model} in the API because it has no ID field`);
+                continue;
+            }
+            if (idFields.length > 1) {
+                logWarning(
+                    this.options.logger,
+                    `Not including model ${model} in the API because it has multiple ID fields`
+                );
+                continue;
+            }
+
+            this.typeMap[model] = {
+                idField: idFields[0].name,
+                idFieldType: idFields[0].type,
+                relationships: {},
+            };
+
+            for (const [field, fieldInfo] of Object.entries(fields)) {
+                if (!fieldInfo.isDataModel) {
+                    continue;
+                }
+                const fieldTypeIdFields = getIdFields(this.modelMeta, fieldInfo.type);
+                if (fieldTypeIdFields.length === 0) {
+                    logWarning(
+                        this.options.logger,
+                        `Not including relation ${model}.${field} in the API because it has no ID field`
+                    );
+                    continue;
+                }
+                if (fieldTypeIdFields.length > 1) {
+                    logWarning(
+                        this.options.logger,
+                        `Not including relation ${model}.${field} in the API because it has multiple ID fields`
+                    );
+                    continue;
+                }
+
+                this.typeMap[model].relationships[field] = {
+                    type: fieldInfo.type,
+                    idField: fieldTypeIdFields[0].name,
+                    idFieldType: fieldTypeIdFields[0].type,
+                    isCollection: fieldInfo.isArray,
+                };
+            }
+        }
     }
 
     async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
@@ -206,6 +297,7 @@ export default class RequestHandler implements ApiRequestHandler {
             }
 
             // TODO: PUT for full update
+            case 'PUT':
             case 'PATCH': {
                 const match = urlPatterns.single.match(path);
                 if (!match.relationship) {
@@ -249,14 +341,12 @@ export default class RequestHandler implements ApiRequestHandler {
         resourceId: string,
         _query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
-        let idFilter: { [key: string]: unknown };
-        try {
-            idFilter = this.makeIdFilter(type, resourceId);
-        } catch (err) {
-            return err as Response;
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
         }
 
-        const args = { where: idFilter };
+        const args = { where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId) };
         this.includeRelationshipIds(type, args, 'include');
         const entity = await prisma[type].findUnique(args);
         if (entity) {
@@ -276,23 +366,24 @@ export default class RequestHandler implements ApiRequestHandler {
         relationship: string,
         query: Record<string, string> | undefined
     ): Promise<Response> {
-        let idFilter: { [key: string]: unknown };
-        try {
-            idFilter = this.makeIdFilter(type, resourceId);
-        } catch (err) {
-            return err as Response;
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
         }
 
-        const relationField = resolveField(this.modelMeta, type, relationship);
-        if (!relationField || !relationField.isDataModel) {
-            return this.errors.invalidPath;
+        const relationInfo = typeInfo.relationships[relationship];
+        if (!relationInfo) {
+            return this.errors.unsupportedRelationship;
         }
 
-        const entity: any = await prisma[type].findUnique({ where: idFilter, select: { [relationship]: true } });
+        const entity: any = await prisma[type].findUnique({
+            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            select: { [relationship]: true },
+        });
         if (entity && entity[relationship]) {
             return {
                 status: 200,
-                body: await this.serializeItems(relationField.type, entity[relationship] as Item, {
+                body: await this.serializeItems(relationInfo.type, entity[relationship] as Item, {
                     linkers: {
                         document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
                     },
@@ -310,23 +401,25 @@ export default class RequestHandler implements ApiRequestHandler {
         relationship: string,
         query: Record<string, string> | undefined
     ): Promise<Response> {
-        let idFilter: { [key: string]: unknown };
-        try {
-            idFilter = this.makeIdFilter(type, resourceId);
-        } catch (err) {
-            return err as Response;
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
         }
 
-        const relationField = resolveField(this.modelMeta, type, relationship);
-        if (!relationField || !relationField.isDataModel) {
-            return this.errors.invalidPath;
+        const relationInfo = typeInfo.relationships[relationship];
+        if (!relationInfo) {
+            return this.errors.unsupportedRelationship;
         }
 
-        const args = { where: idFilter, select: this.makeIdSelect(type) };
+        const args = {
+            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            select: this.makeIdSelect(type),
+        };
+
         this.includeRelationshipIds(type, args, 'select');
         const entity: any = await prisma[type].findUnique(args);
         if (entity && entity[relationship]) {
-            const serialized: any = await this.serializeItems(relationField.type, entity[relationship] as Item, {
+            const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship] as Item, {
                 linkers: {
                     document: new Linker(() =>
                         this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)
@@ -349,6 +442,11 @@ export default class RequestHandler implements ApiRequestHandler {
         type: string,
         query: Record<string, string> | undefined
     ): Promise<Response> {
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
+        }
+
         const args: any = {};
         this.includeRelationshipIds(type, args, 'include');
         const entities = await prisma[type].findMany(args);
@@ -358,24 +456,18 @@ export default class RequestHandler implements ApiRequestHandler {
         };
     }
 
-    private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
-        for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
-            if (fieldMeta.isDataModel) {
-                const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
-                if (fieldIds.length === 1) {
-                    args[mode] = { ...args[mode], [field]: { select: { [fieldIds[0].name]: true } } };
-                }
-            }
-        }
-    }
-
     private async processCreate(
         prisma: DbClientContract,
         type: string,
         _query: Record<string, string | string[]> | undefined,
         requestBody: unknown
     ): Promise<Response> {
-        const parsed = this.createPayloadSchema.safeParse(requestBody);
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
+        }
+
+        const parsed = this.createUpdatePayloadSchema.safeParse(requestBody);
         if (!parsed.success) {
             return {
                 status: 400,
@@ -428,23 +520,15 @@ export default class RequestHandler implements ApiRequestHandler {
                     return this.errors.invalidRelationData;
                 }
 
-                const relationField = resolveField(this.modelMeta, type, key);
-                if (!relationField) {
-                    return this.errors.invalidRelation;
+                const relationInfo = typeInfo.relationships[key];
+                if (!relationInfo) {
+                    return this.errors.unsupportedRelationship;
                 }
 
-                const relationIds = getIdFields(this.modelMeta, relationField.type);
-                if (relationIds.length > 1) {
-                    return this.errors.multiId;
-                } else if (relationIds.length === 0) {
-                    return this.errors.noId;
-                }
-                const relId = relationIds[0];
-
-                if (relationField.isArray) {
+                if (relationInfo.isCollection) {
                     createPayload.data[key] = {
                         connect: enumerate(data.data).map((item: any) => ({
-                            [relId.name]: this.coerce(relId.type, item.id),
+                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
                         })),
                     };
                 } else {
@@ -452,12 +536,12 @@ export default class RequestHandler implements ApiRequestHandler {
                         return this.errors.invalidRelationData;
                     }
                     createPayload.data[key] = {
-                        connect: { [relId.name]: this.coerce(relId.type, data.data.id) },
+                        connect: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
                     };
                 }
                 createPayload.include = {
                     ...createPayload.include,
-                    [key]: { select: { [relId.name]: true } },
+                    [key]: { select: { [relationInfo.idField]: true } },
                 };
             }
         }
@@ -477,27 +561,23 @@ export default class RequestHandler implements ApiRequestHandler {
         query: Record<string, string> | undefined,
         requestBody: unknown
     ): Promise<Response> {
-        const modelIdFields = getIdFields(this.modelMeta, type);
-
-        const relationField = resolveField(this.modelMeta, type, relationship);
-        if (!relationField) {
-            return this.errors.invalidRelation;
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
         }
 
-        const idFields = getIdFields(this.modelMeta, relationField.type);
-        if (idFields.length > 1) {
-            return this.errors.multiId;
-        } else if (idFields.length === 0) {
-            return this.errors.noId;
+        const relationInfo = typeInfo.relationships[relationship];
+        if (!relationInfo) {
+            return this.errors.unsupportedRelationship;
         }
 
         const updateArgs: any = {
-            where: this.makeIdFilter(type, resourceId),
-            select: { [modelIdFields[0].name]: true, [relationship]: { select: { [idFields[0].name]: true } } },
+            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            select: { [typeInfo.idField]: true, [relationship]: { select: { [relationInfo.idField]: true } } },
         };
         let entity: any;
 
-        if (!relationField.isArray) {
+        if (!relationInfo.isCollection) {
             const parsed = this.createSingleRelationSchema.safeParse(requestBody);
             if (!parsed.success) {
                 return this.errors.invalidPayload;
@@ -505,7 +585,7 @@ export default class RequestHandler implements ApiRequestHandler {
 
             updateArgs.data = {
                 [relationship]: {
-                    connect: { [idFields[0].name]: this.coerce(idFields[0].type, parsed.data.data.id) },
+                    connect: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, parsed.data.data.id) },
                 },
             };
 
@@ -518,14 +598,14 @@ export default class RequestHandler implements ApiRequestHandler {
             updateArgs.data = {
                 [relationship]: {
                     connect: enumerate(parsed.data.data).map((item: any) => ({
-                        [idFields[0].name]: this.coerce(idFields[0].type, item.id),
+                        [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
                     })),
                 },
             };
             entity = await prisma[type].update(updateArgs);
         }
 
-        const serialized: any = await this.serializeItems(relationField.type, entity[relationship] as Item, {
+        const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship] as Item, {
             linkers: {
                 document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)),
             },
@@ -538,13 +618,115 @@ export default class RequestHandler implements ApiRequestHandler {
         };
     }
 
-    private processUpdate(
+    private async processUpdate(
         prisma: DbClientContract,
-        _type: any,
-        _resourceId: string,
-        _query: Record<string, string> | undefined,
-        _requestBody: unknown
-    ): Response | PromiseLike<Response> {
+        type: any,
+        resourceId: string,
+        query: Record<string, string> | undefined,
+        requestBody: unknown
+    ): Promise<Response> {
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.errors.unsupportedModel;
+        }
+
+        const parsed = this.createUpdatePayloadSchema.safeParse(requestBody);
+        if (!parsed.success) {
+            return {
+                status: 400,
+                body: {
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-payload',
+                            title: 'Invalid payload',
+                            detail: fromZodError(parsed.error).message,
+                        },
+                    ],
+                },
+            };
+        }
+
+        const parsedPayload = parsed.data;
+
+        const attributes = parsedPayload.data?.attributes;
+        if (!attributes) {
+            return this.errors.invalidPayload;
+        }
+
+        const updatePayload: any = {
+            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            data: { ...attributes },
+        };
+
+        const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'update') : undefined;
+        if (dataSchema) {
+            const dataParsed = dataSchema.safeParse(updatePayload);
+            if (!dataParsed.success) {
+                return {
+                    status: 400,
+                    body: {
+                        errors: [
+                            {
+                                status: 400,
+                                code: 'invalid-payload',
+                                title: 'Invalid payload',
+                                detail: fromZodError(dataParsed.error).message,
+                            },
+                        ],
+                    },
+                };
+            }
+        }
+
+        const relationships = parsedPayload.data?.relationships;
+        if (relationships) {
+            for (const [key, data] of Object.entries<any>(relationships)) {
+                if (!data?.data) {
+                    return this.errors.invalidRelationData;
+                }
+
+                const relationInfo = typeInfo.relationships[key];
+                if (!relationInfo) {
+                    return this.errors.unsupportedRelationship;
+                }
+
+                if (relationInfo.isCollection) {
+                    updatePayload.data[key] = {
+                        set: enumerate(data.data).map((item: any) => ({
+                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
+                        })),
+                    };
+                } else {
+                    if (typeof data.data !== 'object') {
+                        return this.errors.invalidRelationData;
+                    }
+                    updatePayload.data[key] = {
+                        set: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
+                    };
+                }
+                updatePayload.include = {
+                    ...updatePayload.include,
+                    [key]: { select: { [relationInfo.idField]: true } },
+                };
+            }
+        }
+
+        const entity = await prisma[type].update(updatePayload);
+        return {
+            status: 200,
+            body: await this.serializeItems(type, entity as Item),
+        };
+    }
+
+    private async processUpdateRelationship(
+        prisma: DbClientContract,
+        type: any,
+        resourceId: string,
+        relationship: string,
+        query: Record<string, string> | undefined,
+        requestBody: unknown
+    ): Promise<Response> {
         throw new Error('Function not implemented.');
     }
 
@@ -552,17 +734,6 @@ export default class RequestHandler implements ApiRequestHandler {
         prisma: DbClientContract,
         _type: any,
         _resourceId: string,
-        _query: Record<string, string> | undefined,
-        _requestBody: unknown
-    ): Response | PromiseLike<Response> {
-        throw new Error('Function not implemented.');
-    }
-
-    private processUpdateRelationship(
-        prisma: DbClientContract,
-        _type: any,
-        _resourceId: string,
-        _relationship: string,
         _query: Record<string, string> | undefined,
         _requestBody: unknown
     ): Response | PromiseLike<Response> {
@@ -706,16 +877,8 @@ export default class RequestHandler implements ApiRequestHandler {
         return JSON.parse(JSON.stringify(await serializer.serialize(items, options)));
     }
 
-    private makeIdFilter(model: string, resourceId: string) {
-        const idFields = getIdFields(this.modelMeta, model);
-        if (idFields.length === 0) {
-            throw this.errors.noId;
-        } else if (idFields.length > 1) {
-            throw this.errors.multiId;
-        }
-
-        const idField = idFields[0];
-        return { [idField.name]: this.coerce(idField.type, resourceId) };
+    private makeIdFilter(idField: string, idFieldType: string, resourceId: string) {
+        return { [idField]: this.coerce(idFieldType, resourceId) };
     }
 
     private makeIdSelect(model: string) {
@@ -726,6 +889,16 @@ export default class RequestHandler implements ApiRequestHandler {
             throw this.errors.multiId;
         }
         return { [idFields[0].name]: true };
+    }
+
+    private includeRelationshipIds(model: string, args: any, mode: 'select' | 'include') {
+        const typeInfo = this.typeMap[model];
+        if (!typeInfo) {
+            return;
+        }
+        for (const [relation, relationInfo] of Object.entries(typeInfo.relationships)) {
+            args[mode] = { ...args[mode], [relation]: { select: { [relationInfo.idField]: true } } };
+        }
     }
 
     private coerce(type: string, id: any) {
