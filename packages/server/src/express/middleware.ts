@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
-import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
 import RPCAPIHandler from '../api/rpc';
@@ -25,12 +24,6 @@ export interface MiddlewareOptions {
      * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
      */
     zodSchemas?: ModelZodSchema | boolean;
-
-    /**
-     * Model metadata. By default loaded from `node_modules/.zenstack/model-meta` . You can use this
-     * option to override with an explicitly loaded one.
-     */
-    modelMeta?: ModelMeta;
 
     /**
      * Api request handler function

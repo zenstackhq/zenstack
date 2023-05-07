@@ -10,7 +10,7 @@ import RESTAPIHandler from '../../../src/api/rest';
 
 describe('Express adapter tests', () => {
     it('run middleware', async () => {
-        const { prisma, zodSchemas } = await loadSchema(schema);
+        const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
 
         const app = express();
         app.use(bodyParser.json());
@@ -19,7 +19,7 @@ describe('Express adapter tests', () => {
             ZenStackMiddleware({
                 getPrisma: () => prisma,
                 zodSchemas,
-                api: RESTAPIHandler({ endpoint: 'http://localhost/api' }),
+                api: RESTAPIHandler({ endpoint: 'http://localhost/api', modelMeta }),
             })
         );
 
