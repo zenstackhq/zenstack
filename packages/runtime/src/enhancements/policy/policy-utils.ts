@@ -345,20 +345,22 @@ export class PolicyUtil {
                 }
 
                 const fieldInfo = resolveField(this.modelMeta, model, field);
-                if (fieldInfo && fieldInfo.isDataModel && !fieldInfo.isArray) {
-                    // to-one relation data cannot be trimmed by injected guards, we have to
-                    // post-check them
-                    const ids = this.getEntityIds(fieldInfo.type, fieldData);
+                if (fieldInfo) {
+                    if (fieldInfo.isDataModel && !fieldInfo.isArray) {
+                        // to-one relation data cannot be trimmed by injected guards, we have to
+                        // post-check them
+                        const ids = this.getEntityIds(fieldInfo.type, fieldData);
 
-                    if (Object.keys(ids).length !== 0) {
-                        // DEBUG
-                        // this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
-                        await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                        if (Object.keys(ids).length !== 0) {
+                            // DEBUG
+                            // this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
+                            await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                        }
                     }
-                }
 
-                // recurse
-                await this.postProcessForRead(fieldData, fieldInfo.type, injectTarget[field], operation);
+                    // recurse
+                    await this.postProcessForRead(fieldData, fieldInfo.type, injectTarget[field], operation);
+                }
             }
         }
     }
