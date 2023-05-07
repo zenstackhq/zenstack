@@ -2,13 +2,14 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema, run } from '@zenstackhq/testtools';
-import RequestHandler from '../../../src/api/rest';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
+import makeHandler from '../../../src/api/rest';
+import { HandleRequestFn } from '../../../src/api/types';
 
 let prisma: any;
 let zodSchemas: any;
 let modelMeta: ModelMeta;
-let handler: RequestHandler;
+let handler: HandleRequestFn;
 
 export const schema = `
 model User {
@@ -38,7 +39,7 @@ describe('REST server tests', () => {
         prisma = params.prisma;
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
-        handler = new RequestHandler({ zodSchemas, modelMeta, endpoint: 'http://localhost/api' });
+        handler = makeHandler({ zodSchemas, modelMeta, endpoint: 'http://localhost/api' });
     });
 
     beforeEach(async () => {
@@ -49,12 +50,11 @@ describe('REST server tests', () => {
     describe('CRUD', () => {
         describe('GET', () => {
             it('returns an empty array when no item exists', async () => {
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'get',
                     path: '/user',
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
                 expect(r.status).toBe(200);
                 expect(r.body).toEqual({
                     data: [],
@@ -88,12 +88,11 @@ describe('REST server tests', () => {
                     },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'get',
                     path: '/user',
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -156,12 +155,11 @@ describe('REST server tests', () => {
                     data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'get',
                     path: '/user/user1',
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -203,12 +201,11 @@ describe('REST server tests', () => {
                     },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'get',
                     path: '/user/user1/posts',
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -256,12 +253,11 @@ describe('REST server tests', () => {
                     },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'get',
                     path: '/user/user1/relationships/posts',
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -281,7 +277,7 @@ describe('REST server tests', () => {
             });
 
             it('returns 404 if the specified ID does not exist', async () => {
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'get',
                     path: '/user/nonexistentuser',
                     prisma,
@@ -302,7 +298,7 @@ describe('REST server tests', () => {
 
         describe('POST', () => {
             it('creates an item without relation', async () => {
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'post',
                     path: '/user',
                     query: {},
@@ -311,7 +307,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
@@ -328,7 +323,7 @@ describe('REST server tests', () => {
                     data: { id: 2, title: 'Post2' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'post',
                     path: '/user',
                     query: {},
@@ -348,7 +343,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
@@ -389,7 +383,7 @@ describe('REST server tests', () => {
                     data: { myId: 'user1', email: 'user1@abc.com' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'post',
                     path: '/post',
                     query: {},
@@ -406,7 +400,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
@@ -450,7 +443,7 @@ describe('REST server tests', () => {
                     data: { id: 1, title: 'Post1' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'post',
                     path: '/post/1/relationships/author',
                     query: {},
@@ -462,7 +455,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(400);
                 expect(r.body).toMatchObject({
@@ -485,7 +477,7 @@ describe('REST server tests', () => {
                     data: { id: 2, title: 'Post2' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'post',
                     path: '/user/user1/relationships/posts',
                     query: {},
@@ -497,7 +489,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -521,7 +512,7 @@ describe('REST server tests', () => {
             });
 
             it('create relation for nonexistent entity', async () => {
-                let r = await handler.handleRequest({
+                let r = await handler({
                     method: 'post',
                     path: '/user/user1/relationships/posts',
                     query: {},
@@ -530,7 +521,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(404);
 
@@ -538,7 +528,7 @@ describe('REST server tests', () => {
                     data: { myId: 'user1', email: 'user1@abc.com' },
                 });
 
-                r = await handler.handleRequest({
+                r = await handler({
                     method: 'post',
                     path: '/user/user1/relationships/posts',
                     query: {},
@@ -566,7 +556,7 @@ describe('REST server tests', () => {
                     data: { id: 2, title: 'Post2' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'put',
                     path: '/user/user1',
                     query: {},
@@ -586,7 +576,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -628,7 +617,7 @@ describe('REST server tests', () => {
             });
 
             it('returns 404 if the user does not exist', async () => {
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'put',
                     path: '/user/nonexistentuser',
                     query: {},
@@ -659,7 +648,7 @@ describe('REST server tests', () => {
                     data: { id: 1, title: 'Post1' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'patch',
                     path: '/post/1/relationships/author',
                     query: {},
@@ -671,7 +660,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -693,14 +681,13 @@ describe('REST server tests', () => {
                     data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'patch',
                     path: '/post/1/relationships/author',
                     query: {},
                     requestBody: { data: null },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -722,7 +709,7 @@ describe('REST server tests', () => {
                     data: { id: 2, title: 'Post2' },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'patch',
                     path: '/user/user1/relationships/posts',
                     query: {},
@@ -731,7 +718,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -755,14 +741,13 @@ describe('REST server tests', () => {
                     data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'patch',
                     path: '/user/user1/relationships/posts',
                     query: {},
                     requestBody: { data: [] },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -777,7 +762,7 @@ describe('REST server tests', () => {
             });
 
             it('update relation for nonexistent entity', async () => {
-                let r = await handler.handleRequest({
+                let r = await handler({
                     method: 'patch',
                     path: '/post/1/relationships/author',
                     query: {},
@@ -795,7 +780,7 @@ describe('REST server tests', () => {
                     data: { id: 1, title: 'Post1' },
                 });
 
-                r = await handler.handleRequest({
+                r = await handler({
                     method: 'patch',
                     path: '/post/1/relationships/author',
                     query: {},
@@ -823,19 +808,18 @@ describe('REST server tests', () => {
                     },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'delete',
                     path: '/user/user1',
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(204);
                 expect(r.body).toBeUndefined();
             });
 
             it('returns 404 if the user does not exist', async () => {
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'delete',
                     path: '/user/nonexistentuser',
                     prisma,
@@ -858,13 +842,12 @@ describe('REST server tests', () => {
                     data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'delete',
                     path: '/post/1/relationships/author',
                     query: {},
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(400);
                 expect(r.body).toMatchObject({
@@ -892,7 +875,7 @@ describe('REST server tests', () => {
                     },
                 });
 
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'delete',
                     path: '/user/user1/relationships/posts',
                     query: {},
@@ -901,7 +884,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
@@ -921,7 +903,7 @@ describe('REST server tests', () => {
             });
 
             it('delete relations for nonexistent entity', async () => {
-                const r = await handler.handleRequest({
+                const r = await handler({
                     method: 'delete',
                     path: '/user/user1/relationships/posts',
                     query: {},
@@ -935,7 +917,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
                 expect(r.status).toBe(404);
             });
         });

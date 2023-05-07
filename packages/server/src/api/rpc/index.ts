@@ -13,7 +13,10 @@ export type Options = {
     zodSchemas?: ModelZodSchema;
 };
 
-export default class RequestHandler implements ApiRequestHandler {
+/**
+ * Prisma RPC style API request handler that mirrors the Prisma Client API
+ */
+class RequestHandler implements ApiRequestHandler {
     constructor(private readonly options: Options = {}) {}
 
     async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
@@ -160,4 +163,9 @@ export default class RequestHandler implements ApiRequestHandler {
     private unmarshal(value: string) {
         return JSON.parse(value);
     }
+}
+
+export default function makeHandler(options?: Options) {
+    const handler = new RequestHandler(options);
+    return handler.handleRequest.bind(handler);
 }

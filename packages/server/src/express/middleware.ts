@@ -3,8 +3,8 @@ import { DbClientContract } from '@zenstackhq/runtime';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
-import PrismaAPIHandler from '../api/prisma';
-import { ApiRequestHandler, LoggerConfig } from '../api/types';
+import RPCAPIHandler from '../api/rpc';
+import { HandleRequestFn, LoggerConfig } from '../api/types';
 
 /**
  * Express middleware options
@@ -33,9 +33,9 @@ export interface MiddlewareOptions {
     modelMeta?: ModelMeta;
 
     /**
-     * API format to use from `@zenstackhq/server/api`
+     * Api request handler function
      */
-    api?: ApiRequestHandler;
+    api?: HandleRequestFn;
 }
 
 /**
@@ -49,7 +49,7 @@ const factory = (options: MiddlewareOptions): Handler => {
         schemas = getModelZodSchemas();
     }
 
-    const handler = options.api || new PrismaAPIHandler({ logger: options.logger, zodSchemas: schemas });
+    const requestHandler = options.api || RPCAPIHandler({ logger: options.logger, zodSchemas: schemas });
 
     return async (request, response) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
@@ -57,7 +57,7 @@ const factory = (options: MiddlewareOptions): Handler => {
             throw new Error('unable to get prisma from request context');
         }
 
-        const r = await handler.handleRequest({
+        const r = await requestHandler({
             method: request.method,
             path: request.path,
             query: request.query as Record<string, string>,

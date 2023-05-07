@@ -42,9 +42,9 @@ export type Options = {
 };
 
 /**
- * RESTful API request handler (compliant with JSON:API)
+ * RESTful style API request handler (compliant with JSON:API)
  */
-export default class RequestHandler implements ApiRequestHandler {
+class RequestHandler implements ApiRequestHandler {
     // resource serializers
     private serializers = new Map<string, Serializer>();
 
@@ -925,4 +925,9 @@ export default class RequestHandler implements ApiRequestHandler {
     }
 
     //#endregion
+}
+
+export default function makeHandler(options: Options) {
+    const handler = new RequestHandler(options);
+    return handler.handleRequest.bind(handler);
 }
