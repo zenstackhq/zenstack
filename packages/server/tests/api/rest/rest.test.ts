@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadSchema, run } from '@zenstackhq/testtools';
 import RequestHandler from '../../../src/api/rest';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 
@@ -38,11 +38,12 @@ describe('REST server tests', () => {
         prisma = params.prisma;
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
-        handler = new RequestHandler({ zodSchemas, modelMeta, endpointBase: 'http://localhost/api' });
+        handler = new RequestHandler({ zodSchemas, modelMeta, endpoint: 'http://localhost/api' });
     });
 
     beforeEach(async () => {
-        await prisma.user.deleteMany();
+        run('npx prisma migrate reset --force');
+        run('npx prisma db push');
     });
 
     describe('CRUD', () => {
@@ -443,7 +444,7 @@ describe('REST server tests', () => {
                 });
             });
 
-            it('create single relation', async () => {
+            it('create single relation disallowed', async () => {
                 await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
                 await prisma.post.create({
                     data: { id: 1, title: 'Post1' },
@@ -463,18 +464,15 @@ describe('REST server tests', () => {
                 });
                 console.log(JSON.stringify(r, null, 4));
 
-                expect(r.status).toBe(200);
+                expect(r.status).toBe(400);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
-                    links: {
-                        self: 'http://localhost/api/post/1/relationships/author',
-                    },
-                    data: {
-                        type: 'user',
-                        id: 'user1',
-                    },
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-verb',
+                            title: 'The HTTP verb is not supported',
+                        },
+                    ],
                 });
             });
 
@@ -520,6 +518,36 @@ describe('REST server tests', () => {
                         },
                     ],
                 });
+            });
+
+            it('create relation for nonexistent entity', async () => {
+                let r = await handler.handleRequest({
+                    method: 'post',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: {
+                        data: [{ type: 'post', id: 1 }],
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(404);
+
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com' },
+                });
+
+                r = await handler.handleRequest({
+                    method: 'post',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: { data: [{ type: 'post', id: 1 }] },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(404);
             });
         });
 
@@ -605,7 +633,10 @@ describe('REST server tests', () => {
                     path: '/user/nonexistentuser',
                     query: {},
                     requestBody: {
-                        email: 'nonexistent@abc.com',
+                        data: {
+                            type: 'user',
+                            attributes: { email: 'user2@abc.com' },
+                        },
                     },
                     prisma,
                 });
@@ -621,6 +652,165 @@ describe('REST server tests', () => {
                     ],
                 });
             });
+
+            it('update a single relation', async () => {
+                await prisma.user.create({ data: { myId: 'user1', email: 'user1@abc.com' } });
+                await prisma.post.create({
+                    data: { id: 1, title: 'Post1' },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'patch',
+                    path: '/post/1/relationships/author',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                        },
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/post/1/relationships/author',
+                    },
+                    data: {
+                        type: 'user',
+                        id: 'user1',
+                    },
+                });
+            });
+
+            it('remove a single relation', async () => {
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'patch',
+                    path: '/post/1/relationships/author',
+                    query: {},
+                    requestBody: { data: null },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/post/1/relationships/author',
+                    },
+                    data: null,
+                });
+            });
+
+            it('update a collection of relations', async () => {
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
+                });
+                await prisma.post.create({
+                    data: { id: 2, title: 'Post2' },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'patch',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: {
+                        data: [{ type: 'post', id: 2 }],
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1/relationships/posts',
+                    },
+                    data: [
+                        {
+                            type: 'post',
+                            id: 2,
+                        },
+                    ],
+                });
+            });
+
+            it('update a collection of relations to empty', async () => {
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'patch',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: { data: [] },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1/relationships/posts',
+                    },
+                    data: [],
+                });
+            });
+
+            it('update relation for nonexistent entity', async () => {
+                let r = await handler.handleRequest({
+                    method: 'patch',
+                    path: '/post/1/relationships/author',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                        },
+                    },
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                await prisma.post.create({
+                    data: { id: 1, title: 'Post1' },
+                });
+
+                r = await handler.handleRequest({
+                    method: 'patch',
+                    path: '/post/1/relationships/author',
+                    query: {},
+                    requestBody: {
+                        data: {
+                            type: 'user',
+                            id: 'user1',
+                        },
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(404);
+            });
         });
 
         describe('DELETE', () => {
@@ -628,7 +818,7 @@ describe('REST server tests', () => {
                 // Create a user first
                 await prisma.user.create({
                     data: {
-                        id: 'user1',
+                        myId: 'user1',
                         email: 'user1@abc.com',
                     },
                 });
@@ -638,9 +828,10 @@ describe('REST server tests', () => {
                     path: '/user/user1',
                     prisma,
                 });
+                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(204);
-                expect(r.body).toBeNull();
+                expect(r.body).toBeUndefined();
             });
 
             it('returns 404 if the user does not exist', async () => {
@@ -660,6 +851,92 @@ describe('REST server tests', () => {
                         },
                     ],
                 });
+            });
+
+            it('delete single relation disallowed', async () => {
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { id: 1, title: 'Post1' } } },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'delete',
+                    path: '/post/1/relationships/author',
+                    query: {},
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(400);
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-verb',
+                            title: 'The HTTP verb is not supported',
+                        },
+                    ],
+                });
+            });
+
+            it('delete a collection of relations', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                { id: 1, title: 'Post1' },
+                                { id: 2, title: 'Post2' },
+                            ],
+                        },
+                    },
+                });
+
+                const r = await handler.handleRequest({
+                    method: 'delete',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: {
+                        data: [{ type: 'post', id: 1 }],
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    jsonapi: {
+                        version: '1.0',
+                    },
+                    links: {
+                        self: 'http://localhost/api/user/user1/relationships/posts',
+                    },
+                    data: [
+                        {
+                            type: 'post',
+                            id: 2,
+                        },
+                    ],
+                });
+            });
+
+            it('delete relations for nonexistent entity', async () => {
+                const r = await handler.handleRequest({
+                    method: 'delete',
+                    path: '/user/user1/relationships/posts',
+                    query: {},
+                    requestBody: {
+                        data: [
+                            {
+                                type: 'post',
+                                id: 1,
+                            },
+                        ],
+                    },
+                    prisma,
+                });
+                console.log(JSON.stringify(r, null, 4));
+                expect(r.status).toBe(404);
             });
         });
     });

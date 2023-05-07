@@ -1,154 +1,108 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldInfo, enumerate } from '@zenstackhq/runtime';
-import { DbClientContract, getIdFields } from '@zenstackhq/runtime';
+import {
+    DbClientContract,
+    FieldInfo,
+    enumerate,
+    getIdFields,
+    isPrismaClientKnownRequestError,
+} from '@zenstackhq/runtime';
 import { getDefaultModelMeta } from '@zenstackhq/runtime/enhancements/model-meta';
 import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { ModelZodSchema } from '@zenstackhq/runtime/zod';
+import { lowerCaseFirst } from 'lower-case-first';
 import { DataDocument, Linker, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { ApiRequestHandler, LoggerConfig, RequestContext } from '../types';
+import { ApiRequestHandler, LoggerConfig, RequestContext, Response } from '../types';
 import { getZodSchema, logWarning, stripAuxFields } from '../utils';
-import { lowerCaseFirst } from 'lower-case-first';
-
-/**
- * JSON:API response
- */
-export type Response = {
-    status: number;
-    body: unknown;
-    contentType?: string;
-};
-
-/**
- * Prisma item
- */
-export type Item = {
-    [key: string]: any;
-    id: any;
-};
+import { paramCase } from 'change-case';
 
 const urlPatterns = {
-    base: new UrlPattern('/:type(/:id)'),
+    // collection operations
     collection: new UrlPattern('/:type'),
+    // single resource operations
     single: new UrlPattern('/:type/:id'),
+    // related entity fetching
     fetchRelationship: new UrlPattern('/:type/:id/:relationship'),
+    // relationship operations
     relationship: new UrlPattern('/:type/:id/relationships/:relationship'),
 };
 
-// const DEFAULT_MAX_ROWS = 1000;
-
+/**
+ * Rest request handler options
+ */
 export type Options = {
     logger?: LoggerConfig | null;
     zodSchemas?: ModelZodSchema;
     modelMeta?: ModelMeta;
     maxRows?: number;
-    endpointBase: string;
+    endpoint: string;
 };
 
+/**
+ * RESTful API request handler (compliant with JSON:API)
+ */
 export default class RequestHandler implements ApiRequestHandler {
+    // resource serializers
     private serializers = new Map<string, Serializer>();
 
-    private readonly errors = {
+    // error responses
+    private readonly errors: Record<string, { status: number; title: string; detail?: string }> = {
         unsupportedModel: {
             status: 400,
-            body: {
-                errors: [
-                    {
-                        status: 400,
-                        code: 'unsupported-model',
-                        title: 'Unsupported model type',
-                        detail: 'The model type is not supported due to not having a single ID field',
-                    },
-                ],
-            },
+            title: 'Unsupported model type',
+            detail: 'The model type is not supported due to not having a single ID field',
         },
         unsupportedRelationship: {
             status: 400,
-            body: {
-                errors: [
-                    {
-                        status: 400,
-                        code: 'unsupported-relationship',
-                        title: 'Unsupported relationship',
-                        detail: 'The relationship is not supported',
-                    },
-                ],
-            },
+            title: 'Unsupported relationship',
+            detail: 'The relationship is not supported',
         },
         invalidPath: {
             status: 400,
-            body: {
-                errors: [{ status: 400, code: 'invalid-path', title: 'The request path is invalid' }],
-            },
+            title: 'The request path is invalid',
         },
         invalidVerb: {
             status: 400,
-            body: {
-                errors: [{ status: 400, code: 'invalid-verb', title: 'The HTTP verb is not supported' }],
-            },
+            title: 'The HTTP verb is not supported',
         },
         notFound: {
             status: 404,
-            body: { errors: [{ status: 404, code: 'not-found', title: 'Resource not found' }] },
+            title: 'Resource not found',
         },
         noId: {
             status: 400,
-            body: {
-                errors: [{ status: 400, code: 'no-id', title: 'Model without an ID field is not supported' }],
-            },
+            title: 'Model without an ID field is not supported',
         },
         multiId: {
             status: 400,
-            body: {
-                errors: [{ status: 400, code: 'multi-id', title: 'Model with multiple ID fields is not supported' }],
-            },
+            title: 'Model with multiple ID fields is not supported',
         },
         invalidId: {
             status: 400,
-            body: {
-                errors: [{ status: 400, code: 'invalid-id', title: 'Resource ID is invalid' }],
-            },
+            title: 'Resource ID is invalid',
         },
         invalidPayload: {
             status: 400,
-            body: {
-                errors: [
-                    {
-                        status: 400,
-                        code: 'invalid-payload',
-                        title: 'Invalid payload',
-                    },
-                ],
-            },
+            title: 'Invalid payload',
         },
         invalidRelationData: {
             status: 400,
-            body: {
-                errors: [
-                    {
-                        status: 400,
-                        code: 'invalid-payload',
-                        title: 'Invalid payload',
-                        detail: 'Invalid relationship data',
-                    },
-                ],
-            },
+            title: 'Invalid payload',
+            detail: 'Invalid relationship data',
         },
         invalidRelation: {
             status: 400,
-            body: {
-                errors: [
-                    { status: 400, code: 'invalid-payload', title: 'Invalid payload', detail: 'Invalid relationship' },
-                ],
-            },
+            title: 'Invalid payload',
+            detail: 'Invalid relationship',
         },
     };
 
     private modelMeta: ModelMeta;
 
+    // zod schema for payload of creating and updating a resource
     private createUpdatePayloadSchema = z.object({
         data: z.object({
             type: z.string(),
@@ -166,18 +120,17 @@ export default class RequestHandler implements ApiRequestHandler {
         }),
     });
 
-    private createSingleRelationSchema = z.object({
-        data: z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
+    // zod schema for updating a single relationship
+    private updateSingleRelationSchema = z.object({
+        data: z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }).nullable(),
     });
 
-    // private updateSingleRelationSchema = z.object({
-    //     data: z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }).nullable(),
-    // });
-
+    // zod schema for updating collection relationship
     private updateCollectionRelationSchema = z.object({
         data: z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
     });
 
+    // all known types and their metadata
     private readonly typeMap: Record<
         string,
         {
@@ -185,7 +138,7 @@ export default class RequestHandler implements ApiRequestHandler {
             idFieldType: string;
             relationships: Record<
                 string,
-                { type: string; idField: string; idFieldType: string; isCollection: boolean }
+                { type: string; idField: string; idFieldType: string; isCollection: boolean; isOptional: boolean }
             >;
         }
     > = {};
@@ -242,6 +195,7 @@ export default class RequestHandler implements ApiRequestHandler {
                     idField: fieldTypeIdFields[0].name,
                     idFieldType: fieldTypeIdFields[0].type,
                     isCollection: fieldInfo.isArray,
+                    isOptional: fieldInfo.isOptional,
                 };
             }
         }
@@ -254,37 +208,44 @@ export default class RequestHandler implements ApiRequestHandler {
             case 'GET': {
                 let match = urlPatterns.single.match(path);
                 if (match) {
+                    // single resource read
                     return this.processSingleRead(prisma, match.type, match.id, query);
                 }
 
                 match = urlPatterns.fetchRelationship.match(path);
                 if (match) {
+                    // fetch related resource(s)
                     return this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
                 }
 
                 match = urlPatterns.relationship.match(path);
                 if (match) {
+                    // read relationship
                     return this.processReadRelationship(prisma, match.type, match.id, match.relationship, query);
                 }
 
                 match = urlPatterns.collection.match(path);
                 if (match) {
+                    // collection read
                     return this.processCollectionRead(prisma, match.type, query);
                 }
 
-                return this.errors.invalidPath;
+                return this.makeError('invalidPath');
             }
 
             case 'POST': {
                 let match = urlPatterns.collection.match(path);
                 if (match) {
+                    // resource creation
                     return this.processCreate(prisma, match.type, query, requestBody);
                 }
 
                 match = urlPatterns.relationship.match(path);
                 if (match) {
-                    return this.processCreateRelationship(
+                    // relationship creation (collection relationship only)
+                    return this.processRelationshipCRUD(
                         prisma,
+                        'create',
                         match.type,
                         match.id,
                         match.relationship,
@@ -293,18 +254,24 @@ export default class RequestHandler implements ApiRequestHandler {
                     );
                 }
 
-                return this.errors.invalidPath;
+                return this.makeError('invalidPath');
             }
 
             // TODO: PUT for full update
             case 'PUT':
             case 'PATCH': {
-                const match = urlPatterns.single.match(path);
-                if (!match.relationship) {
+                let match = urlPatterns.single.match(path);
+                if (match) {
+                    // resource update
                     return this.processUpdate(prisma, match.type, match.id, query, requestBody);
-                } else {
-                    return this.processUpdateRelationship(
+                }
+
+                match = urlPatterns.relationship.match(path);
+                if (match) {
+                    // relationship update
+                    return this.processRelationshipCRUD(
                         prisma,
+                        'update',
                         match.type,
                         match.id,
                         match.relationship as string,
@@ -312,15 +279,23 @@ export default class RequestHandler implements ApiRequestHandler {
                         requestBody
                     );
                 }
+
+                return this.makeError('invalidPath');
             }
 
             case 'DELETE': {
-                const match = urlPatterns.single.match(path);
-                if (!match.relationship) {
-                    return this.processDelete(prisma, match.type, match.id, query, requestBody);
-                } else {
-                    return this.processDeleteRelationship(
+                let match = urlPatterns.single.match(path);
+                if (match) {
+                    // resource deletion
+                    return this.processDelete(prisma, match.type, match.id, query);
+                }
+
+                match = urlPatterns.relationship.match(path);
+                if (match) {
+                    // relationship deletion (collection relationship only)
+                    return this.processRelationshipCRUD(
                         prisma,
+                        'delete',
                         match.type,
                         match.id,
                         match.relationship as string,
@@ -328,10 +303,12 @@ export default class RequestHandler implements ApiRequestHandler {
                         requestBody
                     );
                 }
+
+                return this.makeError('invalidPath');
             }
 
             default:
-                return this.errors.invalidVerb;
+                return this.makeError('invalidPath');
         }
     }
 
@@ -343,19 +320,22 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
         const args = { where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId) };
+
+        // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
+
         const entity = await prisma[type].findUnique(args);
         if (entity) {
             return {
                 status: 200,
-                body: await this.serializeItems(type, entity as Item),
+                body: await this.serializeItems(type, entity),
             };
         } else {
-            return this.errors.notFound;
+            return this.makeError('notFound');
         }
     }
 
@@ -368,12 +348,12 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.errors.unsupportedRelationship;
+            return this.makeUnsupportedRelationshipError(type, relationship);
         }
 
         const entity: any = await prisma[type].findUnique({
@@ -383,14 +363,14 @@ export default class RequestHandler implements ApiRequestHandler {
         if (entity && entity[relationship]) {
             return {
                 status: 200,
-                body: await this.serializeItems(relationInfo.type, entity[relationship] as Item, {
+                body: await this.serializeItems(relationInfo.type, entity[relationship], {
                     linkers: {
                         document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
                     },
                 }),
             };
         } else {
-            return this.errors.notFound;
+            return this.makeError('notFound');
         }
     }
 
@@ -403,12 +383,12 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.errors.unsupportedRelationship;
+            return this.makeUnsupportedRelationshipError(type, relationship);
         }
 
         const args = {
@@ -416,10 +396,12 @@ export default class RequestHandler implements ApiRequestHandler {
             select: this.makeIdSelect(type),
         };
 
+        // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'select');
+
         const entity: any = await prisma[type].findUnique(args);
         if (entity && entity[relationship]) {
-            const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship] as Item, {
+            const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
                 linkers: {
                     document: new Linker(() =>
                         this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)
@@ -433,7 +415,7 @@ export default class RequestHandler implements ApiRequestHandler {
                 body: serialized,
             };
         } else {
-            return this.errors.notFound;
+            return this.makeError('notFound');
         }
     }
 
@@ -444,15 +426,18 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
         const args: any = {};
+
+        // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
+
         const entities = await prisma[type].findMany(args);
         return {
             status: 200,
-            body: await this.serializeItems(type, entities as Item[]),
+            body: await this.serializeItems(type, entities),
         };
     }
 
@@ -464,65 +449,44 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
+        // zod-parse payload
         const parsed = this.createUpdatePayloadSchema.safeParse(requestBody);
         if (!parsed.success) {
-            return {
-                status: 400,
-                body: {
-                    errors: [
-                        {
-                            status: 400,
-                            code: 'invalid-payload',
-                            title: 'Invalid payload',
-                            detail: fromZodError(parsed.error).message,
-                        },
-                    ],
-                },
-            };
+            return this.makeError('invalidPayload', fromZodError(parsed.error).message);
         }
 
         const parsedPayload = parsed.data;
 
         const attributes = parsedPayload.data?.attributes;
         if (!attributes) {
-            return this.errors.invalidPayload;
+            return this.makeError('invalidPayload');
         }
 
         const createPayload: any = { data: { ...attributes } };
 
+        // zod-parse attributes if a schema is provided
         const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'create') : undefined;
         if (dataSchema) {
             const dataParsed = dataSchema.safeParse(createPayload);
             if (!dataParsed.success) {
-                return {
-                    status: 400,
-                    body: {
-                        errors: [
-                            {
-                                status: 400,
-                                code: 'invalid-payload',
-                                title: 'Invalid payload',
-                                detail: fromZodError(dataParsed.error).message,
-                            },
-                        ],
-                    },
-                };
+                return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
             }
         }
 
+        // turn relashionship payload into Prisma connect objects
         const relationships = parsedPayload.data?.relationships;
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
-                    return this.errors.invalidRelationData;
+                    return this.makeError('invalidRelationData');
                 }
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    return this.errors.unsupportedRelationship;
+                    return this.makeUnsupportedRelationshipError(type, key);
                 }
 
                 if (relationInfo.isCollection) {
@@ -533,12 +497,14 @@ export default class RequestHandler implements ApiRequestHandler {
                     };
                 } else {
                     if (typeof data.data !== 'object') {
-                        return this.errors.invalidRelationData;
+                        return this.makeError('invalidRelationData');
                     }
                     createPayload.data[key] = {
                         connect: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
                     };
                 }
+
+                // make sure ID fields are included for result serialization
                 createPayload.include = {
                     ...createPayload.include,
                     [key]: { select: { [relationInfo.idField]: true } },
@@ -549,12 +515,13 @@ export default class RequestHandler implements ApiRequestHandler {
         const entity = await prisma[type].create(createPayload);
         return {
             status: 201,
-            body: await this.serializeItems(type, entity as Item),
+            body: await this.serializeItems(type, entity),
         };
     }
 
-    private async processCreateRelationship(
+    private async processRelationshipCRUD(
         prisma: DbClientContract,
+        mode: 'create' | 'update' | 'delete',
         type: string,
         resourceId: string,
         relationship: string,
@@ -563,12 +530,17 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.errors.unsupportedRelationship;
+            return this.makeUnsupportedRelationshipError(type, relationship);
+        }
+
+        if (!relationInfo.isCollection && mode !== 'update') {
+            // to-one relation can only be updated
+            return this.makeError('invalidVerb');
         }
 
         const updateArgs: any = {
@@ -578,34 +550,58 @@ export default class RequestHandler implements ApiRequestHandler {
         let entity: any;
 
         if (!relationInfo.isCollection) {
-            const parsed = this.createSingleRelationSchema.safeParse(requestBody);
+            // zod-parse payload
+            const parsed = this.updateSingleRelationSchema.safeParse(requestBody);
             if (!parsed.success) {
-                return this.errors.invalidPayload;
+                return this.makeError('invalidPayload', fromZodError(parsed.error).message);
             }
 
-            updateArgs.data = {
-                [relationship]: {
-                    connect: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, parsed.data.data.id) },
-                },
-            };
-
-            entity = await prisma[type].update(updateArgs);
+            if (parsed.data.data === null) {
+                if (!relationInfo.isOptional) {
+                    // cannot disconnect a required relation
+                    return this.makeError('invalidPayload');
+                }
+                // set null -> disconnect
+                updateArgs.data = {
+                    [relationship]: {
+                        disconnect: true,
+                    },
+                };
+            } else {
+                updateArgs.data = {
+                    [relationship]: {
+                        connect: {
+                            [relationInfo.idField]: this.coerce(relationInfo.idFieldType, parsed.data.data.id),
+                        },
+                    },
+                };
+            }
         } else {
+            // zod-parse payload
             const parsed = this.updateCollectionRelationSchema.safeParse(requestBody);
             if (!parsed.success) {
-                return this.errors.invalidPayload;
+                return this.makeError('invalidPayload', fromZodError(parsed.error).message);
             }
+
+            // create -> connect, delete -> disconnect, update -> set
+            const relationVerb = mode === 'create' ? 'connect' : mode === 'delete' ? 'disconnect' : 'set';
+
             updateArgs.data = {
                 [relationship]: {
-                    connect: enumerate(parsed.data.data).map((item: any) => ({
+                    [relationVerb]: enumerate(parsed.data.data).map((item: any) => ({
                         [relationInfo.idField]: this.coerce(relationInfo.idFieldType, item.id),
                     })),
                 },
             };
-            entity = await prisma[type].update(updateArgs);
         }
 
-        const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship] as Item, {
+        try {
+            entity = await prisma[type].update(updateArgs);
+        } catch (err) {
+            return this.handlePrismaError(err);
+        }
+
+        const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
                 document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)),
             },
@@ -614,7 +610,7 @@ export default class RequestHandler implements ApiRequestHandler {
 
         return {
             status: 200,
-            body: serialized, // serialized.data.relationships[relationship],
+            body: serialized,
         };
     }
 
@@ -627,31 +623,20 @@ export default class RequestHandler implements ApiRequestHandler {
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
-            return this.errors.unsupportedModel;
+            return this.makeUnsupportedModelError(type);
         }
 
+        // zod-parse payload
         const parsed = this.createUpdatePayloadSchema.safeParse(requestBody);
         if (!parsed.success) {
-            return {
-                status: 400,
-                body: {
-                    errors: [
-                        {
-                            status: 400,
-                            code: 'invalid-payload',
-                            title: 'Invalid payload',
-                            detail: fromZodError(parsed.error).message,
-                        },
-                    ],
-                },
-            };
+            return this.makeError('invalidPayload', fromZodError(parsed.error).message);
         }
 
         const parsedPayload = parsed.data;
 
         const attributes = parsedPayload.data?.attributes;
         if (!attributes) {
-            return this.errors.invalidPayload;
+            return this.makeError('invalidPayload');
         }
 
         const updatePayload: any = {
@@ -659,36 +644,26 @@ export default class RequestHandler implements ApiRequestHandler {
             data: { ...attributes },
         };
 
+        // zod-parse attributes if a schema is provided
         const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'update') : undefined;
         if (dataSchema) {
             const dataParsed = dataSchema.safeParse(updatePayload);
             if (!dataParsed.success) {
-                return {
-                    status: 400,
-                    body: {
-                        errors: [
-                            {
-                                status: 400,
-                                code: 'invalid-payload',
-                                title: 'Invalid payload',
-                                detail: fromZodError(dataParsed.error).message,
-                            },
-                        ],
-                    },
-                };
+                return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
             }
         }
 
+        // turn relationships into prisma payload
         const relationships = parsedPayload.data?.relationships;
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
-                    return this.errors.invalidRelationData;
+                    return this.makeError('invalidRelationData');
                 }
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    return this.errors.unsupportedRelationship;
+                    return this.makeUnsupportedRelationshipError(type, key);
                 }
 
                 if (relationInfo.isCollection) {
@@ -699,7 +674,7 @@ export default class RequestHandler implements ApiRequestHandler {
                     };
                 } else {
                     if (typeof data.data !== 'object') {
-                        return this.errors.invalidRelationData;
+                        return this.makeError('invalidRelationData');
                     }
                     updatePayload.data[key] = {
                         set: { [relationInfo.idField]: this.coerce(relationInfo.idFieldType, data.data.id) },
@@ -712,47 +687,45 @@ export default class RequestHandler implements ApiRequestHandler {
             }
         }
 
-        const entity = await prisma[type].update(updatePayload);
-        return {
-            status: 200,
-            body: await this.serializeItems(type, entity as Item),
-        };
+        try {
+            const entity = await prisma[type].update(updatePayload);
+            return {
+                status: 200,
+                body: await this.serializeItems(type, entity),
+            };
+        } catch (err) {
+            return this.handlePrismaError(err);
+        }
     }
 
-    private async processUpdateRelationship(
+    private async processDelete(
         prisma: DbClientContract,
         type: any,
         resourceId: string,
-        relationship: string,
-        query: Record<string, string> | undefined,
-        requestBody: unknown
+        query: Record<string, string> | undefined
     ): Promise<Response> {
-        throw new Error('Function not implemented.');
+        const typeInfo = this.typeMap[type];
+        if (!typeInfo) {
+            return this.makeUnsupportedModelError(type);
+        }
+
+        try {
+            await prisma[type].delete({
+                where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+            });
+            return {
+                status: 204,
+                body: undefined,
+            };
+        } catch (err) {
+            return this.handlePrismaError(err);
+        }
     }
 
-    private processDelete(
-        prisma: DbClientContract,
-        _type: any,
-        _resourceId: string,
-        _query: Record<string, string> | undefined,
-        _requestBody: unknown
-    ): Response | PromiseLike<Response> {
-        throw new Error('Function not implemented.');
-    }
-
-    private processDeleteRelationship(
-        prisma: DbClientContract,
-        _type: any,
-        _resourceId: string,
-        _relationship: string,
-        _query: Record<string, string> | undefined,
-        _requestBody: unknown
-    ): Response | PromiseLike<Response> {
-        throw new Error('Function not implemented.');
-    }
+    //#region utilities
 
     private makeLinkUrl(path: string) {
-        return `${this.options.endpointBase}${path}`;
+        return `${this.options.endpoint}${path}`;
     }
 
     private buildSerializers() {
@@ -862,7 +835,7 @@ export default class RequestHandler implements ApiRequestHandler {
 
     private async serializeItems(
         model: string,
-        items: Item | Item[],
+        items: unknown,
         options?: Partial<SerializerOptions<any>>
     ): Promise<Partial<DataDocument<any>>> {
         model = lowerCaseFirst(model);
@@ -873,7 +846,6 @@ export default class RequestHandler implements ApiRequestHandler {
 
         stripAuxFields(items);
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return JSON.parse(JSON.stringify(await serializer.serialize(items, options)));
     }
 
@@ -907,4 +879,50 @@ export default class RequestHandler implements ApiRequestHandler {
         }
         return id;
     }
+
+    private handlePrismaError(err: unknown) {
+        if (isPrismaClientKnownRequestError(err)) {
+            if (err.code === 'P2025' || err.code === 'P2018') {
+                return this.makeError('notFound');
+            } else {
+                return {
+                    status: 400,
+                    body: {
+                        errors: [{ status: 400, code: 'prisma-error', title: 'Prisma error', detail: err.message }],
+                    },
+                };
+            }
+        } else {
+            throw err;
+        }
+    }
+
+    private makeError(code: keyof typeof this.errors, detail?: string) {
+        return {
+            status: this.errors[code].status,
+            body: {
+                errors: [
+                    {
+                        status: this.errors[code].status,
+                        code: paramCase(code),
+                        title: this.errors[code].title,
+                        detail: detail || this.errors[code].detail,
+                    },
+                ],
+            },
+        };
+    }
+
+    private makeUnsupportedModelError(model: string) {
+        return this.makeError('unsupportedModel', `Model ${model} doesn't exist or doesn't have a single ID field`);
+    }
+
+    private makeUnsupportedRelationshipError(model: string, relationship: string) {
+        return this.makeError(
+            'unsupportedRelationship',
+            `Relationship ${model}.${relationship} doesn't exist or its type doesn't have a single ID field`
+        );
+    }
+
+    //#endregion
 }
