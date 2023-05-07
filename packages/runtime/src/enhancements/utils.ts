@@ -1,7 +1,11 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
-import * as util from 'util';
-import { ModelMeta } from './types';
 import { lowerCaseFirst } from 'lower-case-first';
+import path from 'path';
+import * as util from 'util';
+import { DbClientContract } from '../types';
+import { ModelMeta } from './types';
 
 /**
  * Wraps a value into array if it's not already one
@@ -53,4 +57,47 @@ export function enumerate<T>(x: Enumerable<T>) {
  */
 export function formatObject(value: unknown) {
     return util.formatWithOptions({ depth: 10 }, value);
+}
+
+let _PrismaClientValidationError: new (...args: unknown[]) => Error;
+let _PrismaClientKnownRequestError: new (...args: unknown[]) => Error;
+let _PrismaClientUnknownRequestError: new (...args: unknown[]) => Error;
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function loadPrismaModule(prisma: any) {
+    // https://github.com/prisma/prisma/discussions/17832
+    if (prisma._engineConfig?.datamodelPath) {
+        const loadPath = path.dirname(prisma._engineConfig.datamodelPath);
+        try {
+            return require(loadPath).Prisma;
+        } catch {
+            return require('@prisma/client/runtime');
+        }
+    } else {
+        return require('@prisma/client/runtime');
+    }
+}
+
+export function prismaClientValidationError(prisma: DbClientContract, ...args: unknown[]) {
+    if (!_PrismaClientValidationError) {
+        const _prisma = loadPrismaModule(prisma);
+        _PrismaClientValidationError = _prisma.PrismaClientValidationError;
+    }
+    throw new _PrismaClientValidationError(...args);
+}
+
+export function prismaClientKnownRequestError(prisma: DbClientContract, ...args: unknown[]) {
+    if (!_PrismaClientKnownRequestError) {
+        const _prisma = loadPrismaModule(prisma);
+        _PrismaClientKnownRequestError = _prisma.PrismaClientKnownRequestError;
+    }
+    return new _PrismaClientKnownRequestError(...args);
+}
+
+export function prismaClientUnknownRequestError(prisma: DbClientContract, ...args: unknown[]) {
+    if (!_PrismaClientUnknownRequestError) {
+        const _prisma = loadPrismaModule(prisma);
+        _PrismaClientUnknownRequestError = _prisma.PrismaClientUnknownRequestError;
+    }
+    throw new _PrismaClientUnknownRequestError(...args);
 }

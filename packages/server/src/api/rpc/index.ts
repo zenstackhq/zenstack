@@ -149,7 +149,8 @@ class RequestHandler implements ApiRequestHandler {
                     },
                 };
             } else {
-                logError(this.options.logger, (err as Error).message);
+                const _err = err as Error;
+                logError(this.options.logger, _err.message + (_err.stack ? '\n' + _err.stack : ''));
                 return {
                     status: 400,
                     body: {

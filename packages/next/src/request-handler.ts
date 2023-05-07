@@ -168,7 +168,8 @@ async function handleRequest(
                 message: err.message,
             });
         } else {
-            logError(options, undefined, (err as Error).message);
+            const _err = err as Error;
+            logError(options, undefined, _err.message + (_err.stack ? '\n' + _err.stack : ''));
             res.status(500).send({
                 message: (err as Error).message,
             });

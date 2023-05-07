@@ -129,4 +129,39 @@ describe('GitHub issues regression', () => {
               `
         );
     });
+
+    it('select with _count', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+            model User {
+                id String @id @unique @default(uuid())
+                posts Post[]
+    
+                @@allow('all', true)
+            }
+                
+            model Post {
+                id String @id @default(uuid())
+                title String
+                published Boolean @default(false)
+                author User @relation(fields: [authorId], references: [id])
+                authorId String
+            
+                @@allow('all', true)
+            }  
+              `
+        );
+
+        await prisma.user.create({
+            data: {
+                posts: {
+                    create: [{ title: 'Post 1' }, { title: 'Post 2' }],
+                },
+            },
+        });
+
+        const db = withPolicy();
+        const r = await db.user.findFirst({ select: { _count: { select: { posts: true } } } });
+        expect(r).toMatchObject({ _count: { posts: 2 } });
+    });
 });
