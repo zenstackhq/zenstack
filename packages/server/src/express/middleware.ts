@@ -28,21 +28,21 @@ export interface MiddlewareOptions {
     /**
      * Api request handler function
      */
-    api?: HandleRequestFn;
+    handler?: HandleRequestFn;
 }
 
 /**
  * Creates an Express middleware for handling CRUD requests.
  */
 const factory = (options: MiddlewareOptions): Handler => {
-    let schemas: ModelZodSchema | undefined;
+    let zodSchemas: ModelZodSchema | undefined;
     if (typeof options.zodSchemas === 'object') {
-        schemas = options.zodSchemas;
+        zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        schemas = getModelZodSchemas();
+        zodSchemas = getModelZodSchemas();
     }
 
-    const requestHandler = options.api || RPCAPIHandler({ logger: options.logger, zodSchemas: schemas });
+    const requestHandler = options.handler || RPCAPIHandler({ logger: options.logger, zodSchemas });
 
     return async (request, response) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;

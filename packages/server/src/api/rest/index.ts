@@ -15,7 +15,7 @@ import { DataDocument, Linker, Relator, Serializer, SerializerOptions } from 'ts
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { ApiRequestHandler, LoggerConfig, RequestContext, Response } from '../types';
+import { LoggerConfig, RequestContext, Response } from '../types';
 import { getZodSchema, logWarning, stripAuxFields } from '../utils';
 import { paramCase } from 'change-case';
 
@@ -44,7 +44,7 @@ export type Options = {
 /**
  * RESTful style API request handler (compliant with JSON:API)
  */
-class RequestHandler implements ApiRequestHandler {
+class RequestHandler {
     // resource serializers
     private serializers = new Map<string, Serializer>();
 

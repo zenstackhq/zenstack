@@ -32,9 +32,6 @@ export type RequestContext = {
     path: string;
     query?: Record<string, string>;
     requestBody?: unknown;
-    // prisma: DbClientContract;
-    // logger?: LoggerConfig;
-    // zodSchemas?: ModelZodSchema;
 };
 
 /**
@@ -46,10 +43,6 @@ export type Response = {
 };
 
 /**
- *
+ * API request handler function
  */
 export type HandleRequestFn = (req: RequestContext) => Promise<Response>;
-
-export interface ApiRequestHandler {
-    handleRequest(context: RequestContext): Promise<Response>;
-}

@@ -5,7 +5,7 @@ import {
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
 import { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { ApiRequestHandler, LoggerConfig, RequestContext, Response } from '../types';
+import { LoggerConfig, RequestContext, Response } from '../types';
 import { logError, stripAuxFields, zodValidate } from '../utils';
 
 export type Options = {
@@ -16,7 +16,7 @@ export type Options = {
 /**
  * Prisma RPC style API request handler that mirrors the Prisma Client API
  */
-class RequestHandler implements ApiRequestHandler {
+class RequestHandler {
     constructor(private readonly options: Options = {}) {}
 
     async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
