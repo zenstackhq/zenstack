@@ -55,7 +55,7 @@ describe('REST server tests', () => {
         prisma = params.prisma;
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
-        handler = makeHandler({ zodSchemas, modelMeta, endpoint: 'http://localhost/api' });
+        handler = makeHandler({ zodSchemas, modelMeta, endpoint: 'http://localhost/api', pageSize: 5 });
     });
 
     beforeEach(async () => {
@@ -280,8 +280,7 @@ describe('REST server tests', () => {
                 });
             });
 
-            it('filtering', async () => {
-                // Create users first
+            it('toplevel filtering', async () => {
                 await prisma.user.create({
                     data: {
                         myId: 'user1',
@@ -340,23 +339,6 @@ describe('REST server tests', () => {
                 });
                 expect((r.body as any).data).toHaveLength(1);
                 expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
-
-                // filter in related fetch
-                r = await handler({
-                    method: 'get',
-                    path: '/user/user1/posts',
-                    query: { ['filter[viewCount]']: '1' },
-                    prisma,
-                });
-                expect((r.body as any).data).toHaveLength(0);
-
-                r = await handler({
-                    method: 'get',
-                    path: '/user/user2/posts',
-                    query: { ['filter[viewCount]']: '1' },
-                    prisma,
-                });
-                expect((r.body as any).data).toHaveLength(1);
 
                 // multi filter
                 r = await handler({
@@ -430,6 +412,80 @@ describe('REST server tests', () => {
                         },
                     ],
                 });
+            });
+
+            it('related data filtering', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+                await prisma.user.create({
+                    data: {
+                        myId: 'user2',
+                        email: 'user2@abc.com',
+                        posts: {
+                            create: { id: 2, title: 'Post2', viewCount: 1, published: true },
+                        },
+                    },
+                });
+
+                let r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user2/posts',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+            });
+
+            it('relationship filtering', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+                await prisma.user.create({
+                    data: {
+                        myId: 'user2',
+                        email: 'user2@abc.com',
+                        posts: {
+                            create: { id: 2, title: 'Post2', viewCount: 1, published: true },
+                        },
+                    },
+                });
+
+                let r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user2/relationships/posts',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
             });
 
             it('including', async () => {
@@ -548,6 +604,231 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(400);
                 expect(r.body).toMatchObject({
                     errors: [{ status: 400, code: 'unsupported-relationship' }],
+                });
+            });
+
+            it('toplevel pagination', async () => {
+                for (const i of Array(5).keys()) {
+                    await prisma.user.create({
+                        data: {
+                            myId: `user${i}`,
+                            email: `user${i}@abc.com`,
+                        },
+                    });
+                }
+
+                // limit only
+                let r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['page[limit]']: '3' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(3);
+                expect((r.body as any).links).toMatchObject({
+                    first: 'http://localhost/api/user?page%5Blimit%5D=3',
+                    last: 'http://localhost/api/user?page%5Boffset%5D=3',
+                    prev: null,
+                    next: 'http://localhost/api/user?page%5Boffset%5D=3&page%5Blimit%5D=3',
+                });
+
+                // limit & offset
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['page[limit]']: '3', ['page[offset]']: '3' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(2);
+                expect((r.body as any).links).toMatchObject({
+                    first: 'http://localhost/api/user?page%5Blimit%5D=3',
+                    last: 'http://localhost/api/user?page%5Boffset%5D=3',
+                    prev: 'http://localhost/api/user?page%5Boffset%5D=0&page%5Blimit%5D=3',
+                    next: null,
+                });
+
+                // limit trimmed
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['page[limit]']: '10' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(5);
+                expect((r.body as any).links).toMatchObject({
+                    first: 'http://localhost/api/user?page%5Blimit%5D=5',
+                    last: 'http://localhost/api/user?page%5Boffset%5D=0',
+                    prev: null,
+                    next: null,
+                });
+
+                // offset overflow
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['page[offset]']: '10' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+                expect((r.body as any).links).toMatchObject({
+                    first: 'http://localhost/api/user?page%5Blimit%5D=5',
+                    last: 'http://localhost/api/user?page%5Boffset%5D=0',
+                    prev: null,
+                    next: null,
+                });
+
+                // minus offset
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['page[offset]']: '-1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(5);
+                expect((r.body as any).links).toMatchObject({
+                    first: 'http://localhost/api/user?page%5Blimit%5D=5',
+                    last: 'http://localhost/api/user?page%5Boffset%5D=0',
+                    prev: null,
+                    next: null,
+                });
+
+                // zero limit
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['page[limit]']: '0' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(5);
+                expect((r.body as any).links).toMatchObject({
+                    first: 'http://localhost/api/user?page%5Blimit%5D=5',
+                    last: 'http://localhost/api/user?page%5Boffset%5D=0',
+                    prev: null,
+                    next: null,
+                });
+            });
+
+            it('related data pagination', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: `user1`,
+                        email: `user1@abc.com`,
+                        posts: {
+                            create: [...Array(10).keys()].map((i) => ({
+                                id: i,
+                                title: `Post${i}`,
+                            })),
+                        },
+                    },
+                });
+
+                // default limiting
+                let r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(5);
+                expect((r.body as any).links).toMatchObject({
+                    self: 'http://localhost/api/user/user1/posts',
+                    first: 'http://localhost/api/user/user1/posts?page%5Blimit%5D=5',
+                    last: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=5',
+                    prev: null,
+                    next: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=5&page%5Blimit%5D=5',
+                });
+
+                // explicit limiting
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { ['page[limit]']: '3' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(3);
+                expect((r.body as any).links).toMatchObject({
+                    self: 'http://localhost/api/user/user1/posts',
+                    first: 'http://localhost/api/user/user1/posts?page%5Blimit%5D=3',
+                    last: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=9',
+                    prev: null,
+                    next: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=3&page%5Blimit%5D=3',
+                });
+
+                // offset
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { ['page[limit]']: '3', ['page[offset]']: '8' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(2);
+                expect((r.body as any).links).toMatchObject({
+                    self: 'http://localhost/api/user/user1/posts',
+                    first: 'http://localhost/api/user/user1/posts?page%5Blimit%5D=3',
+                    last: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=9',
+                    prev: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=5&page%5Blimit%5D=3',
+                    next: null,
+                });
+            });
+
+            it('relationship pagination', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: `user1`,
+                        email: `user1@abc.com`,
+                        posts: {
+                            create: [...Array(10).keys()].map((i) => ({
+                                id: i,
+                                title: `Post${i}`,
+                            })),
+                        },
+                    },
+                });
+
+                // default limiting
+                let r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(5);
+                expect((r.body as any).links).toMatchObject({
+                    self: 'http://localhost/api/user/user1/relationships/posts',
+                    first: 'http://localhost/api/user/user1/relationships/posts?page%5Blimit%5D=5',
+                    last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=5',
+                    prev: null,
+                    next: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=5&page%5Blimit%5D=5',
+                });
+
+                // explicit limiting
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    query: { ['page[limit]']: '3' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(3);
+                expect((r.body as any).links).toMatchObject({
+                    self: 'http://localhost/api/user/user1/relationships/posts',
+                    first: 'http://localhost/api/user/user1/relationships/posts?page%5Blimit%5D=3',
+                    last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=9',
+                    prev: null,
+                    next: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=3&page%5Blimit%5D=3',
+                });
+
+                // offset
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    query: { ['page[limit]']: '3', ['page[offset]']: '8' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(2);
+                expect((r.body as any).links).toMatchObject({
+                    self: 'http://localhost/api/user/user1/relationships/posts',
+                    first: 'http://localhost/api/user/user1/relationships/posts?page%5Blimit%5D=3',
+                    last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=9',
+                    prev: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=5&page%5Blimit%5D=3',
+                    next: null,
                 });
             });
         });

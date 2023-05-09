@@ -10,14 +10,14 @@ import {
 import { getDefaultModelMeta } from '@zenstackhq/runtime/enhancements/model-meta';
 import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { ModelZodSchema } from '@zenstackhq/runtime/zod';
+import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
-import { DataDocument, Linker, Relator, Serializer, SerializerOptions } from 'ts-japi';
+import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig, RequestContext, Response } from '../types';
 import { getZodSchema, logWarning, stripAuxFields } from '../utils';
-import { paramCase } from 'change-case';
 
 const urlPatterns = {
     // collection operations
@@ -34,11 +34,11 @@ const urlPatterns = {
  * Rest request handler options
  */
 export type Options = {
+    endpoint: string;
     logger?: LoggerConfig | null;
     zodSchemas?: ModelZodSchema;
     modelMeta?: ModelMeta;
-    maxRows?: number;
-    endpoint: string;
+    pageSize?: number;
 };
 
 type RelationshipInfo = {
@@ -61,6 +61,8 @@ class InvalidValueError extends Error {
         super(message);
     }
 }
+
+const DEFAULT_PAGE_SIZE = 100;
 
 /**
  * RESTful style API request handler (compliant with JSON:API)
@@ -374,29 +376,38 @@ class RequestHandler {
         }
 
         select = select ?? { [relationship]: true };
-        if (relationInfo.isCollection) {
-            // if related data is a collection, it can be filtered
-            const { filter, error } = this.buildFilter(relationInfo.type, query);
-            if (error) {
-                return error;
-            }
-            if (filter) {
-                select[relationship] = { where: filter };
-            }
-        }
-
         const args: any = {
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
             select,
         };
 
+        if (relationInfo.isCollection) {
+            // if related data is a collection, it can be filtered, sorted, and paginated
+            const error = this.injectRelationQuery(relationInfo.type, select, relationship, query);
+            if (error) {
+                return error;
+            }
+        }
+
         const entity: any = await prisma[type].findUnique(args);
-        if (entity && entity[relationship]) {
+
+        let paginator: Paginator<any> | undefined;
+
+        if (entity?._count?.[relationship] !== undefined) {
+            // build up paginator
+            const total = entity?._count?.[relationship] as number;
+            const url = this.makeNormalizedUrl(`/${type}/${resourceId}/${relationship}`, query);
+            const { offset, limit } = this.getPagination(query);
+            paginator = this.makePaginator(url, offset, limit, total);
+        }
+
+        if (entity?.[relationship]) {
             return {
                 status: 200,
                 body: await this.serializeItems(relationInfo.type, entity[relationship], {
                     linkers: {
                         document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
+                        paginator,
                     },
                     include,
                 }),
@@ -423,21 +434,42 @@ class RequestHandler {
             return this.makeUnsupportedRelationshipError(type, relationship);
         }
 
-        const args = {
+        const args: any = {
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
             select: this.makeIdSelect(type),
         };
 
         // include IDs of relation fields so that they can be serialized
-        this.includeRelationshipIds(type, args, 'select');
+        // this.includeRelationshipIds(type, args, 'select');
+        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.type) } };
+
+        let paginator: Paginator<any> | undefined;
+
+        if (relationInfo.isCollection) {
+            // if related data is a collection, it can be filtered, sorted, and paginated
+            const error = this.injectRelationQuery(relationInfo.type, args.select, relationship, query);
+            if (error) {
+                return error;
+            }
+        }
 
         const entity: any = await prisma[type].findUnique(args);
-        if (entity && entity[relationship]) {
+
+        if (entity?._count?.[relationship] !== undefined) {
+            // build up paginator
+            const total = entity?._count?.[relationship] as number;
+            const url = this.makeNormalizedUrl(`/${type}/${resourceId}/relationships/${relationship}`, query);
+            const { offset, limit } = this.getPagination(query);
+            paginator = this.makePaginator(url, offset, limit, total);
+        }
+
+        if (entity?.[relationship]) {
             const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
                 linkers: {
                     document: new Linker(() =>
                         this.makeLinkUrl(`/${type}/${resourceId}/relationships/${relationship}`)
                     ),
+                    paginator,
                 },
                 onlyIdentifier: true,
             });
@@ -488,149 +520,67 @@ class RequestHandler {
             include = allIncludes;
         }
 
-        const entities = await prisma[type].findMany(args);
-        return {
-            status: 200,
-            body: await this.serializeItems(type, entities, { include }),
-        };
-    }
-
-    private buildFilter(
-        type: string,
-        query: Record<string, string | string[]> | undefined
-    ): { filter: any; error: any } {
-        if (!query) {
-            return { filter: undefined, error: undefined };
+        const { offset, limit } = this.getPagination(query);
+        if (offset > 0) {
+            args.skip = offset;
         }
 
-        const typeInfo = this.typeMap[lowerCaseFirst(type)];
-        if (!typeInfo) {
-            return { filter: undefined, error: this.makeUnsupportedModelError(type) };
-        }
-
-        const items: any[] = [];
-
-        for (const [key, value] of Object.entries(query)) {
-            if (!value) {
-                continue;
-            }
-
-            // try matching query parameter key as "filter[x][y]..."
-            const match = key.match(this.filterParamPattern);
-            if (!match || !match.groups) {
-                continue;
-            }
-            const filterKeys = match.groups.match
-                .replaceAll(/[[\]]/g, ' ')
-                .split(' ')
-                .filter((i) => i);
-
-            if (!filterKeys.length) {
-                continue;
-            }
-
-            // turn filter into a nested Prisma query object
-
-            const item: any = {};
-            let curr = item;
-
-            for (const filterValue of enumerate(value)) {
-                for (let i = 0; i < filterKeys.length; i++) {
-                    const filterKey = filterKeys[i];
-
-                    const fieldInfo =
-                        filterKey === 'id'
-                            ? Object.values(typeInfo.fields).find((f) => f.isId)
-                            : typeInfo.fields[filterKey];
-                    if (!fieldInfo) {
-                        return { filter: undefined, error: this.makeError('invalidFilter') };
-                    }
-
-                    if (!fieldInfo.isDataModel) {
-                        // regular field
-                        if (i !== filterKeys.length - 1) {
-                            // must be the last segment of a filter
-                            return { filter: undefined, error: this.makeError('invalidFilter') };
-                        }
-                        curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
-                    } else {
-                        // relation field
-                        if (i === filterKeys.length - 1) {
-                            curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
-                        } else {
-                            // keep going
-                            curr = curr[fieldInfo.name] = {};
-                        }
-                    }
-                }
-                items.push(item);
-            }
-        }
-
-        if (items.length === 0) {
-            return { filter: undefined, error: undefined };
+        if (limit === Infinity) {
+            const entities = await prisma[type].findMany(args);
+            return {
+                status: 200,
+                body: await this.serializeItems(type, entities, { include }),
+            };
         } else {
-            // combine filters with AND
-            return { filter: items.length === 1 ? items[0] : { AND: items }, error: undefined };
+            args.take = limit;
+            const [entities, count] = await Promise.all([
+                prisma[type].findMany(args),
+                prisma[type].count({ where: args.where }),
+            ]);
+            const total = count as number;
+
+            const url = this.makeNormalizedUrl(`/${type}`, query);
+            const options: Partial<SerializerOptions> = {
+                include,
+                linkers: {
+                    paginator: this.makePaginator(url, offset, limit, total),
+                },
+            };
+
+            return {
+                status: 200,
+                body: await this.serializeItems(type, entities, options),
+            };
         }
     }
 
-    private buildRelationSelect(type: string, include: string | string[]) {
-        const typeInfo = this.typeMap[lowerCaseFirst(type)];
-        if (!typeInfo) {
-            return { select: undefined, error: this.makeUnsupportedModelError(type) };
+    private makePaginator(baseUrl: string, offset: number, limit: number, total: number) {
+        if (limit === Infinity) {
+            return undefined;
         }
 
-        const result: any = {};
-        const allIncludes: string[] = [];
+        const totalPages = Math.ceil(total / limit);
 
-        for (const includeItem of enumerate(include)) {
-            const inclusions = includeItem.split(',').filter((i) => i);
-            for (const inclusion of inclusions) {
-                allIncludes.push(inclusion);
-
-                const parts = inclusion.split('.');
-                let currPayload = result;
-                let currType = typeInfo;
-
-                for (let i = 0; i < parts.length; i++) {
-                    const relation = parts[i];
-                    const relationInfo = currType.relationships[relation];
-                    if (!relationInfo) {
-                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation) };
-                    }
-
-                    currType = this.typeMap[lowerCaseFirst(relationInfo.type)];
-                    if (!currType) {
-                        return { select: undefined, error: this.makeUnsupportedModelError(relationInfo.type) };
-                    }
-
-                    if (i !== parts.length - 1) {
-                        currPayload[relation] = { include: { ...currPayload[relation]?.include } };
-                        currPayload = currPayload[relation].include;
-                    } else {
-                        currPayload[relation] = true;
-                    }
-                }
-            }
-        }
-
-        return { select: result, error: undefined, allIncludes };
-    }
-
-    private makeFilterValue(fieldInfo: FieldInfo, value: string): any {
-        if (fieldInfo.isDataModel) {
-            // relation filter is converted to an ID filter
-            const info = this.typeMap[lowerCaseFirst(fieldInfo.type)];
-            if (fieldInfo.isArray) {
-                // filtering a to-many relation, imply 'some' operator
-                return { some: this.makeIdFilter(info.idField, info.idFieldType, value) };
-            } else {
-                return { is: this.makeIdFilter(info.idField, info.idFieldType, value) };
-            }
-        } else {
-            return this.coerce(fieldInfo.type, value);
-        }
+        return new Paginator(() => ({
+            first: this.replaceURLSearchParams(baseUrl, { 'page[limit]': limit }),
+            last: this.replaceURLSearchParams(baseUrl, {
+                'page[offset]': (totalPages - 1) * limit,
+            }),
+            prev:
+                offset - limit >= 0 && offset - limit <= total - 1
+                    ? this.replaceURLSearchParams(baseUrl, {
+                          'page[offset]': offset - limit,
+                          'page[limit]': limit,
+                      })
+                    : null,
+            next:
+                offset + limit <= total - 1
+                    ? this.replaceURLSearchParams(baseUrl, {
+                          'page[offset]': offset + limit,
+                          'page[limit]': limit,
+                      })
+                    : null,
+        }));
     }
 
     private async processCreate(
@@ -1101,6 +1051,14 @@ class RequestHandler {
         return JSON.parse(JSON.stringify(await serializer.serialize(items, options)));
     }
 
+    private replaceURLSearchParams(url: string, params: Record<string, string | number>) {
+        const r = new URL(url);
+        for (const [key, value] of Object.entries(params)) {
+            r.searchParams.set(key, value.toString());
+        }
+        return r.toString();
+    }
+
     private makeIdFilter(idField: string, idFieldType: string, resourceId: string) {
         return { [idField]: this.coerce(idFieldType, resourceId) };
     }
@@ -1150,6 +1108,226 @@ class RequestHandler {
             }
         }
         return value;
+    }
+
+    private makeNormalizedUrl(path: string, query: Record<string, string | string[]> | undefined) {
+        const url = new URL(this.makeLinkUrl(path));
+        for (const [key, value] of Object.entries(query ?? {})) {
+            if (
+                key.startsWith('filter[') ||
+                key.startsWith('sort[') ||
+                key.startsWith('include[') ||
+                key.startsWith('fields[')
+            ) {
+                for (const v of enumerate(value)) {
+                    url.searchParams.append(key, v);
+                }
+            }
+        }
+        return url.toString();
+    }
+
+    private getPagination(query: Record<string, string | string[]> | undefined) {
+        if (!query) {
+            return { offset: 0, limit: this.options.pageSize ?? DEFAULT_PAGE_SIZE };
+        }
+
+        let offset = 0;
+        if (query['page[offset]']) {
+            const value = query['page[offset]'];
+            const offsetText = Array.isArray(value) ? value[value.length - 1] : value;
+            offset = parseInt(offsetText);
+            if (isNaN(offset) || offset < 0) {
+                offset = 0;
+            }
+        }
+
+        let pageSizeOption = this.options.pageSize ?? DEFAULT_PAGE_SIZE;
+        if (pageSizeOption <= 0) {
+            pageSizeOption = DEFAULT_PAGE_SIZE;
+        }
+
+        let limit = pageSizeOption;
+        if (query['page[limit]']) {
+            const value = query['page[limit]'];
+            const limitText = Array.isArray(value) ? value[value.length - 1] : value;
+            limit = parseInt(limitText);
+            if (isNaN(limit) || limit <= 0) {
+                limit = pageSizeOption;
+            }
+            limit = Math.min(pageSizeOption, limit);
+        }
+
+        return { offset, limit };
+    }
+
+    private buildFilter(
+        type: string,
+        query: Record<string, string | string[]> | undefined
+    ): { filter: any; error: any } {
+        if (!query) {
+            return { filter: undefined, error: undefined };
+        }
+
+        const typeInfo = this.typeMap[lowerCaseFirst(type)];
+        if (!typeInfo) {
+            return { filter: undefined, error: this.makeUnsupportedModelError(type) };
+        }
+
+        const items: any[] = [];
+
+        for (const [key, value] of Object.entries(query)) {
+            if (!value) {
+                continue;
+            }
+
+            // try matching query parameter key as "filter[x][y]..."
+            const match = key.match(this.filterParamPattern);
+            if (!match || !match.groups) {
+                continue;
+            }
+            const filterKeys = match.groups.match
+                .replaceAll(/[[\]]/g, ' ')
+                .split(' ')
+                .filter((i) => i);
+
+            if (!filterKeys.length) {
+                continue;
+            }
+
+            // turn filter into a nested Prisma query object
+
+            const item: any = {};
+            let curr = item;
+
+            for (const filterValue of enumerate(value)) {
+                for (let i = 0; i < filterKeys.length; i++) {
+                    const filterKey = filterKeys[i];
+
+                    const fieldInfo =
+                        filterKey === 'id'
+                            ? Object.values(typeInfo.fields).find((f) => f.isId)
+                            : typeInfo.fields[filterKey];
+                    if (!fieldInfo) {
+                        return { filter: undefined, error: this.makeError('invalidFilter') };
+                    }
+
+                    if (!fieldInfo.isDataModel) {
+                        // regular field
+                        if (i !== filterKeys.length - 1) {
+                            // must be the last segment of a filter
+                            return { filter: undefined, error: this.makeError('invalidFilter') };
+                        }
+                        curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
+                    } else {
+                        // relation field
+                        if (i === filterKeys.length - 1) {
+                            curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
+                        } else {
+                            // keep going
+                            curr = curr[fieldInfo.name] = {};
+                        }
+                    }
+                }
+                items.push(item);
+            }
+        }
+
+        if (items.length === 0) {
+            return { filter: undefined, error: undefined };
+        } else {
+            // combine filters with AND
+            return { filter: items.length === 1 ? items[0] : { AND: items }, error: undefined };
+        }
+    }
+
+    private buildRelationSelect(type: string, include: string | string[]) {
+        const typeInfo = this.typeMap[lowerCaseFirst(type)];
+        if (!typeInfo) {
+            return { select: undefined, error: this.makeUnsupportedModelError(type) };
+        }
+
+        const result: any = {};
+        const allIncludes: string[] = [];
+
+        for (const includeItem of enumerate(include)) {
+            const inclusions = includeItem.split(',').filter((i) => i);
+            for (const inclusion of inclusions) {
+                allIncludes.push(inclusion);
+
+                const parts = inclusion.split('.');
+                let currPayload = result;
+                let currType = typeInfo;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const relation = parts[i];
+                    const relationInfo = currType.relationships[relation];
+                    if (!relationInfo) {
+                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation) };
+                    }
+
+                    currType = this.typeMap[lowerCaseFirst(relationInfo.type)];
+                    if (!currType) {
+                        return { select: undefined, error: this.makeUnsupportedModelError(relationInfo.type) };
+                    }
+
+                    if (i !== parts.length - 1) {
+                        currPayload[relation] = { include: { ...currPayload[relation]?.include } };
+                        currPayload = currPayload[relation].include;
+                    } else {
+                        currPayload[relation] = true;
+                    }
+                }
+            }
+        }
+
+        return { select: result, error: undefined, allIncludes };
+    }
+
+    private makeFilterValue(fieldInfo: FieldInfo, value: string): any {
+        if (fieldInfo.isDataModel) {
+            // relation filter is converted to an ID filter
+            const info = this.typeMap[lowerCaseFirst(fieldInfo.type)];
+            if (fieldInfo.isArray) {
+                // filtering a to-many relation, imply 'some' operator
+                return { some: this.makeIdFilter(info.idField, info.idFieldType, value) };
+            } else {
+                return { is: this.makeIdFilter(info.idField, info.idFieldType, value) };
+            }
+        } else {
+            return this.coerce(fieldInfo.type, value);
+        }
+    }
+
+    private injectRelationQuery(
+        type: string,
+        injectTarget: any,
+        injectKey: string,
+        query: Record<string, string | string[]> | undefined
+    ) {
+        const { filter, error } = this.buildFilter(type, query);
+        if (error) {
+            return error;
+        }
+
+        if (filter) {
+            injectTarget[injectKey] = { where: filter };
+        }
+
+        const pagination = this.getPagination(query);
+        const offset = pagination.offset;
+        if (offset > 0) {
+            // inject skip
+            injectTarget[injectKey] = { ...injectTarget[injectKey], skip: offset };
+        }
+        const limit = pagination.limit;
+        if (limit !== Infinity) {
+            // inject take
+            injectTarget[injectKey] = { ...injectTarget[injectKey], take: limit };
+
+            // include a count query  for the relationship
+            injectTarget._count = { select: { [injectKey]: true } };
+        }
     }
 
     private handlePrismaError(err: unknown) {
