@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/language",
-    "version": "1.0.0-alpha.115",
+    "version": "1.0.0-alpha.116",
     "displayName": "ZenStack modeling language compiler",
     "description": "ZenStack modeling language compiler",
     "homepage": "https://zenstack.dev",
@@ -22,11 +22,11 @@
     "devDependencies": {
         "concurrently": "^7.4.0",
         "copyfiles": "^2.4.1",
-        "langium-cli": "1.1.0",
+        "langium-cli": "1.2.0",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"
     },
     "dependencies": {
-        "langium": "1.1.0"
+        "langium": "1.2.0"
     }
 }
