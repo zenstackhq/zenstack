@@ -56,11 +56,8 @@ describe('REST server tests', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect(r.body).toEqual({
+                expect(r.body).toMatchObject({
                     data: [],
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user',
                     },
@@ -83,7 +80,7 @@ describe('REST server tests', () => {
                         myId: 'user2',
                         email: 'user2@abc.com',
                         posts: {
-                            create: { title: 'Post1' },
+                            create: { title: 'Post2' },
                         },
                     },
                 });
@@ -96,7 +93,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: { version: '1.0' },
                     links: {
                         self: 'http://localhost/api/user',
                     },
@@ -114,12 +110,7 @@ describe('REST server tests', () => {
                                         self: 'http://localhost/api/user/user1/relationships/posts',
                                         related: 'http://localhost/api/user/user1/posts',
                                     },
-                                    data: [
-                                        {
-                                            type: 'post',
-                                            id: 1,
-                                        },
-                                    ],
+                                    data: [{ type: 'post', id: 1 }],
                                 },
                             },
                         },
@@ -136,14 +127,161 @@ describe('REST server tests', () => {
                                         self: 'http://localhost/api/user/user2/relationships/posts',
                                         related: 'http://localhost/api/user/user2/posts',
                                     },
-                                    data: [
-                                        {
-                                            type: 'post',
-                                            id: 2,
-                                        },
-                                    ],
+                                    data: [{ type: 'post', id: 2 }],
                                 },
                             },
+                        },
+                    ],
+                });
+            });
+
+            it('filtering', async () => {
+                // Create users first
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+                await prisma.user.create({
+                    data: {
+                        myId: 'user2',
+                        email: 'user2@abc.com',
+                        posts: {
+                            create: { id: 2, title: 'Post2', viewCount: 1, published: true },
+                        },
+                    },
+                });
+
+                // id filter
+                let r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[id]']: 'user2' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
+
+                // attribute filter
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email]']: 'user1@abc.com' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+
+                // filter to empty
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[id]']: 'user3' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                // to-many relation collection filter
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[posts]']: '2' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
+
+                // filter in related fetch
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user2/posts',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+
+                // multi filter
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[id]']: 'user1', ['filter[posts]']: '2' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                // Int filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // Boolean filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[published]']: 'true' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // to-one relation filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[author]']: 'user1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+
+                // invalid filter field
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[foo]']: '1' },
+                    prisma,
+                });
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-filter',
+                            title: 'Invalid filter',
+                        },
+                    ],
+                });
+
+                // invalid filter value
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount]']: 'a' },
+                    prisma,
+                });
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-value',
+                            title: 'Invalid value for type',
                         },
                     ],
                 });
@@ -163,7 +301,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: { version: '1.0' },
                     data: {
                         type: 'user',
                         id: 'user1',
@@ -177,12 +314,7 @@ describe('REST server tests', () => {
                                     self: 'http://localhost/api/user/user1/relationships/posts',
                                     related: 'http://localhost/api/user/user1/posts',
                                 },
-                                data: [
-                                    {
-                                        type: 'post',
-                                        id: 1,
-                                    },
-                                ],
+                                data: [{ type: 'post', id: 1 }],
                             },
                         },
                     },
@@ -209,9 +341,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user/user1/posts',
                     },
@@ -261,18 +390,10 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',
                     },
-                    data: [
-                        {
-                            type: 'post',
-                            id: 1,
-                        },
-                    ],
+                    data: [{ type: 'post', id: 1 }],
                 });
             });
 
@@ -363,14 +484,8 @@ describe('REST server tests', () => {
                                     related: 'http://localhost/api/user/user1/posts',
                                 },
                                 data: [
-                                    {
-                                        type: 'post',
-                                        id: 1,
-                                    },
-                                    {
-                                        type: 'post',
-                                        id: 2,
-                                    },
+                                    { type: 'post', id: 1 },
+                                    { type: 'post', id: 2 },
                                 ],
                             },
                         },
@@ -403,9 +518,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/post/1',
                     },
@@ -427,10 +539,7 @@ describe('REST server tests', () => {
                                     self: 'http://localhost/api/post/1/relationships/author/user1',
                                     related: 'http://localhost/api/post/1/author/user1',
                                 },
-                                data: {
-                                    type: 'user',
-                                    id: 'user1',
-                                },
+                                data: { type: 'user', id: 'user1' },
                             },
                         },
                     },
@@ -448,10 +557,7 @@ describe('REST server tests', () => {
                     path: '/post/1/relationships/author',
                     query: {},
                     requestBody: {
-                        data: {
-                            type: 'user',
-                            id: 'user1',
-                        },
+                        data: { type: 'user', id: 'user1' },
                     },
                     prisma,
                 });
@@ -492,21 +598,12 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',
                     },
                     data: [
-                        {
-                            type: 'post',
-                            id: 1,
-                        },
-                        {
-                            type: 'post',
-                            id: 2,
-                        },
+                        { type: 'post', id: 1 },
+                        { type: 'post', id: 2 },
                     ],
                 });
             });
@@ -579,9 +676,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user/user1',
                     },
@@ -601,14 +695,8 @@ describe('REST server tests', () => {
                                     related: 'http://localhost/api/user/user1/posts',
                                 },
                                 data: [
-                                    {
-                                        type: 'post',
-                                        id: 1,
-                                    },
-                                    {
-                                        type: 'post',
-                                        id: 2,
-                                    },
+                                    { type: 'post', id: 1 },
+                                    { type: 'post', id: 2 },
                                 ],
                             },
                         },
@@ -691,9 +779,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/post/1/relationships/author',
                     },
@@ -721,18 +806,10 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',
                     },
-                    data: [
-                        {
-                            type: 'post',
-                            id: 2,
-                        },
-                    ],
+                    data: [{ type: 'post', id: 2 }],
                 });
             });
 
@@ -751,9 +828,6 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
-                    jsonapi: {
-                        version: '1.0',
-                    },
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',
                     },
@@ -893,12 +967,7 @@ describe('REST server tests', () => {
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',
                     },
-                    data: [
-                        {
-                            type: 'post',
-                            id: 2,
-                        },
-                    ],
+                    data: [{ type: 'post', id: 2 }],
                 });
             });
 
@@ -908,12 +977,7 @@ describe('REST server tests', () => {
                     path: '/user/user1/relationships/posts',
                     query: {},
                     requestBody: {
-                        data: [
-                            {
-                                type: 'post',
-                                id: 1,
-                            },
-                        ],
+                        data: [{ type: 'post', id: 1 }],
                     },
                     prisma,
                 });

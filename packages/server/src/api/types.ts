@@ -30,7 +30,7 @@ export type RequestContext = {
     prisma: DbClientContract;
     method: string;
     path: string;
-    query?: Record<string, string>;
+    query?: Record<string, string | string[]>;
     requestBody?: unknown;
 };
 

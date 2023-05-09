@@ -41,6 +41,27 @@ export type Options = {
     endpoint: string;
 };
 
+type RelationshipInfo = {
+    type: string;
+    idField: string;
+    idFieldType: string;
+    isCollection: boolean;
+    isOptional: boolean;
+};
+
+type ModelInfo = {
+    idField: string;
+    idFieldType: string;
+    fields: Record<string, FieldInfo>;
+    relationships: Record<string, RelationshipInfo>;
+};
+
+class InvalidValueError extends Error {
+    constructor(public readonly message: string) {
+        super(message);
+    }
+}
+
 /**
  * RESTful style API request handler (compliant with JSON:API)
  */
@@ -98,9 +119,23 @@ class RequestHandler {
             title: 'Invalid payload',
             detail: 'Invalid relationship',
         },
+        invalidFilter: {
+            status: 400,
+            title: 'Invalid filter',
+        },
+        invalidValue: {
+            status: 400,
+            title: 'Invalid value for type',
+        },
+        unknownError: {
+            status: 400,
+            title: 'Unknown error',
+        },
     };
 
     private modelMeta: ModelMeta;
+
+    private filterParamPattern = new RegExp(/^filter(?<match>(\[[^[\]]+\])+)$/);
 
     // zod schema for payload of creating and updating a resource
     private createUpdatePayloadSchema = z.object({
@@ -131,17 +166,7 @@ class RequestHandler {
     });
 
     // all known types and their metadata
-    private readonly typeMap: Record<
-        string,
-        {
-            idField: string;
-            idFieldType: string;
-            relationships: Record<
-                string,
-                { type: string; idField: string; idFieldType: string; isCollection: boolean; isOptional: boolean }
-            >;
-        }
-    > = {};
+    private readonly typeMap: Record<string, ModelInfo> = {};
 
     constructor(private readonly options: Options) {
         this.modelMeta = this.options.modelMeta || getDefaultModelMeta();
@@ -149,166 +174,129 @@ class RequestHandler {
         this.buildSerializers();
     }
 
-    private buildTypeMap() {
-        for (const [model, fields] of Object.entries(this.modelMeta.fields)) {
-            const idFields = getIdFields(this.modelMeta, model);
-            if (idFields.length === 0) {
-                logWarning(this.options.logger, `Not including model ${model} in the API because it has no ID field`);
-                continue;
-            }
-            if (idFields.length > 1) {
-                logWarning(
-                    this.options.logger,
-                    `Not including model ${model} in the API because it has multiple ID fields`
-                );
-                continue;
-            }
-
-            this.typeMap[model] = {
-                idField: idFields[0].name,
-                idFieldType: idFields[0].type,
-                relationships: {},
-            };
-
-            for (const [field, fieldInfo] of Object.entries(fields)) {
-                if (!fieldInfo.isDataModel) {
-                    continue;
-                }
-                const fieldTypeIdFields = getIdFields(this.modelMeta, fieldInfo.type);
-                if (fieldTypeIdFields.length === 0) {
-                    logWarning(
-                        this.options.logger,
-                        `Not including relation ${model}.${field} in the API because it has no ID field`
-                    );
-                    continue;
-                }
-                if (fieldTypeIdFields.length > 1) {
-                    logWarning(
-                        this.options.logger,
-                        `Not including relation ${model}.${field} in the API because it has multiple ID fields`
-                    );
-                    continue;
-                }
-
-                this.typeMap[model].relationships[field] = {
-                    type: fieldInfo.type,
-                    idField: fieldTypeIdFields[0].name,
-                    idFieldType: fieldTypeIdFields[0].type,
-                    isCollection: fieldInfo.isArray,
-                    isOptional: fieldInfo.isOptional,
-                };
-            }
-        }
-    }
-
     async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
         method = method.toUpperCase();
 
-        switch (method) {
-            case 'GET': {
-                let match = urlPatterns.single.match(path);
-                if (match) {
-                    // single resource read
-                    return this.processSingleRead(prisma, match.type, match.id, query);
+        try {
+            switch (method) {
+                case 'GET': {
+                    let match = urlPatterns.single.match(path);
+                    if (match) {
+                        // single resource read
+                        return await this.processSingleRead(prisma, match.type, match.id, query);
+                    }
+
+                    match = urlPatterns.fetchRelationship.match(path);
+                    if (match) {
+                        // fetch related resource(s)
+                        return await this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
+                    }
+
+                    match = urlPatterns.relationship.match(path);
+                    if (match) {
+                        // read relationship
+                        return await this.processReadRelationship(
+                            prisma,
+                            match.type,
+                            match.id,
+                            match.relationship,
+                            query
+                        );
+                    }
+
+                    match = urlPatterns.collection.match(path);
+                    if (match) {
+                        // collection read
+                        return await this.processCollectionRead(prisma, match.type, query);
+                    }
+
+                    return this.makeError('invalidPath');
                 }
 
-                match = urlPatterns.fetchRelationship.match(path);
-                if (match) {
-                    // fetch related resource(s)
-                    return this.processFetchRelated(prisma, match.type, match.id, match.relationship, query);
+                case 'POST': {
+                    let match = urlPatterns.collection.match(path);
+                    if (match) {
+                        // resource creation
+                        return await this.processCreate(prisma, match.type, query, requestBody);
+                    }
+
+                    match = urlPatterns.relationship.match(path);
+                    if (match) {
+                        // relationship creation (collection relationship only)
+                        return await this.processRelationshipCRUD(
+                            prisma,
+                            'create',
+                            match.type,
+                            match.id,
+                            match.relationship,
+                            query,
+                            requestBody
+                        );
+                    }
+
+                    return this.makeError('invalidPath');
                 }
 
-                match = urlPatterns.relationship.match(path);
-                if (match) {
-                    // read relationship
-                    return this.processReadRelationship(prisma, match.type, match.id, match.relationship, query);
+                // TODO: PUT for full update
+                case 'PUT':
+                case 'PATCH': {
+                    let match = urlPatterns.single.match(path);
+                    if (match) {
+                        // resource update
+                        return await this.processUpdate(prisma, match.type, match.id, query, requestBody);
+                    }
+
+                    match = urlPatterns.relationship.match(path);
+                    if (match) {
+                        // relationship update
+                        return await this.processRelationshipCRUD(
+                            prisma,
+                            'update',
+                            match.type,
+                            match.id,
+                            match.relationship as string,
+                            query,
+                            requestBody
+                        );
+                    }
+
+                    return this.makeError('invalidPath');
                 }
 
-                match = urlPatterns.collection.match(path);
-                if (match) {
-                    // collection read
-                    return this.processCollectionRead(prisma, match.type, query);
+                case 'DELETE': {
+                    let match = urlPatterns.single.match(path);
+                    if (match) {
+                        // resource deletion
+                        return await this.processDelete(prisma, match.type, match.id, query);
+                    }
+
+                    match = urlPatterns.relationship.match(path);
+                    if (match) {
+                        // relationship deletion (collection relationship only)
+                        return await this.processRelationshipCRUD(
+                            prisma,
+                            'delete',
+                            match.type,
+                            match.id,
+                            match.relationship as string,
+                            query,
+                            requestBody
+                        );
+                    }
+
+                    return this.makeError('invalidPath');
                 }
 
-                return this.makeError('invalidPath');
+                default:
+                    return this.makeError('invalidPath');
             }
-
-            case 'POST': {
-                let match = urlPatterns.collection.match(path);
-                if (match) {
-                    // resource creation
-                    return this.processCreate(prisma, match.type, query, requestBody);
-                }
-
-                match = urlPatterns.relationship.match(path);
-                if (match) {
-                    // relationship creation (collection relationship only)
-                    return this.processRelationshipCRUD(
-                        prisma,
-                        'create',
-                        match.type,
-                        match.id,
-                        match.relationship,
-                        query,
-                        requestBody
-                    );
-                }
-
-                return this.makeError('invalidPath');
+        } catch (err) {
+            if (err instanceof InvalidValueError) {
+                return this.makeError('invalidValue', err.message);
+            } else {
+                const _err = err as Error;
+                return this.makeError('unknownError', `${_err.message}\n${_err.stack}`);
             }
-
-            // TODO: PUT for full update
-            case 'PUT':
-            case 'PATCH': {
-                let match = urlPatterns.single.match(path);
-                if (match) {
-                    // resource update
-                    return this.processUpdate(prisma, match.type, match.id, query, requestBody);
-                }
-
-                match = urlPatterns.relationship.match(path);
-                if (match) {
-                    // relationship update
-                    return this.processRelationshipCRUD(
-                        prisma,
-                        'update',
-                        match.type,
-                        match.id,
-                        match.relationship as string,
-                        query,
-                        requestBody
-                    );
-                }
-
-                return this.makeError('invalidPath');
-            }
-
-            case 'DELETE': {
-                let match = urlPatterns.single.match(path);
-                if (match) {
-                    // resource deletion
-                    return this.processDelete(prisma, match.type, match.id, query);
-                }
-
-                match = urlPatterns.relationship.match(path);
-                if (match) {
-                    // relationship deletion (collection relationship only)
-                    return this.processRelationshipCRUD(
-                        prisma,
-                        'delete',
-                        match.type,
-                        match.id,
-                        match.relationship as string,
-                        query,
-                        requestBody
-                    );
-                }
-
-                return this.makeError('invalidPath');
-            }
-
-            default:
-                return this.makeError('invalidPath');
         }
     }
 
@@ -344,7 +332,7 @@ class RequestHandler {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string> | undefined
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -356,9 +344,21 @@ class RequestHandler {
             return this.makeUnsupportedRelationshipError(type, relationship);
         }
 
+        const select: any = { [relationship]: true };
+        if (relationInfo.isCollection) {
+            // if related data is a collection, it can be filtered
+            const { filter, error } = this.buildFilter(relationInfo.type, query);
+            if (error) {
+                return error;
+            }
+            if (filter) {
+                select[relationship] = { where: filter };
+            }
+        }
+
         const entity: any = await prisma[type].findUnique({
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            select: { [relationship]: true },
+            select,
         });
         if (entity && entity[relationship]) {
             return {
@@ -379,7 +379,7 @@ class RequestHandler {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string> | undefined
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -422,7 +422,7 @@ class RequestHandler {
     private async processCollectionRead(
         prisma: DbClientContract,
         type: string,
-        query: Record<string, string> | undefined
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -430,6 +430,15 @@ class RequestHandler {
         }
 
         const args: any = {};
+
+        // add filter
+        const { filter, error } = this.buildFilter(type, query);
+        if (error) {
+            return error;
+        }
+        if (filter) {
+            args.where = filter;
+        }
 
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
@@ -439,6 +448,97 @@ class RequestHandler {
             status: 200,
             body: await this.serializeItems(type, entities),
         };
+    }
+
+    private buildFilter(
+        type: string,
+        query: Record<string, string | string[]> | undefined
+    ): { filter: any; error: any } {
+        if (!query) {
+            return { filter: undefined, error: undefined };
+        }
+
+        const typeInfo = this.typeMap[lowerCaseFirst(type)];
+        if (!typeInfo) {
+            return { filter: undefined, error: this.makeUnsupportedModelError(type) };
+        }
+
+        const items: any[] = [];
+
+        for (const [key, value] of Object.entries(query)) {
+            if (!value) {
+                continue;
+            }
+
+            // try matching query parameter key as "filter[x][y]..."
+            const match = key.match(this.filterParamPattern);
+            if (!match || !match.groups) {
+                continue;
+            }
+            const filterKeys = match.groups.match
+                .replaceAll(/[[\]]/g, ' ')
+                .split(' ')
+                .filter((i) => i);
+
+            if (!filterKeys.length) {
+                continue;
+            }
+
+            // turn filter into a nested Prisma query object
+
+            const item: any = {};
+            let curr = item;
+
+            for (const filterValue of enumerate(value)) {
+                for (let i = 0; i < filterKeys.length; i++) {
+                    const filterKey = filterKeys[i];
+
+                    const fieldInfo =
+                        filterKey === 'id'
+                            ? Object.values(typeInfo.fields).find((f) => f.isId)
+                            : typeInfo.fields[filterKey];
+                    if (!fieldInfo) {
+                        return { filter: undefined, error: this.makeError('invalidFilter') };
+                    }
+
+                    if (!fieldInfo.isDataModel) {
+                        // regular field
+                        if (i !== filterKeys.length - 1) {
+                            // must be the last segment of a filter
+                            return { filter: undefined, error: this.makeError('invalidFilter') };
+                        }
+                        curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
+                    } else {
+                        // relation field
+                        if (i === filterKeys.length - 1) {
+                            curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
+                        } else {
+                            // keep going
+                            curr = curr[fieldInfo.name] = {};
+                        }
+                    }
+                }
+                items.push(item);
+            }
+        }
+
+        // combine filters with AND
+        return { filter: items.length === 1 ? items[0] : { AND: items }, error: undefined };
+    }
+
+    private makeFilterValue(fieldInfo: FieldInfo, value: string): any {
+        if (fieldInfo.isDataModel) {
+            // relation filter is converted to an ID filter
+            const info = this.typeMap[lowerCaseFirst(fieldInfo.type)];
+            if (fieldInfo.isArray) {
+                // filtering a to-many relation, imply 'some' operator
+                return { some: this.makeIdFilter(info.idField, info.idFieldType, value) };
+            } else {
+                return { is: this.makeIdFilter(info.idField, info.idFieldType, value) };
+            }
+        } else {
+            return this.coerce(fieldInfo.type, value);
+        }
     }
 
     private async processCreate(
@@ -525,7 +625,7 @@ class RequestHandler {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string> | undefined,
+        query: Record<string, string | string[]> | undefined,
         requestBody: unknown
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
@@ -618,7 +718,7 @@ class RequestHandler {
         prisma: DbClientContract,
         type: any,
         resourceId: string,
-        query: Record<string, string> | undefined,
+        query: Record<string, string | string[]> | undefined,
         requestBody: unknown
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
@@ -702,7 +802,7 @@ class RequestHandler {
         prisma: DbClientContract,
         type: any,
         resourceId: string,
-        query: Record<string, string> | undefined
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -723,6 +823,59 @@ class RequestHandler {
     }
 
     //#region utilities
+
+    private buildTypeMap() {
+        for (const [model, fields] of Object.entries(this.modelMeta.fields)) {
+            const idFields = getIdFields(this.modelMeta, model);
+            if (idFields.length === 0) {
+                logWarning(this.options.logger, `Not including model ${model} in the API because it has no ID field`);
+                continue;
+            }
+            if (idFields.length > 1) {
+                logWarning(
+                    this.options.logger,
+                    `Not including model ${model} in the API because it has multiple ID fields`
+                );
+                continue;
+            }
+
+            this.typeMap[model] = {
+                idField: idFields[0].name,
+                idFieldType: idFields[0].type,
+                relationships: {},
+                fields,
+            };
+
+            for (const [field, fieldInfo] of Object.entries(fields)) {
+                if (!fieldInfo.isDataModel) {
+                    continue;
+                }
+                const fieldTypeIdFields = getIdFields(this.modelMeta, fieldInfo.type);
+                if (fieldTypeIdFields.length === 0) {
+                    logWarning(
+                        this.options.logger,
+                        `Not including relation ${model}.${field} in the API because it has no ID field`
+                    );
+                    continue;
+                }
+                if (fieldTypeIdFields.length > 1) {
+                    logWarning(
+                        this.options.logger,
+                        `Not including relation ${model}.${field} in the API because it has multiple ID fields`
+                    );
+                    continue;
+                }
+
+                this.typeMap[model].relationships[field] = {
+                    type: fieldInfo.type,
+                    idField: fieldTypeIdFields[0].name,
+                    idFieldType: fieldTypeIdFields[0].type,
+                    isCollection: fieldInfo.isArray,
+                    isOptional: fieldInfo.isOptional,
+                };
+            }
+        }
+    }
 
     private makeLinkUrl(path: string) {
         return `${this.options.endpoint}${path}`;
@@ -873,11 +1026,31 @@ class RequestHandler {
         }
     }
 
-    private coerce(type: string, id: any) {
-        if ((type === 'Int' || type === 'BigInt') && typeof id === 'string') {
-            return parseInt(id);
+    private coerce(type: string, value: any) {
+        if (typeof value === 'string') {
+            if (type === 'Int' || type === 'BigInt') {
+                const parsed = parseInt(value);
+                if (isNaN(parsed)) {
+                    throw new InvalidValueError(`invalid ${type} value: ${value}`);
+                }
+                return parsed;
+            } else if (type === 'Float' || type === 'Decimal') {
+                const parsed = parseFloat(value);
+                if (isNaN(parsed)) {
+                    throw new InvalidValueError(`invalid ${type} value: ${value}`);
+                }
+                return parsed;
+            } else if (type === 'Boolean') {
+                if (value === 'true') {
+                    return true;
+                } else if (value === 'false') {
+                    return false;
+                } else {
+                    throw new InvalidValueError(`invalid ${type} value: ${value}`);
+                }
+            }
         }
-        return id;
+        return value;
     }
 
     private handlePrismaError(err: unknown) {
