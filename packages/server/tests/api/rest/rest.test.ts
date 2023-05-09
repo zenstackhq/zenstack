@@ -18,6 +18,14 @@ model User {
     updatedAt DateTime @updatedAt
     email String @unique
     posts Post[]
+    profile Profile?
+}
+
+model Profile {
+    id Int @id @default(autoincrement())
+    gender String
+    user User @relation(fields: [userId], references: [myId])
+    userId String @unique
 }
 
 model Post {
@@ -29,6 +37,14 @@ model Post {
     authorId String?
     published Boolean @default(false)
     viewCount Int @default(0)
+    comments Comment[]
+}
+
+model Comment {
+    id Int @id @default(autoincrement())
+    post Post @relation(fields: [postId], references: [id])
+    postId Int
+    content String
 }
 `;
 
@@ -130,6 +146,135 @@ describe('REST server tests', () => {
                                     data: [{ type: 'post', id: 2 }],
                                 },
                             },
+                        },
+                    ],
+                });
+            });
+
+            it('returns a single item when the ID is specified', async () => {
+                // Create a user first
+                await prisma.user.create({
+                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
+                });
+
+                const r = await handler({
+                    method: 'get',
+                    path: '/user/user1',
+                    prisma,
+                });
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    data: {
+                        type: 'user',
+                        id: 'user1',
+                        attributes: { email: 'user1@abc.com' },
+                        links: {
+                            self: 'http://localhost/api/user/user1',
+                        },
+                        relationships: {
+                            posts: {
+                                links: {
+                                    self: 'http://localhost/api/user/user1/relationships/posts',
+                                    related: 'http://localhost/api/user/user1/posts',
+                                },
+                                data: [{ type: 'post', id: 1 }],
+                            },
+                        },
+                    },
+                });
+            });
+
+            it('fetch a related resource', async () => {
+                // Create a user first
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+
+                const r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    prisma,
+                });
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    links: {
+                        self: 'http://localhost/api/user/user1/posts',
+                    },
+                    data: [
+                        {
+                            type: 'post',
+                            id: 1,
+                            attributes: {
+                                title: 'Post1',
+                                authorId: 'user1',
+                                published: false,
+                                viewCount: 0,
+                            },
+                            links: {
+                                self: 'http://localhost/api/post/1',
+                            },
+                            relationships: {
+                                author: {
+                                    links: {
+                                        self: 'http://localhost/api/post/1/relationships/author',
+                                        related: 'http://localhost/api/post/1/author',
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                });
+            });
+
+            it('fetch a relationship', async () => {
+                // Create a user first
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1' },
+                        },
+                    },
+                });
+
+                const r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    prisma,
+                });
+
+                expect(r.status).toBe(200);
+                expect(r.body).toMatchObject({
+                    links: {
+                        self: 'http://localhost/api/user/user1/relationships/posts',
+                    },
+                    data: [{ type: 'post', id: 1 }],
+                });
+            });
+
+            it('returns 404 if the specified ID does not exist', async () => {
+                const r = await handler({
+                    method: 'get',
+                    path: '/user/nonexistentuser',
+                    prisma,
+                });
+
+                expect(r.status).toBe(404);
+                expect(r.body).toEqual({
+                    errors: [
+                        {
+                            code: 'not-found',
+                            status: 404,
+                            title: 'Resource not found',
                         },
                     ],
                 });
@@ -287,132 +432,122 @@ describe('REST server tests', () => {
                 });
             });
 
-            it('returns a single item when the ID is specified', async () => {
-                // Create a user first
+            it('including', async () => {
                 await prisma.user.create({
-                    data: { myId: 'user1', email: 'user1@abc.com', posts: { create: { title: 'Post1' } } },
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1', comments: { create: { content: 'Comment1' } } },
+                        },
+                        profile: {
+                            create: { gender: 'male' },
+                        },
+                    },
+                });
+                await prisma.user.create({
+                    data: {
+                        myId: 'user2',
+                        email: 'user2@abc.com',
+                        posts: {
+                            create: {
+                                id: 2,
+                                title: 'Post2',
+                                viewCount: 1,
+                                published: true,
+                                comments: { create: { content: 'Comment2' } },
+                            },
+                        },
+                    },
                 });
 
-                const r = await handler({
+                // collection query include
+                let r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { include: 'posts' },
+                    prisma,
+                });
+                expect((r.body as any).included).toHaveLength(2);
+                expect((r.body as any).included[0]).toMatchObject({
+                    type: 'post',
+                    id: 1,
+                    attributes: { title: 'Post1' },
+                });
+
+                // single query include
+                r = await handler({
                     method: 'get',
                     path: '/user/user1',
+                    query: { include: 'posts' },
                     prisma,
                 });
-
-                expect(r.status).toBe(200);
-                expect(r.body).toMatchObject({
-                    data: {
-                        type: 'user',
-                        id: 'user1',
-                        attributes: { email: 'user1@abc.com' },
-                        links: {
-                            self: 'http://localhost/api/user/user1',
-                        },
-                        relationships: {
-                            posts: {
-                                links: {
-                                    self: 'http://localhost/api/user/user1/relationships/posts',
-                                    related: 'http://localhost/api/user/user1/posts',
-                                },
-                                data: [{ type: 'post', id: 1 }],
-                            },
-                        },
-                    },
-                });
-            });
-
-            it('fetch a related resource', async () => {
-                // Create a user first
-                await prisma.user.create({
-                    data: {
-                        myId: 'user1',
-                        email: 'user1@abc.com',
-                        posts: {
-                            create: { id: 1, title: 'Post1' },
-                        },
-                    },
+                expect((r.body as any).included).toHaveLength(1);
+                expect((r.body as any).included[0]).toMatchObject({
+                    type: 'post',
+                    id: 1,
+                    attributes: { title: 'Post1' },
                 });
 
-                const r = await handler({
+                // related query include
+                r = await handler({
                     method: 'get',
                     path: '/user/user1/posts',
+                    query: { include: 'posts.comments' },
                     prisma,
                 });
-
-                expect(r.status).toBe(200);
-                expect(r.body).toMatchObject({
-                    links: {
-                        self: 'http://localhost/api/user/user1/posts',
-                    },
-                    data: [
-                        {
-                            type: 'post',
-                            id: 1,
-                            attributes: {
-                                title: 'Post1',
-                                authorId: 'user1',
-                                published: false,
-                                viewCount: 0,
-                            },
-                            links: {
-                                self: 'http://localhost/api/post/1',
-                            },
-                            relationships: {
-                                author: {
-                                    links: {
-                                        self: 'http://localhost/api/post/1/relationships/author',
-                                        related: 'http://localhost/api/post/1/author',
-                                    },
-                                },
-                            },
-                        },
-                    ],
-                });
-            });
-
-            it('fetch a relationship', async () => {
-                // Create a user first
-                await prisma.user.create({
-                    data: {
-                        myId: 'user1',
-                        email: 'user1@abc.com',
-                        posts: {
-                            create: { id: 1, title: 'Post1' },
-                        },
-                    },
+                expect((r.body as any).included).toHaveLength(1);
+                expect((r.body as any).included[0]).toMatchObject({
+                    type: 'comment',
+                    attributes: { content: 'Comment1' },
                 });
 
-                const r = await handler({
+                // related query include with filter
+                r = await handler({
                     method: 'get',
-                    path: '/user/user1/relationships/posts',
+                    path: '/user/user1/posts',
+                    query: { include: 'posts.comments', ['filter[published]']: 'true' },
                     prisma,
                 });
+                expect((r.body as any).data).toHaveLength(0);
 
-                expect(r.status).toBe(200);
-                expect(r.body).toMatchObject({
-                    links: {
-                        self: 'http://localhost/api/user/user1/relationships/posts',
-                    },
-                    data: [{ type: 'post', id: 1 }],
-                });
-            });
-
-            it('returns 404 if the specified ID does not exist', async () => {
-                const r = await handler({
+                // deep include
+                r = await handler({
                     method: 'get',
-                    path: '/user/nonexistentuser',
+                    path: '/user',
+                    query: { include: 'posts.comments' },
                     prisma,
                 });
+                expect((r.body as any).included).toHaveLength(3);
+                expect((r.body as any).included[2]).toMatchObject({
+                    type: 'comment',
+                    attributes: { content: 'Comment1' },
+                });
 
-                expect(r.status).toBe(404);
-                expect(r.body).toEqual({
-                    errors: [
-                        {
-                            code: 'not-found',
-                            status: 404,
-                            title: 'Resource not found',
-                        },
-                    ],
+                // multiple include
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { include: 'posts.comments,profile' },
+                    prisma,
+                });
+                expect((r.body as any).included).toHaveLength(4);
+                const profile = (r.body as any).included.find((item: any) => item.type === 'profile');
+                expect(profile).toMatchObject({
+                    type: 'profile',
+                    attributes: { gender: 'male' },
+                });
+
+                // invalid include
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { include: 'foo' },
+                    prisma,
+                });
+                expect(r.status).toBe(400);
+                expect(r.body).toMatchObject({
+                    errors: [{ status: 400, code: 'unsupported-relationship' }],
                 });
             });
         });
@@ -632,7 +767,6 @@ describe('REST server tests', () => {
                     requestBody: { data: [{ type: 'post', id: 1 }] },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(404);
             });
@@ -866,7 +1000,6 @@ describe('REST server tests', () => {
                     },
                     prisma,
                 });
-                console.log(JSON.stringify(r, null, 4));
 
                 expect(r.status).toBe(404);
             });

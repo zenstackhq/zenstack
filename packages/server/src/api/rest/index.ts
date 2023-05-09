@@ -74,7 +74,7 @@ class RequestHandler {
         unsupportedModel: {
             status: 400,
             title: 'Unsupported model type',
-            detail: 'The model type is not supported due to not having a single ID field',
+            detail: 'The model type is not supported',
         },
         unsupportedRelationship: {
             status: 400,
@@ -304,23 +304,36 @@ class RequestHandler {
         prisma: DbClientContract,
         type: string,
         resourceId: string,
-        _query: Record<string, string | string[]> | undefined
+        query: Record<string, string | string[]> | undefined
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
             return this.makeUnsupportedModelError(type);
         }
 
-        const args = { where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId) };
+        const args: any = { where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId) };
 
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
+
+        // handle "include" query parameter
+        let include: string[] | undefined;
+        if (query?.include) {
+            const { select, error, allIncludes } = this.buildRelationSelect(type, query.include);
+            if (error) {
+                return error;
+            }
+            if (select) {
+                args.include = { ...args.include, ...select };
+            }
+            include = allIncludes;
+        }
 
         const entity = await prisma[type].findUnique(args);
         if (entity) {
             return {
                 status: 200,
-                body: await this.serializeItems(type, entity),
+                body: await this.serializeItems(type, entity, { include }),
             };
         } else {
             return this.makeError('notFound');
@@ -344,7 +357,23 @@ class RequestHandler {
             return this.makeUnsupportedRelationshipError(type, relationship);
         }
 
-        const select: any = { [relationship]: true };
+        let select: any;
+
+        // handle "include" query parameter
+        let include: string[] | undefined;
+        if (query?.include) {
+            const { select: relationSelect, error, allIncludes } = this.buildRelationSelect(type, query.include);
+            if (error) {
+                return error;
+            }
+            // trim the leading `$relationship.` from the include paths
+            include = allIncludes
+                .filter((i) => i.startsWith(`${relationship}.`))
+                .map((i) => i.substring(`${relationship}.`.length));
+            select = relationSelect;
+        }
+
+        select = select ?? { [relationship]: true };
         if (relationInfo.isCollection) {
             // if related data is a collection, it can be filtered
             const { filter, error } = this.buildFilter(relationInfo.type, query);
@@ -356,10 +385,12 @@ class RequestHandler {
             }
         }
 
-        const entity: any = await prisma[type].findUnique({
+        const args: any = {
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
             select,
-        });
+        };
+
+        const entity: any = await prisma[type].findUnique(args);
         if (entity && entity[relationship]) {
             return {
                 status: 200,
@@ -367,6 +398,7 @@ class RequestHandler {
                     linkers: {
                         document: new Linker(() => this.makeLinkUrl(`/${type}/${resourceId}/${relationship}`)),
                     },
+                    include,
                 }),
             };
         } else {
@@ -443,10 +475,23 @@ class RequestHandler {
         // include IDs of relation fields so that they can be serialized
         this.includeRelationshipIds(type, args, 'include');
 
+        // handle "include" query parameter
+        let include: string[] | undefined;
+        if (query?.include) {
+            const { select, error, allIncludes } = this.buildRelationSelect(type, query.include);
+            if (error) {
+                return error;
+            }
+            if (select) {
+                args.include = { ...args.include, ...select };
+            }
+            include = allIncludes;
+        }
+
         const entities = await prisma[type].findMany(args);
         return {
             status: 200,
-            body: await this.serializeItems(type, entities),
+            body: await this.serializeItems(type, entities, { include }),
         };
     }
 
@@ -522,8 +567,55 @@ class RequestHandler {
             }
         }
 
-        // combine filters with AND
-        return { filter: items.length === 1 ? items[0] : { AND: items }, error: undefined };
+        if (items.length === 0) {
+            return { filter: undefined, error: undefined };
+        } else {
+            // combine filters with AND
+            return { filter: items.length === 1 ? items[0] : { AND: items }, error: undefined };
+        }
+    }
+
+    private buildRelationSelect(type: string, include: string | string[]) {
+        const typeInfo = this.typeMap[lowerCaseFirst(type)];
+        if (!typeInfo) {
+            return { select: undefined, error: this.makeUnsupportedModelError(type) };
+        }
+
+        const result: any = {};
+        const allIncludes: string[] = [];
+
+        for (const includeItem of enumerate(include)) {
+            const inclusions = includeItem.split(',').filter((i) => i);
+            for (const inclusion of inclusions) {
+                allIncludes.push(inclusion);
+
+                const parts = inclusion.split('.');
+                let currPayload = result;
+                let currType = typeInfo;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const relation = parts[i];
+                    const relationInfo = currType.relationships[relation];
+                    if (!relationInfo) {
+                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation) };
+                    }
+
+                    currType = this.typeMap[lowerCaseFirst(relationInfo.type)];
+                    if (!currType) {
+                        return { select: undefined, error: this.makeUnsupportedModelError(relationInfo.type) };
+                    }
+
+                    if (i !== parts.length - 1) {
+                        currPayload[relation] = { include: { ...currPayload[relation]?.include } };
+                        currPayload = currPayload[relation].include;
+                    } else {
+                        currPayload[relation] = true;
+                    }
+                }
+            }
+        }
+
+        return { select: result, error: undefined, allIncludes };
     }
 
     private makeFilterValue(fieldInfo: FieldInfo, value: string): any {
@@ -936,37 +1028,44 @@ class RequestHandler {
                 }
                 const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
                 if (fieldIds.length === 1) {
-                    const relator = new Relator(async (data) => (data as any)[field], fieldSerializer, {
-                        linkers: {
-                            related: new Linker((primary, related) =>
-                                !related || Array.isArray(related)
-                                    ? this.makeLinkUrl(
-                                          `/${lowerCaseFirst(model)}/${this.getId(model, primary)}/${field}`
-                                      )
-                                    : this.makeLinkUrl(
-                                          `/${lowerCaseFirst(model)}/${this.getId(
-                                              model,
-                                              primary
-                                          )}/${field}/${this.getId(fieldMeta.type, related)}`
-                                      )
-                            ),
-                            relationship: new Linker((primary, related) =>
-                                !related || Array.isArray(related)
-                                    ? this.makeLinkUrl(
-                                          `/${lowerCaseFirst(model)}/${this.getId(
-                                              model,
-                                              primary
-                                          )}/relationships/${field}`
-                                      )
-                                    : this.makeLinkUrl(
-                                          `/${lowerCaseFirst(model)}/${this.getId(
-                                              model,
-                                              primary
-                                          )}/relationships/${field}/${this.getId(fieldMeta.type, related)}`
-                                      )
-                            ),
+                    const relator = new Relator(
+                        async (data) => {
+                            return (data as any)[field];
                         },
-                    });
+                        fieldSerializer,
+                        {
+                            relatedName: field,
+                            linkers: {
+                                related: new Linker((primary, related) =>
+                                    !related || Array.isArray(related)
+                                        ? this.makeLinkUrl(
+                                              `/${lowerCaseFirst(model)}/${this.getId(model, primary)}/${field}`
+                                          )
+                                        : this.makeLinkUrl(
+                                              `/${lowerCaseFirst(model)}/${this.getId(
+                                                  model,
+                                                  primary
+                                              )}/${field}/${this.getId(fieldMeta.type, related)}`
+                                          )
+                                ),
+                                relationship: new Linker((primary, related) =>
+                                    !related || Array.isArray(related)
+                                        ? this.makeLinkUrl(
+                                              `/${lowerCaseFirst(model)}/${this.getId(
+                                                  model,
+                                                  primary
+                                              )}/relationships/${field}`
+                                          )
+                                        : this.makeLinkUrl(
+                                              `/${lowerCaseFirst(model)}/${this.getId(
+                                                  model,
+                                                  primary
+                                              )}/relationships/${field}/${this.getId(fieldMeta.type, related)}`
+                                          )
+                                ),
+                            },
+                        }
+                    );
                     relators[field] = relator;
                 }
             }
