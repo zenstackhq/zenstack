@@ -1283,7 +1283,7 @@ class RequestHandler {
     }
 
     private buildSort(type: string, query: Record<string, string | string[]> | undefined) {
-        if (!query) {
+        if (!query?.['sort']) {
             return { sort: undefined, error: undefined };
         }
 
