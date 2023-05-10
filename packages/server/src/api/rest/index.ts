@@ -125,6 +125,10 @@ class RequestHandler {
             status: 400,
             title: 'Invalid filter',
         },
+        invalidSort: {
+            status: 400,
+            title: 'Invalid sort',
+        },
         invalidValue: {
             status: 400,
             title: 'Invalid value for type',
@@ -496,12 +500,20 @@ class RequestHandler {
         const args: any = {};
 
         // add filter
-        const { filter, error } = this.buildFilter(type, query);
-        if (error) {
-            return error;
+        const { filter, error: filterError } = this.buildFilter(type, query);
+        if (filterError) {
+            return filterError;
         }
         if (filter) {
             args.where = filter;
+        }
+
+        const { sort, error: sortError } = this.buildSort(type, query);
+        if (sortError) {
+            return sortError;
+        }
+        if (sort) {
+            args.orderBy = sort;
         }
 
         // include IDs of relation fields so that they can be serialized
@@ -1241,6 +1253,80 @@ class RequestHandler {
         }
     }
 
+    private buildSort(type: string, query: Record<string, string | string[]> | undefined) {
+        if (!query) {
+            return { sort: undefined, error: undefined };
+        }
+
+        const typeInfo = this.typeMap[lowerCaseFirst(type)];
+        if (!typeInfo) {
+            return { sort: undefined, error: this.makeUnsupportedModelError(type) };
+        }
+
+        const result: any[] = [];
+
+        for (const sortSpec of enumerate(query['sort'])) {
+            const sortFields = sortSpec.split(',').filter((i) => i);
+
+            for (const sortField of sortFields) {
+                const dir = sortField.startsWith('-') ? 'desc' : 'asc';
+                const cleanedSortField = sortField.startsWith('-') ? sortField.substring(1) : sortField;
+                const parts = cleanedSortField.split('.').filter((i) => i);
+
+                const sortItem: any = {};
+                let curr = sortItem;
+                let currType = typeInfo;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+
+                    const fieldInfo = currType.fields[part];
+                    if (!fieldInfo || fieldInfo.isArray) {
+                        return {
+                            sort: undefined,
+                            error: this.makeError('invalidSort', 'sorting by array field is not supported'),
+                        };
+                    }
+
+                    if (i === parts.length - 1) {
+                        if (fieldInfo.isDataModel) {
+                            // relation field: sort by id
+                            const relationType = this.typeMap[lowerCaseFirst(fieldInfo.type)];
+                            if (!relationType) {
+                                return { sort: undefined, error: this.makeUnsupportedModelError(fieldInfo.type) };
+                            }
+                            curr[fieldInfo.name] = { [relationType.idField]: dir };
+                        } else {
+                            // regular field
+                            curr[fieldInfo.name] = dir;
+                        }
+                    } else {
+                        if (!fieldInfo.isDataModel) {
+                            // must be a relation field
+                            return {
+                                sort: undefined,
+                                error: this.makeError(
+                                    'invalidSort',
+                                    'intermediate sort segments must be relationships'
+                                ),
+                            };
+                        }
+                        // keep going
+                        curr = curr[fieldInfo.name] = {};
+                        currType = this.typeMap[lowerCaseFirst(fieldInfo.type)];
+                        if (!currType) {
+                            return { sort: undefined, error: this.makeUnsupportedModelError(fieldInfo.type) };
+                        }
+                    }
+
+                    result.push(sortItem);
+                }
+            }
+        }
+
+        return { sort: result, error: undefined };
+    }
+
     private buildRelationSelect(type: string, include: string | string[]) {
         const typeInfo = this.typeMap[lowerCaseFirst(type)];
         if (!typeInfo) {
@@ -1305,13 +1391,21 @@ class RequestHandler {
         injectKey: string,
         query: Record<string, string | string[]> | undefined
     ) {
-        const { filter, error } = this.buildFilter(type, query);
-        if (error) {
-            return error;
+        const { filter, error: filterError } = this.buildFilter(type, query);
+        if (filterError) {
+            return filterError;
         }
 
         if (filter) {
-            injectTarget[injectKey] = { where: filter };
+            injectTarget[injectKey] = { ...injectTarget[injectKey], where: filter };
+        }
+
+        const { sort, error: sortError } = this.buildSort(type, query);
+        if (sortError) {
+            return sortError;
+        }
+        if (sort) {
+            injectTarget[injectKey] = { ...injectTarget[injectKey], orderBy: sort };
         }
 
         const pagination = this.getPagination(query);

@@ -38,6 +38,7 @@ model Post {
     published Boolean @default(false)
     viewCount Int @default(0)
     comments Comment[]
+    setting Setting?
 }
 
 model Comment {
@@ -45,6 +46,13 @@ model Comment {
     post Post @relation(fields: [postId], references: [id])
     postId Int
     content String
+}
+
+model Setting {
+    id Int @id @default(autoincrement())
+    boost Int
+    post Post @relation(fields: [postId], references: [id])
+    postId Int @unique
 }
 `;
 
@@ -486,6 +494,260 @@ describe('REST server tests', () => {
                     prisma,
                 });
                 expect((r.body as any).data).toHaveLength(1);
+            });
+
+            it('toplevel sorting', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { id: 1, title: 'Post1', viewCount: 1, published: true },
+                        },
+                    },
+                });
+                await prisma.user.create({
+                    data: {
+                        myId: 'user2',
+                        email: 'user2@abc.com',
+                        posts: {
+                            create: { id: 2, title: 'Post2', viewCount: 2, published: false },
+                        },
+                    },
+                });
+
+                // basic sorting
+                let r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: 'viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+
+                // basic sorting desc
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: '-viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // by relation id
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: '-author' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // by relation field
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: '-author.email' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // multi-field sorting
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: 'published,viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: 'viewCount,published' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: '-viewCount,-published' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // invalid field
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: 'foo' },
+                    prisma,
+                });
+                expect(r.status).toBe(400);
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-sort',
+                        },
+                    ],
+                });
+
+                // sort with collection
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: 'comments' },
+                    prisma,
+                });
+                expect(r.status).toBe(400);
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-sort',
+                        },
+                    ],
+                });
+
+                // sort with regular field in the middle
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { sort: 'viewCount.foo' },
+                    prisma,
+                });
+                expect(r.status).toBe(400);
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-sort',
+                        },
+                    ],
+                });
+            });
+
+            it('related data sorting', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                {
+                                    id: 1,
+                                    title: 'Post1',
+                                    viewCount: 1,
+                                    published: true,
+                                    setting: { create: { boost: 1 } },
+                                },
+                                {
+                                    id: 2,
+                                    title: 'Post2',
+                                    viewCount: 2,
+                                    published: false,
+                                    setting: { create: { boost: 2 } },
+                                },
+                            ],
+                        },
+                    },
+                });
+
+                // asc
+                let r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { sort: 'viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+
+                // desc
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { sort: '-viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // relation field
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    query: { sort: '-setting.boost' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+            });
+
+            it('relationship sorting', async () => {
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: [
+                                {
+                                    id: 1,
+                                    title: 'Post1',
+                                    viewCount: 1,
+                                    published: true,
+                                    setting: { create: { boost: 1 } },
+                                },
+                                {
+                                    id: 2,
+                                    title: 'Post2',
+                                    viewCount: 2,
+                                    published: false,
+                                    setting: { create: { boost: 2 } },
+                                },
+                            ],
+                        },
+                    },
+                });
+
+                // asc
+                let r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    query: { sort: 'viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+
+                // desc
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    query: { sort: '-viewCount' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // relation field
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/posts',
+                    query: { sort: '-setting.boost' },
+                    prisma,
+                });
+                expect(r.status).toBe(200);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
             });
 
             it('including', async () => {
