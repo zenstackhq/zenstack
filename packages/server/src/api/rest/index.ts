@@ -31,13 +31,42 @@ const urlPatterns = {
 };
 
 /**
- * Rest request handler options
+ * Request handler options
  */
 export type Options = {
+    /**
+     * The base endpoint of the RESTful API, must be a valid URL
+     */
     endpoint: string;
+
+    /**
+     * Logging configuration. Set to `null` to disable logging.
+     * If unset or set to `undefined`, log will be output to console.
+     */
     logger?: LoggerConfig | null;
+
+    /**
+     * Zod schemas for validating create and update payloads. By default
+     * loaded from the standard output location of the `@zenstackhq/zod`
+     * plugin. You can pass it in explicitly if you configured the plugin
+     * to output to a different location.
+     */
     zodSchemas?: ModelZodSchema;
+
+    /**
+     * Model metadata. By default loaded from the standard output location
+     * of the `@zenstackhq/model-meta` plugin. You can pass it in explicitly
+     * if you configured the plugin to output to a different location.
+     */
     modelMeta?: ModelMeta;
+
+    /**
+     * The default page size for limiting the number of results returned
+     * from collection queries, including resource collection, related data
+     * of collection types, and relashionship of collection types.
+     *
+     * Defaults to 100. Set to Infinity to disable pagination.
+     */
     pageSize?: number;
 };
 

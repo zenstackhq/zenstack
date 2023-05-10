@@ -8,8 +8,22 @@ import { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { LoggerConfig, RequestContext, Response } from '../types';
 import { logError, stripAuxFields, zodValidate } from '../utils';
 
+/**
+ * Request handler options
+ */
 export type Options = {
+    /**
+     * Logging configuration. Set to `null` to disable logging.
+     * If unset or set to `undefined`, log will be output to console.
+     */
     logger?: LoggerConfig | null;
+
+    /**
+     * Zod schemas for validating create and update payloads. By default
+     * loaded from the standard output location of the `@zenstackhq/zod`
+     * plugin. You can pass it in explicitly if you configured the plugin
+     * to output to a different location.
+     */
     zodSchemas?: ModelZodSchema;
 };
 
