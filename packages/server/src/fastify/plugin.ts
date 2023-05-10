@@ -3,7 +3,8 @@ import { DbClientContract } from '@zenstackhq/runtime';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { handleRequest, LoggerConfig } from '../openapi';
+import RPCApiHandler from '../api/rpc';
+import { HandleRequestFn, LoggerConfig } from '../api/types';
 
 /**
  * Fastify plugin options
@@ -29,6 +30,11 @@ export interface PluginOptions {
      * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
      */
     zodSchemas?: ModelZodSchema | boolean;
+
+    /**
+     * Api request handler function
+     */
+    api: HandleRequestFn;
 }
 
 /**
@@ -50,6 +56,8 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         schemas = getModelZodSchemas();
     }
 
+    const requestHanler = options.api ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
         if (!prisma) {
@@ -57,14 +65,12 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         }
         const query = request.query as Record<string, string>;
 
-        const response = await handleRequest({
+        const response = await requestHanler({
             method: request.method,
             path: (request.params as any)['*'],
             query,
             requestBody: request.body,
             prisma,
-            logger: options.logger,
-            zodSchemas: schemas,
         });
 
         reply.status(response.status).send(response.body);

@@ -4,8 +4,8 @@ import { loadSchema } from '@zenstackhq/testtools';
 import bodyParser from 'body-parser';
 import express from 'express';
 import request from 'supertest';
-import { ZenStackMiddleware } from '../src/express';
-import { makeUrl, schema } from './utils';
+import { ZenStackMiddleware } from '../../../src/express';
+import { makeUrl, schema } from '../../utils';
 
 describe('Express adapter tests', () => {
     it('run plugin', async () => {

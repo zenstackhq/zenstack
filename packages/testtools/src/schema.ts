@@ -103,8 +103,6 @@ export async function loadSchema(
             throw new Error('Could not find workspace root');
         }
 
-        console.log('Workspace root:', root);
-
         const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });
         fs.writeFileSync(path.join(projectRoot, 'package.json'), pkgContent.replaceAll('<root>', root));
 

@@ -2,8 +2,9 @@
 
 import { loadSchema } from '@zenstackhq/testtools';
 import fastify from 'fastify';
-import { ZenStackFastifyPlugin } from '../src/fastify';
-import { makeUrl, schema } from './utils';
+import { ZenStackFastifyPlugin } from '../../../src/fastify';
+import { makeUrl, schema } from '../../utils';
+import Prisma from '../../../src/api/rpc';
 
 describe('Fastify adapter tests', () => {
     it('run plugin', async () => {
@@ -14,6 +15,7 @@ describe('Fastify adapter tests', () => {
             prefix: '/api',
             getPrisma: () => prisma,
             zodSchemas,
+            api: Prisma(),
         });
 
         let r = await app.inject({
@@ -121,6 +123,7 @@ describe('Fastify adapter tests', () => {
             prefix: '/api',
             getPrisma: () => prisma,
             zodSchemas,
+            api: Prisma(),
         });
 
         let r = await app.inject({
