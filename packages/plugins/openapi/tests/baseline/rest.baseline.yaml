@@ -21,94 +21,168 @@ paths:
                 - $ref: '#/components/parameters/page-limit'
                 - name: filter[id]
                   required: false
+                  description: Id filter
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[createdAt$lt]
                   required: false
+                  description: Less-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$lte]
                   required: false
+                  description: Less-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gt]
                   required: false
+                  description: Greater-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[updatedAt$lt]
                   required: false
+                  description: Less-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$lte]
                   required: false
+                  description: Less-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gt]
                   required: false
+                  description: Greater-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[email]
+                  required: false
+                  description: Equal filter for "email"
+                  in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$contains]
                   required: false
+                  description: String contains filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$icontains]
                   required: false
+                  description: String case-insensitive contains filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$search]
                   required: false
+                  description: String full-text search filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$startsWith]
                   required: false
+                  description: String startsWith filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$endsWith]
                   required: false
+                  description: String endsWith filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
-                - name: filter[posts$has]
+                - name: filter[role]
                   required: false
+                  description: Equal filter for "role"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[posts$hasEvery]
+                      $ref: '#/components/schemas/Role'
+                - name: filter[posts]
                   required: false
+                  description: Equal filter for "posts"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[posts$hasSome]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
-                - name: filter[posts$isEmpty]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
+                      type: array
+                      items:
+                          type: string
             responses:
                 '200':
                     description: Successful operation
@@ -240,94 +314,168 @@ paths:
                 - $ref: '#/components/parameters/page-limit'
                 - name: filter[id]
                   required: false
+                  description: Id filter
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[createdAt$lt]
                   required: false
+                  description: Less-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$lte]
                   required: false
+                  description: Less-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gt]
                   required: false
+                  description: Greater-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[updatedAt$lt]
                   required: false
+                  description: Less-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$lte]
                   required: false
+                  description: Less-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gt]
                   required: false
+                  description: Greater-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[email]
+                  required: false
+                  description: Equal filter for "email"
+                  in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$contains]
                   required: false
+                  description: String contains filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$icontains]
                   required: false
+                  description: String case-insensitive contains filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$search]
                   required: false
+                  description: String full-text search filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$startsWith]
                   required: false
+                  description: String startsWith filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$endsWith]
                   required: false
+                  description: String endsWith filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
-                - name: filter[posts$has]
+                - name: filter[role]
                   required: false
+                  description: Equal filter for "role"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[posts$hasEvery]
+                      $ref: '#/components/schemas/Role'
+                - name: filter[posts]
                   required: false
+                  description: Equal filter for "posts"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[posts$hasSome]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
-                - name: filter[posts$isEmpty]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
+                      type: array
+                      items:
+                          type: string
             responses:
                 '200':
                     description: Successful operation
@@ -360,94 +508,168 @@ paths:
                 - $ref: '#/components/parameters/page-limit'
                 - name: filter[id]
                   required: false
+                  description: Id filter
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[createdAt$lt]
                   required: false
+                  description: Less-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$lte]
                   required: false
+                  description: Less-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gt]
                   required: false
+                  description: Greater-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[updatedAt$lt]
                   required: false
+                  description: Less-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$lte]
                   required: false
+                  description: Less-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gt]
                   required: false
+                  description: Greater-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[email]
+                  required: false
+                  description: Equal filter for "email"
+                  in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$contains]
                   required: false
+                  description: String contains filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$icontains]
                   required: false
+                  description: String case-insensitive contains filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$search]
                   required: false
+                  description: String full-text search filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$startsWith]
                   required: false
+                  description: String startsWith filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[email$endsWith]
                   required: false
+                  description: String endsWith filter for "email"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
-                - name: filter[posts$has]
+                - name: filter[role]
                   required: false
+                  description: Equal filter for "role"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[posts$hasEvery]
+                      $ref: '#/components/schemas/Role'
+                - name: filter[posts]
                   required: false
+                  description: Equal filter for "posts"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[posts$hasSome]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
-                - name: filter[posts$isEmpty]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
+                      type: array
+                      items:
+                          type: string
             responses:
                 '200':
                     description: Successful operation
@@ -542,119 +764,206 @@ paths:
                 - $ref: '#/components/parameters/page-limit'
                 - name: filter[id]
                   required: false
+                  description: Id filter
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[createdAt$lt]
                   required: false
+                  description: Less-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$lte]
                   required: false
+                  description: Less-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gt]
                   required: false
+                  description: Greater-than filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[createdAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "createdAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
                 - name: filter[updatedAt$lt]
                   required: false
+                  description: Less-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$lte]
                   required: false
+                  description: Less-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gt]
                   required: false
+                  description: Greater-than filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
+                      format: date-time
                 - name: filter[updatedAt$gte]
                   required: false
+                  description: Greater-than or equal filter for "updatedAt"
                   in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[title]
+                  required: false
+                  description: Equal filter for "title"
+                  in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[title$contains]
                   required: false
+                  description: String contains filter for "title"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[title$icontains]
                   required: false
+                  description: String case-insensitive contains filter for "title"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[title$search]
                   required: false
+                  description: String full-text search filter for "title"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[title$startsWith]
                   required: false
+                  description: String startsWith filter for "title"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
                 - name: filter[title$endsWith]
                   required: false
+                  description: String endsWith filter for "title"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
-                - name: filter[authorId$contains]
+                - name: filter[author]
                   required: false
+                  description: Equal filter for "author"
                   in: query
+                  style: form
+                  explode: false
                   schema:
                       type: string
-                - name: filter[authorId$icontains]
+                - name: filter[published]
                   required: false
+                  description: Equal filter for "published"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[authorId$search]
+                      type: boolean
+                - name: filter[viewCount]
                   required: false
+                  description: Equal filter for "viewCount"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
-                - name: filter[authorId$startsWith]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
-                - name: filter[authorId$endsWith]
-                  required: false
-                  in: query
-                  schema:
-                      type: string
+                      type: integer
                 - name: filter[viewCount$lt]
                   required: false
+                  description: Less-than filter for "viewCount"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
+                      type: integer
                 - name: filter[viewCount$lte]
                   required: false
+                  description: Less-than or equal filter for "viewCount"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
+                      type: integer
                 - name: filter[viewCount$gt]
                   required: false
+                  description: Greater-than filter for "viewCount"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
+                      type: integer
                 - name: filter[viewCount$gte]
                   required: false
+                  description: Greater-than or equal filter for "viewCount"
                   in: query
+                  style: form
+                  explode: false
                   schema:
-                      type: string
+                      type: integer
             responses:
                 '200':
                     description: Successful operation
@@ -895,6 +1204,8 @@ components:
                           type: object
         _links:
             type: object
+            required:
+                - self
             description: Links related to the resource
             properties:
                 self:
@@ -935,6 +1246,8 @@ components:
                         type: string
         _errorResponse:
             type: object
+            required:
+                - errors
             description: An error response
             properties:
                 jsonapi:
@@ -943,6 +1256,9 @@ components:
                     $ref: '#/components/schemas/_errors'
         _relationLinks:
             type: object
+            required:
+                - self
+                - related
             description: Links related to a relationship
             properties:
                 self:
@@ -959,6 +1275,9 @@ components:
                         - type: 'null'
         _toOneRelationshipWithLinks:
             type: object
+            required:
+                - links
+                - data
             description: A to-one relationship with links
             properties:
                 links:
@@ -969,6 +1288,8 @@ components:
                         - type: 'null'
         _toManyRelationship:
             type: object
+            required:
+                - data
             description: A to-many relationship
             properties:
                 data:
@@ -977,6 +1298,9 @@ components:
                         $ref: '#/components/schemas/_resourceIdentifier'
         _toManyRelationshipWithLinks:
             type: object
+            required:
+                - links
+                - data
             description: A to-many relationship with links
             properties:
                 links:
@@ -992,6 +1316,8 @@ components:
                 - $ref: '#/components/schemas/_relationLinks'
         _toManyRelationshipRequest:
             type: object
+            required:
+                - data
             description: Input for manipulating a to-many relationship
             properties:
                 data:
@@ -1002,6 +1328,8 @@ components:
             description: Input for manipulating a to-one relationship
             oneOf:
                 - type: object
+                  required:
+                      - data
                   properties:
                       data:
                           $ref: '#/components/schemas/_resourceIdentifier'
@@ -1042,11 +1370,6 @@ components:
                     type: string
                 attributes:
                     type: object
-                    required:
-                        - createdAt
-                        - updatedAt
-                        - email
-                        - role
                     properties:
                         createdAt:
                             type: string
@@ -1124,11 +1447,6 @@ components:
                             type: string
                         attributes:
                             type: object
-                            required:
-                                - createdAt
-                                - updatedAt
-                                - email
-                                - role
                             properties:
                                 createdAt:
                                     type: string
@@ -1174,6 +1492,7 @@ components:
             description: Response for a list of "User"
             required:
                 - data
+                - links
             properties:
                 jsonapi:
                     $ref: '#/components/schemas/_jsonapi'
@@ -1209,12 +1528,6 @@ components:
                     type: string
                 attributes:
                     type: object
-                    required:
-                        - createdAt
-                        - updatedAt
-                        - title
-                        - published
-                        - viewCount
                     properties:
                         createdAt:
                             type: string
@@ -1301,12 +1614,6 @@ components:
                             type: string
                         attributes:
                             type: object
-                            required:
-                                - createdAt
-                                - updatedAt
-                                - title
-                                - published
-                                - viewCount
                             properties:
                                 createdAt:
                                     type: string
@@ -1356,6 +1663,7 @@ components:
             description: Response for a list of "Post"
             required:
                 - data
+                - links
             properties:
                 jsonapi:
                     $ref: '#/components/schemas/_jsonapi'

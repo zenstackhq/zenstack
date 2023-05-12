@@ -1,8 +1,16 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS, PluginError, analyzePolicies, getDataModels, isIdField } from '@zenstackhq/sdk';
-import { BuiltinType, DataModel, DataModelField, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
+import {
+    AUXILIARY_FIELDS,
+    PluginError,
+    analyzePolicies,
+    getDataModels,
+    isForeignKeyField,
+    isIdField,
+    isRelationshipField,
+} from '@zenstackhq/sdk';
+import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import * as fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
@@ -346,54 +354,99 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         };
     }
 
-    private generateFilterParameters(zmodel: DataModel) {
+    private generateFilterParameters(model: DataModel) {
         const result: OAPI.ParameterObject[] = [];
 
-        for (const field of zmodel.fields) {
-            if (isIdField(field)) {
-                result.push(this.makeParameter('filter[id]'));
+        for (const field of model.fields) {
+            if (isForeignKeyField(field)) {
+                // no filtering with foreign keys because one can filter
+                // directly on the relationship
                 continue;
             }
-            switch (field.type.type) {
-                case 'Int':
-                case 'BigInt':
-                case 'Float':
-                case 'Decimal':
-                case 'DateTime': {
-                    result.push(this.makeParameter(`filter[${field.name}$lt]`));
-                    result.push(this.makeParameter(`filter[${field.name}$lte]`));
-                    result.push(this.makeParameter(`filter[${field.name}$gt]`));
-                    result.push(this.makeParameter(`filter[${field.name}$gte]`));
-                    break;
-                }
-                case 'String': {
-                    result.push(this.makeParameter(`filter[${field.name}$contains]`));
-                    result.push(this.makeParameter(`filter[${field.name}$icontains]`));
-                    result.push(this.makeParameter(`filter[${field.name}$search]`));
-                    result.push(this.makeParameter(`filter[${field.name}$startsWith]`));
-                    result.push(this.makeParameter(`filter[${field.name}$endsWith]`));
-                    break;
-                }
+
+            if (isIdField(field)) {
+                // id filter
+                result.push(this.makeFilterParameter(field, 'id', 'Id filter'));
+                continue;
+            }
+
+            // equality filter
+            result.push(this.makeFilterParameter(field, '', 'Equality filter', field.type.array));
+
+            if (isRelationshipField(field)) {
+                // TODO: how to express nested filters?
+                continue;
             }
 
             if (field.type.array) {
-                result.push(this.makeParameter(`filter[${field.name}$has]`));
-                result.push(this.makeParameter(`filter[${field.name}$hasEvery]`));
-                result.push(this.makeParameter(`filter[${field.name}$hasSome]`));
-                result.push(this.makeParameter(`filter[${field.name}$isEmpty]`));
+                // collection filters
+                result.push(this.makeFilterParameter(field, '$has', 'Collection contains filter'));
+                result.push(this.makeFilterParameter(field, '$hasEvery', 'Collection contains-all filter', true));
+                result.push(this.makeFilterParameter(field, '$hasSome', 'Collection contains-any filter', true));
+                result.push(
+                    this.makeFilterParameter(field, '$isEmpty', 'Collection is empty filter', false, {
+                        type: 'boolean',
+                    })
+                );
+            } else {
+                if (field.type.type && ['Int', 'BigInt', 'Float', 'Decimal', 'DateTime'].includes(field.type.type)) {
+                    // comparison filters
+                    result.push(this.makeFilterParameter(field, '$lt', 'Less-than filter'));
+                    result.push(this.makeFilterParameter(field, '$lte', 'Less-than or equal filter'));
+                    result.push(this.makeFilterParameter(field, '$gt', 'Greater-than filter'));
+                    result.push(this.makeFilterParameter(field, '$gte', 'Greater-than or equal filter'));
+                }
+
+                if (field.type.type === 'String') {
+                    result.push(this.makeFilterParameter(field, '$contains', 'String contains filter'));
+                    result.push(
+                        this.makeFilterParameter(field, '$icontains', 'String case-insensitive contains filter')
+                    );
+                    result.push(this.makeFilterParameter(field, '$search', 'String full-text search filter'));
+                    result.push(this.makeFilterParameter(field, '$startsWith', 'String startsWith filter'));
+                    result.push(this.makeFilterParameter(field, '$endsWith', 'String endsWith filter'));
+                }
             }
         }
 
         return result;
     }
 
-    private makeParameter(name: string): OAPI.ParameterObject {
+    private makeFilterParameter(
+        field: DataModelField,
+        name: string,
+        description: string,
+        array = false,
+        schemaOverride?: OAPI.SchemaObject
+    ) {
+        let schema: OAPI.SchemaObject | OAPI.ReferenceObject;
+
+        if (schemaOverride) {
+            schema = schemaOverride;
+        } else {
+            const fieldDecl = field.type.reference?.ref;
+            if (isEnum(fieldDecl)) {
+                schema = this.ref(fieldDecl.name);
+            } else if (isDataModel(fieldDecl)) {
+                schema = { type: 'string' };
+            } else {
+                invariant(field.type.type);
+                schema = this.fieldTypeToOpenAPISchema(field.type);
+            }
+        }
+        if (array) {
+            schema = { type: 'array', items: schema };
+        }
+
         return {
-            name,
+            name: name === 'id' ? 'filter[id]' : `filter[${field.name}${name}]`,
             required: false,
+            description: name === 'id' ? description : `${description} for "${field.name}"`,
             in: 'query',
-            schema: { type: 'string' },
-        };
+            style: 'form',
+            explode: false,
+            schema,
+        } as OAPI.ParameterObject;
     }
 
     private generateComponents() {
@@ -463,6 +516,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             }),
             _links: {
                 type: 'object',
+                required: ['self'],
                 description: 'Links related to the resource',
                 properties: { self: { type: 'string' } },
             },
@@ -491,6 +545,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _errorResponse: {
                 type: 'object',
+                required: ['errors'],
                 description: 'An error response',
                 properties: {
                     jsonapi: this.ref('_jsonapi'),
@@ -499,6 +554,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _relationLinks: {
                 type: 'object',
+                required: ['self', 'related'],
                 description: 'Links related to a relationship',
                 properties: {
                     self: { type: 'string' },
@@ -514,6 +570,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _toOneRelationshipWithLinks: {
                 type: 'object',
+                required: ['links', 'data'],
                 description: 'A to-one relationship with links',
                 properties: {
                     links: this.ref('_relationLinks'),
@@ -522,6 +579,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _toManyRelationship: {
                 type: 'object',
+                required: ['data'],
                 description: 'A to-many relationship',
                 properties: {
                     data: this.array(this.ref('_resourceIdentifier')),
@@ -529,6 +587,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _toManyRelationshipWithLinks: {
                 type: 'object',
+                required: ['links', 'data'],
                 description: 'A to-many relationship with links',
                 properties: {
                     links: this.ref('_pagedRelationLinks'),
@@ -541,6 +600,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _toManyRelationshipRequest: {
                 type: 'object',
+                required: ['data'],
                 description: 'Input for manipulating a to-many relationship',
                 properties: {
                     data: {
@@ -553,6 +613,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 description: 'Input for manipulating a to-one relationship',
                 ...this.nullable({
                     type: 'object',
+                    required: ['data'],
                     properties: {
                         data: this.ref('_resourceIdentifier'),
                     },
@@ -634,14 +695,14 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
     private generateDataModelComponents(model: DataModel) {
         const result: Record<string, OAPI.SchemaObject> = {};
-        result[`${model.name}`] = this.generateModelEntity(model, 'output');
+        result[`${model.name}`] = this.generateModelEntity(model, 'read');
 
         result[`${model.name}CreateRequest`] = {
             type: 'object',
             description: `Input for creating a "${model.name}"`,
             required: ['data'],
             properties: {
-                data: this.generateModelEntity(model, 'input'),
+                data: this.generateModelEntity(model, 'create'),
             },
         };
 
@@ -649,12 +710,12 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             type: 'object',
             description: `Input for updating a "${model.name}"`,
             required: ['data'],
-            properties: { data: this.generateModelEntity(model, 'input') },
+            properties: { data: this.generateModelEntity(model, 'update') },
         };
 
         const relationships: Record<string, OAPI.ReferenceObject> = {};
         for (const field of model.fields) {
-            if (this.isRelationshipField(field)) {
+            if (isRelationshipField(field)) {
                 if (field.type.array) {
                     relationships[field.name] = this.ref('_toManyRelationship');
                 } else {
@@ -685,7 +746,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         result[`${model.name}ListResponse`] = {
             type: 'object',
             description: `Response for a list of "${model.name}"`,
-            required: ['data'],
+            required: ['data', 'links'],
             properties: {
                 jsonapi: this.ref('_jsonapi'),
                 data: this.array(
@@ -705,7 +766,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private generateModelEntity(model: DataModel, mode: 'input' | 'output'): OAPI.SchemaObject {
+    private generateModelEntity(model: DataModel, mode: 'read' | 'create' | 'update'): OAPI.SchemaObject {
         const fields = model.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name) && !isIdField(f));
 
         const attributes: Record<string, OAPI.SchemaObject> = {};
@@ -714,9 +775,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         const required: string[] = [];
 
         for (const field of fields) {
-            if (this.isRelationshipField(field)) {
+            if (isRelationshipField(field)) {
                 let relType: string;
-                if (mode === 'input') {
+                if (mode === 'create' || mode === 'update') {
                     relType = field.type.array ? '_toManyRelationship' : '_toOneRelationship';
                 } else {
                     relType = field.type.array ? '_toManyRelationshipWithLinks' : '_toOneRelationshipWithLinks';
@@ -725,6 +786,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             } else {
                 attributes[field.name] = this.generateField(field);
                 if (
+                    mode === 'create' &&
                     !field.type.optional &&
                     // collection relation fields are implicitly optional
                     !(isDataModel(field.$resolvedType?.decl) && field.type.array)
@@ -760,25 +822,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private isRelationshipField(field: DataModelField) {
-        return isDataModel(field.type.reference?.ref);
-    }
-
     private generateField(field: DataModelField) {
-        const resolvedDecl = field.type.reference?.ref;
-        if (resolvedDecl && isEnum(resolvedDecl)) {
-            return this.wrapArray(this.ref(resolvedDecl.name), field.type.array);
-        }
-        invariant(field?.type?.type);
-        return this.wrapArray(this.modelTypeToOpenAPIType(field.type.type), field.type.array);
+        return this.wrapArray(this.fieldTypeToOpenAPISchema(field.type), field.type.array);
     }
 
     private get specVersion() {
         return this.getOption('specVersion', '3.0.0');
     }
 
-    private modelTypeToOpenAPIType(type: BuiltinType): OAPI.ReferenceObject | OAPI.SchemaObject {
-        switch (type) {
+    private fieldTypeToOpenAPISchema(type: DataModelFieldType): OAPI.ReferenceObject | OAPI.SchemaObject {
+        switch (type.type) {
             case 'String':
                 return { type: 'string' };
             case 'Int':
@@ -792,9 +845,12 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             case 'DateTime':
                 return { type: 'string', format: 'date-time' };
             case 'Json':
-                return {};
-            default:
-                return { $ref: `#/components/schemas/${type}` };
+                return { type: 'object' };
+            default: {
+                const fieldDecl = type.reference?.ref;
+                invariant(fieldDecl);
+                return this.ref(fieldDecl?.name);
+            }
         }
     }
 

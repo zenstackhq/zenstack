@@ -160,3 +160,37 @@ export function isIdField(field: DataModelField) {
     }
     return false;
 }
+
+/**
+ * Returns if the given field is a relation field.
+ */
+export function isRelationshipField(field: DataModelField) {
+    return isDataModel(field.type.reference?.ref);
+}
+
+/**
+ * Returns if the given field is a relation foreign key field.
+ */
+export function isForeignKeyField(field: DataModelField) {
+    const model = field.$container as DataModel;
+    return model.fields.some((f) => {
+        // find @relation attribute
+        const relAttr = f.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+        if (relAttr) {
+            // find "fields" arg
+            const fieldsArg = relAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+
+            if (fieldsArg && isArrayExpr(fieldsArg.value)) {
+                // find a matching field reference
+                return fieldsArg.value.items.some((item): item is ReferenceExpr => {
+                    if (isReferenceExpr(item)) {
+                        return item.target.ref === field;
+                    } else {
+                        return false;
+                    }
+                });
+            }
+        }
+        return false;
+    });
+}
