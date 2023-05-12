@@ -11,8 +11,10 @@ import {
     isDataModel,
     isLiteralExpr,
     isObjectExpr,
+    isReferenceExpr,
     Model,
     Reference,
+    ReferenceExpr,
 } from '@zenstackhq/language/ast';
 
 /**
@@ -121,4 +123,40 @@ export function getAttributeArgLiteral<T extends string | number | boolean>(
         }
     }
     return undefined;
+}
+
+/**
+ * Gets id fields declared at the data model level
+ */
+export function getIdFields(model: DataModel) {
+    const idAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@id');
+    if (!idAttr) {
+        return [];
+    }
+    const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+        return [];
+    }
+
+    return fieldsArg.value.items
+        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+        .map((item) => resolved(item.target) as DataModelField);
+}
+
+/**
+ * Returns if the given field is declared as an id field.
+ */
+export function isIdField(field: DataModelField) {
+    // field-level @id attribute
+    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
+        return true;
+    }
+
+    // model-level @@id attribute with a list of fields
+    const model = field.$container as DataModel;
+    const modelLevelIds = getIdFields(model);
+    if (modelLevelIds.includes(field)) {
+        return true;
+    }
+    return false;
 }

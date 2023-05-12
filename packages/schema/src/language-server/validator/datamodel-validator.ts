@@ -6,11 +6,11 @@ import {
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getLiteral } from '@zenstackhq/sdk';
+import { analyzePolicies, getIdFields, getLiteral } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
-import { getIdFields, getUniqueFields } from '../utils';
+import { getUniqueFields } from '../utils';
 import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
 
 /**

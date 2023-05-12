@@ -1,15 +1,8 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import {
-    analyzePolicies,
-    AUXILIARY_FIELDS,
-    getDataModels,
-    hasAttribute,
-    PluginError,
-    PluginOptions,
-} from '@zenstackhq/sdk';
-import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
+import { analyzePolicies, AUXILIARY_FIELDS, PluginError } from '@zenstackhq/sdk';
+import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
     addMissingInputObjectTypesForInclude,
@@ -18,28 +11,26 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
-import { lowerCaseFirst } from 'lower-case-first';
 import * as fs from 'fs';
+import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
 import { fromZodError } from 'zod-validation-error';
+import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
 import { SecuritySchemesSchema } from './schema';
 
 /**
  * Generates OpenAPI specification.
  */
-export class OpenAPIGenerator {
+export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private inputObjectTypes: DMMF.InputType[] = [];
     private outputObjectTypes: DMMF.OutputType[] = [];
     private usedComponents: Set<string> = new Set<string>();
     private aggregateOperationSupport: AggregateOperationSupport;
-    private includedModels: DataModel[];
     private warnings: string[] = [];
-
-    constructor(private model: Model, private options: PluginOptions, private dmmf: DMMF.Document) {}
 
     generate() {
         const output = this.getOption('output', '');
@@ -50,7 +41,6 @@ export class OpenAPIGenerator {
         // input types
         this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
         this.outputObjectTypes.push(...this.dmmf.schema.outputObjectTypes.prisma);
-        this.includedModels = getDataModels(this.model).filter((d) => !hasAttribute(d, '@@openapi.ignore'));
 
         // add input object types that are missing from Prisma dmmf
         addMissingInputObjectTypesForModelArgs(this.inputObjectTypes, this.dmmf.datamodel.models);
@@ -784,29 +774,10 @@ export class OpenAPIGenerator {
         }
     }
 
-    private wrapArray(
-        schema: OAPI.ReferenceObject | OAPI.SchemaObject,
-        isArray: boolean
-    ): OAPI.ReferenceObject | OAPI.SchemaObject {
-        if (isArray) {
-            return { type: 'array', items: schema };
-        } else {
-            return schema;
-        }
-    }
-
     private ref(type: string, rooted = true) {
         if (rooted) {
             this.usedComponents.add(type);
         }
         return { $ref: `#/components/schemas/${type}` };
-    }
-
-    private array(itemType: unknown) {
-        return { type: 'array', items: itemType };
-    }
-
-    private oneOf(...schemas: unknown[]) {
-        return { oneOf: schemas };
     }
 }

@@ -310,7 +310,7 @@ model User {
 
 function buildOptions(model: Model, modelFile: string, output: string) {
     const optionFields = model.declarations.find((d): d is Plugin => isPlugin(d))?.fields || [];
-    const options: any = { schemaPath: modelFile, output };
+    const options: any = { schemaPath: modelFile, output, flavor: 'rpc' };
     optionFields.forEach((f) => (options[f.name] = getLiteral(f.value) ?? getObjectLiteral(f.value)));
     return options;
 }
