@@ -15,6 +15,7 @@ import {
     getDataModels,
     getLiteral,
     hasAttribute,
+    isIdField,
     PluginOptions,
     resolved,
     saveProject,
@@ -22,7 +23,6 @@ import {
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { CodeBlockWriter, VariableDeclarationKind } from 'ts-morph';
-import { getIdFields } from '../../language-server/utils';
 import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
@@ -156,21 +156,6 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
             return { name: resolved(attr.decl).name, args };
         })
         .filter((d): d is RuntimeAttribute => !!d);
-}
-
-function isIdField(field: DataModelField) {
-    // field-level @id attribute
-    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
-        return true;
-    }
-
-    // model-level @@id attribute with a list of fields
-    const model = field.$container as DataModel;
-    const modelLevelIds = getIdFields(model);
-    if (modelLevelIds.includes(field)) {
-        return true;
-    }
-    return false;
 }
 
 function getUniqueConstraints(model: DataModel) {

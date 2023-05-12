@@ -1,0 +1,1727 @@
+openapi: 3.1.0
+info:
+    title: ZenStack Generated API
+    version: 1.0.0
+tags:
+    - name: user
+      description: User operations
+    - name: post
+      description: Post-related operations
+paths:
+    /user:
+        get:
+            operationId: list-User
+            description: List "User" resources
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equality filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lt]
+                  required: false
+                  description: Less-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gt]
+                  required: false
+                  description: Greater-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equality filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lt]
+                  required: false
+                  description: Less-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gt]
+                  required: false
+                  description: Greater-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[email]
+                  required: false
+                  description: Equality filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$contains]
+                  required: false
+                  description: String contains filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$search]
+                  required: false
+                  description: String full-text search filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$startsWith]
+                  required: false
+                  description: String startsWith filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$endsWith]
+                  required: false
+                  description: String endsWith filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[role]
+                  required: false
+                  description: Equality filter for "role"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      $ref: '#/components/schemas/Role'
+                - name: filter[posts]
+                  required: false
+                  description: Equality filter for "posts"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: array
+                      items:
+                          type: string
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        post:
+            operationId: create-User
+            description: Create a "User" resource
+            tags:
+                - user
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/UserCreateRequest'
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/user/{id}':
+        get:
+            operationId: fetch-User
+            description: Fetch a "User" resource
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-User
+            description: Update a "User" resource
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/UserUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        delete:
+            operationId: delete-User
+            description: Delete a "User" resource
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/user/{id}/posts':
+        get:
+            operationId: fetch-User-related-posts
+            description: Fetch the related "posts" resource for "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equality filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lt]
+                  required: false
+                  description: Less-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gt]
+                  required: false
+                  description: Greater-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equality filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lt]
+                  required: false
+                  description: Less-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gt]
+                  required: false
+                  description: Greater-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[email]
+                  required: false
+                  description: Equality filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$contains]
+                  required: false
+                  description: String contains filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$search]
+                  required: false
+                  description: String full-text search filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$startsWith]
+                  required: false
+                  description: String startsWith filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$endsWith]
+                  required: false
+                  description: String endsWith filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[role]
+                  required: false
+                  description: Equality filter for "role"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      $ref: '#/components/schemas/Role'
+                - name: filter[posts]
+                  required: false
+                  description: Equality filter for "posts"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: array
+                      items:
+                          type: string
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/user/{id}/relationships/posts':
+        get:
+            operationId: fetch-User-relationship-posts
+            description: Fetch the "posts" relationships for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equality filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lt]
+                  required: false
+                  description: Less-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gt]
+                  required: false
+                  description: Greater-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equality filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lt]
+                  required: false
+                  description: Less-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gt]
+                  required: false
+                  description: Greater-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[email]
+                  required: false
+                  description: Equality filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$contains]
+                  required: false
+                  description: String contains filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$search]
+                  required: false
+                  description: String full-text search filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$startsWith]
+                  required: false
+                  description: String startsWith filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[email$endsWith]
+                  required: false
+                  description: String endsWith filter for "email"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[role]
+                  required: false
+                  description: Equality filter for "role"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      $ref: '#/components/schemas/Role'
+                - name: filter[posts]
+                  required: false
+                  description: Equality filter for "posts"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: array
+                      items:
+                          type: string
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toManyRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-User-relationship-posts
+            description: Update "posts" relationships for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toManyRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toManyRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        post:
+            operationId: create-User-relationship-posts
+            description: Create new "posts" relationships for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toManyRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toManyRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /post:
+        get:
+            operationId: list-Post
+            description: List "Post" resources
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[createdAt]
+                  required: false
+                  description: Equality filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lt]
+                  required: false
+                  description: Less-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gt]
+                  required: false
+                  description: Greater-than filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[createdAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "createdAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt]
+                  required: false
+                  description: Equality filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lt]
+                  required: false
+                  description: Less-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$lte]
+                  required: false
+                  description: Less-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gt]
+                  required: false
+                  description: Greater-than filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[updatedAt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "updatedAt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[title]
+                  required: false
+                  description: Equality filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$contains]
+                  required: false
+                  description: String contains filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$search]
+                  required: false
+                  description: String full-text search filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$startsWith]
+                  required: false
+                  description: String startsWith filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[title$endsWith]
+                  required: false
+                  description: String endsWith filter for "title"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[author]
+                  required: false
+                  description: Equality filter for "author"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[published]
+                  required: false
+                  description: Equality filter for "published"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: boolean
+                - name: filter[viewCount]
+                  required: false
+                  description: Equality filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$lt]
+                  required: false
+                  description: Less-than filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$lte]
+                  required: false
+                  description: Less-than or equal filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$gt]
+                  required: false
+                  description: Greater-than filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[viewCount$gte]
+                  required: false
+                  description: Greater-than or equal filter for "viewCount"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        post:
+            operationId: create-Post
+            description: Create a "Post" resource
+            tags:
+                - post
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/PostCreateRequest'
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/post/{id}':
+        get:
+            operationId: fetch-Post
+            description: Fetch a "Post" resource
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-Post
+            description: Update a "Post" resource
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/PostUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        delete:
+            operationId: delete-Post
+            description: Delete a "Post" resource
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/post/{id}/author':
+        get:
+            operationId: fetch-Post-related-author
+            description: Fetch the related "author" resource for "Post"
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/post/{id}/relationships/author':
+        get:
+            operationId: fetch-Post-relationship-author
+            description: Fetch the "author" relationships for a "Post"
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-Post-relationship-author
+            description: Update "author" relationship for a "Post"
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+components:
+    schemas:
+        _jsonapi:
+            type: object
+            description: An object describing the server’s implementation
+            properties:
+                version:
+                    type: string
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        _meta:
+            type: object
+            description: Meta information about the response
+            additionalProperties: true
+        _resourceIdentifier:
+            type: object
+            description: Identifier for a resource
+            required:
+                - type
+                - id
+            properties:
+                type:
+                    type: string
+                id:
+                    type: string
+        _resource:
+            allOf:
+                - $ref: '#/components/schemas/_resourceIdentifier'
+                - type: object
+                  description: A resource with attributes and relationships
+                  properties:
+                      attributes:
+                          type: object
+                      relationships:
+                          type: object
+        _links:
+            type: object
+            required:
+                - self
+            description: Links related to the resource
+            properties:
+                self:
+                    type: string
+        _pagination:
+            type: object
+            description: Pagination information
+            properties:
+                first:
+                    oneOf:
+                        - type: string
+                        - type: 'null'
+                last:
+                    oneOf:
+                        - type: string
+                        - type: 'null'
+                prev:
+                    oneOf:
+                        - type: string
+                        - type: 'null'
+                next:
+                    oneOf:
+                        - type: string
+                        - type: 'null'
+        _errors:
+            type: array
+            description: An array of error objects
+            items:
+                type: object
+                properties:
+                    status:
+                        type: string
+                    code:
+                        type: string
+                    title:
+                        type: string
+                    detail:
+                        type: string
+        _errorResponse:
+            type: object
+            required:
+                - errors
+            description: An error response
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                errors:
+                    $ref: '#/components/schemas/_errors'
+        _relationLinks:
+            type: object
+            required:
+                - self
+                - related
+            description: Links related to a relationship
+            properties:
+                self:
+                    type: string
+                related:
+                    type: string
+        _toOneRelationship:
+            type: object
+            description: A to-one relationship
+            properties:
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/_resourceIdentifier'
+                        - type: 'null'
+        _toOneRelationshipWithLinks:
+            type: object
+            required:
+                - links
+                - data
+            description: A to-one relationship with links
+            properties:
+                links:
+                    $ref: '#/components/schemas/_relationLinks'
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/_resourceIdentifier'
+                        - type: 'null'
+        _toManyRelationship:
+            type: object
+            required:
+                - data
+            description: A to-many relationship
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resourceIdentifier'
+        _toManyRelationshipWithLinks:
+            type: object
+            required:
+                - links
+                - data
+            description: A to-many relationship with links
+            properties:
+                links:
+                    $ref: '#/components/schemas/_pagedRelationLinks'
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resourceIdentifier'
+        _pagedRelationLinks:
+            description: Relationship links with pagination information
+            allOf:
+                - $ref: '#/components/schemas/_pagination'
+                - $ref: '#/components/schemas/_relationLinks'
+        _toManyRelationshipRequest:
+            type: object
+            required:
+                - data
+            description: Input for manipulating a to-many relationship
+            properties:
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resourceIdentifier'
+        _toOneRelationshipRequest:
+            description: Input for manipulating a to-one relationship
+            oneOf:
+                - type: object
+                  required:
+                      - data
+                  properties:
+                      data:
+                          $ref: '#/components/schemas/_resourceIdentifier'
+                - type: 'null'
+        _toManyRelationshipResponse:
+            description: Response for a to-many relationship
+            allOf:
+                - $ref: '#/components/schemas/_toManyRelationshipWithLinks'
+                - type: object
+                  properties:
+                      jsonapi:
+                          $ref: '#/components/schemas/_jsonapi'
+        _toOneRelationshipResponse:
+            description: Response for a to-one relationship
+            allOf:
+                - $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+                - type: object
+                  properties:
+                      jsonapi:
+                          $ref: '#/components/schemas/_jsonapi'
+        Role:
+            type: string
+            description: The "Role" Enum
+            enum:
+                - USER
+                - ADMIN
+        User:
+            type: object
+            description: The "User" model
+            required:
+                - id
+                - type
+                - attributes
+            properties:
+                type:
+                    type: string
+                id:
+                    type: string
+                attributes:
+                    type: object
+                    properties:
+                        createdAt:
+                            type: string
+                            format: date-time
+                        updatedAt:
+                            type: string
+                            format: date-time
+                        email:
+                            type: string
+                        role:
+                            $ref: '#/components/schemas/Role'
+                relationships:
+                    type: object
+                    properties:
+                        posts:
+                            $ref: '#/components/schemas/_toManyRelationshipWithLinks'
+        UserCreateRequest:
+            type: object
+            description: Input for creating a "User"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "User" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            required:
+                                - createdAt
+                                - updatedAt
+                                - email
+                                - role
+                            properties:
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                updatedAt:
+                                    type: string
+                                    format: date-time
+                                email:
+                                    type: string
+                                role:
+                                    $ref: '#/components/schemas/Role'
+                        relationships:
+                            type: object
+                            properties:
+                                posts:
+                                    $ref: '#/components/schemas/_toManyRelationship'
+        UserUpdateRequest:
+            type: object
+            description: Input for updating a "User"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "User" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                updatedAt:
+                                    type: string
+                                    format: date-time
+                                email:
+                                    type: string
+                                role:
+                                    $ref: '#/components/schemas/Role'
+                        relationships:
+                            type: object
+                            properties:
+                                posts:
+                                    $ref: '#/components/schemas/_toManyRelationship'
+        UserResponse:
+            type: object
+            description: Response for a "User"
+            required:
+                - data
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    allOf:
+                        - $ref: '#/components/schemas/User'
+                        - type: object
+                          properties:
+                              relationships:
+                                  type: object
+                                  properties: &a1
+                                      posts:
+                                          $ref: '#/components/schemas/_toManyRelationship'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    $ref: '#/components/schemas/_links'
+        UserListResponse:
+            type: object
+            description: Response for a list of "User"
+            required:
+                - data
+                - links
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: '#/components/schemas/User'
+                            - type: object
+                              properties:
+                                  relationships:
+                                      type: object
+                                      properties: *a1
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    allOf:
+                        - $ref: '#/components/schemas/_links'
+                        - $ref: '#/components/schemas/_pagination'
+        Post:
+            type: object
+            description: The "Post" model
+            required:
+                - id
+                - type
+                - attributes
+            properties:
+                type:
+                    type: string
+                id:
+                    type: string
+                attributes:
+                    type: object
+                    properties:
+                        createdAt:
+                            type: string
+                            format: date-time
+                        updatedAt:
+                            type: string
+                            format: date-time
+                        title:
+                            type: string
+                        authorId:
+                            type: string
+                        published:
+                            type: boolean
+                        viewCount:
+                            type: integer
+                relationships:
+                    type: object
+                    properties:
+                        author:
+                            $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+        PostCreateRequest:
+            type: object
+            description: Input for creating a "Post"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "Post" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            required:
+                                - createdAt
+                                - updatedAt
+                                - title
+                                - published
+                                - viewCount
+                            properties:
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                updatedAt:
+                                    type: string
+                                    format: date-time
+                                title:
+                                    type: string
+                                authorId:
+                                    type: string
+                                published:
+                                    type: boolean
+                                viewCount:
+                                    type: integer
+                        relationships:
+                            type: object
+                            properties:
+                                author:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+        PostUpdateRequest:
+            type: object
+            description: Input for updating a "Post"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "Post" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                createdAt:
+                                    type: string
+                                    format: date-time
+                                updatedAt:
+                                    type: string
+                                    format: date-time
+                                title:
+                                    type: string
+                                authorId:
+                                    type: string
+                                published:
+                                    type: boolean
+                                viewCount:
+                                    type: integer
+                        relationships:
+                            type: object
+                            properties:
+                                author:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+        PostResponse:
+            type: object
+            description: Response for a "Post"
+            required:
+                - data
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    allOf:
+                        - $ref: '#/components/schemas/Post'
+                        - type: object
+                          properties:
+                              relationships:
+                                  type: object
+                                  properties: &a2
+                                      author:
+                                          $ref: '#/components/schemas/_toOneRelationship'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    $ref: '#/components/schemas/_links'
+        PostListResponse:
+            type: object
+            description: Response for a list of "Post"
+            required:
+                - data
+                - links
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: '#/components/schemas/Post'
+                            - type: object
+                              properties:
+                                  relationships:
+                                      type: object
+                                      properties: *a2
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    allOf:
+                        - $ref: '#/components/schemas/_links'
+                        - $ref: '#/components/schemas/_pagination'
+    parameters:
+        id:
+            name: id
+            in: path
+            description: The resource id
+            required: true
+            schema:
+                type: string
+        include:
+            name: include
+            in: query
+            description: Relationships to include
+            required: false
+            style: form
+            schema:
+                type: string
+        sort:
+            name: sort
+            in: query
+            description: Fields to sort by
+            required: false
+            style: form
+            schema:
+                type: string
+        page-offset:
+            name: page[offset]
+            in: query
+            description: Offset for pagination
+            required: false
+            style: form
+            schema:
+                type: integer
+        page-limit:
+            name: page[limit]
+            in: query
+            description: Limit for pagination
+            required: false
+            style: form
+            schema:
+                type: integer
