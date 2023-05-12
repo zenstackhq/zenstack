@@ -93,6 +93,24 @@ class InvalidValueError extends Error {
 
 const DEFAULT_PAGE_SIZE = 100;
 
+const FilterOperations = [
+    'lt',
+    'lte',
+    'gt',
+    'gte',
+    'contains',
+    'icontains',
+    'search',
+    'startsWith',
+    'endsWith',
+    'has',
+    'hasEvery',
+    'hasSome',
+    'isEmpty',
+] as const;
+
+type FilterOperationType = (typeof FilterOperations)[number] | undefined;
+
 /**
  * RESTful style API request handler (compliant with JSON:API)
  */
@@ -1227,6 +1245,7 @@ class RequestHandler {
             if (!match || !match.groups) {
                 continue;
             }
+
             const filterKeys = match.groups.match
                 .replaceAll(/[[\]]/g, ' ')
                 .split(' ')
@@ -1243,7 +1262,21 @@ class RequestHandler {
 
             for (const filterValue of enumerate(value)) {
                 for (let i = 0; i < filterKeys.length; i++) {
-                    const filterKey = filterKeys[i];
+                    // extract filter operation from (optional) trailing $op
+                    let filterKey = filterKeys[i];
+                    let filterOp: FilterOperationType | undefined;
+                    const pos = filterKey.indexOf('$');
+                    if (pos > 0) {
+                        filterOp = filterKey.substring(pos + 1) as FilterOperationType;
+                        filterKey = filterKey.substring(0, pos);
+                    }
+
+                    if (!!filterOp && !FilterOperations.includes(filterOp)) {
+                        return {
+                            filter: undefined,
+                            error: this.makeError('invalidFilter', `invalid filter operation: ${filterOp}`),
+                        };
+                    }
 
                     const fieldInfo =
                         filterKey === 'id'
@@ -1259,11 +1292,11 @@ class RequestHandler {
                             // must be the last segment of a filter
                             return { filter: undefined, error: this.makeError('invalidFilter') };
                         }
-                        curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
+                        curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue, filterOp);
                     } else {
                         // relation field
                         if (i === filterKeys.length - 1) {
-                            curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue);
+                            curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue, filterOp);
                         } else {
                             // keep going
                             curr = curr[fieldInfo.name] = {};
@@ -1399,18 +1432,42 @@ class RequestHandler {
         return { select: result, error: undefined, allIncludes };
     }
 
-    private makeFilterValue(fieldInfo: FieldInfo, value: string): any {
+    private makeFilterValue(fieldInfo: FieldInfo, value: string, op: FilterOperationType): any {
         if (fieldInfo.isDataModel) {
             // relation filter is converted to an ID filter
             const info = this.typeMap[lowerCaseFirst(fieldInfo.type)];
             if (fieldInfo.isArray) {
                 // filtering a to-many relation, imply 'some' operator
-                return { some: this.makeIdFilter(info.idField, info.idFieldType, value) };
+                const values = value.split(',').filter((i) => i);
+                const filterValue =
+                    values.length > 1
+                        ? { OR: values.map((v) => this.makeIdFilter(info.idField, info.idFieldType, v)) }
+                        : this.makeIdFilter(info.idField, info.idFieldType, value);
+                return { some: filterValue };
             } else {
                 return { is: this.makeIdFilter(info.idField, info.idFieldType, value) };
             }
         } else {
-            return this.coerce(fieldInfo.type, value);
+            const coerced = this.coerce(fieldInfo.type, value);
+            switch (op) {
+                case 'icontains':
+                    return { contains: coerced, mode: 'insensitive' };
+                case 'hasSome':
+                case 'hasEvery': {
+                    const values = value
+                        .split(',')
+                        .filter((i) => i)
+                        .map((v) => this.coerce(fieldInfo.type, v));
+                    return { [op]: values };
+                }
+                case 'isEmpty':
+                    if (value !== 'true' && value !== 'false') {
+                        throw new InvalidValueError(`Not a boolean: ${value}`);
+                    }
+                    return { isEmpty: value === 'true' ? true : false };
+                default:
+                    return op ? { [op]: coerced } : { equals: coerced };
+            }
         }
     }
 
