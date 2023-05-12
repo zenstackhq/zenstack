@@ -17,10 +17,8 @@ import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
-import { fromZodError } from 'zod-validation-error';
 import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
-import { SecuritySchemesSchema } from './schema';
 
 /**
  * Generates OpenAPI specification.
@@ -54,7 +52,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         const paths = this.generatePaths(components);
 
         // generate security schemes, and root-level security
-        this.generateSecuritySchemes(components);
+        components.securitySchemes = this.generateSecuritySchemes();
         let security: OAPI.Document['security'] | undefined = undefined;
         if (components.securitySchemes && Object.keys(components.securitySchemes).length > 0) {
             security = Object.keys(components.securitySchemes).map((scheme) => ({ [scheme]: [] }));
@@ -91,17 +89,6 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
 
         return this.warnings;
-    }
-
-    private generateSecuritySchemes(components: OAPI.ComponentsObject) {
-        const securitySchemes = this.getOption<Record<string, string>[]>('securitySchemes');
-        if (securitySchemes) {
-            const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
-            if (!parsed.success) {
-                throw new PluginError(`"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
-            }
-            components.securitySchemes = parsed.data;
-        }
     }
 
     private pruneComponents(components: OAPI.ComponentsObject) {
@@ -541,7 +528,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         description: 'Invalid request',
                     },
                     '403': {
-                        description: 'Forbidden',
+                        description: 'Request is forbidden',
                     },
                 },
             };
@@ -605,15 +592,6 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         invariant(components.schemas);
         components.schemas[name] = def;
         return this.ref(name);
-    }
-
-    private getOption<T = string>(name: string): T | undefined;
-    private getOption<T = string, D extends T = T>(name: string, defaultValue: D): T;
-    private getOption<T = string>(name: string, defaultValue?: T): T | undefined {
-        const value = this.options[name];
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        return value === undefined ? defaultValue : value;
     }
 
     private generateComponents() {

@@ -126,6 +126,9 @@ importers:
       '@types/lower-case-first':
         specifier: ^1.0.1
         version: 1.0.1
+      '@types/pluralize':
+        specifier: ^0.0.29
+        version: 0.0.29
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
@@ -147,6 +150,9 @@ importers:
       jest:
         specifier: ^29.5.0
         version: 29.5.0
+      pluralize:
+        specifier: ^8.0.0
+        version: 8.0.0
       rimraf:
         specifier: ^3.0.2
         version: 3.0.2
@@ -7832,7 +7838,6 @@ packages:
   /pluralize@8.0.0:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
-    dev: false
 
   /postcss@8.4.14:
     resolution: {integrity: sha512-E398TUmfAYFPBSdzgeieK2Y1+1cpdxJx8yXbK/m57nRhKSmk1GB2tO4lbLBtlkfPQTDKfe4Xqv1ASWPpayPEig==}

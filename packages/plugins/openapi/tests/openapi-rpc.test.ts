@@ -83,6 +83,8 @@ model Bar {
 
         const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
         expect(parsed.openapi).toBe('3.1.0');
+        const baseline = YAML.parse(fs.readFileSync(`${__dirname}/baseline/rpc.baseline.yaml`, 'utf-8'));
+        expect(parsed).toMatchObject(baseline);
 
         const api = await OpenAPIParser.validate(output);
 

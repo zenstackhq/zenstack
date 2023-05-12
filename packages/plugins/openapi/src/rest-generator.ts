@@ -1,18 +1,19 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS, PluginError, getDataModels, isIdField } from '@zenstackhq/sdk';
+import { AUXILIARY_FIELDS, PluginError, analyzePolicies, getDataModels, isIdField } from '@zenstackhq/sdk';
 import { BuiltinType, DataModel, DataModelField, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import * as fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
+import pluralize from 'pluralize';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
-import { fromZodError } from 'zod-validation-error';
 import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
-import { SecuritySchemesSchema } from './schema';
+
+type Policies = ReturnType<typeof analyzePolicies>;
 
 /**
  * Generates RESTful style OpenAPI specification.
@@ -30,7 +31,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         const paths = this.generatePaths();
 
         // generate security schemes, and root-level security
-        this.generateSecuritySchemes(components);
+        components.securitySchemes = this.generateSecuritySchemes();
         let security: OAPI.Document['security'] | undefined = undefined;
         if (components.securitySchemes && Object.keys(components.securitySchemes).length > 0) {
             security = Object.keys(components.securitySchemes).map((scheme) => ({ [scheme]: [] }));
@@ -66,17 +67,6 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         return this.warnings;
     }
 
-    private generateSecuritySchemes(components: OAPI.ComponentsObject) {
-        const securitySchemes = this.getOption<Record<string, string>[]>('securitySchemes');
-        if (securitySchemes) {
-            const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
-            if (!parsed.success) {
-                throw new PluginError(`"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
-            }
-            components.securitySchemes = parsed.data;
-        }
-    }
-
     private generatePaths(): OAPI.PathsObject {
         let result: OAPI.PathsObject = {};
 
@@ -103,6 +93,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generatePathsForModel(model: DMMF.Model, zmodel: DataModel): OAPI.PathItemObject | undefined {
         const result: Record<string, OAPI.PathItemObject> = {};
 
+        // analyze access policies to determine default security
+        const policies = analyzePolicies(zmodel);
+
         let prefix = this.getOption('prefix', '');
         if (prefix.endsWith('/')) {
             prefix = prefix.substring(0, prefix.length - 1);
@@ -111,17 +104,17 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         // GET /resource
         // POST /resource
         result[`${prefix}/${lowerCaseFirst(model.name)}`] = {
-            get: this.makeResourceList(zmodel),
-            post: this.makeResourceCreate(zmodel),
+            get: this.makeResourceList(zmodel, policies),
+            post: this.makeResourceCreate(zmodel, policies),
         };
 
         // GET /resource/{id}
         // PATCH /resource/{id}
         // DELETE /resource/{id}
         result[`${prefix}/${lowerCaseFirst(model.name)}/{id}`] = {
-            get: this.makeResourceFetch(zmodel),
-            patch: this.makeResourceUpdate(zmodel),
-            delete: this.makeResourceDelete(zmodel),
+            get: this.makeResourceFetch(zmodel, policies),
+            patch: this.makeResourceUpdate(zmodel, policies),
+            delete: this.makeResourceDelete(zmodel, policies),
         };
 
         // paths for related resources and relationships
@@ -145,22 +138,22 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 container = result[relationshipPath] = {};
             }
             // GET /resource/{id}/relationships/field
-            container.get = this.makeRelationshipFetch(zmodel, field);
+            container.get = this.makeRelationshipFetch(zmodel, field, policies);
             // PATCH /resource/{id}/relationships/field
-            container.patch = this.makeRelationshipUpdate(zmodel, field);
+            container.patch = this.makeRelationshipUpdate(zmodel, field, policies);
             if (field.type.array) {
                 // POST /resource/{id}/relationships/field
-                container.post = this.makeRelationshipCreate(zmodel, field);
+                container.post = this.makeRelationshipCreate(zmodel, field, policies);
             }
         }
 
         return result;
     }
 
-    private makeResourceList(model: DataModel) {
+    private makeResourceList(model: DataModel, policies: Policies) {
         return {
             operationId: `list-${model.name}`,
-            description: `List ${model.name} resources`,
+            description: `List "${model.name}" resources`,
             tags: [lowerCaseFirst(model.name)],
             parameters: [
                 this.parameter('include'),
@@ -173,13 +166,14 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '200': this.success(`${model.name}ListResponse`),
                 '403': this.forbidden(),
             },
+            security: policies.read === true ? [] : undefined,
         };
     }
 
-    private makeResourceCreate(model: DataModel) {
+    private makeResourceCreate(model: DataModel, policies: Policies) {
         return {
             operationId: `create-${model.name}`,
-            description: `Create a ${model.name} resource`,
+            description: `Create a "${model.name}" resource`,
             tags: [lowerCaseFirst(model.name)],
             requestBody: {
                 content: {
@@ -192,41 +186,57 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '201': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
             },
+            security: policies.create === true ? [] : undefined,
         };
     }
 
-    private makeResourceFetch(model: DataModel) {
+    private makeResourceFetch(model: DataModel, policies: Policies) {
         return {
             operationId: `fetch-${model.name}`,
-            description: `Fetch one ${model.name} resource`,
+            description: `Fetch a "${model.name}" resource`,
             tags: [lowerCaseFirst(model.name)],
-            parameters: [this.parameter('id'), this.parameter('include'), ...this.generateFilterParameters(model)],
+            parameters: [this.parameter('id'), this.parameter('include')],
             responses: {
                 '200': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.read === true ? [] : undefined,
         };
     }
 
     private makeRelatedFetch(model: DataModel, field: DataModelField, relationDecl: DataModel) {
-        return {
+        const policies = analyzePolicies(relationDecl);
+        const parameters: OAPI.OperationObject['parameters'] = [this.parameter('id'), this.parameter('include')];
+        if (field.type.array) {
+            parameters.push(
+                this.parameter('sort'),
+                this.parameter('page-offset'),
+                this.parameter('page-limit'),
+                ...this.generateFilterParameters(model)
+            );
+        }
+        const result = {
             operationId: `fetch-${model.name}-related-${field.name}`,
-            description: `Fetch the related ${field.name} resource for ${model.name}`,
+            description: `Fetch the related "${field.name}" resource for "${model.name}"`,
             tags: [lowerCaseFirst(model.name)],
-            parameters: [this.parameter('id'), this.parameter('include'), ...this.generateFilterParameters(model)],
+            parameters,
             responses: {
                 '200': this.success(
                     field.type.array ? `${relationDecl.name}ListResponse` : `${relationDecl.name}Response`
                 ),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.read === true ? [] : undefined,
         };
+        return result;
     }
 
-    private makeResourceUpdate(model: DataModel) {
+    private makeResourceUpdate(model: DataModel, policies: Policies) {
         return {
             operationId: `update-${model.name}`,
-            description: `Update one ${model.name} resource`,
+            description: `Update a "${model.name}" resource`,
             tags: [lowerCaseFirst(model.name)],
             parameters: [this.parameter('id')],
             requestBody: {
@@ -239,24 +249,28 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             responses: {
                 '200': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.update === true ? [] : undefined,
         };
     }
 
-    private makeResourceDelete(model: DataModel) {
+    private makeResourceDelete(model: DataModel, policies: Policies) {
         return {
             operationId: `delete-${model.name}`,
-            description: `Delete one ${model.name} resource`,
+            description: `Delete a "${model.name}" resource`,
             tags: [lowerCaseFirst(model.name)],
             parameters: [this.parameter('id')],
             responses: {
                 '200': this.success(),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.delete === true ? [] : undefined,
         };
     }
 
-    private makeRelationshipFetch(model: DataModel, field: DataModelField) {
+    private makeRelationshipFetch(model: DataModel, field: DataModelField, policies: Policies) {
         const parameters: OAPI.OperationObject['parameters'] = [this.parameter('id')];
         if (field.type.array) {
             parameters.push(
@@ -268,59 +282,67 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
         return {
             operationId: `fetch-${model.name}-relationship-${field.name}`,
-            description: `Fetch${field.name} relationships for ${model.name}`,
+            description: `Fetch the "${field.name}" relationships for a "${model.name}"`,
             tags: [lowerCaseFirst(model.name)],
             parameters,
             responses: {
                 '200': field.type.array
-                    ? this.success('toManyRelationshipResponse')
-                    : this.success('toOneRelationshipResponse'),
+                    ? this.success('_toManyRelationshipResponse')
+                    : this.success('_toOneRelationshipResponse'),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.read === true ? [] : undefined,
         };
     }
 
-    private makeRelationshipCreate(model: DataModel, field: DataModelField) {
+    private makeRelationshipCreate(model: DataModel, field: DataModelField, policies: Policies) {
         return {
             operationId: `create-${model.name}-relationship-${field.name}`,
-            description: `Create new ${field.name} relationships for ${model.name}`,
+            description: `Create new "${field.name}" relationships for a "${model.name}"`,
             tags: [lowerCaseFirst(model.name)],
             parameters: [this.parameter('id')],
             requestBody: {
                 content: {
                     'application/vnd.api+json': {
-                        schema: this.ref('toManyRelationshipRequest'),
+                        schema: this.ref('_toManyRelationshipRequest'),
                     },
                 },
             },
             responses: {
-                '200': this.success('toManyRelationshipResponse'),
+                '200': this.success('_toManyRelationshipResponse'),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.update === true ? [] : undefined,
         };
     }
 
-    private makeRelationshipUpdate(model: DataModel, field: DataModelField) {
+    private makeRelationshipUpdate(model: DataModel, field: DataModelField, policies: Policies) {
         return {
             operationId: `update-${model.name}-relationship-${field.name}`,
-            description: `Update ${field.name} relationships for ${model.name}`,
+            description: `Update "${field.name}" ${pluralize('relationship', field.type.array ? 2 : 1)} for a "${
+                model.name
+            }"`,
             tags: [lowerCaseFirst(model.name)],
             parameters: [this.parameter('id')],
             requestBody: {
                 content: {
                     'application/vnd.api+json': {
                         schema: field.type.array
-                            ? this.ref('toManyRelationshipRequest')
-                            : this.ref('toOneRelationshipRequest'),
+                            ? this.ref('_toManyRelationshipRequest')
+                            : this.ref('_toOneRelationshipRequest'),
                     },
                 },
             },
             responses: {
                 '200': field.type.array
-                    ? this.success('toManyRelationshipResponse')
-                    : this.success('toOneRelationshipResponse'),
+                    ? this.success('_toManyRelationshipResponse')
+                    : this.success('_toOneRelationshipResponse'),
                 '403': this.forbidden(),
+                '404': this.notFound(),
             },
+            security: policies.update === true ? [] : undefined,
         };
     }
 
@@ -374,15 +396,6 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         };
     }
 
-    private getOption<T = string>(name: string): T | undefined;
-    private getOption<T = string, D extends T = T>(name: string, defaultValue: D): T;
-    private getOption<T = string>(name: string, defaultValue?: T): T | undefined {
-        const value = this.options[name];
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        return value === undefined ? defaultValue : value;
-    }
-
     private generateComponents() {
         const schemas: Record<string, OAPI.SchemaObject> = {};
         const parameters: Record<string, OAPI.ParameterObject> = {};
@@ -418,39 +431,44 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
     private generateSharedComponents(): Record<string, OAPI.SchemaObject> {
         return {
-            jsonapi: {
+            _jsonapi: {
                 type: 'object',
-                description: 'an object describing the server’s implementation',
+                description: 'An object describing the server’s implementation',
                 properties: {
                     version: { type: 'string' },
-                    meta: this.ref('meta'),
+                    meta: this.ref('_meta'),
                 },
             },
-            meta: {
+            _meta: {
                 type: 'object',
+                description: 'Meta information about the response',
                 additionalProperties: true,
             },
-            resourceIdentifier: {
+            _resourceIdentifier: {
                 type: 'object',
+                description: 'Identifier for a resource',
                 required: ['type', 'id'],
                 properties: {
                     type: { type: 'string' },
                     id: { type: 'string' },
                 },
             },
-            resource: this.allOf(this.ref('resourceIdentifier'), {
+            _resource: this.allOf(this.ref('_resourceIdentifier'), {
                 type: 'object',
+                description: 'A resource with attributes and relationships',
                 properties: {
                     attributes: { type: 'object' },
                     relationships: { type: 'object' },
                 },
             }),
-            links: {
+            _links: {
                 type: 'object',
+                description: 'Links related to the resource',
                 properties: { self: { type: 'string' } },
             },
-            pagination: {
+            _pagination: {
                 type: 'object',
+                description: 'Pagination information',
                 properties: {
                     first: this.nullable({ type: 'string' }),
                     last: this.nullable({ type: 'string' }),
@@ -458,8 +476,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                     next: this.nullable({ type: 'string' }),
                 },
             },
-            errors: {
+            _errors: {
                 type: 'array',
+                description: 'An array of error objects',
                 items: {
                     type: 'object',
                     properties: {
@@ -470,76 +489,93 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                     },
                 },
             },
-            errorResponse: {
+            _errorResponse: {
                 type: 'object',
+                description: 'An error response',
                 properties: {
-                    jsonapi: this.ref('jsonapi'),
-                    errors: this.ref('errors'),
+                    jsonapi: this.ref('_jsonapi'),
+                    errors: this.ref('_errors'),
                 },
             },
-            relationLinks: {
+            _relationLinks: {
                 type: 'object',
+                description: 'Links related to a relationship',
                 properties: {
                     self: { type: 'string' },
                     related: { type: 'string' },
                 },
             },
-            toOneRelationship: {
+            _toOneRelationship: {
                 type: 'object',
+                description: 'A to-one relationship',
                 properties: {
-                    data: this.ref('resourceIdentifier'),
+                    data: this.nullable(this.ref('_resourceIdentifier')),
                 },
             },
-            toOneRelationshipWithLinks: {
+            _toOneRelationshipWithLinks: {
                 type: 'object',
+                description: 'A to-one relationship with links',
                 properties: {
-                    links: this.ref('relationLinks'),
-                    data: this.ref('resourceIdentifier'),
+                    links: this.ref('_relationLinks'),
+                    data: this.nullable(this.ref('_resourceIdentifier')),
                 },
             },
-            toManyRelationship: {
+            _toManyRelationship: {
                 type: 'object',
+                description: 'A to-many relationship',
                 properties: {
-                    data: this.array(this.ref('resourceIdentifier')),
+                    data: this.array(this.ref('_resourceIdentifier')),
                 },
             },
-            toManyRelationshipWithLinks: {
+            _toManyRelationshipWithLinks: {
                 type: 'object',
+                description: 'A to-many relationship with links',
                 properties: {
-                    links: this.ref('pagedRelationLinks'),
-                    data: this.array(this.ref('resourceIdentifier')),
+                    links: this.ref('_pagedRelationLinks'),
+                    data: this.array(this.ref('_resourceIdentifier')),
                 },
             },
-            pagedRelationLinks: this.allOf(this.ref('pagination'), this.ref('relationLinks')),
-            toManyRelationshipRequest: {
+            _pagedRelationLinks: {
+                description: 'Relationship links with pagination information',
+                ...this.allOf(this.ref('_pagination'), this.ref('_relationLinks')),
+            },
+            _toManyRelationshipRequest: {
                 type: 'object',
+                description: 'Input for manipulating a to-many relationship',
                 properties: {
                     data: {
                         type: 'array',
-                        items: this.ref('resourceIdentifier'),
+                        items: this.ref('_resourceIdentifier'),
                     },
                 },
             },
-            toOneRelationshipRequest: this.nullable({
-                type: 'object',
-                properties: {
-                    data: this.ref('resourceIdentifier'),
-                },
-            }),
-            toManyRelationshipResponse: this.allOf(this.ref('toManyRelationshipWithLinks'), {
-                type: 'object',
-                properties: {
-                    jsonapi: this.ref('jsonapi'),
-                },
-            }),
-            toOneRelationshipResponse: this.nullable(
-                this.allOf(this.ref('toOneRelationshipWithLinks'), {
+            _toOneRelationshipRequest: {
+                description: 'Input for manipulating a to-one relationship',
+                ...this.nullable({
                     type: 'object',
                     properties: {
-                        jsonapi: this.ref('jsonapi'),
+                        data: this.ref('_resourceIdentifier'),
                     },
-                })
-            ),
+                }),
+            },
+            _toManyRelationshipResponse: {
+                description: 'Response for a to-many relationship',
+                ...this.allOf(this.ref('_toManyRelationshipWithLinks'), {
+                    type: 'object',
+                    properties: {
+                        jsonapi: this.ref('_jsonapi'),
+                    },
+                }),
+            },
+            _toOneRelationshipResponse: {
+                description: 'Response for a to-one relationship',
+                ...this.allOf(this.ref('_toOneRelationshipWithLinks'), {
+                    type: 'object',
+                    properties: {
+                        jsonapi: this.ref('_jsonapi'),
+                    },
+                }),
+            },
         };
     }
 
@@ -548,12 +584,14 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             id: {
                 name: 'id',
                 in: 'path',
+                description: 'The resource id',
                 required: true,
                 schema: { type: 'string' },
             },
             include: {
                 name: 'include',
                 in: 'query',
+                description: 'Relationships to include',
                 required: false,
                 style: 'form',
                 schema: { type: 'string' },
@@ -561,6 +599,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             sort: {
                 name: 'sort',
                 in: 'query',
+                description: 'Fields to sort by',
                 required: false,
                 style: 'form',
                 schema: { type: 'string' },
@@ -568,6 +607,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             'page-offset': {
                 name: 'page[offset]',
                 in: 'query',
+                description: 'Offset for pagination',
                 required: false,
                 style: 'form',
                 schema: { type: 'integer' },
@@ -575,6 +615,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             'page-limit': {
                 name: 'page[limit]',
                 in: 'query',
+                description: 'Limit for pagination',
                 required: false,
                 style: 'form',
                 schema: { type: 'integer' },
@@ -585,6 +626,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generateEnumComponent(_enum: Enum): OAPI.SchemaObject {
         const schema: OAPI.SchemaObject = {
             type: 'string',
+            description: `The "${_enum.name}" Enum`,
             enum: _enum.fields.map((f) => f.name),
         };
         return schema;
@@ -596,6 +638,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         result[`${model.name}CreateRequest`] = {
             type: 'object',
+            description: `Input for creating a "${model.name}"`,
             required: ['data'],
             properties: {
                 data: this.generateModelEntity(model, 'input'),
@@ -604,6 +647,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         result[`${model.name}UpdateRequest`] = {
             type: 'object',
+            description: `Input for updating a "${model.name}"`,
             required: ['data'],
             properties: { data: this.generateModelEntity(model, 'input') },
         };
@@ -612,18 +656,19 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         for (const field of model.fields) {
             if (this.isRelationshipField(field)) {
                 if (field.type.array) {
-                    relationships[field.name] = this.ref('toManyRelationship');
+                    relationships[field.name] = this.ref('_toManyRelationship');
                 } else {
-                    relationships[field.name] = this.ref('toOneRelationship');
+                    relationships[field.name] = this.ref('_toOneRelationship');
                 }
             }
         }
 
         result[`${model.name}Response`] = {
             type: 'object',
+            description: `Response for a "${model.name}"`,
             required: ['data'],
             properties: {
-                jsonapi: this.ref('jsonapi'),
+                jsonapi: this.ref('_jsonapi'),
                 data: this.allOf(this.ref(`${model.name}`), {
                     type: 'object',
                     properties: { relationships: { type: 'object', properties: relationships } },
@@ -631,17 +676,18 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
                 included: {
                     type: 'array',
-                    items: this.ref('resource'),
+                    items: this.ref('_resource'),
                 },
-                links: this.ref('links'),
+                links: this.ref('_links'),
             },
         };
 
         result[`${model.name}ListResponse`] = {
             type: 'object',
+            description: `Response for a list of "${model.name}"`,
             required: ['data'],
             properties: {
-                jsonapi: this.ref('jsonapi'),
+                jsonapi: this.ref('_jsonapi'),
                 data: this.array(
                     this.allOf(this.ref(`${model.name}`), {
                         type: 'object',
@@ -650,9 +696,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 ),
                 included: {
                     type: 'array',
-                    items: this.ref('resource'),
+                    items: this.ref('_resource'),
                 },
-                links: this.allOf(this.ref('links'), this.ref('pagination')),
+                links: this.allOf(this.ref('_links'), this.ref('_pagination')),
             },
         };
 
@@ -671,9 +717,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             if (this.isRelationshipField(field)) {
                 let relType: string;
                 if (mode === 'input') {
-                    relType = field.type.array ? 'toManyRelationship' : 'toOneRelationship';
+                    relType = field.type.array ? '_toManyRelationship' : '_toOneRelationship';
                 } else {
-                    relType = field.type.array ? 'toManyRelationshipWithLinks' : 'toOneRelationshipWithLinks';
+                    relType = field.type.array ? '_toManyRelationshipWithLinks' : '_toOneRelationshipWithLinks';
                 }
                 relationships[field.name] = this.ref(relType);
             } else {
@@ -691,6 +737,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = {
             type: 'object',
+            description: `The "${model.name}" model`,
             required: ['id', 'type', 'attributes'],
             properties: {
                 type: { type: 'string' },
@@ -765,10 +812,21 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
     private forbidden() {
         return {
-            description: 'Forbidden',
+            description: 'Request is forbidden',
             content: {
                 'application/vnd.api+json': {
-                    schema: this.ref('errorResponse'),
+                    schema: this.ref('_errorResponse'),
+                },
+            },
+        };
+    }
+
+    private notFound() {
+        return {
+            description: 'Resource is not found',
+            content: {
+                'application/vnd.api+json': {
+                    schema: this.ref('_errorResponse'),
                 },
             },
         };
