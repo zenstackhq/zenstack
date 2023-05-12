@@ -319,7 +319,7 @@ describe('REST server tests', () => {
                 expect((r.body as any).data).toHaveLength(1);
                 expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
 
-                // attribute filter
+                // String filter
                 r = await handler({
                     method: 'get',
                     path: '/user',
@@ -328,6 +328,112 @@ describe('REST server tests', () => {
                 });
                 expect((r.body as any).data).toHaveLength(1);
                 expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$contains]']: '1@abc' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$contains]']: '1@bc' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$startsWith]']: 'user1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$startsWith]']: 'ser1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$endsWith]']: '1@abc.com' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$endsWith]']: '1@abc' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                // Int filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount$gt]']: '0' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount$gte]']: '1' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount$lt]']: '0' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(0);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[viewCount$lte]']: '0' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+
+                // Boolean filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[published]']: 'true' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
 
                 // filter to empty
                 r = await handler({
@@ -348,6 +454,14 @@ describe('REST server tests', () => {
                 expect((r.body as any).data).toHaveLength(1);
                 expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
 
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[posts]']: '1,2,3' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(2);
+
                 // multi filter
                 r = await handler({
                     method: 'get',
@@ -356,26 +470,6 @@ describe('REST server tests', () => {
                     prisma,
                 });
                 expect((r.body as any).data).toHaveLength(0);
-
-                // Int filter
-                r = await handler({
-                    method: 'get',
-                    path: '/post',
-                    query: { ['filter[viewCount]']: '1' },
-                    prisma,
-                });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
-
-                // Boolean filter
-                r = await handler({
-                    method: 'get',
-                    path: '/post',
-                    query: { ['filter[published]']: 'true' },
-                    prisma,
-                });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
 
                 // to-one relation filter
                 r = await handler({
@@ -417,6 +511,23 @@ describe('REST server tests', () => {
                             status: 400,
                             code: 'invalid-value',
                             title: 'Invalid value for type',
+                        },
+                    ],
+                });
+
+                // invalid filter operation
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[email$foo]']: '1' },
+                    prisma,
+                });
+                expect(r.body).toMatchObject({
+                    errors: [
+                        {
+                            status: 400,
+                            code: 'invalid-filter',
+                            title: 'Invalid filter',
                         },
                     ],
                 });
