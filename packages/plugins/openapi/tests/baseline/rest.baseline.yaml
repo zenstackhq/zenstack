@@ -29,7 +29,7 @@ paths:
                       type: string
                 - name: filter[createdAt]
                   required: false
-                  description: Equal filter for "createdAt"
+                  description: Equality filter for "createdAt"
                   in: query
                   style: form
                   explode: false
@@ -74,7 +74,7 @@ paths:
                       format: date-time
                 - name: filter[updatedAt]
                   required: false
-                  description: Equal filter for "updatedAt"
+                  description: Equality filter for "updatedAt"
                   in: query
                   style: form
                   explode: false
@@ -119,7 +119,7 @@ paths:
                       format: date-time
                 - name: filter[email]
                   required: false
-                  description: Equal filter for "email"
+                  description: Equality filter for "email"
                   in: query
                   style: form
                   explode: false
@@ -167,7 +167,7 @@ paths:
                       type: string
                 - name: filter[role]
                   required: false
-                  description: Equal filter for "role"
+                  description: Equality filter for "role"
                   in: query
                   style: form
                   explode: false
@@ -175,7 +175,7 @@ paths:
                       $ref: '#/components/schemas/Role'
                 - name: filter[posts]
                   required: false
-                  description: Equal filter for "posts"
+                  description: Equality filter for "posts"
                   in: query
                   style: form
                   explode: false
@@ -322,7 +322,7 @@ paths:
                       type: string
                 - name: filter[createdAt]
                   required: false
-                  description: Equal filter for "createdAt"
+                  description: Equality filter for "createdAt"
                   in: query
                   style: form
                   explode: false
@@ -367,7 +367,7 @@ paths:
                       format: date-time
                 - name: filter[updatedAt]
                   required: false
-                  description: Equal filter for "updatedAt"
+                  description: Equality filter for "updatedAt"
                   in: query
                   style: form
                   explode: false
@@ -412,7 +412,7 @@ paths:
                       format: date-time
                 - name: filter[email]
                   required: false
-                  description: Equal filter for "email"
+                  description: Equality filter for "email"
                   in: query
                   style: form
                   explode: false
@@ -460,7 +460,7 @@ paths:
                       type: string
                 - name: filter[role]
                   required: false
-                  description: Equal filter for "role"
+                  description: Equality filter for "role"
                   in: query
                   style: form
                   explode: false
@@ -468,7 +468,7 @@ paths:
                       $ref: '#/components/schemas/Role'
                 - name: filter[posts]
                   required: false
-                  description: Equal filter for "posts"
+                  description: Equality filter for "posts"
                   in: query
                   style: form
                   explode: false
@@ -516,7 +516,7 @@ paths:
                       type: string
                 - name: filter[createdAt]
                   required: false
-                  description: Equal filter for "createdAt"
+                  description: Equality filter for "createdAt"
                   in: query
                   style: form
                   explode: false
@@ -561,7 +561,7 @@ paths:
                       format: date-time
                 - name: filter[updatedAt]
                   required: false
-                  description: Equal filter for "updatedAt"
+                  description: Equality filter for "updatedAt"
                   in: query
                   style: form
                   explode: false
@@ -606,7 +606,7 @@ paths:
                       format: date-time
                 - name: filter[email]
                   required: false
-                  description: Equal filter for "email"
+                  description: Equality filter for "email"
                   in: query
                   style: form
                   explode: false
@@ -654,7 +654,7 @@ paths:
                       type: string
                 - name: filter[role]
                   required: false
-                  description: Equal filter for "role"
+                  description: Equality filter for "role"
                   in: query
                   style: form
                   explode: false
@@ -662,7 +662,7 @@ paths:
                       $ref: '#/components/schemas/Role'
                 - name: filter[posts]
                   required: false
-                  description: Equal filter for "posts"
+                  description: Equality filter for "posts"
                   in: query
                   style: form
                   explode: false
@@ -772,7 +772,7 @@ paths:
                       type: string
                 - name: filter[createdAt]
                   required: false
-                  description: Equal filter for "createdAt"
+                  description: Equality filter for "createdAt"
                   in: query
                   style: form
                   explode: false
@@ -817,7 +817,7 @@ paths:
                       format: date-time
                 - name: filter[updatedAt]
                   required: false
-                  description: Equal filter for "updatedAt"
+                  description: Equality filter for "updatedAt"
                   in: query
                   style: form
                   explode: false
@@ -862,7 +862,7 @@ paths:
                       format: date-time
                 - name: filter[title]
                   required: false
-                  description: Equal filter for "title"
+                  description: Equality filter for "title"
                   in: query
                   style: form
                   explode: false
@@ -910,7 +910,7 @@ paths:
                       type: string
                 - name: filter[author]
                   required: false
-                  description: Equal filter for "author"
+                  description: Equality filter for "author"
                   in: query
                   style: form
                   explode: false
@@ -918,7 +918,7 @@ paths:
                       type: string
                 - name: filter[published]
                   required: false
-                  description: Equal filter for "published"
+                  description: Equality filter for "published"
                   in: query
                   style: form
                   explode: false
@@ -926,7 +926,7 @@ paths:
                       type: boolean
                 - name: filter[viewCount]
                   required: false
-                  description: Equal filter for "viewCount"
+                  description: Equality filter for "viewCount"
                   in: query
                   style: form
                   explode: false
