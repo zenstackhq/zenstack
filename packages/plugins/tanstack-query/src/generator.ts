@@ -1,0 +1,468 @@
+import { DMMF } from '@prisma/generator-helper';
+import { PluginError, PluginOptions, createProject, getDataModels, saveProject } from '@zenstackhq/sdk';
+import { DataModel, Model } from '@zenstackhq/sdk/ast';
+import { paramCase } from 'change-case';
+import fs from 'fs';
+import { lowerCaseFirst } from 'lower-case-first';
+import path from 'path';
+import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { upperCaseFirst } from 'upper-case-first';
+
+const supportedFrameworks = ['react', 'svelte'];
+type Framework = (typeof supportedFrameworks)[number];
+
+export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
+    let outDir = options.output as string;
+    if (!outDir) {
+        throw new PluginError('"output" option is required');
+    }
+
+    if (!path.isAbsolute(outDir)) {
+        // output dir is resolved relative to the schema file path
+        outDir = path.join(path.dirname(options.schemaPath), outDir);
+    }
+
+    const project = createProject();
+    const warnings: string[] = [];
+    const models = getDataModels(model);
+
+    const framework = (options.framework as string) ?? 'react';
+    if (!supportedFrameworks.includes(framework)) {
+        throw new PluginError(`Unsupported framework "${framework}"`);
+    }
+
+    generateIndex(project, outDir, models);
+    generateHelper(framework, project, outDir);
+
+    models.forEach((dataModel) => {
+        const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
+        if (!mapping) {
+            warnings.push(`Unable to find mapping for model ${dataModel.name}`);
+            return;
+        }
+        generateModelHooks(framework, project, outDir, dataModel, mapping);
+    });
+
+    await saveProject(project);
+    return warnings;
+}
+
+function generateQueryHook(
+    framework: Framework,
+    sf: SourceFile,
+    model: string,
+    operation: string,
+    returnArray: boolean,
+    optionalInput: boolean,
+    overrideReturnType?: string,
+    overrideInputType?: string,
+    overrideTypeParameters?: string[]
+) {
+    const capOperation = upperCaseFirst(operation);
+
+    const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
+    const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+    const returnType =
+        overrideReturnType ?? (returnArray ? `Array<Prisma.${model}GetPayload<T>>` : `Prisma.${model}GetPayload<T>`);
+    const optionsType = makeQueryOptions(framework, returnType);
+
+    const func = sf.addFunction({
+        name: `use${capOperation}${model}`,
+        typeParameters: overrideTypeParameters ?? [`T extends ${argsType}`],
+        parameters: [
+            {
+                name: optionalInput ? 'args?' : 'args',
+                type: inputType,
+            },
+            {
+                name: 'options?',
+                type: optionsType,
+            },
+        ],
+        isExported: true,
+    });
+
+    func.addStatements([
+        makeGetContext(framework),
+        `return query<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+            model
+        )}/${operation}\`, args, options);`,
+    ]);
+}
+
+function generateMutationHook(
+    framework: Framework,
+    sf: SourceFile,
+    model: string,
+    operation: string,
+    httpVerb: 'post' | 'put' | 'delete',
+    overrideReturnType?: string
+) {
+    const capOperation = upperCaseFirst(operation);
+
+    const argsType = `Prisma.${model}${capOperation}Args`;
+    const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
+    const returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
+    const nonGenericOptionsType = `Omit<${makeMutationOptions(
+        framework,
+        overrideReturnType ?? model,
+        argsType
+    )}, 'mutationFn'>`;
+    const optionsType = `Omit<${makeMutationOptions(framework, returnType, inputType)}, 'mutationFn'>`;
+
+    const func = sf.addFunction({
+        name: `use${capOperation}${model}`,
+        isExported: true,
+        parameters: [
+            {
+                name: 'options?',
+                type: nonGenericOptionsType,
+            },
+            {
+                name: 'invalidateQueries',
+                type: 'boolean',
+                initializer: 'true',
+            },
+        ],
+    });
+
+    // get endpoint from context
+    func.addStatements([makeGetContext(framework)]);
+
+    func.addVariableStatement({
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [
+            {
+                name: `_mutation`,
+                initializer: `
+                    ${httpVerb}Mutation<${argsType}, ${
+                    overrideReturnType ?? model
+                }>('${model}', \`\${endpoint}/${lowerCaseFirst(model)}/${operation}\`, options, invalidateQueries)
+                `,
+            },
+        ],
+    });
+
+    switch (framework) {
+        case 'react':
+            // override the mutateAsync function to return the correct type
+            func.addVariableStatement({
+                declarationKind: VariableDeclarationKind.Const,
+                declarations: [
+                    {
+                        name: 'mutation',
+                        initializer: `{
+                    ..._mutation,
+                    async mutateAsync<T extends ${argsType}>(
+                        args: Prisma.SelectSubset<T, ${argsType}>,
+                        options?: ${optionsType}
+                      ) {
+                        return (await _mutation.mutateAsync(
+                          args,
+                          options as any
+                        )) as ${returnType};
+                    },
+                }`,
+                    },
+                ],
+            });
+            break;
+
+        case 'svelte':
+            // svelte-query returns a store for mutations
+            // here we override the mutateAsync function to return the correct type
+            // and call `derived` to return a new reactive store
+            func.addVariableStatement({
+                declarationKind: VariableDeclarationKind.Const,
+                declarations: [
+                    {
+                        name: 'mutation',
+                        initializer: `derived(_mutation, value => ({
+                    ...value,
+                    async mutateAsync<T extends ${argsType}>(
+                        args: Prisma.SelectSubset<T, ${argsType}>,
+                        options?: ${optionsType}
+                      ) {
+                        return (await value.mutateAsync(
+                          args,
+                          options as any
+                        )) as ${returnType};
+                    },
+                }))`,
+                    },
+                ],
+            });
+            break;
+
+        default:
+            throw new PluginError(`Unsupported framework "${framework}"`);
+    }
+
+    func.addStatements('return mutation;');
+}
+
+function generateModelHooks(
+    framework: Framework,
+    project: Project,
+    outDir: string,
+    model: DataModel,
+    mapping: DMMF.ModelMapping
+) {
+    const fileName = paramCase(model.name);
+    const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
+
+    sf.addStatements('/* eslint-disable */');
+
+    sf.addImportDeclaration({
+        namedImports: ['Prisma', model.name],
+        isTypeOnly: true,
+        moduleSpecifier: '@prisma/client',
+    });
+    sf.addStatements(makeBaseImports(framework));
+
+    // create is somehow named "createOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping.create || (mapping as any).createOne) {
+        generateMutationHook(framework, sf, model.name, 'create', 'post');
+    }
+
+    // createMany
+    if (mapping.createMany) {
+        generateMutationHook(framework, sf, model.name, 'createMany', 'post', 'Prisma.BatchPayload');
+    }
+
+    // findMany
+    if (mapping.findMany) {
+        generateQueryHook(framework, sf, model.name, 'findMany', true, true);
+    }
+
+    // findUnique
+    if (mapping.findUnique) {
+        generateQueryHook(framework, sf, model.name, 'findUnique', false, false);
+    }
+
+    // findFirst
+    if (mapping.findFirst) {
+        generateQueryHook(framework, sf, model.name, 'findFirst', false, true);
+    }
+
+    // update
+    // update is somehow named "updateOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping.update || (mapping as any).updateOne) {
+        generateMutationHook(framework, sf, model.name, 'update', 'put');
+    }
+
+    // updateMany
+    if (mapping.updateMany) {
+        generateMutationHook(framework, sf, model.name, 'updateMany', 'put', 'Prisma.BatchPayload');
+    }
+
+    // upsert
+    // upsert is somehow named "upsertOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping.upsert || (mapping as any).upsertOne) {
+        generateMutationHook(framework, sf, model.name, 'upsert', 'post');
+    }
+
+    // del
+    // delete is somehow named "deleteOne" in the DMMF
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (mapping.delete || (mapping as any).deleteOne) {
+        generateMutationHook(framework, sf, model.name, 'delete', 'delete');
+    }
+
+    // deleteMany
+    if (mapping.deleteMany) {
+        generateMutationHook(framework, sf, model.name, 'deleteMany', 'delete', 'Prisma.BatchPayload');
+    }
+
+    // aggregate
+    if (mapping.aggregate) {
+        generateQueryHook(
+            framework,
+            sf,
+            model.name,
+            'aggregate',
+            false,
+            false,
+            `Prisma.Get${model.name}AggregateType<T>`
+        );
+    }
+
+    // groupBy
+    if (mapping.groupBy) {
+        const typeParameters = [
+            `T extends Prisma.${model.name}GroupByArgs`,
+            `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
+            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
+            `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
+            `ByFields extends Prisma.TupleToUnion<T['by']>`,
+            `ByValid extends Prisma.Has<ByFields, OrderFields>`,
+            `HavingFields extends Prisma.GetHavingFields<T['having']>`,
+            `HavingValid extends Prisma.Has<ByFields, HavingFields>`,
+            `ByEmpty extends T['by'] extends never[] ? Prisma.True : Prisma.False`,
+            `InputErrors extends ByEmpty extends Prisma.True
+            ? \`Error: "by" must not be empty.\`
+            : HavingValid extends Prisma.False
+            ? {
+                [P in HavingFields]: P extends ByFields
+                ? never
+                : P extends string
+                ? \`Error: Field "\${P}" used in "having" needs to be provided in "by".\`
+                : [
+                    Error,
+                    'Field ',
+                    P,
+                    \` in "having" needs to be provided in "by"\`,
+                    ]
+            }[HavingFields]
+            : 'take' extends Prisma.Keys<T>
+            ? 'orderBy' extends Prisma.Keys<T>
+            ? ByValid extends Prisma.True
+                ? {}
+                : {
+                    [P in OrderFields]: P extends ByFields
+                    ? never
+                    : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                }[OrderFields]
+            : 'Error: If you provide "take", you also need to provide "orderBy"'
+            : 'skip' extends Prisma.Keys<T>
+            ? 'orderBy' extends Prisma.Keys<T>
+            ? ByValid extends Prisma.True
+                ? {}
+                : {
+                    [P in OrderFields]: P extends ByFields
+                    ? never
+                    : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                }[OrderFields]
+            : 'Error: If you provide "skip", you also need to provide "orderBy"'
+            : ByValid extends Prisma.True
+            ? {}
+            : {
+                [P in OrderFields]: P extends ByFields
+                ? never
+                : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+            }[OrderFields]`,
+        ];
+
+        const returnType = `{} extends InputErrors ? 
+        Array<Prisma.PickArray<Prisma.${model.name}GroupByOutputType, T['by']> &
+          {
+            [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
+              ? T[P] extends boolean
+                ? number
+                : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+          }
+        > : InputErrors`;
+
+        generateQueryHook(
+            framework,
+            sf,
+            model.name,
+            'groupBy',
+            false,
+            false,
+            returnType,
+            `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`,
+            typeParameters
+        );
+    }
+
+    // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
+    {
+        generateQueryHook(
+            framework,
+            sf,
+            model.name,
+            'count',
+            false,
+            true,
+            `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`
+        );
+    }
+}
+
+function generateIndex(project: Project, outDir: string, models: DataModel[]) {
+    const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
+    sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
+    sf.addStatements(`export * from './_helper';`);
+}
+
+function generateHelper(framework: Framework, project: Project, outDir: string) {
+    let srcFile: string;
+    switch (framework) {
+        case 'react':
+            srcFile = path.join(__dirname, './res/react/helper.ts');
+            break;
+        case 'svelte':
+            srcFile = path.join(__dirname, './res/svelte/helper.ts');
+            break;
+        default:
+            throw new PluginError(`Unsupported framework: ${framework}`);
+    }
+
+    // merge content of `shared.ts` and `helper.ts`
+    const sharedContent = fs.readFileSync(path.join(__dirname, './res/shared.ts'), 'utf-8');
+    const helperContent = fs.readFileSync(srcFile, 'utf-8');
+    project.createSourceFile(path.join(outDir, '_helper.ts'), `${sharedContent}\n${helperContent}`, {
+        overwrite: true,
+    });
+}
+
+function makeGetContext(framework: Framework) {
+    switch (framework) {
+        case 'react':
+            return 'const { endpoint } = useContext(RequestHandlerContext);';
+        case 'svelte':
+            return `const { endpoint } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
+        default:
+            throw new PluginError(`Unsupported framework "${framework}"`);
+    }
+}
+
+function makeBaseImports(framework: Framework) {
+    const shared = [`import { query, postMutation, putMutation, deleteMutation } from './_helper';`];
+    switch (framework) {
+        case 'react':
+            return [
+                `import { useContext } from 'react';`,
+                `import type { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';`,
+                `import { RequestHandlerContext } from './_helper';`,
+                ...shared,
+            ];
+        case 'svelte':
+            return [
+                `import { getContext } from 'svelte';`,
+                `import { derived } from 'svelte/store';`,
+                `import type { MutationOptions, QueryOptions } from '@tanstack/svelte-query';`,
+                `import { SvelteQueryContextKey, type RequestHandlerContext } from './_helper';`,
+                ...shared,
+            ];
+        default:
+            throw new PluginError(`Unsupported framework: ${framework}`);
+    }
+}
+
+function makeQueryOptions(framework: string, returnType: string) {
+    switch (framework) {
+        case 'react':
+            return `UseQueryOptions<${returnType}>`;
+        case 'svelte':
+            return `QueryOptions<${returnType}>`;
+        default:
+            throw new PluginError(`Unsupported framework: ${framework}`);
+    }
+}
+
+function makeMutationOptions(framework: string, returnType: string, argsType: string) {
+    switch (framework) {
+        case 'react':
+            return `UseMutationOptions<${returnType}, unknown, ${argsType}>`;
+        case 'svelte':
+            return `MutationOptions<${returnType}, unknown, ${argsType}>`;
+        default:
+            throw new PluginError(`Unsupported framework: ${framework}`);
+    }
+}

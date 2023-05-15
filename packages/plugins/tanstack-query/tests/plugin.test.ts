@@ -1,0 +1,78 @@
+/// <reference types="@types/jest" />
+
+import { loadSchema } from '@zenstackhq/testtools';
+
+describe('Tanstack Query Plugin Tests', () => {
+    let origDir: string;
+
+    beforeAll(() => {
+        origDir = process.cwd();
+    });
+
+    afterEach(() => {
+        process.chdir(origDir);
+    });
+
+    const sharedModel = `
+model User {
+    id String @id
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    email String @unique
+    role String @default('USER')
+    posts Post[]
+}
+
+model Post {
+    id String @id
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+    published Boolean @default(false)
+    viewCount Int @default(0)
+}
+
+model Foo {
+    id String @id
+    @@ignore
+}
+    `;
+
+    it('react-query generator', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    framework = 'react'
+}
+
+${sharedModel}
+        `,
+            true,
+            false,
+            [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query', 'superjson'],
+            true
+        );
+    });
+
+    it('svelte-query generator', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    framework = 'svelte'
+}
+
+${sharedModel}
+        `,
+            true,
+            false,
+            [`${origDir}/dist`, 'svelte', '@types/react', '@tanstack/svelte-query', 'superjson'],
+            true
+        );
+    });
+});
