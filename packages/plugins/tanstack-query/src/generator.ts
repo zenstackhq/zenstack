@@ -8,8 +8,8 @@ import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 
-const supportedFrameworks = ['react', 'svelte'];
-type Framework = (typeof supportedFrameworks)[number];
+const supportedTargets = ['react', 'svelte'];
+type TargetFramework = (typeof supportedTargets)[number];
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let outDir = options.output as string;
@@ -26,13 +26,16 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const warnings: string[] = [];
     const models = getDataModels(model);
 
-    const framework = (options.framework as string) ?? 'react';
-    if (!supportedFrameworks.includes(framework)) {
-        throw new PluginError(`Unsupported framework "${framework}"`);
+    const target = options.target as string;
+    if (!target) {
+        throw new PluginError(`"target" option is required, supported values: ${supportedTargets.join(', ')}`);
+    }
+    if (!supportedTargets.includes(target)) {
+        throw new PluginError(`Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`);
     }
 
     generateIndex(project, outDir, models);
-    generateHelper(framework, project, outDir);
+    generateHelper(target, project, outDir);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -40,7 +43,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
             return;
         }
-        generateModelHooks(framework, project, outDir, dataModel, mapping);
+        generateModelHooks(target, project, outDir, dataModel, mapping);
     });
 
     await saveProject(project);
@@ -48,7 +51,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 }
 
 function generateQueryHook(
-    framework: Framework,
+    target: TargetFramework,
     sf: SourceFile,
     model: string,
     operation: string,
@@ -64,7 +67,7 @@ function generateQueryHook(
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
     const returnType =
         overrideReturnType ?? (returnArray ? `Array<Prisma.${model}GetPayload<T>>` : `Prisma.${model}GetPayload<T>`);
-    const optionsType = makeQueryOptions(framework, returnType);
+    const optionsType = makeQueryOptions(target, returnType);
 
     const func = sf.addFunction({
         name: `use${capOperation}${model}`,
@@ -83,7 +86,7 @@ function generateQueryHook(
     });
 
     func.addStatements([
-        makeGetContext(framework),
+        makeGetContext(target),
         `return query<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
         )}/${operation}\`, args, options);`,
@@ -91,7 +94,7 @@ function generateQueryHook(
 }
 
 function generateMutationHook(
-    framework: Framework,
+    target: TargetFramework,
     sf: SourceFile,
     model: string,
     operation: string,
@@ -104,11 +107,11 @@ function generateMutationHook(
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
     const returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
     const nonGenericOptionsType = `Omit<${makeMutationOptions(
-        framework,
+        target,
         overrideReturnType ?? model,
         argsType
     )}, 'mutationFn'>`;
-    const optionsType = `Omit<${makeMutationOptions(framework, returnType, inputType)}, 'mutationFn'>`;
+    const optionsType = `Omit<${makeMutationOptions(target, returnType, inputType)}, 'mutationFn'>`;
 
     const func = sf.addFunction({
         name: `use${capOperation}${model}`,
@@ -127,7 +130,7 @@ function generateMutationHook(
     });
 
     // get endpoint from context
-    func.addStatements([makeGetContext(framework)]);
+    func.addStatements([makeGetContext(target)]);
 
     func.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
@@ -143,7 +146,7 @@ function generateMutationHook(
         ],
     });
 
-    switch (framework) {
+    switch (target) {
         case 'react':
             // override the mutateAsync function to return the correct type
             func.addVariableStatement({
@@ -195,14 +198,14 @@ function generateMutationHook(
             break;
 
         default:
-            throw new PluginError(`Unsupported framework "${framework}"`);
+            throw new PluginError(`Unsupported target "${target}"`);
     }
 
     func.addStatements('return mutation;');
 }
 
 function generateModelHooks(
-    framework: Framework,
+    target: TargetFramework,
     project: Project,
     outDir: string,
     model: DataModel,
@@ -218,76 +221,68 @@ function generateModelHooks(
         isTypeOnly: true,
         moduleSpecifier: '@prisma/client',
     });
-    sf.addStatements(makeBaseImports(framework));
+    sf.addStatements(makeBaseImports(target));
 
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.create || (mapping as any).createOne) {
-        generateMutationHook(framework, sf, model.name, 'create', 'post');
+        generateMutationHook(target, sf, model.name, 'create', 'post');
     }
 
     // createMany
     if (mapping.createMany) {
-        generateMutationHook(framework, sf, model.name, 'createMany', 'post', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'createMany', 'post', 'Prisma.BatchPayload');
     }
 
     // findMany
     if (mapping.findMany) {
-        generateQueryHook(framework, sf, model.name, 'findMany', true, true);
+        generateQueryHook(target, sf, model.name, 'findMany', true, true);
     }
 
     // findUnique
     if (mapping.findUnique) {
-        generateQueryHook(framework, sf, model.name, 'findUnique', false, false);
+        generateQueryHook(target, sf, model.name, 'findUnique', false, false);
     }
 
     // findFirst
     if (mapping.findFirst) {
-        generateQueryHook(framework, sf, model.name, 'findFirst', false, true);
+        generateQueryHook(target, sf, model.name, 'findFirst', false, true);
     }
 
     // update
     // update is somehow named "updateOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.update || (mapping as any).updateOne) {
-        generateMutationHook(framework, sf, model.name, 'update', 'put');
+        generateMutationHook(target, sf, model.name, 'update', 'put');
     }
 
     // updateMany
     if (mapping.updateMany) {
-        generateMutationHook(framework, sf, model.name, 'updateMany', 'put', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'updateMany', 'put', 'Prisma.BatchPayload');
     }
 
     // upsert
     // upsert is somehow named "upsertOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.upsert || (mapping as any).upsertOne) {
-        generateMutationHook(framework, sf, model.name, 'upsert', 'post');
+        generateMutationHook(target, sf, model.name, 'upsert', 'post');
     }
 
     // del
     // delete is somehow named "deleteOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.delete || (mapping as any).deleteOne) {
-        generateMutationHook(framework, sf, model.name, 'delete', 'delete');
+        generateMutationHook(target, sf, model.name, 'delete', 'delete');
     }
 
     // deleteMany
     if (mapping.deleteMany) {
-        generateMutationHook(framework, sf, model.name, 'deleteMany', 'delete', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'deleteMany', 'delete', 'Prisma.BatchPayload');
     }
 
     // aggregate
     if (mapping.aggregate) {
-        generateQueryHook(
-            framework,
-            sf,
-            model.name,
-            'aggregate',
-            false,
-            false,
-            `Prisma.Get${model.name}AggregateType<T>`
-        );
+        generateQueryHook(target, sf, model.name, 'aggregate', false, false, `Prisma.Get${model.name}AggregateType<T>`);
     }
 
     // groupBy
@@ -358,7 +353,7 @@ function generateModelHooks(
         > : InputErrors`;
 
         generateQueryHook(
-            framework,
+            target,
             sf,
             model.name,
             'groupBy',
@@ -373,7 +368,7 @@ function generateModelHooks(
     // somehow dmmf doesn't contain "count" operation, so we unconditionally add it here
     {
         generateQueryHook(
-            framework,
+            target,
             sf,
             model.name,
             'count',
@@ -390,9 +385,9 @@ function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     sf.addStatements(`export * from './_helper';`);
 }
 
-function generateHelper(framework: Framework, project: Project, outDir: string) {
+function generateHelper(target: TargetFramework, project: Project, outDir: string) {
     let srcFile: string;
-    switch (framework) {
+    switch (target) {
         case 'react':
             srcFile = path.join(__dirname, './res/react/helper.ts');
             break;
@@ -400,7 +395,7 @@ function generateHelper(framework: Framework, project: Project, outDir: string) 
             srcFile = path.join(__dirname, './res/svelte/helper.ts');
             break;
         default:
-            throw new PluginError(`Unsupported framework: ${framework}`);
+            throw new PluginError(`Unsupported target: ${target}`);
     }
 
     // merge content of `shared.ts` and `helper.ts`
@@ -411,20 +406,20 @@ function generateHelper(framework: Framework, project: Project, outDir: string) 
     });
 }
 
-function makeGetContext(framework: Framework) {
-    switch (framework) {
+function makeGetContext(target: TargetFramework) {
+    switch (target) {
         case 'react':
             return 'const { endpoint } = useContext(RequestHandlerContext);';
         case 'svelte':
             return `const { endpoint } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
         default:
-            throw new PluginError(`Unsupported framework "${framework}"`);
+            throw new PluginError(`Unsupported target "${target}"`);
     }
 }
 
-function makeBaseImports(framework: Framework) {
+function makeBaseImports(target: TargetFramework) {
     const shared = [`import { query, postMutation, putMutation, deleteMutation } from './_helper';`];
-    switch (framework) {
+    switch (target) {
         case 'react':
             return [
                 `import { useContext } from 'react';`,
@@ -441,28 +436,28 @@ function makeBaseImports(framework: Framework) {
                 ...shared,
             ];
         default:
-            throw new PluginError(`Unsupported framework: ${framework}`);
+            throw new PluginError(`Unsupported target: ${target}`);
     }
 }
 
-function makeQueryOptions(framework: string, returnType: string) {
-    switch (framework) {
+function makeQueryOptions(target: string, returnType: string) {
+    switch (target) {
         case 'react':
             return `UseQueryOptions<${returnType}>`;
         case 'svelte':
             return `QueryOptions<${returnType}>`;
         default:
-            throw new PluginError(`Unsupported framework: ${framework}`);
+            throw new PluginError(`Unsupported target: ${target}`);
     }
 }
 
-function makeMutationOptions(framework: string, returnType: string, argsType: string) {
-    switch (framework) {
+function makeMutationOptions(target: string, returnType: string, argsType: string) {
+    switch (target) {
         case 'react':
             return `UseMutationOptions<${returnType}, unknown, ${argsType}>`;
         case 'svelte':
             return `MutationOptions<${returnType}, unknown, ${argsType}>`;
         default:
-            throw new PluginError(`Unsupported framework: ${framework}`);
+            throw new PluginError(`Unsupported target: ${target}`);
     }
 }

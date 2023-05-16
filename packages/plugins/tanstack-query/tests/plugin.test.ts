@@ -46,7 +46,7 @@ model Foo {
 plugin tanstack {
     provider = '${process.cwd()}/dist'
     output = '$projectRoot/hooks'
-    framework = 'react'
+    target = 'react'
 }
 
 ${sharedModel}
@@ -64,7 +64,7 @@ ${sharedModel}
 plugin tanstack {
     provider = '${process.cwd()}/dist'
     output = '$projectRoot/hooks'
-    framework = 'svelte'
+    target = 'svelte'
 }
 
 ${sharedModel}
