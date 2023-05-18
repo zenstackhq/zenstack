@@ -4,11 +4,11 @@ import { loadSchema } from '@zenstackhq/testtools';
 import bodyParser from 'body-parser';
 import express from 'express';
 import request from 'supertest';
-import { ZenStackMiddleware } from '../../../src/express';
-import { makeUrl, schema } from '../../utils';
-import RESTAPIHandler from '../../../src/api/rest';
+import { ZenStackMiddleware } from '../../src/express';
+import { makeUrl, schema } from '../utils';
+import RESTAPIHandler from '../../src/api/rest';
 
-describe('Express adapter tests', () => {
+describe('Express adapter tests - rest handler', () => {
     it('run middleware', async () => {
         const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
 

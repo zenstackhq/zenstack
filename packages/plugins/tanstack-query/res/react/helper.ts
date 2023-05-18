@@ -28,7 +28,7 @@ export const Provider = RequestHandlerContext.Provider;
  *
  * @param model The name of the model under query.
  * @param url The request URL.
- * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The react-query options object
  * @returns useQuery hook
  */

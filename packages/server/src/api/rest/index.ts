@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
     DbClientContract,
     FieldInfo,
@@ -16,7 +15,7 @@ import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { LoggerConfig, RequestContext, Response } from '../types';
+import { LoggerConfig, RequestContext, Response } from '../../types';
 import { getZodSchema, logWarning, stripAuxFields } from '../utils';
 
 const urlPatterns = {
@@ -320,7 +319,7 @@ class RequestHandler {
                     let match = urlPatterns.single.match(path);
                     if (match) {
                         // resource deletion
-                        return await this.processDelete(prisma, match.type, match.id, query);
+                        return await this.processDelete(prisma, match.type, match.id);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -899,12 +898,7 @@ class RequestHandler {
         }
     }
 
-    private async processDelete(
-        prisma: DbClientContract,
-        type: any,
-        resourceId: string,
-        query: Record<string, string | string[]> | undefined
-    ): Promise<Response> {
+    private async processDelete(prisma: DbClientContract, type: any, resourceId: string): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
             return this.makeUnsupportedModelError(type);

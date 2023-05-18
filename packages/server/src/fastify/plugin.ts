@@ -4,12 +4,14 @@ import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
-import { HandleRequestFn, LoggerConfig } from '../api/types';
+import { logInfo } from '../api/utils';
+import { AdapterBaseOptions } from '../types';
+import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Fastify plugin options
  */
-export interface PluginOptions {
+export interface PluginOptions extends AdapterBaseOptions {
     /**
      * Url prefix, e.g.: /api
      */
@@ -19,22 +21,6 @@ export interface PluginOptions {
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (request: FastifyRequest, reply: FastifyReply) => unknown | Promise<unknown>;
-
-    /**
-     * Logger settings
-     */
-    logger?: LoggerConfig;
-
-    /**
-     * Zod schemas for validating request input. Pass `true` to load from standard location
-     * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
-     */
-    zodSchemas?: ModelZodSchema | boolean;
-
-    /**
-     * Api request handler function
-     */
-    api: HandleRequestFn;
 }
 
 /**
@@ -42,12 +28,7 @@ export interface PluginOptions {
  */
 const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, done) => {
     const prefix = options.prefix ?? '';
-
-    if (options.logger?.info === undefined) {
-        console.log(`ZenStackPlugin installing routes at prefix: ${prefix}`);
-    } else {
-        options.logger?.info?.(`ZenStackPlugin installing routes at prefix: ${prefix}`);
-    }
+    logInfo(options.logger, `ZenStackPlugin installing routes at prefix: ${prefix}`);
 
     let schemas: ModelZodSchema | undefined;
     if (typeof options.zodSchemas === 'object') {
@@ -56,24 +37,35 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         schemas = getModelZodSchemas();
     }
 
-    const requestHanler = options.api ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const requestHanler = options.handler ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const useSuperJson = options.useSuperJson === true;
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
         if (!prisma) {
-            throw new Error('unable to get prisma from request context');
+            reply
+                .status(500)
+                .send(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
+            return;
         }
-        const query = request.query as Record<string, string>;
+
+        let query: Record<string, string | string[]> = {};
+        try {
+            query = buildUrlQuery(request.query, useSuperJson);
+        } catch {
+            reply.status(400).send(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
+            return;
+        }
 
         const response = await requestHanler({
             method: request.method,
             path: (request.params as any)['*'],
             query,
-            requestBody: request.body,
+            requestBody: unmarshalFromObject(request.body, useSuperJson),
             prisma,
         });
 
-        reply.status(response.status).send(response.body);
+        reply.status(response.status).send(marshalToObject(response.body, useSuperJson));
     });
 
     done();

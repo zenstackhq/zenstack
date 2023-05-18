@@ -3,7 +3,7 @@ import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
-import { LoggerConfig } from './types';
+import { LoggerConfig } from '../types';
 
 export function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
     if (zodSchemas[model]) {
@@ -42,11 +42,19 @@ export function logError(logger: LoggerConfig | undefined | null, message: strin
     }
 }
 
-export function logWarning(logger: LoggerConfig | undefined | null, message: string, code?: string) {
+export function logWarning(logger: LoggerConfig | undefined | null, message: string) {
     if (logger === undefined) {
-        console.warn(`@zenstackhq/server: error ${code ? '[' + code + ']' : ''}, ${message}`);
+        console.warn(`@zenstackhq/server: ${message}`);
     } else if (logger?.warn) {
-        logger.warn(message, code);
+        logger.warn(message);
+    }
+}
+
+export function logInfo(logger: LoggerConfig | undefined | null, message: string) {
+    if (logger === undefined) {
+        console.log(`@zenstackhq/server: ${message}`);
+    } else if (logger?.info) {
+        logger.info(message);
     }
 }
 

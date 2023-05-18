@@ -3,8 +3,8 @@
 
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
-import makeHandler from '../../../src/api/rest';
-import { HandleRequestFn } from '../../../src/api/types';
+import makeHandler from '../../src/api/rest';
+import { HandleRequestFn } from '../../src/types';
 
 let prisma: any;
 let zodSchemas: any;

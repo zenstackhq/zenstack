@@ -40,7 +40,7 @@ model Foo {
 }
     `;
 
-    it('react-query generator', async () => {
+    it('react-query generator regular json', async () => {
         await loadSchema(
             `
 plugin tanstack {
@@ -53,18 +53,56 @@ ${sharedModel}
         `,
             true,
             false,
+            [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query'],
+            true
+        );
+    });
+
+    it('react-query generator superjson', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    target = 'react'
+    useSuperJson = true
+}
+
+${sharedModel}
+        `,
+            true,
+            false,
             [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query', 'superjson'],
             true
         );
     });
 
-    it('svelte-query generator', async () => {
+    it('svelte-query generator regular json', async () => {
         await loadSchema(
             `
 plugin tanstack {
     provider = '${process.cwd()}/dist'
     output = '$projectRoot/hooks'
     target = 'svelte'
+}
+
+${sharedModel}
+        `,
+            true,
+            false,
+            [`${origDir}/dist`, 'svelte', '@types/react', '@tanstack/svelte-query'],
+            true
+        );
+    });
+
+    it('svelte-query generator superjson', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    target = 'svelte'
+    useSuperJson = true
 }
 
 ${sharedModel}
