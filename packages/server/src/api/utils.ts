@@ -3,7 +3,7 @@ import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
-import { LoggerConfig } from './types';
+import { LoggerConfig } from '../types';
 
 export function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
     if (zodSchemas[model]) {

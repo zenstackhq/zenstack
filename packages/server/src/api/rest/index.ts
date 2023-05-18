@@ -16,7 +16,7 @@ import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { LoggerConfig, RequestContext, Response } from '../types';
+import { LoggerConfig, RequestContext, Response } from '../../types';
 import { getZodSchema, logWarning, stripAuxFields } from '../utils';
 
 const urlPatterns = {

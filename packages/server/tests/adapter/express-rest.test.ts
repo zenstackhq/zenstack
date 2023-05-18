@@ -4,9 +4,9 @@ import { loadSchema } from '@zenstackhq/testtools';
 import bodyParser from 'body-parser';
 import express from 'express';
 import request from 'supertest';
-import { ZenStackMiddleware } from '../../../src/express';
-import { makeUrl, schema } from '../../utils';
-import RESTAPIHandler from '../../../src/api/rest';
+import { ZenStackMiddleware } from '../../src/express';
+import { makeUrl, schema } from '../utils';
+import RESTAPIHandler from '../../src/api/rest';
 
 describe('Express adapter tests', () => {
     it('run middleware', async () => {

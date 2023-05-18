@@ -2,8 +2,8 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
-import RPCAPIHandler from '../../../src/api/rpc';
-import { schema } from '../../utils';
+import RPCAPIHandler from '../../src/api/rpc';
+import { schema } from '../utils';
 
 describe('OpenAPI server tests', () => {
     let prisma: any;

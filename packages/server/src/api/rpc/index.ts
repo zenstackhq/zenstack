@@ -5,7 +5,7 @@ import {
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
 import { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { LoggerConfig, RequestContext, Response } from '../types';
+import { LoggerConfig, RequestContext, Response } from '../../types';
 import { logError, stripAuxFields, zodValidate } from '../utils';
 
 /**

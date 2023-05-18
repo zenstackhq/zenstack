@@ -4,12 +4,13 @@ import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
-import { HandleRequestFn, LoggerConfig } from '../api/types';
+import { AdapterBaseOptions } from '../types';
+import { marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Fastify plugin options
  */
-export interface PluginOptions {
+export interface PluginOptions extends AdapterBaseOptions {
     /**
      * Url prefix, e.g.: /api
      */
@@ -19,22 +20,6 @@ export interface PluginOptions {
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (request: FastifyRequest, reply: FastifyReply) => unknown | Promise<unknown>;
-
-    /**
-     * Logger settings
-     */
-    logger?: LoggerConfig;
-
-    /**
-     * Zod schemas for validating request input. Pass `true` to load from standard location
-     * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
-     */
-    zodSchemas?: ModelZodSchema | boolean;
-
-    /**
-     * Api request handler function
-     */
-    api: HandleRequestFn;
 }
 
 /**
@@ -56,7 +41,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         schemas = getModelZodSchemas();
     }
 
-    const requestHanler = options.api ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const requestHanler = options.handler ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
@@ -69,11 +54,11 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
             method: request.method,
             path: (request.params as any)['*'],
             query,
-            requestBody: request.body,
+            requestBody: unmarshalFromObject(request.body, options.useSuperJson === true),
             prisma,
         });
 
-        reply.status(response.status).send(response.body);
+        reply.status(response.status).send(marshalToObject(response.body, options.useSuperJson === true));
     });
 
     done();

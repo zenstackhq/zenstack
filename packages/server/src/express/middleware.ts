@@ -3,32 +3,17 @@ import { DbClientContract } from '@zenstackhq/runtime';
 import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
 import RPCAPIHandler from '../api/rpc';
-import { HandleRequestFn, LoggerConfig } from '../api/types';
+import { AdapterBaseOptions } from '../types';
+import { marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Express middleware options
  */
-export interface MiddlewareOptions {
+export interface MiddlewareOptions extends AdapterBaseOptions {
     /**
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (req: Request, res: Response) => unknown | Promise<unknown>;
-
-    /**
-     * Logger settings
-     */
-    logger?: LoggerConfig;
-
-    /**
-     * Zod schemas for validating request input. Pass `true` to load from standard location
-     * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
-     */
-    zodSchemas?: ModelZodSchema | boolean;
-
-    /**
-     * Api request handler function
-     */
-    handler?: HandleRequestFn;
 }
 
 /**
@@ -54,11 +39,11 @@ const factory = (options: MiddlewareOptions): Handler => {
             method: request.method,
             path: request.path,
             query: request.query as Record<string, string>,
-            requestBody: request.body,
+            requestBody: unmarshalFromObject(request.body, options.useSuperJson === true),
             prisma,
         });
 
-        response.status(r.status).json(r.body);
+        response.status(r.status).json(marshalToObject(r.body, options.useSuperJson === true));
     };
 };
 
