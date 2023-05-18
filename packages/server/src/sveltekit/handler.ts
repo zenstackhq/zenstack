@@ -2,6 +2,7 @@ import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { DbClientContract } from '@zenstackhq/runtime';
 import { ModelZodSchema, getModelZodSchemas } from '@zenstackhq/runtime/zod';
 import RPCApiHandler from '../api/rpc';
+import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { marshalToString, unmarshalFromString } from '../utils';
 
@@ -24,11 +25,7 @@ export interface HandlerOptions extends AdapterBaseOptions {
  * SvelteKit server hooks handler for handling CRUD requests.
  */
 export default function createHandler(options: HandlerOptions): Handle {
-    if (options.logger?.info === undefined) {
-        console.log(`ZenStackHandler installing routes at prefix: ${options.prefix}`);
-    } else {
-        options.logger?.info?.(`ZenStackHandler installing routes at prefix: ${options.prefix}`);
-    }
+    logInfo(options.logger, `ZenStackHandler installing routes at prefix: ${options.prefix}`);
 
     let schemas: ModelZodSchema | undefined;
     if (typeof options.zodSchemas === 'object') {
@@ -48,13 +45,7 @@ export default function createHandler(options: HandlerOptions): Handle {
 
             const query: Record<string, string | string[]> = {};
             for (const key of event.url.searchParams.keys()) {
-                let values = event.url.searchParams.getAll(key);
-                if (key === 'q') {
-                    // unmarshal the `q` query param which contains SuperJSON-serialized query
-                    values = values.map((v) =>
-                        JSON.stringify(unmarshalFromString(decodeURIComponent(v), options.useSuperJson === true))
-                    );
-                }
+                const values = event.url.searchParams.getAll(key);
                 if (values.length === 1) {
                     query[key] = values[0];
                 } else {

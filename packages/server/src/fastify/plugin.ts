@@ -4,6 +4,7 @@ import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
+import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { marshalToObject, unmarshalFromObject } from '../utils';
 
@@ -27,12 +28,7 @@ export interface PluginOptions extends AdapterBaseOptions {
  */
 const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, done) => {
     const prefix = options.prefix ?? '';
-
-    if (options.logger?.info === undefined) {
-        console.log(`ZenStackPlugin installing routes at prefix: ${prefix}`);
-    } else {
-        options.logger?.info?.(`ZenStackPlugin installing routes at prefix: ${prefix}`);
-    }
+    logInfo(options.logger, `ZenStackPlugin installing routes at prefix: ${prefix}`);
 
     let schemas: ModelZodSchema | undefined;
     if (typeof options.zodSchemas === 'object') {

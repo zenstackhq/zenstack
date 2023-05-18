@@ -42,11 +42,19 @@ export function logError(logger: LoggerConfig | undefined | null, message: strin
     }
 }
 
-export function logWarning(logger: LoggerConfig | undefined | null, message: string, code?: string) {
+export function logWarning(logger: LoggerConfig | undefined | null, message: string) {
     if (logger === undefined) {
-        console.warn(`@zenstackhq/server: error ${code ? '[' + code + ']' : ''}, ${message}`);
+        console.warn(`@zenstackhq/server: ${message}`);
     } else if (logger?.warn) {
-        logger.warn(message, code);
+        logger.warn(message);
+    }
+}
+
+export function logInfo(logger: LoggerConfig | undefined | null, message: string) {
+    if (logger === undefined) {
+        console.log(`@zenstackhq/server: ${message}`);
+    } else if (logger?.info) {
+        logger.info(message);
     }
 }
 
