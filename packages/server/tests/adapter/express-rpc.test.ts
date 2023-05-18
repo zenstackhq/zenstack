@@ -9,7 +9,7 @@ import { ZenStackMiddleware } from '../../src/express';
 import { makeUrl, schema } from '../utils';
 import superjson from 'superjson';
 
-describe('Express adapter tests', () => {
+describe('Express adapter tests - rpc handler', () => {
     it('run plugin regular json', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 
@@ -114,7 +114,7 @@ describe('Express adapter tests', () => {
         app.use(bodyParser.json());
         app.use('/api', ZenStackMiddleware({ getPrisma: () => prisma, zodSchemas, useSuperJson: true }));
 
-        let r = await request(app).get(makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }));
+        let r = await request(app).get(makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }, true));
         expect(r.status).toBe(200);
         expect(unmarshal(r.body)).toHaveLength(0);
 
@@ -155,7 +155,7 @@ describe('Express adapter tests', () => {
         expect(r.status).toBe(200);
         expect(unmarshal(r.body)).toHaveLength(2);
 
-        r = await request(app).get(makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }));
+        r = await request(app).get(makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }, true));
         expect(r.status).toBe(200);
         expect(unmarshal(r.body)).toHaveLength(1);
 
@@ -165,15 +165,17 @@ describe('Express adapter tests', () => {
         expect(r.status).toBe(200);
         expect(unmarshal(r.body).email).toBe('user1@def.com');
 
-        r = await request(app).get(makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }));
+        r = await request(app).get(makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }, true));
         expect(r.status).toBe(200);
         expect(unmarshal(r.body)).toBe(1);
 
-        r = await request(app).get(makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }));
+        r = await request(app).get(makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }, true));
         expect(r.status).toBe(200);
         expect(unmarshal(r.body)._sum.viewCount).toBe(3);
 
-        r = await request(app).get(makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }));
+        r = await request(app).get(
+            makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }, true)
+        );
         expect(r.status).toBe(200);
         expect(unmarshal(r.body)).toEqual(
             expect.arrayContaining([
@@ -182,7 +184,7 @@ describe('Express adapter tests', () => {
             ])
         );
 
-        r = await request(app).delete(makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }));
+        r = await request(app).delete(makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }, true));
         expect(r.status).toBe(200);
         expect(unmarshal(r.body).count).toBe(1);
     });

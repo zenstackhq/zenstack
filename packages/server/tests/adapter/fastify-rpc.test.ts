@@ -161,7 +161,7 @@ describe('Fastify adapter tests', () => {
 
         let r = await app.inject({
             method: 'GET',
-            url: makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }),
+            url: makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }, true),
         });
         expect(r.statusCode).toBe(200);
         expect(unmarshal(r.json())).toHaveLength(0);
@@ -209,7 +209,7 @@ describe('Fastify adapter tests', () => {
 
         r = await app.inject({
             method: 'GET',
-            url: makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }),
+            url: makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }, true),
         });
         expect(r.statusCode).toBe(200);
         expect(unmarshal(r.json())).toHaveLength(1);
@@ -224,21 +224,21 @@ describe('Fastify adapter tests', () => {
 
         r = await app.inject({
             method: 'GET',
-            url: makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }),
+            url: makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }, true),
         });
         expect(r.statusCode).toBe(200);
         expect(unmarshal(r.json())).toBe(1);
 
         r = await app.inject({
             method: 'GET',
-            url: makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }),
+            url: makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }, true),
         });
         expect(r.statusCode).toBe(200);
         expect(unmarshal(r.json())._sum.viewCount).toBe(3);
 
         r = await app.inject({
             method: 'GET',
-            url: makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }),
+            url: makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }, true),
         });
         expect(r.statusCode).toBe(200);
         expect(unmarshal(r.json())).toEqual(
@@ -250,7 +250,7 @@ describe('Fastify adapter tests', () => {
 
         r = await app.inject({
             method: 'DELETE',
-            url: makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }),
+            url: makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }, true),
         });
         expect(r.statusCode).toBe(200);
         expect(unmarshal(r.json()).count).toBe(1);

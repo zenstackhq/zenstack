@@ -8,7 +8,7 @@ import { ZenStackMiddleware } from '../../src/express';
 import { makeUrl, schema } from '../utils';
 import RESTAPIHandler from '../../src/api/rest';
 
-describe('Express adapter tests', () => {
+describe('Express adapter tests - rest handler', () => {
     it('run middleware', async () => {
         const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
 

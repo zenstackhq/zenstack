@@ -57,3 +57,31 @@ export function unmarshalFromObject(value: unknown, useSuperJson = false) {
         return value;
     }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildUrlQuery(query: unknown, useSuperJson: boolean) {
+    const result: Record<string, string | string[]> = {};
+
+    if (typeof query !== 'object' || query === null) {
+        return result;
+    }
+
+    for (const [key, v] of Object.entries(query)) {
+        if (typeof v !== 'string' && !Array.isArray(v)) {
+            continue;
+        }
+
+        let value = v as string | string[];
+
+        if (key === 'q') {
+            // handle parameter marshalling (potentially using superjson)
+            if (Array.isArray(value)) {
+                value = value.map((v) => JSON.stringify(unmarshalFromString(v as string, useSuperJson)));
+            } else {
+                value = JSON.stringify(unmarshalFromString(value as string, useSuperJson));
+            }
+        }
+        result[key] = value;
+    }
+    return result;
+}

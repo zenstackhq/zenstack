@@ -6,7 +6,7 @@ import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
-import { marshalToObject, unmarshalFromObject } from '../utils';
+import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Fastify plugin options
@@ -38,23 +38,34 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     }
 
     const requestHanler = options.handler ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const useSuperJson = options.useSuperJson === true;
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
         if (!prisma) {
-            throw new Error('unable to get prisma from request context');
+            reply
+                .status(500)
+                .send(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
+            return;
         }
-        const query = request.query as Record<string, string>;
+
+        let query: Record<string, string | string[]> = {};
+        try {
+            query = buildUrlQuery(request.query, useSuperJson);
+        } catch {
+            reply.status(400).send(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
+            return;
+        }
 
         const response = await requestHanler({
             method: request.method,
             path: (request.params as any)['*'],
             query,
-            requestBody: unmarshalFromObject(request.body, options.useSuperJson === true),
+            requestBody: unmarshalFromObject(request.body, useSuperJson),
             prisma,
         });
 
-        reply.status(response.status).send(marshalToObject(response.body, options.useSuperJson === true));
+        reply.status(response.status).send(marshalToObject(response.body, useSuperJson));
     });
 
     done();

@@ -1,3 +1,5 @@
+import superjson from 'superjson';
+
 export const schema = `
 model User {
     id String @id @default(cuid())
@@ -19,6 +21,6 @@ model Post {
 }
 `;
 
-export function makeUrl(path: string, q?: object) {
-    return q ? `${path}?q=${encodeURIComponent(JSON.stringify(q))}` : path;
+export function makeUrl(path: string, q?: object, useSuperJson = false) {
+    return q ? `${path}?q=${encodeURIComponent(useSuperJson ? superjson.stringify(q) : JSON.stringify(q))}` : path;
 }

@@ -84,7 +84,9 @@ describe('SvelteKit adapter tests', () => {
 
         const handler = SvelteKitHandler({ prefix: '/api', getPrisma: () => prisma, zodSchemas, useSuperJson: true });
 
-        let r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } })));
+        let r = await handler(
+            makeRequest('GET', makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }, true))
+        );
         expect(r.status).toBe(200);
         expect(await unmarshal(r, true)).toHaveLength(0);
 
@@ -117,7 +119,7 @@ describe('SvelteKit adapter tests', () => {
         expect(r.status).toBe(200);
         expect(await unmarshal(r, true)).toHaveLength(2);
 
-        r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } })));
+        r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }, true)));
         expect(r.status).toBe(200);
         expect(await unmarshal(r, true)).toHaveLength(1);
 
@@ -127,16 +129,16 @@ describe('SvelteKit adapter tests', () => {
         expect(r.status).toBe(200);
         expect((await unmarshal(r, true)).email).toBe('user1@def.com');
 
-        r = await handler(makeRequest('GET', makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } })));
+        r = await handler(makeRequest('GET', makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }, true)));
         expect(r.status).toBe(200);
         expect(await unmarshal(r, true)).toBe(1);
 
-        r = await handler(makeRequest('GET', makeUrl('/api/post/aggregate', { _sum: { viewCount: true } })));
+        r = await handler(makeRequest('GET', makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }, true)));
         expect(r.status).toBe(200);
         expect((await unmarshal(r, true))._sum.viewCount).toBe(3);
 
         r = await handler(
-            makeRequest('GET', makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }))
+            makeRequest('GET', makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }, true))
         );
         expect(r.status).toBe(200);
         expect(await unmarshal(r, true)).toEqual(
@@ -146,7 +148,7 @@ describe('SvelteKit adapter tests', () => {
             ])
         );
 
-        r = await handler(makeRequest('DELETE', makeUrl('/api/user/deleteMany', { where: { id: 'user1' } })));
+        r = await handler(makeRequest('DELETE', makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }, true)));
         expect(r.status).toBe(200);
         expect((await unmarshal(r, true)).count).toBe(1);
     });

@@ -4,7 +4,7 @@ import { ModelZodSchema, getModelZodSchemas } from '@zenstackhq/runtime/zod';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
-import { marshalToString, unmarshalFromString } from '../utils';
+import { buildUrlQuery, marshalToString, unmarshalFromString } from '../utils';
 
 /**
  * SvelteKit request handler options
@@ -35,29 +35,46 @@ export default function createHandler(options: HandlerOptions): Handle {
     }
 
     const requestHanler = options.handler ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const useSuperJson = options.useSuperJson === true;
 
     return async ({ event, resolve }) => {
         if (event.url.pathname.startsWith(options.prefix)) {
             const prisma = (await options.getPrisma(event)) as DbClientContract;
             if (!prisma) {
-                throw new Error('unable to get prisma from request context');
+                return new Response(
+                    marshalToString({ message: 'unable to get prisma from request context' }, useSuperJson),
+                    {
+                        status: 400,
+                        headers: {
+                            'content-type': 'application/json',
+                        },
+                    }
+                );
             }
 
-            const query: Record<string, string | string[]> = {};
+            const queryObj: Record<string, string[]> = {};
             for (const key of event.url.searchParams.keys()) {
                 const values = event.url.searchParams.getAll(key);
-                if (values.length === 1) {
-                    query[key] = values[0];
-                } else {
-                    query[key] = values;
-                }
+                queryObj[key] = values;
+            }
+
+            let query: Record<string, string | string[]> = {};
+            try {
+                query = buildUrlQuery(queryObj, useSuperJson);
+            } catch {
+                return new Response(marshalToString({ message: 'invalid query parameters' }, useSuperJson), {
+                    status: 400,
+                    headers: {
+                        'content-type': 'application/json',
+                    },
+                });
             }
 
             let requestBody: unknown;
             if (event.request.body) {
                 const text = await event.request.text();
                 if (text) {
-                    requestBody = unmarshalFromString(text, options.useSuperJson === true);
+                    requestBody = unmarshalFromString(text, useSuperJson);
                 }
             }
 
@@ -71,7 +88,7 @@ export default function createHandler(options: HandlerOptions): Handle {
                 prisma,
             });
 
-            return new Response(marshalToString(response.body, options.useSuperJson === true), {
+            return new Response(marshalToString(response.body, useSuperJson), {
                 status: response.status,
                 headers: {
                     'content-type': 'application/json',
