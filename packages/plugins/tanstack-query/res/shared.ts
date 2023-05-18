@@ -1,5 +1,3 @@
-import superjson from 'superjson';
-
 /**
  * The default query endpoint.
  */
@@ -16,13 +14,6 @@ export const QUERY_KEY_PREFIX = 'zenstack:';
 export type RequestHandlerContext = {
     endpoint: string;
 };
-
-/**
- * Builds a request URL with optional args.
- */
-export function makeUrl(url: string, args: unknown) {
-    return args ? url + `?q=${encodeURIComponent(marshal(args))}` : url;
-}
 
 async function fetcher<R>(url: string, options?: RequestInit) {
     const res = await fetch(url, options);
@@ -42,13 +33,4 @@ async function fetcher<R>(url: string, options?: RequestInit) {
         console.error(`Unable to deserialize data:`, textResult);
         throw err;
     }
-}
-
-export function marshal(value: unknown) {
-    return superjson.stringify(value);
-}
-
-export function unmarshal(value: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return superjson.parse<any>(value);
 }

@@ -35,7 +35,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     }
 
     generateIndex(project, outDir, models);
-    generateHelper(target, project, outDir);
+    generateHelper(target, project, outDir, options.useSuperJson === true);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -385,7 +385,7 @@ function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     sf.addStatements(`export * from './_helper';`);
 }
 
-function generateHelper(target: TargetFramework, project: Project, outDir: string) {
+function generateHelper(target: TargetFramework, project: Project, outDir: string, useSuperJson: boolean) {
     let srcFile: string;
     switch (target) {
         case 'react':
@@ -398,10 +398,15 @@ function generateHelper(target: TargetFramework, project: Project, outDir: strin
             throw new PluginError(`Unsupported target: ${target}`);
     }
 
-    // merge content of `shared.ts` and `helper.ts`
+    // merge content of `shared.ts`, `helper.ts` and `marshal-?.ts`
     const sharedContent = fs.readFileSync(path.join(__dirname, './res/shared.ts'), 'utf-8');
     const helperContent = fs.readFileSync(srcFile, 'utf-8');
-    project.createSourceFile(path.join(outDir, '_helper.ts'), `${sharedContent}\n${helperContent}`, {
+    const marshalContent = fs.readFileSync(
+        path.join(__dirname, useSuperJson ? './res/marshal-superjson.ts' : './res/marshal-json.ts'),
+        'utf-8'
+    );
+
+    project.createSourceFile(path.join(outDir, '_helper.ts'), `${sharedContent}\n${helperContent}\n${marshalContent}`, {
         overwrite: true,
     });
 }

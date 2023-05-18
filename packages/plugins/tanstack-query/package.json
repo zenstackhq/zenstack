@@ -13,6 +13,7 @@
         "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE 'res/**/*' dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
+        "test": "jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
