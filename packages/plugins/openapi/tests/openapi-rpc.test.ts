@@ -308,6 +308,37 @@ model User {
         expect(parsed.openapi).toBe('3.1.0');
         expect(parsed.info.summary).toEqual('awesome api');
     });
+
+    it('ignored model used as relation', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+}
+
+model User {
+    id String @id
+    email String @unique
+    posts Post[]
+}
+
+model Post {
+    id String @id
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+
+    @@openapi.ignore()
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+        await OpenAPIParser.validate(output);
+    });
 });
 
 function buildOptions(model: Model, modelFile: string, output: string) {

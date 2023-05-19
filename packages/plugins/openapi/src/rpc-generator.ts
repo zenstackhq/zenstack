@@ -144,21 +144,15 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generatePaths(components: OAPI.ComponentsObject): OAPI.PathsObject {
         let result: OAPI.PathsObject = {};
 
-        const includeModelNames = this.includedModels.map((d) => d.name);
-
         for (const model of this.dmmf.datamodel.models) {
-            if (includeModelNames.includes(model.name)) {
-                const zmodel = this.model.declarations.find(
-                    (d) => isDataModel(d) && d.name === model.name
-                ) as DataModel;
-                if (zmodel) {
-                    result = {
-                        ...result,
-                        ...this.generatePathsForModel(model, zmodel, components),
-                    } as OAPI.PathsObject;
-                } else {
-                    this.warnings.push(`Unable to load ZModel definition for: ${model.name}}`);
-                }
+            const zmodel = this.model.declarations.find((d) => isDataModel(d) && d.name === model.name) as DataModel;
+            if (zmodel) {
+                result = {
+                    ...result,
+                    ...this.generatePathsForModel(model, zmodel, components),
+                } as OAPI.PathsObject;
+            } else {
+                this.warnings.push(`Unable to load ZModel definition for: ${model.name}}`);
             }
         }
         return result;
@@ -558,9 +552,12 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 }
             }
 
-            result[`${prefix}/${lowerCaseFirst(model.name)}/${resolvedPath}`] = {
-                [resolvedMethod]: def,
-            };
+            const includeModelNames = this.includedModels.map((d) => d.name);
+            if (includeModelNames.includes(model.name)) {
+                result[`${prefix}/${lowerCaseFirst(model.name)}/${resolvedPath}`] = {
+                    [resolvedMethod]: def,
+                };
+            }
         }
         return result;
     }
