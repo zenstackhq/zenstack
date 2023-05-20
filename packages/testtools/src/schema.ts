@@ -92,7 +92,8 @@ export async function loadSchema(
     addPrelude = true,
     pushDb = true,
     extraDependencies: string[] = [],
-    compile = false
+    compile = false,
+    customSchemaFilePath?: string
 ) {
     const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
@@ -113,10 +114,24 @@ export async function loadSchema(
 
     schema = schema.replaceAll('$projectRoot', projectRoot);
 
+    let zmodelPath = path.join(projectRoot, 'schema.zmodel');
     const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
-    fs.writeFileSync('schema.zmodel', content);
+    if (customSchemaFilePath) {
+        zmodelPath = path.join(projectRoot, customSchemaFilePath);
+        fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
+        fs.writeFileSync(zmodelPath, content);
+    } else {
+        fs.writeFileSync('schema.zmodel', content);
+    }
     run('npm install');
-    run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
+
+    if (customSchemaFilePath) {
+        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check`, {
+            NODE_PATH: './node_modules',
+        });
+    } else {
+        run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
+    }
 
     if (pushDb) {
         run('npx prisma db push');
@@ -136,9 +151,9 @@ export async function loadSchema(
         run('npx tsc --project tsconfig.json');
     }
 
-    const policy = require(path.join(projectRoot, '.zenstack/policy')).default;
-    const modelMeta = require(path.join(projectRoot, '.zenstack/model-meta')).default;
-    const zodSchemas = require(path.join(projectRoot, '.zenstack/zod'));
+    const policy = require(path.join(path.dirname(zmodelPath), '.zenstack/policy')).default;
+    const modelMeta = require(path.join(path.dirname(zmodelPath), '.zenstack/model-meta')).default;
+    const zodSchemas = require(path.join(path.dirname(zmodelPath), '.zenstack/zod'));
 
     return {
         projectDir: projectRoot,
