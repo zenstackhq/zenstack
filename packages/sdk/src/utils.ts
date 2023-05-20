@@ -16,6 +16,8 @@ import {
     Reference,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import path from 'path';
+import { PluginOptions } from './types';
 
 /**
  * Gets data models that are not ignored
@@ -193,4 +195,20 @@ export function isForeignKeyField(field: DataModelField) {
         }
         return false;
     });
+}
+
+export function resolvePath(_path: string, options: PluginOptions) {
+    if (path.isAbsolute(_path)) {
+        return _path;
+    } else {
+        return path.join(path.dirname(options.schemaPath), _path);
+    }
+}
+
+export function requireOption<T>(options: PluginOptions, name: string): T {
+    const value = options[name];
+    if (value === undefined) {
+        throw new Error(`Plugin "${options.name}" is missing required option: ${name}`);
+    }
+    return value as T;
 }

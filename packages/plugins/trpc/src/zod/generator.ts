@@ -1,6 +1,6 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import { Dictionary } from '@prisma/internals';
-import { PluginOptions, getLiteral } from '@zenstackhq/sdk';
+import { PluginOptions, getLiteral, resolvePath } from '@zenstackhq/sdk';
 import { DataSource, Model, isDataSource } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
@@ -14,7 +14,9 @@ import removeDir from './utils/removeDir';
 import { writeFileSafely } from './utils/writeFileSafely';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    const output = (options.output as string) ?? './generated';
+    let output = (options.output as string) ?? './generated';
+    output = resolvePath(output, options);
+
     await handleGeneratorOutputValue(output);
 
     const prismaClientDmmf = dmmf;

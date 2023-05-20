@@ -32,6 +32,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -69,6 +70,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -100,6 +102,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -135,6 +138,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -174,6 +178,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -224,6 +229,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -256,6 +262,7 @@ describe('Prisma generator test', () => {
     `);
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -268,7 +275,7 @@ describe('Prisma generator test', () => {
         expect(dmmf.datamodel.models.length).toBe(1);
         const post = dmmf.datamodel.models[0];
         expect(post.name).toBe('Post');
-        expect(post.fields.length).toBe(6);
+        expect(post.fields.length).toBe(5);
     });
 
     it('custom aux field names', async () => {
@@ -289,6 +296,7 @@ describe('Prisma generator test', () => {
         await new PrismaSchemaGenerator().generate(
             model,
             {
+                name: 'Prisma',
                 provider: '@core/prisma',
                 schemaPath: 'schema.zmodel',
                 output: name,
@@ -311,6 +319,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
@@ -351,6 +360,7 @@ describe('Prisma generator test', () => {
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,

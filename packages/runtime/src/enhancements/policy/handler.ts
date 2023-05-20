@@ -38,11 +38,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
         }
 
+        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        if (guard === false) {
+            return null;
+        }
+
         const entities = await this.utils.readWithCheck(this.model, args);
         return entities[0] ?? null;
     }
 
     async findUniqueOrThrow(args: any) {
+        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        if (guard === false) {
+            throw this.utils.notFound(this.model);
+        }
+
         const entity = await this.findUnique(args);
         if (!entity) {
             throw this.utils.notFound(this.model);
@@ -51,11 +61,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findFirst(args: any) {
+        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        if (guard === false) {
+            return null;
+        }
+
         const entities = await this.utils.readWithCheck(this.model, args);
         return entities[0] ?? null;
     }
 
     async findFirstOrThrow(args: any) {
+        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        if (guard === false) {
+            throw this.utils.notFound(this.model);
+        }
+
         const entity = await this.findFirst(args);
         if (!entity) {
             throw this.utils.notFound(this.model);
@@ -64,6 +84,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findMany(args: any) {
+        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        if (guard === false) {
+            return [];
+        }
+
         return this.utils.readWithCheck(this.model, args);
     }
 

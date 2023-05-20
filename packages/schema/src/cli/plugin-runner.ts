@@ -2,7 +2,7 @@
 import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
 import { isPlugin, Plugin } from '@zenstackhq/language/ast';
-import { getLiteral, getLiteralArray, PluginError, PluginFunction, PluginOptions } from '@zenstackhq/sdk';
+import { getLiteral, getLiteralArray, PluginError, PluginFunction, PluginOptions, resolvePath } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
@@ -42,16 +42,6 @@ export class PluginRunner {
         for (const pluginProvider of allPluginProviders) {
             const plugin = pluginDecls.find((p) => this.getPluginProvider(p) === pluginProvider);
             if (plugin) {
-                const options: PluginOptions = { schemaPath: context.schemaPath };
-
-                plugin.fields.forEach((f) => {
-                    const value = getLiteral(f.value) ?? getLiteralArray(f.value);
-                    if (value === undefined) {
-                        throw new PluginError(`Invalid plugin value for ${f.name}`);
-                    }
-                    options[f.name] = value;
-                });
-
                 const pluginModulePath = this.getPluginModulePath(pluginProvider);
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let pluginModule: any;
@@ -59,32 +49,45 @@ export class PluginRunner {
                     pluginModule = require(pluginModulePath);
                 } catch (err) {
                     console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
-                    throw new PluginError(`Unable to load plugin module ${pluginProvider}`);
+                    throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
                 }
 
                 if (!pluginModule.default || typeof pluginModule.default !== 'function') {
                     console.error(`Plugin provider ${pluginProvider} is missing a default function export`);
-                    throw new PluginError(`Plugin provider ${pluginProvider} is missing a default function export`);
+                    throw new PluginError('', `Plugin provider ${pluginProvider} is missing a default function export`);
                 }
+
+                const pluginName = this.getPluginName(pluginModule, pluginProvider);
+                const options: PluginOptions = { schemaPath: context.schemaPath, name: pluginName };
+
+                plugin.fields.forEach((f) => {
+                    const value = getLiteral(f.value) ?? getLiteralArray(f.value);
+                    if (value === undefined) {
+                        throw new PluginError(pluginName, `Invalid option value for ${f.name}`);
+                    }
+                    options[f.name] = value;
+                });
+
                 plugins.push({
-                    name: this.getPluginName(pluginModule, pluginProvider),
+                    name: pluginName,
                     provider: pluginProvider,
                     run: pluginModule.default as PluginFunction,
                     options,
                 });
 
-                if (pluginProvider === '@core/prisma' && options.output) {
+                if (pluginProvider === '@core/prisma' && typeof options.output === 'string') {
                     // record custom prisma output path
-                    prismaOutput = options.output as string;
+                    prismaOutput = resolvePath(options.output, options);
                 }
             } else {
                 // synthesize a plugin
                 const pluginModule = require(this.getPluginModulePath(pluginProvider));
+                const pluginName = this.getPluginName(pluginModule, pluginProvider);
                 plugins.push({
-                    name: this.getPluginName(pluginModule, pluginProvider),
+                    name: pluginName,
                     provider: pluginProvider,
                     run: pluginModule.default,
-                    options: { schemaPath: context.schemaPath },
+                    options: { schemaPath: context.schemaPath, name: pluginName },
                 });
             }
         }

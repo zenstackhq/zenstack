@@ -13,6 +13,7 @@ import {
     UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { getLiteral, PluginError } from '@zenstackhq/sdk';
+import { name } from '.';
 import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { isFutureExpr } from './utils';
@@ -63,7 +64,7 @@ export default class TypeScriptExpressionTransformer {
                 return this.binary(expr as BinaryExpr, normalizeUndefined);
 
             default:
-                throw new PluginError(`Unsupported expression type: ${expr.$type}`);
+                throw new PluginError(name, `Unsupported expression type: ${expr.$type}`);
         }
     }
 
@@ -75,14 +76,14 @@ export default class TypeScriptExpressionTransformer {
 
     private memberAccess(expr: MemberAccessExpr, normalizeUndefined: boolean) {
         if (!expr.member.ref) {
-            throw new PluginError(`Unresolved MemberAccessExpr`);
+            throw new PluginError(name, `Unresolved MemberAccessExpr`);
         }
 
         if (isThisExpr(expr.operand)) {
             return expr.member.ref.name;
         } else if (isFutureExpr(expr.operand)) {
             if (!this.isPostGuard) {
-                throw new PluginError(`future() is only supported in postUpdate rules`);
+                throw new PluginError(name, `future() is only supported in postUpdate rules`);
             }
             return expr.member.ref.name;
         } else {
@@ -97,7 +98,7 @@ export default class TypeScriptExpressionTransformer {
 
     private invocation(expr: InvocationExpr, normalizeUndefined: boolean) {
         if (!expr.function.ref) {
-            throw new PluginError(`Unresolved InvocationExpr`);
+            throw new PluginError(name, `Unresolved InvocationExpr`);
         }
 
         if (isAuthInvocation(expr)) {
@@ -121,7 +122,7 @@ export default class TypeScriptExpressionTransformer {
                     break;
                 }
                 case 'search':
-                    throw new PluginError('"search" function must be used against a field');
+                    throw new PluginError(name, '"search" function must be used against a field');
                 case 'startsWith':
                     result = `${arg0}?.startsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
@@ -147,18 +148,18 @@ export default class TypeScriptExpressionTransformer {
                     result = `${arg0}?.length === 0`;
                     break;
                 default:
-                    throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
+                    throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
             }
 
             return `(${result} ?? false)`;
         } else {
-            throw new PluginError(`Function invocation is not supported: ${expr.function.ref?.name}`);
+            throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
         }
     }
 
     private reference(expr: ReferenceExpr) {
         if (!expr.target.ref) {
-            throw new PluginError(`Unresolved ReferenceExpr`);
+            throw new PluginError(name, `Unresolved ReferenceExpr`);
         }
 
         if (isEnumField(expr.target.ref)) {
