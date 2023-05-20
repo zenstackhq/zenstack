@@ -37,7 +37,7 @@ export class PluginRunner {
                 .map((p) => this.getPluginProvider(p))
                 .filter((p): p is string => !!p && !prereqPlugins.includes(p))
         );
-        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: context.schemaPath });
+        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: context.schemaPath, name: '' });
 
         for (const pluginProvider of allPluginProviders) {
             const plugin = pluginDecls.find((p) => this.getPluginProvider(p) === pluginProvider);
