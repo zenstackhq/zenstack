@@ -471,9 +471,6 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         // data models
         for (const model of getDataModels(this.model)) {
-            if (!this.includedModels.includes(model)) {
-                continue;
-            }
             for (const [name, value] of Object.entries(this.generateDataModelComponents(model))) {
                 schemas[name] = value;
             }
