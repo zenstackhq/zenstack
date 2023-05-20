@@ -1,7 +1,7 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import { analyzePolicies, AUXILIARY_FIELDS, PluginError } from '@zenstackhq/sdk';
+import { analyzePolicies, AUXILIARY_FIELDS, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
 import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -31,10 +31,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private warnings: string[] = [];
 
     generate() {
-        const output = this.getOption('output', '');
-        if (!output) {
-            throw new PluginError('"output" option is required');
-        }
+        let output = requireOption<string>(this.options, 'output');
+        output = resolvePath(output, this.options);
 
         // input types
         this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
@@ -663,7 +661,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 return this.wrapArray(this.ref(def.type, false), def.isList);
 
             default:
-                throw new PluginError(`Unsupported field kind: ${def.kind}`);
+                throw new PluginError(this.options.name, `Unsupported field kind: ${def.kind}`);
         }
     }
 

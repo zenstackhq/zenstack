@@ -1,8 +1,15 @@
 import { DMMF } from '@prisma/generator-helper';
-import { CrudFailureReason, PluginError, PluginOptions, RUNTIME_PACKAGE, saveProject } from '@zenstackhq/sdk';
+import {
+    CrudFailureReason,
+    PluginOptions,
+    RUNTIME_PACKAGE,
+    requireOption,
+    resolvePath,
+    saveProject,
+} from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
-import { lowerCaseFirst } from 'lower-case-first';
 import { promises as fs } from 'fs';
+import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project } from 'ts-morph';
 import {
@@ -17,15 +24,8 @@ import removeDir from './utils/removeDir';
 import { generate as PrismaZodGenerator } from './zod/generator';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = options.output as string;
-    if (!outDir) {
-        throw new PluginError('"output" option is required');
-    }
-
-    if (!path.isAbsolute(outDir)) {
-        // output dir is resolved relative to the schema file path
-        outDir = path.join(path.dirname(options.schemaPath), outDir);
-    }
+    let outDir = requireOption<string>(options, 'output');
+    outDir = resolvePath(outDir, options);
 
     await fs.mkdir(outDir, { recursive: true });
     await removeDir(outDir, true);

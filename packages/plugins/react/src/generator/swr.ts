@@ -1,10 +1,11 @@
 import { DMMF } from '@prisma/generator-helper';
 import {
     CrudFailureReason,
-    PluginError,
     PluginOptions,
     createProject,
     getDataModels,
+    requireOption,
+    resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
@@ -14,15 +15,8 @@ import * as path from 'path';
 import { Project } from 'ts-morph';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = options.output as string;
-    if (!outDir) {
-        throw new PluginError('"output" option is required');
-    }
-
-    if (!path.isAbsolute(outDir)) {
-        // output dir is resolved relative to the schema file path
-        outDir = path.join(path.dirname(options.schemaPath), outDir);
-    }
+    let outDir = requireOption<string>(options, 'output');
+    outDir = resolvePath(outDir, options);
 
     const project = createProject();
     const warnings: string[] = [];

@@ -16,31 +16,29 @@ import {
     getLiteral,
     hasAttribute,
     isIdField,
+    PluginError,
     PluginOptions,
     resolved,
+    resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { CodeBlockWriter, VariableDeclarationKind } from 'ts-morph';
-import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
+import { getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
 
 export default async function run(model: Model, options: PluginOptions) {
-    const output = options.output ? (options.output as string) : getDefaultOutputFolder();
+    let output = options.output ? (options.output as string) : getDefaultOutputFolder();
     if (!output) {
-        console.error(`Unable to determine output path, not running plugin ${name}`);
-        return;
+        throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
     }
+    output = resolvePath(output, options);
 
     const dataModels = getDataModels(model);
 
     const project = createProject();
-
-    if (!options.output) {
-        ensureNodeModuleFolder(output);
-    }
 
     const sf = project.createSourceFile(path.join(output, 'model-meta.ts'), undefined, { overwrite: true });
     sf.addStatements('/* eslint-disable */');

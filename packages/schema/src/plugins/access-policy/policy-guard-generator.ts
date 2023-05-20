@@ -25,11 +25,12 @@ import {
     PluginError,
     PluginOptions,
     resolved,
+    resolvePath,
     RUNTIME_PACKAGE,
     saveProject,
 } from '@zenstackhq/sdk';
-import { lowerCaseFirst } from 'lower-case-first';
 import { streamAllContents } from 'langium';
+import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
@@ -46,11 +47,11 @@ import { ZodSchemaGenerator } from './zod-schema-generator';
  */
 export default class PolicyGenerator {
     async generate(model: Model, options: PluginOptions) {
-        const output = options.output ? (options.output as string) : getDefaultOutputFolder();
+        let output = options.output ? (options.output as string) : getDefaultOutputFolder();
         if (!output) {
-            console.error(`Unable to determine output path, not running plugin ${name}`);
-            return;
+            throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
         }
+        output = resolvePath(output, options);
 
         const project = createProject();
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
@@ -343,11 +344,11 @@ export default class PolicyGenerator {
                 (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
             );
             if (!userModel) {
-                throw new PluginError('User model not found');
+                throw new PluginError(name, 'User model not found');
             }
             const userIdFields = getIdFields(userModel);
             if (!userIdFields || userIdFields.length === 0) {
-                throw new PluginError('User model does not have an id field');
+                throw new PluginError(name, 'User model does not have an id field');
             }
 
             // normalize user to null to avoid accidentally use undefined in filter

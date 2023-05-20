@@ -1,5 +1,13 @@
 import { DMMF } from '@prisma/generator-helper';
-import { PluginError, PluginOptions, createProject, getDataModels, saveProject } from '@zenstackhq/sdk';
+import {
+    PluginError,
+    PluginOptions,
+    createProject,
+    getDataModels,
+    requireOption,
+    resolvePath,
+    saveProject,
+} from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
 import fs from 'fs';
@@ -7,31 +15,25 @@ import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
+import { name } from '.';
 
 const supportedTargets = ['react', 'svelte'];
 type TargetFramework = (typeof supportedTargets)[number];
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = options.output as string;
-    if (!outDir) {
-        throw new PluginError('"output" option is required');
-    }
-
-    if (!path.isAbsolute(outDir)) {
-        // output dir is resolved relative to the schema file path
-        outDir = path.join(path.dirname(options.schemaPath), outDir);
-    }
+    let outDir = requireOption<string>(options, 'output');
+    outDir = resolvePath(outDir, options);
 
     const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
-    const target = options.target as string;
-    if (!target) {
-        throw new PluginError(`"target" option is required, supported values: ${supportedTargets.join(', ')}`);
-    }
+    const target = requireOption<string>(options, 'target');
     if (!supportedTargets.includes(target)) {
-        throw new PluginError(`Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`);
+        throw new PluginError(
+            options.name,
+            `Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`
+        );
     }
 
     generateIndex(project, outDir, models);
@@ -198,7 +200,7 @@ function generateMutationHook(
             break;
 
         default:
-            throw new PluginError(`Unsupported target "${target}"`);
+            throw new PluginError(name, `Unsupported target "${target}"`);
     }
 
     func.addStatements('return mutation;');
@@ -395,7 +397,7 @@ function generateHelper(target: TargetFramework, project: Project, outDir: strin
             srcFile = path.join(__dirname, './res/svelte/helper.ts');
             break;
         default:
-            throw new PluginError(`Unsupported target: ${target}`);
+            throw new PluginError(name, `Unsupported target: ${target}`);
     }
 
     // merge content of `shared.ts`, `helper.ts` and `marshal-?.ts`
@@ -418,7 +420,7 @@ function makeGetContext(target: TargetFramework) {
         case 'svelte':
             return `const { endpoint } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
         default:
-            throw new PluginError(`Unsupported target "${target}"`);
+            throw new PluginError(name, `Unsupported target "${target}"`);
     }
 }
 
@@ -441,7 +443,7 @@ function makeBaseImports(target: TargetFramework) {
                 ...shared,
             ];
         default:
-            throw new PluginError(`Unsupported target: ${target}`);
+            throw new PluginError(name, `Unsupported target: ${target}`);
     }
 }
 
@@ -452,7 +454,7 @@ function makeQueryOptions(target: string, returnType: string) {
         case 'svelte':
             return `QueryOptions<${returnType}>`;
         default:
-            throw new PluginError(`Unsupported target: ${target}`);
+            throw new PluginError(name, `Unsupported target: ${target}`);
     }
 }
 
@@ -463,6 +465,6 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
         case 'svelte':
             return `MutationOptions<${returnType}, unknown, ${argsType}>`;
         default:
-            throw new PluginError(`Unsupported target: ${target}`);
+            throw new PluginError(name, `Unsupported target: ${target}`);
     }
 }

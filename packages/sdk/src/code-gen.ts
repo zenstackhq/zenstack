@@ -63,7 +63,7 @@ export async function emitProject(project: Project) {
         console.error('Error compiling generated code:');
         console.error(project.formatDiagnosticsWithColorAndContext(errors.slice(0, 10)));
         await project.save();
-        throw new PluginError(`Error compiling generated code`);
+        throw new PluginError('', `Error compiling generated code`);
     }
 
     const result = await project.emit();
@@ -73,6 +73,6 @@ export async function emitProject(project: Project) {
         console.error('Some generated code is not emitted:');
         console.error(project.formatDiagnosticsWithColorAndContext(emitErrors.slice(0, 10)));
         await project.save();
-        throw new PluginError(`Error emitting generated code`);
+        throw new PluginError('', `Error emitting generated code`);
     }
 }

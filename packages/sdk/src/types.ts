@@ -9,7 +9,10 @@ export type OptionValue = string | number | boolean;
 /**
  * Plugin configuration oiptions
  */
-export type PluginOptions = { provider?: string; schemaPath: string } & Record<string, OptionValue | OptionValue[]>;
+export type PluginOptions = { provider?: string; schemaPath: string; name: string } & Record<
+    string,
+    OptionValue | OptionValue[]
+>;
 
 /**
  * Plugin entry point function definition
@@ -25,7 +28,7 @@ export type PluginFunction = (
  * Plugin error
  */
 export class PluginError extends Error {
-    constructor(message: string) {
+    constructor(public plugin: string, message: string) {
         super(message);
     }
 }

@@ -3,12 +3,13 @@
 import { DMMF } from '@prisma/generator-helper';
 import {
     AUXILIARY_FIELDS,
-    PluginError,
     analyzePolicies,
     getDataModels,
     isForeignKeyField,
     isIdField,
     isRelationshipField,
+    requireOption,
+    resolvePath,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import * as fs from 'fs';
@@ -30,10 +31,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private warnings: string[] = [];
 
     generate() {
-        const output = this.getOption('output', '');
-        if (!output) {
-            throw new PluginError('"output" option is required');
-        }
+        let output = requireOption<string>(this.options, 'output');
+        output = resolvePath(output, this.options);
 
         const components = this.generateComponents();
         const paths = this.generatePaths();
