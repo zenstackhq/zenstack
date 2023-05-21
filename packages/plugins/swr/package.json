@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/swr",
     "displayName": "ZenStack plugin for generating SWR hooks",
-    "version": "1.0.0-alpha.117",
+    "version": "1.0.0-alpha.118",
     "description": "ZenStack plugin for generating SWR hooks",
     "main": "index.js",
     "repository": {
@@ -13,6 +13,7 @@
         "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE 'res/**/*' dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
+        "test": "jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
