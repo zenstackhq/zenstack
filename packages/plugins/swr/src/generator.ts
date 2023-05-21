@@ -310,6 +310,7 @@ function generateMutation(
 ) {
     const modelRouteName = lowerCaseFirst(model.name);
     const funcName = `${operation}${model.name}`;
+    const fetcherFunc = method === 'delete' ? 'del' : method;
     func.addFunction({
         name: funcName,
         isAsync: true,
@@ -324,7 +325,7 @@ function generateMutation(
         .addBody()
         .addStatements([
             wrapReadbackErrorCheck(
-                `return await request.${method}<${inputType}, ${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate);`
+                `return await request.${fetcherFunc}<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate);`
             ),
         ]);
     return funcName;

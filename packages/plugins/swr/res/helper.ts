@@ -38,13 +38,13 @@ export type RequestOptions<T> = {
  * @returns SWR response
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function get<Data, Error = any>(
+export function get<Result, Error = any>(
     url: string | null,
     args?: unknown,
-    options?: RequestOptions<Data>
-): SWRResponse<Data, Error> {
+    options?: RequestOptions<Result>
+): SWRResponse<Result, Error> {
     const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
-    return useSWR<Data, Error>(reqUrl, fetcher, {
+    return useSWR<Result, Error>(reqUrl, fetcher, {
         fallbackData: options?.initialData,
     });
 }
@@ -56,7 +56,7 @@ export function get<Data, Error = any>(
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function post<Data, Result>(url: string, data: Data, mutate: Mutator): Promise<Result> {
+export async function post<Result>(url: string, data: unknown, mutate: Mutator): Promise<Result> {
     const r: Result = await fetcher(url, {
         method: 'POST',
         headers: {
@@ -75,7 +75,7 @@ export async function post<Data, Result>(url: string, data: Data, mutate: Mutato
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function put<Data, Result>(url: string, data: Data, mutate: Mutator): Promise<Result> {
+export async function put<Result>(url: string, data: unknown, mutate: Mutator): Promise<Result> {
     const r: Result = await fetcher(url, {
         method: 'PUT',
         headers: {
