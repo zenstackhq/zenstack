@@ -1,14 +1,13 @@
 {
     "name": "zenstack-monorepo",
-    "version": "1.0.0-alpha.117",
+    "version": "1.0.0-alpha.118",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
         "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
-        "publish-dev": "pnpm --filter \"./packages/**\" -r publish --access public --tag dev",
-        "publish-canary": "pnpm --filter \"./packages/**\" -r publish --access public --tag canary"
+        "publish-private": "pnpm --filter \"./packages/**\" -r publish --registry http://localhost:4873"
     },
     "keywords": [],
     "author": "",
