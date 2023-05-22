@@ -4,7 +4,7 @@ import { createServer, RequestListener } from 'http';
 import { apiResolver } from 'next/dist/server/api-utils/node';
 import superjson from 'superjson';
 import request from 'supertest';
-import { requestHandler, RequestHandlerOptions } from '../../../next/src';
+import { NextRequestHandler, RequestHandlerOptions } from '../../src/next';
 
 function makeTestClient(apiPath: string, options: RequestHandlerOptions, queryArgs?: unknown) {
     const pathParts = apiPath.split('/').filter((p) => p);
@@ -14,7 +14,7 @@ function makeTestClient(apiPath: string, options: RequestHandlerOptions, queryAr
         ...(queryArgs ? { q: superjson.stringify(queryArgs) } : {}),
     };
 
-    const handler = requestHandler(options);
+    const handler = NextRequestHandler(options);
 
     const listener: RequestListener = (req, res) => {
         return apiResolver(
@@ -55,7 +55,7 @@ model M {
 
         const { prisma } = await loadSchema(model);
 
-        await makeTestClient('/m/create', { getPrisma: () => prisma })
+        await makeTestClient('/m/create', { getPrisma: () => prisma, useSuperJson: true })
             .post('/')
             .send({ data: { id: '1', value: 1 } })
             .expect(201)
@@ -63,28 +63,28 @@ model M {
                 expect(resp.body.json.value).toBe(1);
             });
 
-        await makeTestClient('/m/findUnique', { getPrisma: () => prisma }, { where: { id: '1' } })
+        await makeTestClient('/m/findUnique', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json.value).toBe(1);
             });
 
-        await makeTestClient('/m/findFirst', { getPrisma: () => prisma }, { where: { id: '1' } })
+        await makeTestClient('/m/findFirst', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json.value).toBe(1);
             });
 
-        await makeTestClient('/m/findMany', { getPrisma: () => prisma }, {})
+        await makeTestClient('/m/findMany', { getPrisma: () => prisma, useSuperJson: true }, {})
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json).toHaveLength(1);
             });
 
-        await makeTestClient('/m/update', { getPrisma: () => prisma })
+        await makeTestClient('/m/update', { getPrisma: () => prisma, useSuperJson: true })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 2 } })
             .expect(200)
@@ -92,7 +92,7 @@ model M {
                 expect(resp.body.json.value).toBe(2);
             });
 
-        await makeTestClient('/m/updateMany', { getPrisma: () => prisma })
+        await makeTestClient('/m/updateMany', { getPrisma: () => prisma, useSuperJson: true })
             .put('/')
             .send({ data: { value: 4 } })
             .expect(200)
@@ -100,7 +100,7 @@ model M {
                 expect(resp.body.json.count).toBe(1);
             });
 
-        await makeTestClient('/m/upsert', { getPrisma: () => prisma })
+        await makeTestClient('/m/upsert', { getPrisma: () => prisma, useSuperJson: true })
             .post('/')
             .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } })
             .expect(201)
@@ -108,7 +108,7 @@ model M {
                 expect(resp.body.json.value).toBe(2);
             });
 
-        await makeTestClient('/m/upsert', { getPrisma: () => prisma })
+        await makeTestClient('/m/upsert', { getPrisma: () => prisma, useSuperJson: true })
             .post('/')
             .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } })
             .expect(201)
@@ -116,28 +116,32 @@ model M {
                 expect(resp.body.json.value).toBe(3);
             });
 
-        await makeTestClient('/m/count', { getPrisma: () => prisma }, { where: { id: '1' } })
+        await makeTestClient('/m/count', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json).toBe(1);
             });
 
-        await makeTestClient('/m/count', { getPrisma: () => prisma }, {})
+        await makeTestClient('/m/count', { getPrisma: () => prisma, useSuperJson: true }, {})
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json).toBe(2);
             });
 
-        await makeTestClient('/m/aggregate', { getPrisma: () => prisma }, { _sum: { value: true } })
+        await makeTestClient('/m/aggregate', { getPrisma: () => prisma, useSuperJson: true }, { _sum: { value: true } })
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json._sum.value).toBe(7);
             });
 
-        await makeTestClient('/m/groupBy', { getPrisma: () => prisma }, { by: ['id'], _sum: { value: true } })
+        await makeTestClient(
+            '/m/groupBy',
+            { getPrisma: () => prisma, useSuperJson: true },
+            { by: ['id'], _sum: { value: true } }
+        )
             .get('/')
             .expect(200)
             .expect((resp) => {
@@ -147,12 +151,12 @@ model M {
                 expect(data.find((item: any) => item.id === '2')._sum.value).toBe(3);
             });
 
-        await makeTestClient('/m/delete', { getPrisma: () => prisma }, { where: { id: '1' } })
+        await makeTestClient('/m/delete', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .del('/')
             .expect(200);
         expect(await prisma.m.count()).toBe(1);
 
-        await makeTestClient('/m/deleteMany', { getPrisma: () => prisma }, {})
+        await makeTestClient('/m/deleteMany', { getPrisma: () => prisma, useSuperJson: true }, {})
             .del('/')
             .expect(200)
             .expect((resp) => {
@@ -217,46 +221,54 @@ model M {
 
         const { withPresets } = await loadSchema(model);
 
-        await makeTestClient('/m/create', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/create', { getPrisma: () => withPresets(), useSuperJson: true })
             .post('/m/create')
             .send({ data: { value: 0 } })
             .expect(403)
             .expect((resp) => {
-                expect(resp.body.reason).toBe('RESULT_NOT_READABLE');
+                expect(resp.body.json.reason).toBe('RESULT_NOT_READABLE');
             });
 
-        await makeTestClient('/m/create', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/create', { getPrisma: () => withPresets(), useSuperJson: true })
             .post('/')
             .send({ data: { id: '1', value: 1 } })
             .expect(201);
 
-        await makeTestClient('/m/findMany', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/findMany', { getPrisma: () => withPresets(), useSuperJson: true })
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.json).toHaveLength(1);
             });
 
-        await makeTestClient('/m/update', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/update', { getPrisma: () => withPresets(), useSuperJson: true })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 0 } })
             .expect(403);
 
-        await makeTestClient('/m/update', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/update', { getPrisma: () => withPresets(), useSuperJson: true })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 2 } })
             .expect(200);
 
-        await makeTestClient('/m/delete', { getPrisma: () => withPresets() }, { where: { id: '1' } })
+        await makeTestClient(
+            '/m/delete',
+            { getPrisma: () => withPresets(), useSuperJson: true },
+            { where: { id: '1' } }
+        )
             .del('/')
             .expect(403);
 
-        await makeTestClient('/m/update', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/update', { getPrisma: () => withPresets(), useSuperJson: true })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 3 } })
             .expect(200);
 
-        await makeTestClient('/m/delete', { getPrisma: () => withPresets() }, { where: { id: '1' } })
+        await makeTestClient(
+            '/m/delete',
+            { getPrisma: () => withPresets(), useSuperJson: true },
+            { where: { id: '1' } }
+        )
             .del('/')
             .expect(200);
     });

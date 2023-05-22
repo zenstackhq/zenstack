@@ -18,8 +18,9 @@ describe('Express adapter tests - rest handler', () => {
             '/api',
             ZenStackMiddleware({
                 getPrisma: () => prisma,
+                modelMeta,
                 zodSchemas,
-                handler: RESTAPIHandler({ endpoint: 'http://localhost/api', modelMeta }),
+                handler: RESTAPIHandler({ endpoint: 'http://localhost/api' }),
             })
         );
 

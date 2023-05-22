@@ -34,7 +34,7 @@ export default function createHandler(options: HandlerOptions): Handle {
         schemas = getModelZodSchemas();
     }
 
-    const requestHanler = options.handler ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const requestHanler = options.handler ?? RPCApiHandler();
     const useSuperJson = options.useSuperJson === true;
 
     return async ({ event, resolve }) => {
@@ -80,20 +80,32 @@ export default function createHandler(options: HandlerOptions): Handle {
 
             const path = event.url.pathname.substring(options.prefix.length);
 
-            const response = await requestHanler({
-                method: event.request.method,
-                path,
-                query,
-                requestBody,
-                prisma,
-            });
+            try {
+                const r = await requestHanler({
+                    method: event.request.method,
+                    path,
+                    url: event.url,
+                    query,
+                    requestBody,
+                    prisma,
+                    zodSchemas: schemas,
+                    modelMeta: options.modelMeta,
+                });
 
-            return new Response(marshalToString(response.body, useSuperJson), {
-                status: response.status,
-                headers: {
-                    'content-type': 'application/json',
-                },
-            });
+                return new Response(marshalToString(r.body, useSuperJson), {
+                    status: r.status,
+                    headers: {
+                        'content-type': 'application/json',
+                    },
+                });
+            } catch (err) {
+                return new Response(marshalToString({ message: `An unhandled error occurred: ${err}` }, useSuperJson), {
+                    status: 500,
+                    headers: {
+                        'content-type': 'application/json',
+                    },
+                });
+            }
         }
 
         return resolve(event);

@@ -27,7 +27,7 @@ const factory = (options: MiddlewareOptions): Handler => {
         zodSchemas = getModelZodSchemas();
     }
 
-    const requestHandler = options.handler || RPCAPIHandler({ logger: options.logger, zodSchemas });
+    const requestHandler = options.handler || RPCAPIHandler();
     const useSuperJson = options.useSuperJson === true;
 
     return async (request, response) => {
@@ -47,15 +47,25 @@ const factory = (options: MiddlewareOptions): Handler => {
             return;
         }
 
-        const r = await requestHandler({
-            method: request.method,
-            path: request.path,
-            query,
-            requestBody: unmarshalFromObject(request.body, useSuperJson),
-            prisma,
-        });
-
-        response.status(r.status).json(marshalToObject(r.body, useSuperJson));
+        try {
+            const url = request.protocol + '://' + request.get('host') + request.originalUrl;
+            const r = await requestHandler({
+                method: request.method,
+                url: new URL(url),
+                path: request.path,
+                query,
+                requestBody: unmarshalFromObject(request.body, useSuperJson),
+                prisma,
+                modelMeta: options.modelMeta,
+                zodSchemas,
+                logger: options.logger,
+            });
+            response.status(r.status).json(marshalToObject(r.body, useSuperJson));
+        } catch (err) {
+            response
+                .status(500)
+                .json(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
+        }
     };
 };
 

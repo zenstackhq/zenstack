@@ -37,7 +37,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         schemas = getModelZodSchemas();
     }
 
-    const requestHanler = options.handler ?? RPCApiHandler({ logger: options.logger, zodSchemas: schemas });
+    const requestHanler = options.handler ?? RPCApiHandler();
     const useSuperJson = options.useSuperJson === true;
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
@@ -57,15 +57,23 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
             return;
         }
 
-        const response = await requestHanler({
-            method: request.method,
-            path: (request.params as any)['*'],
-            query,
-            requestBody: unmarshalFromObject(request.body, useSuperJson),
-            prisma,
-        });
-
-        reply.status(response.status).send(marshalToObject(response.body, useSuperJson));
+        try {
+            const url = request.protocol + '://' + request.hostname + request.url;
+            const response = await requestHanler({
+                method: request.method,
+                path: (request.params as any)['*'],
+                url: new URL(url),
+                query,
+                requestBody: unmarshalFromObject(request.body, useSuperJson),
+                prisma,
+                modelMeta: options.modelMeta,
+                zodSchemas: schemas,
+                logger: options.logger,
+            });
+            reply.status(response.status).send(marshalToObject(response.body, useSuperJson));
+        } catch (err) {
+            reply.status(500).send(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
+        }
     });
 
     done();

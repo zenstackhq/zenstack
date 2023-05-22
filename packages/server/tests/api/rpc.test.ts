@@ -4,6 +4,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import RPCAPIHandler from '../../src/api/rpc';
 import { schema } from '../utils';
+import { ModelZodSchema } from '@zenstackhq/runtime/zod';
 
 describe('OpenAPI server tests', () => {
     let prisma: any;
@@ -16,7 +17,7 @@ describe('OpenAPI server tests', () => {
     });
 
     it('crud', async () => {
-        const handleRequest = RPCAPIHandler();
+        const handleRequest = makeHandler();
 
         let r = await handleRequest({
             method: 'get',
@@ -130,7 +131,7 @@ describe('OpenAPI server tests', () => {
     });
 
     it('validation error', async () => {
-        let handleRequest = RPCAPIHandler();
+        let handleRequest = makeHandler();
 
         // without validation
         let r = await handleRequest({
@@ -141,7 +142,7 @@ describe('OpenAPI server tests', () => {
         expect(r.status).toBe(400);
         expect((r.body as any).message).toContain('Argument where is missing');
 
-        handleRequest = RPCAPIHandler({ zodSchemas });
+        handleRequest = makeHandler(zodSchemas);
 
         // with validation
         r = await handleRequest({
@@ -158,6 +159,7 @@ describe('OpenAPI server tests', () => {
             path: '/post/create',
             requestBody: { data: {} },
             prisma,
+            zodSchemas,
         });
         expect(r.status).toBe(400);
         expect((r.body as any).message).toContain('Validation error');
@@ -165,8 +167,7 @@ describe('OpenAPI server tests', () => {
     });
 
     it('invalid path or args', async () => {
-        const handleRequest = RPCAPIHandler();
-
+        const handleRequest = makeHandler();
         let r = await handleRequest({
             method: 'get',
             path: '/post/',
@@ -202,3 +203,10 @@ describe('OpenAPI server tests', () => {
         expect((r.body as any).message).toContain('query param must contain valid JSON');
     });
 });
+
+function makeHandler(zodSchemas?: ModelZodSchema) {
+    const _handler = RPCAPIHandler();
+    return async (args: any) => {
+        return _handler({ ...args, url: new URL(`http://localhost/${args.path}`), zodSchemas });
+    };
+}

@@ -4,36 +4,22 @@ import {
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
-import { ModelZodSchema } from '@zenstackhq/runtime/zod';
-import { LoggerConfig, RequestContext, Response } from '../../types';
+import { RequestContext, Response } from '../../types';
 import { logError, stripAuxFields, zodValidate } from '../utils';
-
-/**
- * Request handler options
- */
-export type Options = {
-    /**
-     * Logging configuration. Set to `null` to disable logging.
-     * If unset or set to `undefined`, log will be output to console.
-     */
-    logger?: LoggerConfig | null;
-
-    /**
-     * Zod schemas for validating create and update payloads. By default
-     * loaded from the standard output location of the `@zenstackhq/zod`
-     * plugin. You can pass it in explicitly if you configured the plugin
-     * to output to a different location.
-     */
-    zodSchemas?: ModelZodSchema;
-};
 
 /**
  * Prisma RPC style API request handler that mirrors the Prisma Client API
  */
 class RequestHandler {
-    constructor(private readonly options: Options = {}) {}
-
-    async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
+    async handleRequest({
+        prisma,
+        method,
+        path,
+        query,
+        requestBody,
+        zodSchemas,
+        logger,
+    }: RequestContext): Promise<Response> {
         const parts = path.split('/').filter((p) => !!p);
         const op = parts.pop();
         const model = parts.pop();
@@ -111,8 +97,8 @@ class RequestHandler {
                 return { status: 400, body: { message: 'invalid operation: ' + op } };
         }
 
-        if (this.options.zodSchemas) {
-            const { data, error } = zodValidate(this.options.zodSchemas, model, dbOp, args);
+        if (zodSchemas) {
+            const { data, error } = zodValidate(zodSchemas, model, dbOp, args);
             if (error) {
                 return { status: 400, body: { message: error } };
             } else {
@@ -129,7 +115,7 @@ class RequestHandler {
             return { status: resCode, body: result };
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
-                logError(this.options.logger, err.code, err.message);
+                logError(logger, err.code, err.message);
                 if (err.code === 'P2004') {
                     // rejected by policy
                     return {
@@ -154,7 +140,7 @@ class RequestHandler {
                     };
                 }
             } else if (isPrismaClientUnknownRequestError(err) || isPrismaClientValidationError(err)) {
-                logError(this.options.logger, err.message);
+                logError(logger, err.message);
                 return {
                     status: 400,
                     body: {
@@ -164,7 +150,7 @@ class RequestHandler {
                 };
             } else {
                 const _err = err as Error;
-                logError(this.options.logger, _err.message + (_err.stack ? '\n' + _err.stack : ''));
+                logError(logger, _err.message + (_err.stack ? '\n' + _err.stack : ''));
                 return {
                     status: 400,
                     body: {
@@ -180,7 +166,7 @@ class RequestHandler {
     }
 }
 
-export default function makeHandler(options?: Options) {
-    const handler = new RequestHandler(options);
+export default function makeHandler() {
+    const handler = new RequestHandler();
     return handler.handleRequest.bind(handler);
 }

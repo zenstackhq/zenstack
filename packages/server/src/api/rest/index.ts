@@ -39,27 +39,6 @@ export type Options = {
     endpoint: string;
 
     /**
-     * Logging configuration. Set to `null` to disable logging.
-     * If unset or set to `undefined`, log will be output to console.
-     */
-    logger?: LoggerConfig | null;
-
-    /**
-     * Zod schemas for validating create and update payloads. By default
-     * loaded from the standard output location of the `@zenstackhq/zod`
-     * plugin. You can pass it in explicitly if you configured the plugin
-     * to output to a different location.
-     */
-    zodSchemas?: ModelZodSchema;
-
-    /**
-     * Model metadata. By default loaded from the standard output location
-     * of the `@zenstackhq/model-meta` plugin. You can pass it in explicitly
-     * if you configured the plugin to output to a different location.
-     */
-    modelMeta?: ModelMeta;
-
-    /**
      * The default page size for limiting the number of results returned
      * from collection queries, including resource collection, related data
      * of collection types, and relashionship of collection types.
@@ -111,11 +90,11 @@ const FilterOperations = [
 type FilterOperationType = (typeof FilterOperations)[number] | undefined;
 
 /**
- * RESTful style API request handler (compliant with JSON:API)
+ * RESTful-style API request handler (compliant with JSON:API)
  */
 class RequestHandler {
     // resource serializers
-    private serializers = new Map<string, Serializer>();
+    private serializers: Map<string, Serializer>;
 
     // error responses
     private readonly errors: Record<string, { status: number; title: string; detail?: string }> = {
@@ -185,8 +164,6 @@ class RequestHandler {
         },
     };
 
-    private modelMeta: ModelMeta;
-
     private filterParamPattern = new RegExp(/^filter(?<match>(\[[^[\]]+\])+)$/);
 
     // zod schema for payload of creating and updating a resource
@@ -218,15 +195,37 @@ class RequestHandler {
     });
 
     // all known types and their metadata
-    private readonly typeMap: Record<string, ModelInfo> = {};
+    private typeMap: Record<string, ModelInfo>;
+
+    // model meta loaded from default location
+    private readonly defaultModelMeta: ModelMeta;
 
     constructor(private readonly options: Options) {
-        this.modelMeta = this.options.modelMeta || getDefaultModelMeta();
-        this.buildTypeMap();
-        this.buildSerializers();
+        try {
+            this.defaultModelMeta = getDefaultModelMeta();
+        } catch {
+            // noop
+        }
     }
 
-    async handleRequest({ prisma, method, path, query, requestBody }: RequestContext): Promise<Response> {
+    async handleRequest({
+        prisma,
+        method,
+        path,
+        query,
+        requestBody,
+        logger,
+        modelMeta,
+        zodSchemas,
+    }: RequestContext): Promise<Response> {
+        if (!this.serializers) {
+            this.buildSerializers(modelMeta ?? this.defaultModelMeta);
+        }
+
+        if (!this.typeMap) {
+            this.buildTypeMap(logger, modelMeta ?? this.defaultModelMeta);
+        }
+
         method = method.toUpperCase();
 
         try {
@@ -252,7 +251,8 @@ class RequestHandler {
                             match.type,
                             match.id,
                             match.relationship,
-                            query
+                            query,
+                            modelMeta ?? this.defaultModelMeta
                         );
                     }
 
@@ -269,7 +269,7 @@ class RequestHandler {
                     let match = urlPatterns.collection.match(path);
                     if (match) {
                         // resource creation
-                        return await this.processCreate(prisma, match.type, query, requestBody);
+                        return await this.processCreate(prisma, match.type, query, requestBody, zodSchemas);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -295,7 +295,7 @@ class RequestHandler {
                     let match = urlPatterns.single.match(path);
                     if (match) {
                         // resource update
-                        return await this.processUpdate(prisma, match.type, match.id, query, requestBody);
+                        return await this.processUpdate(prisma, match.type, match.id, query, requestBody, zodSchemas);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -472,7 +472,8 @@ class RequestHandler {
         type: string,
         resourceId: string,
         relationship: string,
-        query: Record<string, string | string[]> | undefined
+        query: Record<string, string | string[]> | undefined,
+        modelMeta: ModelMeta
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -486,12 +487,12 @@ class RequestHandler {
 
         const args: any = {
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            select: this.makeIdSelect(type),
+            select: this.makeIdSelect(type, modelMeta),
         };
 
         // include IDs of relation fields so that they can be serialized
         // this.includeRelationshipIds(type, args, 'select');
-        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.type) } };
+        args.select = { ...args.select, [relationship]: { select: this.makeIdSelect(relationInfo.type, modelMeta) } };
 
         let paginator: Paginator<any> | undefined;
 
@@ -645,7 +646,8 @@ class RequestHandler {
         prisma: DbClientContract,
         type: string,
         _query: Record<string, string | string[]> | undefined,
-        requestBody: unknown
+        requestBody: unknown,
+        zodSchemas?: ModelZodSchema
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -668,7 +670,7 @@ class RequestHandler {
         const createPayload: any = { data: { ...attributes } };
 
         // zod-parse attributes if a schema is provided
-        const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'create') : undefined;
+        const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'create') : undefined;
         if (dataSchema) {
             const dataParsed = dataSchema.safeParse(createPayload);
             if (!dataParsed.success) {
@@ -819,7 +821,8 @@ class RequestHandler {
         type: any,
         resourceId: string,
         query: Record<string, string | string[]> | undefined,
-        requestBody: unknown
+        requestBody: unknown,
+        zodSchemas?: ModelZodSchema
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -845,7 +848,7 @@ class RequestHandler {
         };
 
         // zod-parse attributes if a schema is provided
-        const dataSchema = this.options.zodSchemas ? getZodSchema(this.options.zodSchemas, type, 'update') : undefined;
+        const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'update') : undefined;
         if (dataSchema) {
             const dataParsed = dataSchema.safeParse(updatePayload);
             if (!dataParsed.success) {
@@ -919,18 +922,16 @@ class RequestHandler {
 
     //#region utilities
 
-    private buildTypeMap() {
-        for (const [model, fields] of Object.entries(this.modelMeta.fields)) {
-            const idFields = getIdFields(this.modelMeta, model);
+    private buildTypeMap(logger: LoggerConfig | undefined, modelMeta: ModelMeta): void {
+        this.typeMap = {};
+        for (const [model, fields] of Object.entries(modelMeta.fields)) {
+            const idFields = getIdFields(modelMeta, model);
             if (idFields.length === 0) {
-                logWarning(this.options.logger, `Not including model ${model} in the API because it has no ID field`);
+                logWarning(logger, `Not including model ${model} in the API because it has no ID field`);
                 continue;
             }
             if (idFields.length > 1) {
-                logWarning(
-                    this.options.logger,
-                    `Not including model ${model} in the API because it has multiple ID fields`
-                );
+                logWarning(logger, `Not including model ${model} in the API because it has multiple ID fields`);
                 continue;
             }
 
@@ -945,17 +946,17 @@ class RequestHandler {
                 if (!fieldInfo.isDataModel) {
                     continue;
                 }
-                const fieldTypeIdFields = getIdFields(this.modelMeta, fieldInfo.type);
+                const fieldTypeIdFields = getIdFields(modelMeta, fieldInfo.type);
                 if (fieldTypeIdFields.length === 0) {
                     logWarning(
-                        this.options.logger,
+                        logger,
                         `Not including relation ${model}.${field} in the API because it has no ID field`
                     );
                     continue;
                 }
                 if (fieldTypeIdFields.length > 1) {
                     logWarning(
-                        this.options.logger,
+                        logger,
                         `Not including relation ${model}.${field} in the API because it has multiple ID fields`
                     );
                     continue;
@@ -976,11 +977,12 @@ class RequestHandler {
         return `${this.options.endpoint}${path}`;
     }
 
-    private buildSerializers() {
+    private buildSerializers(modelMeta: ModelMeta) {
+        this.serializers = new Map();
         const linkers: Record<string, Linker<any>> = {};
 
-        for (const model of Object.keys(this.modelMeta.fields)) {
-            const ids = getIdFields(this.modelMeta, model);
+        for (const model of Object.keys(modelMeta.fields)) {
+            const ids = getIdFields(modelMeta, model);
             if (ids.length !== 1) {
                 continue;
             }
@@ -988,12 +990,12 @@ class RequestHandler {
             const linker = new Linker((items) =>
                 Array.isArray(items)
                     ? this.makeLinkUrl(`/${model}`)
-                    : this.makeLinkUrl(`/${model}/${this.getId(model, items)}`)
+                    : this.makeLinkUrl(`/${model}/${this.getId(model, items, modelMeta)}`)
             );
             linkers[model] = linker;
 
             let projection: Record<string, 0> | null = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.fields[model])) {
                 if (fieldMeta.isDataModel) {
                     projection[field] = 0;
                 }
@@ -1014,14 +1016,14 @@ class RequestHandler {
         }
 
         // set relators
-        for (const model of Object.keys(this.modelMeta.fields)) {
+        for (const model of Object.keys(modelMeta.fields)) {
             const serializer = this.serializers.get(model);
             if (!serializer) {
                 continue;
             }
 
             const relators: Record<string, Relator<any>> = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(this.modelMeta.fields[model])) {
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.fields[model])) {
                 if (!fieldMeta.isDataModel) {
                     continue;
                 }
@@ -1029,7 +1031,7 @@ class RequestHandler {
                 if (!fieldSerializer) {
                     continue;
                 }
-                const fieldIds = getIdFields(this.modelMeta, fieldMeta.type);
+                const fieldIds = getIdFields(modelMeta, fieldMeta.type);
                 if (fieldIds.length === 1) {
                     const relator = new Relator(
                         async (data) => {
@@ -1042,13 +1044,18 @@ class RequestHandler {
                                 related: new Linker((primary, related) =>
                                     !related || Array.isArray(related)
                                         ? this.makeLinkUrl(
-                                              `/${lowerCaseFirst(model)}/${this.getId(model, primary)}/${field}`
+                                              `/${lowerCaseFirst(model)}/${this.getId(
+                                                  model,
+                                                  primary,
+                                                  modelMeta
+                                              )}/${field}`
                                           )
                                         : this.makeLinkUrl(
                                               `/${lowerCaseFirst(model)}/${this.getId(
                                                   model,
-                                                  primary
-                                              )}/${field}/${this.getId(fieldMeta.type, related)}`
+                                                  primary,
+                                                  modelMeta
+                                              )}/${field}/${this.getId(fieldMeta.type, related, modelMeta)}`
                                           )
                                 ),
                                 relationship: new Linker((primary, related) =>
@@ -1056,14 +1063,20 @@ class RequestHandler {
                                         ? this.makeLinkUrl(
                                               `/${lowerCaseFirst(model)}/${this.getId(
                                                   model,
-                                                  primary
+                                                  primary,
+                                                  modelMeta
                                               )}/relationships/${field}`
                                           )
                                         : this.makeLinkUrl(
                                               `/${lowerCaseFirst(model)}/${this.getId(
                                                   model,
-                                                  primary
-                                              )}/relationships/${field}/${this.getId(fieldMeta.type, related)}`
+                                                  primary,
+                                                  modelMeta
+                                              )}/relationships/${field}/${this.getId(
+                                                  fieldMeta.type,
+                                                  related,
+                                                  modelMeta
+                                              )}`
                                           )
                                 ),
                             },
@@ -1076,11 +1089,11 @@ class RequestHandler {
         }
     }
 
-    private getId(model: string, data: any) {
+    private getId(model: string, data: any, modelMeta: ModelMeta) {
         if (!data) {
             return undefined;
         }
-        const ids = getIdFields(this.modelMeta, model);
+        const ids = getIdFields(modelMeta, model);
         if (ids.length === 1) {
             return data[ids[0].name];
         } else {
@@ -1116,8 +1129,8 @@ class RequestHandler {
         return { [idField]: this.coerce(idFieldType, resourceId) };
     }
 
-    private makeIdSelect(model: string) {
-        const idFields = getIdFields(this.modelMeta, model);
+    private makeIdSelect(model: string, modelMeta: ModelMeta) {
+        const idFields = getIdFields(modelMeta, model);
         if (idFields.length === 0) {
             throw this.errors.noId;
         } else if (idFields.length > 1) {
