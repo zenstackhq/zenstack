@@ -4,12 +4,12 @@
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import makeHandler from '../../src/api/rest';
-import { HandleRequestFn } from '../../src/types';
+import { Response } from '../../src/types';
 
 let prisma: any;
 let zodSchemas: any;
 let modelMeta: ModelMeta;
-let handler: HandleRequestFn;
+let handler: (any: any) => Promise<Response>;
 
 export const schema = `
 model User {
@@ -63,7 +63,9 @@ describe('REST server tests', () => {
         prisma = params.prisma;
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
-        handler = makeHandler({ zodSchemas, modelMeta, endpoint: 'http://localhost/api', pageSize: 5 });
+
+        const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5 });
+        handler = (args) => _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
     });
 
     beforeEach(async () => {
