@@ -1,7 +1,7 @@
 // This is a sample model to get you started.
 // Learn how to model you app: https://zenstack.dev/#/modeling-your-app.
 
-/*
+/**
  * A sample data source using local sqlite db.
  * See how to use a different db: https://zenstack.dev/#/zmodel-data-source.
  */
@@ -14,7 +14,7 @@ generator client {
     provider = "prisma-client-js"
 }
 
-/*
+/**
  * User model
  */
 model User {
@@ -30,7 +30,7 @@ model User {
     @@allow('all', auth() == this)
 }
 
-/*
+/**
  * Post model
  */
 model Post {

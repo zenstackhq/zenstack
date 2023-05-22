@@ -1,39 +1,39 @@
-/*
+/**
  * Enum representing referential integrity related actions
  */
 enum ReferentialAction {
-    /*
+    /**
      * Used with "onDelete": deleting a referenced record will trigger the deletion of referencing record.
      * Used with "onUpdate": updates the relation scalar fields if the referenced scalar fields of the dependent record are updated.
      */
     Cascade
 
-    /*
+    /**
      * Used with "onDelete": prevents the deletion if any referencing records exist.
      * Used with "onUpdate": prevents the identifier of a referenced record from being changed.
      */
     Restrict
 
-    /*
+    /**
      * Similar to 'Restrict', the difference between the two is dependent on the database being used.
      * See details: https://www.prisma.io/docs/concepts/components/prisma-schema/relations/referential-actions#noaction
      */
     NoAction
 
-    /*
+    /**
      * Used with "onDelete": the scalar field of the referencing object will be set to NULL.
      * Used with "onUpdate": when updating the identifier of a referenced object, the scalar fields of the referencing objects will be set to NULL.
      */
     SetNull
     
-    /*
+    /**
      * Used with "onDelete": the scalar field of the referencing object will be set to the fields default value.
      * Used with "onUpdate": the scalar field of the referencing object will be set to the fields default value.
      */
     SetDefault
 }
 
-/*
+/**
  * Enum representing all possible field types
  */
 enum AttributeTargetField {
@@ -49,44 +49,44 @@ enum AttributeTargetField {
     ModelField
 }
 
-/*
+/**
  * Reads value from an environment variable.
  */
 function env(name: String): String {
 }
 
-/*
+/**
  * Gets the current login user.
  */
 function auth(): Any {
 }
 
-/*
+/**
  * Gets current date-time (as DateTime type).
  */
 function now(): DateTime {
 }
 
-/*
+/**
  * Generates a globally unique identifier based on the UUID specs.
  */
 function uuid(): String {
 }
 
-/*
+/**
  * Generates a globally unique identifier based on the CUID spec.
  */
 function cuid(): String {
 }
 
-/*
+/**
  * Creates a sequence of integers in the underlying database and assign the incremented 
  * values to the ID values of the created records based on the sequence.
  */
 function autoincrement(): Int {
 }
 
-/*
+/**
  * Represents default values that cannot be expressed in the Prisma schema (such as random()).
  */
 function dbgenerated(expr: String): Any {
@@ -98,50 +98,50 @@ function dbgenerated(expr: String): Any {
 function future(): Any {
 }
 
-/*
+/**
  * If the field value contains the search string. By default, the search is case-sensitive,
  * but you can override the behavior with the "caseInSensitive" argument.
  */
 function contains(field: String, search: String, caseInSensitive: Boolean?): Boolean {
 }
 
-/*
+/**
  * If the field value matches the search condition with [full-text-search](https://www.prisma.io/docs/concepts/components/prisma-client/full-text-search). Need to enable "fullTextSearch" preview feature to use.
  */
 function search(field: String, search: String): Boolean {
 }
 
-/*
+/**
  * If the field value starts with the search string
  */
 function startsWith(field: String, search: String): Boolean {
 }
 
-/*
+/**
  * If the field value ends with the search string
  */
 function endsWith(field: String, search: String): Boolean {
 }
 
-/*
+/**
  * If the field value (a list) has the given search value
  */
 function has(field: Any[], search: Any): Boolean {
 }
 
-/*
+/**
  * If the field value (a list) has every element of the search list
  */
 function hasEvery(field: Any[], search: Any[]): Boolean {
 }
 
-/*
+/**
  * If the field value (a list) has at least one element of the search list
  */
 function hasSome(field: Any[], search: Any[]): Boolean {
 }
 
-/*
+/**
  * If the field value (a list) is empty
  */
 function isEmpty(field: Any[]): Boolean {
@@ -157,32 +157,32 @@ attribute @@@targetField(targetField: AttributeTargetField[])
  */
 attribute @@@prisma()
 
-/*
+/**
  * Defines an ID on the model.
  */
 attribute @id(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
-/*
+/**
  * Defines a default value for a field.
  */
 attribute @default(_ value: ContextType) @@@prisma
 
-/*
+/**
  * Defines a unique constraint for this field.
  */
 attribute @unique(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
-/*
+/**
  * Defines a multi-field ID (composite ID) on the model.
  */
 attribute @@id(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
-/*
+/**
  * Defines a compound unique constraint for the specified fields.
  */
 attribute @@unique(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
 
-/*
+/**
  * Index types
  */
 enum IndexType {
@@ -194,37 +194,37 @@ enum IndexType {
     Brin
 }
 
-/*
+/**
  * Defines an index in the database.
  */
 attribute @@index(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?, type: IndexType?) @@@prisma
 
-/*
+/**
  * Defines meta information about the relation.
  */
 attribute @relation(_ name: String?, fields: FieldReference[]?, references: TransitiveFieldReference[]?, onDelete: ReferentialAction?, onUpdate: ReferentialAction?, map: String?) @@@prisma
 
-/*
+/**
  * Maps a field name or enum value from the schema to a column with a different name in the database.
  */
 attribute @map(_ name: String) @@@prisma
 
-/*
+/**
  * Maps the schema model name to a table with a different name, or an enum name to a different underlying enum in the database.
  */
 attribute @@map(_ name: String) @@@prisma
 
-/*
+/**
 * Exclude a field from the Prisma Client (for example, a field that you do not want Prisma users to update).
  */
 attribute @ignore() @@@prisma
 
-/*
+/**
 * Exclude a model from the Prisma Client (for example, a model that you do not want Prisma users to update).
  */
 attribute @@ignore() @@@prisma
 
-/*
+/**
  * Automatically stores the time when a record was last updated.
  */
 attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma
@@ -317,22 +317,22 @@ attribute @db.Blob() @@@targetField([BytesField]) @@@prisma
 attribute @db.MediumBlob() @@@targetField([BytesField]) @@@prisma
 attribute @db.Image() @@@targetField([BytesField]) @@@prisma
 
-/*
+/**
  * Specifies the schema to use in a multi-schema database. https://www.prisma.io/docs/guides/database/multi-schema.
  */
 attribute @@schema(_ name: String) @@@prisma
 
-/*
+/**
  * Defines an access policy that allows a set of operations when the given condition is true.
  */
 attribute @@allow(_ operation: String, _ condition: Boolean)
 
-/*
+/**
  * Defines an access policy that denies a set of operations when the given condition is true.
  */
 attribute @@deny(_ operation: String, _ condition: Boolean)
 
-/*
+/**
  * Indicates that the field is a password field and needs to be hashed before persistence.
  * 
  * ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter
@@ -346,72 +346,72 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
  */
 attribute @password(saltLength: Int?, salt: String?) @@@targetField([StringField])
 
-/*
+/**
  * Indicates that the field should be omitted when read from the generated services.
  */
 attribute @omit()
 
-/*
+/**
  * Validates length of a string field.
  */
 attribute @length(_ min: Int?, _ max: Int?) @@@targetField([StringField])
 
-/*
+/**
  * Validates a string field value matches a regex.
  */
 attribute @regex(_ regex: String) @@@targetField([StringField])
 
-/*
+/**
  * Validates a string field value starts with the given text.
  */
 attribute @startsWith(_ text: String) @@@targetField([StringField])
 
-/*
+/**
  * Validates a string field value ends with the given text.
  */
 attribute @endsWith(_ text: String) @@@targetField([StringField])
 
-/*
+/**
  * Validates a string field value is a valid email address.
  */
 attribute @email() @@@targetField([StringField])
 
-/*
+/**
  * Validates a string field value is a valid ISO datetime.
  */
 attribute @datetime() @@@targetField([StringField])
 
-/*
+/**
  * Validates a string field value is a valid url.
  */
 attribute @url() @@@targetField([StringField])
 
-/*
+/**
  * Validates a number field is greater than the given value.
  */
 attribute @gt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
-/*
+/**
  * Validates a number field is greater than or equal to the given value.
  */
 attribute @gte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
-/*
+/**
  * Validates a number field is less than the given value.
  */
 attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
-/*
+/**
  * Validates a number field is less than or equal to the given value.
  */
 attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
 
-/*
+/**
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.
  */
 attribute @prisma.passthrough(_ text: String)
 
-/*
+/**
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.
  */
 attribute @@prisma.passthrough(_ text: String)
