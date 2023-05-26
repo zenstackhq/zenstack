@@ -99,7 +99,7 @@ class RequestHandler {
     // error responses
     private readonly errors: Record<string, { status: number; title: string; detail?: string }> = {
         unsupportedModel: {
-            status: 400,
+            status: 404,
             title: 'Unsupported model type',
             detail: 'The model type is not supported',
         },
@@ -157,6 +157,10 @@ class RequestHandler {
         invalidValue: {
             status: 400,
             title: 'Invalid value for type',
+        },
+        forbidden: {
+            status: 403,
+            title: 'Operation is forbidden',
         },
         unknownError: {
             status: 400,
@@ -227,6 +231,9 @@ class RequestHandler {
         }
 
         method = method.toUpperCase();
+        if (!path.startsWith('/')) {
+            path = '/' + path;
+        }
 
         try {
             switch (method) {
@@ -346,8 +353,7 @@ class RequestHandler {
             if (err instanceof InvalidValueError) {
                 return this.makeError('invalidValue', err.message);
             } else {
-                const _err = err as Error;
-                return this.makeError('unknownError', `${_err.message}\n${_err.stack}`);
+                return this.handlePrismaError(err);
             }
         }
     }
@@ -406,7 +412,7 @@ class RequestHandler {
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.makeUnsupportedRelationshipError(type, relationship);
+            return this.makeUnsupportedRelationshipError(type, relationship, 404);
         }
 
         let select: any;
@@ -482,7 +488,7 @@ class RequestHandler {
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.makeUnsupportedRelationshipError(type, relationship);
+            return this.makeUnsupportedRelationshipError(type, relationship, 404);
         }
 
         const args: any = {
@@ -688,7 +694,7 @@ class RequestHandler {
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    return this.makeUnsupportedRelationshipError(type, key);
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
                 }
 
                 if (relationInfo.isCollection) {
@@ -737,7 +743,7 @@ class RequestHandler {
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.makeUnsupportedRelationshipError(type, relationship);
+            return this.makeUnsupportedRelationshipError(type, relationship, 404);
         }
 
         if (!relationInfo.isCollection && mode !== 'update') {
@@ -749,7 +755,6 @@ class RequestHandler {
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
             select: { [typeInfo.idField]: true, [relationship]: { select: { [relationInfo.idField]: true } } },
         };
-        let entity: any;
 
         if (!relationInfo.isCollection) {
             // zod-parse payload
@@ -797,11 +802,7 @@ class RequestHandler {
             };
         }
 
-        try {
-            entity = await prisma[type].update(updateArgs);
-        } catch (err) {
-            return this.handlePrismaError(err);
-        }
+        const entity: any = await prisma[type].update(updateArgs);
 
         const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
@@ -866,7 +867,7 @@ class RequestHandler {
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    return this.makeUnsupportedRelationshipError(type, key);
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
                 }
 
                 if (relationInfo.isCollection) {
@@ -890,15 +891,11 @@ class RequestHandler {
             }
         }
 
-        try {
-            const entity = await prisma[type].update(updatePayload);
-            return {
-                status: 200,
-                body: await this.serializeItems(type, entity),
-            };
-        } catch (err) {
-            return this.handlePrismaError(err);
-        }
+        const entity = await prisma[type].update(updatePayload);
+        return {
+            status: 200,
+            body: await this.serializeItems(type, entity),
+        };
     }
 
     private async processDelete(prisma: DbClientContract, type: any, resourceId: string): Promise<Response> {
@@ -907,17 +904,13 @@ class RequestHandler {
             return this.makeUnsupportedModelError(type);
         }
 
-        try {
-            await prisma[type].delete({
-                where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            });
-            return {
-                status: 204,
-                body: undefined,
-            };
-        } catch (err) {
-            return this.handlePrismaError(err);
-        }
+        await prisma[type].delete({
+            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+        });
+        return {
+            status: 204,
+            body: undefined,
+        };
     }
 
     //#region utilities
@@ -1005,6 +998,7 @@ class RequestHandler {
             }
 
             const serializer = new Serializer(model, {
+                version: '1.1',
                 idKey: ids[0].name,
                 linkers: {
                     resource: linker,
@@ -1241,6 +1235,7 @@ class RequestHandler {
         }
 
         const items: any[] = [];
+        let currType = typeInfo;
 
         for (const [key, value] of Object.entries(query)) {
             if (!value) {
@@ -1287,8 +1282,8 @@ class RequestHandler {
 
                     const fieldInfo =
                         filterKey === 'id'
-                            ? Object.values(typeInfo.fields).find((f) => f.isId)
-                            : typeInfo.fields[filterKey];
+                            ? Object.values(currType.fields).find((f) => f.isId)
+                            : currType.fields[filterKey];
                     if (!fieldInfo) {
                         return { filter: undefined, error: this.makeError('invalidFilter') };
                     }
@@ -1306,7 +1301,14 @@ class RequestHandler {
                             curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue, filterOp);
                         } else {
                             // keep going
-                            curr = curr[fieldInfo.name] = {};
+                            if (fieldInfo.isArray) {
+                                // collection filtering implies "some" operation
+                                curr[fieldInfo.name] = { some: {} };
+                                curr = curr[fieldInfo.name].some;
+                            } else {
+                                curr = curr[fieldInfo.name] = {};
+                            }
+                            currType = this.typeMap[lowerCaseFirst(fieldInfo.type)];
                         }
                     }
                 }
@@ -1418,7 +1420,7 @@ class RequestHandler {
                     const relation = parts[i];
                     const relationInfo = currType.relationships[relation];
                     if (!relationInfo) {
-                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation) };
+                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation, 400) };
                     }
 
                     currType = this.typeMap[lowerCaseFirst(relationInfo.type)];
@@ -1519,7 +1521,9 @@ class RequestHandler {
 
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
-            if (err.code === 'P2025' || err.code === 'P2018') {
+            if (err.code === 'P2004') {
+                return this.makeError('forbidden');
+            } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');
             } else {
                 return {
@@ -1530,17 +1534,18 @@ class RequestHandler {
                 };
             }
         } else {
-            throw err;
+            const _err = err as Error;
+            return this.makeError('unknownError', `${_err.message}\n${_err.stack}`);
         }
     }
 
-    private makeError(code: keyof typeof this.errors, detail?: string) {
+    private makeError(code: keyof typeof this.errors, detail?: string, status?: number) {
         return {
-            status: this.errors[code].status,
+            status: status ?? this.errors[code].status,
             body: {
                 errors: [
                     {
-                        status: this.errors[code].status,
+                        status: status ?? this.errors[code].status,
                         code: paramCase(code),
                         title: this.errors[code].title,
                         detail: detail || this.errors[code].detail,
@@ -1551,14 +1556,11 @@ class RequestHandler {
     }
 
     private makeUnsupportedModelError(model: string) {
-        return this.makeError('unsupportedModel', `Model ${model} doesn't exist or doesn't have a single ID field`);
+        return this.makeError('unsupportedModel', `Model ${model} doesn't exist`);
     }
 
-    private makeUnsupportedRelationshipError(model: string, relationship: string) {
-        return this.makeError(
-            'unsupportedRelationship',
-            `Relationship ${model}.${relationship} doesn't exist or its type doesn't have a single ID field`
-        );
+    private makeUnsupportedRelationshipError(model: string, relationship: string, status: number) {
+        return this.makeError('unsupportedRelationship', `Relationship ${model}.${relationship} doesn't exist`, status);
     }
 
     //#endregion

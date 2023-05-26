@@ -84,7 +84,6 @@ export default function createHandler(options: HandlerOptions): Handle {
                 const r = await requestHanler({
                     method: event.request.method,
                     path,
-                    url: event.url,
                     query,
                     requestBody,
                     prisma,

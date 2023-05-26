@@ -5,6 +5,7 @@ import { loadSchema, run } from '@zenstackhq/testtools';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import makeHandler from '../../src/api/rest';
 import { Response } from '../../src/types';
+import { withPolicy } from '@zenstackhq/runtime';
 
 let prisma: any;
 let zodSchemas: any;
@@ -56,7 +57,7 @@ model Setting {
 }
 `;
 
-describe('REST server tests', () => {
+describe('REST server tests - regular prisma', () => {
     beforeAll(async () => {
         const params = await loadSchema(schema);
 
@@ -75,6 +76,46 @@ describe('REST server tests', () => {
 
     describe('CRUD', () => {
         describe('GET', () => {
+            it('invalid type, id, relationship', async () => {
+                let r = await handler({
+                    method: 'get',
+                    path: '/foo',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { title: 'Post1' },
+                        },
+                    },
+                });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/foo',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/foo',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+            });
+
             it('returns an empty array when no item exists', async () => {
                 const r = await handler({
                     method: 'get',
@@ -436,6 +477,24 @@ describe('REST server tests', () => {
                 });
                 expect((r.body as any).data).toHaveLength(1);
                 expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+
+                // deep to-one filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[author][email]']: 'user1@abc.com' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+
+                // deep to-many filter
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[posts][published]']: 'true' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
 
                 // filter to empty
                 r = await handler({
@@ -1222,7 +1281,7 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
-                    jsonapi: { version: '1.0' },
+                    jsonapi: { version: '1.1' },
                     data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
                 });
             });
@@ -1258,7 +1317,7 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
-                    jsonapi: { version: '1.0' },
+                    jsonapi: { version: '1.1' },
                     data: {
                         type: 'user',
                         id: 'user1',
@@ -1542,7 +1601,7 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
                     jsonapi: {
-                        version: '1.0',
+                        version: '1.1',
                     },
                     links: {
                         self: 'http://localhost/api/post/1/relationships/author',
@@ -1751,7 +1810,7 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
                     jsonapi: {
-                        version: '1.0',
+                        version: '1.1',
                     },
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',
@@ -1773,5 +1832,57 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(404);
             });
         });
+    });
+});
+
+export const schemaWithPolicy = `
+model Foo {
+    id Int @id
+    value Int
+
+    @@allow('create,read', true)
+    @@allow('update', value > 0)
+}
+`;
+
+describe('REST server tests - enhanced prisma', () => {
+    beforeAll(async () => {
+        const params = await loadSchema(schemaWithPolicy);
+
+        prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
+        zodSchemas = params.zodSchemas;
+        modelMeta = params.modelMeta;
+
+        const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5 });
+        handler = (args) => _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+    });
+
+    beforeEach(async () => {
+        run('npx prisma migrate reset --force');
+        run('npx prisma db push');
+    });
+
+    it('policy rejection test', async () => {
+        let r = await handler({
+            method: 'post',
+            path: '/foo',
+            query: {},
+            requestBody: {
+                data: { type: 'foo', attributes: { id: 1, value: 0 } },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(201);
+
+        r = await handler({
+            method: 'put',
+            path: '/foo/1',
+            query: {},
+            requestBody: {
+                data: { type: 'foo', attributes: { value: 1 } },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(403);
     });
 });

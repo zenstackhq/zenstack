@@ -34,11 +34,6 @@ export type RequestContext = {
     path: string;
 
     /**
-     * The request URL
-     */
-    url: URL;
-
-    /**
      * The query parameters
      */
     query?: Record<string, string | string[]>;

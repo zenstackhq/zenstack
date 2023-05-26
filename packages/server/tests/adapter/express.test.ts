@@ -4,10 +4,11 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import bodyParser from 'body-parser';
 import express from 'express';
+import superjson from 'superjson';
 import request from 'supertest';
+import RESTAPIHandler from '../../src/api/rest';
 import { ZenStackMiddleware } from '../../src/express';
 import { makeUrl, schema } from '../utils';
-import superjson from 'superjson';
 
 describe('Express adapter tests - rpc handler', () => {
     it('run plugin regular json', async () => {
@@ -193,3 +194,60 @@ describe('Express adapter tests - rpc handler', () => {
 function unmarshal(value: any) {
     return superjson.parse(JSON.stringify(value)) as any;
 }
+
+describe('Express adapter tests - rest handler', () => {
+    it('run middleware', async () => {
+        const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
+
+        const app = express();
+        app.use(bodyParser.json());
+        app.use(
+            '/api',
+            ZenStackMiddleware({
+                getPrisma: () => prisma,
+                modelMeta,
+                zodSchemas,
+                handler: RESTAPIHandler({ endpoint: 'http://localhost/api' }),
+            })
+        );
+
+        let r = await request(app).get(makeUrl('/api/post/1'));
+        expect(r.status).toBe(404);
+
+        r = await request(app)
+            .post('/api/user')
+            .send({
+                data: {
+                    type: 'user',
+                    attributes: {
+                        id: 'user1',
+                        email: 'user1@abc.com',
+                    },
+                },
+            });
+        expect(r.status).toBe(201);
+        expect(r.body).toMatchObject({
+            jsonapi: { version: '1.1' },
+            data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
+        });
+
+        r = await request(app).get('/api/user?filter[id]=user1');
+        expect(r.body.data).toHaveLength(1);
+
+        r = await request(app).get('/api/user?filter[id]=user2');
+        expect(r.body.data).toHaveLength(0);
+
+        r = await request(app).get('/api/user?filter[id]=user1&filter[email]=xyz');
+        expect(r.body.data).toHaveLength(0);
+
+        r = await request(app)
+            .put('/api/user/user1')
+            .send({ data: { type: 'user', attributes: { email: 'user1@def.com' } } });
+        expect(r.status).toBe(200);
+        expect(r.body.data.attributes.email).toBe('user1@def.com');
+
+        r = await request(app).delete(makeUrl('/api/user/user1'));
+        expect(r.status).toBe(204);
+        expect(await prisma.user.findMany()).toHaveLength(0);
+    });
+});

@@ -41,17 +41,25 @@ const factory = (options: MiddlewareOptions): Handler => {
 
         let query: Record<string, string | string[]> = {};
         try {
-            query = buildUrlQuery(request.query, useSuperJson);
+            // express converts query parameters with square brackets into object
+            // e.g.: filter[foo]=bar is parsed to { filter: { foo: 'bar' } }
+            // we need to revert this behavior and reconstruct params from original URL
+            const url = request.protocol + '://' + request.get('host') + request.originalUrl;
+            const searchParams = new URL(url).searchParams;
+            const rawQuery: Record<string, string | string[]> = {};
+            for (const key of searchParams.keys()) {
+                const values = searchParams.getAll(key);
+                rawQuery[key] = values.length === 1 ? values[0] : values;
+            }
+            query = buildUrlQuery(rawQuery, useSuperJson);
         } catch {
             response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
             return;
         }
 
         try {
-            const url = request.protocol + '://' + request.get('host') + request.originalUrl;
             const r = await requestHandler({
                 method: request.method,
-                url: new URL(url),
                 path: request.path,
                 query,
                 requestBody: unmarshalFromObject(request.body, useSuperJson),
