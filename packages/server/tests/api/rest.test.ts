@@ -75,6 +75,46 @@ describe('REST server tests', () => {
 
     describe('CRUD', () => {
         describe('GET', () => {
+            it('invalid type, id, relationship', async () => {
+                let r = await handler({
+                    method: 'get',
+                    path: '/foo',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/posts',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                await prisma.user.create({
+                    data: {
+                        myId: 'user1',
+                        email: 'user1@abc.com',
+                        posts: {
+                            create: { title: 'Post1' },
+                        },
+                    },
+                });
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/relationships/foo',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+
+                r = await handler({
+                    method: 'get',
+                    path: '/user/user1/foo',
+                    prisma,
+                });
+                expect(r.status).toBe(404);
+            });
+
             it('returns an empty array when no item exists', async () => {
                 const r = await handler({
                     method: 'get',
