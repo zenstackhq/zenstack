@@ -158,6 +158,10 @@ class RequestHandler {
             status: 400,
             title: 'Invalid value for type',
         },
+        forbidden: {
+            status: 403,
+            title: 'Operation is forbidden',
+        },
         unknownError: {
             status: 400,
             title: 'Unknown error',
@@ -349,8 +353,7 @@ class RequestHandler {
             if (err instanceof InvalidValueError) {
                 return this.makeError('invalidValue', err.message);
             } else {
-                const _err = err as Error;
-                return this.makeError('unknownError', `${_err.message}\n${_err.stack}`);
+                return this.handlePrismaError(err);
             }
         }
     }
@@ -752,7 +755,6 @@ class RequestHandler {
             where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
             select: { [typeInfo.idField]: true, [relationship]: { select: { [relationInfo.idField]: true } } },
         };
-        let entity: any;
 
         if (!relationInfo.isCollection) {
             // zod-parse payload
@@ -800,11 +802,7 @@ class RequestHandler {
             };
         }
 
-        try {
-            entity = await prisma[type].update(updateArgs);
-        } catch (err) {
-            return this.handlePrismaError(err);
-        }
+        const entity: any = await prisma[type].update(updateArgs);
 
         const serialized: any = await this.serializeItems(relationInfo.type, entity[relationship], {
             linkers: {
@@ -893,15 +891,11 @@ class RequestHandler {
             }
         }
 
-        try {
-            const entity = await prisma[type].update(updatePayload);
-            return {
-                status: 200,
-                body: await this.serializeItems(type, entity),
-            };
-        } catch (err) {
-            return this.handlePrismaError(err);
-        }
+        const entity = await prisma[type].update(updatePayload);
+        return {
+            status: 200,
+            body: await this.serializeItems(type, entity),
+        };
     }
 
     private async processDelete(prisma: DbClientContract, type: any, resourceId: string): Promise<Response> {
@@ -910,17 +904,13 @@ class RequestHandler {
             return this.makeUnsupportedModelError(type);
         }
 
-        try {
-            await prisma[type].delete({
-                where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
-            });
-            return {
-                status: 204,
-                body: undefined,
-            };
-        } catch (err) {
-            return this.handlePrismaError(err);
-        }
+        await prisma[type].delete({
+            where: this.makeIdFilter(typeInfo.idField, typeInfo.idFieldType, resourceId),
+        });
+        return {
+            status: 204,
+            body: undefined,
+        };
     }
 
     //#region utilities
@@ -1531,7 +1521,9 @@ class RequestHandler {
 
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
-            if (err.code === 'P2025' || err.code === 'P2018') {
+            if (err.code === 'P2004') {
+                return this.makeError('forbidden');
+            } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');
             } else {
                 return {
@@ -1542,7 +1534,8 @@ class RequestHandler {
                 };
             }
         } else {
-            throw err;
+            const _err = err as Error;
+            return this.makeError('unknownError', `${_err.message}\n${_err.stack}`);
         }
     }
 
