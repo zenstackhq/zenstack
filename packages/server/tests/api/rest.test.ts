@@ -437,6 +437,24 @@ describe('REST server tests', () => {
                 expect((r.body as any).data).toHaveLength(1);
                 expect((r.body as any).data[0]).toMatchObject({ id: 2 });
 
+                // deep to-one filter
+                r = await handler({
+                    method: 'get',
+                    path: '/post',
+                    query: { ['filter[author][email]']: 'user1@abc.com' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+
+                // deep to-many filter
+                r = await handler({
+                    method: 'get',
+                    path: '/user',
+                    query: { ['filter[posts][published]']: 'true' },
+                    prisma,
+                });
+                expect((r.body as any).data).toHaveLength(1);
+
                 // filter to empty
                 r = await handler({
                     method: 'get',
@@ -1222,7 +1240,7 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
-                    jsonapi: { version: '1.0' },
+                    jsonapi: { version: '1.1' },
                     data: { type: 'user', id: 'user1', attributes: { email: 'user1@abc.com' } },
                 });
             });
@@ -1258,7 +1276,7 @@ describe('REST server tests', () => {
 
                 expect(r.status).toBe(201);
                 expect(r.body).toMatchObject({
-                    jsonapi: { version: '1.0' },
+                    jsonapi: { version: '1.1' },
                     data: {
                         type: 'user',
                         id: 'user1',
@@ -1542,7 +1560,7 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
                     jsonapi: {
-                        version: '1.0',
+                        version: '1.1',
                     },
                     links: {
                         self: 'http://localhost/api/post/1/relationships/author',
@@ -1751,7 +1769,7 @@ describe('REST server tests', () => {
                 expect(r.status).toBe(200);
                 expect(r.body).toMatchObject({
                     jsonapi: {
-                        version: '1.0',
+                        version: '1.1',
                     },
                     links: {
                         self: 'http://localhost/api/user/user1/relationships/posts',

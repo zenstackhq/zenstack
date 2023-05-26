@@ -58,11 +58,9 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         }
 
         try {
-            const url = request.protocol + '://' + request.hostname + request.url;
             const response = await requestHanler({
                 method: request.method,
                 path: (request.params as any)['*'],
-                url: new URL(url),
                 query,
                 requestBody: unmarshalFromObject(request.body, useSuperJson),
                 prisma,

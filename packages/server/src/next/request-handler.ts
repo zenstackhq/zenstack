@@ -57,12 +57,9 @@ export default function factory(
         const path = (req.query.path as string[]).join('/');
 
         try {
-            const protocol = req.headers['x-forwarded-proto'] ?? 'http';
-            const url = `${protocol}://${req.headers['host']}${req.url}`;
             const r = await requestHandler({
                 method: req.method!,
                 path,
-                url: new URL(url),
                 query,
                 requestBody: unmarshalFromObject(req.body, useSuperJson),
                 prisma,

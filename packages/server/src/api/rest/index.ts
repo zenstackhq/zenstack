@@ -99,7 +99,7 @@ class RequestHandler {
     // error responses
     private readonly errors: Record<string, { status: number; title: string; detail?: string }> = {
         unsupportedModel: {
-            status: 400,
+            status: 404,
             title: 'Unsupported model type',
             detail: 'The model type is not supported',
         },
@@ -227,6 +227,9 @@ class RequestHandler {
         }
 
         method = method.toUpperCase();
+        if (!path.startsWith('/')) {
+            path = '/' + path;
+        }
 
         try {
             switch (method) {
@@ -406,7 +409,7 @@ class RequestHandler {
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.makeUnsupportedRelationshipError(type, relationship);
+            return this.makeUnsupportedRelationshipError(type, relationship, 404);
         }
 
         let select: any;
@@ -482,7 +485,7 @@ class RequestHandler {
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.makeUnsupportedRelationshipError(type, relationship);
+            return this.makeUnsupportedRelationshipError(type, relationship, 404);
         }
 
         const args: any = {
@@ -688,7 +691,7 @@ class RequestHandler {
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    return this.makeUnsupportedRelationshipError(type, key);
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
                 }
 
                 if (relationInfo.isCollection) {
@@ -737,7 +740,7 @@ class RequestHandler {
 
         const relationInfo = typeInfo.relationships[relationship];
         if (!relationInfo) {
-            return this.makeUnsupportedRelationshipError(type, relationship);
+            return this.makeUnsupportedRelationshipError(type, relationship, 404);
         }
 
         if (!relationInfo.isCollection && mode !== 'update') {
@@ -866,7 +869,7 @@ class RequestHandler {
 
                 const relationInfo = typeInfo.relationships[key];
                 if (!relationInfo) {
-                    return this.makeUnsupportedRelationshipError(type, key);
+                    return this.makeUnsupportedRelationshipError(type, key, 400);
                 }
 
                 if (relationInfo.isCollection) {
@@ -1005,6 +1008,7 @@ class RequestHandler {
             }
 
             const serializer = new Serializer(model, {
+                version: '1.1',
                 idKey: ids[0].name,
                 linkers: {
                     resource: linker,
@@ -1241,6 +1245,7 @@ class RequestHandler {
         }
 
         const items: any[] = [];
+        let currType = typeInfo;
 
         for (const [key, value] of Object.entries(query)) {
             if (!value) {
@@ -1287,8 +1292,8 @@ class RequestHandler {
 
                     const fieldInfo =
                         filterKey === 'id'
-                            ? Object.values(typeInfo.fields).find((f) => f.isId)
-                            : typeInfo.fields[filterKey];
+                            ? Object.values(currType.fields).find((f) => f.isId)
+                            : currType.fields[filterKey];
                     if (!fieldInfo) {
                         return { filter: undefined, error: this.makeError('invalidFilter') };
                     }
@@ -1306,7 +1311,14 @@ class RequestHandler {
                             curr[fieldInfo.name] = this.makeFilterValue(fieldInfo, filterValue, filterOp);
                         } else {
                             // keep going
-                            curr = curr[fieldInfo.name] = {};
+                            if (fieldInfo.isArray) {
+                                // collection filtering implies "some" operation
+                                curr[fieldInfo.name] = { some: {} };
+                                curr = curr[fieldInfo.name].some;
+                            } else {
+                                curr = curr[fieldInfo.name] = {};
+                            }
+                            currType = this.typeMap[lowerCaseFirst(fieldInfo.type)];
                         }
                     }
                 }
@@ -1418,7 +1430,7 @@ class RequestHandler {
                     const relation = parts[i];
                     const relationInfo = currType.relationships[relation];
                     if (!relationInfo) {
-                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation) };
+                        return { select: undefined, error: this.makeUnsupportedRelationshipError(type, relation, 400) };
                     }
 
                     currType = this.typeMap[lowerCaseFirst(relationInfo.type)];
@@ -1534,13 +1546,13 @@ class RequestHandler {
         }
     }
 
-    private makeError(code: keyof typeof this.errors, detail?: string) {
+    private makeError(code: keyof typeof this.errors, detail?: string, status?: number) {
         return {
-            status: this.errors[code].status,
+            status: status ?? this.errors[code].status,
             body: {
                 errors: [
                     {
-                        status: this.errors[code].status,
+                        status: status ?? this.errors[code].status,
                         code: paramCase(code),
                         title: this.errors[code].title,
                         detail: detail || this.errors[code].detail,
@@ -1551,14 +1563,11 @@ class RequestHandler {
     }
 
     private makeUnsupportedModelError(model: string) {
-        return this.makeError('unsupportedModel', `Model ${model} doesn't exist or doesn't have a single ID field`);
+        return this.makeError('unsupportedModel', `Model ${model} doesn't exist`);
     }
 
-    private makeUnsupportedRelationshipError(model: string, relationship: string) {
-        return this.makeError(
-            'unsupportedRelationship',
-            `Relationship ${model}.${relationship} doesn't exist or its type doesn't have a single ID field`
-        );
+    private makeUnsupportedRelationshipError(model: string, relationship: string, status: number) {
+        return this.makeError('unsupportedRelationship', `Relationship ${model}.${relationship} doesn't exist`, status);
     }
 
     //#endregion

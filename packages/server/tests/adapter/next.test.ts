@@ -5,13 +5,15 @@ import { apiResolver } from 'next/dist/server/api-utils/node';
 import superjson from 'superjson';
 import request from 'supertest';
 import { NextRequestHandler, RequestHandlerOptions } from '../../src/next';
+import Rest from '../../src/api/rest';
 
-function makeTestClient(apiPath: string, options: RequestHandlerOptions, queryArgs?: unknown) {
+function makeTestClient(apiPath: string, options: RequestHandlerOptions, qArg?: unknown, otherArgs?: any) {
     const pathParts = apiPath.split('/').filter((p) => p);
 
     const query = {
         path: pathParts,
-        ...(queryArgs ? { q: superjson.stringify(queryArgs) } : {}),
+        ...(qArg ? { q: superjson.stringify(qArg) } : {}),
+        ...otherArgs,
     };
 
     const handler = NextRequestHandler(options);
@@ -34,7 +36,7 @@ function makeTestClient(apiPath: string, options: RequestHandlerOptions, queryAr
     return request(createServer(listener));
 }
 
-describe('request handler tests', () => {
+describe('Next.js adapter tests - rpc handler', () => {
     let origDir: string;
 
     beforeEach(() => {
@@ -271,6 +273,71 @@ model M {
         )
             .del('/')
             .expect(200);
+    });
+});
+
+describe('Next.js adapter tests - rest handler', () => {
+    let origDir: string;
+
+    beforeEach(() => {
+        origDir = process.cwd();
+    });
+
+    afterEach(() => {
+        process.chdir(origDir);
+    });
+
+    it('adapter test - rest', async () => {
+        const model = `
+model M {
+    id String @id @default(cuid())
+    value Int
+}
+        `;
+
+        const { prisma, modelMeta } = await loadSchema(model);
+
+        const options = { getPrisma: () => prisma, handler: Rest({ endpoint: 'http://localhost/api' }), modelMeta };
+
+        await makeTestClient('/m', options)
+            .post('/')
+            .send({ data: { type: 'm', attributes: { id: '1', value: 1 } } })
+            .expect(201)
+            .expect((resp) => {
+                expect(resp.body.data.attributes.value).toBe(1);
+            });
+
+        await makeTestClient('/m/1', options)
+            .get('/')
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.data.id).toBe('1');
+            });
+
+        await makeTestClient('/m', options, undefined, { 'filter[value]': '1' })
+            .get('/')
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.data).toHaveLength(1);
+            });
+
+        await makeTestClient('/m', options, undefined, { 'filter[value]': '2' })
+            .get('/')
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.data).toHaveLength(0);
+            });
+
+        await makeTestClient('/m/1', options)
+            .put('/')
+            .send({ data: { type: 'm', attributes: { value: 2 } } })
+            .expect(200)
+            .expect((resp) => {
+                expect(resp.body.data.attributes.value).toBe(2);
+            });
+
+        await makeTestClient('/m/1', options).del('/').expect(204);
+        expect(await prisma.m.count()).toBe(0);
     });
 });
 
