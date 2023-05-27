@@ -179,6 +179,38 @@ model Post {
         expect(api.paths?.['/post']?.['post']?.security).toBeUndefined();
     });
 
+    it('security model level override', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+    securitySchemes = { 
+        myBasic: { type: 'http', scheme: 'basic' }
+    }
+}
+
+model User {
+    id String @id
+    value Int
+
+    @@allow('all', value > 0)
+
+    @@openapi.meta({
+        security: []
+    })
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/user']?.['get']?.security).toHaveLength(0);
+        expect(api.paths?.['/user/{id}']?.['put']?.security).toHaveLength(0);
+    });
+
     it('security schemes invalid', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
@@ -235,7 +267,7 @@ model Post {
 
 function buildOptions(model: Model, modelFile: string, output: string, specVersion = '3.0.0') {
     const optionFields = model.declarations.find((d): d is Plugin => isPlugin(d))?.fields || [];
-    const options: any = { schemaPath: modelFile, output, specVersion, flavor: 'restful' };
+    const options: any = { schemaPath: modelFile, output, specVersion, flavor: 'rest' };
     optionFields.forEach((f) => (options[f.name] = getLiteral(f.value) ?? getObjectLiteral(f.value)));
     return options;
 }

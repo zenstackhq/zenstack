@@ -5,6 +5,7 @@ import {
     AUXILIARY_FIELDS,
     analyzePolicies,
     getDataModels,
+    hasAttribute,
     isForeignKeyField,
     isIdField,
     isRelationshipField,
@@ -36,6 +37,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         const components = this.generateComponents();
         const paths = this.generatePaths();
+
+        // prune unused component schemas
+        this.pruneComponents(paths, components);
 
         // generate security schemes, and root-level security
         components.securitySchemes = this.generateSecuritySchemes();
@@ -108,20 +112,24 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             prefix = prefix.substring(0, prefix.length - 1);
         }
 
+        const resourceMeta = getModelResourceMeta(zmodel);
+
         // GET /resource
         // POST /resource
         result[`${prefix}/${lowerCaseFirst(model.name)}`] = {
-            get: this.makeResourceList(zmodel, policies),
-            post: this.makeResourceCreate(zmodel, policies),
+            get: this.makeResourceList(zmodel, policies, resourceMeta),
+            post: this.makeResourceCreate(zmodel, policies, resourceMeta),
         };
 
         // GET /resource/{id}
+        // PUT /resource/{id}
         // PATCH /resource/{id}
         // DELETE /resource/{id}
         result[`${prefix}/${lowerCaseFirst(model.name)}/{id}`] = {
-            get: this.makeResourceFetch(zmodel, policies),
-            patch: this.makeResourceUpdate(zmodel, policies),
-            delete: this.makeResourceDelete(zmodel, policies),
+            get: this.makeResourceFetch(zmodel, policies, resourceMeta),
+            put: this.makeResourceUpdate(zmodel, policies, `update-${model.name}-put`, resourceMeta),
+            patch: this.makeResourceUpdate(zmodel, policies, `update-${model.name}-patch`, resourceMeta),
+            delete: this.makeResourceDelete(zmodel, policies, resourceMeta),
         };
 
         // paths for related resources and relationships
@@ -131,33 +139,49 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 continue;
             }
 
-            // GET /resource/{id}/field
+            // GET /resource/{id}/{relationship}
             const relatedDataPath = `${prefix}/${lowerCaseFirst(model.name)}/{id}/${field.name}`;
             let container = result[relatedDataPath];
             if (!container) {
                 container = result[relatedDataPath] = {};
             }
-            container.get = this.makeRelatedFetch(zmodel, field, relationDecl);
+            container.get = this.makeRelatedFetch(zmodel, field, relationDecl, resourceMeta);
 
             const relationshipPath = `${prefix}/${lowerCaseFirst(model.name)}/{id}/relationships/${field.name}`;
             container = result[relationshipPath];
             if (!container) {
                 container = result[relationshipPath] = {};
             }
-            // GET /resource/{id}/relationships/field
-            container.get = this.makeRelationshipFetch(zmodel, field, policies);
-            // PATCH /resource/{id}/relationships/field
-            container.patch = this.makeRelationshipUpdate(zmodel, field, policies);
+            // GET /resource/{id}/relationships/{relationship}
+            container.get = this.makeRelationshipFetch(zmodel, field, policies, resourceMeta);
+
+            // PUT /resource/{id}/relationships/{relationship}
+            container.put = this.makeRelationshipUpdate(
+                zmodel,
+                field,
+                policies,
+                `update-${model.name}-relationship-${field.name}-put`,
+                resourceMeta
+            );
+            // PATCH /resource/{id}/relationships/{relationship}
+            container.patch = this.makeRelationshipUpdate(
+                zmodel,
+                field,
+                policies,
+                `update-${model.name}-relationship-${field.name}-patch`,
+                resourceMeta
+            );
+
             if (field.type.array) {
-                // POST /resource/{id}/relationships/field
-                container.post = this.makeRelationshipCreate(zmodel, field, policies);
+                // POST /resource/{id}/relationships/{relationship}
+                container.post = this.makeRelationshipCreate(zmodel, field, policies, resourceMeta);
             }
         }
 
         return result;
     }
 
-    private makeResourceList(model: DataModel, policies: Policies) {
+    private makeResourceList(model: DataModel, policies: Policies, resourceMeta: { security?: object } | undefined) {
         return {
             operationId: `list-${model.name}`,
             description: `List "${model.name}" resources`,
@@ -173,11 +197,11 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '200': this.success(`${model.name}ListResponse`),
                 '403': this.forbidden(),
             },
-            security: policies.read === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.read === true ? [] : undefined,
         };
     }
 
-    private makeResourceCreate(model: DataModel, policies: Policies) {
+    private makeResourceCreate(model: DataModel, policies: Policies, resourceMeta: { security?: object } | undefined) {
         return {
             operationId: `create-${model.name}`,
             description: `Create a "${model.name}" resource`,
@@ -193,11 +217,11 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '201': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
             },
-            security: policies.create === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.create === true ? [] : undefined,
         };
     }
 
-    private makeResourceFetch(model: DataModel, policies: Policies) {
+    private makeResourceFetch(model: DataModel, policies: Policies, resourceMeta: { security?: object } | undefined) {
         return {
             operationId: `fetch-${model.name}`,
             description: `Fetch a "${model.name}" resource`,
@@ -208,11 +232,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.read === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.read === true ? [] : undefined,
         };
     }
 
-    private makeRelatedFetch(model: DataModel, field: DataModelField, relationDecl: DataModel) {
+    private makeRelatedFetch(
+        model: DataModel,
+        field: DataModelField,
+        relationDecl: DataModel,
+        resourceMeta: { security?: object } | undefined
+    ) {
         const policies = analyzePolicies(relationDecl);
         const parameters: OAPI.OperationObject['parameters'] = [this.parameter('id'), this.parameter('include')];
         if (field.type.array) {
@@ -235,14 +264,19 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.read === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.read === true ? [] : undefined,
         };
         return result;
     }
 
-    private makeResourceUpdate(model: DataModel, policies: Policies) {
+    private makeResourceUpdate(
+        model: DataModel,
+        policies: Policies,
+        operationId: string,
+        resourceMeta: { security?: object } | undefined
+    ) {
         return {
-            operationId: `update-${model.name}`,
+            operationId,
             description: `Update a "${model.name}" resource`,
             tags: [lowerCaseFirst(model.name)],
             parameters: [this.parameter('id')],
@@ -258,11 +292,11 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.update === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.update === true ? [] : undefined,
         };
     }
 
-    private makeResourceDelete(model: DataModel, policies: Policies) {
+    private makeResourceDelete(model: DataModel, policies: Policies, resourceMeta: { security?: object } | undefined) {
         return {
             operationId: `delete-${model.name}`,
             description: `Delete a "${model.name}" resource`,
@@ -273,11 +307,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.delete === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.delete === true ? [] : undefined,
         };
     }
 
-    private makeRelationshipFetch(model: DataModel, field: DataModelField, policies: Policies) {
+    private makeRelationshipFetch(
+        model: DataModel,
+        field: DataModelField,
+        policies: Policies,
+        resourceMeta: { security?: object } | undefined
+    ) {
         const parameters: OAPI.OperationObject['parameters'] = [this.parameter('id')];
         if (field.type.array) {
             parameters.push(
@@ -299,11 +338,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.read === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.read === true ? [] : undefined,
         };
     }
 
-    private makeRelationshipCreate(model: DataModel, field: DataModelField, policies: Policies) {
+    private makeRelationshipCreate(
+        model: DataModel,
+        field: DataModelField,
+        policies: Policies,
+        resourceMeta: { security?: object } | undefined
+    ) {
         return {
             operationId: `create-${model.name}-relationship-${field.name}`,
             description: `Create new "${field.name}" relationships for a "${model.name}"`,
@@ -321,13 +365,19 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.update === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.update === true ? [] : undefined,
         };
     }
 
-    private makeRelationshipUpdate(model: DataModel, field: DataModelField, policies: Policies) {
+    private makeRelationshipUpdate(
+        model: DataModel,
+        field: DataModelField,
+        policies: Policies,
+        operationId: string,
+        resourceMeta: { security?: object } | undefined
+    ) {
         return {
-            operationId: `update-${model.name}-relationship-${field.name}`,
+            operationId,
             description: `Update "${field.name}" ${pluralize('relationship', field.type.array ? 2 : 1)} for a "${
                 model.name
             }"`,
@@ -349,7 +399,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '403': this.forbidden(),
                 '404': this.notFound(),
             },
-            security: policies.update === true ? [] : undefined,
+            security: resourceMeta?.security ?? policies.update === true ? [] : undefined,
         };
     }
 
@@ -784,6 +834,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 if (
                     mode === 'create' &&
                     !field.type.optional &&
+                    !hasAttribute(field, '@default') &&
                     // collection relation fields are implicitly optional
                     !(isDataModel(field.$resolvedType?.decl) && field.type.array)
                 ) {
