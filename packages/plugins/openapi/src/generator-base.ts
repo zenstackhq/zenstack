@@ -60,4 +60,59 @@ export abstract class OpenAPIGeneratorBase {
         }
         return undefined;
     }
+
+    protected pruneComponents(paths: OAPI.PathsObject, components: OAPI.ComponentsObject) {
+        const schemas = components.schemas;
+        if (schemas) {
+            const roots = new Set<string>();
+            for (const path of Object.values(paths)) {
+                this.collectUsedComponents(path, roots);
+            }
+
+            // build a transitive closure for all reachable schemas from roots
+            const allUsed = new Set<string>(roots);
+
+            let todo = [...allUsed];
+            while (todo.length > 0) {
+                const curr = new Set<string>(allUsed);
+                Object.entries(schemas)
+                    .filter(([key]) => todo.includes(key))
+                    .forEach(([, value]) => {
+                        this.collectUsedComponents(value, allUsed);
+                    });
+                todo = [...allUsed].filter((e) => !curr.has(e));
+            }
+
+            // prune unused schemas
+            Object.keys(schemas).forEach((key) => {
+                if (!allUsed.has(key)) {
+                    delete schemas[key];
+                }
+            });
+        }
+    }
+
+    private collectUsedComponents(value: unknown, allUsed: Set<string>) {
+        if (!value) {
+            return;
+        }
+
+        if (Array.isArray(value)) {
+            value.forEach((item) => {
+                this.collectUsedComponents(item, allUsed);
+            });
+        } else if (typeof value === 'object') {
+            Object.entries(value).forEach(([subKey, subValue]) => {
+                if (subKey === '$ref') {
+                    const ref = subValue as string;
+                    const name = ref.split('/').pop();
+                    if (name && !allUsed.has(name)) {
+                        allUsed.add(name);
+                    }
+                } else {
+                    this.collectUsedComponents(subValue, allUsed);
+                }
+            });
+        }
+    }
 }

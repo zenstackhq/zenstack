@@ -247,8 +247,39 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-User-put
+            description: Update a "User" resource
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/UserUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
-            operationId: update-User
+            operationId: update-User-patch
             description: Update a "User" resource
             tags:
                 - user
@@ -689,8 +720,39 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-User-relationship-posts-put
+            description: Update "posts" relationships for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toManyRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toManyRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
-            operationId: update-User-relationship-posts
+            operationId: update-User-relationship-posts-patch
             description: Update "posts" relationships for a "User"
             tags:
                 - user
@@ -1028,8 +1090,39 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-Post-put
+            description: Update a "Post" resource
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/PostUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/PostResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
-            operationId: update-Post
+            operationId: update-Post-patch
             description: Update a "Post" resource
             tags:
                 - post
@@ -1136,8 +1229,39 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-Post-relationship-author-put
+            description: Update "author" relationship for a "Post"
+            tags:
+                - post
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
-            operationId: update-Post-relationship-author
+            operationId: update-Post-relationship-author-patch
             description: Update "author" relationship for a "Post"
             tags:
                 - post
@@ -1407,10 +1531,8 @@ components:
                         attributes:
                             type: object
                             required:
-                                - createdAt
                                 - updatedAt
                                 - email
-                                - role
                             properties:
                                 createdAt:
                                     type: string
@@ -1569,11 +1691,8 @@ components:
                         attributes:
                             type: object
                             required:
-                                - createdAt
                                 - updatedAt
                                 - title
-                                - published
-                                - viewCount
                             properties:
                                 createdAt:
                                     type: string
