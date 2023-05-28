@@ -120,6 +120,7 @@ export default class PrismaSchemaGenerator {
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
         let provider: string | undefined = undefined;
         let url: PrismaDataSourceUrl | undefined = undefined;
+        let directUrl: PrismaDataSourceUrl | undefined = undefined;
         let shadowDatabaseUrl: PrismaDataSourceUrl | undefined = undefined;
         const restFields: SimpleField[] = [];
 
@@ -143,10 +144,19 @@ export default class PrismaSchemaGenerator {
                     break;
                 }
 
+                case 'directUrl': {
+                    const r = this.extractDataSourceUrl(f.value);
+                    if (!r) {
+                        throw new PluginError(name, 'Invalid value for directUrl');
+                    }
+                    directUrl = r;
+                    break;
+                }
+
                 case 'shadowDatabaseUrl': {
                     const r = this.extractDataSourceUrl(f.value);
                     if (!r) {
-                        throw new PluginError(name, 'Invalid value for datasource url');
+                        throw new PluginError(name, 'Invalid value for shadowDatabaseUrl');
                     }
                     shadowDatabaseUrl = r;
                     break;
@@ -175,7 +185,7 @@ export default class PrismaSchemaGenerator {
             throw new PluginError(name, 'Datasource is missing "url" field');
         }
 
-        prisma.addDataSource(dataSource.name, provider, url, shadowDatabaseUrl, restFields);
+        prisma.addDataSource(dataSource.name, provider, url, directUrl, shadowDatabaseUrl, restFields);
     }
 
     private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr | ArrayExpr) {
