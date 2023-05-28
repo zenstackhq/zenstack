@@ -1,13 +1,13 @@
 {
     "name": "zenstack-monorepo",
-    "version": "1.0.0-alpha.118",
+    "version": "1.0.0-alpha.119",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
         "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
-        "publish-private": "pnpm --filter \"./packages/**\" -r publish --registry http://localhost:4873"
+        "publish-preview": "pnpm --filter \"./packages/**\" -r publish --registry https://packagecloud.io/ymc9/zenstack-preview/npm"
     },
     "keywords": [],
     "author": "",
