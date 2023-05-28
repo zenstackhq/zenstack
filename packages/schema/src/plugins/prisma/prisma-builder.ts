@@ -19,10 +19,11 @@ export class PrismaModel {
         name: string,
         provider: string,
         url: DataSourceUrl,
+        directUrl?: DataSourceUrl,
         shadowDatabaseUrl?: DataSourceUrl,
         restFields: SimpleField[] = []
     ): DataSource {
-        const ds = new DataSource(name, provider, url, shadowDatabaseUrl, restFields);
+        const ds = new DataSource(name, provider, url, directUrl, shadowDatabaseUrl, restFields);
         this.datasources.push(ds);
         return ds;
     }
@@ -57,6 +58,7 @@ export class DataSource {
         public name: string,
         public provider: string,
         public url: DataSourceUrl,
+        public directUrl?: DataSourceUrl,
         public shadowDatabaseUrl?: DataSourceUrl,
         public restFields: SimpleField[] = []
     ) {}
@@ -70,6 +72,7 @@ export class DataSource {
             `datasource ${this.name} {\n` +
             indentString(`provider="${this.provider}"\n`) +
             indentString(`url=${this.url}\n`) +
+            (this.directUrl ? indentString(`directUrl=${this.directUrl}\n`) : '') +
             (this.shadowDatabaseUrl ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`) : '') +
             (restFields ? restFields + '\n' : '') +
             `}`
