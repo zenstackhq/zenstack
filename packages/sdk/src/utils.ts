@@ -11,9 +11,13 @@ import {
     isDataModel,
     isLiteralExpr,
     isObjectExpr,
+    isReferenceExpr,
     Model,
     Reference,
+    ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import path from 'path';
+import { PluginOptions } from './types';
 
 /**
  * Gets data models that are not ignored
@@ -121,4 +125,90 @@ export function getAttributeArgLiteral<T extends string | number | boolean>(
         }
     }
     return undefined;
+}
+
+/**
+ * Gets id fields declared at the data model level
+ */
+export function getIdFields(model: DataModel) {
+    const idAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@id');
+    if (!idAttr) {
+        return [];
+    }
+    const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+        return [];
+    }
+
+    return fieldsArg.value.items
+        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+        .map((item) => resolved(item.target) as DataModelField);
+}
+
+/**
+ * Returns if the given field is declared as an id field.
+ */
+export function isIdField(field: DataModelField) {
+    // field-level @id attribute
+    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
+        return true;
+    }
+
+    // model-level @@id attribute with a list of fields
+    const model = field.$container as DataModel;
+    const modelLevelIds = getIdFields(model);
+    if (modelLevelIds.includes(field)) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Returns if the given field is a relation field.
+ */
+export function isRelationshipField(field: DataModelField) {
+    return isDataModel(field.type.reference?.ref);
+}
+
+/**
+ * Returns if the given field is a relation foreign key field.
+ */
+export function isForeignKeyField(field: DataModelField) {
+    const model = field.$container as DataModel;
+    return model.fields.some((f) => {
+        // find @relation attribute
+        const relAttr = f.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+        if (relAttr) {
+            // find "fields" arg
+            const fieldsArg = relAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+
+            if (fieldsArg && isArrayExpr(fieldsArg.value)) {
+                // find a matching field reference
+                return fieldsArg.value.items.some((item): item is ReferenceExpr => {
+                    if (isReferenceExpr(item)) {
+                        return item.target.ref === field;
+                    } else {
+                        return false;
+                    }
+                });
+            }
+        }
+        return false;
+    });
+}
+
+export function resolvePath(_path: string, options: PluginOptions) {
+    if (path.isAbsolute(_path)) {
+        return _path;
+    } else {
+        return path.join(path.dirname(options.schemaPath), _path);
+    }
+}
+
+export function requireOption<T>(options: PluginOptions, name: string): T {
+    const value = options[name];
+    if (value === undefined) {
+        throw new Error(`Plugin "${options.name}" is missing required option: ${name}`);
+    }
+    return value as T;
 }

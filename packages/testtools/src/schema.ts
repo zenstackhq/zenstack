@@ -92,72 +92,80 @@ export async function loadSchema(
     addPrelude = true,
     pushDb = true,
     extraDependencies: string[] = [],
-    compile = false
+    compile = false,
+    customSchemaFilePath?: string
 ) {
     const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
-    try {
-        const root = getWorkspaceRoot(__dirname);
+    const root = getWorkspaceRoot(__dirname);
 
-        if (!root) {
-            throw new Error('Could not find workspace root');
-        }
-
-        console.log('Workspace root:', root);
-
-        const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });
-        fs.writeFileSync(path.join(projectRoot, 'package.json'), pkgContent.replaceAll('<root>', root));
-
-        const npmrcContent = fs.readFileSync(path.join(__dirname, '.npmrc.template'), { encoding: 'utf-8' });
-        fs.writeFileSync(path.join(projectRoot, '.npmrc'), npmrcContent.replaceAll('<root>', root));
-
-        console.log('Workdir:', projectRoot);
-        process.chdir(projectRoot);
-
-        schema = schema.replaceAll('$projectRoot', projectRoot);
-
-        const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
-        fs.writeFileSync('schema.zmodel', content);
-        run('npm install');
-        run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
-
-        if (pushDb) {
-            run('npx prisma db push');
-        }
-
-        const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
-        const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
-
-        extraDependencies.forEach((dep) => {
-            console.log(`Installing dependency ${dep}`);
-            run(`npm install ${dep}`);
-        });
-
-        if (compile) {
-            console.log('Compiling...');
-            run('npx tsc --init');
-            run('npx tsc --project tsconfig.json');
-        }
-
-        const policy = require(path.join(projectRoot, '.zenstack/policy')).default;
-        const modelMeta = require(path.join(projectRoot, '.zenstack/model-meta')).default;
-        const zodSchemas = require(path.join(projectRoot, '.zenstack/zod'));
-
-        return {
-            projectDir: projectRoot,
-            prisma,
-            withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
-            withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
-            withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
-            withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
-            policy,
-            modelMeta,
-            zodSchemas,
-        };
-    } catch (err) {
-        fs.rmSync(projectRoot, { recursive: true, force: true });
-        throw err;
+    if (!root) {
+        throw new Error('Could not find workspace root');
     }
+
+    const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });
+    fs.writeFileSync(path.join(projectRoot, 'package.json'), pkgContent.replaceAll('<root>', root));
+
+    const npmrcContent = fs.readFileSync(path.join(__dirname, '.npmrc.template'), { encoding: 'utf-8' });
+    fs.writeFileSync(path.join(projectRoot, '.npmrc'), npmrcContent.replaceAll('<root>', root));
+
+    console.log('Workdir:', projectRoot);
+    process.chdir(projectRoot);
+
+    schema = schema.replaceAll('$projectRoot', projectRoot);
+
+    let zmodelPath = path.join(projectRoot, 'schema.zmodel');
+    const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
+    if (customSchemaFilePath) {
+        zmodelPath = path.join(projectRoot, customSchemaFilePath);
+        fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
+        fs.writeFileSync(zmodelPath, content);
+    } else {
+        fs.writeFileSync('schema.zmodel', content);
+    }
+    run('npm install');
+
+    if (customSchemaFilePath) {
+        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check`, {
+            NODE_PATH: './node_modules',
+        });
+    } else {
+        run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
+    }
+
+    if (pushDb) {
+        run('npx prisma db push');
+    }
+
+    const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
+    const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
+
+    extraDependencies.forEach((dep) => {
+        console.log(`Installing dependency ${dep}`);
+        run(`npm install ${dep}`);
+    });
+
+    if (compile) {
+        console.log('Compiling...');
+        run('npx tsc --init');
+        run('npx tsc --project tsconfig.json');
+    }
+
+    const policy = require(path.join(path.dirname(zmodelPath), '.zenstack/policy')).default;
+    const modelMeta = require(path.join(path.dirname(zmodelPath), '.zenstack/model-meta')).default;
+    const zodSchemas = require(path.join(path.dirname(zmodelPath), '.zenstack/zod'));
+
+    return {
+        projectDir: projectRoot,
+        prisma,
+        withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+        withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
+        withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
+        withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+        policy,
+        modelMeta,
+        zodSchemas,
+    };
 }
 
 /**
@@ -181,7 +189,7 @@ export async function loadZModelAndDmmf(
     const model = await loadDocument(modelFile);
 
     const { name: prismaFile } = tmp.fileSync({ postfix: '.prisma' });
-    await prismaPlugin(model, { schemaPath: modelFile, output: prismaFile, generateClient: false });
+    await prismaPlugin(model, { schemaPath: modelFile, name: 'Prisma', output: prismaFile, generateClient: false });
 
     const prismaContent = fs.readFileSync(prismaFile, { encoding: 'utf-8' });
 

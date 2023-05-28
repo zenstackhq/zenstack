@@ -28,11 +28,13 @@ import {
     PluginError,
     PluginOptions,
     resolved,
+    resolvePath,
     TRANSACTION_FIELD_NAME,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import { execSync } from '../../utils/exec-utils';
 import {
@@ -94,7 +96,9 @@ export default class PrismaSchemaGenerator {
             }
         }
 
-        const outFile = (options.output as string) ?? './prisma/schema.prisma';
+        let outFile = (options.output as string) ?? './prisma/schema.prisma';
+        outFile = resolvePath(outFile, options);
+
         if (!fs.existsSync(path.dirname(outFile))) {
             fs.mkdirSync(path.dirname(outFile), { recursive: true });
         }
@@ -116,6 +120,7 @@ export default class PrismaSchemaGenerator {
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
         let provider: string | undefined = undefined;
         let url: PrismaDataSourceUrl | undefined = undefined;
+        let directUrl: PrismaDataSourceUrl | undefined = undefined;
         let shadowDatabaseUrl: PrismaDataSourceUrl | undefined = undefined;
         const restFields: SimpleField[] = [];
 
@@ -125,7 +130,7 @@ export default class PrismaSchemaGenerator {
                     if (this.isStringLiteral(f.value)) {
                         provider = f.value.value as string;
                     } else {
-                        throw new PluginError('Datasource provider must be set to a string');
+                        throw new PluginError(name, 'Datasource provider must be set to a string');
                     }
                     break;
                 }
@@ -133,16 +138,25 @@ export default class PrismaSchemaGenerator {
                 case 'url': {
                     const r = this.extractDataSourceUrl(f.value);
                     if (!r) {
-                        throw new PluginError('Invalid value for datasource url');
+                        throw new PluginError(name, 'Invalid value for datasource url');
                     }
                     url = r;
+                    break;
+                }
+
+                case 'directUrl': {
+                    const r = this.extractDataSourceUrl(f.value);
+                    if (!r) {
+                        throw new PluginError(name, 'Invalid value for directUrl');
+                    }
+                    directUrl = r;
                     break;
                 }
 
                 case 'shadowDatabaseUrl': {
                     const r = this.extractDataSourceUrl(f.value);
                     if (!r) {
-                        throw new PluginError('Invalid value for datasource url');
+                        throw new PluginError(name, 'Invalid value for shadowDatabaseUrl');
                     }
                     shadowDatabaseUrl = r;
                     break;
@@ -153,6 +167,7 @@ export default class PrismaSchemaGenerator {
                     const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
                     if (value === undefined) {
                         throw new PluginError(
+                            name,
                             `Invalid value for datasource field ${f.name}: value must be a string or an array of strings`
                         );
                     } else {
@@ -164,13 +179,13 @@ export default class PrismaSchemaGenerator {
         }
 
         if (!provider) {
-            throw new PluginError('Datasource is missing "provider" field');
+            throw new PluginError(name, 'Datasource is missing "provider" field');
         }
         if (!url) {
-            throw new PluginError('Datasource is missing "url" field');
+            throw new PluginError(name, 'Datasource is missing "url" field');
         }
 
-        prisma.addDataSource(dataSource.name, provider, url, shadowDatabaseUrl, restFields);
+        prisma.addDataSource(dataSource.name, provider, url, directUrl, shadowDatabaseUrl, restFields);
     }
 
     private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr | ArrayExpr) {
@@ -204,24 +219,24 @@ export default class PrismaSchemaGenerator {
             this.generateModelField(model, field);
         }
 
-        // add an "zenstack_guard" field for dealing with boolean conditions
-        const guardField = model.addField(GUARD_FIELD_NAME, 'Boolean', [
-            new PrismaFieldAttribute('@default', [
-                new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
-            ]),
-        ]);
-
-        if (config?.guardFieldName && config?.guardFieldName !== GUARD_FIELD_NAME) {
-            // generate a @map to rename field in the database
-            guardField.addAttribute('@map', [
-                new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('String', config.guardFieldName)),
-            ]);
-        }
-
         const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
         if ((!allowAll && !denyAll) || hasFieldValidation) {
             // generate auxiliary fields for policy check
+
+            // add an "zenstack_guard" field for dealing with boolean conditions
+            const guardField = model.addField(GUARD_FIELD_NAME, 'Boolean', [
+                new PrismaFieldAttribute('@default', [
+                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
+                ]),
+            ]);
+
+            if (config?.guardFieldName && config?.guardFieldName !== GUARD_FIELD_NAME) {
+                // generate a @map to rename field in the database
+                guardField.addAttribute('@map', [
+                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('String', config.guardFieldName)),
+                ]);
+            }
 
             // add an "zenstack_transaction" field for tracking records created/updated with nested writes
             const transactionField = model.addField(TRANSACTION_FIELD_NAME, 'String?');
@@ -289,7 +304,7 @@ export default class PrismaSchemaGenerator {
         const fieldType =
             field.type.type || field.type.reference?.ref?.name || this.getUnsupportedFieldType(field.type);
         if (!fieldType) {
-            throw new PluginError(`Field type is not resolved: ${field.$container.name}.${field.name}`);
+            throw new PluginError(name, `Field type is not resolved: ${field.$container.name}.${field.name}`);
         }
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
@@ -315,7 +330,7 @@ export default class PrismaSchemaGenerator {
             if (text) {
                 return new PrismaPassThroughAttribute(text);
             } else {
-                throw new PluginError(`Invalid arguments for ${FIELD_PASSTHROUGH_ATTR} attribute`);
+                throw new PluginError(name, `Invalid arguments for ${FIELD_PASSTHROUGH_ATTR} attribute`);
             }
         } else {
             return new PrismaFieldAttribute(
@@ -339,7 +354,7 @@ export default class PrismaSchemaGenerator {
                 case 'boolean':
                     return new PrismaAttributeArgValue('Boolean', node.value);
                 default:
-                    throw new PluginError(`Unexpected literal type: ${typeof node.value}`);
+                    throw new PluginError(name, `Unexpected literal type: ${typeof node.value}`);
             }
         } else if (isArrayExpr(node)) {
             return new PrismaAttributeArgValue(
@@ -358,7 +373,7 @@ export default class PrismaSchemaGenerator {
             // invocation
             return new PrismaAttributeArgValue('FunctionCall', this.makeFunctionCall(node));
         } else {
-            throw new PluginError(`Unsupported attribute argument expression type: ${node.$type}`);
+            throw new PluginError(name, `Unsupported attribute argument expression type: ${node.$type}`);
         }
     }
 
@@ -367,7 +382,7 @@ export default class PrismaSchemaGenerator {
             resolved(node.function).name,
             node.args.map((arg) => {
                 if (!isLiteralExpr(arg.value)) {
-                    throw new PluginError('Function call argument must be literal');
+                    throw new PluginError(name, 'Function call argument must be literal');
                 }
                 return new PrismaFunctionCallArg(arg.name, arg.value.value);
             })

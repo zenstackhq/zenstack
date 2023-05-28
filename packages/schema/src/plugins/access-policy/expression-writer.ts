@@ -16,6 +16,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { getLiteral, GUARD_FIELD_NAME, PluginError } from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
+import { name } from '.';
 import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
 import TypeScriptExpressionTransformer from './typescript-expression-transformer';
@@ -180,7 +181,7 @@ export class ExpressionWriter {
                     'has'
                 );
             } else {
-                throw new PluginError('"in" operator cannot be used with field references on both sides');
+                throw new PluginError(name, '"in" operator cannot be used with field references on both sides');
             }
         });
     }
@@ -235,7 +236,7 @@ export class ExpressionWriter {
         const rightIsFieldAccess = this.isFieldAccess(expr.right);
 
         if (leftIsFieldAccess && rightIsFieldAccess) {
-            throw new PluginError(`Comparison between fields are not supported yet`);
+            throw new PluginError(name, `Comparison between fields are not supported yet`);
         }
 
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
@@ -292,11 +293,11 @@ export class ExpressionWriter {
 
                             const idFields = getIdFields(dataModel);
                             if (!idFields || idFields.length === 0) {
-                                throw new PluginError(`Data model ${dataModel.name} does not have an id field`);
+                                throw new PluginError(name, `Data model ${dataModel.name} does not have an id field`);
                             }
 
                             if (operator !== '==' && operator !== '!=') {
-                                throw new PluginError('Only == and != operators are allowed');
+                                throw new PluginError(name, 'Only == and != operators are allowed');
                             }
 
                             if (!isThisExpr(fieldAccess)) {
@@ -354,7 +355,7 @@ export class ExpressionWriter {
             } else if (operator === '!=') {
                 this.writer.write('isNot: ');
             } else {
-                throw new PluginError('Only == and != operators are allowed for data model comparison');
+                throw new PluginError(name, 'Only == and != operators are allowed for data model comparison');
             }
             writeOperand();
         } else {
@@ -396,11 +397,11 @@ export class ExpressionWriter {
                 operand = fieldAccess.operand;
             }
         } else {
-            throw new PluginError(`Unsupported expression type: ${fieldAccess.$type}`);
+            throw new PluginError(name, `Unsupported expression type: ${fieldAccess.$type}`);
         }
 
         if (!selector) {
-            throw new PluginError(`Failed to write FieldAccess expression`);
+            throw new PluginError(name, `Failed to write FieldAccess expression`);
         }
 
         const writerFilterOutput = () => {
@@ -517,7 +518,7 @@ export class ExpressionWriter {
 
     private writeUnary(expr: UnaryExpr) {
         if (expr.operator !== '!') {
-            throw new PluginError(`Unary operator "${expr.operator}" is not supported`);
+            throw new PluginError(name, `Unary operator "${expr.operator}" is not supported`);
         }
 
         this.block(() => {
@@ -537,7 +538,7 @@ export class ExpressionWriter {
     private writeInvocation(expr: InvocationExpr) {
         const funcDecl = expr.function.ref;
         if (!funcDecl) {
-            throw new PluginError(`Failed to resolve function declaration`);
+            throw new PluginError(name, `Failed to resolve function declaration`);
         }
 
         if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
@@ -573,7 +574,7 @@ export class ExpressionWriter {
                 );
             });
         } else {
-            throw new PluginError(`Unsupported function ${funcDecl.name}`);
+            throw new PluginError(name, `Unsupported function ${funcDecl.name}`);
         }
     }
 }

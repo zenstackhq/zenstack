@@ -1,6 +1,6 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import { Dictionary } from '@prisma/internals';
-import { PluginOptions, createProject, emitProject, getLiteral, saveProject } from '@zenstackhq/sdk';
+import { PluginOptions, createProject, emitProject, getLiteral, resolvePath, saveProject } from '@zenstackhq/sdk';
 import { DataSource, Model, isDataSource } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
@@ -24,6 +24,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             output = './generated/zod';
         }
     }
+    output = resolvePath(output, options);
     await handleGeneratorOutputValue(output);
 
     const prismaClientDmmf = dmmf;

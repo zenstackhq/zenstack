@@ -15,32 +15,30 @@ import {
     getDataModels,
     getLiteral,
     hasAttribute,
+    isIdField,
+    PluginError,
     PluginOptions,
     resolved,
+    resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { CodeBlockWriter, VariableDeclarationKind } from 'ts-morph';
-import { getIdFields } from '../../language-server/utils';
-import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
+import { getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
 
 export default async function run(model: Model, options: PluginOptions) {
-    const output = options.output ? (options.output as string) : getDefaultOutputFolder();
+    let output = options.output ? (options.output as string) : getDefaultOutputFolder();
     if (!output) {
-        console.error(`Unable to determine output path, not running plugin ${name}`);
-        return;
+        throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
     }
+    output = resolvePath(output, options);
 
     const dataModels = getDataModels(model);
 
     const project = createProject();
-
-    if (!options.output) {
-        ensureNodeModuleFolder(output);
-    }
 
     const sf = project.createSourceFile(path.join(output, 'model-meta.ts'), undefined, { overwrite: true });
     sf.addStatements('/* eslint-disable */');
@@ -156,21 +154,6 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
             return { name: resolved(attr.decl).name, args };
         })
         .filter((d): d is RuntimeAttribute => !!d);
-}
-
-function isIdField(field: DataModelField) {
-    // field-level @id attribute
-    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
-        return true;
-    }
-
-    // model-level @@id attribute with a list of fields
-    const model = field.$container as DataModel;
-    const modelLevelIds = getIdFields(model);
-    if (modelLevelIds.includes(field)) {
-        return true;
-    }
-    return false;
 }
 
 function getUniqueConstraints(model: DataModel) {

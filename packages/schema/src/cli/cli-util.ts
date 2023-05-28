@@ -242,7 +242,7 @@ export async function runPlugins(options: { schema: string; packageManager: Pack
         await new PluginRunner().run(context);
     } catch (err) {
         if (err instanceof PluginError) {
-            console.error(colors.red(err.message));
+            console.error(colors.red(`${err.plugin}: ${err.message}`));
             throw new CliError(err.message);
         } else {
             throw err;

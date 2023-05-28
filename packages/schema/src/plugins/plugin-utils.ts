@@ -29,21 +29,3 @@ export function getDefaultOutputFolder() {
     const modulesFolder = getNodeModulesFolder(runtimeModulePath);
     return modulesFolder ? path.join(modulesFolder, '.zenstack') : undefined;
 }
-
-/**
- * Ensure a folder exists and has a package.json in it.
- */
-export function ensureNodeModuleFolder(folder: string) {
-    if (!fs.existsSync(folder)) {
-        fs.mkdirSync(folder, { recursive: true });
-    }
-    if (!fs.existsSync(path.join(folder, 'package.json'))) {
-        fs.writeFileSync(
-            path.join(folder, 'package.json'),
-            JSON.stringify({
-                name: '.zenstack',
-                version: '1.0.0',
-            })
-        );
-    }
-}

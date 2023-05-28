@@ -12,6 +12,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         case 'react-query':
             return reactQueryGenerate(model, options, dmmf);
         default:
-            throw new PluginError(`Unknown "fetcher" option: ${fetcher}, use "swr" or "react-query"`);
+            throw new PluginError(options.name, `Unknown "fetcher" option: ${fetcher}, use "swr" or "react-query"`);
     }
 }

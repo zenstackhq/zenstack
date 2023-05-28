@@ -1,7 +1,7 @@
 {
   "name": "@zenstackhq/openapi",
   "displayName": "ZenStack Plugin and Runtime for OpenAPI",
-  "version": "1.0.0-alpha.116",
+  "version": "1.0.0-alpha.118",
   "description": "ZenStack plugin and runtime supporting OpenAPI",
   "main": "index.js",
   "repository": {
@@ -40,6 +40,7 @@
     "@readme/openapi-parser": "^2.4.0",
     "@types/jest": "^29.5.0",
     "@types/lower-case-first": "^1.0.1",
+    "@types/pluralize": "^0.0.29",
     "@types/tmp": "^0.2.3",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
@@ -47,6 +48,7 @@
     "copyfiles": "^2.4.1",
     "eslint": "^8.35.0",
     "jest": "^29.5.0",
+    "pluralize": "^8.0.0",
     "rimraf": "^3.0.2",
     "tmp": "^0.2.1",
     "ts-jest": "^29.0.5",

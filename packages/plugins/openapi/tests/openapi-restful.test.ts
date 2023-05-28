@@ -29,20 +29,6 @@ model User {
     email String @unique
     role Role @default(USER)
     posts Post[]
-
-    @@openapi.meta({
-        findMany: {
-            description: 'Find users matching the given conditions'
-        },
-        delete: {
-            method: 'put',
-            path: 'dodelete',
-            description: 'Delete a unique user',
-            summary: 'Delete a user yeah yeah',
-            tags: ['delete', 'user'],
-            deprecated: true
-        },
-    })
 }
 
 model Post {
@@ -56,10 +42,7 @@ model Post {
     viewCount Int @default(0)
 
     @@openapi.meta({
-        tagDescription: 'Post-related operations',
-        findMany: {
-            ignore: true
-        }
+        tagDescription: 'Post-related operations'
     })
 }
 
@@ -76,13 +59,10 @@ model Bar {
 
         const { name: output } = tmp.fileSync({ postfix: '.yaml' });
 
-        const options = buildOptions(model, modelFile, output);
+        const options = buildOptions(model, modelFile, output, '3.1.0');
         await generate(model, options, dmmf);
 
         console.log('OpenAPI specification generated:', output);
-
-        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
-        expect(parsed.openapi).toBe('3.1.0');
 
         const api = await OpenAPIParser.validate(output);
 
@@ -93,15 +73,26 @@ model Bar {
             ])
         );
 
-        expect(api.paths?.['/user/findMany']?.['get']?.description).toBe('Find users matching the given conditions');
-        const del = api.paths?.['/user/dodelete']?.['put'];
-        expect(del?.description).toBe('Delete a unique user');
-        expect(del?.summary).toBe('Delete a user yeah yeah');
-        expect(del?.tags).toEqual(expect.arrayContaining(['delete', 'user']));
-        expect(del?.deprecated).toBe(true);
-        expect(api.paths?.['/post/findMany']).toBeUndefined();
-        expect(api.paths?.['/foo/findMany']).toBeUndefined();
-        expect(api.paths?.['/bar/findMany']).toBeUndefined();
+        expect(api.paths?.['/user']?.['get']).toBeTruthy();
+        expect(api.paths?.['/user']?.['post']).toBeTruthy();
+        expect(api.paths?.['/user']?.['put']).toBeFalsy();
+        expect(api.paths?.['/user/{id}']?.['get']).toBeTruthy();
+        expect(api.paths?.['/user/{id}']?.['patch']).toBeTruthy();
+        expect(api.paths?.['/user/{id}']?.['delete']).toBeTruthy();
+        expect(api.paths?.['/user/{id}/posts']?.['get']).toBeTruthy();
+        expect(api.paths?.['/user/{id}/relationships/posts']?.['get']).toBeTruthy();
+        expect(api.paths?.['/user/{id}/relationships/posts']?.['post']).toBeTruthy();
+        expect(api.paths?.['/user/{id}/relationships/posts']?.['patch']).toBeTruthy();
+        expect(api.paths?.['/post/{id}/relationships/author']?.['get']).toBeTruthy();
+        expect(api.paths?.['/post/{id}/relationships/author']?.['post']).toBeUndefined();
+        expect(api.paths?.['/post/{id}/relationships/author']?.['patch']).toBeTruthy();
+        expect(api.paths?.['/foo']).toBeUndefined();
+        expect(api.paths?.['/bar']).toBeUndefined();
+
+        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+        expect(parsed.openapi).toBe('3.1.0');
+        const baseline = YAML.parse(fs.readFileSync(`${__dirname}/baseline/rest.baseline.yaml`, 'utf-8'));
+        expect(parsed).toMatchObject(baseline);
     });
 
     it('options', async () => {
@@ -138,7 +129,7 @@ model User {
             })
         );
 
-        expect(api.paths?.['/myapi/user/findMany']).toBeTruthy();
+        expect(api.paths?.['/myapi/user']).toBeTruthy();
     });
 
     it('security schemes valid', async () => {
@@ -154,15 +145,22 @@ plugin openapi {
 
 model User {
     id String @id
+    posts Post[]
 }
-        `);
+
+model Post {
+    id String @id
+    author User @relation(fields: [authorId], references: [id])
+    authorId String
+    @@allow('read', true)
+}
+`);
 
         const { name: output } = tmp.fileSync({ postfix: '.yaml' });
         const options = buildOptions(model, modelFile, output);
         await generate(model, options, dmmf);
 
         console.log('OpenAPI specification generated:', output);
-        await OpenAPIParser.validate(output);
 
         const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
         expect(parsed.components.securitySchemes).toEqual(
@@ -173,6 +171,44 @@ model User {
             })
         );
         expect(parsed.security).toEqual(expect.arrayContaining([{ myBasic: [] }, { myBearer: [] }]));
+
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/user']?.['get']?.security).toBeUndefined();
+        expect(api.paths?.['/user/{id}/posts']?.['get']?.security).toEqual([]);
+        expect(api.paths?.['/post']?.['get']?.security).toEqual([]);
+        expect(api.paths?.['/post']?.['post']?.security).toBeUndefined();
+    });
+
+    it('security model level override', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+    securitySchemes = { 
+        myBasic: { type: 'http', scheme: 'basic' }
+    }
+}
+
+model User {
+    id String @id
+    value Int
+
+    @@allow('all', value > 0)
+
+    @@openapi.meta({
+        security: []
+    })
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        const api = await OpenAPIParser.validate(output);
+        expect(api.paths?.['/user']?.['get']?.security).toHaveLength(0);
+        expect(api.paths?.['/user/{id}']?.['put']?.security).toHaveLength(0);
     });
 
     it('security schemes invalid', async () => {
@@ -196,121 +232,42 @@ model User {
         );
     });
 
-    it('security model level override', async () => {
+    it('ignored model used as relation', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
     provider = '${process.cwd()}/dist'
-    securitySchemes = { 
-        myBasic: { type: 'http', scheme: 'basic' }
-    }
 }
 
 model User {
     id String @id
-
-    @@openapi.meta({
-        security: []
-    })
-}
-        `);
-
-        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
-        const options = buildOptions(model, modelFile, output);
-        await generate(model, options, dmmf);
-
-        console.log('OpenAPI specification generated:', output);
-
-        const api = await OpenAPIParser.validate(output);
-        expect(api.paths?.['/user/findMany']?.['get']?.security).toHaveLength(0);
-    });
-
-    it('security operation level override', async () => {
-        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
-plugin openapi {
-    provider = '${process.cwd()}/dist'
-    securitySchemes = { 
-        myBasic: { type: 'http', scheme: 'basic' }
-    }
+    email String @unique
+    posts Post[]
 }
 
-model User {
+model Post {
     id String @id
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
 
-    @@allow('read', true)
-
-    @@openapi.meta({
-        security: [],
-        findMany: {
-            security: [{ myBasic: [] }]
-        }
-    })
+    @@openapi.ignore()
 }
         `);
 
         const { name: output } = tmp.fileSync({ postfix: '.yaml' });
-        const options = buildOptions(model, modelFile, output);
+
+        const options = buildOptions(model, modelFile, output, '3.1.0');
         await generate(model, options, dmmf);
 
         console.log('OpenAPI specification generated:', output);
 
-        const api = await OpenAPIParser.validate(output);
-        expect(api.paths?.['/user/findMany']?.['get']?.security).toHaveLength(1);
-    });
-
-    it('security inferred', async () => {
-        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
-plugin openapi {
-    provider = '${process.cwd()}/dist'
-    securitySchemes = { 
-        myBasic: { type: 'http', scheme: 'basic' }
-    }
-}
-
-model User {
-    id String @id
-    @@allow('create', true)
-}
-        `);
-
-        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
-        const options = buildOptions(model, modelFile, output);
-        await generate(model, options, dmmf);
-
-        console.log('OpenAPI specification generated:', output);
-
-        const api = await OpenAPIParser.validate(output);
-        expect(api.paths?.['/user/create']?.['post']?.security).toHaveLength(0);
-        expect(api.paths?.['/user/findMany']?.['get']?.security).toBeUndefined();
-    });
-
-    it('v3.1.0 fields', async () => {
-        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
-plugin openapi {
-    provider = '${process.cwd()}/dist'
-    summary = 'awesome api'
-}
-
-model User {
-    id String @id
-}
-        `);
-
-        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
-        const options = buildOptions(model, modelFile, output);
-        await generate(model, options, dmmf);
-
-        console.log('OpenAPI specification generated:', output);
         await OpenAPIParser.validate(output);
-
-        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
-        expect(parsed.openapi).toBe('3.1.0');
-        expect(parsed.info.summary).toEqual('awesome api');
     });
 });
 
-function buildOptions(model: Model, modelFile: string, output: string) {
+function buildOptions(model: Model, modelFile: string, output: string, specVersion = '3.0.0') {
     const optionFields = model.declarations.find((d): d is Plugin => isPlugin(d))?.fields || [];
-    const options: any = { schemaPath: modelFile, output };
+    const options: any = { schemaPath: modelFile, output, specVersion, flavor: 'rest' };
     optionFields.forEach((f) => (options[f.name] = getLiteral(f.value) ?? getObjectLiteral(f.value)));
     return options;
 }

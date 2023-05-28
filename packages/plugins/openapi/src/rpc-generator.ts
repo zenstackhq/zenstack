@@ -1,15 +1,8 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import { DMMF } from '@prisma/generator-helper';
-import {
-    analyzePolicies,
-    AUXILIARY_FIELDS,
-    getDataModels,
-    hasAttribute,
-    PluginError,
-    PluginOptions,
-} from '@zenstackhq/sdk';
-import { DataModel, isDataModel, type Model } from '@zenstackhq/sdk/ast';
+import { analyzePolicies, AUXILIARY_FIELDS, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
+import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
     addMissingInputObjectTypesForInclude,
@@ -18,39 +11,32 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
-import { lowerCaseFirst } from 'lower-case-first';
 import * as fs from 'fs';
+import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
-import { fromZodError } from 'zod-validation-error';
+import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
-import { SecuritySchemesSchema } from './schema';
 
 /**
  * Generates OpenAPI specification.
  */
-export class OpenAPIGenerator {
+export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private inputObjectTypes: DMMF.InputType[] = [];
     private outputObjectTypes: DMMF.OutputType[] = [];
     private usedComponents: Set<string> = new Set<string>();
     private aggregateOperationSupport: AggregateOperationSupport;
-    private includedModels: DataModel[];
     private warnings: string[] = [];
 
-    constructor(private model: Model, private options: PluginOptions, private dmmf: DMMF.Document) {}
-
     generate() {
-        const output = this.getOption('output', '');
-        if (!output) {
-            throw new PluginError('"output" option is required');
-        }
+        let output = requireOption<string>(this.options, 'output');
+        output = resolvePath(output, this.options);
 
         // input types
         this.inputObjectTypes.push(...this.dmmf.schema.inputObjectTypes.prisma);
         this.outputObjectTypes.push(...this.dmmf.schema.outputObjectTypes.prisma);
-        this.includedModels = getDataModels(this.model).filter((d) => !hasAttribute(d, '@@openapi.ignore'));
 
         // add input object types that are missing from Prisma dmmf
         addMissingInputObjectTypesForModelArgs(this.inputObjectTypes, this.dmmf.datamodel.models);
@@ -64,14 +50,14 @@ export class OpenAPIGenerator {
         const paths = this.generatePaths(components);
 
         // generate security schemes, and root-level security
-        this.generateSecuritySchemes(components);
+        components.securitySchemes = this.generateSecuritySchemes();
         let security: OAPI.Document['security'] | undefined = undefined;
         if (components.securitySchemes && Object.keys(components.securitySchemes).length > 0) {
             security = Object.keys(components.securitySchemes).map((scheme) => ({ [scheme]: [] }));
         }
 
         // prune unused component schemas
-        this.pruneComponents(components);
+        this.pruneComponents(paths, components);
 
         const openapi: OAPI.Document = {
             openapi: this.getOption('specVersion', '3.1.0'),
@@ -103,85 +89,18 @@ export class OpenAPIGenerator {
         return this.warnings;
     }
 
-    private generateSecuritySchemes(components: OAPI.ComponentsObject) {
-        const securitySchemes = this.getOption<Record<string, string>[]>('securitySchemes');
-        if (securitySchemes) {
-            const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
-            if (!parsed.success) {
-                throw new PluginError(`"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
-            }
-            components.securitySchemes = parsed.data;
-        }
-    }
-
-    private pruneComponents(components: OAPI.ComponentsObject) {
-        const schemas = components.schemas;
-        if (schemas) {
-            // build a transitive closure for all reachable schemas from roots
-            const allUsed = new Set<string>(this.usedComponents);
-
-            let todo = [...allUsed];
-            while (todo.length > 0) {
-                const curr = new Set<string>(allUsed);
-                Object.entries(schemas)
-                    .filter(([key]) => todo.includes(key))
-                    .forEach(([, value]) => {
-                        this.collectUsedComponents(value, allUsed);
-                    });
-                todo = [...allUsed].filter((e) => !curr.has(e));
-            }
-
-            // prune unused schemas
-            Object.keys(schemas).forEach((key) => {
-                if (!allUsed.has(key)) {
-                    delete schemas[key];
-                }
-            });
-        }
-    }
-
-    private collectUsedComponents(value: unknown, allUsed: Set<string>) {
-        if (!value) {
-            return;
-        }
-
-        if (Array.isArray(value)) {
-            value.forEach((item) => {
-                this.collectUsedComponents(item, allUsed);
-            });
-        } else if (typeof value === 'object') {
-            Object.entries(value).forEach(([subKey, subValue]) => {
-                if (subKey === '$ref') {
-                    const ref = subValue as string;
-                    const name = ref.split('/').pop();
-                    if (name && !allUsed.has(name)) {
-                        allUsed.add(name);
-                    }
-                } else {
-                    this.collectUsedComponents(subValue, allUsed);
-                }
-            });
-        }
-    }
-
     private generatePaths(components: OAPI.ComponentsObject): OAPI.PathsObject {
         let result: OAPI.PathsObject = {};
 
-        const includeModelNames = this.includedModels.map((d) => d.name);
-
         for (const model of this.dmmf.datamodel.models) {
-            if (includeModelNames.includes(model.name)) {
-                const zmodel = this.model.declarations.find(
-                    (d) => isDataModel(d) && d.name === model.name
-                ) as DataModel;
-                if (zmodel) {
-                    result = {
-                        ...result,
-                        ...this.generatePathsForModel(model, zmodel, components),
-                    } as OAPI.PathsObject;
-                } else {
-                    this.warnings.push(`Unable to load ZModel definition for: ${model.name}}`);
-                }
+            const zmodel = this.model.declarations.find((d) => isDataModel(d) && d.name === model.name) as DataModel;
+            if (zmodel) {
+                result = {
+                    ...result,
+                    ...this.generatePathsForModel(model, zmodel, components),
+                } as OAPI.PathsObject;
+            } else {
+                this.warnings.push(`Unable to load ZModel definition for: ${model.name}}`);
             }
         }
         return result;
@@ -551,7 +470,7 @@ export class OpenAPIGenerator {
                         description: 'Invalid request',
                     },
                     '403': {
-                        description: 'Forbidden',
+                        description: 'Request is forbidden',
                     },
                 },
             };
@@ -581,9 +500,12 @@ export class OpenAPIGenerator {
                 }
             }
 
-            result[`${prefix}/${lowerCaseFirst(model.name)}/${resolvedPath}`] = {
-                [resolvedMethod]: def,
-            };
+            const includeModelNames = this.includedModels.map((d) => d.name);
+            if (includeModelNames.includes(model.name)) {
+                result[`${prefix}/${lowerCaseFirst(model.name)}/${resolvedPath}`] = {
+                    [resolvedMethod]: def,
+                };
+            }
         }
         return result;
     }
@@ -615,15 +537,6 @@ export class OpenAPIGenerator {
         invariant(components.schemas);
         components.schemas[name] = def;
         return this.ref(name);
-    }
-
-    private getOption<T = string>(name: string): T | undefined;
-    private getOption<T = string, D extends T = T>(name: string, defaultValue: D): T;
-    private getOption<T = string>(name: string, defaultValue?: T): T | undefined {
-        const value = this.options[name];
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        return value === undefined ? defaultValue : value;
     }
 
     private generateComponents() {
@@ -698,7 +611,7 @@ export class OpenAPIGenerator {
                 return this.wrapArray(this.ref(def.type, false), def.isList);
 
             default:
-                throw new PluginError(`Unsupported field kind: ${def.kind}`);
+                throw new PluginError(this.options.name, `Unsupported field kind: ${def.kind}`);
         }
     }
 
@@ -784,29 +697,10 @@ export class OpenAPIGenerator {
         }
     }
 
-    private wrapArray(
-        schema: OAPI.ReferenceObject | OAPI.SchemaObject,
-        isArray: boolean
-    ): OAPI.ReferenceObject | OAPI.SchemaObject {
-        if (isArray) {
-            return { type: 'array', items: schema };
-        } else {
-            return schema;
-        }
-    }
-
     private ref(type: string, rooted = true) {
         if (rooted) {
             this.usedComponents.add(type);
         }
         return { $ref: `#/components/schemas/${type}` };
-    }
-
-    private array(itemType: unknown) {
-        return { type: 'array', items: itemType };
-    }
-
-    private oneOf(...schemas: unknown[]) {
-        return { oneOf: schemas };
     }
 }
