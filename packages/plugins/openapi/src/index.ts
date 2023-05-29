@@ -7,7 +7,7 @@ import { RPCOpenAPIGenerator } from './rpc-generator';
 export const name = 'OpenAPI';
 
 export default async function run(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    const flavor = options.flavor ? (options.flavor as string) : 'rest';
+    const flavor = options.flavor ? (options.flavor as string) : 'rpc';
 
     switch (flavor) {
         case 'rest':
