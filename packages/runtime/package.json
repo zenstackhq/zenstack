@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.0.0-alpha.120",
+    "version": "1.0.0-alpha.121",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -22,7 +22,6 @@
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
         "@types/bcryptjs": "^2.4.2",
-        "@zenstackhq/sdk": "workspace:*",
         "bcryptjs": "^2.4.3",
         "change-case": "^4.1.2",
         "colors": "1.4.0",

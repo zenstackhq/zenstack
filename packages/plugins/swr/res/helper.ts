@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 import { createContext } from 'react';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';

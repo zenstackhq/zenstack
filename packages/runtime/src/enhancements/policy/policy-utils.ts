@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { createId } from '@paralleldrive/cuid2';
-import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
 import { fromZodError } from 'zod-validation-error';
+import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../../constants';
 import {
     AuthUser,
     DbClientContract,
