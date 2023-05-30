@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "1.0.0-alpha.120",
+    "version": "1.0.0-alpha.121",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
@@ -21,6 +21,7 @@
     "dependencies": {
         "@prisma/generator-helper": "^4.7.1",
         "@zenstackhq/language": "workspace:*",
+        "@zenstackhq/runtime": "workspace:*",
         "prettier": "^2.8.3",
         "ts-morph": "^16.0.0"
     },

@@ -465,9 +465,6 @@ importers:
       '@types/bcryptjs':
         specifier: ^2.4.2
         version: 2.4.2
-      '@zenstackhq/sdk':
-        specifier: workspace:*
-        version: link:../sdk/dist
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -718,6 +715,9 @@ importers:
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../language/dist
+      '@zenstackhq/runtime':
+        specifier: workspace:*
+        version: link:../runtime/dist
       prettier:
         specifier: ^2.8.3
         version: 2.8.3
@@ -744,9 +744,6 @@ importers:
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../runtime/dist
-      '@zenstackhq/sdk':
-        specifier: workspace:*
-        version: link:../sdk/dist
       change-case:
         specifier: ^4.1.2
         version: 4.1.2

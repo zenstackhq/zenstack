@@ -1,8 +1,8 @@
 import { DbOperations } from '@zenstackhq/runtime';
+import { AUXILIARY_FIELDS } from '@zenstackhq/runtime/constants';
 import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { LoggerConfig } from '../types';
 
 export function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
