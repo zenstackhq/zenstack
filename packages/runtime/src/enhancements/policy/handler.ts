@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { CrudFailureReason } from '@zenstackhq/sdk';
+import { CrudFailureReason } from '../../constants';
 import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
 import { ModelMeta, PolicyDef } from '../types';

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import * as util from 'util';
+import { AUXILIARY_FIELDS } from '../constants';
 import { DbClientContract } from '../types';
 import { ModelMeta } from './types';
 
