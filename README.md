@@ -124,10 +124,10 @@ The following diagram gives a high-level overview of how it works.
 ### Framework adapters
 
 -   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next)
+-   [SvelteKit](https://zenstack.dev/docs/reference/server-adapters/sveltekit)
 -   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
 -   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
 -   Nuxt.js (Future)
--   SvelteKit (Future)
 -   🙋🏻 [Request for an adapter](https://go.zenstack.dev/chat)
 
 ### Prisma schema extensions
