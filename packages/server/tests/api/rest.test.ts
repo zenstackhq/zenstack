@@ -12,52 +12,52 @@ let zodSchemas: any;
 let modelMeta: ModelMeta;
 let handler: (any: any) => Promise<Response>;
 
-export const schema = `
-model User {
-    myId String @id @default(cuid())
-    createdAt DateTime @default (now())
-    updatedAt DateTime @updatedAt
-    email String @unique
-    posts Post[]
-    profile Profile?
-}
-
-model Profile {
-    id Int @id @default(autoincrement())
-    gender String
-    user User @relation(fields: [userId], references: [myId])
-    userId String @unique
-}
-
-model Post {
-    id Int @id @default(autoincrement())
-    createdAt DateTime @default (now())
-    updatedAt DateTime @updatedAt
-    title String
-    author User? @relation(fields: [authorId], references: [myId])
-    authorId String?
-    published Boolean @default(false)
-    viewCount Int @default(0)
-    comments Comment[]
-    setting Setting?
-}
-
-model Comment {
-    id Int @id @default(autoincrement())
-    post Post @relation(fields: [postId], references: [id])
-    postId Int
-    content String
-}
-
-model Setting {
-    id Int @id @default(autoincrement())
-    boost Int
-    post Post @relation(fields: [postId], references: [id])
-    postId Int @unique
-}
-`;
-
 describe('REST server tests - regular prisma', () => {
+    const schema = `
+    model User {
+        myId String @id @default(cuid())
+        createdAt DateTime @default (now())
+        updatedAt DateTime @updatedAt
+        email String @unique
+        posts Post[]
+        profile Profile?
+    }
+    
+    model Profile {
+        id Int @id @default(autoincrement())
+        gender String
+        user User @relation(fields: [userId], references: [myId])
+        userId String @unique
+    }
+    
+    model Post {
+        id Int @id @default(autoincrement())
+        createdAt DateTime @default (now())
+        updatedAt DateTime @updatedAt
+        title String
+        author User? @relation(fields: [authorId], references: [myId])
+        authorId String?
+        published Boolean @default(false)
+        viewCount Int @default(0)
+        comments Comment[]
+        setting Setting?
+    }
+    
+    model Comment {
+        id Int @id @default(autoincrement())
+        post Post @relation(fields: [postId], references: [id])
+        postId Int
+        content String
+    }
+    
+    model Setting {
+        id Int @id @default(autoincrement())
+        boost Int
+        post Post @relation(fields: [postId], references: [id])
+        postId Int @unique
+    }
+    `;
+
     beforeAll(async () => {
         const params = await loadSchema(schema);
 
@@ -1835,19 +1835,19 @@ describe('REST server tests - regular prisma', () => {
     });
 });
 
-export const schemaWithPolicy = `
-model Foo {
-    id Int @id
-    value Int
-
-    @@allow('create,read', true)
-    @@allow('update', value > 0)
-}
-`;
-
 describe('REST server tests - enhanced prisma', () => {
+    const schema = `
+    model Foo {
+        id Int @id
+        value Int
+    
+        @@allow('create,read', true)
+        @@allow('update', value > 0)
+    }
+    `;
+
     beforeAll(async () => {
-        const params = await loadSchema(schemaWithPolicy);
+        const params = await loadSchema(schema);
 
         prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
         zodSchemas = params.zodSchemas;
@@ -1884,5 +1884,111 @@ describe('REST server tests - enhanced prisma', () => {
             prisma,
         });
         expect(r.status).toBe(403);
+    });
+});
+
+describe('REST server tests - NextAuth project regression', () => {
+    const schema = `
+    model Post {
+        id      String @id @default(cuid())
+        title   String
+        content String
+    
+        // full access for all
+        @@allow('all', true)
+    }
+    
+    model Account {
+        id                String  @id @default(cuid())
+        userId            String
+        type              String
+        provider          String
+        providerAccountId String
+        refresh_token     String?
+        access_token      String?
+        expires_at        Int?
+        token_type        String?
+        scope             String?
+        id_token          String?
+        session_state     String?
+        user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    
+        @@unique([provider, providerAccountId])
+    }
+    
+    model Session {
+        id           String   @id @default(cuid())
+        sessionToken String   @unique
+        userId       String
+        expires      DateTime
+        user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    }
+    
+    model User {
+        id            String    @id @default(cuid())
+        name          String?
+        email         String    @email @unique
+        password      String    @password @omit
+        emailVerified DateTime?
+        image         String?
+        accounts      Account[]
+        sessions      Session[]
+    
+        @@allow('create,read', true)
+        @@allow('delete,update', auth() != null)
+    }
+    
+    model VerificationToken {
+        identifier String
+        token      String   @unique
+        expires    DateTime
+    
+        @@unique([identifier, token])
+    }
+    `;
+
+    beforeAll(async () => {
+        const params = await loadSchema(schema);
+
+        prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
+        zodSchemas = params.zodSchemas;
+        modelMeta = params.modelMeta;
+
+        const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5 });
+        handler = (args) => _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+    });
+
+    beforeEach(async () => {
+        run('npx prisma migrate reset --force');
+        run('npx prisma db push');
+    });
+
+    it('crud test', async () => {
+        let r = await handler({
+            method: 'get',
+            path: '/user',
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect((r.body as any).data).toHaveLength(0);
+
+        r = await handler({
+            method: 'post',
+            path: '/user',
+            query: {},
+            requestBody: {
+                data: { type: 'user', attributes: { email: 'user1@abc.com', password: '1234' } },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(201);
+
+        r = await handler({
+            method: 'get',
+            path: '/user',
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        expect((r.body as any).data).toHaveLength(1);
     });
 });
