@@ -22,6 +22,7 @@ import {
 } from '@zenstackhq/language/ast';
 import {
     analyzePolicies,
+    getDataModels,
     getLiteral,
     getLiteralArray,
     GUARD_FIELD_NAME,
@@ -219,9 +220,7 @@ export default class PrismaSchemaGenerator {
             this.generateModelField(model, field);
         }
 
-        const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
-
-        if ((!allowAll && !denyAll) || hasFieldValidation) {
+        if (this.shouldGenerateAuxFields(decl)) {
             // generate auxiliary fields for policy check
 
             // add an "zenstack_guard" field for dealing with boolean conditions
@@ -272,6 +271,40 @@ export default class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
+    }
+
+    private shouldGenerateAuxFields(decl: DataModel) {
+        const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
+
+        if (!allowAll && !denyAll) {
+            // has policy conditions
+            return true;
+        }
+
+        if (hasFieldValidation) {
+            return true;
+        }
+
+        // check if the model is related by other models, if so
+        // aux fields are needed for nested queries
+        const root = decl.$container;
+        for (const model of getDataModels(root)) {
+            if (model === decl) {
+                continue;
+            }
+            for (const field of model.fields) {
+                if (field.type.reference?.ref === decl) {
+                    // found a relation with policies
+                    const otherPolicies = analyzePolicies(model);
+                    if ((!otherPolicies.allowAll && !otherPolicies.denyAll) || otherPolicies.hasFieldValidation) {
+                        // the relating side has policies
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {

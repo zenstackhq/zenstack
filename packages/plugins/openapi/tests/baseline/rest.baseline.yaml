@@ -1296,6 +1296,8 @@ components:
         _jsonapi:
             type: object
             description: An object describing the server’s implementation
+            required:
+                - version
             properties:
                 version:
                     type: string
@@ -1314,8 +1316,10 @@ components:
             properties:
                 type:
                     type: string
+                    description: Resource type
                 id:
                     type: string
+                    description: Resource id
         _resource:
             allOf:
                 - $ref: '#/components/schemas/_resourceIdentifier'
@@ -1324,8 +1328,10 @@ components:
                   properties:
                       attributes:
                           type: object
+                          description: Resource attributes
                       relationships:
                           type: object
+                          description: Resource relationships
         _links:
             type: object
             required:
@@ -1334,40 +1340,60 @@ components:
             properties:
                 self:
                     type: string
+                    description: Link for refetching the curent results
         _pagination:
             type: object
             description: Pagination information
+            required:
+                - first
+                - last
+                - prev
+                - next
             properties:
                 first:
                     oneOf:
                         - type: string
+                          description: Link to the first page
                         - type: 'null'
                 last:
                     oneOf:
                         - type: string
+                          description: Link to the last page
                         - type: 'null'
                 prev:
                     oneOf:
                         - type: string
+                          description: Link to the previous page
                         - type: 'null'
                 next:
                     oneOf:
                         - type: string
+                          description: Link to the next page
                         - type: 'null'
         _errors:
             type: array
             description: An array of error objects
             items:
                 type: object
+                required:
+                    - status
+                    - code
                 properties:
                     status:
                         type: string
+                        description: HTTP status
                     code:
                         type: string
+                        description: Error code
+                    prismaCode:
+                        type: string
+                        description: Prisma error code if the error is thrown by Prisma
                     title:
                         type: string
+                        description: Error title
                     detail:
                         type: string
+                        description: Error detail
         _errorResponse:
             type: object
             required:
@@ -1387,8 +1413,10 @@ components:
             properties:
                 self:
                     type: string
+                    description: Link for fetching this relationship
                 related:
                     type: string
+                    description: Link for fetching the resource represented by this relationship
         _toOneRelationship:
             type: object
             description: A to-one relationship
