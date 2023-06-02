@@ -372,4 +372,124 @@ describe('Prisma generator test', () => {
 
         expect(content).toBe(expected);
     });
+
+    it('no aux fields without policy', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Post {
+                id Int @id()
+                title String
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: true,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        expect(content).not.toContain('zenstack_guard');
+        expect(content).not.toContain('zenstack_transaction');
+    });
+
+    it('aux fields generated due to policies', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Post {
+                id Int @id()
+                title String @length(1, 32)
+                @@allow('read', title == "foo")
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: true,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        expect(content).toContain('zenstack_guard');
+        expect(content).toContain('zenstack_transaction');
+    });
+
+    it('aux fields generated due to field validation', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model Post {
+                id Int @id()
+                title String @length(1, 32)
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: true,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        expect(content).toContain('zenstack_guard');
+        expect(content).toContain('zenstack_transaction');
+    });
+
+    it('aux fields generated due to relationship', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            model User {
+                id Int @id()
+                age Int
+                posts Post[]
+                @@allow('all', age > 18)
+            }
+
+            model Post {
+                id Int @id()
+                title String
+                author User @relation(fields: [authorId], references: [id])
+                authorId Int
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: true,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        const dmmf = await getDMMF({ datamodel: content });
+        const post = dmmf.datamodel?.models?.find((m) => m.name === 'Post');
+        expect(post?.fields.map((f) => f.name)).toContain('zenstack_guard');
+        expect(post?.fields.map((f) => f.name)).toContain('zenstack_transaction');
+    });
 });

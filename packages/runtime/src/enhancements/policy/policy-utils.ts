@@ -864,7 +864,7 @@ export class PolicyUtil {
      * Gets "id" field for a given model.
      */
     getIdFields(model: string) {
-        return getIdFields(this.modelMeta, model);
+        return getIdFields(this.modelMeta, model, true);
     }
 
     /**

@@ -1529,7 +1529,15 @@ class RequestHandler {
                 return {
                     status: 400,
                     body: {
-                        errors: [{ status: 400, code: 'prisma-error', title: 'Prisma error', detail: err.message }],
+                        errors: [
+                            {
+                                status: 400,
+                                code: 'prisma-error',
+                                prismaCode: err.code,
+                                title: 'Prisma error',
+                                detail: err.message,
+                            },
+                        ],
                     },
                 };
             }
