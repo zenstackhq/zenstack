@@ -533,6 +533,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             _jsonapi: {
                 type: 'object',
                 description: 'An object describing the server’s implementation',
+                required: ['version'],
                 properties: {
                     version: { type: 'string' },
                     meta: this.ref('_meta'),
@@ -548,32 +549,33 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 description: 'Identifier for a resource',
                 required: ['type', 'id'],
                 properties: {
-                    type: { type: 'string' },
-                    id: { type: 'string' },
+                    type: { type: 'string', description: 'Resource type' },
+                    id: { type: 'string', description: 'Resource id' },
                 },
             },
             _resource: this.allOf(this.ref('_resourceIdentifier'), {
                 type: 'object',
                 description: 'A resource with attributes and relationships',
                 properties: {
-                    attributes: { type: 'object' },
-                    relationships: { type: 'object' },
+                    attributes: { type: 'object', description: 'Resource attributes' },
+                    relationships: { type: 'object', description: 'Resource relationships' },
                 },
             }),
             _links: {
                 type: 'object',
                 required: ['self'],
                 description: 'Links related to the resource',
-                properties: { self: { type: 'string' } },
+                properties: { self: { type: 'string', description: 'Link for refetching the curent results' } },
             },
             _pagination: {
                 type: 'object',
                 description: 'Pagination information',
+                required: ['first', 'last', 'prev', 'next'],
                 properties: {
-                    first: this.nullable({ type: 'string' }),
-                    last: this.nullable({ type: 'string' }),
-                    prev: this.nullable({ type: 'string' }),
-                    next: this.nullable({ type: 'string' }),
+                    first: this.nullable({ type: 'string', description: 'Link to the first page' }),
+                    last: this.nullable({ type: 'string', description: 'Link to the last page' }),
+                    prev: this.nullable({ type: 'string', description: 'Link to the previous page' }),
+                    next: this.nullable({ type: 'string', description: 'Link to the next page' }),
                 },
             },
             _errors: {
@@ -581,11 +583,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 description: 'An array of error objects',
                 items: {
                     type: 'object',
+                    required: ['status', 'code'],
                     properties: {
-                        status: { type: 'string' },
-                        code: { type: 'string' },
-                        title: { type: 'string' },
-                        detail: { type: 'string' },
+                        status: { type: 'string', description: 'HTTP status' },
+                        code: { type: 'string', description: 'Error code' },
+                        prismaCode: {
+                            type: 'string',
+                            description: 'Prisma error code if the error is thrown by Prisma',
+                        },
+                        title: { type: 'string', description: 'Error title' },
+                        detail: { type: 'string', description: 'Error detail' },
                     },
                 },
             },
@@ -603,8 +610,11 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 required: ['self', 'related'],
                 description: 'Links related to a relationship',
                 properties: {
-                    self: { type: 'string' },
-                    related: { type: 'string' },
+                    self: { type: 'string', description: 'Link for fetching this relationship' },
+                    related: {
+                        type: 'string',
+                        description: 'Link for fetching the resource represented by this relationship',
+                    },
                 },
             },
             _toOneRelationship: {

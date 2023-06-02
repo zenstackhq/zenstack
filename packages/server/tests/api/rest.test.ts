@@ -1990,5 +1990,17 @@ describe('REST server tests - NextAuth project regression', () => {
         });
         expect(r.status).toBe(200);
         expect((r.body as any).data).toHaveLength(1);
+
+        r = await handler({
+            method: 'post',
+            path: '/user',
+            query: {},
+            requestBody: {
+                data: { type: 'user', attributes: { email: 'user1@abc.com', password: '1234' } },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(400);
+        expect((r.body as any).errors[0].prismaCode).toBe('P2002');
     });
 });
