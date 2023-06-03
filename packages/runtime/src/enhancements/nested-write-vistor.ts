@@ -52,7 +52,7 @@ export type NestedWriterVisitorCallback = {
 
     delete?: (model: string, args: object | boolean, context: VisitorContext) => Promise<void>;
 
-    deleteMany?: (model: string, args: { where: object }, context: VisitorContext) => Promise<void>;
+    deleteMany?: (model: string, args: any | object, context: VisitorContext) => Promise<void>;
 
     field?: (field: FieldInfo, action: PrismaWriteActionType, data: any, context: VisitorContext) => Promise<void>;
 };

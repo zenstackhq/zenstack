@@ -638,7 +638,16 @@ export class PolicyUtil {
                 if (guard === false) {
                     throw this.deniedByPolicy(model, 'delete');
                 } else if (guard !== true) {
-                    args.where = this.and(args.where, guard);
+                    if (args.where) {
+                        args.where = this.and(args.where, guard);
+                    } else {
+                        const copy = deepcopy(args);
+                        for (const key of Object.keys(args)) {
+                            delete args[key];
+                        }
+                        const combined = this.and(copy, guard);
+                        Object.assign(args, combined);
+                    }
                 }
             },
         });
