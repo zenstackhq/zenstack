@@ -8,13 +8,6 @@ import { DbClientContract } from '../types';
 import { ModelMeta } from './types';
 
 /**
- * Wraps a value into array if it's not already one
- */
-export function ensureArray<T>(value: T): T[] {
-    return Array.isArray(value) ? value : [value];
-}
-
-/**
  * Gets field names in a data model entity, filtering out internal fields.
  */
 export function getModelFields(data: object) {

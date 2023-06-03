@@ -4,7 +4,7 @@
 import { FieldInfo, PrismaWriteActionType, PrismaWriteActions } from '../types';
 import { resolveField } from './model-meta';
 import { ModelMeta } from './types';
-import { Enumerable, ensureArray, getModelFields } from './utils';
+import { enumerate, getModelFields } from './utils';
 
 type NestingPathItem = { field?: FieldInfo; where: any; unique: boolean };
 
@@ -34,33 +34,25 @@ export type VisitorContext = {
 export type NestedWriterVisitorCallback = {
     create?: (model: string, args: any[], context: VisitorContext) => Promise<void>;
 
-    connectOrCreate?: (
-        model: string,
-        args: Enumerable<{ where: object; create: any }>,
-        context: VisitorContext
-    ) => Promise<void>;
+    connectOrCreate?: (model: string, args: { where: object; create: any }, context: VisitorContext) => Promise<void>;
 
-    connect?: (model: string, args: Enumerable<object>, context: VisitorContext) => Promise<void>;
+    connect?: (model: string, args: object, context: VisitorContext) => Promise<void>;
 
-    disconnect?: (model: string, args: Enumerable<object>, context: VisitorContext) => Promise<void>;
+    disconnect?: (model: string, args: object, context: VisitorContext) => Promise<void>;
 
-    update?: (model: string, args: Enumerable<{ where: object; data: any }>, context: VisitorContext) => Promise<void>;
+    update?: (model: string, args: { where: object; data: any }, context: VisitorContext) => Promise<void>;
 
-    updateMany?: (
-        model: string,
-        args: Enumerable<{ where?: object; data: any }>,
-        context: VisitorContext
-    ) => Promise<void>;
+    updateMany?: (model: string, args: { where?: object; data: any }, context: VisitorContext) => Promise<void>;
 
     upsert?: (
         model: string,
-        args: Enumerable<{ where: object; create: any; update: any }>,
+        args: { where: object; create: any; update: any },
         context: VisitorContext
     ) => Promise<void>;
 
-    delete?: (model: string, args: Enumerable<object> | boolean, context: VisitorContext) => Promise<void>;
+    delete?: (model: string, args: object | boolean, context: VisitorContext) => Promise<void>;
 
-    deleteMany?: (model: string, args: Enumerable<object>, context: VisitorContext) => Promise<void>;
+    deleteMany?: (model: string, args: any | object, context: VisitorContext) => Promise<void>;
 
     field?: (field: FieldInfo, action: PrismaWriteActionType, data: any, context: VisitorContext) => Promise<void>;
 };
@@ -115,7 +107,6 @@ export class NestedWriteVisitor {
             return;
         }
 
-        const fieldContainers: any[] = [];
         const isToOneUpdate = field?.isDataModel && !field.isArray;
         const context = { parent, field, nestingPath: [...nestingPath] };
 
@@ -123,35 +114,46 @@ export class NestedWriteVisitor {
         switch (action) {
             case 'create':
                 context.nestingPath.push({ field, where: {}, unique: false });
-                if (this.callback.create) {
-                    await this.callback.create(model, data, context);
+                for (const item of enumerate(data)) {
+                    if (this.callback.create) {
+                        await this.callback.create(model, item, context);
+                    }
+                    await this.visitSubPayload(model, action, item, context.nestingPath);
                 }
-                fieldContainers.push(...ensureArray(data));
                 break;
 
             case 'createMany':
                 // skip the 'data' layer so as to keep consistency with 'create'
                 if (data.data) {
                     context.nestingPath.push({ field, where: {}, unique: false });
-                    if (this.callback.create) {
-                        await this.callback.create(model, data.data, context);
+                    for (const item of enumerate(data.data)) {
+                        if (this.callback.create) {
+                            await this.callback.create(model, item, context);
+                        }
+                        await this.visitSubPayload(model, action, item, context.nestingPath);
                     }
-                    fieldContainers.push(...ensureArray(data.data));
                 }
                 break;
 
             case 'connectOrCreate':
                 context.nestingPath.push({ field, where: data.where, unique: true });
-                if (this.callback.connectOrCreate) {
-                    await this.callback.connectOrCreate(model, data, context);
+                for (const item of enumerate(data)) {
+                    if (this.callback.connectOrCreate) {
+                        await this.callback.connectOrCreate(model, item, context);
+                    }
+                    await this.visitSubPayload(model, action, item.create, context.nestingPath);
                 }
-                fieldContainers.push(...ensureArray(data).map((d) => d.create));
                 break;
 
             case 'connect':
-                context.nestingPath.push({ field, where: data, unique: true });
                 if (this.callback.connect) {
-                    await this.callback.connect(model, data, context);
+                    for (const item of enumerate(data)) {
+                        const newContext = {
+                            ...context,
+                            nestingPath: [...context.nestingPath, { field, where: item, unique: true }],
+                        };
+                        await this.callback.connect(model, item, newContext);
+                    }
                 }
                 break;
 
@@ -159,48 +161,69 @@ export class NestedWriteVisitor {
                 // disconnect has two forms:
                 //   if relation is to-many, the payload is a unique filter object
                 //   if relation is to-one, the payload can only be boolean `true`
-                context.nestingPath.push({ field, where: data, unique: typeof data === 'object' });
                 if (this.callback.disconnect) {
-                    await this.callback.disconnect(model, data, context);
+                    for (const item of enumerate(data)) {
+                        const newContext = {
+                            ...context,
+                            nestingPath: [
+                                ...context.nestingPath,
+                                { field, where: item, unique: typeof item === 'object' },
+                            ],
+                        };
+                        await this.callback.disconnect(model, item, newContext);
+                    }
                 }
                 break;
 
             case 'update':
                 context.nestingPath.push({ field, where: data.where, unique: false });
-                if (this.callback.update) {
-                    await this.callback.update(model, data, context);
+                for (const item of enumerate(data)) {
+                    if (this.callback.update) {
+                        await this.callback.update(model, item, context);
+                    }
+                    const payload = isToOneUpdate ? item : item.data;
+                    await this.visitSubPayload(model, action, payload, context.nestingPath);
                 }
-                fieldContainers.push(...ensureArray(data).map((d) => (isToOneUpdate ? d : d.data)));
                 break;
 
             case 'updateMany':
                 context.nestingPath.push({ field, where: data.where, unique: false });
-                if (this.callback.updateMany) {
-                    await this.callback.updateMany(model, data, context);
+                for (const item of enumerate(data)) {
+                    if (this.callback.updateMany) {
+                        await this.callback.updateMany(model, item, context);
+                    }
+                    await this.visitSubPayload(model, action, item, context.nestingPath);
                 }
-                fieldContainers.push(...ensureArray(data));
                 break;
 
-            case 'upsert':
+            case 'upsert': {
                 context.nestingPath.push({ field, where: data.where, unique: true });
-                if (this.callback.upsert) {
-                    await this.callback.upsert(model, data, context);
+                for (const item of enumerate(data)) {
+                    if (this.callback.upsert) {
+                        await this.callback.upsert(model, item, context);
+                    }
+                    await this.visitSubPayload(model, action, item.create, context.nestingPath);
+                    await this.visitSubPayload(model, action, item.update, context.nestingPath);
                 }
-                fieldContainers.push(...ensureArray(data).map((d) => d.create));
-                fieldContainers.push(...ensureArray(data).map((d) => d.update));
                 break;
+            }
 
-            case 'delete':
-                context.nestingPath.push({ field, where: data.where, unique: false });
+            case 'delete': {
                 if (this.callback.delete) {
-                    await this.callback.delete(model, data, context);
+                    context.nestingPath.push({ field, where: data.where, unique: false });
+                    for (const item of enumerate(data)) {
+                        await this.callback.delete(model, item, context);
+                    }
                 }
                 break;
+            }
 
             case 'deleteMany':
-                context.nestingPath.push({ field, where: data.where, unique: false });
                 if (this.callback.deleteMany) {
-                    await this.callback.deleteMany(model, data, context);
+                    context.nestingPath.push({ field, where: data.where, unique: false });
+                    for (const item of enumerate(data)) {
+                        await this.callback.deleteMany(model, item, context);
+                    }
                 }
                 break;
 
@@ -208,32 +231,37 @@ export class NestedWriteVisitor {
                 throw new Error(`unhandled action type ${action}`);
             }
         }
+    }
 
-        for (const fieldContainer of fieldContainers) {
-            for (const field of getModelFields(fieldContainer)) {
-                const fieldInfo = resolveField(this.modelMeta, model, field);
-                if (!fieldInfo) {
-                    continue;
+    private async visitSubPayload(
+        model: string,
+        action: PrismaWriteActionType,
+        payload: any,
+        nestingPath: NestingPathItem[]
+    ) {
+        for (const field of getModelFields(payload)) {
+            const fieldInfo = resolveField(this.modelMeta, model, field);
+            if (!fieldInfo) {
+                continue;
+            }
+
+            if (fieldInfo.isDataModel) {
+                // recurse into nested payloads
+                for (const [subAction, subData] of Object.entries<any>(payload[field])) {
+                    if (this.isPrismaWriteAction(subAction) && subData) {
+                        await this.doVisit(fieldInfo.type, subAction, subData, payload[field], fieldInfo, [
+                            ...nestingPath,
+                        ]);
+                    }
                 }
-
-                if (fieldInfo.isDataModel) {
-                    // recurse into nested payloads
-                    for (const [subAction, subData] of Object.entries<any>(fieldContainer[field])) {
-                        if (this.isPrismaWriteAction(subAction) && subData) {
-                            await this.doVisit(fieldInfo.type, subAction, subData, fieldContainer[field], fieldInfo, [
-                                ...context.nestingPath,
-                            ]);
-                        }
-                    }
-                } else {
-                    // visit plain field
-                    if (this.callback.field) {
-                        await this.callback.field(fieldInfo, action, fieldContainer[field], {
-                            parent: fieldContainer,
-                            nestingPath: [...context.nestingPath],
-                            field: fieldInfo,
-                        });
-                    }
+            } else {
+                // visit plain field
+                if (this.callback.field) {
+                    await this.callback.field(fieldInfo, action, payload[field], {
+                        parent: payload,
+                        nestingPath,
+                        field: fieldInfo,
+                    });
                 }
             }
         }

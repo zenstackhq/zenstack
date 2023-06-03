@@ -8,7 +8,6 @@ import {
 } from '@zenstackhq/runtime';
 import { getDefaultModelMeta } from '@zenstackhq/runtime/enhancements/model-meta';
 import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
-import { ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
@@ -16,7 +15,7 @@ import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig, RequestContext, Response } from '../../types';
-import { getZodSchema, logWarning, stripAuxFields } from '../utils';
+import { logWarning, stripAuxFields } from '../utils';
 
 const urlPatterns = {
     // collection operations
@@ -171,22 +170,24 @@ class RequestHandler {
     private filterParamPattern = new RegExp(/^filter(?<match>(\[[^[\]]+\])+)$/);
 
     // zod schema for payload of creating and updating a resource
-    private createUpdatePayloadSchema = z.object({
-        data: z.object({
-            type: z.string(),
-            attributes: z.object({}).passthrough(),
-            relationships: z
-                .record(
-                    z.object({
-                        data: z.union([
-                            z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
-                            z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
-                        ]),
-                    })
-                )
-                .optional(),
-        }),
-    });
+    private createUpdatePayloadSchema = z
+        .object({
+            data: z.object({
+                type: z.string(),
+                attributes: z.object({}).passthrough().optional(),
+                relationships: z
+                    .record(
+                        z.object({
+                            data: z.union([
+                                z.object({ type: z.string(), id: z.union([z.string(), z.number()]) }),
+                                z.array(z.object({ type: z.string(), id: z.union([z.string(), z.number()]) })),
+                            ]),
+                        })
+                    )
+                    .optional(),
+            }),
+        })
+        .strict();
 
     // zod schema for updating a single relationship
     private updateSingleRelationSchema = z.object({
@@ -220,8 +221,8 @@ class RequestHandler {
         requestBody,
         logger,
         modelMeta,
-        zodSchemas,
-    }: RequestContext): Promise<Response> {
+    }: /* zodSchemas, */
+    RequestContext): Promise<Response> {
         if (!this.serializers) {
             this.buildSerializers(modelMeta ?? this.defaultModelMeta);
         }
@@ -276,7 +277,7 @@ class RequestHandler {
                     let match = urlPatterns.collection.match(path);
                     if (match) {
                         // resource creation
-                        return await this.processCreate(prisma, match.type, query, requestBody, zodSchemas);
+                        return await this.processCreate(prisma, match.type, query, requestBody /*, zodSchemas */);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -302,7 +303,13 @@ class RequestHandler {
                     let match = urlPatterns.single.match(path);
                     if (match) {
                         // resource update
-                        return await this.processUpdate(prisma, match.type, match.id, query, requestBody, zodSchemas);
+                        return await this.processUpdate(
+                            prisma,
+                            match.type,
+                            match.id,
+                            query,
+                            requestBody /*, zodSchemas */
+                        );
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -652,8 +659,8 @@ class RequestHandler {
         prisma: DbClientContract,
         type: string,
         _query: Record<string, string | string[]> | undefined,
-        requestBody: unknown,
-        zodSchemas?: ModelZodSchema
+        requestBody: unknown
+        // zodSchemas?: ModelZodSchema
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -667,22 +674,19 @@ class RequestHandler {
         }
 
         const parsedPayload = parsed.data;
+        const createPayload: any = { data: { ...parsedPayload.data?.attributes } };
 
-        const attributes = parsedPayload.data?.attributes;
-        if (!attributes) {
-            return this.makeError('invalidPayload');
-        }
-
-        const createPayload: any = { data: { ...attributes } };
-
-        // zod-parse attributes if a schema is provided
-        const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'create') : undefined;
-        if (dataSchema) {
-            const dataParsed = dataSchema.safeParse(createPayload);
-            if (!dataParsed.success) {
-                return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
-            }
-        }
+        // TODO: we need to somehow exclude relation fields from the zod schema because relations are
+        // not part of "data" in the payload
+        //
+        // // zod-parse attributes if a schema is provided
+        // const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'create') : undefined;
+        // if (dataSchema) {
+        //     const dataParsed = dataSchema.safeParse(createPayload);
+        //     if (!dataParsed.success) {
+        //         return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
+        //     }
+        // }
 
         // turn relashionship payload into Prisma connect objects
         const relationships = parsedPayload.data?.relationships;
@@ -822,8 +826,8 @@ class RequestHandler {
         type: any,
         resourceId: string,
         query: Record<string, string | string[]> | undefined,
-        requestBody: unknown,
-        zodSchemas?: ModelZodSchema
+        requestBody: unknown
+        // zodSchemas?: ModelZodSchema
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
@@ -848,14 +852,17 @@ class RequestHandler {
             data: { ...attributes },
         };
 
-        // zod-parse attributes if a schema is provided
-        const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'update') : undefined;
-        if (dataSchema) {
-            const dataParsed = dataSchema.safeParse(updatePayload);
-            if (!dataParsed.success) {
-                return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
-            }
-        }
+        // TODO: we need to somehow exclude relation fields from the zod schema because relations are
+        // not part of "data" in the payload
+        //
+        // // zod-parse attributes if a schema is provided
+        // const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'update') : undefined;
+        // if (dataSchema) {
+        //     const dataParsed = dataSchema.safeParse(updatePayload);
+        //     if (!dataParsed.success) {
+        //         return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
+        //     }
+        // }
 
         // turn relationships into prisma payload
         const relationships = parsedPayload.data?.relationships;
