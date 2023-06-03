@@ -73,7 +73,7 @@ export class DataSource {
             indentString(`provider="${this.provider}"\n`) +
             indentString(`url=${this.url}\n`) +
             (this.directUrl ? indentString(`directUrl=${this.directUrl}\n`) : '') +
-            (this.shadowDatabaseUrl ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`) : '') +
+            (this.shadowDatabaseUrl ? indentString(`shadowDatabaseUrl=${this.shadowDatabaseUrl}\n`) : '') +
             (restFields ? restFields + '\n' : '') +
             `}`
         );
