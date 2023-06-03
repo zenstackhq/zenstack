@@ -262,7 +262,7 @@ export class PolicyUtil {
         // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
         const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
         let flattened = false;
-        if (uniqueConstraints) {
+        if (uniqueConstraints && Object.keys(uniqueConstraints).length > 0) {
             for (const [field, value] of Object.entries<any>(args)) {
                 if (uniqueConstraints[field] && typeof value === 'object') {
                     for (const [f, v] of Object.entries(value)) {
@@ -590,73 +590,63 @@ export class PolicyUtil {
         // use a visitor to process args before conducting the write action
         const visitor = new NestedWriteVisitor(this.modelMeta, {
             create: async (model, args) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processCreate(model, oneArgs);
-                }
+                await processCreate(model, args);
             },
 
             connectOrCreate: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    if (oneArgs.create) {
-                        await processCreate(model, oneArgs.create);
-                    }
-                    if (oneArgs.where) {
-                        await processRelationUpdate(model, oneArgs.where, context);
-                    }
+                if (args.create) {
+                    await processCreate(model, args.create);
+                }
+                if (args.where) {
+                    await processRelationUpdate(model, args.where, context);
                 }
             },
 
             connect: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processRelationUpdate(model, oneArgs, context);
-                }
+                await processRelationUpdate(model, args, context);
             },
 
             disconnect: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processRelationUpdate(model, oneArgs, context);
-                }
+                await processRelationUpdate(model, args, context);
             },
 
             update: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processUpdate(model, oneArgs.where, context);
-                }
+                await processUpdate(model, args.where, context);
             },
 
             updateMany: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processUpdateMany(model, oneArgs, context);
-                }
+                await processUpdateMany(model, args, context);
             },
 
             upsert: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    if (oneArgs.create) {
-                        await processCreate(model, oneArgs.create);
-                    }
+                if (args.create) {
+                    await processCreate(model, args.create);
+                }
 
-                    if (oneArgs.update) {
-                        await processUpdate(model, oneArgs.where, context);
-                    }
+                if (args.update) {
+                    await processUpdate(model, args.where, context);
                 }
             },
 
             delete: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processDelete(model, oneArgs, context);
-                }
+                await processDelete(model, args, context);
             },
 
-            deleteMany: async (model, args, context) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            deleteMany: async (model, args, _context) => {
                 const guard = await this.getAuthGuard(model, 'delete');
                 if (guard === false) {
                     throw this.deniedByPolicy(model, 'delete');
                 } else if (guard !== true) {
-                    if (Array.isArray(args)) {
-                        context.parent.deleteMany = args.map((oneArgs) => this.and(oneArgs, guard));
+                    if (args.where) {
+                        args.where = this.and(args.where, guard);
                     } else {
-                        context.parent.deleteMany = this.and(args, guard);
+                        const copy = deepcopy(args);
+                        for (const key of Object.keys(args)) {
+                            delete args[key];
+                        }
+                        const combined = this.and(copy, guard);
+                        Object.assign(args, combined);
                     }
                 }
             },

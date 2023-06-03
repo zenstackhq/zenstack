@@ -5,7 +5,7 @@ import { DbClientContract } from '../types';
 import { getDefaultModelMeta, resolveField } from './model-meta';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 import { ModelMeta } from './types';
-import { ensureArray, getModelFields } from './utils';
+import { enumerate, getModelFields } from './utils';
 
 /**
  * Gets an enhanced Prisma client that supports @omit attribute.
@@ -28,7 +28,7 @@ class OmitHandler extends DefaultPrismaProxyHandler {
     // base override
     protected async processResultEntity<T>(data: T): Promise<T> {
         if (data) {
-            for (const value of ensureArray(data)) {
+            for (const value of enumerate(data)) {
                 await this.doPostProcess(value, this.model);
             }
         }

@@ -211,7 +211,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with delete', async () => {
-        const { withPolicy } = await loadSchema(
+        const { withPolicy, prisma } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -261,6 +261,19 @@ describe('With Policy:nested to-many', () => {
                 },
             })
         ).toBeRejectedByPolicy();
+        expect(await prisma.m2.findMany()).toHaveLength(5);
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: {
+                    m2: {
+                        delete: [{ id: '1' }, { id: '2' }],
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+        expect(await prisma.m2.findMany()).toHaveLength(5);
 
         await expect(
             db.m1.update({

@@ -194,7 +194,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested relation delete', async () => {
-        const { withPolicy } = await loadSchema(
+        const { withPolicy, prisma } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -206,32 +206,48 @@ describe('With Policy:nested to-one', () => {
         model M1 {
             id String @id @default(uuid())
             value Int
-            user User @relation(fields: [userId], references: [id])
-            userId String @unique
+            user User? @relation(fields: [userId], references: [id])
+            userId String? @unique
         
-            @@allow('create', true)
-            @@allow('all', auth() == user)
+            @@allow('read,create,update', true)
+            @@allow('delete', auth().id == 'user1' && value > 0)
         }
         `
         );
 
-        await expect(
-            withPolicy({ id: 'user1' }).user.create({
-                data: {
-                    id: 'user1',
-                    m1: {
-                        create: { value: 1 },
-                    },
-                },
-            })
-        ).toResolveTruthy();
+        await withPolicy({ id: 'user1' }).m1.create({
+            data: {
+                id: 'm1',
+                value: 1,
+            },
+        });
 
         await expect(
             withPolicy({ id: 'user2' }).user.create({
                 data: {
                     id: 'user2',
                     m1: {
-                        create: { value: 2 },
+                        connect: { id: 'm1' },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            withPolicy({ id: 'user2' }).user.update({
+                where: { id: 'user2' },
+                data: {
+                    m1: { delete: true },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            withPolicy({ id: 'user1' }).user.create({
+                data: {
+                    id: 'user1',
+                    m1: {
+                        connect: { id: 'm1' },
                     },
                 },
             })
@@ -245,5 +261,7 @@ describe('With Policy:nested to-one', () => {
                 },
             })
         ).toResolveTruthy();
+
+        expect(await prisma.m1.findMany()).toHaveLength(0);
     });
 });
