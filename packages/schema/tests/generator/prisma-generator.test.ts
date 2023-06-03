@@ -9,6 +9,31 @@ import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';
 
 describe('Prisma generator test', () => {
+    it('datasource coverage', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env("DATABASE_URL")
+                shadowDatabaseUrl = env("DATABASE_URL")
+            }
+
+            model User {
+                id String @id
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+    });
+
     it('field type coverage', async () => {
         const model = await loadModel(`
             datasource db {
