@@ -11,6 +11,18 @@ import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
 
+/** 
+ * Use it to represent multiple files in a single string like this
+   `schema.zmodel
+    import "user"
+    ${FILE_SPLITTER}user.zmodel
+    import "schema"
+    model User {
+    ...
+    }`
+*/
+export const FILE_SPLITTER = '#FILE_SPLITTER#';
+
 export type WeakDbOperations = {
     [key in keyof DbOperations]: (...args: any[]) => Promise<any>;
 };
@@ -112,17 +124,42 @@ export async function loadSchema(
     console.log('Workdir:', projectRoot);
     process.chdir(projectRoot);
 
-    schema = schema.replaceAll('$projectRoot', projectRoot);
-
     let zmodelPath = path.join(projectRoot, 'schema.zmodel');
-    const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
-    if (customSchemaFilePath) {
-        zmodelPath = path.join(projectRoot, customSchemaFilePath);
-        fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
-        fs.writeFileSync(zmodelPath, content);
+
+    const files = schema.split(FILE_SPLITTER);
+
+    if (files.length > 1) {
+        // multiple files
+        files.forEach((file, index) => {
+            //first line is the file name
+            const firstLine = file.indexOf('\n');
+            const fileName = file.substring(0, firstLine).trim();
+            let fileContent = file.substring(firstLine + 1);
+            if (index === 0) {
+                // The first file is the main schema file
+                zmodelPath = path.join(projectRoot, fileName);
+                if (addPrelude) {
+                    // plugin need to be added after import statement
+                    fileContent = `${fileContent}\n${MODEL_PRELUDE}`;
+                }
+            }
+
+            fileContent = fileContent.replaceAll('$projectRoot', projectRoot);
+            const filePath = path.join(projectRoot, fileName);
+            fs.writeFileSync(filePath, fileContent);
+        });
     } else {
-        fs.writeFileSync('schema.zmodel', content);
+        schema = schema.replaceAll('$projectRoot', projectRoot);
+        const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
+        if (customSchemaFilePath) {
+            zmodelPath = path.join(projectRoot, customSchemaFilePath);
+            fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
+            fs.writeFileSync(zmodelPath, content);
+        } else {
+            fs.writeFileSync('schema.zmodel', content);
+        }
     }
+
     run('npm install');
 
     if (customSchemaFilePath) {
