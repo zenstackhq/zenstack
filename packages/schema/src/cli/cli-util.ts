@@ -3,7 +3,7 @@ import { getLiteral, PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import getLatestVersion from 'get-latest-version';
-import { getDocument, LangiumDocument, LangiumDocuments } from 'langium';
+import { AstNode, getDocument, LangiumDocument, LangiumDocuments, Mutable } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import ora from 'ora';
 import path from 'path';
@@ -193,7 +193,17 @@ export function eagerLoadAllImports(
 
 export function mergeImportsDeclarations(documents: LangiumDocuments, model: Model) {
     const importedModels = resolveTransitiveImports(documents, model);
-    model.declarations.push(...importedModels.flatMap((m) => m.declarations));
+
+    const importedDeclarations = importedModels.flatMap((m) => m.declarations);
+
+    importedDeclarations.forEach((d) => {
+        const mutable = d as Mutable<AstNode>;
+        // The plugin might use $container to access the model
+        // need to make sure it is always resolved to the main model
+        mutable.$container = model;
+    });
+
+    model.declarations.push(...importedDeclarations);
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
