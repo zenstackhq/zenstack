@@ -25,7 +25,11 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
  */
 export function getDefaultOutputFolder() {
     // Find the real runtime module path, it might be a symlink in pnpm
-    const runtimeModulePath = require.resolve('@zenstackhq/runtime');
+    let runtimeModulePath = require.resolve('@zenstackhq/runtime');
+    if (runtimeModulePath) {
+        // generate to the same level as @zenstackhq
+        runtimeModulePath = path.join(runtimeModulePath, '../..');
+    }
     const modulesFolder = getNodeModulesFolder(runtimeModulePath);
     return modulesFolder ? path.join(modulesFolder, '.zenstack') : undefined;
 }
