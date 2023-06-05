@@ -62,7 +62,9 @@ function loadPrismaModule(prisma: any) {
     if (prisma._engineConfig?.datamodelPath) {
         const loadPath = path.dirname(prisma._engineConfig.datamodelPath);
         try {
-            return require(loadPath).Prisma;
+            const _prisma = require(loadPath).Prisma;
+            if (typeof _prisma !== 'undefined') return _prisma;
+            return require('@prisma/client/runtime');
         } catch {
             return require('@prisma/client/runtime');
         }
