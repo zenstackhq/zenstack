@@ -116,7 +116,7 @@ The following diagram gives a high-level overview of how it works.
 
 -   Prisma schema generator
 -   Zod schema generator
--   React hooks generator
+-   [SWR](https://github.com/vercel/swr) and [TanStack Query](https://github.com/TanStack/query) hooks generator
 -   OpenAPI specification generator
 -   [tRPC](https://trpc.io) router generator
 -   🙋🏻 [Request for a plugin](https://go.zenstack.dev/chat)
@@ -135,14 +135,17 @@ The following diagram gives a high-level overview of how it works.
 -   [Custom attributes and functions](https://zenstack.dev/docs/reference/zmodel-language#custom-attributes-and-functions)
 -   [Multi-file schema and model inheritance](https://zenstack.dev/docs/guides/multiple-schema)
 -   Strong-typed JSON field (coming soon)
+-   Polymorphism (future)
 -   🙋🏻 [Request for an extension](https://go.zenstack.dev/chat)
 
 ## Examples
 
-Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find the source code below:
+Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find different implementations below:
 
--   [Next.js + React hooks implementation](https://github.com/zenstackhq/sample-todo-nextjs)
--   [Next.js + tRPC implementation](https://github.com/zenstackhq/sample-todo-trpc)
+-   [Next.js + SWR hooks](https://github.com/zenstackhq/sample-todo-nextjs)
+-   [Next.js + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
+-   [Next.js + tRPC](https://github.com/zenstackhq/sample-todo-trpc)
+-   [SvelteKit + TanStack Query](https://github.com/zenstackhq/sample-todo-sveltekit)
 
 ## Community
 
