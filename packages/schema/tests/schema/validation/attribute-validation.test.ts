@@ -304,6 +304,7 @@ describe('Attribute tests', () => {
             model _FloatDecimal {
                 _float Float @db.Float
                 _decimal Decimal @db.Decimal
+                _decimal1 Decimal @db.Decimal(10, 2)
                 _doublePrecision Float @db.DoublePrecision
                 _real Float @db.Real
                 _double Float @db.Double

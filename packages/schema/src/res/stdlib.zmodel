@@ -281,7 +281,7 @@ attribute @db.Int8() @@@targetField([BigIntField]) @@@prisma
 attribute @db.DoublePrecision() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Real() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Float() @@@targetField([FloatField, DecimalField]) @@@prisma
-attribute @db.Decimal() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Decimal(_ p: Int?, s: Int?) @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Double() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Money() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.SmallMoney() @@@targetField([FloatField, DecimalField]) @@@prisma
