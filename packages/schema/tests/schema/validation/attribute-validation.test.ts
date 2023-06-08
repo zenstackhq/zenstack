@@ -1,3 +1,5 @@
+/// <reference types="@types/jest" />
+
 import { loadModel, loadModelWithError } from '../../utils';
 
 describe('Attribute tests', () => {
