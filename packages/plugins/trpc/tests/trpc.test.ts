@@ -124,4 +124,60 @@ model Post {
         );
         expect(fs.existsSync(path.join(projectDir, 'zenstack/trpc'))).toBe(true);
     });
+
+    it('generateModelActions option string', async () => {
+        const { projectDir } = await loadSchema(
+            `
+plugin trpc {
+    provider = '${process.cwd()}/dist'
+    output = './trpc'
+    generateModelActions = 'findMany,findUnique,update'
+}
+
+model Post {
+    id String @id
+    title String
+}
+        `,
+            true,
+            false,
+            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+            true,
+            'zenstack/schema.zmodel'
+        );
+        const content = fs.readFileSync(path.join(projectDir, 'zenstack/trpc/routers/Post.router.ts'), 'utf-8');
+        expect(content).toContain('findMany:');
+        expect(content).toContain('findUnique:');
+        expect(content).toContain('update:');
+        expect(content).not.toContain('create:');
+        expect(content).not.toContain('aggregate:');
+    });
+
+    it('generateModelActions option array', async () => {
+        const { projectDir } = await loadSchema(
+            `
+plugin trpc {
+    provider = '${process.cwd()}/dist'
+    output = './trpc'
+    generateModelActions = ['findMany', 'findUnique', 'update']
+}
+
+model Post {
+    id String @id
+    title String
+}
+        `,
+            true,
+            false,
+            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+            true,
+            'zenstack/schema.zmodel'
+        );
+        const content = fs.readFileSync(path.join(projectDir, 'zenstack/trpc/routers/Post.router.ts'), 'utf-8');
+        expect(content).toContain('findMany:');
+        expect(content).toContain('findUnique:');
+        expect(content).toContain('update:');
+        expect(content).not.toContain('create:');
+        expect(content).not.toContain('aggregate:');
+    });
 });
