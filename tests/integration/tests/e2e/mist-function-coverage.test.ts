@@ -8,7 +8,7 @@ describe('Misc Function Coverage Tests', () => {
                 id String @id @default(cuid())
                 dt DateTime @default(now())
                 @@allow('create,read', true)
-                @@allow('update', dt <= now() && future().dt > now())
+                @@allow('update', now() >= dt && future().dt > now())
             }
             `
         );
