@@ -1386,8 +1386,8 @@ describe('REST server tests - regular prisma', () => {
                         relationships: {
                             author: {
                                 links: {
-                                    self: 'http://localhost/api/post/1/relationships/author/user1',
-                                    related: 'http://localhost/api/post/1/author/user1',
+                                    self: 'http://localhost/api/post/1/relationships/author',
+                                    related: 'http://localhost/api/post/1/author',
                                 },
                                 data: { type: 'user', id: 'user1' },
                             },
