@@ -1042,43 +1042,19 @@ class RequestHandler {
                         {
                             relatedName: field,
                             linkers: {
-                                related: new Linker((primary, related) =>
-                                    !related || Array.isArray(related)
-                                        ? this.makeLinkUrl(
-                                              `/${lowerCaseFirst(model)}/${this.getId(
-                                                  model,
-                                                  primary,
-                                                  modelMeta
-                                              )}/${field}`
-                                          )
-                                        : this.makeLinkUrl(
-                                              `/${lowerCaseFirst(model)}/${this.getId(
-                                                  model,
-                                                  primary,
-                                                  modelMeta
-                                              )}/${field}/${this.getId(fieldMeta.type, related, modelMeta)}`
-                                          )
+                                related: new Linker((primary) =>
+                                    this.makeLinkUrl(
+                                        `/${lowerCaseFirst(model)}/${this.getId(model, primary, modelMeta)}/${field}`
+                                    )
                                 ),
-                                relationship: new Linker((primary, related) =>
-                                    !related || Array.isArray(related)
-                                        ? this.makeLinkUrl(
-                                              `/${lowerCaseFirst(model)}/${this.getId(
-                                                  model,
-                                                  primary,
-                                                  modelMeta
-                                              )}/relationships/${field}`
-                                          )
-                                        : this.makeLinkUrl(
-                                              `/${lowerCaseFirst(model)}/${this.getId(
-                                                  model,
-                                                  primary,
-                                                  modelMeta
-                                              )}/relationships/${field}/${this.getId(
-                                                  fieldMeta.type,
-                                                  related,
-                                                  modelMeta
-                                              )}`
-                                          )
+                                relationship: new Linker((primary) =>
+                                    this.makeLinkUrl(
+                                        `/${lowerCaseFirst(model)}/${this.getId(
+                                            model,
+                                            primary,
+                                            modelMeta
+                                        )}/relationships/${field}`
+                                    )
                                 ),
                             },
                         }
