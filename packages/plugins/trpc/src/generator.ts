@@ -29,24 +29,27 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     let outDir = requireOption<string>(options, 'output');
     outDir = resolvePath(outDir, options);
 
+    // resolve "generateModelActions" option
     let generateModelActions: string[] | undefined = undefined;
-    if (typeof options.generateModelActions === 'string') {
-        // comma separated string
-        generateModelActions = options.generateModelActions
-            .split(',')
-            .filter((i) => !!i)
-            .map((i) => i.trim());
-    } else if (
-        Array.isArray(options.generateModelActions) &&
-        options.generateModelActions.every((i) => typeof i === 'string')
-    ) {
-        // string array
-        generateModelActions = options.generateModelActions as string[];
-    } else {
-        throw new PluginError(
-            name,
-            `Invalid "generateModelActions" option: must be a comma-separated string or an array of strings`
-        );
+    if (options.generateModelActions) {
+        if (typeof options.generateModelActions === 'string') {
+            // comma separated string
+            generateModelActions = options.generateModelActions
+                .split(',')
+                .filter((i) => !!i)
+                .map((i) => i.trim());
+        } else if (
+            Array.isArray(options.generateModelActions) &&
+            options.generateModelActions.every((i) => typeof i === 'string')
+        ) {
+            // string array
+            generateModelActions = options.generateModelActions as string[];
+        } else {
+            throw new PluginError(
+                name,
+                `Invalid "generateModelActions" option: must be a comma-separated string or an array of strings`
+            );
+        }
     }
 
     await fs.mkdir(outDir, { recursive: true });
