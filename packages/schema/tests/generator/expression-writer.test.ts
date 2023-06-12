@@ -1,3 +1,5 @@
+/// <reference types="@types/jest" />
+
 import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/language/ast';
 import { GUARD_FIELD_NAME } from '@zenstackhq/sdk';
 import * as tmp from 'tmp';
@@ -1132,153 +1134,167 @@ describe('Expression Writer Tests', () => {
             `
         );
     });
-});
 
-it('filter operators non-field access', async () => {
-    const userInit = `{ id: 'user1', email: 'test@zenstack.dev', roles: [Role.ADMIN] }`;
-    const prelude = `        
-        enum Role {
-            USER
-            ADMIN
-        }
+    it('filter operators non-field access', async () => {
+        const userInit = `{ id: 'user1', email: 'test@zenstack.dev', roles: [Role.ADMIN] }`;
+        const prelude = `        
+            enum Role {
+                USER
+                ADMIN
+            }
+    
+            model User {
+                id String @id
+                email String
+                roles Role[]
+            }
+        `;
 
-        model User {
-            id String @id
-            email String
-            roles Role[]
-        }
-    `;
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', ADMIN in auth().roles)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', ADMIN in auth().roles)
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                roles Role[]
+                @@allow('all', ADMIN in roles)
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{roles:{has:Role.ADMIN}}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            roles Role[]
-            @@allow('all', ADMIN in roles)
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{roles:{has:Role.ADMIN}}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', contains(auth().email, 'test'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.email?.includes('test')??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', contains(auth().email, 'test'))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.email?.includes('test')??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', contains(auth().email, 'test', true))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', contains(auth().email, 'test', true))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', startsWith(auth().email, 'test'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.email?.startsWith('test')??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', startsWith(auth().email, 'test'))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.email?.startsWith('test')??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', endsWith(auth().email, 'test'))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.email?.endsWith('test')??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', endsWith(auth().email, 'test'))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.email?.endsWith('test')??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', has(auth().roles, ADMIN))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', has(auth().roles, ADMIN))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', hasEvery(auth().roles, [ADMIN, USER]))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', hasEvery(auth().roles, [ADMIN, USER]))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', hasSome(auth().roles, [USER, ADMIN]))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)}`,
+            userInit
+        );
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', hasSome(auth().roles, [USER, ADMIN]))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)}`,
-        userInit
-    );
+        await check(
+            `
+            ${prelude}
+            model Test {
+                id String @id
+                @@allow('all', isEmpty(auth().roles))
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{zenstack_guard:(user?.roles?.length===0??false)}`,
+            userInit
+        );
+    });
 
-    await check(
-        `
-        ${prelude}
-        model Test {
-            id String @id
-            @@allow('all', isEmpty(auth().roles))
-        }
-        `,
-        (model) => model.attributes[0].args[1].value,
-        `{zenstack_guard:(user?.roles?.length===0??false)}`,
-        userInit
-    );
+    it('now() function', async () => {
+        await check(
+            `
+            model Test {
+                id String @id
+                createdAt DateTime @default(now())
+                @@allow('all', createdAt <= now())
+            }
+            `,
+            (model) => model.attributes[0].args[1].value,
+            `{ createdAt: { lte: (new Date()) } }`
+        );
+    });
 });
 
 async function check(schema: string, getExpr: (model: DataModel) => Expression, expected: string, userInit?: string) {
