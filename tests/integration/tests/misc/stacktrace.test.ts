@@ -34,5 +34,6 @@ describe('Stack trace tests', () => {
             "Error calling enhanced Prisma method `create`: denied by policy: model entities failed 'create' check"
         );
         expect(error?.stack).toContain(`misc/stacktrace.test.ts`);
+        expect((error as any).internalStack).toBeTruthy();
     });
 });
