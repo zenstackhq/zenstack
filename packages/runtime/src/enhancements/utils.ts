@@ -49,7 +49,7 @@ export function enumerate<T>(x: Enumerable<T>) {
  * Formats an object for pretty printing.
  */
 export function formatObject(value: unknown) {
-    return util.formatWithOptions({ depth: 10 }, value);
+    return util.formatWithOptions({ depth: 20 }, value);
 }
 
 let _PrismaClientValidationError: new (...args: unknown[]) => Error;

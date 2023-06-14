@@ -1,7 +1,11 @@
-import { withOmit } from './omit';
-import { withPassword } from './password';
-import { withPolicy, WithPolicyContext } from './policy';
-import { ModelMeta, PolicyDef } from './types';
+import { withOmit, WithOmitOptions } from './omit';
+import { withPassword, WithPasswordOptions } from './password';
+import { withPolicy, WithPolicyContext, WithPolicyOptions } from './policy';
+
+/**
+ * Options @see withPresets
+ */
+export type WithPresetsOptions = WithPolicyOptions & WithPasswordOptions & WithOmitOptions;
 
 /**
  * Gets a Prisma client enhanced with all essential behaviors, including access
@@ -19,8 +23,7 @@ import { ModelMeta, PolicyDef } from './types';
 export function withPresets<DbClient extends object>(
     prisma: DbClient,
     context?: WithPolicyContext,
-    policy?: PolicyDef,
-    modelMeta?: ModelMeta
+    options?: WithPresetsOptions
 ) {
-    return withPolicy(withOmit(withPassword(prisma, modelMeta), modelMeta), context, policy, modelMeta);
+    return withPolicy(withOmit(withPassword(prisma, options), options), context, options);
 }

@@ -1849,7 +1849,7 @@ describe('REST server tests - enhanced prisma', () => {
     beforeAll(async () => {
         const params = await loadSchema(schema);
 
-        prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
+        prisma = withPolicy(params.prisma, undefined, params);
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
 
@@ -1950,7 +1950,7 @@ describe('REST server tests - NextAuth project regression', () => {
     beforeAll(async () => {
         const params = await loadSchema(schema);
 
-        prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
+        prisma = withPolicy(params.prisma, undefined, params);
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
 
