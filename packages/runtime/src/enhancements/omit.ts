@@ -8,10 +8,20 @@ import { ModelMeta } from './types';
 import { enumerate, getModelFields } from './utils';
 
 /**
+ * Options for @see withOmit
+ */
+export type WithOmitOptions = {
+    /**
+     * Model metatadata
+     */
+    modelMeta?: ModelMeta;
+};
+
+/**
  * Gets an enhanced Prisma client that supports @omit attribute.
  */
-export function withOmit<DbClient extends object>(prisma: DbClient, modelMeta?: ModelMeta): DbClient {
-    const _modelMeta = modelMeta ?? getDefaultModelMeta();
+export function withOmit<DbClient extends object>(prisma: DbClient, options?: WithOmitOptions): DbClient {
+    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
     return makeProxy(
         prisma,
         _modelMeta,

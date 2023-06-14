@@ -10,10 +10,20 @@ import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './prox
 import { ModelMeta } from './types';
 
 /**
+ * Options for @see withPassword
+ */
+export type WithPasswordOptions = {
+    /**
+     * Model metatadata
+     */
+    modelMeta?: ModelMeta;
+};
+
+/**
  * Gets an enhanced Prisma client that supports @password attribute.
  */
-export function withPassword<DbClient extends object = any>(prisma: DbClient, modelMeta?: ModelMeta): DbClient {
-    const _modelMeta = modelMeta ?? getDefaultModelMeta();
+export function withPassword<DbClient extends object = any>(prisma: DbClient, options?: WithPasswordOptions): DbClient {
+    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
     return makeProxy(
         prisma,
         _modelMeta,

@@ -20,6 +20,7 @@ import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
 import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
 import {
     enumerate,
+    formatObject,
     getIdFields,
     getModelFields,
     prismaClientKnownRequestError,
@@ -39,7 +40,8 @@ export class PolicyUtil {
         private readonly db: DbClientContract,
         private readonly modelMeta: ModelMeta,
         private readonly policy: PolicyDef,
-        private readonly user?: AuthUser
+        private readonly user?: AuthUser,
+        private readonly logPrismaQuery?: boolean
     ) {
         this.logger = new Logger(db);
     }
@@ -247,9 +249,9 @@ export class PolicyUtil {
         // recursively inject read guard conditions into the query args
         await this.injectNestedReadConditions(model, args);
 
-        // DEBUG
-        // this.logger.info(`Reading with validation for ${model}: ${formatObject(args)}`);
-
+        if (this.logPrismaQuery && this.logger.enabled('info')) {
+            this.logger.info(`[withPolicy] \`findMany\`:\n${formatObject(args)}`);
+        }
         const result: any[] = await this.db[model].findMany(args);
 
         await this.postProcessForRead(result, model, args, 'read');
@@ -358,8 +360,11 @@ export class PolicyUtil {
                         const ids = this.getEntityIds(fieldInfo.type, fieldData);
 
                         if (Object.keys(ids).length !== 0) {
-                            // DEBUG
-                            // this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`);
+                            if (this.logger.enabled('info')) {
+                                this.logger.info(
+                                    `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
+                                );
+                            }
                             await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
                         }
                     }
@@ -548,9 +553,11 @@ export class PolicyUtil {
                 }
 
                 const query = { where: filter, select };
-                // DEBUG
-                // this.logger.info(`fetching pre-update entities for ${model}: ${formatObject(query)})}`);
-
+                if (this.logPrismaQuery && this.logger.enabled('info')) {
+                    this.logger.info(
+                        `[withPolicy] \`findMany\` for fetching pre-update entities:\n${formatObject(args)}`
+                    );
+                }
                 const entities = await this.db[model].findMany(query);
                 entities.forEach((entity) => {
                     addUpdatedEntity(model, this.getEntityIds(model, entity), entity);
@@ -742,8 +749,9 @@ export class PolicyUtil {
             return;
         }
 
-        // DEBUG
-        // this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
+        if (this.logger.enabled('info')) {
+            this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
+        }
 
         const queryFilter = deepcopy(filter);
 
@@ -752,7 +760,13 @@ export class PolicyUtil {
         // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
         await this.flattenGeneratedUniqueField(model, queryFilter);
 
-        const count = (await db[model].count({ where: queryFilter })) as number;
+        const countArgs = { where: queryFilter };
+        // if (this.logPrismaQuery && this.logger.enabled('info')) {
+        //     this.logger.info(
+        //         `[withPolicy] \`count\` for policy check without guard:\n${formatObject(countArgs)}`
+        //     );
+        // }
+        const count = (await db[model].count(countArgs)) as number;
         if (count === 0) {
             // there's nothing to filter out
             return;
@@ -768,10 +782,16 @@ export class PolicyUtil {
 
         if (schema) {
             // we've got schemas, so have to fetch entities and validate them
+            // if (this.logPrismaQuery && this.logger.enabled('info')) {
+            //     this.logger.info(
+            //         `[withPolicy] \`findMany\` for policy check with guard:\n${formatObject(countArgs)}`
+            //     );
+            // }
             const entities = await db[model].findMany(guardedQuery);
             if (entities.length < count) {
-                // DEBUG
-                // this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                if (this.logger.enabled('info')) {
+                    this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                }
                 throw this.deniedByPolicy(
                     model,
                     operation,
@@ -783,16 +803,23 @@ export class PolicyUtil {
             const schemaCheckErrors = entities.map((entity) => schema.safeParse(entity)).filter((r) => !r.success);
             if (schemaCheckErrors.length > 0) {
                 const error = schemaCheckErrors.map((r) => !r.success && fromZodError(r.error).message).join(', ');
-                // DEBUG
-                // this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
+                if (this.logger.enabled('info')) {
+                    this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
+                }
                 throw this.deniedByPolicy(model, operation, `entities failed schema check: [${error}]`);
             }
         } else {
             // count entities with policy injected and see if any of them are filtered out
+            // if (this.logPrismaQuery && this.logger.enabled('info')) {
+            //     this.logger.info(
+            //         `[withPolicy] \`count\` for policy check with guard:\n${formatObject(guardedQuery)}`
+            //     );
+            // }
             const guardedCount = (await db[model].count(guardedQuery)) as number;
             if (guardedCount < count) {
-                // DEBUG
-                // this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                if (this.logger.enabled('info')) {
+                    this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
+                }
                 throw this.deniedByPolicy(
                     model,
                     operation,
@@ -808,8 +835,9 @@ export class PolicyUtil {
         db: Record<string, DbOperations>,
         preValue: any
     ) {
-        // DEBUG
-        // this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
+        if (this.logger.enabled('info')) {
+            this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
+        }
 
         const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
 
@@ -821,8 +849,9 @@ export class PolicyUtil {
 
         // see if we get fewer items with policy, if so, reject with an throw
         if (!entity) {
-            // DEBUG
-            // this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
+            if (this.logger.enabled('info')) {
+                this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
+            }
             throw this.deniedByPolicy(model, 'postUpdate');
         }
 
@@ -832,8 +861,9 @@ export class PolicyUtil {
             const schemaCheckResult = schema.safeParse(entity);
             if (!schemaCheckResult.success) {
                 const error = fromZodError(schemaCheckResult.error).message;
-                // DEBUG
-                // this.logger.info(`entity ${model} failed schema check for operation postUpdate: ${error}`);
+                if (this.logger.enabled('info')) {
+                    this.logger.info(`entity ${model} failed schema check for operation postUpdate: ${error}`);
+                }
                 throw this.deniedByPolicy(model, 'postUpdate', `entity failed schema check: ${error}`);
             }
         }

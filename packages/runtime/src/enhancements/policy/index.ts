@@ -14,6 +14,26 @@ export type WithPolicyContext = {
 };
 
 /**
+ * Options for @see withPolicy
+ */
+export type WithPolicyOptions = {
+    /**
+     * Policy definition
+     */
+    policy?: PolicyDef;
+
+    /**
+     * Model metatadata
+     */
+    modelMeta?: ModelMeta;
+
+    /**
+     * Whether to log Prisma query
+     */
+    logPrismaQuery?: boolean;
+};
+
+/**
  * Gets an enhanced Prisma client with access policy check.
  *
  * @param prisma The original Prisma client
@@ -24,16 +44,22 @@ export type WithPolicyContext = {
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,
     context?: WithPolicyContext,
-    policy?: PolicyDef,
-    modelMeta?: ModelMeta
+    options?: WithPolicyOptions
 ): DbClient {
-    const _policy = policy ?? getDefaultPolicy();
-    const _modelMeta = modelMeta ?? getDefaultModelMeta();
+    const _policy = options?.policy ?? getDefaultPolicy();
+    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
     return makeProxy(
         prisma,
         _modelMeta,
         (_prisma, model) =>
-            new PolicyProxyHandler(_prisma as DbClientContract, _policy, _modelMeta, model, context?.user),
+            new PolicyProxyHandler(
+                _prisma as DbClientContract,
+                _policy,
+                _modelMeta,
+                model,
+                context?.user,
+                options?.logPrismaQuery
+            ),
         'policy'
     );
 }
