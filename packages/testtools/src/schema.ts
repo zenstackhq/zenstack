@@ -198,8 +198,8 @@ export async function loadSchema(
         prisma,
         withPolicy: (user?: AuthUser) =>
             withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
-        withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta, logPrismaQuery }),
-        withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta, logPrismaQuery }),
+        withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
+        withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
         withPresets: (user?: AuthUser) =>
             withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
         policy,
