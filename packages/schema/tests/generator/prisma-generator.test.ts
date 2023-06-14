@@ -280,8 +280,11 @@ describe('Prisma generator test', () => {
             updatedAt DateTime @updatedAt
         }
 
-        model Post extends Base {
+        abstract model Content {
             title String
+        }
+
+        model Post extends Base, Content {
             published Boolean @default(false)
         }
     `);
@@ -301,6 +304,9 @@ describe('Prisma generator test', () => {
         const post = dmmf.datamodel.models[0];
         expect(post.name).toBe('Post');
         expect(post.fields.length).toBe(5);
+        expect(post.fields[0].name).toBe('id');
+        expect(post.fields[3].name).toBe('title');
+        expect(post.fields[4].name).toBe('published');
     });
 
     it('custom aux field names', async () => {
@@ -360,7 +366,7 @@ describe('Prisma generator test', () => {
         const post = dmmf.datamodel.models.find((m) => m.name === 'Post');
 
         expect(post?.documentation?.replace(/\s/g, '')).toBe(
-            `@@allow('delete', ownerId == auth()) @@allow('read', owner == auth())`.replace(/\s/g, '')
+            `@@allow('read', owner == auth()) @@allow('delete', ownerId == auth())`.replace(/\s/g, '')
         );
 
         const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');

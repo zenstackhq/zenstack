@@ -58,30 +58,27 @@ export function mergeBaseModel(model: Model) {
         .forEach((decl) => {
             const dataModel = decl as DataModel;
 
-            dataModel.superTypes.forEach((superType) => {
-                const superTypeDecl = superType.ref;
-                if (superTypeDecl) {
-                    superTypeDecl.fields.forEach((field) => {
-                        const cloneField = Object.assign({}, field);
-                        const mutable = cloneField as Mutable<AstNode>;
-                        // update container
-                        mutable.$container = dataModel;
-                        dataModel.fields.push(mutable as DataModelField);
-                    });
+            dataModel.fields = dataModel.superTypes
+                .flatMap((superType) => updateContainer(superType.ref!.fields, dataModel))
+                .concat(dataModel.fields);
 
-                    superTypeDecl.attributes.forEach((attr) => {
-                        const cloneAttr = Object.assign({}, attr);
-                        const mutable = cloneAttr as Mutable<AstNode>;
-                        // update container
-                        mutable.$container = dataModel;
-                        dataModel.attributes.push(mutable as DataModelAttribute);
-                    });
-                }
-            });
+            dataModel.attributes = dataModel.superTypes
+                .flatMap((superType) => updateContainer(superType.ref!.attributes, dataModel))
+                .concat(dataModel.attributes);
         });
 
     // remove abstract models
     model.declarations = model.declarations.filter((x) => !(x.$type == 'DataModel' && x.isAbstract));
+}
+
+function updateContainer<T extends AstNode>(nodes: T[], container: AstNode): Mutable<T>[] {
+    return nodes.map((node) => {
+        const cloneField = Object.assign({}, node);
+        const mutable = cloneField as Mutable<T>;
+        // update container
+        mutable.$container = container;
+        return mutable;
+    });
 }
 
 function toStaticPolicy(
