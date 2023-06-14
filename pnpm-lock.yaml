@@ -585,6 +585,9 @@ importers:
       sleep-promise:
         specifier: ^9.1.0
         version: 9.1.0
+      strip-color:
+        specifier: ^0.1.0
+        version: 0.1.0
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
@@ -634,6 +637,9 @@ importers:
       '@types/semver':
         specifier: ^7.3.13
         version: 7.3.13
+      '@types/strip-color':
+        specifier: ^0.1.0
+        version: 0.1.0
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
@@ -3047,6 +3053,10 @@ packages:
 
   /@types/stack-utils@2.0.1:
     resolution: {integrity: sha512-Hl219/BT5fLAaz6NDkSuhzasy49dwQS/DSdu4MdggFB8zcXv7vflBI3xp7FEmkmdDkBUI2bPUNeMttp2knYdxw==}
+    dev: true
+
+  /@types/strip-color@0.1.0:
+    resolution: {integrity: sha512-nx4pG5q035VogbYZC+D7KVbSko6h6t5ha8hKh11EF1SOCiFG+77n0kmcGF9Rfrn9QeZbmrhohrA/g40UGb60aA==}
     dev: true
 
   /@types/superagent@4.1.15:
@@ -8881,7 +8891,7 @@ packages:
     dependencies:
       eastasianwidth: 0.2.0
       emoji-regex: 9.2.2
-      strip-ansi: 7.0.1
+      strip-ansi: 7.1.0
     dev: true
 
   /string.prototype.trimend@1.0.6:
@@ -8920,8 +8930,8 @@ packages:
     dependencies:
       ansi-regex: 5.0.1
 
-  /strip-ansi@7.0.1:
-    resolution: {integrity: sha512-cXNxvT8dFNRVfhVME3JAe98mkXDYN2O1l7jmcwMnOslDeESg1rF/OZMtK0nRAhiari1unG5cD4jG3rapUAkLbw==}
+  /strip-ansi@7.1.0:
+    resolution: {integrity: sha512-iq6eVVI64nQQTRYq2KtEg2d2uU7LElhTJwsH4YzIHZshxlgZms/wIc4VoDQTlG/IvVIrBKG06CrZnp0qv7hkcQ==}
     engines: {node: '>=12'}
     dependencies:
       ansi-regex: 6.0.1
@@ -8936,6 +8946,11 @@ packages:
     resolution: {integrity: sha512-3xurFv5tEgii33Zi8Jtp55wEIILR9eh34FAW00PZf+JnSsTmV/ioewSgQl97JHvgjoRGwPShsWm+IdrxB35d0w==}
     engines: {node: '>=8'}
     dev: true
+
+  /strip-color@0.1.0:
+    resolution: {integrity: sha512-p9LsUieSjWNNAxVCXLeilaDlmuUOrDS5/dF9znM1nZc7EGX5+zEFC0bEevsNIaldjlks+2jns5Siz6F9iK6jwA==}
+    engines: {node: '>=0.10.0'}
+    dev: false
 
   /strip-final-newline@2.0.0:
     resolution: {integrity: sha512-BrpvfNAE3dcvq7ll3xVumzjKjZQ5tI1sEUIKr3Uoks0XUl45St3FlatVqef9prk4jRDzhW6WZg+3bk93y6pLjA==}
