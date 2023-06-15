@@ -360,11 +360,11 @@ export class PolicyUtil {
                         const ids = this.getEntityIds(fieldInfo.type, fieldData);
 
                         if (Object.keys(ids).length !== 0) {
-                            if (this.logger.enabled('info')) {
-                                this.logger.info(
-                                    `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
-                                );
-                            }
+                            // if (this.logger.enabled('info')) {
+                            //     this.logger.info(
+                            //         `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
+                            //     );
+                            // }
                             await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
                         }
                     }
@@ -749,9 +749,9 @@ export class PolicyUtil {
             return;
         }
 
-        if (this.logger.enabled('info')) {
-            this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
-        }
+        // if (this.logger.enabled('info')) {
+        //     this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
+        // }
 
         const queryFilter = deepcopy(filter);
 
@@ -835,9 +835,9 @@ export class PolicyUtil {
         db: Record<string, DbOperations>,
         preValue: any
     ) {
-        if (this.logger.enabled('info')) {
-            this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
-        }
+        // if (this.logger.enabled('info')) {
+        //     this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
+        // }
 
         const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
 

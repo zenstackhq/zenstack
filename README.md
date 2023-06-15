@@ -21,13 +21,17 @@
 
 ## What it is
 
-ZenStack is a toolkit that simplifies the development of a web app's backend. It supercharges [Prisma ORM](https://prisma.io) with a powerful access control layer and unleashes its full potential for web development.
+ZenStack is a Node.js/TypeScript toolkit that simplifies the development of a web app's backend. It supercharges [Prisma ORM](https://prisma.io) with a powerful access control layer and unleashes its full potential for full-stack development.
 
 Our goal is to let you save time writing boilerplate code and focus on building real features!
 
 ## How it works
 
-ZenStack extended Prisma schema language for supporting custom attributes and functions and, based on that, implemented a flexible access control layer around Prisma.
+ZenStack incrementally extends Prisma's power with the following four layers:
+
+### 1. ZModel - an extended Prisma schema language
+
+ZenStack introduces a data modeling language called "ZModel" - a superset of Prisma schema language. It extended Prisma schema with custom attributes and functions and, based on that, implemented a flexible access control layer around Prisma.
 
 ```prisma
 // schema.zmodel
@@ -47,34 +51,58 @@ model Post {
 }
 ```
 
-At runtime, transparent proxies are created around Prisma clients for intercepting queries and mutations to enforce access policies. Moreover, framework integration packages help you wrap an access-control-enabled Prisma client into backend APIs that can be safely called from the frontend.
+The `zenstack` CLI transpiles the ZModel into a standard Prisma schema, which you can use with the regular Prisma workflows.
+
+### 2. Runtime enhancements to Prisma client
+
+At runtime, transparent proxies are created around Prisma clients for intercepting queries and mutations to enforce access policies.
 
 ```ts
-// Next.js example: pages/api/model/[...path].ts
+import { withPolicy } from '@zenstackhq/runtime';
+
+// a regular Prisma client
+const prisma = new PrismaClient();
+
+async function getPosts(userId: string) {
+    // create an enhanced Prisma client that has access control enabled
+    const enhanced = withPolicy(prisma, { user: userId });
+
+    // only posts that're visible to the user will be returned
+    return enhanced.post.findMany();
+}
+```
+
+### 3. Automatic RESTful APIs through server adapters
+
+Server adapter packages help you wrap an access-control-enabled Prisma client into backend CRUD APIs that can be safely called from the frontend. Here's an example for Next.js:
+
+```ts
+// pages/api/model/[...path].ts
 
 import { requestHandler } from '@zenstackhq/next';
 import { withPolicy } from '@zenstackhq/runtime';
 import { getSessionUser } from '@lib/auth';
 import { prisma } from '@lib/db';
 
+// Mount Prisma-style APIs: "/api/model/post/findMany", "/api/model/post/create", etc.
+// Can be configured to provide standard RESTful APIs (using JSON:API) instead.
 export default requestHandler({
     getPrisma: (req, res) => withPolicy(prisma, { user: getSessionUser(req, res) }),
 });
 ```
 
-Plugins can generate strong-typed client libraries that talk to the APIs:
+### 4. Generated client libraries (hooks) for data access
+
+Plugins can generate strong-typed client libraries that talk to the aforementioned APIs. Here's an example for React:
 
 ```tsx
-// React example: components/MyPosts.tsx
+// components/MyPosts.tsx
 
-import { usePost } from '@lib/hooks';
+import { useFindManyPost } from '@lib/hooks';
 
 const MyPosts = () => {
-    // Post CRUD hooks
-    const { findMany } = usePost();
-
     // list all posts that're visible to the current user, together with their authors
-    const { data: posts } = findMany({
+    const { data: posts } = useFindManyPost({
         include: { author: true },
         orderBy: { createdAt: 'desc' },
     });
@@ -91,7 +119,9 @@ const MyPosts = () => {
 };
 ```
 
-The following diagram gives a high-level overview of how it works.
+## Architecture
+
+The following diagram gives a high-level architecture overview of ZenStack.
 
 ![Architecture](https://zenstack.dev/img/architecture-light.png)
 
@@ -123,7 +153,7 @@ The following diagram gives a high-level overview of how it works.
 
 ### Framework adapters
 
--   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next)
+-   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next) (including support for the new "app directory" in Next.js 13)
 -   [SvelteKit](https://zenstack.dev/docs/reference/server-adapters/sveltekit)
 -   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
 -   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
