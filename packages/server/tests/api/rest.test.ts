@@ -1386,8 +1386,8 @@ describe('REST server tests - regular prisma', () => {
                         relationships: {
                             author: {
                                 links: {
-                                    self: 'http://localhost/api/post/1/relationships/author/user1',
-                                    related: 'http://localhost/api/post/1/author/user1',
+                                    self: 'http://localhost/api/post/1/relationships/author',
+                                    related: 'http://localhost/api/post/1/author',
                                 },
                                 data: { type: 'user', id: 'user1' },
                             },
@@ -1849,7 +1849,7 @@ describe('REST server tests - enhanced prisma', () => {
     beforeAll(async () => {
         const params = await loadSchema(schema);
 
-        prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
+        prisma = withPolicy(params.prisma, undefined, params);
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
 
@@ -1950,7 +1950,7 @@ describe('REST server tests - NextAuth project regression', () => {
     beforeAll(async () => {
         const params = await loadSchema(schema);
 
-        prisma = withPolicy(params.prisma, undefined, params.policy, params.modelMeta);
+        prisma = withPolicy(params.prisma, undefined, params);
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
 

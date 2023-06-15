@@ -1,3 +1,4 @@
+import { getDMMF } from '@prisma/internals';
 import {
     ArrayExpr,
     AstNode,
@@ -35,8 +36,10 @@ import {
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import stripColor from 'strip-color';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
+import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
 import {
     ModelFieldType,
@@ -76,6 +79,7 @@ export default class PrismaSchemaGenerator {
 
     async generate(model: Model, options: PluginOptions, config?: Record<string, string>) {
         const prisma = new PrismaModel();
+        const warnings: string[] = [];
 
         for (const decl of model.declarations) {
             switch (decl.$type) {
@@ -106,15 +110,37 @@ export default class PrismaSchemaGenerator {
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
         if (options.format === true) {
-            // run 'prisma format'
-            await execSync(`npx prisma format --schema ${outFile}`);
+            try {
+                // run 'prisma format'
+                await execSync(`npx prisma format --schema ${outFile}`);
+            } catch {
+                warnings.push(`Failed to format Prisma schema file`);
+            }
         }
 
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
-            // run 'prisma generate'
-            await execSync(`npx prisma generate --schema ${outFile}`);
+            try {
+                // run 'prisma generate'
+                await execSync(`npx prisma generate --schema ${outFile}`);
+            } catch {
+                await this.trackPrismaSchemaError(outFile);
+                throw new PluginError(name, `Failed to run "prisma generate"`);
+            }
+        }
+
+        return warnings;
+    }
+
+    private async trackPrismaSchemaError(schema: string) {
+        try {
+            await getDMMF({ datamodel: fs.readFileSync(schema, 'utf-8') });
+        } catch (err) {
+            if (err instanceof Error) {
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                telemetry.track('prisma:error', { command: 'generate', message: stripColor(err.message) });
+            }
         }
     }
 

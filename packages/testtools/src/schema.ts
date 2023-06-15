@@ -94,9 +94,9 @@ plugin zod {
 }
 `;
 
-export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true) {
+export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true, logPrismaQuery = false) {
     const content = fs.readFileSync(schemaFile, { encoding: 'utf-8' });
-    return loadSchema(content, addPrelude, pushDb);
+    return loadSchema(content, addPrelude, pushDb, [], false, undefined, logPrismaQuery);
 }
 
 export async function loadSchema(
@@ -105,7 +105,8 @@ export async function loadSchema(
     pushDb = true,
     extraDependencies: string[] = [],
     compile = false,
-    customSchemaFilePath?: string
+    customSchemaFilePath?: string,
+    logPrismaQuery = false
 ) {
     const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
@@ -195,10 +196,12 @@ export async function loadSchema(
     return {
         projectDir: projectRoot,
         prisma,
-        withPolicy: (user?: AuthUser) => withPolicy<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
-        withOmit: () => withOmit<WeakDbClientContract>(prisma, modelMeta),
-        withPassword: () => withPassword<WeakDbClientContract>(prisma, modelMeta),
-        withPresets: (user?: AuthUser) => withPresets<WeakDbClientContract>(prisma, { user }, policy, modelMeta),
+        withPolicy: (user?: AuthUser) =>
+            withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
+        withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
+        withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
+        withPresets: (user?: AuthUser) =>
+            withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
         policy,
         modelMeta,
         zodSchemas,

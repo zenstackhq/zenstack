@@ -281,7 +281,7 @@ attribute @db.Int8() @@@targetField([BigIntField]) @@@prisma
 attribute @db.DoublePrecision() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Real() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Float() @@@targetField([FloatField, DecimalField]) @@@prisma
-attribute @db.Decimal() @@@targetField([FloatField, DecimalField]) @@@prisma
+attribute @db.Decimal(_ p: Int?, _ s: Int?) @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Double() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.Money() @@@targetField([FloatField, DecimalField]) @@@prisma
 attribute @db.SmallMoney() @@@targetField([FloatField, DecimalField]) @@@prisma
@@ -290,7 +290,7 @@ attribute @db.Float4() @@@targetField([FloatField, DecimalField]) @@@prisma
 
 // DateTime type modifiers
 
-attribute @db.DateTime(x: Int?) @@@targetField([DateTimeField]) @@@prisma
+attribute @db.DateTime(_ x: Int?) @@@targetField([DateTimeField]) @@@prisma
 attribute @db.DateTime2() @@@targetField([DateTimeField]) @@@prisma
 attribute @db.SmallDateTime() @@@targetField([DateTimeField]) @@@prisma
 attribute @db.DateTimeOffset() @@@targetField([DateTimeField]) @@@prisma

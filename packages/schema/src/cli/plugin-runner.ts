@@ -136,6 +136,7 @@ export class PluginRunner {
                 'cli:plugin:error',
                 {
                     plugin: name,
+                    options,
                 },
                 async () => {
                     let result = run(context.schema, options, dmmf, config);

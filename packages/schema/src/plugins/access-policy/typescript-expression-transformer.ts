@@ -17,6 +17,7 @@ import { name } from '.';
 import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { isFutureExpr } from './utils';
+import { isFromStdlib } from '../../language-server/utils';
 
 /**
  * Transforms ZModel expression to plain TypeScript expression.
@@ -103,12 +104,17 @@ export default class TypeScriptExpressionTransformer {
 
         if (isAuthInvocation(expr)) {
             return 'user';
-        } else if (FILTER_OPERATOR_FUNCTIONS.includes(expr.function.ref.name)) {
+        }
+
+        const funcName = expr.function.ref.name;
+        const isStdFunc = isFromStdlib(expr.function.ref);
+
+        if (isStdFunc && FILTER_OPERATOR_FUNCTIONS.includes(funcName)) {
             // arguments are already type-checked
 
             const arg0 = this.transform(expr.args[0].value, false);
             let result: string;
-            switch (expr.function.ref.name) {
+            switch (funcName) {
                 case 'contains': {
                     const caseInsensitive = getLiteral<boolean>(expr.args[2]?.value) === true;
                     if (caseInsensitive) {
@@ -121,40 +127,52 @@ export default class TypeScriptExpressionTransformer {
                     }
                     break;
                 }
+
                 case 'search':
                     throw new PluginError(name, '"search" function must be used against a field');
+
                 case 'startsWith':
                     result = `${arg0}?.startsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
+
                 case 'endsWith':
                     result = `${arg0}?.endsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
+
                 case 'has':
                     result = `${arg0}?.includes(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
+
                 case 'hasEvery':
                     result = `${this.transform(
                         expr.args[1].value,
                         normalizeUndefined
                     )}?.every((item) => ${arg0}?.includes(item))`;
                     break;
+
                 case 'hasSome':
                     result = `${this.transform(
                         expr.args[1].value,
                         normalizeUndefined
                     )}?.some((item) => ${arg0}?.includes(item))`;
                     break;
+
                 case 'isEmpty':
                     result = `${arg0}?.length === 0`;
                     break;
+
                 default:
                     throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
             }
 
             return `(${result} ?? false)`;
-        } else {
-            throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
         }
+
+        if (isStdFunc && funcName === 'now') {
+            return `(new Date())`;
+        }
+
+        throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
     }
 
     private reference(expr: ReferenceExpr) {

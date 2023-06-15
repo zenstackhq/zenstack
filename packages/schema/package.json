@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "1.0.0-alpha.126",
+    "version": "1.0.0-beta.1",
     "author": {
         "name": "ZenStack Team"
     },
@@ -75,7 +75,7 @@
         "lint": "eslint src tests --ext ts",
         "test": "jest",
         "prepublishOnly": "pnpm build",
-        "publish-dev": "pnpm publish --tag dev",
+        "publish-dev": "pnpm publish --registry http://localhost:4873",
         "postinstall": "node bin/post-install.js"
     },
     "peerDependencies": {
@@ -101,6 +101,7 @@
         "promisify": "^0.0.3",
         "semver": "^7.3.8",
         "sleep-promise": "^9.1.0",
+        "strip-color": "^0.1.0",
         "ts-morph": "^16.0.0",
         "upper-case-first": "^2.0.2",
         "uuid": "^9.0.0",
@@ -119,6 +120,7 @@
         "@types/node": "^14.18.32",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
+        "@types/strip-color": "^0.1.0",
         "@types/tmp": "^0.2.3",
         "@types/upper-case-first": "^1.1.2",
         "@types/uuid": "^8.3.4",

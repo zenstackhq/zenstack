@@ -1,6 +1,7 @@
 import { DMMF } from '@prisma/generator-helper';
 import {
     CrudFailureReason,
+    PluginError,
     PluginOptions,
     RUNTIME_PACKAGE,
     requireOption,
@@ -12,6 +13,7 @@ import { promises as fs } from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project } from 'ts-morph';
+import { name } from '.';
 import {
     generateHelperImport,
     generateProcedure,
@@ -27,6 +29,29 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     let outDir = requireOption<string>(options, 'output');
     outDir = resolvePath(outDir, options);
 
+    // resolve "generateModelActions" option
+    let generateModelActions: string[] | undefined = undefined;
+    if (options.generateModelActions) {
+        if (typeof options.generateModelActions === 'string') {
+            // comma separated string
+            generateModelActions = options.generateModelActions
+                .split(',')
+                .filter((i) => !!i)
+                .map((i) => i.trim());
+        } else if (
+            Array.isArray(options.generateModelActions) &&
+            options.generateModelActions.every((i) => typeof i === 'string')
+        ) {
+            // string array
+            generateModelActions = options.generateModelActions as string[];
+        } else {
+            throw new PluginError(
+                name,
+                `Invalid "generateModelActions" option: must be a comma-separated string or an array of strings`
+            );
+        }
+    }
+
     await fs.mkdir(outDir, { recursive: true });
     await removeDir(outDir, true);
 
@@ -39,13 +64,18 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
-    createAppRouter(outDir, modelOperations, hiddenModels);
+    createAppRouter(outDir, modelOperations, hiddenModels, generateModelActions);
     createHelper(outDir);
 
     await saveProject(project);
 }
 
-function createAppRouter(outDir: string, modelOperations: DMMF.ModelMapping[], hiddenModels: string[]) {
+function createAppRouter(
+    outDir: string,
+    modelOperations: DMMF.ModelMapping[],
+    hiddenModels: string[],
+    generateModelActions: string[] | undefined
+) {
     const appRouter = project.createSourceFile(path.resolve(outDir, 'routers', `index.ts`), undefined, {
         overwrite: true,
     });
@@ -109,7 +139,7 @@ function createAppRouter(outDir: string, modelOperations: DMMF.ModelMapping[], h
                     continue;
                 }
 
-                generateModelCreateRouter(project, model, operations, outDir);
+                generateModelCreateRouter(project, model, operations, outDir, generateModelActions);
 
                 appRouter.addImportDeclaration({
                     defaultImport: `create${model}Router`,
@@ -129,7 +159,8 @@ function generateModelCreateRouter(
     project: Project,
     model: string,
     operations: Record<string, string | undefined | null>,
-    outputDir: string
+    outputDir: string,
+    generateModelActions: string[] | undefined
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -162,11 +193,15 @@ function generateModelCreateRouter(
             writer.block(() => {
                 for (const [opType, opNameWithModel] of Object.entries(operations)) {
                     const baseOpType = opType.replace('OrThrow', '');
-
                     const inputType = getInputTypeByOpName(baseOpType, model);
+                    const generateOpName = opType.replace(/One$/, '');
 
-                    if (opNameWithModel && inputType) {
-                        generateProcedure(writer, opType.replace(/One$/, ''), inputType, model, baseOpType);
+                    if (
+                        opNameWithModel &&
+                        inputType &&
+                        (!generateModelActions || generateModelActions.includes(generateOpName))
+                    ) {
+                        generateProcedure(writer, generateOpName, inputType, model, baseOpType);
                     }
                 }
             });

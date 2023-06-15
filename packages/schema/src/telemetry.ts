@@ -22,7 +22,8 @@ export type TelemetryEvents =
     | 'cli:command:error'
     | 'cli:plugin:start'
     | 'cli:plugin:complete'
-    | 'cli:plugin:error';
+    | 'cli:plugin:error'
+    | 'prisma:error';
 
 /**
  * Utility class for sending telemetry
