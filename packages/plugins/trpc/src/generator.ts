@@ -139,9 +139,6 @@ function createAppRouter(
                     continue;
                 }
 
-                // somehow dmmf doesn't contain "count" operation, we need to add it here
-                operations.count = 'count';
-
                 generateModelCreateRouter(project, model, operations, outDir, generateModelActions);
 
                 appRouter.addImportDeclaration({

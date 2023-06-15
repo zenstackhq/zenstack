@@ -249,7 +249,7 @@ export class PolicyUtil {
         // recursively inject read guard conditions into the query args
         await this.injectNestedReadConditions(model, args);
 
-        if (this.logPrismaQuery && this.logger.enabled('info')) {
+        if (this.shouldLogQuery) {
             this.logger.info(`[withPolicy] \`findMany\`:\n${formatObject(args)}`);
         }
         const result: any[] = await this.db[model].findMany(args);
@@ -553,7 +553,7 @@ export class PolicyUtil {
                 }
 
                 const query = { where: filter, select };
-                if (this.logPrismaQuery && this.logger.enabled('info')) {
+                if (this.shouldLogQuery) {
                     this.logger.info(
                         `[withPolicy] \`findMany\` for fetching pre-update entities:\n${formatObject(args)}`
                     );
@@ -761,7 +761,7 @@ export class PolicyUtil {
         await this.flattenGeneratedUniqueField(model, queryFilter);
 
         const countArgs = { where: queryFilter };
-        // if (this.logPrismaQuery && this.logger.enabled('info')) {
+        // if (this.shouldLogQuery) {
         //     this.logger.info(
         //         `[withPolicy] \`count\` for policy check without guard:\n${formatObject(countArgs)}`
         //     );
@@ -782,7 +782,7 @@ export class PolicyUtil {
 
         if (schema) {
             // we've got schemas, so have to fetch entities and validate them
-            // if (this.logPrismaQuery && this.logger.enabled('info')) {
+            // if (this.shouldLogQuery) {
             //     this.logger.info(
             //         `[withPolicy] \`findMany\` for policy check with guard:\n${formatObject(countArgs)}`
             //     );
@@ -810,7 +810,7 @@ export class PolicyUtil {
             }
         } else {
             // count entities with policy injected and see if any of them are filtered out
-            // if (this.logPrismaQuery && this.logger.enabled('info')) {
+            // if (this.shouldLogQuery) {
             //     this.logger.info(
             //         `[withPolicy] \`count\` for policy check with guard:\n${formatObject(guardedQuery)}`
             //     );
@@ -897,5 +897,9 @@ export class PolicyUtil {
             result[idField.name] = entityData[idField.name];
         }
         return result;
+    }
+
+    private get shouldLogQuery() {
+        return this.logPrismaQuery && this.logger.enabled('info');
     }
 }

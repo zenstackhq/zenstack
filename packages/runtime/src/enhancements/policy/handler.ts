@@ -109,7 +109,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // use a transaction to wrap the write so it can be reverted if the created
         // entity fails access policies
         const result: any = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) => {
-            if (this.logPrismaQuery && this.logger.enabled('info')) {
+            if (this.shouldLogQuery) {
                 this.logger.info(`[withPolicy] \`create\`: ${formatObject(writeArgs)}`);
             }
             return dbOps.create(writeArgs);
@@ -138,7 +138,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // use a transaction to wrap the write so it can be reverted if any created
         // entity fails access policies
         const result = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) => {
-            if (this.logPrismaQuery && this.logger.enabled('info')) {
+            if (this.shouldLogQuery) {
                 this.logger.info(`[withPolicy] \`createMany\`: ${formatObject(writeArgs)}`);
             }
             return dbOps.createMany(writeArgs, skipDuplicates);
@@ -166,7 +166,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // use a transaction to wrap the write so it can be reverted if any nested
         // create fails access policies
         const result: any = await this.utils.processWrite(this.model, 'update', args, (dbOps, writeArgs) => {
-            if (this.logPrismaQuery && this.logger.enabled('info')) {
+            if (this.shouldLogQuery) {
                 this.logger.info(`[withPolicy] \`update\`: ${formatObject(writeArgs)}`);
             }
             return dbOps.update(writeArgs);
@@ -194,7 +194,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // use a transaction to wrap the write so it can be reverted if any nested
         // create fails access policies
         const result = await this.utils.processWrite(this.model, 'updateMany', args, (dbOps, writeArgs) => {
-            if (this.logPrismaQuery && this.logger.enabled('info')) {
+            if (this.shouldLogQuery) {
                 this.logger.info(`[withPolicy] \`updateMany\`: ${formatObject(writeArgs)}`);
             }
             return dbOps.updateMany(writeArgs);
@@ -226,7 +226,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // use a transaction to wrap the write so it can be reverted if any nested
         // create fails access policies
         const result: any = await this.utils.processWrite(this.model, 'upsert', args, (dbOps, writeArgs) => {
-            if (this.logPrismaQuery && this.logger.enabled('info')) {
+            if (this.shouldLogQuery) {
                 this.logger.info(`[withPolicy] \`upsert\`: ${formatObject(writeArgs)}`);
             }
             return dbOps.upsert(writeArgs);
@@ -264,7 +264,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         // conduct the deletion
-        if (this.logPrismaQuery && this.logger.enabled('info')) {
+        if (this.shouldLogQuery) {
             this.logger.info(`[withPolicy] \`delete\`:\n${formatObject(args)}`);
         }
         await this.modelClient.delete(args);
@@ -289,7 +289,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.utils.injectAuthGuard(args, this.model, 'delete');
 
         // conduct the deletion
-        if (this.logPrismaQuery && this.logger.enabled('info')) {
+        if (this.shouldLogQuery) {
             this.logger.info(`[withPolicy] \`deleteMany\`:\n${formatObject(args)}`);
         }
         return this.modelClient.deleteMany(args);
@@ -305,7 +305,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // inject policy conditions
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
-        if (this.logPrismaQuery && this.logger.enabled('info')) {
+        if (this.shouldLogQuery) {
             this.logger.info(`[withPolicy] \`aggregate\`:\n${formatObject(args)}`);
         }
         return this.modelClient.aggregate(args);
@@ -321,7 +321,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // inject policy conditions
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
-        if (this.logPrismaQuery && this.logger.enabled('info')) {
+        if (this.shouldLogQuery) {
             this.logger.info(`[withPolicy] \`groupBy\`:\n${formatObject(args)}`);
         }
         return this.modelClient.groupBy(args);
@@ -334,7 +334,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = args ?? {};
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
-        if (this.logPrismaQuery && this.logger.enabled('info')) {
+        if (this.shouldLogQuery) {
             this.logger.info(`[withPolicy] \`count\`:\n${formatObject(args)}`);
         }
         return this.modelClient.count(args);
@@ -367,5 +367,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw this.utils.unknownError('write unexpected resulted in multiple readback entities');
         }
         return result[0];
+    }
+
+    private get shouldLogQuery() {
+        return this.logPrismaQuery && this.logger.enabled('info');
     }
 }
