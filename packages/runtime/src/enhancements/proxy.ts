@@ -238,13 +238,16 @@ function createHandlerProxy<T extends PrismaProxyHandler>(handler: T): T {
             // eslint-disable-next-line @typescript-eslint/ban-types
             const origMethod = prop as Function;
             return async function (...args: any[]) {
-                const _err = new Error(ERROR_MARKER);
+                // proxying async functions results in messed-up error stack trace,
+                // create an error to capture the current stack
+                const capture = new Error(ERROR_MARKER);
                 try {
                     return await origMethod.apply(handler, args);
                 } catch (err) {
-                    if (_err.stack && err instanceof Error) {
+                    if (capture.stack && err instanceof Error) {
+                        // save the original stack and replace it with a clean one
                         (err as any).internalStack = err.stack;
-                        err.stack = cleanCallStack(_err.stack, propKey.toString(), err.message);
+                        err.stack = cleanCallStack(capture.stack, propKey.toString(), err.message);
                     }
                     throw err;
                 }
