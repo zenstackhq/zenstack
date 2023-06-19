@@ -295,7 +295,7 @@ function generateQueryHook(
         .addBody()
         .addStatements([
             'const { endpoint } = useContext(RequestHandlerContext);',
-            `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/findMany\`, args, options);`,
+            `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, options);`,
         ]);
 }
 
