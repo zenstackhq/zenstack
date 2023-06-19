@@ -69,6 +69,8 @@ function getDefaultPolicy(): PolicyDef {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('.zenstack/policy').default;
     } catch {
-        throw new Error('Policy definition cannot be loaded from default location');
+        throw new Error(
+            'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
+        );
     }
 }

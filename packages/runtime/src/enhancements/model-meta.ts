@@ -9,7 +9,7 @@ export function getDefaultModelMeta(): ModelMeta {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('.zenstack/model-meta').default;
     } catch {
-        throw new Error('Model meta cannot be loaded');
+        throw new Error('Model meta cannot be loaded. Please make sure "zenstack generate" has been run.');
     }
 }
 
