@@ -59,10 +59,12 @@ export function mergeBaseModel(model: Model) {
             const dataModel = decl as DataModel;
 
             dataModel.fields = dataModel.superTypes
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .flatMap((superType) => updateContainer(superType.ref!.fields, dataModel))
                 .concat(dataModel.fields);
 
             dataModel.attributes = dataModel.superTypes
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .flatMap((superType) => updateContainer(superType.ref!.attributes, dataModel))
                 .concat(dataModel.attributes);
         });
