@@ -1505,7 +1505,7 @@ class RequestHandler {
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
             if (err.code === 'P2004') {
-                return this.makeError('forbidden');
+                return this.makeError('forbidden', undefined, 403, err.meta?.reason as string);
             } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');
             } else {
@@ -1530,7 +1530,7 @@ class RequestHandler {
         }
     }
 
-    private makeError(code: keyof typeof this.errors, detail?: string, status?: number) {
+    private makeError(code: keyof typeof this.errors, detail?: string, status?: number, reason?: string) {
         return {
             status: status ?? this.errors[code].status,
             body: {
@@ -1540,6 +1540,7 @@ class RequestHandler {
                         code: paramCase(code),
                         title: this.errors[code].title,
                         detail: detail || this.errors[code].detail,
+                        reason,
                     },
                 ],
             },
