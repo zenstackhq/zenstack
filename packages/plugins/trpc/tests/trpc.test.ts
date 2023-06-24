@@ -180,4 +180,59 @@ model Post {
         expect(content).not.toContain('create:');
         expect(content).not.toContain('aggregate:');
     });
+
+    const BLOG_BASE_SCHEMA = `
+        model User {
+            id String @id
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique
+            posts Post[]
+        }
+        
+        model Post {
+            id String @id
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            title String
+            author User? @relation(fields: [authorId], references: [id])
+            authorId String?
+        }
+                `;
+
+    it('generate client helper react-query', async () => {
+        await loadSchema(
+            `
+            plugin trpc {
+                provider = '${process.cwd()}/dist'
+                output = '$projectRoot/trpc'
+                generateClientHelpers = 'react'
+            }
+
+            ${BLOG_BASE_SCHEMA}
+            `,
+            true,
+            false,
+            [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/react-query'],
+            true
+        );
+    });
+
+    it('generate client helper next', async () => {
+        await loadSchema(
+            `
+            plugin trpc {
+                provider = '${process.cwd()}/dist'
+                output = '$projectRoot/trpc'
+                generateClientHelpers = 'next'
+            }
+
+            ${BLOG_BASE_SCHEMA}
+            `,
+            true,
+            false,
+            [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/next'],
+            true
+        );
+    });
 });
