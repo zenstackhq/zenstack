@@ -164,4 +164,31 @@ describe('GitHub issues regression', () => {
         const r = await db.user.findFirst({ select: { _count: { select: { posts: true } } } });
         expect(r).toMatchObject({ _count: { posts: 2 } });
     });
+
+    it('issue 509', async () => {
+        await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                email String @unique
+                name String?
+                posts Post[]
+            }
+              
+            model Post {
+                id Int @id @default(autoincrement())
+                title String
+                content String?
+                published Boolean @default(false)
+                author User? @relation(fields: [authorId], references: [id])
+                authorId Int?
+              
+                deleted Boolean @default(false) @omit
+              
+                @@allow('all', true)
+                @@deny('read', deleted)
+            }
+            `
+        );
+    });
 });

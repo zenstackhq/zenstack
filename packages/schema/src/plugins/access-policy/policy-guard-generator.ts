@@ -360,7 +360,7 @@ export default class PolicyGenerator {
         }
 
         const hasFieldAccess = [...denies, ...allows].some((rule) =>
-            streamAllContents(rule).some(
+            [rule, ...streamAllContents(rule)].some(
                 (child) =>
                     // this.???
                     isThisExpr(child) ||
