@@ -9,7 +9,7 @@
     "dependencies": {
         "@prisma/client": "^4.0.0",
         "@zenstackhq/runtime": "file:<root>/packages/runtime/dist",
-        "@zenstackhq/react": "file:<root>/packages/plugins/react/dist",
+        "@zenstackhq/swr": "file:<root>/packages/plugins/swr/dist",
         "@zenstackhq/trpc": "file:<root>/packages/plugins/trpc/dist",
         "@zenstackhq/openapi": "file:<root>/packages/plugins/openapi/dist",
         "prisma": "^4.0.0",

@@ -17,8 +17,8 @@ plugin policy {
     output = '.zenstack'
 }
 
-plugin react {
-    provider = '@zenstackhq/react'
+plugin swr {
+    provider = '@zenstackhq/swr'
     output = 'lib/hooks'
 }
 

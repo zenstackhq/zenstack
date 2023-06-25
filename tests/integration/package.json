@@ -18,7 +18,7 @@
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
         "@zenstackhq/next": "workspace:*",
-        "@zenstackhq/react": "workspace:*",
+        "@zenstackhq/swr": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/trpc": "workspace:*",
         "eslint": "^8.30.0",

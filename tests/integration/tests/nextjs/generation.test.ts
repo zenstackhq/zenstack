@@ -3,7 +3,7 @@ import fs from 'fs';
 import fse from 'fs-extra';
 import path from 'path';
 
-describe('React Hooks Generation Tests', () => {
+describe('SWR Hooks Generation Tests', () => {
     let origDir: string;
 
     beforeAll(() => {
