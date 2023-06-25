@@ -9,15 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^4.7.0",
     "@types/node": "18.11.18",
     "@types/react": "18.0.27",
     "@types/react-dom": "18.0.10",
+    "@zenstackhq/runtime": "../../../../../../packages/runtime/dist",
     "next": "13.1.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "4.9.4",
-    "@prisma/client": "^4.7.0",
-    "@zenstackhq/runtime": "../../../../../../packages/runtime/dist"
+    "swr": "^2.2.0",
+    "typescript": "4.9.4"
   },
   "devDependencies": {
     "prisma": "^4.7.0"
