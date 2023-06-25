@@ -40,7 +40,7 @@ describe('Parsing Tests', () => {
         expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(LiteralExpr);
     });
 
-    it('enum', async () => {
+    it('enum simple', async () => {
         const content = `
             enum UserRole {
                 USER
@@ -62,6 +62,39 @@ describe('Parsing Tests', () => {
 
         const attrVal = model.fields[1].attributes[0].args[0] as AttributeArg;
         expect((attrVal.value as ReferenceExpr).target.ref?.name).toBe('USER');
+    });
+
+    it('enum dup name resolve', async () => {
+        const content = `
+            datasource db {
+                provider = "postgresql"
+                url      = env("DATABASE_URL")
+            }
+            
+            enum FirstEnum {
+                E1 // used in both ENUMs
+                E2
+            }
+            
+            enum SecondEnum  {
+                E1 // used in both ENUMs
+                E3
+                E4
+            }
+            
+            model M {
+                id Int @id
+                first  SecondEnum @default(E1)
+                second FirstEnum @default(E1)
+            }        
+            `;
+
+        const doc = await loadModel(content);
+        const firstEnum = doc.declarations.find((d) => d.name === 'FirstEnum');
+        const secondEnum = doc.declarations.find((d) => d.name === 'SecondEnum');
+        const m = doc.declarations.find((d) => d.name === 'M') as DataModel;
+        expect(m.fields[1].attributes[0].args[0].value.$resolvedType?.decl).toBe(secondEnum);
+        expect(m.fields[2].attributes[0].args[0].value.$resolvedType?.decl).toBe(firstEnum);
     });
 
     it('model field types', async () => {

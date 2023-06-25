@@ -6,6 +6,7 @@ import {
     DataModel,
     DataModelField,
     DataModelFieldType,
+    Enum,
     EnumField,
     Expression,
     FunctionDecl,
@@ -16,6 +17,7 @@ import {
     isDataModel,
     isDataModelField,
     isDataModelFieldType,
+    isEnum,
     isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
@@ -162,6 +164,10 @@ export class ZModelLinker extends DefaultLinker {
 
             case DataModel:
                 this.resolveDataModel(node as DataModel, document, extraScopes);
+                break;
+
+            case DataModelField:
+                this.resolveDataModelField(node as DataModelField, document, extraScopes);
                 break;
 
             default:
@@ -449,6 +455,49 @@ export class ZModelLinker extends DefaultLinker {
         }
 
         return this.resolveDefault(node, document, extraScopes);
+    }
+
+    private resolveDataModelField(
+        node: DataModelField,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        // Field declaration may contain enum references, and enum fields are pushed to the global
+        // scope, so if there're enums with fields with the same name, an arbitrary one will be
+        // used as resolution target. The correct behavior is to resolve to the enum that's used
+        // as the declaration type of the field:
+        //
+        // enum FirstEnum {
+        //     E1
+        //     E2
+        // }
+
+        // enum SecondEnum  {
+        //     E1
+        //     E3
+        //     E4
+        // }
+
+        // model M {
+        //     id Int @id
+        //     first  SecondEnum @default(E1) <- should resolve to SecondEnum
+        //     second FirstEnum @default(E1) <- should resolve to FirstEnum
+        // }
+        //
+
+        // make sure type is resolved first
+        this.resolve(node.type, document, extraScopes);
+
+        let scopes = extraScopes;
+
+        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
+        if (node.type.reference?.ref && isEnum(node.type.reference.ref)) {
+            const contextEnum = node.type.reference.ref as Enum;
+            const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
+            scopes = [enumScope, ...scopes];
+        }
+
+        this.resolveDefault(node, document, scopes);
     }
 
     private resolveDefault(node: AstNode, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
