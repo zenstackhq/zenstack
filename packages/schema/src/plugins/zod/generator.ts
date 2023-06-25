@@ -39,7 +39,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     await generateEnumSchemas(
         prismaClientDmmf.schema.enumTypes.prisma,
         prismaClientDmmf.schema.enumTypes.model ?? [],
-        project
+        project,
+        model
     );
 
     const dataSource = model.declarations.find((d): d is DataSource => isDataSource(d));
@@ -57,8 +58,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
 
-    await generateObjectSchemas(inputObjectTypes, project, output);
-    await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project);
+    await generateObjectSchemas(inputObjectTypes, project, output, model);
+    await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project, model);
 
     const shouldCompile = options.compile !== false;
     if (!shouldCompile || options.preserveTsFiles === true) {
@@ -82,7 +83,8 @@ async function handleGeneratorOutputValue(output: string) {
 async function generateEnumSchemas(
     prismaSchemaEnum: DMMF.SchemaEnum[],
     modelSchemaEnum: DMMF.SchemaEnum[],
-    project: Project
+    project: Project,
+    zmodel: Model
 ) {
     const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
     const enumNames = enumTypes.map((enumItem) => enumItem.name);
@@ -90,16 +92,22 @@ async function generateEnumSchemas(
     const transformer = new Transformer({
         enumTypes,
         project,
+        zmodel,
     });
     await transformer.generateEnumSchemas();
 }
 
-async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], project: Project, output: string) {
+async function generateObjectSchemas(
+    inputObjectTypes: DMMF.InputType[],
+    project: Project,
+    output: string,
+    zmodel: Model
+) {
     const moduleNames: string[] = [];
     for (let i = 0; i < inputObjectTypes.length; i += 1) {
         const fields = inputObjectTypes[i]?.fields;
         const name = inputObjectTypes[i]?.name;
-        const transformer = new Transformer({ name, fields, project });
+        const transformer = new Transformer({ name, fields, project, zmodel });
         const moduleName = transformer.generateObjectSchema();
         moduleNames.push(moduleName);
     }
@@ -114,13 +122,15 @@ async function generateModelSchemas(
     models: DMMF.Model[],
     modelOperations: DMMF.ModelMapping[],
     aggregateOperationSupport: AggregateOperationSupport,
-    project: Project
+    project: Project,
+    zmodel: Model
 ) {
     const transformer = new Transformer({
         models,
         modelOperations,
         aggregateOperationSupport,
         project,
+        zmodel,
     });
     await transformer.generateModelSchemas();
 }

@@ -1,3 +1,5 @@
+/// <reference types="@types/jest" />
+
 import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Policy plugin tests', () => {

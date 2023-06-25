@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
-import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
+import { Model } from '@zenstackhq/language/ast';
+import { AUXILIARY_FIELDS, getPrismaClientImportSpec } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import indentString from '@zenstackhq/sdk/utils';
-import { upperCaseFirst } from 'upper-case-first';
 import path from 'path';
 import { Project } from 'ts-morph';
+import { upperCaseFirst } from 'upper-case-first';
 import { AggregateOperationSupport, TransformerParams } from './types';
 
 export default class Transformer {
@@ -22,9 +23,8 @@ export default class Transformer {
     static provider: string;
     private static outputPath = './generated';
     private hasJson = false;
-    private static prismaClientOutputPath = '@prisma/client';
-    private static isCustomPrismaClientOutputPath = false;
     private project: Project;
+    private zmodel: Model;
 
     constructor(params: TransformerParams) {
         this.name = params.name ?? '';
@@ -34,6 +34,7 @@ export default class Transformer {
         this.aggregateOperationSupport = params.aggregateOperationSupport ?? {};
         this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
+        this.zmodel = params.zmodel;
     }
 
     static setOutputPath(outPath: string) {
@@ -42,11 +43,6 @@ export default class Transformer {
 
     static getOutputPath() {
         return this.outputPath;
-    }
-
-    static setPrismaClientOutputPath(prismaClientCustomPath: string) {
-        this.prismaClientOutputPath = prismaClientCustomPath;
-        this.isCustomPrismaClientOutputPath = prismaClientCustomPath !== '@prisma/client';
     }
 
     async generateEnumSchemas() {
@@ -270,27 +266,10 @@ export default class Transformer {
     }
 
     generateImportPrismaStatement() {
-        let prismaClientImportPath: string;
-        if (Transformer.isCustomPrismaClientOutputPath) {
-            /**
-             * If a custom location was designated for the prisma client, we need to figure out the
-             * relative path from {outputPath}/objects to {prismaClientCustomPath}
-             */
-            const fromPath = path.join(Transformer.outputPath, 'objects');
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const toPath = Transformer.prismaClientOutputPath!;
-            const relativePathFromOutputToPrismaClient = path
-                .relative(fromPath, toPath)
-                .split(path.sep)
-                .join(path.posix.sep);
-            prismaClientImportPath = relativePathFromOutputToPrismaClient;
-        } else {
-            /**
-             * If the default output path for prisma client (@prisma/client) is being used, we can import from it directly
-             * without having to resolve a relative path
-             */
-            prismaClientImportPath = Transformer.prismaClientOutputPath;
-        }
+        const prismaClientImportPath = getPrismaClientImportSpec(
+            this.zmodel,
+            path.resolve(Transformer.outputPath, './objects')
+        );
         return `import type { Prisma } from '${prismaClientImportPath}';\n\n`;
     }
 

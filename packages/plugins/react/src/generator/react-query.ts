@@ -1,5 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
-import { PluginOptions, createProject, getDataModels, saveProject } from '@zenstackhq/sdk';
+import { PluginOptions, createProject, getDataModels, getPrismaClientImportSpec, saveProject } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { requireOption, resolvePath } from '@zenstackhq/sdk/utils';
 import { paramCase } from 'change-case';
@@ -147,14 +147,18 @@ function generateMutationHook(
 
 function generateModelHooks(project: Project, outDir: string, model: DataModel, mapping: DMMF.ModelMapping) {
     const fileName = paramCase(model.name);
-    const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
+
+    const hooksFile = path.resolve(outDir, `${fileName}.ts`);
+    const sf = project.createSourceFile(hooksFile, undefined, { overwrite: true });
 
     sf.addStatements('/* eslint-disable */');
+
+    const prismaImport = getPrismaClientImportSpec(model.$container, path.dirname(hooksFile));
 
     sf.addImportDeclaration({
         namedImports: ['Prisma', model.name],
         isTypeOnly: true,
-        moduleSpecifier: '@prisma/client',
+        moduleSpecifier: prismaImport,
     });
     sf.addStatements([
         `import { useContext } from 'react';`,

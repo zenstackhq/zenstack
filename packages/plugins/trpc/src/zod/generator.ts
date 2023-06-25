@@ -26,7 +26,11 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma;
     const models: DMMF.Model[] = prismaClientDmmf.datamodel.models;
 
-    await generateEnumSchemas(prismaClientDmmf.schema.enumTypes.prisma, prismaClientDmmf.schema.enumTypes.model ?? []);
+    await generateEnumSchemas(
+        prismaClientDmmf.schema.enumTypes.prisma,
+        prismaClientDmmf.schema.enumTypes.model ?? [],
+        model
+    );
 
     const dataSource = model.declarations.find((d): d is DataSource => isDataSource(d));
 
@@ -43,8 +47,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
 
-    await generateObjectSchemas(inputObjectTypes, output);
-    await generateModelSchemas(models, modelOperations, aggregateOperationSupport);
+    await generateObjectSchemas(inputObjectTypes, output, model);
+    await generateModelSchemas(models, modelOperations, aggregateOperationSupport, model);
 }
 
 async function handleGeneratorOutputValue(output: string) {
@@ -56,22 +60,27 @@ async function handleGeneratorOutputValue(output: string) {
     Transformer.setOutputPath(output);
 }
 
-async function generateEnumSchemas(prismaSchemaEnum: DMMF.SchemaEnum[], modelSchemaEnum: DMMF.SchemaEnum[]) {
+async function generateEnumSchemas(
+    prismaSchemaEnum: DMMF.SchemaEnum[],
+    modelSchemaEnum: DMMF.SchemaEnum[],
+    zmodel: Model
+) {
     const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
     const enumNames = enumTypes.map((enumItem) => enumItem.name);
     Transformer.enumNames = enumNames ?? [];
     const transformer = new Transformer({
         enumTypes,
+        zmodel,
     });
     await transformer.generateEnumSchemas();
 }
 
-async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], output: string) {
+async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], output: string, zmodel: Model) {
     const moduleNames: string[] = [];
     for (let i = 0; i < inputObjectTypes.length; i += 1) {
         const fields = inputObjectTypes[i]?.fields;
         const name = inputObjectTypes[i]?.name;
-        const transformer = new Transformer({ name, fields });
+        const transformer = new Transformer({ name, fields, zmodel });
         const moduleName = await transformer.generateObjectSchema();
         moduleNames.push(moduleName);
     }
@@ -84,12 +93,14 @@ async function generateObjectSchemas(inputObjectTypes: DMMF.InputType[], output:
 async function generateModelSchemas(
     models: DMMF.Model[],
     modelOperations: DMMF.ModelMapping[],
-    aggregateOperationSupport: AggregateOperationSupport
+    aggregateOperationSupport: AggregateOperationSupport,
+    zmodel: Model
 ) {
     const transformer = new Transformer({
         models,
         modelOperations,
         aggregateOperationSupport,
+        zmodel,
     });
     await transformer.generateModelSchemas();
 }

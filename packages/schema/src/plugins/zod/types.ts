@@ -1,4 +1,5 @@
 import { DMMF as PrismaDMMF } from '@prisma/generator-helper';
+import { Model } from '@zenstackhq/language/ast';
 import { Project } from 'ts-morph';
 
 export type TransformerParams = {
@@ -11,6 +12,7 @@ export type TransformerParams = {
     isDefaultPrismaClientOutput?: boolean;
     prismaClientOutputPath?: string;
     project: Project;
+    zmodel: Model;
 };
 
 export type AggregateOperationSupport = {
