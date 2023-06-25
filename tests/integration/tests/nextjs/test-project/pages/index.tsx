@@ -1,8 +1,7 @@
-import { usePost } from '../lib/hooks';
+import { useFindManyPost } from '../lib/hooks';
 
 export default function Home() {
-    const { findMany } = usePost();
-    const { data: posts } = findMany();
+    const { data: posts } = useFindManyPost();
     return (
         <div>
             {posts?.map((post) => (
