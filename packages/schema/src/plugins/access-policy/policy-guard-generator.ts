@@ -21,6 +21,7 @@ import {
     emitProject,
     getDataModels,
     getLiteral,
+    getPrismaClientImportSpec,
     GUARD_FIELD_NAME,
     PluginError,
     PluginOptions,
@@ -63,10 +64,11 @@ export default class PolicyGenerator {
         });
 
         // import enums
+        const prismaImport = getPrismaClientImportSpec(model, output);
         for (const e of model.declarations.filter((d) => isEnum(d))) {
             sf.addImportDeclaration({
                 namedImports: [{ name: e.name }],
-                moduleSpecifier: '@prisma/client',
+                moduleSpecifier: prismaImport,
             });
         }
 

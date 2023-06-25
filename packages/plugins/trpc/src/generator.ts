@@ -4,6 +4,7 @@ import {
     PluginError,
     PluginOptions,
     RUNTIME_PACKAGE,
+    getPrismaClientImportSpec,
     requireOption,
     resolvePath,
     saveProject,
@@ -53,7 +54,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
-    createAppRouter(outDir, modelOperations, hiddenModels, generateModelActions, generateClientHelpers);
+    createAppRouter(outDir, modelOperations, hiddenModels, generateModelActions, generateClientHelpers, model);
     createHelper(outDir);
 
     await saveProject(project);
@@ -64,14 +65,17 @@ function createAppRouter(
     modelOperations: DMMF.ModelMapping[],
     hiddenModels: string[],
     generateModelActions: string[] | undefined,
-    generateClientHelpers: string[] | undefined
+    generateClientHelpers: string[] | undefined,
+    zmodel: Model
 ) {
-    const appRouter = project.createSourceFile(path.resolve(outDir, 'routers', `index.ts`), undefined, {
+    const indexFile = path.resolve(outDir, 'routers', `index.ts`);
+    const appRouter = project.createSourceFile(indexFile, undefined, {
         overwrite: true,
     });
 
     appRouter.addStatements('/* eslint-disable */');
 
+    const prismaImport = getPrismaClientImportSpec(zmodel, path.dirname(indexFile));
     appRouter.addImportDeclarations([
         {
             namedImports: ['AnyRootConfig'],
@@ -79,7 +83,7 @@ function createAppRouter(
         },
         {
             namedImports: ['PrismaClient'],
-            moduleSpecifier: '@prisma/client',
+            moduleSpecifier: prismaImport,
         },
         {
             namedImports: ['createRouterFactory', 'AnyRouter'],
@@ -133,7 +137,8 @@ function createAppRouter(
                         operations,
                         outDir,
                         generateModelActions,
-                        generateClientHelpers
+                        generateClientHelpers,
+                        zmodel
                     );
 
                     appRouter.addImportDeclaration({
@@ -201,7 +206,8 @@ function generateModelCreateRouter(
     operations: Record<string, string | undefined | null>,
     outputDir: string,
     generateModelActions: string[] | undefined,
-    generateClientHelpers: string[] | undefined
+    generateClientHelpers: string[] | undefined,
+    zmodel: Model
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -219,7 +225,7 @@ function generateModelCreateRouter(
     generateRouterSchemaImports(modelRouter, model);
     generateHelperImport(modelRouter);
     if (generateClientHelpers) {
-        generateRouterTypingImports(modelRouter);
+        generateRouterTypingImports(modelRouter, zmodel);
     }
 
     const createRouterFunc = modelRouter.addFunction({

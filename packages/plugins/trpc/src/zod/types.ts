@@ -1,4 +1,5 @@
 import { DMMF as PrismaDMMF } from '@prisma/generator-helper';
+import { Model } from '@zenstackhq/sdk/ast';
 
 export type TransformerParams = {
     enumTypes?: PrismaDMMF.SchemaEnum[];
@@ -9,6 +10,7 @@ export type TransformerParams = {
     aggregateOperationSupport?: AggregateOperationSupport;
     isDefaultPrismaClientOutput?: boolean;
     prismaClientOutputPath?: string;
+    zmodel: Model;
 };
 
 export type AggregateOperationSupport = {

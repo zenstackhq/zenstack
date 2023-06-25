@@ -1,9 +1,10 @@
 import { DMMF } from '@prisma/generator-helper';
-import { PluginError } from '@zenstackhq/sdk';
+import { PluginError, getPrismaClientImportSpec } from '@zenstackhq/sdk';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { uncapitalizeFirstLetter } from './utils/uncapitalizeFirstLetter';
+import { Model } from '@zenstackhq/sdk/ast';
 
 export function generateProcedure(
     writer: CodeBlockWriter,
@@ -226,9 +227,11 @@ export function generateRouterTyping(writer: CodeBlockWriter, opType: string, mo
     });
 }
 
-export function generateRouterTypingImports(sourceFile: SourceFile) {
+export function generateRouterTypingImports(sourceFile: SourceFile, model: Model) {
+    const importingDir = sourceFile.getDirectoryPath();
+    const prismaImport = getPrismaClientImportSpec(model, importingDir);
     sourceFile.addStatements([
-        `import type { Prisma } from '@prisma/client';`,
+        `import type { Prisma } from '${prismaImport}';`,
         `import type { UseTRPCMutationOptions, UseTRPCMutationResult, UseTRPCQueryOptions, UseTRPCQueryResult, UseTRPCInfiniteQueryOptions, UseTRPCInfiniteQueryResult } from '@trpc/react-query/shared';`,
         `import type { TRPCClientErrorLike } from '@trpc/client';`,
         `import type { AnyRouter } from '@trpc/server';`,

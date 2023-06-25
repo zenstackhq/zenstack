@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /// <reference types="@types/jest" />
 
-import { getWorkspaceNpmCacheFolder } from '@zenstackhq/testtools';
+import { getWorkspaceNpmCacheFolder, run } from '@zenstackhq/testtools';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
@@ -25,6 +25,22 @@ describe('CLI Plugins Tests', () => {
         fs.writeFileSync('.npmrc', `cache=${getWorkspaceNpmCacheFolder(__dirname)}`);
     }
 
+    async function initProject() {
+        fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
+        createNpmrc();
+        const program = createProgram();
+
+        // typescript
+        run('npm install -D typescript');
+        run('npx tsc --init');
+
+        // deps
+        run('npm install react swr @tanstack/react-query @trpc/server @types/react');
+
+        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
+        return program;
+    }
+
     const plugins = [
         `plugin prisma {
             provider = '@core/prisma'
@@ -44,9 +60,14 @@ describe('CLI Plugins Tests', () => {
             provider = '@core/zod'
             output = 'zod'
         }`,
-        `plugin react {
-            provider = '${path.join(__dirname, '../../../plugins/react/dist')}'
-            output = 'lib/default-hooks'
+        `plugin tanstack {
+            provider = '${path.join(__dirname, '../../../plugins/tanstack-query/dist')}'
+            output = 'lib/tanstack-query'
+            target = 'react'
+        }`,
+        `plugin swr {
+            provider = '${path.join(__dirname, '../../../plugins/swr/dist')}'
+            output = 'lib/swr'
         }`,
         `plugin trpc {
             provider = '${path.join(__dirname, '../../../plugins/trpc/dist')}'
@@ -68,17 +89,103 @@ describe('CLI Plugins Tests', () => {
         }`,
     ];
 
-    it('all plugins', async () => {
-        fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
-        createNpmrc();
-        const program = createProgram();
-        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
+    const BASE_MODEL = `
+    datasource db {
+        provider = 'postgresql'
+        url = env('DATABASE_URL')
+    }
+    
+    enum Role {
+        USER
+        ADMIN
+    }
+    
+    model User {
+        id String @id @default(cuid())
+        email String @unique @email
+        role Role @default(USER)
+        posts Post[]
+        @@allow('create', true)
+        @@allow('all', auth() == this || role == ADMIN)
+    }
+    
+    model Post {
+        id String @id @default(cuid())
+        createdAt DateTime @default(now())
+        published Boolean @default(false)
+        author User? @relation(fields: [authorId], references: [id])
+        authorId String?
+    
+        @@allow('read', auth() != null && published)
+        @@allow('all', auth() == author)
+    }
+    `;
 
-        let schemaContent = fs.readFileSync('schema.zmodel', 'utf-8');
+    it('all plugins standard prisma client output path', async () => {
+        const program = await initProject();
+
+        let schemaContent = `
+generator client {
+    provider = "prisma-client-js"
+}
+
+${BASE_MODEL}
+        `;
         for (const plugin of plugins) {
             schemaContent += `\n${plugin}`;
         }
         fs.writeFileSync('schema.zmodel', schemaContent);
+
         await program.parseAsync(['generate', '--no-dependency-check'], { from: 'user' });
+
+        // compile
+        run('npx tsc');
+    });
+
+    it('all plugins custom prisma client output path', async () => {
+        const program = await initProject();
+
+        let schemaContent = `
+generator client {
+    provider = "prisma-client-js"
+    output = "foo/bar"
+}
+
+${BASE_MODEL}
+`;
+        for (const plugin of plugins) {
+            schemaContent += `\n${plugin}`;
+        }
+        fs.writeFileSync('schema.zmodel', schemaContent);
+
+        await program.parseAsync(['generate', '--no-dependency-check'], { from: 'user' });
+
+        // compile
+        run('npx tsc');
+    });
+
+    it('all plugins absolute prisma client output path', async () => {
+        const { name: output } = tmp.dirSync({ unsafeCleanup: true });
+        console.log('Output prisma client to:', output);
+
+        const program = await initProject();
+
+        let schemaContent = `
+generator client {
+    provider = "prisma-client-js"
+    output = "${output}"
+}
+
+${BASE_MODEL}
+`;
+        for (const plugin of plugins) {
+            schemaContent += `\n${plugin}`;
+        }
+        fs.writeFileSync('schema.zmodel', schemaContent);
+
+        await program.parseAsync(['generate', '--no-dependency-check'], { from: 'user' });
+
+        // compile
+        run('npx tsc');
     });
 });
