@@ -1,9 +1,11 @@
 <div align="center">
     <a href="https://zenstack.dev">
-    <img src="https://user-images.githubusercontent.com/104139426/214809937-4ed30485-a683-4fea-b737-928c48e86fd7.png" style="max-width: 512px; width: 100%; height: auto; margin-bottom: 1rem;"
-    >
+    <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/zenstackhq/zenstack-docs/main/static/img/logo-dark.png">
+    <img src="https://raw.githubusercontent.com/zenstackhq/zenstack-docs/main/static/img/logo.png" height="128">
+    </picture>
     </a>
-    <div></div>
+    <h1>ZenStack</h1>
     <a href="https://www.npmjs.com/package/zenstack">
         <img src="https://img.shields.io/npm/v/zenstack">
     </a>
