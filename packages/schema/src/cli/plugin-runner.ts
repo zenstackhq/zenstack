@@ -106,9 +106,10 @@ export class PluginRunner {
         }
 
         console.log(colors.green(colors.bold('\n👻 All plugins completed successfully!')));
-        console.log(`Don't forget to restart your dev server to let the changes take effect.`);
 
         warnings.forEach((w) => console.warn(colors.yellow(w)));
+
+        console.log(`Don't forget to restart your dev server to let the changes take effect.`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
