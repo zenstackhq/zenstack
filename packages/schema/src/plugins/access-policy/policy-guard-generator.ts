@@ -41,7 +41,6 @@ import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 import { isFutureExpr } from './utils';
-import { ZodSchemaGenerator } from './zod-schema-generator';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -79,10 +78,6 @@ export default class PolicyGenerator {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
 
-        const zodGenerator = new ZodSchemaGenerator();
-
-        let fieldSchemaGenerated = false;
-
         sf.addVariableStatement({
             declarationKind: VariableDeclarationKind.Const,
             declarations: [
@@ -106,25 +101,11 @@ export default class PolicyGenerator {
                                     writer.write(',');
                                 }
                             });
-
-                            writer.writeLine(',');
-
-                            writer.write('schema:');
-                            if (zodGenerator.generate(writer, models)) {
-                                fieldSchemaGenerated = true;
-                            }
                         });
                     },
                 },
             ],
         });
-
-        if (fieldSchemaGenerated) {
-            sf.addImportDeclaration({
-                namedImports: [{ name: 'z' }],
-                moduleSpecifier: 'zod',
-            });
-        }
 
         sf.addStatements('export default policy');
 

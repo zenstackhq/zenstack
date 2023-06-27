@@ -4,6 +4,7 @@ import { createId } from '@paralleldrive/cuid2';
 import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
+import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../../constants';
 import {
@@ -17,7 +18,7 @@ import {
 import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
 import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
-import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
+import { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
     enumerate,
     formatObject,
@@ -40,6 +41,7 @@ export class PolicyUtil {
         private readonly db: DbClientContract,
         private readonly modelMeta: ModelMeta,
         private readonly policy: PolicyDef,
+        private readonly zodSchemas: ZodSchemas | undefined,
         private readonly user?: AuthUser,
         private readonly logPrismaQuery?: boolean
     ) {
@@ -129,7 +131,7 @@ export class PolicyUtil {
     }
 
     private async getModelSchema(model: string) {
-        return this.policy.schema[lowerCaseFirst(model)];
+        return this.zodSchemas?.[`${upperCaseFirst(model)}Schema`];
     }
 
     /**

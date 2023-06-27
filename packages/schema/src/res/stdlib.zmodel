@@ -354,57 +354,65 @@ attribute @omit()
 /**
  * Validates length of a string field.
  */
-attribute @length(_ min: Int?, _ max: Int?) @@@targetField([StringField])
+attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value matches a regex.
  */
-attribute @regex(_ regex: String) @@@targetField([StringField])
+attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value starts with the given text.
  */
-attribute @startsWith(_ text: String) @@@targetField([StringField])
+attribute @startsWith(_ text: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value ends with the given text.
  */
-attribute @endsWith(_ text: String) @@@targetField([StringField])
+attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid email address.
  */
-attribute @email() @@@targetField([StringField])
+attribute @email(_ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid ISO datetime.
  */
-attribute @datetime() @@@targetField([StringField])
+attribute @datetime(_ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid url.
  */
-attribute @url() @@@targetField([StringField])
+attribute @url(_ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a number field is greater than the given value.
  */
-attribute @gt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @gt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
 /**
  * Validates a number field is greater than or equal to the given value.
  */
-attribute @gte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @gte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
 /**
  * Validates a number field is less than the given value.
  */
-attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @lt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
 /**
  * Validates a number field is less than or equal to the given value.
  */
-attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
+
+attribute @@validate(_ value: Boolean, _ message: String?)
+
+function email(field: String): Boolean {
+}
+
+function length(field: String, min: Int?, max: Int?): Boolean {
+}
 
 /**
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.

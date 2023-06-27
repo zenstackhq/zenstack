@@ -1,10 +1,11 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
 import { DbClientContract } from '@zenstackhq/runtime';
-import { ModelZodSchema, getModelZodSchemas } from '@zenstackhq/runtime/zod';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToString, unmarshalFromString } from '../utils';
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
+import * as defaultZodSchemas from '@zenstackhq/runtime/zod';
 
 /**
  * SvelteKit request handler options
@@ -27,11 +28,14 @@ export interface HandlerOptions extends AdapterBaseOptions {
 export default function createHandler(options: HandlerOptions): Handle {
     logInfo(options.logger, `ZenStackHandler installing routes at prefix: ${options.prefix}`);
 
-    let schemas: ModelZodSchema | undefined;
+    let schemas: ZodSchemas | undefined;
     if (typeof options.zodSchemas === 'object') {
         schemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        schemas = getModelZodSchemas();
+        if (!defaultZodSchemas) {
+            throw new Error('Unable to load zod schemas from default location');
+        }
+        schemas = defaultZodSchemas;
     }
 
     const requestHanler = options.handler ?? RPCApiHandler();

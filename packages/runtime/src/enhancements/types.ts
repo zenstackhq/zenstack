@@ -34,7 +34,9 @@ export type PolicyDef = {
                 preValueSelect?: object;
             }
     >;
-
-    // zod schema for post-write validation
-    schema: Record<string, z.ZodSchema>;
 };
+
+/**
+ * Zod schemas for validation
+ */
+export type ZodSchemas = Record<string, z.ZodSchema>;

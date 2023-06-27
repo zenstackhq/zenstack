@@ -1,7 +1,17 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import { Dictionary } from '@prisma/internals';
-import { PluginOptions, createProject, emitProject, getLiteral, resolvePath, saveProject } from '@zenstackhq/sdk';
-import { DataSource, Model, isDataSource } from '@zenstackhq/sdk/ast';
+import {
+    AUXILIARY_FIELDS,
+    PluginOptions,
+    createProject,
+    emitProject,
+    getDataModels,
+    getLiteral,
+    isForeignKeyField,
+    resolvePath,
+    saveProject,
+} from '@zenstackhq/sdk';
+import { DataModel, DataSource, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
     addMissingInputObjectTypes,
@@ -13,6 +23,8 @@ import { Project } from 'ts-morph';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
+import { upperCaseFirst } from 'upper-case-first';
+import { makeFieldSchema } from './utils/schema-gen';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let output = options.output as string;
@@ -59,7 +71,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
 
     await generateObjectSchemas(inputObjectTypes, project, output, model);
-    await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project, model);
+    await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project, model, output);
 
     const shouldCompile = options.compile !== false;
     if (!shouldCompile || options.preserveTsFiles === true) {
@@ -123,7 +135,8 @@ async function generateModelSchemas(
     modelOperations: DMMF.ModelMapping[],
     aggregateOperationSupport: AggregateOperationSupport,
     project: Project,
-    zmodel: Model
+    zmodel: Model,
+    output: string
 ) {
     const transformer = new Transformer({
         models,
@@ -132,5 +145,63 @@ async function generateModelSchemas(
         project,
         zmodel,
     });
-    await transformer.generateModelSchemas();
+    await transformer.generateInputSchemas();
+
+    const schemaNames: string[] = [];
+    for (const dm of getDataModels(zmodel)) {
+        schemaNames.push(await generateModelSchema(dm, project, output));
+    }
+
+    project.createSourceFile(
+        path.join(output, 'index.ts'),
+        schemaNames.map((name) => `export * from './${name}'`).join('\n'),
+        { overwrite: true }
+    );
+}
+
+async function generateModelSchema(model: DataModel, project: Project, output: string) {
+    const schemaName = `${upperCaseFirst(model.name)}.schema`;
+    const sf = project.createSourceFile(path.join(output, `${schemaName}.ts`), undefined, {
+        overwrite: true,
+    });
+    sf.replaceWithText((writer) => {
+        const fields = model.fields.filter(
+            (field) =>
+                !AUXILIARY_FIELDS.includes(field.name) &&
+                // scalar fields only
+                !isDataModel(field.type.reference?.ref) &&
+                !isForeignKeyField(field)
+        );
+
+        writer.writeLine(`import { z } from 'zod';`);
+
+        // import enums
+        for (const field of fields) {
+            if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
+                const name = upperCaseFirst(field.type.reference?.ref.name);
+                writer.writeLine(`import { ${name}Schema } from './enums/${name}.schema';`);
+            }
+        }
+
+        writer.write(`export const ${upperCaseFirst(model.name)}Schema = z.object(`);
+        writer.inlineBlock(() => {
+            fields.forEach((field) => {
+                writer.writeLine(`${field.name}: ${makeFieldSchema(field, false)},`);
+            });
+        });
+        writer.writeLine(');');
+
+        writer.write(`export const ${upperCaseFirst(model.name)}CreateSchema = z.object(`);
+        writer.inlineBlock(() => {
+            fields.forEach((field) => {
+                writer.writeLine(`${field.name}: ${makeFieldSchema(field, true)},`);
+            });
+        });
+        writer.writeLine(');');
+
+        writer.write(
+            `export const ${upperCaseFirst(model.name)}UpdateSchema = ${upperCaseFirst(model.name)}Schema.partial();`
+        );
+    });
+    return schemaName;
 }

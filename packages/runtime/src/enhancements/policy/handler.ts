@@ -3,7 +3,7 @@
 import { CrudFailureReason } from '../../constants';
 import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
-import { ModelMeta, PolicyDef } from '../types';
+import { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
@@ -19,12 +19,20 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         private readonly prisma: DbClient,
         private readonly policy: PolicyDef,
         private readonly modelMeta: ModelMeta,
+        private readonly zodSchemas: ZodSchemas | undefined,
         private readonly model: string,
         private readonly user?: AuthUser,
         private readonly logPrismaQuery?: boolean
     ) {
         this.logger = new Logger(prisma);
-        this.utils = new PolicyUtil(this.prisma, this.modelMeta, this.policy, this.user, this.logPrismaQuery);
+        this.utils = new PolicyUtil(
+            this.prisma,
+            this.modelMeta,
+            this.policy,
+            this.zodSchemas,
+            this.user,
+            this.logPrismaQuery
+        );
     }
 
     private get modelClient() {

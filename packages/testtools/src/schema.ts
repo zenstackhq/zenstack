@@ -78,20 +78,20 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    output = '.zenstack'
-}
+// plugin meta {
+//     provider = '@core/model-meta'
+//     output = '.zenstack'
+// }
 
-plugin policy {
-    provider = '@core/access-policy'
-    output = '.zenstack'
-}
+// plugin policy {
+//     provider = '@core/access-policy'
+//     output = '.zenstack'
+// }
 
-plugin zod {
-    provider = '@core/zod'
-    output = '.zenstack/zod'
-}
+// plugin zod {
+//     provider = '@core/zod'
+//     output = '.zenstack/zod'
+// }
 `;
 
 export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true, logPrismaQuery = false) {
@@ -189,19 +189,37 @@ export async function loadSchema(
         run('npx tsc --project tsconfig.json');
     }
 
-    const policy = require(path.join(path.dirname(zmodelPath), '.zenstack/policy')).default;
-    const modelMeta = require(path.join(path.dirname(zmodelPath), '.zenstack/model-meta')).default;
-    const zodSchemas = require(path.join(path.dirname(zmodelPath), '.zenstack/zod'));
+    let policy: any = undefined;
+    let modelMeta: any = undefined;
+    let zodSchemas: any = undefined;
+
+    const outputPath = path.join(projectRoot, 'node_modules');
+
+    try {
+        policy = require(path.join(outputPath, '.zenstack/policy')).default;
+    } catch {
+        /* noop */
+    }
+    try {
+        modelMeta = require(path.join(outputPath, '.zenstack/model-meta')).default;
+    } catch {
+        /* noop */
+    }
+    try {
+        zodSchemas = require(path.join(outputPath, '.zenstack/zod'));
+    } catch {
+        /* noop */
+    }
 
     return {
         projectDir: projectRoot,
         prisma,
         withPolicy: (user?: AuthUser) =>
-            withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
+            withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery }),
         withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
         withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
         withPresets: (user?: AuthUser) =>
-            withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
+            withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery }),
         policy,
         modelMeta,
         zodSchemas,

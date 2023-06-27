@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
-import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
+import * as defaultZodSchemas from '@zenstackhq/runtime/zod';
 
 /**
  * Fastify plugin options
@@ -30,11 +31,14 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     const prefix = options.prefix ?? '';
     logInfo(options.logger, `ZenStackPlugin installing routes at prefix: ${prefix}`);
 
-    let schemas: ModelZodSchema | undefined;
+    let schemas: ZodSchemas | undefined;
     if (typeof options.zodSchemas === 'object') {
         schemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        schemas = getModelZodSchemas();
+        if (!defaultZodSchemas) {
+            throw new Error('Unable to load zod schemas from default location');
+        }
+        schemas = defaultZodSchemas;
     }
 
     const requestHanler = options.handler ?? RPCApiHandler();

@@ -7,6 +7,7 @@ import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
+import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
 import telemetry from '../telemetry';
 import type { Context } from '../types';
 import { getVersion } from '../utils/version-utils';
@@ -23,6 +24,8 @@ export class PluginRunner {
         const version = getVersion();
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
+        ensureDefaultOutputFolder();
+
         const plugins: Array<{
             provider: string;
             name: string;
@@ -31,7 +34,7 @@ export class PluginRunner {
         }> = [];
 
         const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
-        const prereqPlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy'];
+        const prereqPlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy', '@core/zod'];
         const allPluginProviders = prereqPlugins.concat(
             pluginDecls
                 .map((p) => this.getPluginProvider(p))

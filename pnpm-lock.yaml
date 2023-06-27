@@ -511,6 +511,9 @@ importers:
       tslib:
         specifier: ^2.4.1
         version: 2.4.1
+      upper-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
       zod:
         specifier: 3.21.1
         version: 3.21.1

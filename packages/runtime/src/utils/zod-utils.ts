@@ -1,5 +1,5 @@
 import z from 'zod';
-import { DbOperations } from './types';
+import { DbOperations } from '../types';
 
 /**
  * Mapping from model type name to zod schema for Prisma operations

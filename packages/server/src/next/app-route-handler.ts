@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 import { DbClientContract } from '@zenstackhq/runtime';
-import { ModelZodSchema, getModelZodSchemas } from '@zenstackhq/runtime/zod';
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
+import * as defaultZodSchemas from '@zenstackhq/runtime/zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { AppRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';
@@ -18,11 +19,14 @@ type Context = { params: { path: string[] } };
 export default function factory(
     options: AppRouteRequestHandlerOptions
 ): (req: NextRequest, context: Context) => Promise<NextResponse> {
-    let zodSchemas: ModelZodSchema | undefined;
+    let zodSchemas: ZodSchemas | undefined;
     if (typeof options.zodSchemas === 'object') {
         zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        zodSchemas = getModelZodSchemas();
+        if (!defaultZodSchemas) {
+            throw new Error('Unable to load zod schemas from default location');
+        }
+        zodSchemas = defaultZodSchemas;
     }
 
     const requestHandler = options.handler || RPCAPIHandler();
