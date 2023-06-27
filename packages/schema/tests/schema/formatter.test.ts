@@ -11,7 +11,7 @@ describe('ZModelFormatter', () => {
     test.skip('declaration formatting', async () => {
         await formatting({
             before: `datasource db { provider = 'postgresql' url = env('DATABASE_URL')} generator js {provider = 'prisma-client-js'}
-             plugin reactHooks {provider = '@zenstackhq/react'output = 'lib/hooks'}             
+             plugin swrHooks {provider = '@zenstackhq/swr'output = 'lib/hooks'}             
              model User {id:id String @id name String? }
              enum Role {ADMIN USER}`,
             after: `datasource db {
@@ -21,8 +21,8 @@ describe('ZModelFormatter', () => {
 generator js {
     provider = 'prisma-client-js'
 }
-plugin reactHooks {
-    provider = '@zenstackhq/react'
+plugin swrHooks {
+    provider = '@zenstackhq/swr'
     output = 'lib/hooks'
 }
 model User {
