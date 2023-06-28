@@ -52,7 +52,7 @@ describe('Zod plugin tests', () => {
         `;
 
         const { zodSchemas } = await loadSchema(model, false, false);
-        const schemas = zodSchemas!.models;
+        const schemas = zodSchemas.models;
         expect(schemas.UserSchema).toBeTruthy();
         expect(schemas.UserCreateSchema).toBeTruthy();
         expect(schemas.UserUpdateSchema).toBeTruthy();

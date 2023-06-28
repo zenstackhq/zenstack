@@ -4,7 +4,6 @@ import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
 import type { Model } from '@zenstackhq/language/ast';
 import { withOmit, withPassword, withPolicy, withPresets, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
-import { ModelMeta, PolicyDef, ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -181,9 +180,9 @@ export async function loadSchema(
         run('npx tsc --project tsconfig.json');
     }
 
-    let policy: PolicyDef | undefined = undefined;
-    let modelMeta: ModelMeta | undefined = undefined;
-    let zodSchemas: ZodSchemas | undefined = undefined;
+    let policy: any;
+    let modelMeta: any;
+    let zodSchemas: any;
 
     const outputPath = path.join(projectRoot, 'node_modules');
 
