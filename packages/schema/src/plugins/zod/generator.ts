@@ -152,16 +152,16 @@ async function generateModelSchemas(
         schemaNames.push(await generateModelSchema(dm, project, output));
     }
 
-    project.createSourceFile(
-        path.join(output, 'index.ts'),
-        schemaNames.map((name) => `export * from './${name}'`).join('\n'),
-        { overwrite: true }
-    );
+    const exports =
+        schemaNames.map((name) => `export * from './models/${name}'`).join('\n') +
+        `\nexport * as InputSchemas from './input';`;
+
+    project.createSourceFile(path.join(output, 'index.ts'), exports, { overwrite: true });
 }
 
 async function generateModelSchema(model: DataModel, project: Project, output: string) {
     const schemaName = `${upperCaseFirst(model.name)}.schema`;
-    const sf = project.createSourceFile(path.join(output, `${schemaName}.ts`), undefined, {
+    const sf = project.createSourceFile(path.join(output, 'models', `${schemaName}.ts`), undefined, {
         overwrite: true,
     });
     sf.replaceWithText((writer) => {
@@ -179,7 +179,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         for (const field of fields) {
             if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
                 const name = upperCaseFirst(field.type.reference?.ref.name);
-                writer.writeLine(`import { ${name}Schema } from './enums/${name}.schema';`);
+                writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
             }
         }
 

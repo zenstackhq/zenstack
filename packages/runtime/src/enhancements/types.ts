@@ -40,4 +40,4 @@ export type PolicyDef = {
 /**
  * Zod schemas for validation
  */
-export type ZodSchemas = Record<string, z.ZodSchema>;
+export type ZodSchemas = Record<string, z.ZodSchema> & { InputSchemas: Record<string, Record<string, z.ZodSchema>> };

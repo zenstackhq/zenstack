@@ -6,8 +6,8 @@ import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig } from '../types';
 
 export function getZodSchema(zodSchemas: ZodSchemas, model: string, operation: keyof DbOperations) {
-    const schemaKey = `${upperCaseFirst(model)}${upperCaseFirst(operation)}`;
-    return zodSchemas[schemaKey];
+    // e.g.: UserInputSchema { findUnique: [schema] }
+    return zodSchemas.InputSchemas?.[`${upperCaseFirst(model)}InputSchema`]?.[operation];
 }
 
 export function zodValidate(
