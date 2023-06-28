@@ -23,6 +23,7 @@ import {
     getLiteral,
     getPrismaClientImportSpec,
     GUARD_FIELD_NAME,
+    hasAttribute,
     PluginError,
     PluginOptions,
     resolved,
@@ -36,7 +37,7 @@ import path from 'path';
 import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
-import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
+import { getIdFields, isAuthInvocation, VALIDATION_ATTRIBUTES } from '../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
 import TypeScriptExpressionTransformer from './typescript-expression-transformer';
@@ -101,6 +102,18 @@ export default class PolicyGenerator {
                                     writer.write(',');
                                 }
                             });
+                            writer.writeLine(',');
+
+                            writer.write('validation:');
+                            writer.inlineBlock(() => {
+                                for (const model of models) {
+                                    writer.write(`${lowerCaseFirst(model.name)}:`);
+                                    writer.inlineBlock(() => {
+                                        writer.write(`hasValidation: ${this.hasValidationAttributes(model)}`);
+                                    });
+                                    writer.writeLine(',');
+                                }
+                            });
                         });
                     },
                 },
@@ -117,6 +130,10 @@ export default class PolicyGenerator {
         if (shouldCompile) {
             await emitProject(project);
         }
+    }
+
+    private hasValidationAttributes(model: DataModel) {
+        return model.fields.some((field) => VALIDATION_ATTRIBUTES.some((attr) => hasAttribute(field, attr)));
     }
 
     private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {

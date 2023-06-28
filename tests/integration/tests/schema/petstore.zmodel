@@ -8,21 +8,6 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    output = '.zenstack'
-}
-
-plugin policy {
-    provider = '@core/access-policy'
-    output = '.zenstack'
-}
-
-plugin zod {
-    provider = '@core/zod'
-    output = '.zenstack/zod'
-}
-
 model User {
     id String @id @default(cuid())
     email String @unique

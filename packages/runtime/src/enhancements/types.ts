@@ -34,6 +34,7 @@ export type PolicyDef = {
                 preValueSelect?: object;
             }
     >;
+    validation: Record<string, { hasValidation: boolean }>;
 };
 
 /**

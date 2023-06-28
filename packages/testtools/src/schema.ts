@@ -77,21 +77,6 @@ generator js {
     provider = 'prisma-client-js'
     previewFeatures = ['clientExtensions']
 }
-
-// plugin meta {
-//     provider = '@core/model-meta'
-//     output = '.zenstack'
-// }
-
-// plugin policy {
-//     provider = '@core/access-policy'
-//     output = '.zenstack'
-// }
-
-// plugin zod {
-//     provider = '@core/zod'
-//     output = '.zenstack/zod'
-// }
 `;
 
 export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true, logPrismaQuery = false) {
