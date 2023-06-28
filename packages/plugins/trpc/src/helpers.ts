@@ -239,8 +239,8 @@ export function generateRouterTypingImports(sourceFile: SourceFile, model: Model
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function generateRouterSchemaImports(sourceFile: SourceFile, name: string) {
-    sourceFile.addStatements(`import { ${name}InputSchema } from '@zenstackhq/runtime/zod/input';`);
+export function generateRouterSchemaImports(sourceFile: SourceFile, name: string, zodSchemasImport: string) {
+    sourceFile.addStatements(`import { ${name}InputSchema } from '${zodSchemasImport}/input';`);
 }
 
 export function generateHelperImport(sourceFile: SourceFile) {

@@ -54,7 +54,17 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
-    createAppRouter(outDir, modelOperations, hiddenModels, generateModelActions, generateClientHelpers, model);
+    const zodSchemasImport =
+        typeof options.zodSchemasImport === 'string' ? options.zodSchemasImport : '@zenstackhq/runtime/zod';
+    createAppRouter(
+        outDir,
+        modelOperations,
+        hiddenModels,
+        generateModelActions,
+        generateClientHelpers,
+        model,
+        zodSchemasImport
+    );
     createHelper(outDir);
 
     await saveProject(project);
@@ -66,7 +76,8 @@ function createAppRouter(
     hiddenModels: string[],
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    zmodel: Model
+    zmodel: Model,
+    zodSchemasImport: string
 ) {
     const indexFile = path.resolve(outDir, 'routers', `index.ts`);
     const appRouter = project.createSourceFile(indexFile, undefined, {
@@ -138,7 +149,8 @@ function createAppRouter(
                         outDir,
                         generateModelActions,
                         generateClientHelpers,
-                        zmodel
+                        zmodel,
+                        zodSchemasImport
                     );
 
                     appRouter.addImportDeclaration({
@@ -207,7 +219,8 @@ function generateModelCreateRouter(
     outputDir: string,
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    zmodel: Model
+    zmodel: Model,
+    zodSchemasImport: string
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -222,7 +235,7 @@ function generateModelCreateRouter(
         },
     ]);
 
-    generateRouterSchemaImports(modelRouter, model);
+    generateRouterSchemaImports(modelRouter, model, zodSchemasImport);
     generateHelperImport(modelRouter);
     if (generateClientHelpers) {
         generateRouterTypingImports(modelRouter, zmodel);
