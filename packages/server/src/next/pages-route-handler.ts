@@ -2,7 +2,6 @@
 
 import { DbClientContract } from '@zenstackhq/runtime';
 import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
-import * as defaultZodSchemas from '@zenstackhq/runtime/zod';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PagesRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';
@@ -21,10 +20,10 @@ export default function factory(
     if (typeof options.zodSchemas === 'object') {
         zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        if (!defaultZodSchemas) {
+        zodSchemas = require('@zenstackhq/runtime/zod');
+        if (!zodSchemas) {
             throw new Error('Unable to load zod schemas from default location');
         }
-        zodSchemas = defaultZodSchemas;
     }
 
     const requestHandler = options.handler || RPCAPIHandler();

@@ -5,7 +5,6 @@ import RPCAPIHandler from '../api/rpc';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
-import * as defaultZodSchemas from '@zenstackhq/runtime/zod';
 
 /**
  * Express middleware options
@@ -25,10 +24,10 @@ const factory = (options: MiddlewareOptions): Handler => {
     if (typeof options.zodSchemas === 'object') {
         zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        if (!defaultZodSchemas) {
+        zodSchemas = require('@zenstackhq/runtime/zod');
+        if (!zodSchemas) {
             throw new Error('Unable to load zod schemas from default location');
         }
-        zodSchemas = defaultZodSchemas;
     }
 
     const requestHandler = options.handler || RPCAPIHandler();

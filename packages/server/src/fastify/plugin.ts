@@ -7,7 +7,6 @@ import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
-import * as defaultZodSchemas from '@zenstackhq/runtime/zod';
 
 /**
  * Fastify plugin options
@@ -31,14 +30,14 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     const prefix = options.prefix ?? '';
     logInfo(options.logger, `ZenStackPlugin installing routes at prefix: ${prefix}`);
 
-    let schemas: ZodSchemas | undefined;
+    let zodSchemas: ZodSchemas | undefined;
     if (typeof options.zodSchemas === 'object') {
-        schemas = options.zodSchemas;
+        zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        if (!defaultZodSchemas) {
+        zodSchemas = require('@zenstackhq/runtime/zod');
+        if (!zodSchemas) {
             throw new Error('Unable to load zod schemas from default location');
         }
-        schemas = defaultZodSchemas;
     }
 
     const requestHanler = options.handler ?? RPCApiHandler();
@@ -69,7 +68,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
                 requestBody: unmarshalFromObject(request.body, useSuperJson),
                 prisma,
                 modelMeta: options.modelMeta,
-                zodSchemas: schemas,
+                zodSchemas,
                 logger: options.logger,
             });
             reply.status(response.status).send(marshalToObject(response.body, useSuperJson));
