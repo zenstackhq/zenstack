@@ -1,6 +1,6 @@
 let schemas;
 try {
-    schemas = require('.zenstack/zod/index');
+    schemas = require('.zenstack/zod/models/index');
 } catch {}
 
 module.exports = schemas && {

@@ -27,7 +27,7 @@ import {
 } from './helpers';
 import { project } from './project';
 import removeDir from './utils/removeDir';
-import { generate as PrismaZodGenerator } from './zod/generator';
+// import { generate as PrismaZodGenerator } from './zod/generator';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let outDir = requireOption<string>(options, 'output');
@@ -45,7 +45,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     await fs.promises.mkdir(outDir, { recursive: true });
     await removeDir(outDir, true);
 
-    await PrismaZodGenerator(model, options, dmmf);
+    // await PrismaZodGenerator(model, options, dmmf);
 
     const prismaClientDmmf = dmmf;
 

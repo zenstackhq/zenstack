@@ -7,7 +7,7 @@ import { LoggerConfig } from '../types';
 
 export function getZodSchema(zodSchemas: ZodSchemas, model: string, operation: keyof DbOperations) {
     // e.g.: UserInputSchema { findUnique: [schema] }
-    return zodSchemas.InputSchemas?.[`${upperCaseFirst(model)}InputSchema`]?.[operation];
+    return zodSchemas.input?.[`${upperCaseFirst(model)}InputSchema`]?.[operation];
 }
 
 export function zodValidate(

@@ -83,8 +83,8 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
-        "@prisma/generator-helper": "^4.0.0",
-        "@prisma/internals": "^4.0.0",
+        "@prisma/generator-helper": "4.10.0",
+        "@prisma/internals": "4.10.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",

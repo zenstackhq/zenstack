@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
@@ -51,28 +52,27 @@ describe('Zod plugin tests', () => {
         `;
 
         const { zodSchemas } = await loadSchema(model, false, false);
-        expect(zodSchemas.UserSchema).toBeTruthy();
-        expect(zodSchemas.UserCreateSchema).toBeTruthy();
-        expect(zodSchemas.UserUpdateSchema).toBeTruthy();
+        const schemas = zodSchemas!.models;
+        expect(schemas.UserSchema).toBeTruthy();
+        expect(schemas.UserCreateSchema).toBeTruthy();
+        expect(schemas.UserUpdateSchema).toBeTruthy();
 
         // create
-        expect(zodSchemas.UserCreateSchema.safeParse({ email: 'abc' }).success).toBeFalsy();
-        expect(zodSchemas.UserCreateSchema.safeParse({ role: 'Cook' }).success).toBeFalsy();
-        expect(zodSchemas.UserCreateSchema.safeParse({ email: 'abc@def.com' }).success).toBeFalsy();
-        expect(zodSchemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev' }).success).toBeTruthy();
-        expect(
-            zodSchemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success
-        ).toBeTruthy();
+        expect(schemas.UserCreateSchema.safeParse({ email: 'abc' }).success).toBeFalsy();
+        expect(schemas.UserCreateSchema.safeParse({ role: 'Cook' }).success).toBeFalsy();
+        expect(schemas.UserCreateSchema.safeParse({ email: 'abc@def.com' }).success).toBeFalsy();
+        expect(schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev' }).success).toBeTruthy();
+        expect(schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeTruthy();
 
         // update
-        expect(zodSchemas.UserUpdateSchema.safeParse({}).success).toBeTruthy();
-        expect(zodSchemas.UserUpdateSchema.safeParse({ email: 'abc@def.com' }).success).toBeFalsy();
-        expect(zodSchemas.UserUpdateSchema.safeParse({ email: 'def@zenstack.dev' }).success).toBeTruthy();
+        expect(schemas.UserUpdateSchema.safeParse({}).success).toBeTruthy();
+        expect(schemas.UserUpdateSchema.safeParse({ email: 'abc@def.com' }).success).toBeFalsy();
+        expect(schemas.UserUpdateSchema.safeParse({ email: 'def@zenstack.dev' }).success).toBeTruthy();
 
         // full schema
-        expect(zodSchemas.UserSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeFalsy();
+        expect(schemas.UserSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeFalsy();
         expect(
-            zodSchemas.UserSchema.safeParse({
+            schemas.UserSchema.safeParse({
                 id: 1,
                 email: 'abc@zenstack.dev',
                 role: 'ADMIN',
@@ -81,11 +81,11 @@ describe('Zod plugin tests', () => {
             }).success
         ).toBeTruthy();
 
-        expect(zodSchemas.PostSchema).toBeTruthy();
-        expect(zodSchemas.PostCreateSchema).toBeTruthy();
-        expect(zodSchemas.PostUpdateSchema).toBeTruthy();
-        expect(zodSchemas.PostCreateSchema.safeParse({ title: 'abc' }).success).toBeFalsy();
-        expect(zodSchemas.PostCreateSchema.safeParse({ title: 'abcabcabcabc' }).success).toBeFalsy();
-        expect(zodSchemas.PostCreateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
+        expect(schemas.PostSchema).toBeTruthy();
+        expect(schemas.PostCreateSchema).toBeTruthy();
+        expect(schemas.PostUpdateSchema).toBeTruthy();
+        expect(schemas.PostCreateSchema.safeParse({ title: 'abc' }).success).toBeFalsy();
+        expect(schemas.PostCreateSchema.safeParse({ title: 'abcabcabcabc' }).success).toBeFalsy();
+        expect(schemas.PostCreateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
     });
 });

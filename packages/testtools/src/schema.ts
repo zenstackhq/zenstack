@@ -4,12 +4,14 @@ import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
 import type { Model } from '@zenstackhq/language/ast';
 import { withOmit, withPassword, withPolicy, withPresets, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
+import { ModelMeta, PolicyDef, ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
+import json from 'json5';
 
 /** 
  * Use it to represent multiple files in a single string like this
@@ -171,12 +173,17 @@ export async function loadSchema(
     if (compile) {
         console.log('Compiling...');
         run('npx tsc --init');
+        const tsconfig = json.parse(fs.readFileSync(path.join(projectRoot, './tsconfig.json'), 'utf-8'));
+        tsconfig.compilerOptions.paths = {
+            '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
+        };
+        fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
     }
 
-    let policy: any = undefined;
-    let modelMeta: any = undefined;
-    let zodSchemas: any = undefined;
+    let policy: PolicyDef | undefined = undefined;
+    let modelMeta: ModelMeta | undefined = undefined;
+    let zodSchemas: ZodSchemas | undefined = undefined;
 
     const outputPath = path.join(projectRoot, 'node_modules');
 

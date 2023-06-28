@@ -135,7 +135,7 @@ export class PolicyUtil {
     }
 
     private getModelSchema(model: string) {
-        return this.hasValidation(model) && this.zodSchemas?.[`${upperCaseFirst(model)}Schema`];
+        return this.hasValidation(model) && this.zodSchemas?.models?.[`${upperCaseFirst(model)}Schema`];
     }
 
     /**

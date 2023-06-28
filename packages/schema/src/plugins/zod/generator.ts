@@ -152,11 +152,21 @@ async function generateModelSchemas(
         schemaNames.push(await generateModelSchema(dm, project, output));
     }
 
-    const exports =
-        schemaNames.map((name) => `export * from './models/${name}'`).join('\n') +
-        `\nexport * as InputSchemas from './input';`;
+    project.createSourceFile(
+        path.join(output, 'models', 'index.ts'),
+        schemaNames.map((name) => `export * from './${name}';`).join('\n'),
+        { overwrite: true }
+    );
 
-    project.createSourceFile(path.join(output, 'index.ts'), exports, { overwrite: true });
+    project.createSourceFile(
+        path.join(output, 'index.ts'),
+        `export * as input from './input';
+    export * as models from './models';
+    export * as objects from './objects';
+    export * as enums from './enums';
+    `,
+        { overwrite: true }
+    );
 }
 
 async function generateModelSchema(model: DataModel, project: Project, output: string) {
