@@ -375,7 +375,7 @@ export default class PolicyGenerator {
             // none of the rules reference model fields, we can compile down to a plain boolean
             // function in this case (so we can skip doing SQL queries when validating)
             func.addStatements((writer) => {
-                const transformer = new TypeScriptExpressionTransformer(kind === 'postUpdate');
+                const transformer = new TypeScriptExpressionTransformer({ isPostGuard: kind === 'postUpdate' });
                 denies.forEach((rule) => {
                     writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
                 });

@@ -351,15 +351,14 @@ attribute @password(saltLength: Int?, salt: String?) @@@targetField([StringField
  */
 attribute @omit()
 
+//////////////////////////////////////////////
+// Begin validation attributes and functions
+//////////////////////////////////////////////
+
 /**
  * Validates length of a string field.
  */
 attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField])
-
-/**
- * Validates a string field value matches a regex.
- */
-attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value starts with the given text.
@@ -370,6 +369,16 @@ attribute @startsWith(_ text: String, _ message: String?) @@@targetField([String
  * Validates a string field value ends with the given text.
  */
 attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField])
+
+/**
+ * Validates a string field value contains the given text.
+ */
+attribute @contains(_ text: String, _ message: String?) @@@targetField([StringField])
+
+/**
+ * Validates a string field value matches a regex.
+ */
+attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid email address.
@@ -406,13 +415,45 @@ attribute @lt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatF
  */
 attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
+/**
+ * Validates the entity with a complex condition.
+ */
 attribute @@validate(_ value: Boolean, _ message: String?)
 
+/**
+ * Validates length of a string field.
+ */
+function length(field: String, min: Int?, max: Int?): Boolean {
+}
+
+
+/**
+ * Validates a string field value matches a regex.
+ */
+function regex(field: String, regex: String): Boolean {
+}
+
+/**
+ * Validates a string field value is a valid email address.
+ */
 function email(field: String): Boolean {
 }
 
-function length(field: String, min: Int?, max: Int?): Boolean {
+/**
+ * Validates a string field value is a valid ISO datetime.
+ */
+function datetime(field: String): Boolean {
 }
+
+/**
+ * Validates a string field value is a valid url.
+ */
+function url(field: String): Boolean {
+}
+
+//////////////////////////////////////////////
+// End validation attributes and functions
+//////////////////////////////////////////////
 
 /**
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.

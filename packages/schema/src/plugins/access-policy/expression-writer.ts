@@ -51,7 +51,7 @@ export class ExpressionWriter {
      * @param isPostGuard indicates if we're writing for post-update conditions
      */
     constructor(private readonly writer: CodeBlockWriter, private readonly isPostGuard = false) {
-        this.plainExprBuilder = new TypeScriptExpressionTransformer(this.isPostGuard);
+        this.plainExprBuilder = new TypeScriptExpressionTransformer({ isPostGuard: this.isPostGuard });
     }
 
     /**

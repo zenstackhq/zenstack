@@ -7,6 +7,7 @@ import {
     emitProject,
     getDataModels,
     getLiteral,
+    hasAttribute,
     isForeignKeyField,
     resolvePath,
     saveProject,
@@ -24,7 +25,7 @@ import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
 import { upperCaseFirst } from 'upper-case-first';
-import { makeFieldSchema } from './utils/schema-gen';
+import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let output = options.output as string;
@@ -175,6 +176,8 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         overwrite: true,
     });
     sf.replaceWithText((writer) => {
+        writer.writeLine('/* eslint-disable */');
+
         const fields = model.fields.filter(
             (field) =>
                 !AUXILIARY_FIELDS.includes(field.name) &&
@@ -193,25 +196,69 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
             }
         }
 
-        writer.write(`export const ${upperCaseFirst(model.name)}Schema = z.object(`);
+        // create base schema
+        writer.write(`const baseSchema = z.object(`);
         writer.inlineBlock(() => {
             fields.forEach((field) => {
-                writer.writeLine(`${field.name}: ${makeFieldSchema(field, false)},`);
+                writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
             });
         });
         writer.writeLine(');');
 
-        writer.write(`export const ${upperCaseFirst(model.name)}CreateSchema = z.object(`);
-        writer.inlineBlock(() => {
-            fields.forEach((field) => {
-                writer.writeLine(`${field.name}: ${makeFieldSchema(field, true)},`);
-            });
-        });
-        writer.writeLine(');');
+        const refinements = makeValidationRefinements(model);
+        if (refinements.length > 0) {
+            console.log('Generated refinements:', refinements);
+            writer.writeLine(`function refine(schema: z.ZodType) { return schema${refinements.join('\n')}; }`);
+        }
 
-        writer.write(
-            `export const ${upperCaseFirst(model.name)}UpdateSchema = ${upperCaseFirst(model.name)}Schema.partial();`
+        // model schema
+        let modelSchema = 'baseSchema';
+        const fieldsToOmit = fields.filter((field) => hasAttribute(field, '@omit'));
+        if (fieldsToOmit.length > 0) {
+            modelSchema = makeOmit(
+                modelSchema,
+                fieldsToOmit.map((f) => f.name)
+            );
+        }
+        if (refinements.length > 0) {
+            modelSchema = `refine(${modelSchema})`;
+        }
+        writer.writeLine(`export const ${upperCaseFirst(model.name)}Schema = ${modelSchema};`);
+
+        // create schema
+        let createSchema = 'baseSchema';
+        const fieldsWithDefault = fields.filter(
+            (field) => hasAttribute(field, '@default') || hasAttribute(field, '@updatedAt') || field.type.array
         );
+        if (fieldsWithDefault.length > 0) {
+            createSchema = makePartial(
+                createSchema,
+                fieldsWithDefault.map((f) => f.name)
+            );
+        }
+        if (refinements.length > 0) {
+            createSchema = `refine(${createSchema})`;
+        }
+        writer.writeLine(`export const ${upperCaseFirst(model.name)}CreateSchema = ${createSchema};`);
+
+        // update schema
+        let updateSchema = 'baseSchema.partial()';
+        if (refinements.length > 0) {
+            updateSchema = `refine(${updateSchema})`;
+        }
+        writer.writeLine(`export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};`);
     });
     return schemaName;
+}
+
+function makePartial(schema: string, fields: string[]) {
+    return `${schema}.partial({
+        ${fields.map((f) => `${f}: true`).join(', ')},
+    })`;
+}
+
+function makeOmit(schema: string, fields: string[]) {
+    return `${schema}.omit({
+        ${fields.map((f) => `${f}: true`).join(', ')},
+    })`;
 }

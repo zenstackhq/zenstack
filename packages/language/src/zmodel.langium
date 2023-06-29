@@ -73,9 +73,6 @@ FieldInitializer:
 InvocationExpr:
     function=[FunctionDecl] '(' ArgumentList? ')';
 
-UnaryExpr:
-    operator=('!') operand=Expression;
-
 // binary operator precedence follow Javascript's rules:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
 
@@ -84,6 +81,9 @@ MemberAccessExpr infers Expression:
         {infer MemberAccessExpr.operand=current}
         ('.' member=[DataModelField])
     )*;
+
+UnaryExpr:
+    operator=('!') operand=MemberAccessExpr; // {infer UnaryExpr.operand=current};
 
 CollectionPredicateExpr infers Expression:
     MemberAccessExpr (
@@ -141,10 +141,10 @@ PrimaryExpr infers Expression:
     ThisExpr |
     NullExpr |
     LiteralExpr |
+    UnaryExpr |
     InvocationExpr |
     ArrayExpr|
     ReferenceExpr |
-    UnaryExpr |
     ObjectExpr;
 
 fragment ArgumentList:

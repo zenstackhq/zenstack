@@ -1,84 +1,93 @@
-import { getLiteral, hasAttribute } from '@zenstackhq/sdk';
-import { DataModelField, DataModelFieldAttribute, isEnum } from '@zenstackhq/sdk/ast';
+import { getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
+import { DataModel, DataModelField, DataModelFieldAttribute, isEnum } from '@zenstackhq/sdk/ast';
+import TypeScriptExpressionTransformer from '../../../plugins/access-policy/typescript-expression-transformer';
 import { upperCaseFirst } from 'upper-case-first';
 
-export function makeFieldSchema(field: DataModelField, optionalIfDefault = false) {
+export function makeFieldSchema(field: DataModelField) {
     let schema = makeZodSchema(field);
 
-    // translate field constraint attributes to zod schema
-    const hasDefault = hasAttribute(field, '@default') || hasAttribute(field, '@updatedAt');
-
     for (const attr of field.attributes) {
+        const message = getAttrLiteralArg<string>(attr, 'message');
+        const messageArg = message ? `, { message: ${JSON.stringify(message)} }` : '';
+        const messageArgFirst = message ? `{ message: ${JSON.stringify(message)} }` : '';
+
         switch (attr.decl.ref?.name) {
             case '@length': {
                 const min = getAttrLiteralArg<number>(attr, 'min');
                 if (min) {
-                    schema += `.min(${min})`;
+                    schema += `.min(${min}${messageArg})`;
                 }
                 const max = getAttrLiteralArg<number>(attr, 'max');
                 if (max) {
-                    schema += `.max(${max})`;
+                    schema += `.max(${max}${messageArg})`;
+                }
+                break;
+            }
+            case '@contains': {
+                const expr = getAttrLiteralArg<string>(attr, 'text');
+                if (expr) {
+                    schema += `.includes(${JSON.stringify(expr)}${messageArg})`;
                 }
                 break;
             }
             case '@regex': {
                 const expr = getAttrLiteralArg<string>(attr, 'regex');
                 if (expr) {
-                    schema += `.regex(/${expr}/)`;
+                    schema += `.regex(new RegExp(${JSON.stringify(expr)})${messageArg})`;
                 }
                 break;
             }
             case '@startsWith': {
                 const text = getAttrLiteralArg<string>(attr, 'text');
                 if (text) {
-                    schema += `.startsWith(${JSON.stringify(text)})`;
+                    schema += `.startsWith(${JSON.stringify(text)}${messageArg})`;
                 }
                 break;
             }
             case '@endsWith': {
                 const text = getAttrLiteralArg<string>(attr, 'text');
                 if (text) {
-                    schema += `.endsWith(${JSON.stringify(text)})`;
+                    schema += `.endsWith(${JSON.stringify(text)}${messageArg})`;
                 }
                 break;
             }
             case '@email': {
-                schema += `.email()`;
+                schema += `.email(${messageArgFirst})`;
                 break;
             }
             case '@url': {
-                schema += `.url()`;
+                schema += `.url(${messageArgFirst})`;
                 break;
             }
             case '@datetime': {
-                schema += `.datetime({ offset: true })`;
+                schema += `.datetime({ offset: true${message ? ', message: ' + JSON.stringify(message) : ''} })`;
                 break;
             }
             case '@gt': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.gt(${value})`;
+                    schema += `.gt(${value}${messageArg})`;
                 }
                 break;
             }
             case '@gte': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.gte(${value})`;
+                    schema += `.gte(${value}${messageArg})`;
                 }
                 break;
             }
             case '@lt': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.lt(${value})`;
+                    schema += `.lt(${value}${messageArg})`;
                 }
                 break;
             }
             case '@lte': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.lte(${value})`;
+                    schema += `.lte(${value}${messageArg})`;
                 }
                 break;
             }
@@ -87,8 +96,6 @@ export function makeFieldSchema(field: DataModelField, optionalIfDefault = false
 
     if (field.type.optional) {
         schema += '.nullish()';
-    } else if (optionalIfDefault && hasDefault) {
-        schema += '.optional()';
     }
 
     return schema;
@@ -132,6 +139,26 @@ function makeZodSchema(field: DataModelField) {
     }
 
     return schema;
+}
+
+export function makeValidationRefinements(model: DataModel) {
+    const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === '@@validate');
+    const refinements = attrs
+        .map((attr) => {
+            const valueArg = getAttributeArg(attr, 'value');
+            if (!valueArg) {
+                return undefined;
+            }
+
+            const messageArg = getAttributeArgLiteral<string>(attr, 'message');
+            const message = messageArg ? `, { message: ${JSON.stringify(messageArg)} }` : '';
+
+            const expr = new TypeScriptExpressionTransformer({ fieldReferenceContext: 'value' }).transform(valueArg);
+            return `.refine((value: any) => ${expr}${message})`;
+        })
+        .filter((r) => !!r);
+
+    return refinements;
 }
 
 function getAttrLiteralArg<T extends string | number>(attr: DataModelFieldAttribute, paramName: string) {

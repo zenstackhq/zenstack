@@ -14,7 +14,6 @@ import {
 } from '@zenstackhq/language/ast';
 import { getLiteral, PluginError } from '@zenstackhq/sdk';
 import { name } from '.';
-import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { isFutureExpr } from './utils';
 import { isFromStdlib } from '../../language-server/utils';
@@ -28,7 +27,7 @@ export default class TypeScriptExpressionTransformer {
      *
      * @param isPostGuard indicates if we're writing for post-update conditions
      */
-    constructor(private readonly isPostGuard = false) {}
+    constructor(private readonly options?: { isPostGuard?: boolean; fieldReferenceContext?: string }) {}
 
     /**
      * Transforms the given expression to a TypeScript expression.
@@ -83,7 +82,7 @@ export default class TypeScriptExpressionTransformer {
         if (isThisExpr(expr.operand)) {
             return expr.member.ref.name;
         } else if (isFutureExpr(expr.operand)) {
-            if (!this.isPostGuard) {
+            if (this.options?.isPostGuard !== true) {
                 throw new PluginError(name, `future() is only supported in postUpdate rules`);
             }
             return expr.member.ref.name;
@@ -109,12 +108,29 @@ export default class TypeScriptExpressionTransformer {
         const funcName = expr.function.ref.name;
         const isStdFunc = isFromStdlib(expr.function.ref);
 
-        if (isStdFunc && FILTER_OPERATOR_FUNCTIONS.includes(funcName)) {
+        if (isStdFunc && funcName === 'now') {
+            return `(new Date())`;
+        }
+
+        if (isStdFunc) {
             // arguments are already type-checked
 
             const arg0 = this.transform(expr.args[0].value, false);
             let result: string;
             switch (funcName) {
+                case 'length': {
+                    const min = getLiteral<number>(expr.args[1]?.value);
+                    const max = getLiteral<number>(expr.args[2]?.value);
+                    if (min === undefined) {
+                        result = `(${arg0}?.length > 0)`;
+                    } else if (max === undefined) {
+                        result = `(${arg0}?.length >= ${min})`;
+                    } else {
+                        result = `(${arg0}?.length >= ${min} && ${arg0}?.length <= ${max})`;
+                    }
+                    break;
+                }
+
                 case 'contains': {
                     const caseInsensitive = getLiteral<boolean>(expr.args[2]?.value) === true;
                     if (caseInsensitive) {
@@ -129,7 +145,7 @@ export default class TypeScriptExpressionTransformer {
                 }
 
                 case 'search':
-                    throw new PluginError(name, '"search" function must be used against a field');
+                    throw new PluginError(name, '"search" function cannot be used in this context');
 
                 case 'startsWith':
                     result = `${arg0}?.startsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
@@ -138,6 +154,19 @@ export default class TypeScriptExpressionTransformer {
                 case 'endsWith':
                     result = `${arg0}?.endsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
                     break;
+
+                case 'regex': {
+                    const pattern = getLiteral<string>(expr.args[1]?.value);
+                    return `new RegExp(${JSON.stringify(pattern)}).test(${arg0})`;
+                }
+
+                case 'datetime': {
+                    return `z.string().datetime({ offset: true }).safeParse(${arg0}).success`;
+                }
+
+                case 'url': {
+                    return `z.string().url().safeParse(${arg0}).success`;
+                }
 
                 case 'has':
                     result = `${arg0}?.includes(${this.transform(expr.args[1].value, normalizeUndefined)})`;
@@ -158,18 +187,17 @@ export default class TypeScriptExpressionTransformer {
                     break;
 
                 case 'isEmpty':
-                    result = `${arg0}?.length === 0`;
+                    result = `(!${arg0} || ${arg0}?.length === 0)`;
                     break;
+
+                case 'email':
+                    return `z.string().email().safeParse(${arg0}).success`;
 
                 default:
                     throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
             }
 
             return `(${result} ?? false)`;
-        }
-
-        if (isStdFunc && funcName === 'now') {
-            return `(new Date())`;
         }
 
         throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
@@ -183,13 +211,15 @@ export default class TypeScriptExpressionTransformer {
         if (isEnumField(expr.target.ref)) {
             return `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
         } else {
-            if (this.isPostGuard) {
+            if (this.options?.isPostGuard) {
                 // if we're processing post-update, any direct field access should be
                 // treated as access to context.preValue, which is entity's value before
                 // the update
                 return `context.preValue?.${expr.target.ref.name}`;
             } else {
-                return expr.target.ref.name;
+                return this.options?.fieldReferenceContext
+                    ? `${this.options.fieldReferenceContext}.${expr.target.ref.name}`
+                    : expr.target.ref.name;
             }
         }
     }
