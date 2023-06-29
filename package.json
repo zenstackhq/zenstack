@@ -7,8 +7,7 @@
         "test": "pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
-        "publish-preview": "pnpm --filter \"./packages/**\" -r publish --registry http://localhost:4873",
-        "unpublish-preview": "./scripts/unpublish-preview.sh"
+        "publish-preview": "pnpm --filter \"./packages/**\" -r publish --registry http://localhost:4873"
     },
     "keywords": [],
     "author": "",

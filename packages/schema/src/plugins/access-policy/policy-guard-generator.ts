@@ -38,9 +38,11 @@ import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-mor
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields, isAuthInvocation, VALIDATION_ATTRIBUTES } from '../../utils/ast-utils';
+import TypeScriptExpressionTransformer, {
+    TypeScriptExpressionTransformerError,
+} from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
-import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 import { isFutureExpr } from './utils';
 
 /**
@@ -133,7 +135,10 @@ export default class PolicyGenerator {
     }
 
     private hasValidationAttributes(model: DataModel) {
-        return model.fields.some((field) => VALIDATION_ATTRIBUTES.some((attr) => hasAttribute(field, attr)));
+        return (
+            hasAttribute(model, '@@validate') ||
+            model.fields.some((field) => VALIDATION_ATTRIBUTES.some((attr) => hasAttribute(field, attr)))
+        );
     }
 
     private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {
@@ -376,12 +381,20 @@ export default class PolicyGenerator {
             // function in this case (so we can skip doing SQL queries when validating)
             func.addStatements((writer) => {
                 const transformer = new TypeScriptExpressionTransformer({ isPostGuard: kind === 'postUpdate' });
-                denies.forEach((rule) => {
-                    writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
-                });
-                allows.forEach((rule) => {
-                    writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
-                });
+                try {
+                    denies.forEach((rule) => {
+                        writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
+                    });
+                    allows.forEach((rule) => {
+                        writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
+                    });
+                } catch (err) {
+                    if (err instanceof TypeScriptExpressionTransformerError) {
+                        throw new PluginError(name, err.message);
+                    } else {
+                        throw err;
+                    }
+                }
                 writer.write('return false;');
             });
         } else {

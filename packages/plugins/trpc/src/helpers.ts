@@ -17,12 +17,14 @@ export function generateProcedure(
     const prismaMethod = opType.replace('One', '');
 
     if (procType === 'query') {
+        // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
         ${opType}: procedure.input(${typeName}).query(({ctx, input}) => checkRead(db(ctx).${lowerCaseFirst(
             modelName
         )}.${prismaMethod}(input as any))),
     `);
     } else if (procType === 'mutation') {
+        // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
         ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => checkMutate(db(ctx).${lowerCaseFirst(
             modelName

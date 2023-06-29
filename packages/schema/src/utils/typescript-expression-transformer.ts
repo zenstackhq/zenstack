@@ -12,11 +12,16 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { getLiteral, PluginError } from '@zenstackhq/sdk';
-import { name } from '.';
-import { isAuthInvocation } from '../../utils/ast-utils';
-import { isFutureExpr } from './utils';
-import { isFromStdlib } from '../../language-server/utils';
+import { getLiteral } from '@zenstackhq/sdk';
+import { isFromStdlib } from '../language-server/utils';
+import { isFutureExpr } from '../plugins/access-policy/utils';
+import { isAuthInvocation } from './ast-utils';
+
+export class TypeScriptExpressionTransformerError extends Error {
+    constructor(message: string) {
+        super(message);
+    }
+}
 
 /**
  * Transforms ZModel expression to plain TypeScript expression.
@@ -64,7 +69,7 @@ export default class TypeScriptExpressionTransformer {
                 return this.binary(expr as BinaryExpr, normalizeUndefined);
 
             default:
-                throw new PluginError(name, `Unsupported expression type: ${expr.$type}`);
+                throw new TypeScriptExpressionTransformerError(`Unsupported expression type: ${expr.$type}`);
         }
     }
 
@@ -76,14 +81,14 @@ export default class TypeScriptExpressionTransformer {
 
     private memberAccess(expr: MemberAccessExpr, normalizeUndefined: boolean) {
         if (!expr.member.ref) {
-            throw new PluginError(name, `Unresolved MemberAccessExpr`);
+            throw new TypeScriptExpressionTransformerError(`Unresolved MemberAccessExpr`);
         }
 
         if (isThisExpr(expr.operand)) {
             return expr.member.ref.name;
         } else if (isFutureExpr(expr.operand)) {
             if (this.options?.isPostGuard !== true) {
-                throw new PluginError(name, `future() is only supported in postUpdate rules`);
+                throw new TypeScriptExpressionTransformerError(`future() is only supported in postUpdate rules`);
             }
             return expr.member.ref.name;
         } else {
@@ -98,7 +103,7 @@ export default class TypeScriptExpressionTransformer {
 
     private invocation(expr: InvocationExpr, normalizeUndefined: boolean) {
         if (!expr.function.ref) {
-            throw new PluginError(name, `Unresolved InvocationExpr`);
+            throw new TypeScriptExpressionTransformerError(`Unresolved InvocationExpr`);
         }
 
         if (isAuthInvocation(expr)) {
@@ -145,7 +150,7 @@ export default class TypeScriptExpressionTransformer {
                 }
 
                 case 'search':
-                    throw new PluginError(name, '"search" function cannot be used in this context');
+                    throw new TypeScriptExpressionTransformerError('"search" function cannot be used in this context');
 
                 case 'startsWith':
                     result = `${arg0}?.startsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
@@ -194,18 +199,22 @@ export default class TypeScriptExpressionTransformer {
                     return `z.string().email().safeParse(${arg0}).success`;
 
                 default:
-                    throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
+                    throw new TypeScriptExpressionTransformerError(
+                        `Function invocation is not supported: ${expr.function.ref?.name}`
+                    );
             }
 
             return `(${result} ?? false)`;
         }
 
-        throw new PluginError(name, `Function invocation is not supported: ${expr.function.ref?.name}`);
+        throw new TypeScriptExpressionTransformerError(
+            `Function invocation is not supported: ${expr.function.ref?.name}`
+        );
     }
 
     private reference(expr: ReferenceExpr) {
         if (!expr.target.ref) {
-            throw new PluginError(name, `Unresolved ReferenceExpr`);
+            throw new TypeScriptExpressionTransformerError(`Unresolved ReferenceExpr`);
         }
 
         if (isEnumField(expr.target.ref)) {

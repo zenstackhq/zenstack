@@ -423,7 +423,7 @@ attribute @@validate(_ value: Boolean, _ message: String?)
 /**
  * Validates length of a string field.
  */
-function length(field: String, min: Int?, max: Int?): Boolean {
+function length(field: String, min: Int, max: Int?): Boolean {
 }
 
 

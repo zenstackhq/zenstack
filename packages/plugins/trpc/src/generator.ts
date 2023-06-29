@@ -27,7 +27,6 @@ import {
 } from './helpers';
 import { project } from './project';
 import removeDir from './utils/removeDir';
-// import { generate as PrismaZodGenerator } from './zod/generator';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let outDir = requireOption<string>(options, 'output');
@@ -42,10 +41,12 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         throw new PluginError(name, `Option "generateClientHelpers" only support values "react" and "next"`);
     }
 
+    if (options.zodSchemasImport && typeof options.zodSchemasImport !== 'string') {
+        throw new PluginError(name, `Option "zodSchemasImport" must be a string`);
+    }
+
     await fs.promises.mkdir(outDir, { recursive: true });
     await removeDir(outDir, true);
-
-    // await PrismaZodGenerator(model, options, dmmf);
 
     const prismaClientDmmf = dmmf;
 
@@ -54,8 +55,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const hiddenModels: string[] = [];
     resolveModelsComments(models, hiddenModels);
 
-    const zodSchemasImport =
-        typeof options.zodSchemasImport === 'string' ? options.zodSchemasImport : '@zenstackhq/runtime/zod';
+    const zodSchemasImport = (options.zodSchemasImport as string) ?? '@zenstackhq/runtime/zod';
     createAppRouter(
         outDir,
         modelOperations,

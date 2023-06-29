@@ -17,8 +17,8 @@ import {
 } from '../../types';
 import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
-import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
-import { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
+import { NestedWriteVisitor, type VisitorContext } from '../nested-write-vistor';
+import type { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
     enumerate,
     formatObject,

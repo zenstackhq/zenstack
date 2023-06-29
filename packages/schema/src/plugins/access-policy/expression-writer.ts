@@ -19,7 +19,9 @@ import { CodeBlockWriter } from 'ts-morph';
 import { name } from '.';
 import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
-import TypeScriptExpressionTransformer from './typescript-expression-transformer';
+import TypeScriptExpressionTransformer, {
+    TypeScriptExpressionTransformerError,
+} from '../../utils/typescript-expression-transformer';
 import { isFutureExpr } from './utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
@@ -228,7 +230,15 @@ export class ExpressionWriter {
     }
 
     private plain(expr: Expression) {
-        this.writer.write(this.plainExprBuilder.transform(expr));
+        try {
+            this.writer.write(this.plainExprBuilder.transform(expr));
+        } catch (err) {
+            if (err instanceof TypeScriptExpressionTransformerError) {
+                throw new PluginError(name, err.message);
+            } else {
+                throw err;
+            }
+        }
     }
 
     private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
@@ -273,13 +283,21 @@ export class ExpressionWriter {
 
         // guard member access of `auth()` with null check
         if (this.isAuthOrAuthMemberAccess(operand) && !fieldAccess.$resolvedType?.nullable) {
-            this.writer.write(
-                `(${this.plainExprBuilder.transform(operand)} == null) ? { ${GUARD_FIELD_NAME}: ${
-                    // auth().x != user.x is true when auth().x is null and user is not nullable
-                    // other expressions are evaluated to false when null is involved
-                    operator === '!=' ? 'true' : 'false'
-                } } : `
-            );
+            try {
+                this.writer.write(
+                    `(${this.plainExprBuilder.transform(operand)} == null) ? { ${GUARD_FIELD_NAME}: ${
+                        // auth().x != user.x is true when auth().x is null and user is not nullable
+                        // other expressions are evaluated to false when null is involved
+                        operator === '!=' ? 'true' : 'false'
+                    } } : `
+                );
+            } catch (err) {
+                if (err instanceof TypeScriptExpressionTransformerError) {
+                    throw new PluginError(name, err.message);
+                } else {
+                    throw err;
+                }
+            }
         }
 
         this.block(

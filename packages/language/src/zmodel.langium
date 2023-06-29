@@ -83,7 +83,7 @@ MemberAccessExpr infers Expression:
     )*;
 
 UnaryExpr:
-    operator=('!') operand=MemberAccessExpr; // {infer UnaryExpr.operand=current};
+    operator=('!') operand=MemberAccessExpr;
 
 CollectionPredicateExpr infers Expression:
     MemberAccessExpr (

@@ -3,7 +3,7 @@
 import { CrudFailureReason } from '../../constants';
 import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
-import { ModelMeta, PolicyDef, ZodSchemas } from '../types';
+import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';

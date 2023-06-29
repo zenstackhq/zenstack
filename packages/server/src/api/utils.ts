@@ -1,6 +1,6 @@
 import { DbOperations } from '@zenstackhq/runtime';
 import { AUXILIARY_FIELDS } from '@zenstackhq/runtime/constants';
-import { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig } from '../types';

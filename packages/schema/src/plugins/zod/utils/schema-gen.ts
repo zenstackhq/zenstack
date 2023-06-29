@@ -1,7 +1,10 @@
-import { getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
+import { PluginError, getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldAttribute, isEnum } from '@zenstackhq/sdk/ast';
-import TypeScriptExpressionTransformer from '../../../plugins/access-policy/typescript-expression-transformer';
 import { upperCaseFirst } from 'upper-case-first';
+import { name } from '..';
+import TypeScriptExpressionTransformer, {
+    TypeScriptExpressionTransformerError,
+} from '../../../utils/typescript-expression-transformer';
 
 export function makeFieldSchema(field: DataModelField) {
     let schema = makeZodSchema(field);
@@ -153,8 +156,18 @@ export function makeValidationRefinements(model: DataModel) {
             const messageArg = getAttributeArgLiteral<string>(attr, 'message');
             const message = messageArg ? `, { message: ${JSON.stringify(messageArg)} }` : '';
 
-            const expr = new TypeScriptExpressionTransformer({ fieldReferenceContext: 'value' }).transform(valueArg);
-            return `.refine((value: any) => ${expr}${message})`;
+            try {
+                const expr = new TypeScriptExpressionTransformer({ fieldReferenceContext: 'value' }).transform(
+                    valueArg
+                );
+                return `.refine((value: any) => ${expr}${message})`;
+            } catch (err) {
+                if (err instanceof TypeScriptExpressionTransformerError) {
+                    throw new PluginError(name, err.message);
+                } else {
+                    throw err;
+                }
+            }
         })
         .filter((r) => !!r);
 

@@ -25,6 +25,10 @@ describe('Zod plugin tests', () => {
             provider = 'prisma-client-js'
         }
 
+        plugin zod {
+            provider = '@core/zod'
+        }
+
         enum Role {
             USER
             ADMIN 
@@ -119,6 +123,10 @@ describe('Zod plugin tests', () => {
             provider = 'prisma-client-js'
         }
 
+        plugin zod {
+            provider = '@core/zod'
+        }
+
         model M {
             id Int @id @default(autoincrement())
             a String? @length(5, 10, 'must be between 5 and 10')
@@ -211,6 +219,10 @@ describe('Zod plugin tests', () => {
             provider = 'prisma-client-js'
         }
 
+        plugin zod {
+            provider = '@core/zod'
+        }
+
         model M {
             id Int @id @default(autoincrement())
             email String?
@@ -272,6 +284,10 @@ describe('Zod plugin tests', () => {
         
         generator js {
             provider = 'prisma-client-js'
+        }
+
+        plugin zod {
+            provider = '@core/zod'
         }
 
         model M {
