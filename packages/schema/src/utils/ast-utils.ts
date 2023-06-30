@@ -6,7 +6,6 @@ import {
     isArrayExpr,
     isDataModel,
     isDataModelField,
-    isEnumField,
     isInvocationExpr,
     isMemberAccessExpr,
     isModel,
