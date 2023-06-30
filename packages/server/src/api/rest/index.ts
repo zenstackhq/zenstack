@@ -45,6 +45,13 @@ export type Options = {
      * Defaults to 100. Set to Infinity to disable pagination.
      */
     pageSize?: number;
+
+    /**
+     * The number of total documents that match the query will be included
+     * in the response. This is useful for pagination.
+     * Defaults to false.
+     */
+    totalCount?: boolean;
 };
 
 type RelationshipInfo = {
@@ -599,9 +606,18 @@ class RequestHandler {
 
         if (limit === Infinity) {
             const entities = await prisma[type].findMany(args);
+
+            let body = await this.serializeItems(type, entities, { include });
+            // Count items if totalCount is requested using only where filter, it not depends the others filter
+            const total = this.options.totalCount
+                ? ((await prisma[type].count({ where: args.where })) as number)
+                : undefined;
+
+            body = this.addTotalCountMeta(body, total);
+
             return {
                 status: 200,
-                body: await this.serializeItems(type, entities, { include }),
+                body: body,
             };
         } else {
             args.take = limit;
@@ -618,12 +634,22 @@ class RequestHandler {
                     paginator: this.makePaginator(url, offset, limit, total),
                 },
             };
+            let body = await this.serializeItems(type, entities, options);
+            body = this.addTotalCountMeta(body, total);
 
             return {
                 status: 200,
-                body: await this.serializeItems(type, entities, options),
+                body: body,
             };
         }
+    }
+
+    private addTotalCountMeta(body: Partial<DataDocument<any>>, total: number | undefined): Partial<DataDocument<any>> {
+        if (total) {
+            body.meta = { total };
+        }
+
+        return body;
     }
 
     private makePaginator(baseUrl: string, offset: number, limit: number, total: number) {
