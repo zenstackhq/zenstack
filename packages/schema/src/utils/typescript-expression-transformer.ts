@@ -35,7 +35,6 @@ const functionHandlers = new Map<string, PropertyDescriptor>();
 function func(name: string) {
     return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
         if (!functionHandlers.get(name)) {
-            console.log('Registering function handler:', name, descriptor.value);
             functionHandlers.set(name, descriptor);
         }
         return descriptor;

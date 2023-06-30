@@ -87,17 +87,6 @@ export class PluginRunner {
                 // record custom prisma output path
                 prismaOutput = resolvePath(options.output, options);
             }
-            // } else {
-            //     // synthesize a plugin
-            //     const pluginModule = require(this.getPluginModulePath(pluginProvider));
-            //     const pluginName = this.getPluginName(pluginModule, pluginProvider);
-            //     plugins.push({
-            //         name: pluginName,
-            //         provider: pluginProvider,
-            //         run: pluginModule.default,
-            //         options: { schemaPath: context.schemaPath, name: pluginName },
-            //     });
-            // }
         }
 
         // make sure prerequisites are included
@@ -110,20 +99,25 @@ export class PluginRunner {
         ];
 
         for (const corePlugin of corePlugins.reverse()) {
-            if (plugins.find((p) => p.provider === corePlugin)) {
-                continue;
+            const existingIdx = plugins.findIndex((p) => p.provider === corePlugin);
+            if (existingIdx >= 0) {
+                // shift the plugin to the front
+                const existing = plugins[existingIdx];
+                plugins.splice(existingIdx, 1);
+                plugins.unshift(existing);
+            } else {
+                // synthesize a plugin and insert front
+                const pluginModule = require(this.getPluginModulePath(corePlugin));
+                const pluginName = this.getPluginName(pluginModule, corePlugin);
+                plugins.unshift({
+                    name: pluginName,
+                    provider: corePlugin,
+                    dependencies: [],
+                    options: { schemaPath: context.schemaPath, name: pluginName },
+                    run: pluginModule.default,
+                    module: pluginModule,
+                });
             }
-            // synthesize a plugin
-            const pluginModule = require(this.getPluginModulePath(corePlugin));
-            const pluginName = this.getPluginName(pluginModule, corePlugin);
-            plugins.unshift({
-                name: pluginName,
-                provider: corePlugin,
-                dependencies: [],
-                options: { schemaPath: context.schemaPath, name: pluginName },
-                run: pluginModule.default,
-                module: pluginModule,
-            });
         }
 
         // check dependencies
