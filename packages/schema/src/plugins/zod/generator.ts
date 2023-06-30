@@ -180,21 +180,6 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         overwrite: true,
     });
     sf.replaceWithText((writer) => {
-        writer.writeLine('/* eslint-disable */');
-
-        // import enums
-        const importEnums = new Set<string>();
-        for (const node of streamAllContents(model)) {
-            if (isEnumFieldReference(node)) {
-                const field = node.target.ref as EnumField;
-                importEnums.add(field.$container.name);
-            }
-        }
-        if (importEnums.size > 0) {
-            const prismaImport = getPrismaClientImportSpec(model.$container, path.join(output, 'models'));
-            writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
-        }
-
         const fields = model.fields.filter(
             (field) =>
                 !AUXILIARY_FIELDS.includes(field.name) &&
@@ -203,15 +188,27 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
                 !isForeignKeyField(field)
         );
 
+        writer.writeLine('/* eslint-disable */');
         writer.writeLine(`import { z } from 'zod';`);
 
-        // import enums
+        // import user-defined enums from Prisma as they might be referenced in the expressions
+        const importEnums = new Set<string>();
+        for (const node of streamAllContents(model)) {
+            if (isEnumFieldReference(node)) {
+                const field = node.target.ref as EnumField;
+                if (!isFromStdlib(field.$container)) {
+                    importEnums.add(field.$container.name);
+                }
+            }
+        }
+        if (importEnums.size > 0) {
+            const prismaImport = getPrismaClientImportSpec(model.$container, path.join(output, 'models'));
+            writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
+        }
+
+        // import enum schemas
         for (const field of fields) {
-            if (
-                field.type.reference?.ref &&
-                isEnum(field.type.reference?.ref) &&
-                !isFromStdlib(field.type.reference?.ref)
-            ) {
+            if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
                 const name = upperCaseFirst(field.type.reference?.ref.name);
                 writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
             }
