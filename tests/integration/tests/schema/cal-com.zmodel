@@ -11,19 +11,8 @@ generator client {
     previewFeatures = []
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    output = '.zenstack'
-}
-
-plugin policy {
-    provider = '@core/access-policy'
-    output = '.zenstack'
-}
-
 plugin zod {
     provider = '@core/zod'
-    output = '.zenstack/zod'
 }
 
 enum SchedulingType {

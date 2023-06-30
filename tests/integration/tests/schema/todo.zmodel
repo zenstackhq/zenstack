@@ -12,6 +12,10 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
+plugin zod {
+    provider = '@core/zod'
+}
+
 /*
  * Model for a space in which users can collaborate on Lists and Todos
  */

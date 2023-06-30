@@ -19,6 +19,7 @@ import {
     analyzePolicies,
     createProject,
     emitProject,
+    ExpressionContext,
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
@@ -38,7 +39,8 @@ import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-mor
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields, isAuthInvocation, VALIDATION_ATTRIBUTES } from '../../utils/ast-utils';
-import TypeScriptExpressionTransformer, {
+import {
+    TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
 } from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
@@ -380,7 +382,10 @@ export default class PolicyGenerator {
             // none of the rules reference model fields, we can compile down to a plain boolean
             // function in this case (so we can skip doing SQL queries when validating)
             func.addStatements((writer) => {
-                const transformer = new TypeScriptExpressionTransformer({ isPostGuard: kind === 'postUpdate' });
+                const transformer = new TypeScriptExpressionTransformer({
+                    context: ExpressionContext.AccessPolicy,
+                    isPostGuard: kind === 'postUpdate',
+                });
                 try {
                     denies.forEach((rule) => {
                         writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);

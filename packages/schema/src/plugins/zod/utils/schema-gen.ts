@@ -1,8 +1,9 @@
-import { PluginError, getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
+import { ExpressionContext, PluginError, getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldAttribute, isEnum } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
-import TypeScriptExpressionTransformer, {
+import {
+    TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
 } from '../../../utils/typescript-expression-transformer';
 
@@ -157,9 +158,10 @@ export function makeValidationRefinements(model: DataModel) {
             const message = messageArg ? `, { message: ${JSON.stringify(messageArg)} }` : '';
 
             try {
-                const expr = new TypeScriptExpressionTransformer({ fieldReferenceContext: 'value' }).transform(
-                    valueArg
-                );
+                const expr = new TypeScriptExpressionTransformer({
+                    context: ExpressionContext.ValidationRule,
+                    fieldReferenceContext: 'value',
+                }).transform(valueArg);
                 return `.refine((value: any) => ${expr}${message})`;
             } catch (err) {
                 if (err instanceof TypeScriptExpressionTransformerError) {

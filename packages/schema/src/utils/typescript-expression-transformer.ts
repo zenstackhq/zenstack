@@ -12,10 +12,9 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { getLiteral } from '@zenstackhq/sdk';
+import { ExpressionContext, getLiteral } from '@zenstackhq/sdk';
 import { isFromStdlib } from '../language-server/utils';
 import { isFutureExpr } from '../plugins/access-policy/utils';
-import { isAuthInvocation } from './ast-utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -23,16 +22,36 @@ export class TypeScriptExpressionTransformerError extends Error {
     }
 }
 
+type Options = {
+    isPostGuard?: boolean;
+    fieldReferenceContext?: string;
+    context: ExpressionContext;
+};
+
+// a registry of function handlers marked with @func
+const functionHandlers = new Map<string, PropertyDescriptor>();
+
+// function handler decorator
+function func(name: string) {
+    return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
+        if (!functionHandlers.get(name)) {
+            console.log('Registering function handler:', name, descriptor.value);
+            functionHandlers.set(name, descriptor);
+        }
+        return descriptor;
+    };
+}
+
 /**
  * Transforms ZModel expression to plain TypeScript expression.
  */
-export default class TypeScriptExpressionTransformer {
+export class TypeScriptExpressionTransformer {
     /**
      * Constructs a new TypeScriptExpressionTransformer.
      *
      * @param isPostGuard indicates if we're writing for post-update conditions
      */
-    constructor(private readonly options?: { isPostGuard?: boolean; fieldReferenceContext?: string }) {}
+    constructor(private readonly options?: Options) {}
 
     /**
      * Transforms the given expression to a TypeScript expression.
@@ -106,111 +125,137 @@ export default class TypeScriptExpressionTransformer {
             throw new TypeScriptExpressionTransformerError(`Unresolved InvocationExpr`);
         }
 
-        if (isAuthInvocation(expr)) {
-            return 'user';
-        }
-
         const funcName = expr.function.ref.name;
         const isStdFunc = isFromStdlib(expr.function.ref);
 
-        if (isStdFunc && funcName === 'now') {
-            return `(new Date())`;
+        if (!isStdFunc) {
+            throw new TypeScriptExpressionTransformerError('User-defined functions are not supported yet');
         }
 
-        if (isStdFunc) {
-            // arguments are already type-checked
-
-            const arg0 = this.transform(expr.args[0].value, false);
-            let result: string;
-            switch (funcName) {
-                case 'length': {
-                    const min = getLiteral<number>(expr.args[1]?.value);
-                    const max = getLiteral<number>(expr.args[2]?.value);
-                    if (min === undefined) {
-                        result = `(${arg0}?.length > 0)`;
-                    } else if (max === undefined) {
-                        result = `(${arg0}?.length >= ${min})`;
-                    } else {
-                        result = `(${arg0}?.length >= ${min} && ${arg0}?.length <= ${max})`;
-                    }
-                    break;
-                }
-
-                case 'contains': {
-                    const caseInsensitive = getLiteral<boolean>(expr.args[2]?.value) === true;
-                    if (caseInsensitive) {
-                        result = `${arg0}?.toLowerCase().includes(${this.transform(
-                            expr.args[1].value,
-                            normalizeUndefined
-                        )}?.toLowerCase())`;
-                    } else {
-                        result = `${arg0}?.includes(${this.transform(expr.args[1].value, normalizeUndefined)})`;
-                    }
-                    break;
-                }
-
-                case 'search':
-                    throw new TypeScriptExpressionTransformerError('"search" function cannot be used in this context');
-
-                case 'startsWith':
-                    result = `${arg0}?.startsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
-                    break;
-
-                case 'endsWith':
-                    result = `${arg0}?.endsWith(${this.transform(expr.args[1].value, normalizeUndefined)})`;
-                    break;
-
-                case 'regex': {
-                    const pattern = getLiteral<string>(expr.args[1]?.value);
-                    return `new RegExp(${JSON.stringify(pattern)}).test(${arg0})`;
-                }
-
-                case 'datetime': {
-                    return `z.string().datetime({ offset: true }).safeParse(${arg0}).success`;
-                }
-
-                case 'url': {
-                    return `z.string().url().safeParse(${arg0}).success`;
-                }
-
-                case 'has':
-                    result = `${arg0}?.includes(${this.transform(expr.args[1].value, normalizeUndefined)})`;
-                    break;
-
-                case 'hasEvery':
-                    result = `${this.transform(
-                        expr.args[1].value,
-                        normalizeUndefined
-                    )}?.every((item) => ${arg0}?.includes(item))`;
-                    break;
-
-                case 'hasSome':
-                    result = `${this.transform(
-                        expr.args[1].value,
-                        normalizeUndefined
-                    )}?.some((item) => ${arg0}?.includes(item))`;
-                    break;
-
-                case 'isEmpty':
-                    result = `(!${arg0} || ${arg0}?.length === 0)`;
-                    break;
-
-                case 'email':
-                    return `z.string().email().safeParse(${arg0}).success`;
-
-                default:
-                    throw new TypeScriptExpressionTransformerError(
-                        `Function invocation is not supported: ${expr.function.ref?.name}`
-                    );
-            }
-
-            return `(${result} ?? false)`;
+        const handler = functionHandlers.get(funcName);
+        if (!handler) {
+            throw new TypeScriptExpressionTransformerError(`Unsupported function: ${funcName}`);
         }
 
-        throw new TypeScriptExpressionTransformerError(
-            `Function invocation is not supported: ${expr.function.ref?.name}`
-        );
+        const args = expr.args.map((arg) => arg.value);
+        return handler.value.call(this, args, normalizeUndefined);
     }
+
+    // #region function invocation handlers
+
+    // arguments have been type-checked
+
+    @func('auth')
+    private _auth() {
+        return 'user';
+    }
+
+    @func('now')
+    private _now() {
+        return `(new Date())`;
+    }
+
+    @func('length')
+    private _length(args: Expression[]) {
+        const field = this.transform(args[0], false);
+        const min = getLiteral<number>(args[1]);
+        const max = getLiteral<number>(args[2]);
+        let result: string;
+        if (min === undefined) {
+            result = `(${field}?.length > 0)`;
+        } else if (max === undefined) {
+            result = `(${field}?.length >= ${min})`;
+        } else {
+            result = `(${field}?.length >= ${min} && ${field}?.length <= ${max})`;
+        }
+        return this.ensureBoolean(result);
+    }
+
+    @func('contains')
+    private _contains(args: Expression[], normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false);
+        const caseInsensitive = getLiteral<boolean>(args[2]) === true;
+        let result: string;
+        if (caseInsensitive) {
+            result = `${field}?.toLowerCase().includes(${this.transform(args[1], normalizeUndefined)}?.toLowerCase())`;
+        } else {
+            result = `${field}?.includes(${this.transform(args[1], normalizeUndefined)})`;
+        }
+        return this.ensureBoolean(result);
+    }
+
+    @func('startsWith')
+    private _startsWith(args: Expression[], normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false);
+        const result = `${field}?.startsWith(${this.transform(args[1], normalizeUndefined)})`;
+        return this.ensureBoolean(result);
+    }
+
+    @func('endsWith')
+    private _endsWith(args: Expression[], normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false);
+        const result = `${field}?.endsWith(${this.transform(args[1], normalizeUndefined)})`;
+        return this.ensureBoolean(result);
+    }
+
+    @func('regex')
+    private _regex(args: Expression[]) {
+        const field = this.transform(args[0], false);
+        const pattern = getLiteral<string>(args[1]);
+        return `new RegExp(${JSON.stringify(pattern)}).test(${field})`;
+    }
+
+    @func('email')
+    private _email(args: Expression[]) {
+        const field = this.transform(args[0], false);
+        return `z.string().email().safeParse(${field}).success`;
+    }
+
+    @func('datetime')
+    private _datetime(args: Expression[]) {
+        const field = this.transform(args[0], false);
+        return `z.string().datetime({ offset: true }).safeParse(${field}).success`;
+    }
+
+    @func('url')
+    private _url(args: Expression[]) {
+        const field = this.transform(args[0], false);
+        return `z.string().url().safeParse(${field}).success`;
+    }
+
+    @func('has')
+    private _has(args: Expression[], normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false);
+        const result = `${field}?.includes(${this.transform(args[1], normalizeUndefined)})`;
+        return this.ensureBoolean(result);
+    }
+
+    @func('hasEvery')
+    private _hasEvery(args: Expression[], normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false);
+        const result = `${this.transform(args[1], normalizeUndefined)}?.every((item) => ${field}?.includes(item))`;
+        return this.ensureBoolean(result);
+    }
+
+    @func('hasSome')
+    private _hasSome(args: Expression[], normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false);
+        const result = `${this.transform(args[1], normalizeUndefined)}?.some((item) => ${field}?.includes(item))`;
+        return this.ensureBoolean(result);
+    }
+
+    @func('isEmpty')
+    private _isEmpty(args: Expression[]) {
+        const field = this.transform(args[0], false);
+        const result = `(!${field} || ${field}?.length === 0)`;
+        return this.ensureBoolean(result);
+    }
+
+    private ensureBoolean(expr: string) {
+        return `(${expr} ?? false)`;
+    }
+
+    // #endregion
 
     private reference(expr: ReferenceExpr) {
         if (!expr.target.ref) {

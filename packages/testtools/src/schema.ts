@@ -78,6 +78,10 @@ generator js {
     provider = 'prisma-client-js'
     previewFeatures = ['clientExtensions']
 }
+
+plugin zod {
+    provider = '@core/zod'
+}
 `;
 
 export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true, logPrismaQuery = false) {

@@ -165,10 +165,6 @@ export function isAuthInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
 }
 
-export function isEnumFieldReference(expr: Expression) {
-    return isReferenceExpr(expr) && isEnumField(expr.target.ref);
-}
-
 export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
     if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
         return expr.target.ref;

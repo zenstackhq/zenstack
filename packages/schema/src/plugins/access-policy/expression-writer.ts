@@ -14,12 +14,18 @@ import {
     ReferenceExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { getLiteral, GUARD_FIELD_NAME, PluginError } from '@zenstackhq/sdk';
+import {
+    ExpressionContext,
+    getFunctionExpressionContext,
+    getLiteral,
+    GUARD_FIELD_NAME,
+    PluginError,
+} from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '.';
-import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
-import TypeScriptExpressionTransformer, {
+import {
+    TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
 } from '../../utils/typescript-expression-transformer';
 import { isFutureExpr } from './utils';
@@ -53,7 +59,10 @@ export class ExpressionWriter {
      * @param isPostGuard indicates if we're writing for post-update conditions
      */
     constructor(private readonly writer: CodeBlockWriter, private readonly isPostGuard = false) {
-        this.plainExprBuilder = new TypeScriptExpressionTransformer({ isPostGuard: this.isPostGuard });
+        this.plainExprBuilder = new TypeScriptExpressionTransformer({
+            context: ExpressionContext.AccessPolicy,
+            isPostGuard: this.isPostGuard,
+        });
     }
 
     /**
@@ -559,7 +568,11 @@ export class ExpressionWriter {
             throw new PluginError(name, `Failed to resolve function declaration`);
         }
 
-        if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
+        const functionAllowedContext = getFunctionExpressionContext(funcDecl);
+        if (
+            functionAllowedContext.includes(ExpressionContext.AccessPolicy) ||
+            functionAllowedContext.includes(ExpressionContext.ValidationRule)
+        ) {
             if (!expr.args.some((arg) => this.isFieldAccess(arg.value))) {
                 // filter functions without referencing fields
                 this.block(() => this.guard(() => this.plain(expr)));

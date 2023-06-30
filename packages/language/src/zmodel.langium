@@ -188,7 +188,7 @@ EnumField:
 
 // function
 FunctionDecl:
-    TRIPLE_SLASH_COMMENT* 'function' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
+    TRIPLE_SLASH_COMMENT* 'function' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}' (attributes+=InternalAttribute)*;
 
 FunctionParam:
     TRIPLE_SLASH_COMMENT* name=RegularID ':' type=FunctionParamType (optional?='?')?;
@@ -205,8 +205,8 @@ RegularID returns string:
     // include keywords that we'd like to work as ID in most places
     ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'sort';
 
-// attribute-level attribute
-AttributeAttributeName returns string:
+// internal attribute
+InternalAttributeName returns string:
     '@@@' QualifiedName;
 
 // model-level attribute
@@ -218,11 +218,11 @@ DataModelFieldAttributeName returns string:
     '@' QualifiedName;
 
 AttributeName returns string:
-    DataModelAttributeName | DataModelFieldAttributeName | AttributeAttributeName;
+    DataModelAttributeName | DataModelFieldAttributeName | InternalAttributeName;
 
 // attribute
 Attribute:
-    TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=AttributeAttribute)*;
+    TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=InternalAttribute)*;
 
 AttributeParam:
     TRIPLE_SLASH_COMMENT* (default?='_')? name=RegularID ':' type=AttributeParamType;
@@ -240,8 +240,8 @@ DataModelFieldAttribute:
 DataModelAttribute:
     TRIPLE_SLASH_COMMENT* decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
 
-AttributeAttribute:
-    decl=[Attribute:AttributeAttributeName] ('(' AttributeArgList? ')')?;
+InternalAttribute:
+    decl=[Attribute:InternalAttributeName] ('(' AttributeArgList? ')')?;
 
 fragment AttributeArgList:
     args+=AttributeArg (',' args+=AttributeArg)*;
