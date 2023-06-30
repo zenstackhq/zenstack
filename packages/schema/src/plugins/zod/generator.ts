@@ -11,8 +11,10 @@ import {
     isForeignKeyField,
     resolvePath,
     saveProject,
+    isEnumFieldReference,
+    getPrismaClientImportSpec,
 } from '@zenstackhq/sdk';
-import { DataModel, DataSource, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
+import { DataModel, DataSource, EnumField, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
 import {
     AggregateOperationSupport,
     addMissingInputObjectTypes,
@@ -26,6 +28,7 @@ import Transformer from './transformer';
 import removeDir from './utils/removeDir';
 import { upperCaseFirst } from 'upper-case-first';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
+import { streamAllContents } from 'langium';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let output = options.output as string;
@@ -178,6 +181,19 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
     sf.replaceWithText((writer) => {
         writer.writeLine('/* eslint-disable */');
 
+        // import enums
+        const importEnums = new Set<string>();
+        for (const node of streamAllContents(model)) {
+            if (isEnumFieldReference(node)) {
+                const field = node.target.ref as EnumField;
+                importEnums.add(field.$container.name);
+            }
+        }
+        if (importEnums.size > 0) {
+            const prismaImport = getPrismaClientImportSpec(model.$container, path.join(output, 'models'));
+            writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
+        }
+
         const fields = model.fields.filter(
             (field) =>
                 !AUXILIARY_FIELDS.includes(field.name) &&
@@ -205,9 +221,9 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         });
         writer.writeLine(');');
 
+        // compile "@@validate" to ".refine"
         const refinements = makeValidationRefinements(model);
         if (refinements.length > 0) {
-            console.log('Generated refinements:', refinements);
             writer.writeLine(`function refine(schema: z.ZodType) { return schema${refinements.join('\n')}; }`);
         }
 
