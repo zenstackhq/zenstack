@@ -20,6 +20,12 @@ export function isAttributeName(item: unknown): item is AttributeName {
     return isDataModelAttributeName(item) || isDataModelFieldAttributeName(item) || isInternalAttributeName(item);
 }
 
+export type Boolean = boolean;
+
+export function isBoolean(item: unknown): item is Boolean {
+    return typeof item === 'boolean';
+}
+
 export type BuiltinType = 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String';
 
 export function isBuiltinType(item: unknown): item is BuiltinType {
@@ -422,7 +428,7 @@ export function isInvocationExpr(item: unknown): item is InvocationExpr {
 export interface LiteralExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'LiteralExpr';
-    value: boolean | number | string
+    value: Boolean | number | string
 }
 
 export const LiteralExpr = 'LiteralExpr';
@@ -853,14 +859,6 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     name: 'InvocationExpr',
                     mandatory: [
                         { name: 'args', type: 'array' }
-                    ]
-                };
-            }
-            case 'LiteralExpr': {
-                return {
-                    name: 'LiteralExpr',
-                    mandatory: [
-                        { name: 'value', type: 'boolean' }
                     ]
                 };
             }
