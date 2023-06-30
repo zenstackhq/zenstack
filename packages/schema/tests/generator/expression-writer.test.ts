@@ -251,7 +251,7 @@ describe('Expression Writer Tests', () => {
             model Test {
                 id String @id
                 x  Int
-                @@allow('all', !(x  > 0 && x  > 1 || !x  > 2))
+                @@allow('all', !(x  > 0 && x  > 1 || !(x  > 2)))
             }
             `,
             (model) => model.attributes[0].args[1].value,
@@ -1277,7 +1277,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.roles?.length===0??false)}`,
+            `{zenstack_guard:((!user?.roles||user?.roles?.length===0)??false)}`,
             userInit
         );
     });

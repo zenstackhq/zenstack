@@ -1,22 +1,17 @@
 import { DbOperations } from '@zenstackhq/runtime';
 import { AUXILIARY_FIELDS } from '@zenstackhq/runtime/constants';
-import type { ModelZodSchema } from '@zenstackhq/runtime/zod';
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig } from '../types';
 
-export function getZodSchema(zodSchemas: ModelZodSchema, model: string, operation: keyof DbOperations) {
-    if (zodSchemas[model]) {
-        return zodSchemas[model][operation];
-    } else if (zodSchemas[upperCaseFirst(model)]) {
-        return zodSchemas[upperCaseFirst(model)][operation];
-    } else {
-        return undefined;
-    }
+export function getZodSchema(zodSchemas: ZodSchemas, model: string, operation: keyof DbOperations) {
+    // e.g.: UserInputSchema { findUnique: [schema] }
+    return zodSchemas.input?.[`${upperCaseFirst(model)}InputSchema`]?.[operation];
 }
 
 export function zodValidate(
-    zodSchemas: ModelZodSchema | undefined,
+    zodSchemas: ZodSchemas | undefined,
     model: string,
     operation: keyof DbOperations,
     args: unknown

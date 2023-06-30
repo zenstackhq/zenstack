@@ -26,8 +26,8 @@ describe('Misc Function Coverage Tests', () => {
 
         // success
         await expect(
-            db.foo.update({ where: { id: '2' }, data: { dt: new Date(now.getTime() + 1000) } })
+            db.foo.update({ where: { id: '2' }, data: { dt: new Date(now.getTime() + 10000) } })
         ).toResolveTruthy();
-        expect(await db.foo.findUnique({ where: { id: '2' } })).toMatchObject({ dt: new Date(now.getTime() + 1000) });
+        expect(await db.foo.findUnique({ where: { id: '2' } })).toMatchObject({ dt: new Date(now.getTime() + 10000) });
     });
 });

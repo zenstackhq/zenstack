@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
@@ -7,13 +8,23 @@ import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
+import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
 import telemetry from '../telemetry';
 import type { Context } from '../types';
 import { getVersion } from '../utils/version-utils';
 import { config } from './config';
 
+type PluginInfo = {
+    name: string;
+    provider: string;
+    options: PluginOptions;
+    run: PluginFunction;
+    dependencies: string[];
+    module: any;
+};
+
 /**
- * ZenStack code generator
+ * ZenStack plugin runner
  */
 export class PluginRunner {
     /**
@@ -23,72 +34,102 @@ export class PluginRunner {
         const version = getVersion();
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
-        const plugins: Array<{
-            provider: string;
-            name: string;
-            run: PluginFunction;
-            options: PluginOptions;
-        }> = [];
+        ensureDefaultOutputFolder();
 
+        const plugins: PluginInfo[] = [];
         const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
-        const prereqPlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy'];
-        const allPluginProviders = prereqPlugins.concat(
-            pluginDecls
-                .map((p) => this.getPluginProvider(p))
-                .filter((p): p is string => !!p && !prereqPlugins.includes(p))
-        );
+
         let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: context.schemaPath, name: '' });
 
-        for (const pluginProvider of allPluginProviders) {
-            const plugin = pluginDecls.find((p) => this.getPluginProvider(p) === pluginProvider);
-            if (plugin) {
-                const pluginModulePath = this.getPluginModulePath(pluginProvider);
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                let pluginModule: any;
-                try {
-                    pluginModule = require(pluginModulePath);
-                } catch (err) {
-                    console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
-                    throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
+        for (const pluginDecl of pluginDecls) {
+            const pluginProvider = this.getPluginProvider(pluginDecl);
+            if (!pluginProvider) {
+                console.error(`Plugin ${pluginDecl.name} has invalid provider option`);
+                throw new PluginError('', `Plugin ${pluginDecl.name} has invalid provider option`);
+            }
+            const pluginModulePath = this.getPluginModulePath(pluginProvider);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let pluginModule: any;
+            try {
+                pluginModule = require(pluginModulePath);
+            } catch (err) {
+                console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
+                throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
+            }
+
+            if (!pluginModule.default || typeof pluginModule.default !== 'function') {
+                console.error(`Plugin provider ${pluginProvider} is missing a default function export`);
+                throw new PluginError('', `Plugin provider ${pluginProvider} is missing a default function export`);
+            }
+
+            const dependencies = this.getPluginDependencies(pluginModule);
+            const pluginName = this.getPluginName(pluginModule, pluginProvider);
+            const options: PluginOptions = { schemaPath: context.schemaPath, name: pluginName };
+
+            pluginDecl.fields.forEach((f) => {
+                const value = getLiteral(f.value) ?? getLiteralArray(f.value);
+                if (value === undefined) {
+                    throw new PluginError(pluginName, `Invalid option value for ${f.name}`);
                 }
+                options[f.name] = value;
+            });
 
-                if (!pluginModule.default || typeof pluginModule.default !== 'function') {
-                    console.error(`Plugin provider ${pluginProvider} is missing a default function export`);
-                    throw new PluginError('', `Plugin provider ${pluginProvider} is missing a default function export`);
-                }
+            plugins.push({
+                name: pluginName,
+                provider: pluginProvider,
+                dependencies,
+                options,
+                run: pluginModule.default as PluginFunction,
+                module: pluginModule,
+            });
 
-                const pluginName = this.getPluginName(pluginModule, pluginProvider);
-                const options: PluginOptions = { schemaPath: context.schemaPath, name: pluginName };
+            if (pluginProvider === '@core/prisma' && typeof options.output === 'string') {
+                // record custom prisma output path
+                prismaOutput = resolvePath(options.output, options);
+            }
+        }
 
-                plugin.fields.forEach((f) => {
-                    const value = getLiteral(f.value) ?? getLiteralArray(f.value);
-                    if (value === undefined) {
-                        throw new PluginError(pluginName, `Invalid option value for ${f.name}`);
-                    }
-                    options[f.name] = value;
-                });
+        // make sure prerequisites are included
+        const corePlugins = [
+            '@core/prisma',
+            '@core/model-meta',
+            '@core/access-policy',
+            // core dependencies introduced by dependencies
+            ...plugins.flatMap((p) => p.dependencies).filter((dep) => dep.startsWith('@core/')),
+        ];
 
-                plugins.push({
-                    name: pluginName,
-                    provider: pluginProvider,
-                    run: pluginModule.default as PluginFunction,
-                    options,
-                });
-
-                if (pluginProvider === '@core/prisma' && typeof options.output === 'string') {
-                    // record custom prisma output path
-                    prismaOutput = resolvePath(options.output, options);
-                }
+        for (const corePlugin of corePlugins.reverse()) {
+            const existingIdx = plugins.findIndex((p) => p.provider === corePlugin);
+            if (existingIdx >= 0) {
+                // shift the plugin to the front
+                const existing = plugins[existingIdx];
+                plugins.splice(existingIdx, 1);
+                plugins.unshift(existing);
             } else {
-                // synthesize a plugin
-                const pluginModule = require(this.getPluginModulePath(pluginProvider));
-                const pluginName = this.getPluginName(pluginModule, pluginProvider);
-                plugins.push({
+                // synthesize a plugin and insert front
+                const pluginModule = require(this.getPluginModulePath(corePlugin));
+                const pluginName = this.getPluginName(pluginModule, corePlugin);
+                plugins.unshift({
                     name: pluginName,
-                    provider: pluginProvider,
-                    run: pluginModule.default,
+                    provider: corePlugin,
+                    dependencies: [],
                     options: { schemaPath: context.schemaPath, name: pluginName },
+                    run: pluginModule.default,
+                    module: pluginModule,
                 });
+            }
+        }
+
+        // check dependencies
+        for (const plugin of plugins) {
+            for (const dep of plugin.dependencies) {
+                if (!plugins.find((p) => p.provider === dep)) {
+                    console.error(`Plugin ${plugin.provider} depends on "${dep}" but it's not declared`);
+                    throw new PluginError(
+                        plugin.name,
+                        `Plugin ${plugin.provider} depends on "${dep}" but it's not declared`
+                    );
+                }
             }
         }
 
@@ -115,6 +156,10 @@ export class PluginRunner {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private getPluginName(pluginModule: any, pluginProvider: string): string {
         return typeof pluginModule.name === 'string' ? (pluginModule.name as string) : pluginProvider;
+    }
+
+    private getPluginDependencies(pluginModule: any) {
+        return Array.isArray(pluginModule.dependencies) ? (pluginModule.dependencies as string[]) : [];
     }
 
     private getPluginProvider(plugin: Plugin) {

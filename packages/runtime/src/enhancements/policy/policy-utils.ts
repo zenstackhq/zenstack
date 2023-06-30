@@ -4,6 +4,7 @@ import { createId } from '@paralleldrive/cuid2';
 import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
+import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../../constants';
 import {
@@ -16,8 +17,8 @@ import {
 } from '../../types';
 import { getVersion } from '../../version';
 import { resolveField } from '../model-meta';
-import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
-import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
+import { NestedWriteVisitor, type VisitorContext } from '../nested-write-vistor';
+import type { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
     enumerate,
     formatObject,
@@ -40,6 +41,7 @@ export class PolicyUtil {
         private readonly db: DbClientContract,
         private readonly modelMeta: ModelMeta,
         private readonly policy: PolicyDef,
+        private readonly zodSchemas: ZodSchemas | undefined,
         private readonly user?: AuthUser,
         private readonly logPrismaQuery?: boolean
     ) {
@@ -103,7 +105,7 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    async getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): Promise<boolean | object> {
+    getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): boolean | object {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -120,6 +122,10 @@ export class PolicyUtil {
         return provider({ user: this.user, preValue });
     }
 
+    private hasValidation(model: string): boolean {
+        return this.policy.validation?.[lowerCaseFirst(model)]?.hasValidation === true;
+    }
+
     private async getPreValueSelect(model: string): Promise<object | undefined> {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
@@ -128,8 +134,8 @@ export class PolicyUtil {
         return guard.preValueSelect;
     }
 
-    private async getModelSchema(model: string) {
-        return this.policy.schema[lowerCaseFirst(model)];
+    private getModelSchema(model: string) {
+        return this.hasValidation(model) && this.zodSchemas?.models?.[`${upperCaseFirst(model)}Schema`];
     }
 
     /**
@@ -143,7 +149,7 @@ export class PolicyUtil {
             await this.injectGuardForFields(model, args.where, operation);
         }
 
-        const guard = await this.getAuthGuard(model, operation);
+        const guard = this.getAuthGuard(model, operation);
         args.where = this.and(args.where, guard);
     }
 
@@ -171,7 +177,7 @@ export class PolicyUtil {
         payload: { some?: any; every?: any; none?: any },
         operation: PolicyOperationKind
     ) {
-        const guard = await this.getAuthGuard(fieldInfo.type, operation);
+        const guard = this.getAuthGuard(fieldInfo.type, operation);
         if (payload.some) {
             await this.injectGuardForFields(fieldInfo.type, payload.some, operation);
             // turn "some" into: { some: { AND: [guard, payload.some] } }
@@ -204,7 +210,7 @@ export class PolicyUtil {
         payload: { is?: any; isNot?: any } & Record<string, any>,
         operation: PolicyOperationKind
     ) {
-        const guard = await this.getAuthGuard(fieldInfo.type, operation);
+        const guard = this.getAuthGuard(fieldInfo.type, operation);
         if (payload.is || payload.isNot) {
             if (payload.is) {
                 await this.injectGuardForFields(fieldInfo.type, payload.is, operation);
@@ -420,8 +426,8 @@ export class PolicyUtil {
 
         // args processor for create
         const processCreate = async (model: string, args: any) => {
-            const guard = await this.getAuthGuard(model, 'create');
-            const schema = await this.getModelSchema(model);
+            const guard = this.getAuthGuard(model, 'create');
+            const schema = this.getModelSchema(model);
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'create');
             } else if (guard !== true || schema) {
@@ -465,7 +471,7 @@ export class PolicyUtil {
 
         // args processor for update/upsert
         const processUpdate = async (model: string, where: any, context: VisitorContext) => {
-            const preGuard = await this.getAuthGuard(model, 'update');
+            const preGuard = this.getAuthGuard(model, 'update');
             if (preGuard === false) {
                 throw this.deniedByPolicy(model, 'update');
             } else if (preGuard !== true) {
@@ -517,7 +523,7 @@ export class PolicyUtil {
 
         // args processor for updateMany
         const processUpdateMany = async (model: string, args: any, context: VisitorContext) => {
-            const guard = await this.getAuthGuard(model, 'update');
+            const guard = this.getAuthGuard(model, 'update');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'update');
             } else if (guard !== true) {
@@ -531,8 +537,8 @@ export class PolicyUtil {
         // for models with post-update rules, we need to read and store
         // entity values before the update for post-update check
         const preparePostUpdateCheck = async (model: string, context: VisitorContext) => {
-            const postGuard = await this.getAuthGuard(model, 'postUpdate');
-            const schema = await this.getModelSchema(model);
+            const postGuard = this.getAuthGuard(model, 'postUpdate');
+            const schema = this.getModelSchema(model);
 
             // post-update check is needed if there's post-update rule or validation schema
             if (postGuard !== true || schema) {
@@ -567,7 +573,7 @@ export class PolicyUtil {
 
         // args processor for delete
         const processDelete = async (model: string, args: any, context: VisitorContext) => {
-            const guard = await this.getAuthGuard(model, 'delete');
+            const guard = this.getAuthGuard(model, 'delete');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'delete');
             } else if (guard !== true) {
@@ -641,7 +647,7 @@ export class PolicyUtil {
 
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             deleteMany: async (model, args, _context) => {
-                const guard = await this.getAuthGuard(model, 'delete');
+                const guard = this.getAuthGuard(model, 'delete');
                 if (guard === false) {
                     throw this.deniedByPolicy(model, 'delete');
                 } else if (guard !== true) {
@@ -741,8 +747,8 @@ export class PolicyUtil {
         operation: PolicyOperationKind,
         db: Record<string, DbOperations>
     ) {
-        const guard = await this.getAuthGuard(model, operation);
-        const schema = (operation === 'create' || operation === 'update') && (await this.getModelSchema(model));
+        const guard = this.getAuthGuard(model, operation);
+        const schema = (operation === 'create' || operation === 'update') && this.getModelSchema(model);
 
         if (guard === true && !schema) {
             // unconditionally allowed
@@ -839,7 +845,7 @@ export class PolicyUtil {
         //     this.logger.info(`Checking post-update policy for ${model}#${ids}, preValue: ${formatObject(preValue)}`);
         // }
 
-        const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
+        const guard = this.getAuthGuard(model, 'postUpdate', preValue);
 
         // build a query condition with policy injected
         const guardedQuery = { where: this.and(ids, guard) };
@@ -856,7 +862,7 @@ export class PolicyUtil {
         }
 
         // TODO: push down schema check to the database
-        const schema = await this.getModelSchema(model);
+        const schema = this.getModelSchema(model);
         if (schema) {
             const schemaCheckResult = schema.safeParse(entity);
             if (!schemaCheckResult.success) {

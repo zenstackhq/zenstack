@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { loadSchema } from '@zenstackhq/testtools';
 import RPCAPIHandler from '../../src/api/rpc';
 import { schema } from '../utils';
-import { ModelZodSchema } from '@zenstackhq/runtime/zod';
 
 describe('OpenAPI server tests', () => {
     let prisma: any;
@@ -163,7 +163,7 @@ describe('OpenAPI server tests', () => {
         });
         expect(r.status).toBe(400);
         expect((r.body as any).message).toContain('Validation error');
-        expect((r.body as any).message).toContain('data.title');
+        expect((r.body as any).message).toContain('data');
     });
 
     it('invalid path or args', async () => {
@@ -204,7 +204,7 @@ describe('OpenAPI server tests', () => {
     });
 });
 
-function makeHandler(zodSchemas?: ModelZodSchema) {
+function makeHandler(zodSchemas?: ZodSchemas) {
     const _handler = RPCAPIHandler();
     return async (args: any) => {
         return _handler({ ...args, url: new URL(`http://localhost/${args.path}`), zodSchemas });

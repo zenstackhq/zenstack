@@ -19,10 +19,11 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^4.7.0",
-    "@prisma/generator-helper": "^4.7.1",
-    "@prisma/internals": "^4.7.1",
+    "@prisma/generator-helper": "4.10.0",
+    "@prisma/internals": "4.10.0",
     "@zenstackhq/language": "workspace:*",
     "@zenstackhq/runtime": "workspace:*",
+    "json5": "^2.2.3",
     "prisma": "~4.7.0",
     "tmp": "^0.2.1",
     "zenstack": "workspace:*"

@@ -3,7 +3,7 @@
 import { CrudFailureReason } from '../../constants';
 import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
-import { ModelMeta, PolicyDef } from '../types';
+import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
@@ -19,12 +19,20 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         private readonly prisma: DbClient,
         private readonly policy: PolicyDef,
         private readonly modelMeta: ModelMeta,
+        private readonly zodSchemas: ZodSchemas | undefined,
         private readonly model: string,
         private readonly user?: AuthUser,
         private readonly logPrismaQuery?: boolean
     ) {
         this.logger = new Logger(prisma);
-        this.utils = new PolicyUtil(this.prisma, this.modelMeta, this.policy, this.user, this.logPrismaQuery);
+        this.utils = new PolicyUtil(
+            this.prisma,
+            this.modelMeta,
+            this.policy,
+            this.zodSchemas,
+            this.user,
+            this.logPrismaQuery
+        );
     }
 
     private get modelClient() {
@@ -39,7 +47,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
         }
 
-        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        const guard = this.utils.getAuthGuard(this.model, 'read');
         if (guard === false) {
             return null;
         }
@@ -49,7 +57,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findUniqueOrThrow(args: any) {
-        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        const guard = this.utils.getAuthGuard(this.model, 'read');
         if (guard === false) {
             throw this.utils.notFound(this.model);
         }
@@ -62,7 +70,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findFirst(args: any) {
-        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        const guard = this.utils.getAuthGuard(this.model, 'read');
         if (guard === false) {
             return null;
         }
@@ -72,7 +80,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findFirstOrThrow(args: any) {
-        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        const guard = this.utils.getAuthGuard(this.model, 'read');
         if (guard === false) {
             throw this.utils.notFound(this.model);
         }
@@ -85,7 +93,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async findMany(args: any) {
-        const guard = await this.utils.getAuthGuard(this.model, 'read');
+        const guard = this.utils.getAuthGuard(this.model, 'read');
         if (guard === false) {
             return [];
         }
@@ -340,8 +348,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return this.modelClient.count(args);
     }
 
-    async tryReject(operation: PolicyOperationKind) {
-        const guard = await this.utils.getAuthGuard(this.model, operation);
+    tryReject(operation: PolicyOperationKind) {
+        const guard = this.utils.getAuthGuard(this.model, operation);
         if (guard === false) {
             throw this.utils.deniedByPolicy(this.model, operation);
         }

@@ -24,17 +24,3 @@ export const PLUGIN_MODULE_NAME = 'plugin.zmodel';
 export enum IssueCodes {
     MissingOppositeRelation = 'miss-opposite-relation',
 }
-
-/**
- * Filter operation function names (mapped to Prisma filter operators)
- */
-export const FILTER_OPERATOR_FUNCTIONS = [
-    'contains',
-    'search',
-    'startsWith',
-    'endsWith',
-    'has',
-    'hasEvery',
-    'hasSome',
-    'isEmpty',
-];

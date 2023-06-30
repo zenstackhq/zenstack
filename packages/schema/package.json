@@ -83,8 +83,8 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
-        "@prisma/generator-helper": "^4.0.0",
-        "@prisma/internals": "^4.0.0",
+        "@prisma/generator-helper": "4.10.0",
+        "@prisma/internals": "4.10.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",
@@ -103,6 +103,7 @@
         "sleep-promise": "^9.1.0",
         "strip-color": "^0.1.0",
         "ts-morph": "^16.0.0",
+        "ts-pattern": "^4.3.0",
         "upper-case-first": "^2.0.2",
         "uuid": "^9.0.0",
         "vscode-jsonrpc": "^8.0.2",

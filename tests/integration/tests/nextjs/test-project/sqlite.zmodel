@@ -7,16 +7,6 @@ generator js {
     provider = 'prisma-client-js'
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    output = '.zenstack'
-}
-
-plugin policy {
-    provider = '@core/access-policy'
-    output = '.zenstack'
-}
-
 plugin swr {
     provider = '@zenstackhq/swr'
     output = 'lib/hooks'

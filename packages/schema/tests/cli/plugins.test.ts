@@ -72,6 +72,7 @@ describe('CLI Plugins Tests', () => {
         `plugin trpc {
             provider = '${path.join(__dirname, '../../../plugins/trpc/dist')}'
             output = 'lib/trpc'
+            zodSchemasImport = '../../../zod'
         }`,
         `plugin openapi {
             provider = '${path.join(__dirname, '../../../plugins/openapi/dist')}'

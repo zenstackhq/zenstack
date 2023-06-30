@@ -1,6 +1,5 @@
 import { DbClientContract } from '@zenstackhq/runtime';
-import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
-import { ModelZodSchema } from '@zenstackhq/runtime/zod';
+import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 
 type LoggerMethod = (message: string, code?: string) => void;
 
@@ -56,7 +55,7 @@ export type RequestContext = {
      * plugin. You can pass it in explicitly if you configured the plugin
      * to output to a different location.
      */
-    zodSchemas?: ModelZodSchema;
+    zodSchemas?: ZodSchemas;
 
     /**
      * Logging configuration. Set to `null` to disable logging.
@@ -98,7 +97,7 @@ export interface AdapterBaseOptions {
      * Zod schemas for validating request input. Pass `true` to load from standard location
      * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
      */
-    zodSchemas?: ModelZodSchema | boolean;
+    zodSchemas?: ZodSchemas | boolean;
 
     /**
      * Api request handler function. Can be created using `@zenstackhq/server/api/rest` or `@zenstackhq/server/api/rpc` factory functions.
