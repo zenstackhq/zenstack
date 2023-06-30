@@ -29,6 +29,7 @@ import removeDir from './utils/removeDir';
 import { upperCaseFirst } from 'upper-case-first';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 import { streamAllContents } from 'langium';
+import { isFromStdlib } from 'src/language-server/utils';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let output = options.output as string;
@@ -206,7 +207,11 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
         // import enums
         for (const field of fields) {
-            if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
+            if (
+                field.type.reference?.ref &&
+                isEnum(field.type.reference?.ref) &&
+                !isFromStdlib(field.type.reference?.ref)
+            ) {
                 const name = upperCaseFirst(field.type.reference?.ref.name);
                 writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
             }
