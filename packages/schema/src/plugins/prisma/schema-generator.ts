@@ -123,9 +123,15 @@ export default class PrismaSchemaGenerator {
         if (generateClient) {
             try {
                 // run 'prisma generate'
-                await execSync(`npx prisma generate --schema ${outFile}`);
+                await execSync(`npx prisma generate --schema ${outFile}`, 'ignore');
             } catch {
                 await this.trackPrismaSchemaError(outFile);
+                try {
+                    // run 'prisma generate' again with output to the console
+                    await execSync(`npx prisma generate --schema ${outFile}`);
+                } catch {
+                    // noop
+                }
                 throw new PluginError(name, `Failed to run "prisma generate"`);
             }
         }

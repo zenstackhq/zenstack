@@ -50,6 +50,20 @@ enum AttributeTargetField {
 }
 
 /**
+ * Indicates the expression context a function can be used.
+ */
+enum ExpressionContext {
+    // used in @default
+    DefaultValue
+
+    // used in @@allow and @@deny
+    AccessPolicy
+
+    // used in @@validate
+    ValidationRule
+}
+
+/**
  * Reads value from an environment variable.
  */
 function env(name: String): String {
@@ -59,98 +73,103 @@ function env(name: String): String {
  * Gets the current login user.
  */
 function auth(): Any {
-}
+} @@@expressionContext([AccessPolicy])
 
 /**
  * Gets current date-time (as DateTime type).
  */
 function now(): DateTime {
-}
+} @@@expressionContext([DefaultValue, AccessPolicy, ValidationRule])
 
 /**
  * Generates a globally unique identifier based on the UUID specs.
  */
 function uuid(): String {
-}
+} @@@expressionContext([DefaultValue])
 
 /**
  * Generates a globally unique identifier based on the CUID spec.
  */
 function cuid(): String {
-}
+} @@@expressionContext([DefaultValue])
 
 /**
  * Creates a sequence of integers in the underlying database and assign the incremented 
  * values to the ID values of the created records based on the sequence.
  */
 function autoincrement(): Int {
-}
+} @@@expressionContext([DefaultValue])
 
 /**
  * Represents default values that cannot be expressed in the Prisma schema (such as random()).
  */
 function dbgenerated(expr: String): Any {
-}
+} @@@expressionContext([DefaultValue])
 
 /**
  * Gets entities value before an update. Only valid when used in a "update" policy rule.
  */
 function future(): Any {
-}
+} @@@expressionContext([AccessPolicy])
 
 /**
  * If the field value contains the search string. By default, the search is case-sensitive,
  * but you can override the behavior with the "caseInSensitive" argument.
  */
 function contains(field: String, search: String, caseInSensitive: Boolean?): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * If the field value matches the search condition with [full-text-search](https://www.prisma.io/docs/concepts/components/prisma-client/full-text-search). Need to enable "fullTextSearch" preview feature to use.
  */
 function search(field: String, search: String): Boolean {
-}
+} @@@expressionContext([AccessPolicy])
 
 /**
  * If the field value starts with the search string
  */
 function startsWith(field: String, search: String): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * If the field value ends with the search string
  */
 function endsWith(field: String, search: String): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * If the field value (a list) has the given search value
  */
 function has(field: Any[], search: Any): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * If the field value (a list) has every element of the search list
  */
 function hasEvery(field: Any[], search: Any[]): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * If the field value (a list) has at least one element of the search list
  */
 function hasSome(field: Any[], search: Any[]): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * If the field value (a list) is empty
  */
 function isEmpty(field: Any[]): Boolean {
-}
+} @@@expressionContext([AccessPolicy, ValidationRule])
 
 /**
  * Marks an attribute to be only applicable to certain field types.
  */
 attribute @@@targetField(targetField: AttributeTargetField[])
+
+/**
+ * Indicates the expression context a function can be used.
+ */
+attribute @@@expressionContext(_ context: ExpressionContext[])
 
 /**
  * Indicates an attribute is directly supported by the Prisma schema.
@@ -351,60 +370,109 @@ attribute @password(saltLength: Int?, salt: String?) @@@targetField([StringField
  */
 attribute @omit()
 
+//////////////////////////////////////////////
+// Begin validation attributes and functions
+//////////////////////////////////////////////
+
 /**
  * Validates length of a string field.
  */
-attribute @length(_ min: Int?, _ max: Int?) @@@targetField([StringField])
-
-/**
- * Validates a string field value matches a regex.
- */
-attribute @regex(_ regex: String) @@@targetField([StringField])
+attribute @length(_ min: Int?, _ max: Int?, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value starts with the given text.
  */
-attribute @startsWith(_ text: String) @@@targetField([StringField])
+attribute @startsWith(_ text: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value ends with the given text.
  */
-attribute @endsWith(_ text: String) @@@targetField([StringField])
+attribute @endsWith(_ text: String, _ message: String?) @@@targetField([StringField])
+
+/**
+ * Validates a string field value contains the given text.
+ */
+attribute @contains(_ text: String, _ message: String?) @@@targetField([StringField])
+
+/**
+ * Validates a string field value matches a regex.
+ */
+attribute @regex(_ regex: String, _ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid email address.
  */
-attribute @email() @@@targetField([StringField])
+attribute @email(_ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid ISO datetime.
  */
-attribute @datetime() @@@targetField([StringField])
+attribute @datetime(_ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a string field value is a valid url.
  */
-attribute @url() @@@targetField([StringField])
+attribute @url(_ message: String?) @@@targetField([StringField])
 
 /**
  * Validates a number field is greater than the given value.
  */
-attribute @gt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @gt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
 /**
  * Validates a number field is greater than or equal to the given value.
  */
-attribute @gte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @gte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
 /**
  * Validates a number field is less than the given value.
  */
-attribute @lt(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @lt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
 
 /**
  * Validates a number field is less than or equal to the given value.
  */
-attribute @lte(_ value: Int) @@@targetField([IntField, FloatField, DecimalField])
+attribute @lte(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField])
+
+/**
+ * Validates the entity with a complex condition.
+ */
+attribute @@validate(_ value: Boolean, _ message: String?)
+
+/**
+ * Validates length of a string field.
+ */
+function length(field: String, min: Int, max: Int?): Boolean {
+} @@@expressionContext([ValidationRule])
+
+
+/**
+ * Validates a string field value matches a regex.
+ */
+function regex(field: String, regex: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid email address.
+ */
+function email(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid ISO datetime.
+ */
+function datetime(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+/**
+ * Validates a string field value is a valid url.
+ */
+function url(field: String): Boolean {
+} @@@expressionContext([ValidationRule])
+
+//////////////////////////////////////////////
+// End validation attributes and functions
+//////////////////////////////////////////////
 
 /**
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.

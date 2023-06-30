@@ -7,8 +7,11 @@ import {
     Enum,
     EnumField,
     Expression,
+    FunctionDecl,
+    InternalAttribute,
     isArrayExpr,
     isDataModel,
+    isEnumField,
     isLiteralExpr,
     isObjectExpr,
     isReferenceExpr,
@@ -18,6 +21,7 @@ import {
 } from '@zenstackhq/language/ast';
 import path from 'path';
 import { PluginOptions } from './types';
+import { ExpressionContext } from './constants';
 
 /**
  * Gets data models that are not ignored
@@ -50,12 +54,12 @@ export function getArray(expr: Expression | undefined): Expression[] | undefined
 export function getLiteralArray<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     T extends string | number | boolean | any = any
->(expr: Expression | undefined): (T | undefined)[] | undefined {
+>(expr: Expression | undefined): T[] | undefined {
     const arr = getArray(expr);
     if (!arr) {
         return undefined;
     }
-    return arr.map((item) => getLiteral<T>(item));
+    return arr.map((item) => getLiteral<T>(item)).filter((v): v is T => v !== undefined);
 }
 
 export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined {
@@ -92,7 +96,9 @@ export function hasAttribute(decl: DataModel | DataModelField | Enum | EnumField
     );
 }
 
-export function getAttributeArgs(attr: DataModelAttribute | DataModelFieldAttribute): Record<string, Expression> {
+export function getAttributeArgs(
+    attr: DataModelAttribute | DataModelFieldAttribute | InternalAttribute
+): Record<string, Expression> {
     const result: Record<string, Expression> = {};
     for (const arg of attr.args) {
         if (!arg.$resolvedParam) {
@@ -104,7 +110,7 @@ export function getAttributeArgs(attr: DataModelAttribute | DataModelFieldAttrib
 }
 
 export function getAttributeArg(
-    attr: DataModelAttribute | DataModelFieldAttribute,
+    attr: DataModelAttribute | DataModelFieldAttribute | InternalAttribute,
     name: string
 ): Expression | undefined {
     for (const arg of attr.args) {
@@ -125,6 +131,10 @@ export function getAttributeArgLiteral<T extends string | number | boolean>(
         }
     }
     return undefined;
+}
+
+export function isEnumFieldReference(expr: Expression): expr is ReferenceExpr {
+    return isReferenceExpr(expr) && isEnumField(expr.target.ref);
 }
 
 /**
@@ -211,4 +221,20 @@ export function requireOption<T>(options: PluginOptions, name: string): T {
         throw new Error(`Plugin "${options.name}" is missing required option: ${name}`);
     }
     return value as T;
+}
+
+export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
+    const funcAllowedContext: ExpressionContext[] = [];
+    const funcAttr = funcDecl.attributes.find((attr) => attr.decl.$refText === '@@@expressionContext');
+    if (funcAttr) {
+        const contextArg = getAttributeArg(funcAttr, 'context');
+        if (isArrayExpr(contextArg)) {
+            contextArg.items.forEach((item) => {
+                if (isEnumFieldReference(item)) {
+                    funcAllowedContext.push(item.target.$refText as ExpressionContext);
+                }
+            });
+        }
+    }
+    return funcAllowedContext;
 }

@@ -388,7 +388,7 @@ describe('Attribute tests', () => {
         ).toContain(`Value is not assignable to parameter`);
     });
 
-    it('filter function check', async () => {
+    it('policy filter function check', async () => {
         await loadModel(`
             ${prelude}
             enum E {
@@ -533,6 +533,149 @@ describe('Attribute tests', () => {
         ).toContain('argument is not assignable to parameter');
     });
 
+    it('validator filter function check', async () => {
+        await loadModel(`
+            ${prelude}
+            enum E {
+                E1
+                E2
+            }
+
+            model N {
+                id String @id
+                e E
+                es E[]
+                s String
+                i Int
+                m M @relation(fields: [mId], references: [id])
+                mId String @unique
+            }
+
+            model M {
+                id String @id
+                s String
+                e E
+                es E[]
+                n N?
+
+                @@validate(e in [E1, E2])
+                @@validate(contains(s, 'a'))
+                @@validate(contains(s, 'a', true))
+                @@validate(startsWith(s, 'a'))
+                @@validate(endsWith(s, 'a'))
+                @@validate(has(es, E1))
+                @@validate(hasSome(es, [E1]))
+                @@validate(hasEvery(es, [E1]))
+                @@validate(isEmpty(es))
+
+                @@validate(n.e in [E1, E2])
+                @@validate(n.i in [1, 2])
+                @@validate(contains(n.s, 'a'))
+                @@validate(contains(n.s, 'a', true))
+                @@validate(startsWith(n.s, 'a'))
+                @@validate(endsWith(n.s, 'a'))
+                @@validate(has(n.es, E1))
+                @@validate(hasSome(n.es, [E1]))
+                @@validate(hasEvery(n.es, [E1]))
+                @@validate(isEmpty(n.es))
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@validate(contains(s))
+            }
+        `)
+        ).toContain('missing argument for parameter "search"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@validate(contains('a', s))
+            }
+        `)
+        ).toContain('first argument must be a field reference');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                s1 String
+                @@validate(contains(s, s1))
+            }
+        `)
+        ).toContain('second argument must be a literal, an enum, or an array of them');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@validate(contains(i, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@validate(i in 1)
+            }
+        `)
+        ).toContain('right operand of "in" must be an array');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model N { 
+                id String @id 
+                m M @relation(fields: [mId], references: [id])
+                mId String
+            }
+            model M {
+                id String @id
+                n N?
+                @@validate(n in [1])
+            }
+        `)
+        ).toContain('left operand of "in" must be of scalar type');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@validate(has(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int[]
+                @@validate(hasSome(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+    });
+
     it('auth function check', async () => {
         expect(
             await loadModelWithError(`
@@ -646,5 +789,47 @@ describe('Attribute tests', () => {
                 e E @default(E1)
             }
         `);
+    });
+
+    it('incorrect function expression context', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id @default(auth())
+            }
+        `)
+        ).toContain('function "auth" is not allowed in the current context: DefaultValue');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                @@allow('all', autoincrement() > 0)
+            }
+        `)
+        ).toContain('function "autoincrement" is not allowed in the current context: AccessPolicy');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                @@deny('all', uuid() == null)
+            }
+        `)
+        ).toContain('function "uuid" is not allowed in the current context: AccessPolicy');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x String
+                @@validate(search(x, 'abc'))
+            }
+        `)
+        ).toContain('function "search" is not allowed in the current context: ValidationRule');
     });
 });

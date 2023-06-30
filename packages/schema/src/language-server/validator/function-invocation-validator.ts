@@ -1,18 +1,23 @@
 import {
     Argument,
+    DataModelAttribute,
+    DataModelFieldAttribute,
     Expression,
     FunctionDecl,
     FunctionParam,
     InvocationExpr,
     isArrayExpr,
+    isDataModelAttribute,
+    isDataModelFieldAttribute,
     isLiteralExpr,
 } from '@zenstackhq/language/ast';
-import { ValidationAcceptor } from 'langium';
-import { getDataModelFieldReference, isEnumFieldReference } from '../../utils/ast-utils';
-import { FILTER_OPERATOR_FUNCTIONS } from '../constants';
+import { AstNode, ValidationAcceptor } from 'langium';
+import { getDataModelFieldReference } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { isFromStdlib } from '../utils';
 import { typeAssignable } from './utils';
+import { match, P } from 'ts-pattern';
+import { ExpressionContext, getFunctionExpressionContext, isEnumFieldReference } from '@zenstackhq/sdk';
 
 /**
  * InvocationExpr validation
@@ -32,8 +37,39 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         if (isFromStdlib(funcDecl)) {
             // validate standard library functions
 
-            if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
-                // filter operation functions
+            // find the containing attribute context for the invocation
+            let curr: AstNode | undefined = expr.$container;
+            let containerAttribute: DataModelAttribute | DataModelFieldAttribute | undefined;
+            while (curr) {
+                if (isDataModelAttribute(curr) || isDataModelFieldAttribute(curr)) {
+                    containerAttribute = curr;
+                    break;
+                }
+                curr = curr.$container;
+            }
+
+            // validate the context allowed for the function
+            const exprContext = match(containerAttribute?.decl.$refText)
+                .with('@default', () => ExpressionContext.DefaultValue)
+                .with(P.union('@@allow', '@@deny'), () => ExpressionContext.AccessPolicy)
+                .with('@@validate', () => ExpressionContext.ValidationRule)
+                .otherwise(() => undefined);
+
+            // get the context allowed for the function
+            const funcAllowedContext = getFunctionExpressionContext(funcDecl);
+
+            if (exprContext && !funcAllowedContext.includes(exprContext)) {
+                accept('error', `function "${funcDecl.name}" is not allowed in the current context: ${exprContext}`, {
+                    node: expr,
+                });
+                return;
+            }
+
+            if (
+                funcAllowedContext.includes(ExpressionContext.AccessPolicy) ||
+                funcAllowedContext.includes(ExpressionContext.ValidationRule)
+            ) {
+                // filter operation functions validation
 
                 // first argument must refer to a model field
                 const firstArg = expr.args?.[0]?.value;

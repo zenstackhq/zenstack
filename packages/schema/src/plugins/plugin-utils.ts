@@ -22,12 +22,29 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
 }
 
 /**
+ * Ensure the default output folder is initialized.
+ */
+export function ensureDefaultOutputFolder() {
+    const output = getDefaultOutputFolder();
+    if (output && !fs.existsSync(output)) {
+        fs.mkdirSync(output, { recursive: true });
+        fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify({ name: '.zenstack', version: '1.0.0' }));
+    }
+}
+
+/**
  * Gets the default node_modules/.zenstack output folder for plugins.
  * @returns
  */
 export function getDefaultOutputFolder() {
     // Find the real runtime module path, it might be a symlink in pnpm
     let runtimeModulePath = require.resolve('@zenstackhq/runtime');
+
+    if (process.env.NODE_ENV === 'test') {
+        // handling the case when running as tests, resolve relative to CWD
+        runtimeModulePath = path.resolve(path.join(process.cwd(), 'node_modules', '@zenstackhq', 'runtime'));
+    }
+
     if (runtimeModulePath) {
         // start with the parent folder of @zenstackhq, supposed to be a node_modules folder
         while (!runtimeModulePath.endsWith('@zenstackhq') && runtimeModulePath !== '/') {

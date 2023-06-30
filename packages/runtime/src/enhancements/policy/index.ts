@@ -3,7 +3,7 @@
 import { AuthUser, DbClientContract } from '../../types';
 import { getDefaultModelMeta } from '../model-meta';
 import { makeProxy } from '../proxy';
-import { ModelMeta, PolicyDef } from '../types';
+import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { PolicyProxyHandler } from './handler';
 
 /**
@@ -28,6 +28,11 @@ export type WithPolicyOptions = {
     modelMeta?: ModelMeta;
 
     /**
+     * Zod schemas for validation
+     */
+    zodSchemas?: ZodSchemas;
+
+    /**
      * Whether to log Prisma query
      */
     logPrismaQuery?: boolean;
@@ -48,6 +53,8 @@ export function withPolicy<DbClient extends object>(
 ): DbClient {
     const _policy = options?.policy ?? getDefaultPolicy();
     const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
+    const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas();
+
     return makeProxy(
         prisma,
         _modelMeta,
@@ -56,6 +63,7 @@ export function withPolicy<DbClient extends object>(
                 _prisma as DbClientContract,
                 _policy,
                 _modelMeta,
+                _zodSchemas,
                 model,
                 context?.user,
                 options?.logPrismaQuery
@@ -72,5 +80,14 @@ function getDefaultPolicy(): PolicyDef {
         throw new Error(
             'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
         );
+    }
+}
+
+function getDefaultZodSchemas(): ZodSchemas | undefined {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        return require('.zenstack/zod');
+    } catch {
+        return undefined;
     }
 }

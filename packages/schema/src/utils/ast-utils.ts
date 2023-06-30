@@ -6,7 +6,6 @@ import {
     isArrayExpr,
     isDataModel,
     isDataModelField,
-    isEnumField,
     isInvocationExpr,
     isMemberAccessExpr,
     isModel,
@@ -163,10 +162,6 @@ export function getIdFields(dataModel: DataModel) {
 
 export function isAuthInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
-}
-
-export function isEnumFieldReference(expr: Expression) {
-    return isReferenceExpr(expr) && isEnumField(expr.target.ref);
 }
 
 export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
