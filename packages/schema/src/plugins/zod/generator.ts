@@ -7,12 +7,12 @@ import {
     emitProject,
     getDataModels,
     getLiteral,
+    getPrismaClientImportSpec,
     hasAttribute,
+    isEnumFieldReference,
     isForeignKeyField,
     resolvePath,
     saveProject,
-    isEnumFieldReference,
-    getPrismaClientImportSpec,
 } from '@zenstackhq/sdk';
 import { DataModel, DataSource, EnumField, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
 import {
@@ -21,15 +21,15 @@ import {
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
 import { promises as fs } from 'fs';
+import { streamAllContents } from 'langium';
 import path from 'path';
 import { Project } from 'ts-morph';
+import { upperCaseFirst } from 'upper-case-first';
+import { isFromStdlib } from '../../language-server/utils';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
-import { upperCaseFirst } from 'upper-case-first';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
-import { streamAllContents } from 'langium';
-import { isFromStdlib } from 'src/language-server/utils';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let output = options.output as string;
