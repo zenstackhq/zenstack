@@ -133,8 +133,8 @@ export function getAttributeArgLiteral<T extends string | number | boolean>(
     return undefined;
 }
 
-export function isEnumFieldReference(expr: Expression): expr is ReferenceExpr {
-    return isReferenceExpr(expr) && isEnumField(expr.target.ref);
+export function isEnumFieldReference(node: AstNode): node is ReferenceExpr {
+    return isReferenceExpr(node) && isEnumField(node.target.ref);
 }
 
 /**
