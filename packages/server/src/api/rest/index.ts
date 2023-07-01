@@ -11,12 +11,12 @@ import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
+
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig, RequestContext, Response } from '../../types';
 import { logWarning, stripAuxFields } from '../utils';
-import Meta from 'ts-japi/lib/models/meta.model';
 
 const urlPatterns = {
     // collection operations
@@ -603,7 +603,7 @@ class RequestHandler {
 
             const body = await this.serializeItems(type, entities, { include });
             const total = entities.length;
-            body.meta = this.addTotalCountToMeta(total, body.meta);
+            body.meta = this.addTotalCountToMeta(body.meta, total);
 
             return {
                 status: 200,
@@ -625,7 +625,7 @@ class RequestHandler {
                 },
             };
             const body = await this.serializeItems(type, entities, options);
-            body.meta = this.addTotalCountToMeta(total, body.meta);
+            body.meta = this.addTotalCountToMeta(body.meta, total);
 
             return {
                 status: 200,
@@ -634,17 +634,8 @@ class RequestHandler {
         }
     }
 
-    private addTotalCountToMeta(total: number, meta?: Meta) {
-        if (meta) {
-            return new Meta({
-                ...meta,
-                total,
-            });
-        }
-
-        return new Meta({
-            total,
-        });
+    private addTotalCountToMeta(meta: any, total: any) {
+        return meta ? Object.assign(meta, { total }) : Object.assign({}, { total });
     }
 
     private makePaginator(baseUrl: string, offset: number, limit: number, total: number) {
