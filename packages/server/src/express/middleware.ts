@@ -14,6 +14,13 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (req: Request, res: Response) => unknown | Promise<unknown>;
+    /**
+     * This option is used to enable/disable the option to manage the response
+     * by the middleware. If set to true, the middleware will not send the
+     * response and the user will be responsible for sending the response.
+     * Defaults to true;
+     */
+    manageCustomResponse?: boolean;
 }
 
 /**
@@ -32,6 +39,12 @@ const factory = (options: MiddlewareOptions): Handler => {
 
     return async (request, response) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
+        const { manageCustomResponse } = options;
+
+        if (manageCustomResponse && !prisma) {
+            throw new Error('unable to get prisma from request context');
+        }
+
         if (!prisma) {
             response
                 .status(500)
@@ -53,6 +66,9 @@ const factory = (options: MiddlewareOptions): Handler => {
             }
             query = buildUrlQuery(rawQuery, useSuperJson);
         } catch {
+            if (manageCustomResponse) {
+                throw new Error('invalid query parameters');
+            }
             response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
             return;
         }
@@ -68,8 +84,17 @@ const factory = (options: MiddlewareOptions): Handler => {
                 zodSchemas,
                 logger: options.logger,
             });
+            if (manageCustomResponse) {
+                return {
+                    status: r.status,
+                    body: r.body,
+                };
+            }
             response.status(r.status).json(marshalToObject(r.body, useSuperJson));
         } catch (err) {
+            if (manageCustomResponse) {
+                throw err;
+            }
             response
                 .status(500)
                 .json(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
