@@ -496,4 +496,17 @@ describe('Parsing Tests', () => {
         `;
         await loadModel(content, false);
     });
+
+    it('boolean prefix id', async () => {
+        const content = `   
+            model trueModel {
+                id String @id
+                isPublic Boolean @default(false)
+                trueText String? 
+                falseText String?
+                @@allow('all', isPublic == true)
+            }
+                `;
+        await loadModel(content, false);
+    });
 });

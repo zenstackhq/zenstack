@@ -39,7 +39,7 @@ Expression:
     LogicalExpr;
 
 LiteralExpr:
-    value=(BOOLEAN | NUMBER | STRING);
+    value=(Boolean | NUMBER | STRING);
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
@@ -255,8 +255,10 @@ ExpressionType returns string:
 BuiltinType returns string:
     'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes';
 
+Boolean returns boolean:
+    'true' | 'false';
+
 hidden terminal WS: /\s+/;
-terminal BOOLEAN returns boolean: /true|false/;
 terminal NULL: 'null';
 terminal THIS: 'this';
 terminal ID: /[_a-zA-Z][\w_]*/;
