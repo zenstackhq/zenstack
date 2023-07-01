@@ -599,9 +599,14 @@ class RequestHandler {
 
         if (limit === Infinity) {
             const entities = await prisma[type].findMany(args);
+
+            const body = await this.serializeItems(type, entities, { include });
+            const total = entities.length;
+            body.meta = this.addTotalCountToMeta(body.meta, total);
+
             return {
                 status: 200,
-                body: await this.serializeItems(type, entities, { include }),
+                body: body,
             };
         } else {
             args.take = limit;
@@ -618,12 +623,18 @@ class RequestHandler {
                     paginator: this.makePaginator(url, offset, limit, total),
                 },
             };
+            const body = await this.serializeItems(type, entities, options);
+            body.meta = this.addTotalCountToMeta(body.meta, total);
 
             return {
                 status: 200,
-                body: await this.serializeItems(type, entities, options),
+                body: body,
             };
         }
+    }
+
+    private addTotalCountToMeta(meta: any, total: any) {
+        return meta ? Object.assign(meta, { total }) : Object.assign({}, { total });
     }
 
     private makePaginator(baseUrl: string, offset: number, limit: number, total: number) {
