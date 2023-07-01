@@ -18,7 +18,8 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
      * This option is used to enable/disable the option to manage the response
      * by the middleware. If set to true, the middleware will not send the
      * response and the user will be responsible for sending the response.
-     * Defaults to true;
+     *
+     * Defaults to false;
      */
     manageCustomResponse?: boolean;
 }
