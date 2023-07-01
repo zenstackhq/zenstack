@@ -6,7 +6,7 @@ import { type CreateTRPCNext, createTRPCNext as _createTRPCNext } from '@trpc/ne
 import type { DeepOverrideAtPath } from './utils';
 import type { ClientType } from '../routers';
 
-export function createTRPCReact<
+export function createTRPCNext<
     TRouter extends AnyRouter,
     TPath extends string | undefined = undefined,
     TSSRContext extends NextPageContext = NextPageContext,

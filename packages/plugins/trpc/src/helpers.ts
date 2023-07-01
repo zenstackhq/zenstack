@@ -53,10 +53,6 @@ function getPrismaOperationTypes(model: string, operation: string) {
     switch (operation) {
         case 'findUnique':
         case 'findUniqueOrThrow':
-            argsType = selectSubset;
-            resultType = getPayload;
-            break;
-
         case 'findFirst':
         case 'findFirstOrThrow':
             argsType = selectSubset;
@@ -65,7 +61,7 @@ function getPrismaOperationTypes(model: string, operation: string) {
 
         case 'findMany':
             argsType = selectSubset;
-            resultType = getPayload;
+            resultType = `Array<${getPayload}>`;
             break;
 
         case 'create':
