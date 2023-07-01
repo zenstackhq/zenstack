@@ -11,7 +11,6 @@ import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
-
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
