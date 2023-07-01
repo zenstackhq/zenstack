@@ -47,10 +47,9 @@ const factory = (options: MiddlewareOptions): Handler => {
         }
 
         if (!prisma) {
-            response
+            return response
                 .status(500)
                 .json(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
-            return;
         }
 
         let query: Record<string, string | string[]> = {};
@@ -70,8 +69,7 @@ const factory = (options: MiddlewareOptions): Handler => {
             if (manageCustomResponse) {
                 throw new Error('invalid query parameters');
             }
-            response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
-            return;
+            return response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
         }
 
         try {
@@ -91,12 +89,12 @@ const factory = (options: MiddlewareOptions): Handler => {
                     body: r.body,
                 };
             }
-            response.status(r.status).json(marshalToObject(r.body, useSuperJson));
+            return response.status(r.status).json(marshalToObject(r.body, useSuperJson));
         } catch (err) {
             if (manageCustomResponse) {
                 throw err;
             }
-            response
+            return response
                 .status(500)
                 .json(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
         }
