@@ -1,19 +1,6 @@
 import type { DataModel, DataModelAttribute } from './ast';
 import { getLiteral } from './utils';
-
-export const VALIDATION_ATTRIBUTES = [
-    '@length',
-    '@regex',
-    '@startsWith',
-    '@endsWith',
-    '@email',
-    '@url',
-    '@datetime',
-    '@gt',
-    '@gte',
-    '@lt',
-    '@lte',
-];
+import { hasValidationAttributes } from './validation';
 
 export function analyzePolicies(dataModel: DataModel) {
     const allows = dataModel.attributes.filter((attr) => attr.decl.ref?.name === '@@allow');
@@ -23,9 +10,7 @@ export function analyzePolicies(dataModel: DataModel) {
     const read = toStaticPolicy('read', allows, denies);
     const update = toStaticPolicy('update', allows, denies);
     const del = toStaticPolicy('delete', allows, denies);
-    const hasFieldValidation = dataModel.fields.some((field) =>
-        field.attributes.some((attr) => VALIDATION_ATTRIBUTES.includes(attr.decl.$refText))
-    );
+    const hasFieldValidation = hasValidationAttributes(dataModel);
 
     return {
         allows,
