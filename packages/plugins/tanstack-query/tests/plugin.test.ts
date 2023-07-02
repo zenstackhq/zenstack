@@ -90,7 +90,7 @@ ${sharedModel}
         `,
             true,
             false,
-            [`${origDir}/dist`, 'svelte@^3.0.0', '@types/react', '@tanstack/svelte-query'],
+            [`${origDir}/dist`, 'svelte@4.0.0', '@types/react', '@tanstack/svelte-query'],
             true
         );
     });
@@ -109,7 +109,7 @@ ${sharedModel}
         `,
             true,
             false,
-            [`${origDir}/dist`, 'svelte@^3.0.0', '@types/react', '@tanstack/svelte-query', 'superjson'],
+            [`${origDir}/dist`, 'svelte@^4.0.0', '@types/react', '@tanstack/svelte-query', 'superjson'],
             true
         );
     });
