@@ -3,7 +3,16 @@
 import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF } from '@prisma/internals';
 import { isPlugin, Plugin } from '@zenstackhq/language/ast';
-import { getLiteral, getLiteralArray, PluginError, PluginFunction, PluginOptions, resolvePath } from '@zenstackhq/sdk';
+import {
+    getDataModels,
+    getLiteral,
+    getLiteralArray,
+    hasValidationAttributes,
+    PluginError,
+    PluginFunction,
+    PluginOptions,
+    resolvePath,
+} from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
@@ -90,13 +99,21 @@ export class PluginRunner {
         }
 
         // make sure prerequisites are included
-        const corePlugins = [
-            '@core/prisma',
-            '@core/model-meta',
-            '@core/access-policy',
-            // core dependencies introduced by dependencies
-            ...plugins.flatMap((p) => p.dependencies).filter((dep) => dep.startsWith('@core/')),
-        ];
+        const corePlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy'];
+
+        if (getDataModels(context.schema).some((model) => hasValidationAttributes(model))) {
+            // '@core/zod' plugin is auto-enabled if there're validation rules
+            corePlugins.push('@core/zod');
+        }
+
+        // core dependencies introduced by dependencies
+        plugins
+            .flatMap((p) => p.dependencies)
+            .forEach((dep) => {
+                if (dep.startsWith('@core/') && !corePlugins.includes(dep)) {
+                    corePlugins.push(dep);
+                }
+            });
 
         for (const corePlugin of corePlugins.reverse()) {
             const existingIdx = plugins.findIndex((p) => p.provider === corePlugin);

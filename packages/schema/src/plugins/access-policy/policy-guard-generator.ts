@@ -24,7 +24,7 @@ import {
     getLiteral,
     getPrismaClientImportSpec,
     GUARD_FIELD_NAME,
-    hasAttribute,
+    hasValidationAttributes,
     PluginError,
     PluginOptions,
     resolved,
@@ -38,7 +38,7 @@ import path from 'path';
 import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
-import { getIdFields, isAuthInvocation, VALIDATION_ATTRIBUTES } from '../../utils/ast-utils';
+import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
 import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
@@ -113,7 +113,7 @@ export default class PolicyGenerator {
                                 for (const model of models) {
                                     writer.write(`${lowerCaseFirst(model.name)}:`);
                                     writer.inlineBlock(() => {
-                                        writer.write(`hasValidation: ${this.hasValidationAttributes(model)}`);
+                                        writer.write(`hasValidation: ${hasValidationAttributes(model)}`);
                                     });
                                     writer.writeLine(',');
                                 }
@@ -134,13 +134,6 @@ export default class PolicyGenerator {
         if (shouldCompile) {
             await emitProject(project);
         }
-    }
-
-    private hasValidationAttributes(model: DataModel) {
-        return (
-            hasAttribute(model, '@@validate') ||
-            model.fields.some((field) => VALIDATION_ATTRIBUTES.some((attr) => hasAttribute(field, attr)))
-        );
     }
 
     private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {

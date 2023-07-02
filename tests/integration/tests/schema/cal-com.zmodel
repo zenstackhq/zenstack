@@ -11,10 +11,6 @@ generator client {
     previewFeatures = []
 }
 
-plugin zod {
-    provider = '@core/zod'
-}
-
 enum SchedulingType {
     ROUND_ROBIN @map("roundRobin")
     COLLECTIVE  @map("collective")
