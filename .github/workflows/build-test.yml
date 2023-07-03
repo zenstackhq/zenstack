@@ -22,43 +22,43 @@ jobs:
         steps:
             - uses: actions/checkout@v3
 
-            - name: Install pnpm
-              uses: pnpm/action-setup@v2
-              with:
-                  version: ^7.15.0
-
             - name: Use Node.js ${{ matrix.node-version }}
               uses: buildjet/setup-node@v3
               with:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
 
-            - name: Get pnpm store directory
-                id: pnpm-cache
-                shell: bash
-                run: |
-                    echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+            - name: Install pnpm
+              uses: pnpm/action-setup@v2
+              with:
+                  version: ^7.15.0
 
-            - uses: buildjet/cache@v3
-                name: Setup pnpm cache
-                with:
-                    path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-                    key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-                    restore-keys: |
-                        ${{ runner.os }}-pnpm-store-
+            - name: Get pnpm store directory
+              id: pnpm-cache
+              shell: bash
+              run: |
+                  echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: Setup pnpm cache
+              uses: buildjet/cache@v3
+              with:
+                  path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
 
             - name: Install dependencies
-                run: pnpm install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             - name: Build
-                run: DEFAULT_NPM_TAG=latest pnpm run build
+              run: DEFAULT_NPM_TAG=latest pnpm run build
 
             - name: Lint
-                run: pnpm lint
+              run: pnpm lint
 
             # install again for internal dependencies
             - name: Install internal dependencies
-                run: pnpm install --frozen-lockfile
+              run: pnpm install --frozen-lockfile
 
             - name: Test
-                run: pnpm run test-ci
+              run: pnpm run test-ci
