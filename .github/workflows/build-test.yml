@@ -13,7 +13,7 @@ on:
 
 jobs:
     build-test:
-        runs-on: buildjet-4vcpu-ubuntu-2204
+        runs-on: buildjet-8vcpu-ubuntu-2204
 
         strategy:
             matrix:
@@ -21,19 +21,44 @@ jobs:
 
         steps:
             - uses: actions/checkout@v3
+
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
                   version: ^7.15.0
+
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v3
+              uses: buildjet/setup-node@v3
               with:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
-            - run: pnpm install --frozen-lockfile
-            - run: DEFAULT_NPM_TAG=latest pnpm run build
-            - run: pnpm lint
+
+            - name: Get pnpm store directory
+              id: pnpm-cache
+              shell: bash
+              run: |
+                  echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: Setup pnpm cache
+              uses: buildjet/cache@v3
+              with:
+                  path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build
+              run: DEFAULT_NPM_TAG=latest pnpm run build
+
+            - name: Lint
+              run: pnpm lint
 
             # install again for internal dependencies
-            - run: pnpm install --frozen-lockfile
-            - run: pnpm run test
+            - name: Install internal dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Test
+              run: pnpm run test-ci
