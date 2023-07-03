@@ -19,9 +19,12 @@ import {
     analyzePolicies,
     createProject,
     emitProject,
+    ExpressionContext,
     getDataModels,
     getLiteral,
+    getPrismaClientImportSpec,
     GUARD_FIELD_NAME,
+    hasValidationAttributes,
     PluginError,
     PluginOptions,
     resolved,
@@ -36,11 +39,13 @@ import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-mor
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
+import {
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
+} from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter } from './expression-writer';
-import TypeScriptExpressionTransformer from './typescript-expression-transformer';
 import { isFutureExpr } from './utils';
-import { ZodSchemaGenerator } from './zod-schema-generator';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -63,10 +68,11 @@ export default class PolicyGenerator {
         });
 
         // import enums
+        const prismaImport = getPrismaClientImportSpec(model, output);
         for (const e of model.declarations.filter((d) => isEnum(d))) {
             sf.addImportDeclaration({
                 namedImports: [{ name: e.name }],
-                moduleSpecifier: '@prisma/client',
+                moduleSpecifier: prismaImport,
             });
         }
 
@@ -76,10 +82,6 @@ export default class PolicyGenerator {
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
-
-        const zodGenerator = new ZodSchemaGenerator();
-
-        let fieldSchemaGenerated = false;
 
         sf.addVariableStatement({
             declarationKind: VariableDeclarationKind.Const,
@@ -104,25 +106,23 @@ export default class PolicyGenerator {
                                     writer.write(',');
                                 }
                             });
-
                             writer.writeLine(',');
 
-                            writer.write('schema:');
-                            if (zodGenerator.generate(writer, models)) {
-                                fieldSchemaGenerated = true;
-                            }
+                            writer.write('validation:');
+                            writer.inlineBlock(() => {
+                                for (const model of models) {
+                                    writer.write(`${lowerCaseFirst(model.name)}:`);
+                                    writer.inlineBlock(() => {
+                                        writer.write(`hasValidation: ${hasValidationAttributes(model)}`);
+                                    });
+                                    writer.writeLine(',');
+                                }
+                            });
                         });
                     },
                 },
             ],
         });
-
-        if (fieldSchemaGenerated) {
-            sf.addImportDeclaration({
-                namedImports: [{ name: 'z' }],
-                moduleSpecifier: 'zod',
-            });
-        }
 
         sf.addStatements('export default policy');
 
@@ -360,7 +360,7 @@ export default class PolicyGenerator {
         }
 
         const hasFieldAccess = [...denies, ...allows].some((rule) =>
-            streamAllContents(rule).some(
+            [rule, ...streamAllContents(rule)].some(
                 (child) =>
                     // this.???
                     isThisExpr(child) ||
@@ -375,13 +375,24 @@ export default class PolicyGenerator {
             // none of the rules reference model fields, we can compile down to a plain boolean
             // function in this case (so we can skip doing SQL queries when validating)
             func.addStatements((writer) => {
-                const transformer = new TypeScriptExpressionTransformer(kind === 'postUpdate');
-                denies.forEach((rule) => {
-                    writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
+                const transformer = new TypeScriptExpressionTransformer({
+                    context: ExpressionContext.AccessPolicy,
+                    isPostGuard: kind === 'postUpdate',
                 });
-                allows.forEach((rule) => {
-                    writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
-                });
+                try {
+                    denies.forEach((rule) => {
+                        writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
+                    });
+                    allows.forEach((rule) => {
+                        writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
+                    });
+                } catch (err) {
+                    if (err instanceof TypeScriptExpressionTransformerError) {
+                        throw new PluginError(name, err.message);
+                    } else {
+                        throw err;
+                    }
+                }
                 writer.write('return false;');
             });
         } else {

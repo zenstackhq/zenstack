@@ -9,3 +9,12 @@ export {
     TRANSACTION_FIELD_NAME,
     CrudFailureReason,
 } from '@zenstackhq/runtime/constants';
+
+/**
+ * Expression context
+ */
+export enum ExpressionContext {
+    DefaultValue = 'DefaultValue',
+    AccessPolicy = 'AccessPolicy',
+    ValidationRule = 'ValidationRule',
+}

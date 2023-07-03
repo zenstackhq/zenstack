@@ -10,6 +10,7 @@ import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
+import json from 'json5';
 
 /** 
  * Use it to represent multiple files in a single string like this
@@ -78,19 +79,8 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    output = '.zenstack'
-}
-
-plugin policy {
-    provider = '@core/access-policy'
-    output = '.zenstack'
-}
-
 plugin zod {
     provider = '@core/zod'
-    output = '.zenstack/zod'
 }
 `;
 
@@ -186,22 +176,48 @@ export async function loadSchema(
     if (compile) {
         console.log('Compiling...');
         run('npx tsc --init');
+
+        // add genetated '.zenstack/zod' folder to typescript's search path,
+        // so that it can be resolved from symbolic-linked files
+        const tsconfig = json.parse(fs.readFileSync(path.join(projectRoot, './tsconfig.json'), 'utf-8'));
+        tsconfig.compilerOptions.paths = {
+            '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
+        };
+        fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
     }
 
-    const policy = require(path.join(path.dirname(zmodelPath), '.zenstack/policy')).default;
-    const modelMeta = require(path.join(path.dirname(zmodelPath), '.zenstack/model-meta')).default;
-    const zodSchemas = require(path.join(path.dirname(zmodelPath), '.zenstack/zod'));
+    let policy: any;
+    let modelMeta: any;
+    let zodSchemas: any;
+
+    const outputPath = path.join(projectRoot, 'node_modules');
+
+    try {
+        policy = require(path.join(outputPath, '.zenstack/policy')).default;
+    } catch {
+        /* noop */
+    }
+    try {
+        modelMeta = require(path.join(outputPath, '.zenstack/model-meta')).default;
+    } catch {
+        /* noop */
+    }
+    try {
+        zodSchemas = require(path.join(outputPath, '.zenstack/zod'));
+    } catch {
+        /* noop */
+    }
 
     return {
         projectDir: projectRoot,
         prisma,
         withPolicy: (user?: AuthUser) =>
-            withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
+            withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery }),
         withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
         withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
         withPresets: (user?: AuthUser) =>
-            withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, logPrismaQuery }),
+            withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery }),
         policy,
         modelMeta,
         zodSchemas,

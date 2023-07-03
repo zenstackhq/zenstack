@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import { loadSchema, run } from '@zenstackhq/testtools';
+import { withPolicy } from '@zenstackhq/runtime';
+import { CrudFailureReason } from '@zenstackhq/runtime/constants';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
+import { loadSchema, run } from '@zenstackhq/testtools';
 import makeHandler from '../../src/api/rest';
 import { Response } from '../../src/types';
-import { withPolicy } from '@zenstackhq/runtime';
 
 let prisma: any;
 let zodSchemas: any;
@@ -162,6 +163,9 @@ describe('REST server tests - regular prisma', () => {
                 expect(r.body).toMatchObject({
                     links: {
                         self: 'http://localhost/api/user',
+                    },
+                    meta: {
+                        total: 2,
                     },
                     data: [
                         {
@@ -1059,6 +1063,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect((r.body as any).data).toHaveLength(3);
+                expect((r.body as any).meta.total).toBe(5);
                 expect((r.body as any).links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user?page%5Boffset%5D=3',
@@ -1074,6 +1079,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect((r.body as any).data).toHaveLength(2);
+                expect((r.body as any).meta.total).toBe(5);
                 expect((r.body as any).links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user?page%5Boffset%5D=3',
@@ -1844,6 +1850,13 @@ describe('REST server tests - enhanced prisma', () => {
         @@allow('create,read', true)
         @@allow('update', value > 0)
     }
+
+    model Bar {
+        id Int @id
+        value Int
+
+        @@allow('create', true)
+    }
     `;
 
     beforeAll(async () => {
@@ -1862,7 +1875,7 @@ describe('REST server tests - enhanced prisma', () => {
         run('npx prisma db push');
     });
 
-    it('policy rejection test', async () => {
+    it('update policy rejection test', async () => {
         let r = await handler({
             method: 'post',
             path: '/foo',
@@ -1884,6 +1897,20 @@ describe('REST server tests - enhanced prisma', () => {
             prisma,
         });
         expect(r.status).toBe(403);
+    });
+
+    it('read-back policy rejection test', async () => {
+        const r = await handler({
+            method: 'post',
+            path: '/bar',
+            query: {},
+            requestBody: {
+                data: { type: 'bar', attributes: { id: 1, value: 0 } },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(403);
+        expect((r.body as any).errors[0].reason).toBe(CrudFailureReason.RESULT_NOT_READABLE);
     });
 });
 

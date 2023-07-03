@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.0.0-beta.2",
+    "version": "1.0.0-beta.3",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,12 +9,14 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
+    "main": "index.js",
+    "types": "index.d.ts",
     "publishConfig": {
         "directory": "dist",
         "linkDirectory": true
@@ -31,6 +33,7 @@
         "pluralize": "^8.0.0",
         "superjson": "^1.11.0",
         "tslib": "^2.4.1",
+        "upper-case-first": "^2.0.2",
         "zod": "3.21.1",
         "zod-validation-error": "^0.2.1"
     },

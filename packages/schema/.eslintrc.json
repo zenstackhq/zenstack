@@ -13,7 +13,8 @@
         "plugin:jest/recommended"
     ],
     "rules": {
-        "jest/expect-expect": "off"
+        "jest/expect-expect": "off",
+        "@typescript-eslint/no-unused-vars": ["error", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }]
     },
     "ignorePatterns": ["src/language-server/generated/*"]
 }

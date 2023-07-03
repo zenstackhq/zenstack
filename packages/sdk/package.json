@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "1.0.0-beta.2",
+    "version": "1.0.0-beta.3",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
@@ -19,7 +19,7 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@prisma/generator-helper": "^4.7.1",
+        "@prisma/generator-helper": "4.10.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "prettier": "^2.8.3",

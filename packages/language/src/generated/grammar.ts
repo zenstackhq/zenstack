@@ -565,7 +565,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             {
               "$type": "RuleCall",
               "rule": {
-                "$ref": "#/rules@56"
+                "$ref": "#/rules@55"
               },
               "arguments": []
             },
@@ -1006,42 +1006,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "ParserRule",
-      "name": "UnaryExpr",
-      "definition": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "Assignment",
-            "feature": "operator",
-            "operator": "=",
-            "terminal": {
-              "$type": "Keyword",
-              "value": "!"
-            }
-          },
-          {
-            "$type": "Assignment",
-            "feature": "operand",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@9"
-              },
-              "arguments": []
-            }
-          }
-        ]
-      },
-      "definesHiddenTokens": false,
-      "entry": false,
-      "fragment": false,
-      "hiddenTokens": [],
-      "parameters": [],
-      "wildcard": false
-    },
-    {
-      "$type": "ParserRule",
       "name": "MemberAccessExpr",
       "inferredType": {
         "$type": "InferredType",
@@ -1104,6 +1068,42 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "ParserRule",
+      "name": "UnaryExpr",
+      "definition": {
+        "$type": "Group",
+        "elements": [
+          {
+            "$type": "Assignment",
+            "feature": "operator",
+            "operator": "=",
+            "terminal": {
+              "$type": "Keyword",
+              "value": "!"
+            }
+          },
+          {
+            "$type": "Assignment",
+            "feature": "operand",
+            "operator": "=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@20"
+              },
+              "arguments": []
+            }
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
+      "$type": "ParserRule",
       "name": "CollectionPredicateExpr",
       "inferredType": {
         "$type": "InferredType",
@@ -1115,7 +1115,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "RuleCall",
             "rule": {
-              "$ref": "#/rules@21"
+              "$ref": "#/rules@20"
             },
             "arguments": []
           },
@@ -1522,6 +1522,13 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "RuleCall",
             "rule": {
+              "$ref": "#/rules@21"
+            },
+            "arguments": []
+          },
+          {
+            "$type": "RuleCall",
+            "rule": {
               "$ref": "#/rules@19"
             },
             "arguments": []
@@ -1537,13 +1544,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "$type": "RuleCall",
             "rule": {
               "$ref": "#/rules@14"
-            },
-            "arguments": []
-          },
-          {
-            "$type": "RuleCall",
-            "rule": {
-              "$ref": "#/rules@20"
             },
             "arguments": []
           },
@@ -2242,6 +2242,19 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "Keyword",
             "value": "}"
+          },
+          {
+            "$type": "Assignment",
+            "feature": "attributes",
+            "operator": "+=",
+            "terminal": {
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@50"
+              },
+              "arguments": []
+            },
+            "cardinality": "*"
           }
         ]
       },
@@ -2492,7 +2505,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "ParserRule",
-      "name": "AttributeAttributeName",
+      "name": "InternalAttributeName",
       "dataType": "string",
       "definition": {
         "$type": "Group",
@@ -2988,7 +3001,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     },
     {
       "$type": "ParserRule",
-      "name": "AttributeAttribute",
+      "name": "InternalAttribute",
       "definition": {
         "$type": "Group",
         "elements": [
@@ -3245,6 +3258,30 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "wildcard": false
     },
     {
+      "$type": "ParserRule",
+      "name": "Boolean",
+      "dataType": "boolean",
+      "definition": {
+        "$type": "Alternatives",
+        "elements": [
+          {
+            "$type": "Keyword",
+            "value": "true"
+          },
+          {
+            "$type": "Keyword",
+            "value": "false"
+          }
+        ]
+      },
+      "definesHiddenTokens": false,
+      "entry": false,
+      "fragment": false,
+      "hiddenTokens": [],
+      "parameters": [],
+      "wildcard": false
+    },
+    {
       "$type": "TerminalRule",
       "hidden": true,
       "name": "WS",
@@ -3253,20 +3290,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
         "regex": "\\\\s+"
       },
       "fragment": false
-    },
-    {
-      "$type": "TerminalRule",
-      "name": "BOOLEAN",
-      "type": {
-        "$type": "ReturnType",
-        "name": "boolean"
-      },
-      "definition": {
-        "$type": "RegexToken",
-        "regex": "true|false"
-      },
-      "fragment": false,
-      "hidden": false
     },
     {
       "$type": "TerminalRule",

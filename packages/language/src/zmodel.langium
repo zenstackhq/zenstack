@@ -39,7 +39,7 @@ Expression:
     LogicalExpr;
 
 LiteralExpr:
-    value=(BOOLEAN | NUMBER | STRING);
+    value=(Boolean | NUMBER | STRING);
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
@@ -73,9 +73,6 @@ FieldInitializer:
 InvocationExpr:
     function=[FunctionDecl] '(' ArgumentList? ')';
 
-UnaryExpr:
-    operator=('!') operand=Expression;
-
 // binary operator precedence follow Javascript's rules:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Operator_Precedence#table
 
@@ -84,6 +81,9 @@ MemberAccessExpr infers Expression:
         {infer MemberAccessExpr.operand=current}
         ('.' member=[DataModelField])
     )*;
+
+UnaryExpr:
+    operator=('!') operand=MemberAccessExpr;
 
 CollectionPredicateExpr infers Expression:
     MemberAccessExpr (
@@ -141,10 +141,10 @@ PrimaryExpr infers Expression:
     ThisExpr |
     NullExpr |
     LiteralExpr |
+    UnaryExpr |
     InvocationExpr |
     ArrayExpr|
     ReferenceExpr |
-    UnaryExpr |
     ObjectExpr;
 
 fragment ArgumentList:
@@ -188,7 +188,7 @@ EnumField:
 
 // function
 FunctionDecl:
-    TRIPLE_SLASH_COMMENT* 'function' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}';
+    TRIPLE_SLASH_COMMENT* 'function' name=RegularID '(' (params+=FunctionParam (',' params+=FunctionParam)*)? ')' ':' returnType=FunctionParamType '{' (expression=Expression)? '}' (attributes+=InternalAttribute)*;
 
 FunctionParam:
     TRIPLE_SLASH_COMMENT* name=RegularID ':' type=FunctionParamType (optional?='?')?;
@@ -205,8 +205,8 @@ RegularID returns string:
     // include keywords that we'd like to work as ID in most places
     ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'sort';
 
-// attribute-level attribute
-AttributeAttributeName returns string:
+// internal attribute
+InternalAttributeName returns string:
     '@@@' QualifiedName;
 
 // model-level attribute
@@ -218,11 +218,11 @@ DataModelFieldAttributeName returns string:
     '@' QualifiedName;
 
 AttributeName returns string:
-    DataModelAttributeName | DataModelFieldAttributeName | AttributeAttributeName;
+    DataModelAttributeName | DataModelFieldAttributeName | InternalAttributeName;
 
 // attribute
 Attribute:
-    TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=AttributeAttribute)*;
+    TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=InternalAttribute)*;
 
 AttributeParam:
     TRIPLE_SLASH_COMMENT* (default?='_')? name=RegularID ':' type=AttributeParamType;
@@ -240,8 +240,8 @@ DataModelFieldAttribute:
 DataModelAttribute:
     TRIPLE_SLASH_COMMENT* decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
 
-AttributeAttribute:
-    decl=[Attribute:AttributeAttributeName] ('(' AttributeArgList? ')')?;
+InternalAttribute:
+    decl=[Attribute:InternalAttributeName] ('(' AttributeArgList? ')')?;
 
 fragment AttributeArgList:
     args+=AttributeArg (',' args+=AttributeArg)*;
@@ -255,8 +255,10 @@ ExpressionType returns string:
 BuiltinType returns string:
     'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes';
 
+Boolean returns boolean:
+    'true' | 'false';
+
 hidden terminal WS: /\s+/;
-terminal BOOLEAN returns boolean: /true|false/;
 terminal NULL: 'null';
 terminal THIS: 'this';
 terminal ID: /[_a-zA-Z][\w_]*/;

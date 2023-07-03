@@ -14,16 +14,16 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
-export type AttributeAttributeName = string;
-
-export function isAttributeAttributeName(item: unknown): item is AttributeAttributeName {
-    return typeof item === 'string';
-}
-
-export type AttributeName = AttributeAttributeName | DataModelAttributeName | DataModelFieldAttributeName;
+export type AttributeName = DataModelAttributeName | DataModelFieldAttributeName | InternalAttributeName;
 
 export function isAttributeName(item: unknown): item is AttributeName {
-    return isDataModelAttributeName(item) || isDataModelFieldAttributeName(item) || isAttributeAttributeName(item);
+    return isDataModelAttributeName(item) || isDataModelFieldAttributeName(item) || isInternalAttributeName(item);
+}
+
+export type Boolean = boolean;
+
+export function isBoolean(item: unknown): item is Boolean {
+    return typeof item === 'boolean';
 }
 
 export type BuiltinType = 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'String';
@@ -56,6 +56,12 @@ export type ExpressionType = 'Any' | 'Boolean' | 'DateTime' | 'Float' | 'Int' | 
 
 export function isExpressionType(item: unknown): item is ExpressionType {
     return item === 'String' || item === 'Int' || item === 'Float' || item === 'Boolean' || item === 'DateTime' || item === 'Null' || item === 'Object' || item === 'Any' || item === 'Unsupported';
+}
+
+export type InternalAttributeName = string;
+
+export function isInternalAttributeName(item: unknown): item is InternalAttributeName {
+    return typeof item === 'string';
 }
 
 export type QualifiedName = string;
@@ -114,7 +120,7 @@ export function isArrayExpr(item: unknown): item is ArrayExpr {
 export interface Attribute extends AstNode {
     readonly $container: Model;
     readonly $type: 'Attribute';
-    attributes: Array<AttributeAttribute>
+    attributes: Array<InternalAttribute>
     name: AttributeName
     params: Array<AttributeParam>
 }
@@ -126,7 +132,7 @@ export function isAttribute(item: unknown): item is Attribute {
 }
 
 export interface AttributeArg extends AstNode {
-    readonly $container: AttributeAttribute | DataModelAttribute | DataModelFieldAttribute;
+    readonly $container: DataModelAttribute | DataModelFieldAttribute | InternalAttribute;
     readonly $type: 'AttributeArg';
     name?: RegularID
     value: Expression
@@ -136,19 +142,6 @@ export const AttributeArg = 'AttributeArg';
 
 export function isAttributeArg(item: unknown): item is AttributeArg {
     return reflection.isInstance(item, AttributeArg);
-}
-
-export interface AttributeAttribute extends AstNode {
-    readonly $container: Attribute;
-    readonly $type: 'AttributeAttribute';
-    args: Array<AttributeArg>
-    decl: Reference<Attribute>
-}
-
-export const AttributeAttribute = 'AttributeAttribute';
-
-export function isAttributeAttribute(item: unknown): item is AttributeAttribute {
-    return reflection.isInstance(item, AttributeAttribute);
 }
 
 export interface AttributeParam extends AstNode {
@@ -339,6 +332,7 @@ export function isFieldInitializer(item: unknown): item is FieldInitializer {
 export interface FunctionDecl extends AstNode {
     readonly $container: Model;
     readonly $type: 'FunctionDecl';
+    attributes: Array<InternalAttribute>
     expression?: Expression
     name: RegularID
     params: Array<FunctionParam>
@@ -405,6 +399,19 @@ export function isGeneratorField(item: unknown): item is GeneratorField {
     return reflection.isInstance(item, GeneratorField);
 }
 
+export interface InternalAttribute extends AstNode {
+    readonly $container: Attribute | FunctionDecl;
+    readonly $type: 'InternalAttribute';
+    args: Array<AttributeArg>
+    decl: Reference<Attribute>
+}
+
+export const InternalAttribute = 'InternalAttribute';
+
+export function isInternalAttribute(item: unknown): item is InternalAttribute {
+    return reflection.isInstance(item, InternalAttribute);
+}
+
 export interface InvocationExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'InvocationExpr';
@@ -421,7 +428,7 @@ export function isInvocationExpr(item: unknown): item is InvocationExpr {
 export interface LiteralExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'LiteralExpr';
-    value: boolean | number | string
+    value: Boolean | number | string
 }
 
 export const LiteralExpr = 'LiteralExpr';
@@ -586,7 +593,6 @@ export type ZModelAstType = {
     ArrayExpr: ArrayExpr
     Attribute: Attribute
     AttributeArg: AttributeArg
-    AttributeAttribute: AttributeAttribute
     AttributeParam: AttributeParam
     AttributeParamType: AttributeParamType
     BinaryExpr: BinaryExpr
@@ -606,6 +612,7 @@ export type ZModelAstType = {
     FunctionParamType: FunctionParamType
     GeneratorDecl: GeneratorDecl
     GeneratorField: GeneratorField
+    InternalAttribute: InternalAttribute
     InvocationExpr: InvocationExpr
     LiteralExpr: LiteralExpr
     MemberAccessExpr: MemberAccessExpr
@@ -627,7 +634,7 @@ export type ZModelAstType = {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeAttribute', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'GeneratorField', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'GeneratorField', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -669,11 +676,6 @@ export class ZModelAstReflection extends AbstractAstReflection {
     getReferenceType(refInfo: ReferenceInfo): string {
         const referenceId = `${refInfo.container.$type}:${refInfo.property}`;
         switch (referenceId) {
-            case 'AttributeAttribute:decl':
-            case 'DataModelAttribute:decl':
-            case 'DataModelFieldAttribute:decl': {
-                return Attribute;
-            }
             case 'AttributeParamType:reference':
             case 'DataModelFieldType:reference':
             case 'FunctionParamType:reference': {
@@ -681,6 +683,11 @@ export class ZModelAstReflection extends AbstractAstReflection {
             }
             case 'DataModel:superTypes': {
                 return DataModel;
+            }
+            case 'DataModelAttribute:decl':
+            case 'DataModelFieldAttribute:decl':
+            case 'InternalAttribute:decl': {
+                return Attribute;
             }
             case 'InvocationExpr:function': {
                 return FunctionDecl;
@@ -713,14 +720,6 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     mandatory: [
                         { name: 'attributes', type: 'array' },
                         { name: 'params', type: 'array' }
-                    ]
-                };
-            }
-            case 'AttributeAttribute': {
-                return {
-                    name: 'AttributeAttribute',
-                    mandatory: [
-                        { name: 'args', type: 'array' }
                     ]
                 };
             }
@@ -818,6 +817,7 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return {
                     name: 'FunctionDecl',
                     mandatory: [
+                        { name: 'attributes', type: 'array' },
                         { name: 'params', type: 'array' }
                     ]
                 };
@@ -846,19 +846,19 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     ]
                 };
             }
-            case 'InvocationExpr': {
+            case 'InternalAttribute': {
                 return {
-                    name: 'InvocationExpr',
+                    name: 'InternalAttribute',
                     mandatory: [
                         { name: 'args', type: 'array' }
                     ]
                 };
             }
-            case 'LiteralExpr': {
+            case 'InvocationExpr': {
                 return {
-                    name: 'LiteralExpr',
+                    name: 'InvocationExpr',
                     mandatory: [
-                        { name: 'value', type: 'boolean' }
+                        { name: 'args', type: 'array' }
                     ]
                 };
             }

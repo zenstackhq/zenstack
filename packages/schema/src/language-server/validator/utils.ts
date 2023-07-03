@@ -9,6 +9,7 @@ import {
     DataModelFieldAttribute,
     Expression,
     ExpressionType,
+    InternalAttribute,
     isArrayExpr,
     isAttribute,
     isDataModel,
@@ -123,7 +124,7 @@ export function mapBuiltinTypeToExpressionType(
 export function assignableToAttributeParam(
     arg: AttributeArg,
     param: AttributeParam,
-    attr: DataModelAttribute | DataModelFieldAttribute
+    attr: DataModelAttribute | DataModelFieldAttribute | InternalAttribute
 ): boolean {
     const argResolvedType = arg.$resolvedType;
     if (!argResolvedType) {
@@ -192,7 +193,7 @@ export function assignableToAttributeParam(
 }
 
 export function validateAttributeApplication(
-    attr: DataModelAttribute | DataModelFieldAttribute,
+    attr: DataModelAttribute | DataModelFieldAttribute | InternalAttribute,
     accept: ValidationAcceptor
 ) {
     const decl = attr.decl.ref;

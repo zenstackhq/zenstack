@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
-import { getModelZodSchemas, ModelZodSchema } from '@zenstackhq/runtime/zod';
 import type { Handler, Request, Response } from 'express';
 import RPCAPIHandler from '../api/rpc';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
+import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 
 /**
  * Express middleware options
@@ -20,11 +20,14 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
  * Creates an Express middleware for handling CRUD requests.
  */
 const factory = (options: MiddlewareOptions): Handler => {
-    let zodSchemas: ModelZodSchema | undefined;
+    let zodSchemas: ZodSchemas | undefined;
     if (typeof options.zodSchemas === 'object') {
         zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        zodSchemas = getModelZodSchemas();
+        zodSchemas = require('@zenstackhq/runtime/zod');
+        if (!zodSchemas) {
+            throw new Error('Unable to load zod schemas from default location');
+        }
     }
 
     const requestHandler = options.handler || RPCAPIHandler();

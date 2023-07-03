@@ -14,12 +14,20 @@ import {
     ReferenceExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { getLiteral, GUARD_FIELD_NAME, PluginError } from '@zenstackhq/sdk';
+import {
+    ExpressionContext,
+    getFunctionExpressionContext,
+    getLiteral,
+    GUARD_FIELD_NAME,
+    PluginError,
+} from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '.';
-import { FILTER_OPERATOR_FUNCTIONS } from '../../language-server/constants';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
-import TypeScriptExpressionTransformer from './typescript-expression-transformer';
+import {
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
+} from '../../utils/typescript-expression-transformer';
 import { isFutureExpr } from './utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
@@ -51,7 +59,10 @@ export class ExpressionWriter {
      * @param isPostGuard indicates if we're writing for post-update conditions
      */
     constructor(private readonly writer: CodeBlockWriter, private readonly isPostGuard = false) {
-        this.plainExprBuilder = new TypeScriptExpressionTransformer(this.isPostGuard);
+        this.plainExprBuilder = new TypeScriptExpressionTransformer({
+            context: ExpressionContext.AccessPolicy,
+            isPostGuard: this.isPostGuard,
+        });
     }
 
     /**
@@ -228,7 +239,15 @@ export class ExpressionWriter {
     }
 
     private plain(expr: Expression) {
-        this.writer.write(this.plainExprBuilder.transform(expr));
+        try {
+            this.writer.write(this.plainExprBuilder.transform(expr));
+        } catch (err) {
+            if (err instanceof TypeScriptExpressionTransformerError) {
+                throw new PluginError(name, err.message);
+            } else {
+                throw err;
+            }
+        }
     }
 
     private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
@@ -273,13 +292,21 @@ export class ExpressionWriter {
 
         // guard member access of `auth()` with null check
         if (this.isAuthOrAuthMemberAccess(operand) && !fieldAccess.$resolvedType?.nullable) {
-            this.writer.write(
-                `(${this.plainExprBuilder.transform(operand)} == null) ? { ${GUARD_FIELD_NAME}: ${
-                    // auth().x != user.x is true when auth().x is null and user is not nullable
-                    // other expressions are evaluated to false when null is involved
-                    operator === '!=' ? 'true' : 'false'
-                } } : `
-            );
+            try {
+                this.writer.write(
+                    `(${this.plainExprBuilder.transform(operand)} == null) ? { ${GUARD_FIELD_NAME}: ${
+                        // auth().x != user.x is true when auth().x is null and user is not nullable
+                        // other expressions are evaluated to false when null is involved
+                        operator === '!=' ? 'true' : 'false'
+                    } } : `
+                );
+            } catch (err) {
+                if (err instanceof TypeScriptExpressionTransformerError) {
+                    throw new PluginError(name, err.message);
+                } else {
+                    throw err;
+                }
+            }
         }
 
         this.block(
@@ -541,7 +568,11 @@ export class ExpressionWriter {
             throw new PluginError(name, `Failed to resolve function declaration`);
         }
 
-        if (FILTER_OPERATOR_FUNCTIONS.includes(funcDecl.name)) {
+        const functionAllowedContext = getFunctionExpressionContext(funcDecl);
+        if (
+            functionAllowedContext.includes(ExpressionContext.AccessPolicy) ||
+            functionAllowedContext.includes(ExpressionContext.ValidationRule)
+        ) {
             if (!expr.args.some((arg) => this.isFieldAccess(arg.value))) {
                 // filter functions without referencing fields
                 this.block(() => this.guard(() => this.plain(expr)));

@@ -4,6 +4,7 @@ import {
     PluginOptions,
     createProject,
     getDataModels,
+    getPrismaClientImportSpec,
     requireOption,
     resolvePath,
     saveProject,
@@ -218,10 +219,11 @@ function generateModelHooks(
 
     sf.addStatements('/* eslint-disable */');
 
+    const prismaImport = getPrismaClientImportSpec(model.$container, outDir);
     sf.addImportDeclaration({
         namedImports: ['Prisma', model.name],
         isTypeOnly: true,
-        moduleSpecifier: '@prisma/client',
+        moduleSpecifier: prismaImport,
     });
     sf.addStatements(makeBaseImports(target));
 

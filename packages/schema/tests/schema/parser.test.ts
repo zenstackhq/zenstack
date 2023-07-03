@@ -11,6 +11,7 @@ import {
     LiteralExpr,
     ReferenceExpr,
     UnaryExpr,
+    MemberAccessExpr,
 } from '@zenstackhq/language/ast';
 import { loadModel } from '../utils';
 
@@ -40,7 +41,7 @@ describe('Parsing Tests', () => {
         expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(LiteralExpr);
     });
 
-    it('enum', async () => {
+    it('enum simple', async () => {
         const content = `
             enum UserRole {
                 USER
@@ -62,6 +63,39 @@ describe('Parsing Tests', () => {
 
         const attrVal = model.fields[1].attributes[0].args[0] as AttributeArg;
         expect((attrVal.value as ReferenceExpr).target.ref?.name).toBe('USER');
+    });
+
+    it('enum dup name resolve', async () => {
+        const content = `
+            datasource db {
+                provider = "postgresql"
+                url      = env("DATABASE_URL")
+            }
+            
+            enum FirstEnum {
+                E1 // used in both ENUMs
+                E2
+            }
+            
+            enum SecondEnum  {
+                E1 // used in both ENUMs
+                E3
+                E4
+            }
+            
+            model M {
+                id Int @id
+                first  SecondEnum @default(E1)
+                second FirstEnum @default(E1)
+            }        
+            `;
+
+        const doc = await loadModel(content);
+        const firstEnum = doc.declarations.find((d) => d.name === 'FirstEnum');
+        const secondEnum = doc.declarations.find((d) => d.name === 'SecondEnum');
+        const m = doc.declarations.find((d) => d.name === 'M') as DataModel;
+        expect(m.fields[1].attributes[0].args[0].value.$resolvedType?.decl).toBe(secondEnum);
+        expect(m.fields[2].attributes[0].args[0].value.$resolvedType?.decl).toBe(firstEnum);
     });
 
     it('model field types', async () => {
@@ -215,26 +249,75 @@ describe('Parsing Tests', () => {
         // );
     });
 
-    it('policy expression precedence', async () => {
+    it('expression precedence and associativity', async () => {
         const content = `
             model Model {
                 id String @id
                 a Int
                 b Int
+                c Boolean
+                foo Foo?
                 // @@deny(a + b * 2 > 0)
                 // @@deny((a + b) * 2 > 0)
                 @@deny('all', a > 0 && b < 0)
                 @@deny('all', a >= 0 && b <= 0)
                 @@deny('all', a == 0 || b != 0)
+                @@deny('all', !c || a > 0)
+                @@deny('all', !(c || a > 0))
+                @@deny('all', !foo.x)
+            }
+
+            model Foo {
+                id String @id
+                x Boolean
+                modelId String
+                model Model @relation(references: [id], fields: [modelId])
             }
         `;
 
         await loadModel(content, false);
 
-        // const doc = await loadModel(content, false);
-        // const attrs = (doc.declarations[0] as DataModel).attributes;
+        const doc = await loadModel(content, false);
+        const attrs = (doc.declarations[0] as DataModel).attributes;
 
-        // expect(attrs[0].args[0].value.$type).toBe(BinaryExpr);
+        // a > 0 && b < 0
+        let arg = attrs[0].args[1].value;
+        expect(arg.$type).toBe(BinaryExpr);
+        expect((arg as BinaryExpr).operator).toBe('&&');
+        expect((arg as BinaryExpr).left.$type).toBe(BinaryExpr);
+        expect(((arg as BinaryExpr).left as BinaryExpr).operator).toBe('>');
+
+        // a >= 0 && b <= 0
+        arg = attrs[1].args[1].value;
+        expect(arg.$type).toBe(BinaryExpr);
+        expect((arg as BinaryExpr).operator).toBe('&&');
+        expect((arg as BinaryExpr).left.$type).toBe(BinaryExpr);
+        expect(((arg as BinaryExpr).left as BinaryExpr).operator).toBe('>=');
+
+        // a == 0 || b != 0
+        arg = attrs[2].args[1].value;
+        expect(arg.$type).toBe(BinaryExpr);
+        expect((arg as BinaryExpr).operator).toBe('||');
+        expect((arg as BinaryExpr).left.$type).toBe(BinaryExpr);
+        expect(((arg as BinaryExpr).left as BinaryExpr).operator).toBe('==');
+
+        // !c || a > 0
+        arg = attrs[3].args[1].value;
+        expect(arg.$type).toBe(BinaryExpr);
+        expect((arg as BinaryExpr).operator).toBe('||');
+        expect((arg as BinaryExpr).left.$type).toBe(UnaryExpr);
+        expect(((arg as BinaryExpr).left as UnaryExpr).operator).toBe('!');
+
+        // !(c || a > 0)
+        arg = attrs[4].args[1].value;
+        expect(arg.$type).toBe(UnaryExpr);
+        expect((arg as UnaryExpr).operator).toBe('!');
+
+        // !foo.x
+        arg = attrs[5].args[1].value;
+        expect(arg.$type).toBe(UnaryExpr);
+        expect((arg as UnaryExpr).operator).toBe('!');
+        expect((arg as UnaryExpr).operand.$type).toBe(MemberAccessExpr);
 
         // // 1: a + b * 2 > 0
 
@@ -411,6 +494,19 @@ describe('Parsing Tests', () => {
                 x Int
             }
         `;
+        await loadModel(content, false);
+    });
+
+    it('boolean prefix id', async () => {
+        const content = `   
+            model trueModel {
+                id String @id
+                isPublic Boolean @default(false)
+                trueText String? 
+                falseText String?
+                @@allow('all', isPublic == true)
+            }
+                `;
         await loadModel(content, false);
     });
 });

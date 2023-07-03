@@ -1,7 +1,7 @@
 {
   "name": "@zenstackhq/openapi",
   "displayName": "ZenStack Plugin and Runtime for OpenAPI",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "ZenStack plugin and runtime supporting OpenAPI",
   "main": "index.js",
   "repository": {
@@ -24,7 +24,7 @@
   "author": "ZenStack Team",
   "license": "MIT",
   "dependencies": {
-    "@prisma/generator-helper": "^4.7.1",
+    "@prisma/generator-helper": "4.10.0",
     "@zenstackhq/runtime": "workspace:*",
     "@zenstackhq/sdk": "workspace:*",
     "change-case": "^4.1.2",
@@ -36,7 +36,7 @@
     "zod-validation-error": "^0.2.1"
   },
   "devDependencies": {
-    "@prisma/internals": "^4.7.1",
+    "@prisma/internals": "4.10.0",
     "@readme/openapi-parser": "^2.4.0",
     "@types/jest": "^29.5.0",
     "@types/lower-case-first": "^1.0.1",
