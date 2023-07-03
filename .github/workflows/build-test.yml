@@ -22,16 +22,16 @@ jobs:
         steps:
             - uses: actions/checkout@v3
 
+            - name: Install pnpm
+              uses: pnpm/action-setup@v2
+              with:
+                  version: ^7.15.0
+
             - name: Use Node.js ${{ matrix.node-version }}
               uses: buildjet/setup-node@v3
               with:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
-
-            - name: Install pnpm
-              uses: pnpm/action-setup@v2
-              with:
-                  version: ^7.15.0
 
             - name: Get pnpm store directory
               id: pnpm-cache
