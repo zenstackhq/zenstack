@@ -275,7 +275,6 @@ describe('Express adapter tests - rest handler with customMiddleware', () => {
 
         const r = await request(app).get(makeUrl('/api/post/1'));
         expect(r.status).toBe(404);
-        console.log(r.body);
         expect(r.body.message).toHaveProperty('errors');
     });
 });
