@@ -14,6 +14,14 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (req: Request, res: Response) => unknown | Promise<unknown>;
+    /**
+     * This option is used to enable/disable the option to manage the response
+     * by the middleware. If set to true, the middleware will not send the
+     * response and the user will be responsible for sending the response.
+     *
+     * Defaults to false;
+     */
+    manageCustomResponse?: boolean;
 }
 
 /**
@@ -33,13 +41,18 @@ const factory = (options: MiddlewareOptions): Handler => {
     const requestHandler = options.handler || RPCAPIHandler();
     const useSuperJson = options.useSuperJson === true;
 
-    return async (request, response) => {
+    return async (request, response, next) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
+        const { manageCustomResponse } = options;
+
+        if (manageCustomResponse && !prisma) {
+            throw new Error('unable to get prisma from request context');
+        }
+
         if (!prisma) {
-            response
+            return response
                 .status(500)
                 .json(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
-            return;
         }
 
         let query: Record<string, string | string[]> = {};
@@ -56,8 +69,10 @@ const factory = (options: MiddlewareOptions): Handler => {
             }
             query = buildUrlQuery(rawQuery, useSuperJson);
         } catch {
-            response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
-            return;
+            if (manageCustomResponse) {
+                throw new Error('invalid query parameters');
+            }
+            return response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
         }
 
         try {
@@ -71,9 +86,19 @@ const factory = (options: MiddlewareOptions): Handler => {
                 zodSchemas,
                 logger: options.logger,
             });
-            response.status(r.status).json(marshalToObject(r.body, useSuperJson));
+            if (manageCustomResponse) {
+                response.locals = {
+                    status: r.status,
+                    body: r.body,
+                };
+                return next();
+            }
+            return response.status(r.status).json(marshalToObject(r.body, useSuperJson));
         } catch (err) {
-            response
+            if (manageCustomResponse) {
+                throw err;
+            }
+            return response
                 .status(500)
                 .json(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
         }

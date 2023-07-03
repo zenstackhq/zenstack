@@ -251,3 +251,30 @@ describe('Express adapter tests - rest handler', () => {
         expect(await prisma.user.findMany()).toHaveLength(0);
     });
 });
+
+describe('Express adapter tests - rest handler with customMiddleware', () => {
+    it('run middleware', async () => {
+        const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
+
+        const app = express();
+        app.use(bodyParser.json());
+        app.use(
+            '/api',
+            ZenStackMiddleware({
+                getPrisma: () => prisma,
+                modelMeta,
+                zodSchemas,
+                handler: RESTAPIHandler({ endpoint: 'http://localhost/api' }),
+                manageCustomResponse: true,
+            })
+        );
+
+        app.use((req, res) => {
+            res.status(res.locals.status).json({ message: res.locals.body });
+        });
+
+        const r = await request(app).get(makeUrl('/api/post/1'));
+        expect(r.status).toBe(404);
+        expect(r.body.message).toHaveProperty('errors');
+    });
+});
