@@ -38,7 +38,7 @@ const factory = (options: MiddlewareOptions): Handler => {
     const requestHandler = options.handler || RPCAPIHandler();
     const useSuperJson = options.useSuperJson === true;
 
-    return async (request, response) => {
+    return async (request, response, next) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
         const { manageCustomResponse } = options;
 
@@ -84,10 +84,11 @@ const factory = (options: MiddlewareOptions): Handler => {
                 logger: options.logger,
             });
             if (manageCustomResponse) {
-                return {
+                response.locals = {
                     status: r.status,
                     body: r.body,
                 };
+                return next();
             }
             return response.status(r.status).json(marshalToObject(r.body, useSuperJson));
         } catch (err) {
