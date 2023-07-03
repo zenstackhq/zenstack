@@ -164,6 +164,9 @@ describe('REST server tests - regular prisma', () => {
                     links: {
                         self: 'http://localhost/api/user',
                     },
+                    meta: {
+                        total: 2,
+                    },
                     data: [
                         {
                             type: 'user',
@@ -1060,6 +1063,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect((r.body as any).data).toHaveLength(3);
+                expect((r.body as any).meta.total).toBe(5);
                 expect((r.body as any).links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user?page%5Boffset%5D=3',
@@ -1075,6 +1079,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect((r.body as any).data).toHaveLength(2);
+                expect((r.body as any).meta.total).toBe(5);
                 expect((r.body as any).links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user?page%5Boffset%5D=3',
