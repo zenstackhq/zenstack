@@ -4,8 +4,8 @@
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
-        "test": "pnpm -r run test --silent",
-        "test-ci": "pnpm -r run test --silent",
+        "test": "ZENSTACK_TEST=1 pnpm -r run test --silent",
+        "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --registry http://localhost:4873"
