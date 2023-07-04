@@ -265,7 +265,7 @@ describe('Express adapter tests - rest handler with customMiddleware', () => {
                 modelMeta,
                 zodSchemas,
                 handler: RESTAPIHandler({ endpoint: 'http://localhost/api' }),
-                manageCustomResponse: true,
+                sendResponse: false,
             })
         );
 

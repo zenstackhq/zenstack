@@ -14,14 +14,17 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (req: Request, res: Response) => unknown | Promise<unknown>;
+
     /**
-     * This option is used to enable/disable the option to manage the response
-     * by the middleware. If set to true, the middleware will not send the
-     * response and the user will be responsible for sending the response.
+     * Controls if the middleware directly sends a response. If set to false,
+     * the response is stored in the `res.locals` object and then the middleware
+     * calls the `next()` function to pass the control to the next middleware.
+     * Subsequent middleware or request handlers need to make sure to send
+     * a response.
      *
-     * Defaults to false;
+     * Defaults to true;
      */
-    manageCustomResponse?: boolean;
+    sendResponse?: boolean;
 }
 
 /**
@@ -43,9 +46,9 @@ const factory = (options: MiddlewareOptions): Handler => {
 
     return async (request, response, next) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
-        const { manageCustomResponse } = options;
+        const { sendResponse } = options;
 
-        if (manageCustomResponse && !prisma) {
+        if (sendResponse === false && !prisma) {
             throw new Error('unable to get prisma from request context');
         }
 
@@ -69,7 +72,7 @@ const factory = (options: MiddlewareOptions): Handler => {
             }
             query = buildUrlQuery(rawQuery, useSuperJson);
         } catch {
-            if (manageCustomResponse) {
+            if (sendResponse === false) {
                 throw new Error('invalid query parameters');
             }
             return response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
@@ -86,7 +89,8 @@ const factory = (options: MiddlewareOptions): Handler => {
                 zodSchemas,
                 logger: options.logger,
             });
-            if (manageCustomResponse) {
+            if (sendResponse === false) {
+                // attach response and pass control to the next middleware
                 response.locals = {
                     status: r.status,
                     body: r.body,
@@ -95,7 +99,7 @@ const factory = (options: MiddlewareOptions): Handler => {
             }
             return response.status(r.status).json(marshalToObject(r.body, useSuperJson));
         } catch (err) {
-            if (manageCustomResponse) {
+            if (sendResponse === false) {
                 throw err;
             }
             return response
