@@ -29,6 +29,8 @@ Our goal is to let you save time writing boilerplate code and focus on building 
 
 ## How it works
 
+> Read full documentation at 👉🏻 [zenstack.dev](https://zenstack.dev).
+
 ZenStack incrementally extends Prisma's power with the following four layers:
 
 ### 1. ZModel - an extended Prisma schema language
@@ -181,7 +183,11 @@ Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a 
 
 ## Community
 
-Join our [discord server](https://go.zenstack.dev/chat) for chat and updates!
+Join our [discord server](https://discord.gg/Ykhr738dUe) for chat and updates!
+
+## Contributing
+
+If you like ZenStack, join us to make it a better tool! Please use the [Contributing Guide](CONTRIBUTING.md) for details on how to get started, and don't hesitate to join [Discord](https://discord.gg/Ykhr738dUe) to share your thoughts.
 
 ## License
 
