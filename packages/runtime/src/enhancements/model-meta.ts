@@ -10,7 +10,7 @@ export function getDefaultModelMeta(): ModelMeta {
     try {
         if (process.env.NODE_ENV === 'test') {
             // handling the case when running as tests, resolve relative to CWD
-            return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'model-meta'));
+            return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'model-meta')).default;
         } else {
             return require('.zenstack/model-meta').default;
         }
