@@ -14,6 +14,17 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
      * Callback for getting a PrismaClient for the given request
      */
     getPrisma: (req: Request, res: Response) => unknown | Promise<unknown>;
+
+    /**
+     * Controls if the middleware directly sends a response. If set to false,
+     * the response is stored in the `res.locals` object and then the middleware
+     * calls the `next()` function to pass the control to the next middleware.
+     * Subsequent middleware or request handlers need to make sure to send
+     * a response.
+     *
+     * Defaults to true;
+     */
+    sendResponse?: boolean;
 }
 
 /**
@@ -33,13 +44,18 @@ const factory = (options: MiddlewareOptions): Handler => {
     const requestHandler = options.handler || RPCAPIHandler();
     const useSuperJson = options.useSuperJson === true;
 
-    return async (request, response) => {
+    return async (request, response, next) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
+        const { sendResponse } = options;
+
+        if (sendResponse === false && !prisma) {
+            throw new Error('unable to get prisma from request context');
+        }
+
         if (!prisma) {
-            response
+            return response
                 .status(500)
                 .json(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
-            return;
         }
 
         let query: Record<string, string | string[]> = {};
@@ -56,8 +72,10 @@ const factory = (options: MiddlewareOptions): Handler => {
             }
             query = buildUrlQuery(rawQuery, useSuperJson);
         } catch {
-            response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
-            return;
+            if (sendResponse === false) {
+                throw new Error('invalid query parameters');
+            }
+            return response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
         }
 
         try {
@@ -71,9 +89,20 @@ const factory = (options: MiddlewareOptions): Handler => {
                 zodSchemas,
                 logger: options.logger,
             });
-            response.status(r.status).json(marshalToObject(r.body, useSuperJson));
+            if (sendResponse === false) {
+                // attach response and pass control to the next middleware
+                response.locals = {
+                    status: r.status,
+                    body: r.body,
+                };
+                return next();
+            }
+            return response.status(r.status).json(marshalToObject(r.body, useSuperJson));
         } catch (err) {
-            response
+            if (sendResponse === false) {
+                throw err;
+            }
+            return response
                 .status(500)
                 .json(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
         }

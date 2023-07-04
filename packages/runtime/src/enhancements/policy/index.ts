@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import path from 'path';
 import { AuthUser, DbClientContract } from '../../types';
 import { getDefaultModelMeta } from '../model-meta';
 import { makeProxy } from '../proxy';
@@ -74,9 +76,18 @@ export function withPolicy<DbClient extends object>(
 
 function getDefaultPolicy(): PolicyDef {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('.zenstack/policy').default;
     } catch {
+        if (process.env.ZENSTACK_TEST === '1') {
+            try {
+                // special handling for running as tests, try resolving relative to CWD
+                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'policy')).default;
+            } catch {
+                throw new Error(
+                    'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
+                );
+            }
+        }
         throw new Error(
             'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
         );
@@ -88,6 +99,14 @@ function getDefaultZodSchemas(): ZodSchemas | undefined {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('.zenstack/zod');
     } catch {
+        if (process.env.ZENSTACK_TEST === '1') {
+            try {
+                // special handling for running as tests, try resolving relative to CWD
+                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'zod'));
+            } catch {
+                return undefined;
+            }
+        }
         return undefined;
     }
 }

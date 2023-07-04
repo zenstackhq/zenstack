@@ -227,7 +227,7 @@ export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
     const funcAllowedContext: ExpressionContext[] = [];
     const funcAttr = funcDecl.attributes.find((attr) => attr.decl.$refText === '@@@expressionContext');
     if (funcAttr) {
-        const contextArg = getAttributeArg(funcAttr, 'context');
+        const contextArg = funcAttr.args[0].value;
         if (isArrayExpr(contextArg)) {
             contextArg.items.forEach((item) => {
                 if (isEnumFieldReference(item)) {
