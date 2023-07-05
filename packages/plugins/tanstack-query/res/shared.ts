@@ -9,14 +9,28 @@ export const DEFAULT_QUERY_ENDPOINT = '/api/model';
 export const QUERY_KEY_PREFIX = 'zenstack:';
 
 /**
+ * Function signature for `fetch`.
+ */
+export type FetchFn = (url: string, options?: RequestInit) => Promise<Response>;
+
+/**
  * Context type for configuring the hooks.
  */
 export type RequestHandlerContext = {
+    /**
+     * The endpoint to use for the queries.
+     */
     endpoint: string;
+
+    /**
+     * A custom fetch function for sending the HTTP requests.
+     */
+    fetch?: FetchFn;
 };
 
-async function fetcher<R>(url: string, options?: RequestInit) {
-    const res = await fetch(url, options);
+async function fetcher<R>(url: string, options?: RequestInit, fetch?: FetchFn) {
+    const _fetch = fetch ?? window.fetch;
+    const res = await _fetch(url, options);
     if (!res.ok) {
         const error: Error & { info?: unknown; status?: number } = new Error(
             'An error occurred while fetching the data.'
