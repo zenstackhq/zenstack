@@ -191,4 +191,113 @@ describe('GitHub issues regression', () => {
             `
         );
     });
+
+    it('issue 552', async () => {
+        const { withPolicy, prisma } = await loadSchema(
+            `
+            model Tenant {
+                id Int @id @default(autoincrement())
+                name String
+            
+                created_at DateTime @default(now())
+                updated_at DateTime @updatedAt
+            
+                users UserTenant[]
+            
+                @@map("tenants")
+            
+            
+                @@allow('all', auth().is_super_admin == true)
+                @@allow('read', users?[user == auth() && status == 'ACTIVE' ])
+                @@allow('all', users?[user == auth() && status == 'ACTIVE'])
+            }
+            
+            model User {
+                id Int @id @default(autoincrement())
+                name String
+                is_super_admin Boolean @default(false) @omit
+            
+                created_at DateTime @default(now())
+                updated_at DateTime @updatedAt
+            
+                associated_tenants UserTenant[]
+            
+                @@map("users")
+            
+                @@allow('read', auth().id == id)
+                @@allow('all', auth().is_super_admin == true )
+                @@allow('read', associated_tenants?[tenant.users?[user == auth() && status == 'ACTIVE']])
+                @@allow('all', associated_tenants?[tenant.users?[user == auth() && status == 'ACTIVE']] )
+                @@allow('create', associated_tenants?[tenant.users?[user == auth() && status == 'ACTIVE']] )
+                @@allow('update', associated_tenants?[tenant.users?[user == auth() && status == 'ACTIVE']] )
+            }
+            
+            model UserTenant {
+                user_id Int
+                user User @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+            
+                tenant_id Int
+                tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+            
+                status String @default('INACTIVE')
+            
+                @@map("user_tenants")
+            
+                @@id([user_id, tenant_id])
+            
+                @@index([user_id])
+                @@index([tenant_id])
+                @@index([user_id, tenant_id])
+            
+                @@allow('all', auth().is_super_admin == true )
+                @@allow('read', tenant.users?[user == auth() && status == 'ACTIVE' ])
+                @@allow('all', tenant.users?[user == auth() && status == 'ACTIVE'])
+                @@allow('update', tenant.users?[user == auth() && status == 'ACTIVE'])
+                @@allow('delete', tenant.users?[user == auth() && status == 'ACTIVE'])
+                @@allow('create', tenant.users?[user == auth() && status == 'ACTIVE'])
+            }
+            `
+        );
+
+        await prisma.user.deleteMany();
+        await prisma.tenant.deleteMany();
+
+        await prisma.tenant.create({
+            data: {
+                id: 1,
+                name: 'tenant 1',
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                name: 'user 1',
+            },
+        });
+
+        await prisma.userTenant.create({
+            data: {
+                user_id: 1,
+                tenant_id: 1,
+            },
+        });
+
+        const db = withPolicy({ id: 1, is_super_admin: true });
+        await db.userTenant.update({
+            where: {
+                user_id_tenant_id: {
+                    user_id: 1,
+                    tenant_id: 1,
+                },
+            },
+            data: {
+                user: {
+                    update: {
+                        name: 'user 1 updated',
+                    },
+                },
+            },
+        });
+    });
 });
