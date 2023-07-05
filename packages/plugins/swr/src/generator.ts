@@ -77,7 +77,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         name: `useMutate${model.name}`,
         isExported: true,
         statements: [
-            'const { endpoint } = useContext(RequestHandlerContext);',
+            'const { endpoint, fetch } = useContext(RequestHandlerContext);',
             `const prefixesToMutate = [${prefixesToMutate
                 .map((prefix) => '`${endpoint}/' + lowerCaseFirst(model.name) + '/' + prefix + '`')
                 .join(', ')}];`,
@@ -296,8 +296,8 @@ function generateQueryHook(
     })
         .addBody()
         .addStatements([
-            'const { endpoint } = useContext(RequestHandlerContext);',
-            `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, options);`,
+            'const { endpoint, fetch } = useContext(RequestHandlerContext);',
+            `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, options, fetch);`,
         ]);
 }
 
@@ -327,7 +327,7 @@ function generateMutation(
         .addBody()
         .addStatements([
             wrapReadbackErrorCheck(
-                `return await request.${fetcherFunc}<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate);`
+                `return await request.${fetcherFunc}<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch);`
             ),
         ]);
     return funcName;

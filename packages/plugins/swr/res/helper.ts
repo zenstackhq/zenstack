@@ -5,10 +5,23 @@ import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
 
 /**
+ * Function signature for `fetch`.
+ */
+export type FetchFn = (url: string, options?: RequestInit) => Promise<Response>;
+
+/**
  * Context type for configuring react hooks.
  */
 export type RequestHandlerContext = {
+    /**
+     * The endpoint to use for the queries.
+     */
     endpoint: string;
+
+    /**
+     * A custom fetch function for sending the HTTP requests.
+     */
+    fetch?: FetchFn;
 };
 
 /**
@@ -16,6 +29,7 @@ export type RequestHandlerContext = {
  */
 export const RequestHandlerContext = createContext<RequestHandlerContext>({
     endpoint: '/api/model',
+    fetch: undefined,
 });
 
 /**
@@ -43,10 +57,11 @@ export type RequestOptions<T> = {
 export function get<Result, Error = any>(
     url: string | null,
     args?: unknown,
-    options?: RequestOptions<Result>
+    options?: RequestOptions<Result>,
+    fetch?: FetchFn
 ): SWRResponse<Result, Error> {
     const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
-    return useSWR<Result, Error>(reqUrl, fetcher, {
+    return useSWR<Result, Error>(reqUrl, (url) => fetcher(url, undefined, fetch), {
         fallbackData: options?.initialData,
     });
 }
@@ -58,14 +73,18 @@ export function get<Result, Error = any>(
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function post<Result>(url: string, data: unknown, mutate: Mutator): Promise<Result> {
-    const r: Result = await fetcher(url, {
-        method: 'POST',
-        headers: {
-            'content-type': 'application/json',
+export async function post<Result>(url: string, data: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
+    const r: Result = await fetcher(
+        url,
+        {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: marshal(data),
         },
-        body: marshal(data),
-    });
+        fetch
+    );
     mutate();
     return r;
 }
@@ -77,14 +96,18 @@ export async function post<Result>(url: string, data: unknown, mutate: Mutator):
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function put<Result>(url: string, data: unknown, mutate: Mutator): Promise<Result> {
-    const r: Result = await fetcher(url, {
-        method: 'PUT',
-        headers: {
-            'content-type': 'application/json',
+export async function put<Result>(url: string, data: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
+    const r: Result = await fetcher(
+        url,
+        {
+            method: 'PUT',
+            headers: {
+                'content-type': 'application/json',
+            },
+            body: marshal(data),
         },
-        body: marshal(data),
-    });
+        fetch
+    );
     mutate();
     return r;
 }
@@ -96,11 +119,15 @@ export async function put<Result>(url: string, data: unknown, mutate: Mutator): 
  * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
  * @param mutate Mutator for invalidating cache.
  */
-export async function del<Result>(url: string, args: unknown, mutate: Mutator): Promise<Result> {
+export async function del<Result>(url: string, args: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
     const reqUrl = makeUrl(url, args);
-    const r: Result = await fetcher(reqUrl, {
-        method: 'DELETE',
-    });
+    const r: Result = await fetcher(
+        reqUrl,
+        {
+            method: 'DELETE',
+        },
+        fetch
+    );
     const path = url.split('/');
     path.pop();
     mutate();
@@ -128,8 +155,9 @@ export function getMutate(prefixes: string[]): Mutator {
     };
 }
 
-export async function fetcher<R>(url: string, options?: RequestInit) {
-    const res = await fetch(url, options);
+export async function fetcher<R>(url: string, options?: RequestInit, fetch?: FetchFn) {
+    const _fetch = fetch ?? window.fetch;
+    const res = await _fetch(url, options);
     if (!res.ok) {
         const error: Error & { info?: unknown; status?: number } = new Error(
             'An error occurred while fetching the data.'

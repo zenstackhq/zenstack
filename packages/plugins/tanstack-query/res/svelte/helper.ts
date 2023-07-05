@@ -25,11 +25,11 @@ export const SvelteQueryContextKey = 'zenstack-svelte-query-context';
  * @returns useQuery hook
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function query<R>(model: string, url: string, args?: unknown, options?: QueryOptions<R>) {
+export function query<R>(model: string, url: string, args?: unknown, options?: QueryOptions<R>, fetch?: FetchFn) {
     const reqUrl = makeUrl(url, args);
     return createQuery<R>({
         queryKey: [QUERY_KEY_PREFIX + model, url, args],
-        queryFn: () => fetcher<R>(reqUrl),
+        queryFn: () => fetcher<R>(reqUrl, undefined, fetch),
         ...options,
     });
 }
@@ -47,17 +47,22 @@ export function postMutation<T, R = any>(
     model: string,
     url: string,
     options?: Omit<MutationOptions<R, unknown, T>, 'mutationFn'>,
+    fetch?: FetchFn,
     invalidateQueries = true
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) =>
-        fetcher<R>(url, {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/json',
+        fetcher<R>(
+            url,
+            {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                },
+                body: marshal(data),
             },
-            body: marshal(data),
-        });
+            fetch
+        );
 
     const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
     const mutation = createMutation<R, unknown, T>(finalOptions);
@@ -77,17 +82,22 @@ export function putMutation<T, R = any>(
     model: string,
     url: string,
     options?: Omit<MutationOptions<R, unknown, T>, 'mutationFn'>,
+    fetch?: FetchFn,
     invalidateQueries = true
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) =>
-        fetcher<R>(url, {
-            method: 'PUT',
-            headers: {
-                'content-type': 'application/json',
+        fetcher<R>(
+            url,
+            {
+                method: 'PUT',
+                headers: {
+                    'content-type': 'application/json',
+                },
+                body: marshal(data),
             },
-            body: marshal(data),
-        });
+            fetch
+        );
 
     const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
     const mutation = createMutation<R, unknown, T>(finalOptions);
@@ -107,13 +117,18 @@ export function deleteMutation<T, R = any>(
     model: string,
     url: string,
     options?: Omit<MutationOptions<R, unknown, T>, 'mutationFn'>,
+    fetch?: FetchFn,
     invalidateQueries = true
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) =>
-        fetcher<R>(makeUrl(url, data), {
-            method: 'DELETE',
-        });
+        fetcher<R>(
+            makeUrl(url, data),
+            {
+                method: 'DELETE',
+            },
+            fetch
+        );
 
     const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
     const mutation = createMutation<R, unknown, T>(finalOptions);

@@ -92,7 +92,7 @@ function generateQueryHook(
         makeGetContext(target),
         `return query<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
-        )}/${operation}\`, args, options);`,
+        )}/${operation}\`, args, options, fetch);`,
     ]);
 }
 
@@ -143,7 +143,9 @@ function generateMutationHook(
                 initializer: `
                     ${httpVerb}Mutation<${argsType}, ${
                     overrideReturnType ?? model
-                }>('${model}', \`\${endpoint}/${lowerCaseFirst(model)}/${operation}\`, options, invalidateQueries)
+                }>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                    model
+                )}/${operation}\`, options, fetch, invalidateQueries)
                 `,
             },
         ],
@@ -418,9 +420,9 @@ function generateHelper(target: TargetFramework, project: Project, outDir: strin
 function makeGetContext(target: TargetFramework) {
     switch (target) {
         case 'react':
-            return 'const { endpoint } = useContext(RequestHandlerContext);';
+            return 'const { endpoint, fetch } = useContext(RequestHandlerContext);';
         case 'svelte':
-            return `const { endpoint } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
+            return `const { endpoint, fetch } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
         default:
             throw new PluginError(name, `Unsupported target "${target}"`);
     }
