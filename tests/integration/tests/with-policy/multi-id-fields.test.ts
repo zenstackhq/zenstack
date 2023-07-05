@@ -153,4 +153,121 @@ describe('With Policy: multiple id fields', () => {
         ).toBeRejectedByPolicy();
         await expect(db.q.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toResolveTruthy();
     });
+
+    it('multi-id to-one nested write', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+            model A {
+                x Int
+                y Int
+                v Int
+                b B @relation(fields: [bId], references: [id])
+                bId Int @unique
+
+                @@id([x, y])
+                @@allow('all', v > 0)
+            }
+
+            model B {
+                id Int @id
+                v Int
+                a A?
+                
+                @@allow('all', v > 0)
+            }
+            `
+        );
+        const db = withPolicy();
+        await expect(
+            db.b.create({
+                data: {
+                    id: 1,
+                    v: 1,
+                    a: {
+                        create: {
+                            x: 1,
+                            y: 2,
+                            v: 3,
+                        },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            db.a.update({
+                where: { x_y: { x: 1, y: 2 } },
+                data: { b: { update: { v: 5 } } },
+            })
+        ).toResolveTruthy();
+
+        expect(await db.b.findUnique({ where: { id: 1 } })).toEqual(expect.objectContaining({ v: 5 }));
+    });
+
+    it('multi-id to-many nested write', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+            model A {
+                x Int
+                y Int
+                v Int
+                b B @relation(fields: [bId], references: [id])
+                bId Int @unique
+
+                @@id([x, y])
+                @@allow('all', v > 0)
+            }
+
+            model B {
+                id Int @id
+                v Int
+                a A[]
+                c C?
+                
+                @@allow('all', v > 0)
+            }
+
+            model C {
+                id Int @id
+                v Int
+                b B @relation(fields: [bId], references: [id])
+                bId Int @unique
+
+                @@allow('all', v > 0)
+            }
+            `
+        );
+        const db = withPolicy();
+        await expect(
+            db.b.create({
+                data: {
+                    id: 1,
+                    v: 1,
+                    a: {
+                        create: {
+                            x: 1,
+                            y: 2,
+                            v: 2,
+                        },
+                    },
+                    c: {
+                        create: {
+                            id: 1,
+                            v: 3,
+                        },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            db.a.update({
+                where: { x_y: { x: 1, y: 2 } },
+                data: { b: { update: { v: 5, c: { update: { v: 6 } } } } },
+            })
+        ).toResolveTruthy();
+
+        expect(await db.b.findUnique({ where: { id: 1 } })).toEqual(expect.objectContaining({ v: 5 }));
+        expect(await db.c.findUnique({ where: { id: 1 } })).toEqual(expect.objectContaining({ v: 6 }));
+    });
 });

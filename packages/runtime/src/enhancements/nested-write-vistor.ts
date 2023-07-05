@@ -6,7 +6,7 @@ import { resolveField } from './model-meta';
 import { ModelMeta } from './types';
 import { enumerate, getModelFields } from './utils';
 
-type NestingPathItem = { field?: FieldInfo; where: any; unique: boolean };
+type NestingPathItem = { field?: FieldInfo; model: string; where: any; unique: boolean };
 
 /**
  * Context for visiting
@@ -113,7 +113,7 @@ export class NestedWriteVisitor {
         // visit payload
         switch (action) {
             case 'create':
-                context.nestingPath.push({ field, where: {}, unique: false });
+                context.nestingPath.push({ field, model, where: {}, unique: false });
                 for (const item of enumerate(data)) {
                     if (this.callback.create) {
                         await this.callback.create(model, item, context);
@@ -125,7 +125,7 @@ export class NestedWriteVisitor {
             case 'createMany':
                 // skip the 'data' layer so as to keep consistency with 'create'
                 if (data.data) {
-                    context.nestingPath.push({ field, where: {}, unique: false });
+                    context.nestingPath.push({ field, model, where: {}, unique: false });
                     for (const item of enumerate(data.data)) {
                         if (this.callback.create) {
                             await this.callback.create(model, item, context);
@@ -136,7 +136,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'connectOrCreate':
-                context.nestingPath.push({ field, where: data.where, unique: true });
+                context.nestingPath.push({ field, model, where: data.where, unique: true });
                 for (const item of enumerate(data)) {
                     if (this.callback.connectOrCreate) {
                         await this.callback.connectOrCreate(model, item, context);
@@ -150,7 +150,7 @@ export class NestedWriteVisitor {
                     for (const item of enumerate(data)) {
                         const newContext = {
                             ...context,
-                            nestingPath: [...context.nestingPath, { field, where: item, unique: true }],
+                            nestingPath: [...context.nestingPath, { field, model, where: item, unique: true }],
                         };
                         await this.callback.connect(model, item, newContext);
                     }
@@ -167,7 +167,7 @@ export class NestedWriteVisitor {
                             ...context,
                             nestingPath: [
                                 ...context.nestingPath,
-                                { field, where: item, unique: typeof item === 'object' },
+                                { field, model, where: item, unique: typeof item === 'object' },
                             ],
                         };
                         await this.callback.disconnect(model, item, newContext);
@@ -176,7 +176,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'update':
-                context.nestingPath.push({ field, where: data.where, unique: false });
+                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
                     if (this.callback.update) {
                         await this.callback.update(model, item, context);
@@ -187,7 +187,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'updateMany':
-                context.nestingPath.push({ field, where: data.where, unique: false });
+                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
                     if (this.callback.updateMany) {
                         await this.callback.updateMany(model, item, context);
@@ -197,7 +197,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'upsert': {
-                context.nestingPath.push({ field, where: data.where, unique: true });
+                context.nestingPath.push({ field, model, where: data.where, unique: true });
                 for (const item of enumerate(data)) {
                     if (this.callback.upsert) {
                         await this.callback.upsert(model, item, context);
@@ -210,7 +210,7 @@ export class NestedWriteVisitor {
 
             case 'delete': {
                 if (this.callback.delete) {
-                    context.nestingPath.push({ field, where: data.where, unique: false });
+                    context.nestingPath.push({ field, model, where: data.where, unique: false });
                     for (const item of enumerate(data)) {
                         await this.callback.delete(model, item, context);
                     }
@@ -220,7 +220,7 @@ export class NestedWriteVisitor {
 
             case 'deleteMany':
                 if (this.callback.deleteMany) {
-                    context.nestingPath.push({ field, where: data.where, unique: false });
+                    context.nestingPath.push({ field, model, where: data.where, unique: false });
                     for (const item of enumerate(data)) {
                         await this.callback.deleteMany(model, item, context);
                     }

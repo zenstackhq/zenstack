@@ -443,11 +443,18 @@ export class PolicyUtil {
             let currField: FieldInfo | undefined;
 
             for (let i = context.nestingPath.length - 1; i >= 0; i--) {
-                const { field, where, unique } = context.nestingPath[i];
+                const { field, model, where, unique } = context.nestingPath[i];
+
+                // never modify the original where because it's shared in the structure
+                const visitWhere = { ...where };
+                if (model && where) {
+                    // make sure composite unique condition is flattened
+                    await this.flattenGeneratedUniqueField(model, visitWhere);
+                }
 
                 if (!result) {
                     // first segment (bottom), just use its where clause
-                    result = currQuery = { ...where };
+                    result = currQuery = { ...visitWhere };
                     currField = field;
                 } else {
                     if (!currField) {
@@ -456,7 +463,13 @@ export class PolicyUtil {
                     if (!currField.backLink) {
                         throw this.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
                     }
-                    currQuery[currField.backLink] = { ...where };
+                    const backLinkField = this.getModelField(currField.type, currField.backLink);
+                    if (backLinkField?.isArray) {
+                        // many-side of relationship, wrap with "some" query
+                        currQuery[currField.backLink] = { some: { ...visitWhere } };
+                    } else {
+                        currQuery[currField.backLink] = { ...visitWhere };
+                    }
                     currQuery = currQuery[currField.backLink];
                     currField = field;
                 }
@@ -705,6 +718,11 @@ export class PolicyUtil {
                 return result;
             });
         }
+    }
+
+    private getModelField(model: string, backlinkField: string) {
+        model = lowerCaseFirst(model);
+        return this.modelMeta.fields[model]?.[backlinkField];
     }
 
     private transaction(db: DbClientContract, action: (tx: Record<string, DbOperations>) => Promise<any>) {
