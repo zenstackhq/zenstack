@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-describe('With Policy: relation to-many filter', () => {
+describe('With Policy: relation one-to-many filter', () => {
     let origDir: string;
 
     beforeAll(async () => {
@@ -396,5 +396,68 @@ describe('With Policy: relation to-many filter', () => {
                 },
             })
         ).toResolveTruthy();
+    });
+
+    it('_count filter', async () => {
+        const { withPolicy } = await loadSchema(model);
+
+        const db = withPolicy();
+
+        // m1 with m2 and m3
+        await db.m1.create({
+            data: {
+                id: '1',
+                m2: {
+                    create: [
+                        {
+                            value: 1,
+                            m3: {
+                                create: {
+                                    value: 1,
+                                },
+                            },
+                        },
+                        {
+                            value: 2,
+                            deleted: true,
+                            m3: {
+                                create: {
+                                    value: 2,
+                                    deleted: true,
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        });
+
+        await expect(db.m1.findFirst({ include: { _count: true } })).resolves.toEqual(
+            expect.objectContaining({ _count: { m2: 1 } })
+        );
+        await expect(db.m1.findFirst({ include: { _count: { select: { m2: true } } } })).resolves.toEqual(
+            expect.objectContaining({ _count: { m2: 1 } })
+        );
+        await expect(
+            db.m1.findFirst({ include: { _count: { select: { m2: { where: { value: { gt: 0 } } } } } } })
+        ).resolves.toEqual(expect.objectContaining({ _count: { m2: 1 } }));
+        await expect(
+            db.m1.findFirst({ include: { _count: { select: { m2: { where: { value: { gt: 1 } } } } } } })
+        ).resolves.toEqual(expect.objectContaining({ _count: { m2: 0 } }));
+
+        const t = await db.m1.findFirst({ include: { m2: { select: { _count: true } } } });
+        console.log(t);
+
+        await expect(db.m1.findFirst({ include: { m2: { select: { _count: true } } } })).resolves.toEqual(
+            expect.objectContaining({ m2: [{ _count: { m3: 1 } }] })
+        );
+        await expect(
+            db.m1.findFirst({ include: { m2: { select: { _count: { select: { m3: true } } } } } })
+        ).resolves.toEqual(expect.objectContaining({ m2: [{ _count: { m3: 1 } }] }));
+        await expect(
+            db.m1.findFirst({
+                include: { m2: { select: { _count: { select: { m3: { where: { value: { gt: 1 } } } } } } } },
+            })
+        ).resolves.toEqual(expect.objectContaining({ m2: [{ _count: { m3: 0 } }] }));
     });
 });

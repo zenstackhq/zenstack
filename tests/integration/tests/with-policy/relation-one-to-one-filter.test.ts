@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-describe('With Policy: relation to-one filter', () => {
+describe('With Policy: relation one-to-one filter', () => {
     let origDir: string;
 
     beforeAll(async () => {
