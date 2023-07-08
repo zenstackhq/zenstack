@@ -29,3 +29,10 @@ export function getDefaultModelMeta(): ModelMeta {
 export function resolveField(modelMeta: ModelMeta, model: string, field: string) {
     return modelMeta.fields[lowerCaseFirst(model)][field];
 }
+
+/**
+ * Gets all fields of a model.
+ */
+export function getFields(modelMeta: ModelMeta, model: string) {
+    return modelMeta.fields[lowerCaseFirst(model)];
+}
