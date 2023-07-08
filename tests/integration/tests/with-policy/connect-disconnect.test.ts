@@ -347,4 +347,56 @@ describe('With Policy: connect-disconnect', () => {
         //     })
         // ).toBeRejectedByPolicy();
     });
+
+    const modelExplicitManyToMany = `
+    model M1 {
+        id String @id @default(uuid())
+        value Int @default(0)
+        m2 M1OnM2[]
+    
+        @@allow('all', true)
+    }
+    
+    model M2 {
+        id String @id @default(uuid())
+        value Int
+        deleted Boolean @default(false)
+        m1 M1OnM2[]
+    
+        @@allow('read,create', true)
+    }
+
+    model M1OnM2 {
+        m1 M1 @relation(fields: [m1Id], references: [id])
+        m1Id String
+        m2 M2 @relation(fields: [m2Id], references: [id])
+        m2Id String
+
+        @@id([m1Id, m2Id])
+        @@allow('read', true)
+        @@allow('create', !m2.deleted)
+    }
+    `;
+
+    it('explicit many-to-many', async () => {
+        const { withPolicy, prisma } = await loadSchema(modelExplicitManyToMany);
+
+        const db = withPolicy();
+
+        await prisma.m1.create({ data: { id: 'm1-1', value: 1 } });
+        await prisma.m2.create({ data: { id: 'm2-1', value: 1 } });
+        await expect(
+            db.m1OnM2.create({
+                data: { m1: { connect: { id: 'm1-1' } }, m2: { connect: { id: 'm2-1' } } },
+            })
+        ).toResolveTruthy();
+
+        await prisma.m1.create({ data: { id: 'm1-2', value: 1 } });
+        await prisma.m2.create({ data: { id: 'm2-2', value: 1, deleted: true } });
+        await expect(
+            db.m1OnM2.create({
+                data: { m1: { connect: { id: 'm1-2' } }, m2: { connect: { id: 'm2-2' } } },
+            })
+        ).toBeRejectedByPolicy();
+    });
 });
