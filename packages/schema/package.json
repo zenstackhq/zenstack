@@ -78,9 +78,6 @@
         "publish-dev": "pnpm publish --registry http://localhost:4873",
         "postinstall": "node bin/post-install.js"
     },
-    "peerDependencies": {
-        "prisma": "^4.0.0"
-    },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
         "@prisma/generator-helper": "4.10.0",
