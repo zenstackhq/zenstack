@@ -269,7 +269,9 @@ export default class PrismaSchemaGenerator {
                 if (!Array.isArray(previewFeatures.value)) {
                     throw new PluginError(name, 'option "previewFeatures" must be an array');
                 }
-                previewFeatures.value.push('interactiveTransactions');
+                if (!previewFeatures.value.includes('interactiveTransactions')) {
+                    previewFeatures.value.push('interactiveTransactions');
+                }
             }
         }
     }
