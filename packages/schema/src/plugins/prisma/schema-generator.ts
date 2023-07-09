@@ -36,6 +36,7 @@ import {
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
+import semver from 'semver';
 import stripColor from 'strip-color';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
@@ -236,14 +237,43 @@ export default class PrismaSchemaGenerator {
         }
     }
 
+    private getPrismaVersion() {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            return require('@prisma/client/package.json').version;
+        } catch {
+            return undefined;
+        }
+    }
+
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
-        prisma.addGenerator(
+        const generator = prisma.addGenerator(
             decl.name,
             decl.fields.map((f) => {
                 const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
                 return { name: f.name, value };
             })
         );
+
+        // deal with configuring PrismaClient preview features
+        const provider = generator.fields.find((f) => f.name === 'provider');
+        if (provider?.value === 'prisma-client-js') {
+            const prismaVersion = this.getPrismaVersion();
+            if (prismaVersion && semver.lt(prismaVersion, '4.7.0')) {
+                // insert interactiveTransactions preview feature
+                let previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures');
+                if (!previewFeatures) {
+                    previewFeatures = { name: 'previewFeatures', value: [] };
+                    generator.fields.push(previewFeatures);
+                }
+                if (!Array.isArray(previewFeatures.value)) {
+                    throw new PluginError(name, 'option "previewFeatures" must be an array');
+                }
+                if (!previewFeatures.value.includes('interactiveTransactions')) {
+                    previewFeatures.value.push('interactiveTransactions');
+                }
+            }
+        }
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel, config?: Record<string, string>) {

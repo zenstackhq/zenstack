@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.0.0-beta.6",
+    "version": "1.0.0-beta.7",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -37,15 +37,13 @@
         "zod": "3.21.1",
         "zod-validation-error": "^0.2.1"
     },
-    "peerDependencies": {
-        "@prisma/client": "^4.0.0"
-    },
     "author": {
         "name": "ZenStack Team"
     },
     "homepage": "https://zenstack.dev",
     "license": "MIT",
     "devDependencies": {
+        "@prisma/client": "^4.0.0",
         "@types/bcryptjs": "^2.4.2",
         "@types/jest": "^29.5.0",
         "@types/lower-case-first": "^1.0.1",

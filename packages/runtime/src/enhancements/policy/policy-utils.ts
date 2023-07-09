@@ -16,7 +16,7 @@ import {
     PrismaWriteActionType,
 } from '../../types';
 import { getVersion } from '../../version';
-import { resolveField } from '../model-meta';
+import { getFields, resolveField } from '../model-meta';
 import { NestedWriteVisitor, type VisitorContext } from '../nested-write-vistor';
 import type { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
@@ -292,6 +292,37 @@ export class PolicyUtil {
         const injectTarget = args.select ?? args.include;
         if (!injectTarget) {
             return;
+        }
+
+        if (injectTarget._count !== undefined) {
+            // _count needs to respect read policies of related models
+            if (injectTarget._count === true) {
+                // include count for all relations, expand to all fields
+                // so that we can inject guard conditions for each of them
+                injectTarget._count = { select: {} };
+                const modelFields = getFields(this.modelMeta, model);
+                if (modelFields) {
+                    for (const [k, v] of Object.entries(modelFields)) {
+                        if (v.isDataModel && v.isArray) {
+                            // create an entry for to-many relation
+                            injectTarget._count.select[k] = {};
+                        }
+                    }
+                }
+            }
+
+            // inject conditions for each relation
+            for (const field of Object.keys(injectTarget._count.select)) {
+                if (typeof injectTarget._count.select[field] !== 'object') {
+                    injectTarget._count.select[field] = {};
+                }
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (!fieldInfo) {
+                    continue;
+                }
+                // inject into the "where" clause inside select
+                await this.injectAuthGuard(injectTarget._count.select[field], fieldInfo.type, 'read');
+            }
         }
 
         const idFields = this.getIdFields(model);
@@ -602,6 +633,9 @@ export class PolicyUtil {
 
         // process relation updates: connect, connectOrCreate, and disconnect
         const processRelationUpdate = async (model: string, args: any, context: VisitorContext) => {
+            // CHECK ME: equire the entity being connected readable?
+            // await this.checkPolicyForFilter(model, args, 'read', this.db);
+
             if (context.field?.backLink) {
                 // fetch the backlink field of the model being connected
                 const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
@@ -720,9 +754,9 @@ export class PolicyUtil {
         }
     }
 
-    private getModelField(model: string, backlinkField: string) {
+    private getModelField(model: string, field: string) {
         model = lowerCaseFirst(model);
-        return this.modelMeta.fields[model]?.[backlinkField];
+        return this.modelMeta.fields[model]?.[field];
     }
 
     private transaction(db: DbClientContract, action: (tx: Record<string, DbOperations>) => Promise<any>) {

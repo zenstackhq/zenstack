@@ -81,7 +81,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     isOptional: ${f.type.optional},
                     attributes: ${JSON.stringify(getFieldAttributes(f))},
                     backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
-                    isRelationOwner: ${isRelationOwner(f)},
+                    isRelationOwner: ${isRelationOwner(f, backlink)},
                 },`);
                     }
                 });
@@ -177,6 +177,19 @@ function getUniqueConstraints(model: DataModel) {
     return constraints;
 }
 
-function isRelationOwner(field: DataModelField) {
-    return hasAttribute(field, '@relation');
+function isRelationOwner(field: DataModelField, backLink: DataModelField | undefined) {
+    if (!isDataModel(field.type.reference?.ref)) {
+        return false;
+    }
+
+    if (hasAttribute(field, '@relation')) {
+        // this field has `@relation` attribute
+        return true;
+    } else if (!backLink || !hasAttribute(backLink, '@relation')) {
+        // if the opposite side field doesn't have `@relation` attribute either,
+        // it's an implicit many-to-many relation, both sides are owners
+        return true;
+    } else {
+        return false;
+    }
 }

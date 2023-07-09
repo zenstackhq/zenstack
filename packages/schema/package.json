@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "1.0.0-beta.6",
+    "version": "1.0.0-beta.7",
     "author": {
         "name": "ZenStack Team"
     },
@@ -77,9 +77,6 @@
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --registry http://localhost:4873",
         "postinstall": "node bin/post-install.js"
-    },
-    "peerDependencies": {
-        "prisma": "^4.0.0"
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
