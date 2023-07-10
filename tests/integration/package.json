@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "lint": "eslint . --ext .ts",
-        "test": "jest"
+        "test": "ZENSTACK_TEST=1 jest"
     },
     "keywords": [],
     "author": "",
