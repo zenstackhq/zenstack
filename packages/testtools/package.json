@@ -10,7 +10,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "lint": "eslint src --ext ts",
-    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist && copyfiles -u 1 src/package.template.json src/.npmrc.template dist",
+    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist && copyfiles -u 1 src/package.template.json src/.npmrc.template dist && pnpm pack dist --pack-destination '../../../.build'",
     "watch": "tsc --watch",
     "prepublishOnly": "pnpm build"
   },
