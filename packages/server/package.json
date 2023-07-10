@@ -6,7 +6,7 @@
     "homepage": "https://zenstack.dev",
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../.build'",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "test": "jest",

@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "lint": "eslint . --ext .ts",
-        "test": "jest"
+        "test": "ZENSTACK_TEST=1 jest"
     },
     "keywords": [],
     "author": "",
@@ -38,6 +38,7 @@
     "dependencies": {
         "@prisma/client": "^4.7.0",
         "@types/node": "^14.18.29",
+        "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
         "bcryptjs": "^2.4.3",
         "decimal.js": "^10.4.2",
