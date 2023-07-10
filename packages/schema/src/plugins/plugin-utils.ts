@@ -40,7 +40,7 @@ export function getDefaultOutputFolder() {
     // Find the real runtime module path, it might be a symlink in pnpm
     let runtimeModulePath = require.resolve('@zenstackhq/runtime');
 
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.ZENSTACK_TEST === '1') {
         // handling the case when running as tests, resolve relative to CWD
         runtimeModulePath = path.resolve(path.join(process.cwd(), 'node_modules', '@zenstackhq', 'runtime'));
     }

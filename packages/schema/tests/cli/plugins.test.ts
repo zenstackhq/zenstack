@@ -12,9 +12,6 @@ describe('CLI Plugins Tests', () => {
 
     beforeEach(() => {
         origDir = process.cwd();
-        const r = tmp.dirSync({ unsafeCleanup: true });
-        console.log(`Project dir: ${r.name}`);
-        process.chdir(r.name);
     });
 
     afterEach(() => {
@@ -25,20 +22,105 @@ describe('CLI Plugins Tests', () => {
         fs.writeFileSync('.npmrc', `cache=${getWorkspaceNpmCacheFolder(__dirname)}`);
     }
 
-    async function initProject() {
-        fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
-        createNpmrc();
-        const program = createProgram();
+    const PACKAGE_MANAGERS = ['npm', 'pnpm', 'pnpm-workspace'] as const;
 
-        // typescript
-        run('npm install -D typescript');
-        run('npx tsc --init');
+    function zenstackGenerate(pm: (typeof PACKAGE_MANAGERS)[number]) {
+        switch (pm) {
+            case 'npm':
+                run(`ZENSTACK_TEST=0 npx zenstack generate`);
+                break;
+            case 'pnpm':
+            case 'pnpm-workspace':
+                run(`ZENSTACK_TEST=0 pnpm zenstack generate`);
+                break;
+        }
+    }
+
+    async function initProject(pm: (typeof PACKAGE_MANAGERS)[number] = 'npm') {
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        console.log(`Project dir: ${r.name}`);
+        process.chdir(r.name);
+
+        createNpmrc();
+
+        // init project
+        switch (pm) {
+            case 'npm':
+                run('npm init -y');
+                break;
+            // case 'yarn':
+            //     run('yarn init');
+            //     break;
+            case 'pnpm':
+            case 'pnpm-workspace':
+                run('pnpm init');
+                break;
+        }
+
+        if (pm === 'pnpm-workspace') {
+            // create a package
+            fs.writeFileSync('pnpm-workspace.yaml', JSON.stringify({ packages: ['db'] }));
+            fs.mkdirSync('db');
+            process.chdir('db');
+            run('pnpm init');
+        }
 
         // deps
-        run('npm install react swr @tanstack/react-query @trpc/server @types/react');
+        const ver = require('../../package.json').version;
+        const depPkgs = [
+            'zod@3.21.1',
+            'react',
+            'swr',
+            '@tanstack/react-query',
+            '@trpc/server',
+            '@prisma/client',
+            `${path.join(__dirname, '../../../../.build/zenstackhq-language-' + ver + '.tgz')}`,
+            `${path.join(__dirname, '../../../../.build/zenstackhq-sdk-' + ver + '.tgz')}`,
+            `${path.join(__dirname, '../../../../.build/zenstackhq-runtime-' + ver + '.tgz')}`,
+        ];
+        const deps = depPkgs.join(' ');
 
-        await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
-        return program;
+        const devDepPkgs = [
+            'typescript',
+            '@types/react',
+            'prisma',
+            `${path.join(__dirname, '../../../../.build/zenstack-' + ver + '.tgz')}`,
+            `${path.join(__dirname, '../../../../.build/zenstackhq-tanstack-query-' + ver + '.tgz')}`,
+            `${path.join(__dirname, '../../../../.build/zenstackhq-swr-' + ver + '.tgz')}`,
+            `${path.join(__dirname, '../../../../.build/zenstackhq-trpc-' + ver + '.tgz')}`,
+            `${path.join(__dirname, '../../../../.build/zenstackhq-openapi-' + ver + '.tgz')}`,
+        ];
+        const devDeps = devDepPkgs.join(' ');
+
+        switch (pm) {
+            case 'npm':
+                run('npm install ' + deps);
+                run('npm install -D ' + devDeps);
+                break;
+            // case 'yarn':
+            //     run('yarn add ' + deps);
+            //     run('yarn add --dev ' + devDeps);
+            //     break;
+            case 'pnpm':
+            case 'pnpm-workspace':
+                run('pnpm add ' + deps);
+                run('pnpm add -D ' + devDeps);
+                break;
+        }
+
+        // init typescript project
+        fs.writeFileSync(
+            'tsconfig.json',
+            JSON.stringify({
+                compilerOptions: {
+                    strict: true,
+                    lib: ['esnext', 'dom'],
+                    esModuleInterop: true,
+                },
+            })
+        );
+
+        return createProgram();
     }
 
     const plugins = [
@@ -56,26 +138,21 @@ describe('CLI Plugins Tests', () => {
             provider = '@core/access-policy'
             output = 'policy'
         }`,
-        `plugin zod {
-            provider = '@core/zod'
-            output = 'zod'
-        }`,
         `plugin tanstack {
-            provider = '${path.join(__dirname, '../../../plugins/tanstack-query/dist')}'
+            provider = '@zenstackhq/tanstack-query'
             output = 'lib/tanstack-query'
             target = 'react'
         }`,
         `plugin swr {
-            provider = '${path.join(__dirname, '../../../plugins/swr/dist')}'
+            provider = '@zenstackhq/swr'
             output = 'lib/swr'
         }`,
         `plugin trpc {
-            provider = '${path.join(__dirname, '../../../plugins/trpc/dist')}'
+            provider = '@zenstackhq/trpc'
             output = 'lib/trpc'
-            zodSchemasImport = '../../../zod'
         }`,
         `plugin openapi {
-            provider = '${path.join(__dirname, '../../../plugins/openapi/dist')}'
+            provider = '@zenstackhq/openapi'
             output = 'myapi.yaml'
             specVersion = '3.0.0'
             title = 'My Awesome API'
@@ -123,30 +200,36 @@ describe('CLI Plugins Tests', () => {
     `;
 
     it('all plugins standard prisma client output path', async () => {
-        const program = await initProject();
+        for (const pm of PACKAGE_MANAGERS) {
+            console.log('[PACKAGE MANAGER]', pm);
+            await initProject(pm);
 
-        let schemaContent = `
+            let schemaContent = `
 generator client {
     provider = "prisma-client-js"
 }
 
 ${BASE_MODEL}
         `;
-        for (const plugin of plugins) {
-            schemaContent += `\n${plugin}`;
+            for (const plugin of plugins) {
+                schemaContent += `\n${plugin}`;
+            }
+            fs.writeFileSync('schema.zmodel', schemaContent);
+
+            // generate
+            zenstackGenerate(pm);
+
+            // compile
+            run('npx tsc');
         }
-        fs.writeFileSync('schema.zmodel', schemaContent);
-
-        await program.parseAsync(['generate', '--no-dependency-check'], { from: 'user' });
-
-        // compile
-        run('npx tsc');
     });
 
     it('all plugins custom prisma client output path', async () => {
-        const program = await initProject();
+        for (const pm of PACKAGE_MANAGERS) {
+            console.log('[PACKAGE MANAGER]', pm);
+            await initProject(pm);
 
-        let schemaContent = `
+            let schemaContent = `
 generator client {
     provider = "prisma-client-js"
     output = "foo/bar"
@@ -154,24 +237,28 @@ generator client {
 
 ${BASE_MODEL}
 `;
-        for (const plugin of plugins) {
-            schemaContent += `\n${plugin}`;
+            for (const plugin of plugins) {
+                schemaContent += `\n${plugin}`;
+            }
+            fs.writeFileSync('schema.zmodel', schemaContent);
+
+            // generate
+            zenstackGenerate(pm);
+
+            // compile
+            run('npx tsc');
         }
-        fs.writeFileSync('schema.zmodel', schemaContent);
-
-        await program.parseAsync(['generate', '--no-dependency-check'], { from: 'user' });
-
-        // compile
-        run('npx tsc');
     });
 
     it('all plugins absolute prisma client output path', async () => {
-        const { name: output } = tmp.dirSync({ unsafeCleanup: true });
-        console.log('Output prisma client to:', output);
+        for (const pm of PACKAGE_MANAGERS) {
+            console.log('[PACKAGE MANAGER]', pm);
+            const { name: output } = tmp.dirSync({ unsafeCleanup: true });
+            console.log('Output prisma client to:', output);
 
-        const program = await initProject();
+            await initProject(pm);
 
-        let schemaContent = `
+            let schemaContent = `
 generator client {
     provider = "prisma-client-js"
     output = "${output}"
@@ -179,14 +266,16 @@ generator client {
 
 ${BASE_MODEL}
 `;
-        for (const plugin of plugins) {
-            schemaContent += `\n${plugin}`;
+            for (const plugin of plugins) {
+                schemaContent += `\n${plugin}`;
+            }
+            fs.writeFileSync('schema.zmodel', schemaContent);
+
+            // generate
+            zenstackGenerate(pm);
+
+            // compile
+            run('npx tsc');
         }
-        fs.writeFileSync('schema.zmodel', schemaContent);
-
-        await program.parseAsync(['generate', '--no-dependency-check'], { from: 'user' });
-
-        // compile
-        run('npx tsc');
     });
 });
