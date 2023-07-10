@@ -5,7 +5,7 @@ import { getWorkspaceNpmCacheFolder, run } from '@zenstackhq/testtools';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
-import { createProgram } from '../../src/cli';
+import { createProgram } from '../../../../packages/schema/src/cli';
 
 describe('CLI Plugins Tests', () => {
     let origDir: string;
@@ -66,7 +66,7 @@ describe('CLI Plugins Tests', () => {
         }
 
         // deps
-        const ver = require('../../package.json').version;
+        const ver = require('../../../../packages/schema/package.json').version;
         const depPkgs = [
             'zod@3.21.1',
             'react',

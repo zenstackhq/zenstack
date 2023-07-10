@@ -3,9 +3,9 @@
 
 import * as fs from 'fs';
 import * as tmp from 'tmp';
-import { createProgram } from '../../src/cli';
-import { CliError } from '../../src/cli/cli-error';
-import { config } from '../../src/cli/config';
+import { createProgram } from '../../../../packages/schema/src/cli';
+import { CliError } from '../../../../packages/schema/src/cli/cli-error';
+import { config } from '../../../../packages/schema/src/cli/config';
 import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 
 describe('CLI Config Tests', () => {

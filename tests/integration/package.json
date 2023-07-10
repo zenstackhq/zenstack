@@ -38,6 +38,7 @@
     "dependencies": {
         "@prisma/client": "^4.7.0",
         "@types/node": "^14.18.29",
+        "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
         "bcryptjs": "^2.4.3",
         "decimal.js": "^10.4.2",
