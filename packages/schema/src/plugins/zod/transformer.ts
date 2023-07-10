@@ -396,14 +396,14 @@ export default class Transformer {
                 includeImport,
             ];
             let codeBody = '';
-            const operations: string[] = [];
+            const operations: [string, string][] = [];
 
             if (findUnique) {
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
                 codeBody += `findUnique: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema }),`;
-                operations.push('findUnique');
+                operations.push(['findUnique', modelName]);
             }
 
             if (findFirst) {
@@ -418,7 +418,7 @@ export default class Transformer {
                 codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
                     modelName
                 )}ScalarFieldEnumSchema).optional() }),`;
-                operations.push('findFirst');
+                operations.push(['findFirst', modelName]);
             }
 
             if (findMany) {
@@ -433,7 +433,7 @@ export default class Transformer {
                 codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
                     modelName
                 )}ScalarFieldEnumSchema).optional()  }),`;
-                operations.push('findMany');
+                operations.push(['findMany', modelName]);
             }
 
             if (createOne) {
@@ -442,7 +442,7 @@ export default class Transformer {
                     `import { ${modelName}UncheckedCreateInputObjectSchema } from '../objects/${modelName}UncheckedCreateInput.schema'`
                 );
                 codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema]) }),`;
-                operations.push('create');
+                operations.push(['create', modelName]);
             }
 
             if (createMany) {
@@ -450,7 +450,7 @@ export default class Transformer {
                     `import { ${modelName}CreateManyInputObjectSchema } from '../objects/${modelName}CreateManyInput.schema'`
                 );
                 codeBody += `createMany: z.object({ data: z.union([${modelName}CreateManyInputObjectSchema, z.array(${modelName}CreateManyInputObjectSchema)]) }),`;
-                operations.push('createMany');
+                operations.push(['createMany', modelName]);
             }
 
             if (deleteOne) {
@@ -458,7 +458,7 @@ export default class Transformer {
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
                 codeBody += `'delete': z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
-                operations.push('delete');
+                operations.push(['delete', modelName]);
             }
 
             if (deleteMany) {
@@ -466,7 +466,7 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`
                 );
                 codeBody += `deleteMany: z.object({ where: ${modelName}WhereInputObjectSchema.optional()  }),`;
-                operations.push('deleteMany');
+                operations.push(['deleteMany', modelName]);
             }
 
             if (updateOne) {
@@ -476,7 +476,7 @@ export default class Transformer {
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
                 codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema]), where: ${modelName}WhereUniqueInputObjectSchema  }),`;
-                operations.push('update');
+                operations.push(['update', modelName]);
             }
 
             if (updateMany) {
@@ -486,7 +486,7 @@ export default class Transformer {
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`
                 );
                 codeBody += `updateMany: z.object({ data: z.union([${modelName}UpdateManyMutationInputObjectSchema, ${modelName}UncheckedUpdateManyInputObjectSchema]), where: ${modelName}WhereInputObjectSchema.optional()  }),`;
-                operations.push('updateMany');
+                operations.push(['updateMany', modelName]);
             }
 
             if (upsertOne) {
@@ -498,7 +498,7 @@ export default class Transformer {
                     `import { ${modelName}UncheckedUpdateInputObjectSchema } from '../objects/${modelName}UncheckedUpdateInput.schema'`
                 );
                 codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema]), update: z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema]) }),`;
-                operations.push('upsert');
+                operations.push(['upsert', modelName]);
             }
 
             const aggregateOperations = [];
@@ -547,7 +547,7 @@ export default class Transformer {
                 codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
                     ', '
                 )} }),`;
-                operations.push('aggregate');
+                operations.push(['aggregate', modelNameVar]);
             }
 
             if (groupBy) {
@@ -562,7 +562,7 @@ export default class Transformer {
                 codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${upperCaseFirst(
                     modelName
                 )}ScalarFieldEnumSchema), ${aggregateOperations.join(', ')} }),`;
-                operations.push('groupBy');
+                operations.push(['groupBy', modelNameVar]);
             }
 
             imports = [...new Set(imports)];
@@ -573,7 +573,9 @@ export default class Transformer {
             ${imports.join(';\n')}
             
             type ${modelName}InputSchemaType = {
-${operations.map((op) => indentString(`${op}: z.ZodType<Prisma.${modelName}${upperCaseFirst(op)}Args>`, 4)).join(',\n')}
+${operations
+    .map((op) => indentString(`${op[0]}: z.ZodType<Prisma.${op[1]}${upperCaseFirst(op[0])}Args>`, 4))
+    .join(',\n')}
             }
 
             export const ${modelName}InputSchema: ${modelName}InputSchemaType = {
