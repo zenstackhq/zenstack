@@ -71,7 +71,7 @@ export async function initProject(
 
 Please check the following guide on how to model your app:
     https://zenstack.dev/#/modeling-your-app.`);
-    } else {
+    } else if (prismaSchema) {
         console.log(
             `Your current Prisma schema "${prismaSchema}" has been copied to "${zmodelFile}".
 Moving forward please edit this file and run "zenstack generate" to regenerate Prisma schema.`

@@ -561,9 +561,6 @@ importers:
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../runtime/dist
-      '@zenstackhq/testtools':
-        specifier: workspace:*
-        version: link:../testtools/dist
       concurrently:
         specifier: ^7.4.0
         version: 7.4.0
@@ -796,6 +793,9 @@ importers:
       '@types/node':
         specifier: ^14.18.29
         version: 14.18.29
+      '@zenstackhq/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk/dist
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../../packages/testtools/dist
