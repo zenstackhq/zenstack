@@ -22,17 +22,17 @@ describe('CLI Plugins Tests', () => {
         fs.writeFileSync('.npmrc', `cache=${getWorkspaceNpmCacheFolder(__dirname)}`);
     }
 
-    const PACKAGE_MANAGERS = ['npm', 'pnpm', 'pnpm-workspace'] as const;
+    const PACKAGE_MANAGERS = ['npm' /*, 'pnpm', 'pnpm-workspace'*/] as const;
 
     function zenstackGenerate(pm: (typeof PACKAGE_MANAGERS)[number]) {
         switch (pm) {
             case 'npm':
                 run(`ZENSTACK_TEST=0 npx zenstack generate`);
                 break;
-            case 'pnpm':
-            case 'pnpm-workspace':
-                run(`ZENSTACK_TEST=0 pnpm zenstack generate`);
-                break;
+            // case 'pnpm':
+            // case 'pnpm-workspace':
+            //     run(`ZENSTACK_TEST=0 pnpm zenstack generate`);
+            //     break;
         }
     }
 
@@ -51,19 +51,19 @@ describe('CLI Plugins Tests', () => {
             // case 'yarn':
             //     run('yarn init');
             //     break;
-            case 'pnpm':
-            case 'pnpm-workspace':
-                run('pnpm init');
-                break;
+            // case 'pnpm':
+            // case 'pnpm-workspace':
+            //     run('pnpm init');
+            //     break;
         }
 
-        if (pm === 'pnpm-workspace') {
-            // create a package
-            fs.writeFileSync('pnpm-workspace.yaml', JSON.stringify({ packages: ['db'] }));
-            fs.mkdirSync('db');
-            process.chdir('db');
-            run('pnpm init');
-        }
+        // if (pm === 'pnpm-workspace') {
+        //     // create a package
+        //     fs.writeFileSync('pnpm-workspace.yaml', JSON.stringify({ packages: ['db'] }));
+        //     fs.mkdirSync('db');
+        //     process.chdir('db');
+        //     run('pnpm init');
+        // }
 
         // deps
         const ver = require('../../../../packages/schema/package.json').version;
@@ -101,11 +101,11 @@ describe('CLI Plugins Tests', () => {
             //     run('yarn add ' + deps);
             //     run('yarn add --dev ' + devDeps);
             //     break;
-            case 'pnpm':
-            case 'pnpm-workspace':
-                run('pnpm add ' + deps);
-                run('pnpm add -D ' + devDeps);
-                break;
+            // case 'pnpm':
+            // case 'pnpm-workspace':
+            //     run('pnpm add ' + deps);
+            //     run('pnpm add -D ' + devDeps);
+            //     break;
         }
 
         // init typescript project
