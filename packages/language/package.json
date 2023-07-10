@@ -9,7 +9,7 @@
         "generate": "langium generate",
         "watch": "concurrently \"langium generate --watch\" \"tsc --watch\"",
         "lint": "eslint src --ext ts",
-        "build": "pnpm lint && pnpm clean && pnpm generate && tsc && copyfiles -F ./README.md ./LICENSE ./package.json dist",
+        "build": "pnpm lint && pnpm clean && pnpm generate && tsc && copyfiles -F ./README.md ./LICENSE ./package.json dist && pnpm pack dist --pack-destination '../../../.build'",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm build && pnpm publish --tag dev"
     },

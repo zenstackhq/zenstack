@@ -5,8 +5,8 @@ import { getWorkspaceNpmCacheFolder } from '@zenstackhq/testtools';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
-import { createProgram } from '../../src/cli';
-import { execSync } from '../../src/utils/exec-utils';
+import { createProgram } from '../../../../packages/schema/src/cli';
+import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
 
 describe('CLI Command Tests', () => {
     let origDir: string;

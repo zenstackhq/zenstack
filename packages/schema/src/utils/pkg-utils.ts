@@ -47,9 +47,7 @@ export function installPackage(
     switch (manager) {
         case 'yarn':
             execSync(
-                `yarn --cwd "${projectPath}" add ${exactVersion ? '--exact' : ''} ${pkg}@${tag} ${
-                    dev ? ' --dev' : ''
-                } --ignore-engines`
+                `yarn --cwd "${projectPath}" add ${exactVersion ? '--exact' : ''} ${pkg}@${tag} ${dev ? ' --dev' : ''}`
             );
             break;
 

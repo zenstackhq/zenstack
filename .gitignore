@@ -6,3 +6,4 @@ dist
 .env.local
 .npmcache
 coverage
+.build
