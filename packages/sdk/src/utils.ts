@@ -138,14 +138,32 @@ export function isEnumFieldReference(node: AstNode): node is ReferenceExpr {
 }
 
 /**
- * Gets id fields declared at the data model level
+ * Gets `@@id` fields declared at the data model level
  */
-export function getIdFields(model: DataModel) {
+export function getModelIdFields(model: DataModel) {
     const idAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@id');
     if (!idAttr) {
         return [];
     }
     const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+        return [];
+    }
+
+    return fieldsArg.value.items
+        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+        .map((item) => resolved(item.target) as DataModelField);
+}
+
+/**
+ * Gets `@@unique` fields declared at the data model level
+ */
+export function getModelUniqueFields(model: DataModel) {
+    const uniqueAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@unique');
+    if (!uniqueAttr) {
+        return [];
+    }
+    const fieldsArg = uniqueAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
     if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
         return [];
     }
@@ -164,12 +182,25 @@ export function isIdField(field: DataModelField) {
         return true;
     }
 
-    // model-level @@id attribute with a list of fields
     const model = field.$container as DataModel;
-    const modelLevelIds = getIdFields(model);
+
+    // model-level @@id attribute with a list of fields
+    const modelLevelIds = getModelIdFields(model);
     if (modelLevelIds.includes(field)) {
         return true;
     }
+
+    // fall back to @unique attribute
+    if (field.attributes.some((attr) => attr.decl.ref?.name === '@unique')) {
+        return true;
+    }
+
+    // fall back to model-level @@unique attribute
+    const modelLevelUnique = getModelUniqueFields(model);
+    if (modelLevelUnique.includes(field)) {
+        return true;
+    }
+
     return false;
 }
 

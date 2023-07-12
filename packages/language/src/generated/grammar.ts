@@ -1681,74 +1681,110 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "cardinality": "*"
           },
           {
-            "$type": "Assignment",
-            "feature": "isAbstract",
-            "operator": "?=",
-            "terminal": {
-              "$type": "Keyword",
-              "value": "abstract"
-            },
-            "cardinality": "?"
-          },
-          {
-            "$type": "Keyword",
-            "value": "model"
-          },
-          {
-            "$type": "Assignment",
-            "feature": "name",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@40"
-              },
-              "arguments": []
-            }
-          },
-          {
-            "$type": "Group",
+            "$type": "Alternatives",
             "elements": [
               {
-                "$type": "Keyword",
-                "value": "extends"
-              },
-              {
-                "$type": "Assignment",
-                "feature": "superTypes",
-                "operator": "+=",
-                "terminal": {
-                  "$type": "CrossReference",
-                  "type": {
-                    "$ref": "#/rules@30"
+                "$type": "Group",
+                "elements": [
+                  {
+                    "$type": "Assignment",
+                    "feature": "isAbstract",
+                    "operator": "?=",
+                    "terminal": {
+                      "$type": "Keyword",
+                      "value": "abstract"
+                    },
+                    "cardinality": "?"
                   },
-                  "deprecatedSyntax": false
-                }
+                  {
+                    "$type": "Keyword",
+                    "value": "model"
+                  },
+                  {
+                    "$type": "Assignment",
+                    "feature": "name",
+                    "operator": "=",
+                    "terminal": {
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@40"
+                      },
+                      "arguments": []
+                    }
+                  },
+                  {
+                    "$type": "Group",
+                    "elements": [
+                      {
+                        "$type": "Keyword",
+                        "value": "extends"
+                      },
+                      {
+                        "$type": "Assignment",
+                        "feature": "superTypes",
+                        "operator": "+=",
+                        "terminal": {
+                          "$type": "CrossReference",
+                          "type": {
+                            "$ref": "#/rules@30"
+                          },
+                          "deprecatedSyntax": false
+                        }
+                      },
+                      {
+                        "$type": "Group",
+                        "elements": [
+                          {
+                            "$type": "Keyword",
+                            "value": ","
+                          },
+                          {
+                            "$type": "Assignment",
+                            "feature": "superTypes",
+                            "operator": "+=",
+                            "terminal": {
+                              "$type": "CrossReference",
+                              "type": {
+                                "$ref": "#/rules@30"
+                              },
+                              "deprecatedSyntax": false
+                            }
+                          }
+                        ],
+                        "cardinality": "*"
+                      }
+                    ],
+                    "cardinality": "?"
+                  }
+                ]
               },
               {
                 "$type": "Group",
                 "elements": [
                   {
-                    "$type": "Keyword",
-                    "value": ","
+                    "$type": "Assignment",
+                    "feature": "isView",
+                    "operator": "?=",
+                    "terminal": {
+                      "$type": "Keyword",
+                      "value": "view"
+                    }
                   },
                   {
                     "$type": "Assignment",
-                    "feature": "superTypes",
-                    "operator": "+=",
+                    "feature": "name",
+                    "operator": "=",
                     "terminal": {
-                      "$type": "CrossReference",
-                      "type": {
-                        "$ref": "#/rules@30"
+                      "$type": "RuleCall",
+                      "rule": {
+                        "$ref": "#/rules@40"
                       },
-                      "deprecatedSyntax": false
+                      "arguments": []
                     }
                   }
-                ],
-                "cardinality": "*"
+                ]
               }
-            ],
-            "cardinality": "?"
+            ]
           },
           {
             "$type": "Keyword",

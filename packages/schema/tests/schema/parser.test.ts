@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
+/// <reference types="@types/jest" />
+
 import {
     ArrayExpr,
     AttributeArg,
@@ -508,5 +510,18 @@ describe('Parsing Tests', () => {
             }
                 `;
         await loadModel(content, false);
+    });
+
+    it('view support', async () => {
+        const content = `   
+            view UserInfo {
+                id    Int    @unique
+                email String
+                name  String
+                bio   String
+            }
+                `;
+        const doc = await loadModel(content, false);
+        expect((doc.declarations[0] as DataModel).isView).toBeTruthy();
     });
 });

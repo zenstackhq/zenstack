@@ -277,7 +277,7 @@ export default class PrismaSchemaGenerator {
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel, config?: Record<string, string>) {
-        const model = prisma.addModel(decl.name);
+        const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);
         }
@@ -336,6 +336,10 @@ export default class PrismaSchemaGenerator {
     }
 
     private shouldGenerateAuxFields(decl: DataModel) {
+        if (decl.isView) {
+            return false;
+        }
+
         const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
         if (!allowAll && !denyAll) {
