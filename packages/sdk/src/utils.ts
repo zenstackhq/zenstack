@@ -178,7 +178,7 @@ export function getModelUniqueFields(model: DataModel) {
  */
 export function isIdField(field: DataModelField) {
     // field-level @id attribute
-    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
+    if (hasAttribute(field, '@id')) {
         return true;
     }
 
@@ -190,12 +190,18 @@ export function isIdField(field: DataModelField) {
         return true;
     }
 
-    // fall back to @unique attribute
-    if (field.attributes.some((attr) => attr.decl.ref?.name === '@unique')) {
-        return true;
+    if (model.fields.some((f) => hasAttribute(f, '@id')) || modelLevelIds.length > 0) {
+        // the model already has id field, don't check @unique and @@unique
+        return false;
     }
 
-    // fall back to model-level @@unique attribute
+    // then, the first field with @unique can be used as id
+    const firstUniqueField = model.fields.find((f) => hasAttribute(f, '@unique'));
+    if (firstUniqueField) {
+        return firstUniqueField === field;
+    }
+
+    // last, the first model level @@unique can be used as id
     const modelLevelUnique = getModelUniqueFields(model);
     if (modelLevelUnique.includes(field)) {
         return true;
