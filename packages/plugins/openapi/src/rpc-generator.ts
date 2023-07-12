@@ -689,6 +689,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 return { type: 'boolean' };
             case 'DateTime':
                 return { type: 'string', format: 'date-time' };
+            case 'Bytes':
+                return { type: 'string', format: 'byte' };
             case 'JSON':
             case 'Json':
                 return {};

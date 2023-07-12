@@ -901,6 +901,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 return { type: 'boolean' };
             case 'DateTime':
                 return { type: 'string', format: 'date-time' };
+            case 'Bytes':
+                return { type: 'string', format: 'byte' };
             case 'Json':
                 return { type: 'object' };
             default: {

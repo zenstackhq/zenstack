@@ -263,6 +263,43 @@ model Post {
 
         await OpenAPIParser.validate(output);
     });
+
+    it('field type coverage', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+}
+
+model Foo {
+    id String @id @default(cuid())
+    
+    string String
+    int Int
+    bigInt BigInt
+    date DateTime
+    float Float
+    decimal Decimal
+    boolean Boolean
+    bytes Bytes
+
+    @@allow('all', true)
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+        const options = buildOptions(model, modelFile, output, '3.1.0');
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        await OpenAPIParser.validate(output);
+
+        const parsed = YAML.parse(fs.readFileSync(output, 'utf-8'));
+        expect(parsed.openapi).toBe('3.1.0');
+        const baseline = YAML.parse(fs.readFileSync(`${__dirname}/baseline/rest-type-coverage.baseline.yaml`, 'utf-8'));
+        expect(parsed).toMatchObject(baseline);
+    });
 });
 
 function buildOptions(model: Model, modelFile: string, output: string, specVersion = '3.0.0') {

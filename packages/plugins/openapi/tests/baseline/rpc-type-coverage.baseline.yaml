@@ -1,0 +1,2064 @@
+openapi: 3.1.0
+info:
+    title: ZenStack Generated API
+    version: 1.0.0
+tags:
+    - name: foo
+      description: Foo operations
+components:
+    schemas:
+        FooScalarFieldEnum:
+            type: string
+            enum:
+                - id
+                - string
+                - int
+                - bigInt
+                - date
+                - float
+                - decimal
+                - boolean
+                - bytes
+        QueryMode:
+            type: string
+            enum:
+                - default
+                - insensitive
+        SortOrder:
+            type: string
+            enum:
+                - asc
+                - desc
+        Foo:
+            type: object
+            properties:
+                id:
+                    type: string
+                string:
+                    type: string
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: string
+                    format: date-time
+                float:
+                    type: number
+                decimal:
+                    type: number
+                boolean:
+                    type: boolean
+                bytes:
+                    type: string
+                    format: byte
+            required:
+                - id
+                - string
+                - int
+                - bigInt
+                - date
+                - float
+                - decimal
+                - boolean
+                - bytes
+        FooWhereInput:
+            type: object
+            properties:
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/FooWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/FooWhereInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FooWhereInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/FooWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/FooWhereInput'
+                id:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringFilter'
+                        - type: string
+                string:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringFilter'
+                        - type: string
+                int:
+                    oneOf:
+                        - $ref: '#/components/schemas/IntFilter'
+                        - type: integer
+                bigInt:
+                    oneOf:
+                        - $ref: '#/components/schemas/BigIntFilter'
+                        - type: integer
+                date:
+                    oneOf:
+                        - $ref: '#/components/schemas/DateTimeFilter'
+                        - type: string
+                          format: date-time
+                float:
+                    oneOf:
+                        - $ref: '#/components/schemas/FloatFilter'
+                        - type: number
+                decimal:
+                    oneOf:
+                        - $ref: '#/components/schemas/DecimalFilter'
+                        - type: number
+                boolean:
+                    oneOf:
+                        - $ref: '#/components/schemas/BoolFilter'
+                        - type: boolean
+                bytes:
+                    oneOf:
+                        - $ref: '#/components/schemas/BytesFilter'
+                        - type: string
+                          format: byte
+        FooOrderByWithRelationInput:
+            type: object
+            properties:
+                id:
+                    $ref: '#/components/schemas/SortOrder'
+                string:
+                    $ref: '#/components/schemas/SortOrder'
+                int:
+                    $ref: '#/components/schemas/SortOrder'
+                bigInt:
+                    $ref: '#/components/schemas/SortOrder'
+                date:
+                    $ref: '#/components/schemas/SortOrder'
+                float:
+                    $ref: '#/components/schemas/SortOrder'
+                decimal:
+                    $ref: '#/components/schemas/SortOrder'
+                boolean:
+                    $ref: '#/components/schemas/SortOrder'
+                bytes:
+                    $ref: '#/components/schemas/SortOrder'
+        FooWhereUniqueInput:
+            type: object
+            properties:
+                id:
+                    type: string
+        FooScalarWhereWithAggregatesInput:
+            type: object
+            properties:
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
+                id:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringWithAggregatesFilter'
+                        - type: string
+                string:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringWithAggregatesFilter'
+                        - type: string
+                int:
+                    oneOf:
+                        - $ref: '#/components/schemas/IntWithAggregatesFilter'
+                        - type: integer
+                bigInt:
+                    oneOf:
+                        - $ref: '#/components/schemas/BigIntWithAggregatesFilter'
+                        - type: integer
+                date:
+                    oneOf:
+                        - $ref: '#/components/schemas/DateTimeWithAggregatesFilter'
+                        - type: string
+                          format: date-time
+                float:
+                    oneOf:
+                        - $ref: '#/components/schemas/FloatWithAggregatesFilter'
+                        - type: number
+                decimal:
+                    oneOf:
+                        - $ref: '#/components/schemas/DecimalWithAggregatesFilter'
+                        - type: number
+                boolean:
+                    oneOf:
+                        - $ref: '#/components/schemas/BoolWithAggregatesFilter'
+                        - type: boolean
+                bytes:
+                    oneOf:
+                        - $ref: '#/components/schemas/BytesWithAggregatesFilter'
+                        - type: string
+                          format: byte
+        FooCreateInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                string:
+                    type: string
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: string
+                    format: date-time
+                float:
+                    type: number
+                decimal:
+                    type: number
+                boolean:
+                    type: boolean
+                bytes:
+                    type: string
+                    format: byte
+            required:
+                - string
+                - int
+                - bigInt
+                - date
+                - float
+                - decimal
+                - boolean
+                - bytes
+        FooUpdateInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                string:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                int:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                bigInt:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/BigIntFieldUpdateOperationsInput'
+                date:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
+                float:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/FloatFieldUpdateOperationsInput'
+                decimal:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/DecimalFieldUpdateOperationsInput'
+                boolean:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/BoolFieldUpdateOperationsInput'
+                bytes:
+                    oneOf:
+                        - type: string
+                          format: byte
+                        - $ref: '#/components/schemas/BytesFieldUpdateOperationsInput'
+        FooCreateManyInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                string:
+                    type: string
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: string
+                    format: date-time
+                float:
+                    type: number
+                decimal:
+                    type: number
+                boolean:
+                    type: boolean
+                bytes:
+                    type: string
+                    format: byte
+            required:
+                - string
+                - int
+                - bigInt
+                - date
+                - float
+                - decimal
+                - boolean
+                - bytes
+        FooUpdateManyMutationInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                string:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                int:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                bigInt:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/BigIntFieldUpdateOperationsInput'
+                date:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
+                float:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/FloatFieldUpdateOperationsInput'
+                decimal:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/DecimalFieldUpdateOperationsInput'
+                boolean:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/BoolFieldUpdateOperationsInput'
+                bytes:
+                    oneOf:
+                        - type: string
+                          format: byte
+                        - $ref: '#/components/schemas/BytesFieldUpdateOperationsInput'
+        StringFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                in:
+                    type: array
+                    items:
+                        type: string
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                lt:
+                    type: string
+                lte:
+                    type: string
+                gt:
+                    type: string
+                gte:
+                    type: string
+                contains:
+                    type: string
+                startsWith:
+                    type: string
+                endsWith:
+                    type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                not:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NestedStringFilter'
+        IntFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedIntFilter'
+        BigIntFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedBigIntFilter'
+        DateTimeFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: date-time
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                lt:
+                    type: string
+                    format: date-time
+                lte:
+                    type: string
+                    format: date-time
+                gt:
+                    type: string
+                    format: date-time
+                gte:
+                    type: string
+                    format: date-time
+                not:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/NestedDateTimeFilter'
+        FloatFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedFloatFilter'
+        DecimalFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedDecimalFilter'
+        BoolFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolFilter'
+        BytesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: byte
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                not:
+                    oneOf:
+                        - type: string
+                          format: byte
+                        - $ref: '#/components/schemas/NestedBytesFilter'
+        StringWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                in:
+                    type: array
+                    items:
+                        type: string
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                lt:
+                    type: string
+                lte:
+                    type: string
+                gt:
+                    type: string
+                gte:
+                    type: string
+                contains:
+                    type: string
+                startsWith:
+                    type: string
+                endsWith:
+                    type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                not:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NestedStringWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedStringFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedStringFilter'
+        IntWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedIntWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedIntFilter'
+        BigIntWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedBigIntWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedBigIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBigIntFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBigIntFilter'
+        DateTimeWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: date-time
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                lt:
+                    type: string
+                    format: date-time
+                lte:
+                    type: string
+                    format: date-time
+                gt:
+                    type: string
+                    format: date-time
+                gte:
+                    type: string
+                    format: date-time
+                not:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/NestedDateTimeWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedDateTimeFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedDateTimeFilter'
+        FloatWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedFloatWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+        DecimalWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedDecimalWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+        BoolWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBoolFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBoolFilter'
+        BytesWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: byte
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                not:
+                    oneOf:
+                        - type: string
+                          format: byte
+                        - $ref: '#/components/schemas/NestedBytesWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBytesFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBytesFilter'
+        StringFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: string
+        IntFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: integer
+                increment:
+                    type: integer
+                decrement:
+                    type: integer
+                multiply:
+                    type: integer
+                divide:
+                    type: integer
+        BigIntFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: integer
+                increment:
+                    type: integer
+                decrement:
+                    type: integer
+                multiply:
+                    type: integer
+                divide:
+                    type: integer
+        DateTimeFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: string
+                    format: date-time
+        FloatFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: number
+                increment:
+                    type: number
+                decrement:
+                    type: number
+                multiply:
+                    type: number
+                divide:
+                    type: number
+        DecimalFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: number
+                increment:
+                    type: number
+                decrement:
+                    type: number
+                multiply:
+                    type: number
+                divide:
+                    type: number
+        BoolFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: boolean
+        BytesFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: string
+                    format: byte
+        NestedStringFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                in:
+                    type: array
+                    items:
+                        type: string
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                lt:
+                    type: string
+                lte:
+                    type: string
+                gt:
+                    type: string
+                gte:
+                    type: string
+                contains:
+                    type: string
+                startsWith:
+                    type: string
+                endsWith:
+                    type: string
+                not:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NestedStringFilter'
+        NestedIntFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedIntFilter'
+        NestedBigIntFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedBigIntFilter'
+        NestedDateTimeFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: date-time
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                lt:
+                    type: string
+                    format: date-time
+                lte:
+                    type: string
+                    format: date-time
+                gt:
+                    type: string
+                    format: date-time
+                gte:
+                    type: string
+                    format: date-time
+                not:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/NestedDateTimeFilter'
+        NestedFloatFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedFloatFilter'
+        NestedDecimalFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedDecimalFilter'
+        NestedBoolFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolFilter'
+        NestedBytesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: byte
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                not:
+                    oneOf:
+                        - type: string
+                          format: byte
+                        - $ref: '#/components/schemas/NestedBytesFilter'
+        NestedStringWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                in:
+                    type: array
+                    items:
+                        type: string
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                lt:
+                    type: string
+                lte:
+                    type: string
+                gt:
+                    type: string
+                gte:
+                    type: string
+                contains:
+                    type: string
+                startsWith:
+                    type: string
+                endsWith:
+                    type: string
+                not:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NestedStringWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedStringFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedStringFilter'
+        NestedIntWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedIntWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedIntFilter'
+        NestedBigIntWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                in:
+                    type: array
+                    items:
+                        type: integer
+                notIn:
+                    type: array
+                    items:
+                        type: integer
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedBigIntWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedBigIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBigIntFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBigIntFilter'
+        NestedDateTimeWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: date-time
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
+                lt:
+                    type: string
+                    format: date-time
+                lte:
+                    type: string
+                    format: date-time
+                gt:
+                    type: string
+                    format: date-time
+                gte:
+                    type: string
+                    format: date-time
+                not:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/NestedDateTimeWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedDateTimeFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedDateTimeFilter'
+        NestedFloatWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedFloatWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedFloatFilter'
+        NestedDecimalWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: number
+                in:
+                    type: array
+                    items:
+                        type: number
+                notIn:
+                    type: array
+                    items:
+                        type: number
+                lt:
+                    type: number
+                lte:
+                    type: number
+                gt:
+                    type: number
+                gte:
+                    type: number
+                not:
+                    oneOf:
+                        - type: number
+                        - $ref: '#/components/schemas/NestedDecimalWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _avg:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+                _sum:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedDecimalFilter'
+        NestedBoolWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBoolFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBoolFilter'
+        NestedBytesWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    format: byte
+                in:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                notIn:
+                    type: array
+                    items:
+                        type: string
+                        format: byte
+                not:
+                    oneOf:
+                        - type: string
+                          format: byte
+                        - $ref: '#/components/schemas/NestedBytesWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBytesFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBytesFilter'
+        FooSelect:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                string:
+                    type: boolean
+                int:
+                    type: boolean
+                bigInt:
+                    type: boolean
+                date:
+                    type: boolean
+                float:
+                    type: boolean
+                decimal:
+                    type: boolean
+                boolean:
+                    type: boolean
+                bytes:
+                    type: boolean
+        FooCountAggregateInput:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                string:
+                    type: boolean
+                int:
+                    type: boolean
+                bigInt:
+                    type: boolean
+                date:
+                    type: boolean
+                float:
+                    type: boolean
+                decimal:
+                    type: boolean
+                boolean:
+                    type: boolean
+                bytes:
+                    type: boolean
+                _all:
+                    type: boolean
+        FooAvgAggregateInput:
+            type: object
+            properties:
+                int:
+                    type: boolean
+                bigInt:
+                    type: boolean
+                float:
+                    type: boolean
+                decimal:
+                    type: boolean
+        FooSumAggregateInput:
+            type: object
+            properties:
+                int:
+                    type: boolean
+                bigInt:
+                    type: boolean
+                float:
+                    type: boolean
+                decimal:
+                    type: boolean
+        FooMinAggregateInput:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                string:
+                    type: boolean
+                int:
+                    type: boolean
+                bigInt:
+                    type: boolean
+                date:
+                    type: boolean
+                float:
+                    type: boolean
+                decimal:
+                    type: boolean
+                boolean:
+                    type: boolean
+                bytes:
+                    type: boolean
+        FooMaxAggregateInput:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                string:
+                    type: boolean
+                int:
+                    type: boolean
+                bigInt:
+                    type: boolean
+                date:
+                    type: boolean
+                float:
+                    type: boolean
+                decimal:
+                    type: boolean
+                boolean:
+                    type: boolean
+                bytes:
+                    type: boolean
+        AggregateFoo:
+            type: object
+            properties:
+                _count:
+                    $ref: '#/components/schemas/FooCountAggregateOutputType'
+                _avg:
+                    $ref: '#/components/schemas/FooAvgAggregateOutputType'
+                _sum:
+                    $ref: '#/components/schemas/FooSumAggregateOutputType'
+                _min:
+                    $ref: '#/components/schemas/FooMinAggregateOutputType'
+                _max:
+                    $ref: '#/components/schemas/FooMaxAggregateOutputType'
+        FooGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                string:
+                    type: string
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: string
+                    format: date-time
+                float:
+                    type: number
+                decimal:
+                    type: number
+                boolean:
+                    type: boolean
+                bytes:
+                    type: string
+                    format: byte
+                _count:
+                    $ref: '#/components/schemas/FooCountAggregateOutputType'
+                _avg:
+                    $ref: '#/components/schemas/FooAvgAggregateOutputType'
+                _sum:
+                    $ref: '#/components/schemas/FooSumAggregateOutputType'
+                _min:
+                    $ref: '#/components/schemas/FooMinAggregateOutputType'
+                _max:
+                    $ref: '#/components/schemas/FooMaxAggregateOutputType'
+            required:
+                - id
+                - string
+                - int
+                - bigInt
+                - date
+                - float
+                - decimal
+                - boolean
+                - bytes
+        FooCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                string:
+                    type: integer
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: integer
+                float:
+                    type: integer
+                decimal:
+                    type: integer
+                boolean:
+                    type: integer
+                bytes:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - string
+                - int
+                - bigInt
+                - date
+                - float
+                - decimal
+                - boolean
+                - bytes
+                - _all
+        FooAvgAggregateOutputType:
+            type: object
+            properties:
+                int:
+                    type: number
+                bigInt:
+                    type: number
+                float:
+                    type: number
+                decimal:
+                    type: number
+        FooSumAggregateOutputType:
+            type: object
+            properties:
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                float:
+                    type: number
+                decimal:
+                    type: number
+        FooMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                string:
+                    type: string
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: string
+                    format: date-time
+                float:
+                    type: number
+                decimal:
+                    type: number
+                boolean:
+                    type: boolean
+                bytes:
+                    type: string
+                    format: byte
+        FooMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                string:
+                    type: string
+                int:
+                    type: integer
+                bigInt:
+                    type: integer
+                date:
+                    type: string
+                    format: date-time
+                float:
+                    type: number
+                decimal:
+                    type: number
+                boolean:
+                    type: boolean
+                bytes:
+                    type: string
+                    format: byte
+        BatchPayload:
+            type: object
+            properties:
+                count:
+                    type: integer
+        FooCreateArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                data:
+                    $ref: '#/components/schemas/FooCreateInput'
+        FooCreateManyArgs:
+            type: object
+            properties:
+                data:
+                    $ref: '#/components/schemas/FooCreateManyInput'
+        FooFindUniqueArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereUniqueInput'
+        FooFindFirstArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+        FooFindManyArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+        FooUpdateArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereUniqueInput'
+                data:
+                    $ref: '#/components/schemas/FooUpdateInput'
+        FooUpdateManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+                data:
+                    $ref: '#/components/schemas/FooUpdateManyMutationInput'
+        FooUpsertArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereUniqueInput'
+                create:
+                    $ref: '#/components/schemas/FooCreateInput'
+                update:
+                    $ref: '#/components/schemas/FooUpdateInput'
+        FooDeleteUniqueArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereUniqueInput'
+        FooDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+        FooCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/FooSelect'
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+        FooAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+                orderBy:
+                    $ref: '#/components/schemas/FooOrderByWithRelationInput'
+                cursor:
+                    $ref: '#/components/schemas/FooWhereUniqueInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/FooCountAggregateInput'
+                _min:
+                    $ref: '#/components/schemas/FooMinAggregateInput'
+                _max:
+                    $ref: '#/components/schemas/FooMaxAggregateInput'
+                _sum:
+                    $ref: '#/components/schemas/FooSumAggregateInput'
+                _avg:
+                    $ref: '#/components/schemas/FooAvgAggregateInput'
+        FooGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/FooWhereInput'
+                orderBy:
+                    $ref: '#/components/schemas/FooOrderByWithRelationInput'
+                by:
+                    $ref: '#/components/schemas/FooScalarFieldEnum'
+                having:
+                    $ref: '#/components/schemas/FooScalarWhereWithAggregatesInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/FooCountAggregateInput'
+                _min:
+                    $ref: '#/components/schemas/FooMinAggregateInput'
+                _max:
+                    $ref: '#/components/schemas/FooMaxAggregateInput'
+                _sum:
+                    $ref: '#/components/schemas/FooSumAggregateInput'
+                _avg:
+                    $ref: '#/components/schemas/FooAvgAggregateInput'
+paths:
+    /foo/create:
+        post:
+            operationId: createFoo
+            description: Create a new Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/FooCreateArgs'
+    /foo/createMany:
+        post:
+            operationId: createManyFoo
+            description: Create several Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchPayload'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/FooCreateManyArgs'
+    /foo/findUnique:
+        get:
+            operationId: findUniqueFoo
+            description: Find one unique Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooFindUniqueArgs'
+    /foo/findFirst:
+        get:
+            operationId: findFirstFoo
+            description: Find the first Foo matching the given condition
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooFindFirstArgs'
+    /foo/findMany:
+        get:
+            operationId: findManyFoo
+            description: Find a list of Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooFindManyArgs'
+    /foo/update:
+        patch:
+            operationId: updateFoo
+            description: Update a Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/FooUpdateArgs'
+    /foo/updateMany:
+        patch:
+            operationId: updateManyFoo
+            description: Update Foos matching the given condition
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchPayload'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/FooUpdateManyArgs'
+    /foo/upsert:
+        post:
+            operationId: upsertFoo
+            description: Upsert a Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/FooUpsertArgs'
+    /foo/delete:
+        delete:
+            operationId: deleteFoo
+            description: Delete one unique Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Foo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooDeleteUniqueArgs'
+    /foo/deleteMany:
+        delete:
+            operationId: deleteManyFoo
+            description: Delete Foos matching the given condition
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BatchPayload'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooDeleteManyArgs'
+    /foo/count:
+        get:
+            operationId: countFoo
+            description: Find a list of Foo
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                oneOf:
+                                    - type: integer
+                                    - $ref: '#/components/schemas/FooCountAggregateOutputType'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooCountArgs'
+    /foo/aggregate:
+        get:
+            operationId: aggregateFoo
+            description: Aggregate Foos
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AggregateFoo'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooAggregateArgs'
+    /foo/groupBy:
+        get:
+            operationId: groupByFoo
+            description: Group Foos by fields
+            tags:
+                - foo
+            security: []
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: '#/components/schemas/FooGroupByOutputType'
+                '400':
+                    description: Invalid request
+                '403':
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/FooGroupByArgs'
