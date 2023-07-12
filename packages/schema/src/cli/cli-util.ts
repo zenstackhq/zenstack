@@ -59,8 +59,8 @@ export async function initProject(
         }
     }
 
-    ensurePackage('prisma', true, packageManager, 'latest', projectPath);
-    ensurePackage('@prisma/client', false, packageManager, 'latest', projectPath);
+    ensurePackage('prisma', true, packageManager, '^4.0.0', projectPath);
+    ensurePackage('@prisma/client', false, packageManager, '^4.0.0', projectPath);
 
     tag = tag ?? getVersion();
     installPackage('zenstack', true, packageManager, tag, projectPath);
