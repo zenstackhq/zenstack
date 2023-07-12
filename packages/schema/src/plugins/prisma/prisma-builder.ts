@@ -35,7 +35,13 @@ export class PrismaModel {
     }
 
     addModel(name: string): Model {
-        const model = new Model(name);
+        const model = new Model(name, false);
+        this.models.push(model);
+        return model;
+    }
+
+    addView(name: string): Model {
+        const model = new Model(name, true);
         this.models.push(model);
         return model;
     }
@@ -127,7 +133,7 @@ export class FieldDeclaration extends DeclarationBase {
 
 export class Model extends ContainerDeclaration {
     public fields: ModelField[] = [];
-    constructor(public name: string, documentations: string[] = []) {
+    constructor(public name: string, public isView: boolean, documentations: string[] = []) {
         super(documentations);
     }
 
@@ -164,7 +170,7 @@ export class Model extends ContainerDeclaration {
         result.push(...this.attributes);
         return (
             super.toString() +
-            `model ${this.name} {\n` +
+            `${this.isView ? 'view' : 'model'} ${this.name} {\n` +
             indentString(result.map((d) => d.toString()).join('\n')) +
             `\n}`
         );

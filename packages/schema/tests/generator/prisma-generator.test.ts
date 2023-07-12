@@ -523,4 +523,38 @@ describe('Prisma generator test', () => {
         expect(post?.fields.map((f) => f.name)).toContain('zenstack_guard');
         expect(post?.fields.map((f) => f.name)).toContain('zenstack_transaction');
     });
+
+    it('view support', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('URL')
+            }
+
+            generator client {
+                provider = "prisma-client-js"
+                previewFeatures = ["views"]
+            }
+
+            view UserInfo {
+                id    Int    @unique
+                email String
+                name  String
+                bio   String
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: false,
+            generateClient: false,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+    });
 });

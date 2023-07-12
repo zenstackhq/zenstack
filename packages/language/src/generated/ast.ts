@@ -194,6 +194,7 @@ export interface DataModel extends AstNode {
     comments: Array<string>
     fields: Array<DataModelField>
     isAbstract: boolean
+    isView: boolean
     name: RegularID
     superTypes: Array<Reference<DataModel>>
 }
@@ -748,6 +749,7 @@ export class ZModelAstReflection extends AbstractAstReflection {
                         { name: 'comments', type: 'array' },
                         { name: 'fields', type: 'array' },
                         { name: 'isAbstract', type: 'boolean' },
+                        { name: 'isView', type: 'boolean' },
                         { name: 'superTypes', type: 'array' }
                     ]
                 };

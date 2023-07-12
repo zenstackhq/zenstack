@@ -6,7 +6,7 @@ import {
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getIdFields, getLiteral } from '@zenstackhq/sdk';
+import { analyzePolicies, getModelIdFields, getModelUniqueFields, getLiteral } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
@@ -26,16 +26,29 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
         const idFields = dm.$resolvedFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
-        const modelLevelIds = getIdFields(dm);
+        const uniqueFields = dm.$resolvedFields.filter((f) =>
+            f.attributes.find((attr) => attr.decl.ref?.name === '@unique')
+        );
+        const modelLevelIds = getModelIdFields(dm);
+        const modelUniqueFields = getModelUniqueFields(dm);
 
-        if (idFields.length === 0 && modelLevelIds.length === 0) {
+        if (
+            idFields.length === 0 &&
+            modelLevelIds.length === 0 &&
+            uniqueFields.length === 0 &&
+            modelUniqueFields.length === 0
+        ) {
             const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
             if (allows.length > 0 || denies.length > 0 || hasFieldValidation) {
                 // TODO: relax this requirement to require only @unique fields
                 // when access policies or field valdaition is used, require an @id field
-                accept('error', 'Model must include a field with @id attribute or a model-level @@id attribute', {
-                    node: dm,
-                });
+                accept(
+                    'error',
+                    'Model must include a field with @id or @unique attribute, or a model-level @@id or @@unique attribute to use access policies',
+                    {
+                        node: dm,
+                    }
+                );
             }
         } else if (idFields.length > 0 && modelLevelIds.length > 0) {
             accept('error', 'Model cannot have both field-level @id and model-level @@id attributes', {
