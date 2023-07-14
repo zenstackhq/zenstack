@@ -54,5 +54,9 @@ export function getPrismaClientImportSpec(model: Model, importingFromDir: string
     // console.log('IMPORTING PATH:', importingFromDir);
 
     // compute prisma client absolute output dir relative to the importing file
-    return path.relative(importingFromDir, resolvedPrismaClientOutput);
+    return normalizePath(path.relative(importingFromDir, resolvedPrismaClientOutput));
+}
+
+function normalizePath(p: string) {
+    return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
