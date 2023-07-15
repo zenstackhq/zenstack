@@ -26,7 +26,7 @@ describe('Fastify adapter tests - rpc handler', () => {
             url: makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json()).toHaveLength(0);
+        expect(r.json().data).toHaveLength(0);
 
         r = await app.inject({
             method: 'POST',
@@ -46,7 +46,8 @@ describe('Fastify adapter tests - rpc handler', () => {
             },
         });
         expect(r.statusCode).toBe(201);
-        expect(r.json()).toEqual(
+        const data = r.json().data;
+        expect(data).toEqual(
             expect.objectContaining({
                 email: 'user1@abc.com',
                 posts: expect.arrayContaining([
@@ -56,7 +57,6 @@ describe('Fastify adapter tests - rpc handler', () => {
             })
         );
         // aux fields should have been removed
-        const data = r.json();
         expect(data.zenstack_guard).toBeUndefined();
         expect(data.zenstack_transaction).toBeUndefined();
         expect(data.posts[0].zenstack_guard).toBeUndefined();
@@ -67,14 +67,14 @@ describe('Fastify adapter tests - rpc handler', () => {
             url: makeUrl('/api/post/findMany'),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json()).toHaveLength(2);
+        expect(r.json().data).toHaveLength(2);
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json()).toHaveLength(1);
+        expect(r.json().data).toHaveLength(1);
 
         r = await app.inject({
             method: 'PUT',
@@ -82,28 +82,28 @@ describe('Fastify adapter tests - rpc handler', () => {
             payload: { where: { id: 'user1' }, data: { email: 'user1@def.com' } },
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json().email).toBe('user1@def.com');
+        expect(r.json().data.email).toBe('user1@def.com');
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json()).toBe(1);
+        expect(r.json().data).toBe(1);
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json()._sum.viewCount).toBe(3);
+        expect(r.json().data._sum.viewCount).toBe(3);
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json()).toEqual(
+        expect(r.json().data).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ published: true, _sum: { viewCount: 1 } }),
                 expect.objectContaining({ published: false, _sum: { viewCount: 2 } }),
@@ -115,7 +115,7 @@ describe('Fastify adapter tests - rpc handler', () => {
             url: makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }),
         });
         expect(r.statusCode).toBe(200);
-        expect(r.json().count).toBe(1);
+        expect(r.json().data.count).toBe(1);
     });
 
     it('invalid path or args', async () => {
@@ -165,7 +165,7 @@ describe('Fastify adapter tests - rpc handler', () => {
             url: makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }, true),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json())).toHaveLength(0);
+        expect(unmarshal(r.json()).data).toHaveLength(0);
 
         r = await app.inject({
             method: 'POST',
@@ -185,7 +185,8 @@ describe('Fastify adapter tests - rpc handler', () => {
             },
         });
         expect(r.statusCode).toBe(201);
-        expect(unmarshal(r.json())).toEqual(
+        const data = unmarshal(r.json()).data;
+        expect(data).toEqual(
             expect.objectContaining({
                 email: 'user1@abc.com',
                 posts: expect.arrayContaining([
@@ -195,7 +196,6 @@ describe('Fastify adapter tests - rpc handler', () => {
             })
         );
         // aux fields should have been removed
-        const data = unmarshal(r.json());
         expect(data.zenstack_guard).toBeUndefined();
         expect(data.zenstack_transaction).toBeUndefined();
         expect(data.posts[0].zenstack_guard).toBeUndefined();
@@ -206,14 +206,14 @@ describe('Fastify adapter tests - rpc handler', () => {
             url: makeUrl('/api/post/findMany'),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json())).toHaveLength(2);
+        expect(unmarshal(r.json()).data).toHaveLength(2);
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }, true),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json())).toHaveLength(1);
+        expect(unmarshal(r.json()).data).toHaveLength(1);
 
         r = await app.inject({
             method: 'PUT',
@@ -221,28 +221,28 @@ describe('Fastify adapter tests - rpc handler', () => {
             payload: { where: { id: 'user1' }, data: { email: 'user1@def.com' } },
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json()).email).toBe('user1@def.com');
+        expect(unmarshal(r.json()).data.email).toBe('user1@def.com');
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }, true),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json())).toBe(1);
+        expect(unmarshal(r.json()).data).toBe(1);
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }, true),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json())._sum.viewCount).toBe(3);
+        expect(unmarshal(r.json()).data._sum.viewCount).toBe(3);
 
         r = await app.inject({
             method: 'GET',
             url: makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }, true),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json())).toEqual(
+        expect(unmarshal(r.json()).data).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ published: true, _sum: { viewCount: 1 } }),
                 expect.objectContaining({ published: false, _sum: { viewCount: 2 } }),
@@ -254,7 +254,7 @@ describe('Fastify adapter tests - rpc handler', () => {
             url: makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }, true),
         });
         expect(r.statusCode).toBe(200);
-        expect(unmarshal(r.json()).count).toBe(1);
+        expect(unmarshal(r.json()).data.count).toBe(1);
     });
 });
 

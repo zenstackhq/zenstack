@@ -15,7 +15,7 @@ describe('SvelteKit adapter tests - rpc handler', () => {
 
         let r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } })));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r)).toHaveLength(0);
+        expect((await unmarshal(r)).data).toHaveLength(0);
 
         r = await handler(
             makeRequest('POST', '/api/user/create', {
@@ -33,7 +33,7 @@ describe('SvelteKit adapter tests - rpc handler', () => {
             })
         );
         expect(r.status).toBe(201);
-        expect(await unmarshal(r)).toMatchObject({
+        expect((await unmarshal(r)).data).toMatchObject({
             email: 'user1@abc.com',
             posts: expect.arrayContaining([
                 expect.objectContaining({ title: 'post1' }),
@@ -43,31 +43,31 @@ describe('SvelteKit adapter tests - rpc handler', () => {
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/findMany')));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r)).toHaveLength(2);
+        expect((await unmarshal(r)).data).toHaveLength(2);
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } })));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r)).toHaveLength(1);
+        expect((await unmarshal(r)).data).toHaveLength(1);
 
         r = await handler(
             makeRequest('PUT', '/api/user/update', { where: { id: 'user1' }, data: { email: 'user1@def.com' } })
         );
         expect(r.status).toBe(200);
-        expect((await unmarshal(r)).email).toBe('user1@def.com');
+        expect((await unmarshal(r)).data.email).toBe('user1@def.com');
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } })));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r)).toBe(1);
+        expect((await unmarshal(r)).data).toBe(1);
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/aggregate', { _sum: { viewCount: true } })));
         expect(r.status).toBe(200);
-        expect((await unmarshal(r))._sum.viewCount).toBe(3);
+        expect((await unmarshal(r)).data._sum.viewCount).toBe(3);
 
         r = await handler(
             makeRequest('GET', makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }))
         );
         expect(r.status).toBe(200);
-        expect(await unmarshal(r)).toEqual(
+        expect((await unmarshal(r)).data).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ published: true, _sum: { viewCount: 1 } }),
                 expect.objectContaining({ published: false, _sum: { viewCount: 2 } }),
@@ -76,7 +76,7 @@ describe('SvelteKit adapter tests - rpc handler', () => {
 
         r = await handler(makeRequest('DELETE', makeUrl('/api/user/deleteMany', { where: { id: 'user1' } })));
         expect(r.status).toBe(200);
-        expect((await unmarshal(r)).count).toBe(1);
+        expect((await unmarshal(r)).data.count).toBe(1);
     });
 
     it('run hooks superjson', async () => {
@@ -88,7 +88,7 @@ describe('SvelteKit adapter tests - rpc handler', () => {
             makeRequest('GET', makeUrl('/api/post/findMany', { where: { id: { equals: '1' } } }, true))
         );
         expect(r.status).toBe(200);
-        expect(await unmarshal(r, true)).toHaveLength(0);
+        expect((await unmarshal(r, true)).data).toHaveLength(0);
 
         r = await handler(
             makeRequest('POST', '/api/user/create', {
@@ -106,7 +106,7 @@ describe('SvelteKit adapter tests - rpc handler', () => {
             })
         );
         expect(r.status).toBe(201);
-        expect(await unmarshal(r, true)).toMatchObject({
+        expect((await unmarshal(r, true)).data).toMatchObject({
             email: 'user1@abc.com',
             posts: expect.arrayContaining([
                 expect.objectContaining({ title: 'post1' }),
@@ -116,31 +116,31 @@ describe('SvelteKit adapter tests - rpc handler', () => {
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', undefined)));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r, true)).toHaveLength(2);
+        expect((await unmarshal(r, true)).data).toHaveLength(2);
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/findMany', { where: { viewCount: { gt: 1 } } }, true)));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r, true)).toHaveLength(1);
+        expect((await unmarshal(r, true)).data).toHaveLength(1);
 
         r = await handler(
             makeRequest('PUT', '/api/user/update', { where: { id: 'user1' }, data: { email: 'user1@def.com' } })
         );
         expect(r.status).toBe(200);
-        expect((await unmarshal(r, true)).email).toBe('user1@def.com');
+        expect((await unmarshal(r, true)).data.email).toBe('user1@def.com');
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/count', { where: { viewCount: { gt: 1 } } }, true)));
         expect(r.status).toBe(200);
-        expect(await unmarshal(r, true)).toBe(1);
+        expect((await unmarshal(r, true)).data).toBe(1);
 
         r = await handler(makeRequest('GET', makeUrl('/api/post/aggregate', { _sum: { viewCount: true } }, true)));
         expect(r.status).toBe(200);
-        expect((await unmarshal(r, true))._sum.viewCount).toBe(3);
+        expect((await unmarshal(r, true)).data._sum.viewCount).toBe(3);
 
         r = await handler(
             makeRequest('GET', makeUrl('/api/post/groupBy', { by: ['published'], _sum: { viewCount: true } }, true))
         );
         expect(r.status).toBe(200);
-        expect(await unmarshal(r, true)).toEqual(
+        expect((await unmarshal(r, true)).data).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ published: true, _sum: { viewCount: 1 } }),
                 expect.objectContaining({ published: false, _sum: { viewCount: 2 } }),
@@ -149,7 +149,7 @@ describe('SvelteKit adapter tests - rpc handler', () => {
 
         r = await handler(makeRequest('DELETE', makeUrl('/api/user/deleteMany', { where: { id: 'user1' } }, true)));
         expect(r.status).toBe(200);
-        expect((await unmarshal(r, true)).count).toBe(1);
+        expect((await unmarshal(r, true)).data.count).toBe(1);
     });
 });
 

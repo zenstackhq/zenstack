@@ -62,28 +62,28 @@ model M {
             .send({ data: { id: '1', value: 1 } })
             .expect(201)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(1);
+                expect(resp.body.json.data.value).toBe(1);
             });
 
         await makeTestClient('/m/findUnique', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(1);
+                expect(resp.body.json.data.value).toBe(1);
             });
 
         await makeTestClient('/m/findFirst', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(1);
+                expect(resp.body.json.data.value).toBe(1);
             });
 
         await makeTestClient('/m/findMany', { getPrisma: () => prisma, useSuperJson: true }, {})
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json).toHaveLength(1);
+                expect(resp.body.json.data).toHaveLength(1);
             });
 
         await makeTestClient('/m/update', { getPrisma: () => prisma, useSuperJson: true })
@@ -91,7 +91,7 @@ model M {
             .send({ where: { id: '1' }, data: { value: 2 } })
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(2);
+                expect(resp.body.json.data.value).toBe(2);
             });
 
         await makeTestClient('/m/updateMany', { getPrisma: () => prisma, useSuperJson: true })
@@ -99,7 +99,7 @@ model M {
             .send({ data: { value: 4 } })
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.count).toBe(1);
+                expect(resp.body.json.data.count).toBe(1);
             });
 
         await makeTestClient('/m/upsert', { getPrisma: () => prisma, useSuperJson: true })
@@ -107,7 +107,7 @@ model M {
             .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } })
             .expect(201)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(2);
+                expect(resp.body.json.data.value).toBe(2);
             });
 
         await makeTestClient('/m/upsert', { getPrisma: () => prisma, useSuperJson: true })
@@ -115,28 +115,28 @@ model M {
             .send({ where: { id: '2' }, create: { id: '2', value: 2 }, update: { value: 3 } })
             .expect(201)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(3);
+                expect(resp.body.json.data.value).toBe(3);
             });
 
         await makeTestClient('/m/count', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json).toBe(1);
+                expect(resp.body.json.data).toBe(1);
             });
 
         await makeTestClient('/m/count', { getPrisma: () => prisma, useSuperJson: true }, {})
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json).toBe(2);
+                expect(resp.body.json.data).toBe(2);
             });
 
         await makeTestClient('/m/aggregate', { getPrisma: () => prisma, useSuperJson: true }, { _sum: { value: true } })
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json._sum.value).toBe(7);
+                expect(resp.body.json.data._sum.value).toBe(7);
             });
 
         await makeTestClient(
@@ -147,7 +147,7 @@ model M {
             .get('/')
             .expect(200)
             .expect((resp) => {
-                const data = resp.body.json;
+                const data = resp.body.json.data;
                 expect(data).toHaveLength(2);
                 expect(data.find((item: any) => item.id === '1')._sum.value).toBe(4);
                 expect(data.find((item: any) => item.id === '2')._sum.value).toBe(3);
@@ -162,7 +162,7 @@ model M {
             .del('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.count).toBe(1);
+                expect(resp.body.json.data.count).toBe(1);
             });
         expect(await prisma.m.count()).toBe(0);
     });
@@ -182,21 +182,21 @@ model M {
             .send(marshal({ data: { id: '1', value: 1 } }))
             .expect(201)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(1);
+                expect(resp.body.json.data.value).toBe(1);
             });
 
         await makeTestClient('/m/findUnique', { getPrisma: () => prisma, useSuperJson: true }, { where: { id: '1' } })
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(1);
+                expect(resp.body.json.data.value).toBe(1);
             });
 
         await makeTestClient('/m/findMany', { getPrisma: () => prisma, useSuperJson: true }, {})
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json).toHaveLength(1);
+                expect(resp.body.json.data).toHaveLength(1);
             });
 
         await makeTestClient('/m/update', { getPrisma: () => prisma, useSuperJson: true })
@@ -204,7 +204,7 @@ model M {
             .send(marshal({ where: { id: '1' }, data: { value: 2 } }))
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json.value).toBe(2);
+                expect(resp.body.json.data.value).toBe(2);
             });
     });
 
@@ -228,7 +228,7 @@ model M {
             .send({ data: { value: 0 } })
             .expect(403)
             .expect((resp) => {
-                expect(resp.body.json.reason).toBe('RESULT_NOT_READABLE');
+                expect(resp.body.json.error.reason).toBe('RESULT_NOT_READABLE');
             });
 
         await makeTestClient('/m/create', { getPrisma: () => withPresets(), useSuperJson: true })
@@ -240,7 +240,7 @@ model M {
             .get('/')
             .expect(200)
             .expect((resp) => {
-                expect(resp.body.json).toHaveLength(1);
+                expect(resp.body.json.data).toHaveLength(1);
             });
 
         await makeTestClient('/m/update', { getPrisma: () => withPresets(), useSuperJson: true })

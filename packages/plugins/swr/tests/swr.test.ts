@@ -52,7 +52,7 @@ ${sharedModel}
         `,
             true,
             false,
-            [`${origDir}/dist`, 'react', '@types/react', 'swr'],
+            [`${origDir}/dist`, 'react', '@types/react', 'swr', 'superjson'],
             true
         );
     });

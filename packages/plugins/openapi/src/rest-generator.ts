@@ -536,12 +536,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 required: ['version'],
                 properties: {
                     version: { type: 'string' },
-                    meta: this.ref('_meta'),
                 },
             },
             _meta: {
                 type: 'object',
-                description: 'Meta information about the response',
+                description: 'Meta information about the request or response',
+                properties: {
+                    serialization: {
+                        description: 'Serialization metadata',
+                    },
+                },
                 additionalProperties: true,
             },
             _resourceIdentifier: {
@@ -759,6 +763,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             required: ['data'],
             properties: {
                 data: this.generateModelEntity(model, 'create'),
+                meta: this.ref('_meta'),
             },
         };
 
@@ -766,7 +771,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             type: 'object',
             description: `Input for updating a "${model.name}"`,
             required: ['data'],
-            properties: { data: this.generateModelEntity(model, 'update') },
+            properties: { data: this.generateModelEntity(model, 'update'), meta: this.ref('_meta') },
         };
 
         const relationships: Record<string, OAPI.ReferenceObject> = {};
@@ -790,7 +795,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                     type: 'object',
                     properties: { relationships: { type: 'object', properties: relationships } },
                 }),
-
+                meta: this.ref('_meta'),
                 included: {
                     type: 'array',
                     items: this.ref('_resource'),
@@ -811,6 +816,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                         properties: { relationships: { type: 'object', properties: relationships } },
                     })
                 ),
+                meta: this.ref('_meta'),
                 included: {
                     type: 'array',
                     items: this.ref('_resource'),
@@ -895,8 +901,9 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             case 'BigInt':
                 return { type: 'integer' };
             case 'Float':
-            case 'Decimal':
                 return { type: 'number' };
+            case 'Decimal':
+                return this.oneOf({ type: 'number' }, { type: 'string' });
             case 'Boolean':
                 return { type: 'boolean' };
             case 'DateTime':
@@ -904,7 +911,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             case 'Bytes':
                 return { type: 'string', format: 'byte' };
             case 'Json':
-                return { type: 'object' };
+                return {};
             default: {
                 const fieldDecl = type.reference?.ref;
                 invariant(fieldDecl);

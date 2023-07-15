@@ -35,14 +35,20 @@ const factory = (options: MiddlewareOptions): Handler => {
     if (typeof options.zodSchemas === 'object') {
         zodSchemas = options.zodSchemas;
     } else if (options.zodSchemas === true) {
-        zodSchemas = require('@zenstackhq/runtime/zod');
-        if (!zodSchemas) {
+        try {
+            zodSchemas = require('@zenstackhq/runtime/zod');
+        } catch {
             throw new Error('Unable to load zod schemas from default location');
         }
     }
 
     const requestHandler = options.handler || RPCAPIHandler();
     const useSuperJson = options.useSuperJson === true;
+    if (useSuperJson) {
+        console.warn(
+            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
+        );
+    }
 
     return async (request, response, next) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;

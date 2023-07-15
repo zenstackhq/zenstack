@@ -412,7 +412,8 @@ function generateHelper(target: TargetFramework, project: Project, outDir: strin
         'utf-8'
     );
 
-    project.createSourceFile(path.join(outDir, '_helper.ts'), `${sharedContent}\n${helperContent}\n${marshalContent}`, {
+    const finalContent = `${sharedContent}\n${helperContent}\n${marshalContent}`;
+    project.createSourceFile(path.join(outDir, '_helper.ts'), finalContent, {
         overwrite: true,
     });
 }

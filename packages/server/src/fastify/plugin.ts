@@ -42,6 +42,11 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
 
     const requestHanler = options.handler ?? RPCApiHandler();
     const useSuperJson = options.useSuperJson === true;
+    if (useSuperJson) {
+        console.warn(
+            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
+        );
+    }
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;

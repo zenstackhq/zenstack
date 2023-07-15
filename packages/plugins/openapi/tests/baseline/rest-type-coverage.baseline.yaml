@@ -245,7 +245,9 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      type: number
+                      oneOf:
+                          - type: number
+                          - type: string
                 - name: filter[decimal$lt]
                   required: false
                   description: Less-than filter for "decimal"
@@ -253,7 +255,9 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      type: number
+                      oneOf:
+                          - type: number
+                          - type: string
                 - name: filter[decimal$lte]
                   required: false
                   description: Less-than or equal filter for "decimal"
@@ -261,7 +265,9 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      type: number
+                      oneOf:
+                          - type: number
+                          - type: string
                 - name: filter[decimal$gt]
                   required: false
                   description: Greater-than filter for "decimal"
@@ -269,7 +275,9 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      type: number
+                      oneOf:
+                          - type: number
+                          - type: string
                 - name: filter[decimal$gte]
                   required: false
                   description: Greater-than or equal filter for "decimal"
@@ -277,7 +285,9 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      type: number
+                      oneOf:
+                          - type: number
+                          - type: string
                 - name: filter[boolean]
                   required: false
                   description: Equality filter for "boolean"
@@ -459,11 +469,12 @@ components:
             properties:
                 version:
                     type: string
-                meta:
-                    $ref: '#/components/schemas/_meta'
         _meta:
             type: object
-            description: Meta information about the response
+            description: Meta information about the request or response
+            properties:
+                serialization:
+                    description: Serialization metadata
             additionalProperties: true
         _resourceIdentifier:
             type: object
@@ -589,7 +600,9 @@ components:
                         float:
                             type: number
                         decimal:
-                            type: number
+                            oneOf:
+                                - type: number
+                                - type: string
                         boolean:
                             type: boolean
                         bytes:
@@ -637,12 +650,16 @@ components:
                                 float:
                                     type: number
                                 decimal:
-                                    type: number
+                                    oneOf:
+                                        - type: number
+                                        - type: string
                                 boolean:
                                     type: boolean
                                 bytes:
                                     type: string
                                     format: byte
+                meta:
+                    $ref: '#/components/schemas/_meta'
         FooUpdateRequest:
             type: object
             description: Input for updating a "Foo"
@@ -676,12 +693,16 @@ components:
                                 float:
                                     type: number
                                 decimal:
-                                    type: number
+                                    oneOf:
+                                        - type: number
+                                        - type: string
                                 boolean:
                                     type: boolean
                                 bytes:
                                     type: string
                                     format: byte
+                meta:
+                    $ref: '#/components/schemas/_meta'
         FooResponse:
             type: object
             description: Response for a "Foo"
@@ -698,6 +719,8 @@ components:
                               relationships:
                                   type: object
                                   properties: &a1 {}
+                meta:
+                    $ref: '#/components/schemas/_meta'
                 included:
                     type: array
                     items:
@@ -723,6 +746,8 @@ components:
                                   relationships:
                                       type: object
                                       properties: *a1
+                meta:
+                    $ref: '#/components/schemas/_meta'
                 included:
                     type: array
                     items:

@@ -1,12 +1,31 @@
 function marshal(value: unknown) {
-    return JSON.stringify(value);
+    const { json, meta } = SuperJSON.serialize(value);
+    if (meta) {
+        return JSON.stringify({ ...(json as any), meta: { serialization: meta } });
+    } else {
+        return JSON.stringify(json);
+    }
 }
 
 function unmarshal(value: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return JSON.parse(value) as any;
+    const parsed = JSON.parse(value);
+    if (parsed.data && parsed.meta?.serialization) {
+        const deserializedData = SuperJSON.deserialize({ json: parsed.data, meta: parsed.meta.serialization });
+        return { ...parsed, data: deserializedData };
+    } else {
+        return parsed;
+    }
 }
 
 function makeUrl(url: string, args: unknown) {
-    return args ? url + `?q=${encodeURIComponent(JSON.stringify(args))}` : url;
+    if (!args) {
+        return url;
+    }
+
+    const { json, meta } = SuperJSON.serialize(args);
+    let result = `${url}?q=${encodeURIComponent(JSON.stringify(json))}`;
+    if (meta) {
+        result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
+    }
+    return result;
 }

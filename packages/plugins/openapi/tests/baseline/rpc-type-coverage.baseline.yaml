@@ -46,7 +46,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 boolean:
                     type: boolean
                 bytes:
@@ -109,7 +111,9 @@ components:
                 decimal:
                     oneOf:
                         - $ref: '#/components/schemas/DecimalFilter'
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 boolean:
                     oneOf:
                         - $ref: '#/components/schemas/BoolFilter'
@@ -192,7 +196,9 @@ components:
                 decimal:
                     oneOf:
                         - $ref: '#/components/schemas/DecimalWithAggregatesFilter'
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 boolean:
                     oneOf:
                         - $ref: '#/components/schemas/BoolWithAggregatesFilter'
@@ -219,7 +225,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 boolean:
                     type: boolean
                 bytes:
@@ -264,7 +272,9 @@ components:
                         - $ref: '#/components/schemas/FloatFieldUpdateOperationsInput'
                 decimal:
                     oneOf:
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                         - $ref: '#/components/schemas/DecimalFieldUpdateOperationsInput'
                 boolean:
                     oneOf:
@@ -292,7 +302,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 boolean:
                     type: boolean
                 bytes:
@@ -337,7 +349,9 @@ components:
                         - $ref: '#/components/schemas/FloatFieldUpdateOperationsInput'
                 decimal:
                     oneOf:
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                         - $ref: '#/components/schemas/DecimalFieldUpdateOperationsInput'
                 boolean:
                     oneOf:
@@ -493,26 +507,42 @@ components:
             type: object
             properties:
                 equals:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 in:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 notIn:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 lt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 lte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 not:
                     oneOf:
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                         - $ref: '#/components/schemas/NestedDecimalFilter'
         BoolFilter:
             type: object
@@ -731,26 +761,42 @@ components:
             type: object
             properties:
                 equals:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 in:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 notIn:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 lt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 lte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 not:
                     oneOf:
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                         - $ref: '#/components/schemas/NestedDecimalWithAggregatesFilter'
                 _count:
                     $ref: '#/components/schemas/NestedIntFilter'
@@ -858,15 +904,25 @@ components:
             type: object
             properties:
                 set:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 increment:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 decrement:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 multiply:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 divide:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
         BoolFieldUpdateOperationsInput:
             type: object
             properties:
@@ -1021,26 +1077,42 @@ components:
             type: object
             properties:
                 equals:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 in:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 notIn:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 lt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 lte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 not:
                     oneOf:
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                         - $ref: '#/components/schemas/NestedDecimalFilter'
         NestedBoolFilter:
             type: object
@@ -1257,26 +1329,42 @@ components:
             type: object
             properties:
                 equals:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 in:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 notIn:
                     type: array
                     items:
-                        type: number
+                        oneOf:
+                            - type: string
+                            - type: number
                 lt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 lte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gt:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 gte:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 not:
                     oneOf:
-                        - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                         - $ref: '#/components/schemas/NestedDecimalWithAggregatesFilter'
                 _count:
                     $ref: '#/components/schemas/NestedIntFilter'
@@ -1468,7 +1556,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 boolean:
                     type: boolean
                 bytes:
@@ -1538,7 +1628,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
         FooSumAggregateOutputType:
             type: object
             properties:
@@ -1549,7 +1641,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
         FooMinAggregateOutputType:
             type: object
             properties:
@@ -1567,7 +1661,9 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 boolean:
                     type: boolean
                 bytes:
@@ -1590,12 +1686,50 @@ components:
                 float:
                     type: number
                 decimal:
-                    type: number
+                    oneOf:
+                        - type: string
+                        - type: number
                 boolean:
                     type: boolean
                 bytes:
                     type: string
                     format: byte
+        _Meta:
+            type: object
+            properties:
+                meta:
+                    type: object
+                    description: Meta information about the request or response
+                    properties:
+                        serialization:
+                            description: Serialization metadata
+                    additionalProperties: true
+        _Error:
+            type: object
+            required:
+                - error
+            properties:
+                error:
+                    type: object
+                    required:
+                        - message
+                    properties:
+                        prisma:
+                            type: boolean
+                            description: Indicates if the error occurred during a Prisma call
+                        rejectedByPolicy:
+                            type: boolean
+                            description: Indicates if the error was due to rejection by a policy
+                        code:
+                            type: string
+                            description: Prisma error code. Only available when "prisma" field is true.
+                        message:
+                            type: string
+                            description: Error message
+                        reason:
+                            type: string
+                            description: Detailed error reason
+                    additionalProperties: true
         BatchPayload:
             type: object
             properties:
@@ -1603,23 +1737,35 @@ components:
                     type: integer
         FooCreateArgs:
             type: object
+            required:
+                - data
             properties:
                 select:
                     $ref: '#/components/schemas/FooSelect'
                 data:
                     $ref: '#/components/schemas/FooCreateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooCreateManyArgs:
             type: object
+            required:
+                - data
             properties:
                 data:
                     $ref: '#/components/schemas/FooCreateManyInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooFindUniqueArgs:
             type: object
+            required:
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/FooSelect'
                 where:
                     $ref: '#/components/schemas/FooWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooFindFirstArgs:
             type: object
             properties:
@@ -1627,6 +1773,8 @@ components:
                     $ref: '#/components/schemas/FooSelect'
                 where:
                     $ref: '#/components/schemas/FooWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooFindManyArgs:
             type: object
             properties:
@@ -1634,8 +1782,13 @@ components:
                     $ref: '#/components/schemas/FooSelect'
                 where:
                     $ref: '#/components/schemas/FooWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooUpdateArgs:
             type: object
+            required:
+                - where
+                - data
             properties:
                 select:
                     $ref: '#/components/schemas/FooSelect'
@@ -1643,15 +1796,25 @@ components:
                     $ref: '#/components/schemas/FooWhereUniqueInput'
                 data:
                     $ref: '#/components/schemas/FooUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooUpdateManyArgs:
             type: object
+            required:
+                - data
             properties:
                 where:
                     $ref: '#/components/schemas/FooWhereInput'
                 data:
                     $ref: '#/components/schemas/FooUpdateManyMutationInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooUpsertArgs:
             type: object
+            required:
+                - create
+                - update
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/FooSelect'
@@ -1661,18 +1824,26 @@ components:
                     $ref: '#/components/schemas/FooCreateInput'
                 update:
                     $ref: '#/components/schemas/FooUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooDeleteUniqueArgs:
             type: object
+            required:
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/FooSelect'
                 where:
                     $ref: '#/components/schemas/FooWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooDeleteManyArgs:
             type: object
             properties:
                 where:
                     $ref: '#/components/schemas/FooWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooCountArgs:
             type: object
             properties:
@@ -1680,6 +1851,8 @@ components:
                     $ref: '#/components/schemas/FooSelect'
                 where:
                     $ref: '#/components/schemas/FooWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooAggregateArgs:
             type: object
             properties:
@@ -1705,6 +1878,8 @@ components:
                     $ref: '#/components/schemas/FooSumAggregateInput'
                 _avg:
                     $ref: '#/components/schemas/FooAvgAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         FooGroupByArgs:
             type: object
             properties:
@@ -1732,6 +1907,8 @@ components:
                     $ref: '#/components/schemas/FooSumAggregateInput'
                 _avg:
                     $ref: '#/components/schemas/FooAvgAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
 paths:
     /foo/create:
         post:
@@ -1746,10 +1923,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -1769,10 +1961,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -1792,10 +1999,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -1818,10 +2040,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -1844,12 +2081,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -1872,10 +2124,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -1895,10 +2162,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -1918,10 +2200,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -1941,10 +2238,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Foo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Foo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -1967,10 +2279,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -1993,12 +2320,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                oneOf:
-                                    - type: integer
-                                    - $ref: '#/components/schemas/FooCountAggregateOutputType'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/FooCountAggregateOutputType'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -2021,10 +2363,25 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/AggregateFoo'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregateFoo'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
@@ -2047,12 +2404,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: '#/components/schemas/FooGroupByOutputType'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/FooGroupByOutputType'
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q

@@ -5,6 +5,8 @@ import { withPolicy } from '@zenstackhq/runtime';
 import { CrudFailureReason } from '@zenstackhq/runtime/constants';
 import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { loadSchema, run } from '@zenstackhq/testtools';
+import { Decimal } from 'decimal.js';
+import SuperJSON from 'superjson';
 import makeHandler from '../../src/api/rest';
 import { Response } from '../../src/types';
 
@@ -2029,5 +2031,147 @@ describe('REST server tests - NextAuth project regression', () => {
         });
         expect(r.status).toBe(400);
         expect((r.body as any).errors[0].prismaCode).toBe('P2002');
+    });
+});
+
+describe('REST server tests - field type coverage', () => {
+    const schema = `
+    model Foo {
+        id Int @id
+        string String
+        int Int
+        bigInt BigInt
+        date DateTime
+        float Float
+        decimal Decimal
+        boolean Boolean
+        bytes Bytes
+        bars Bar[]
+    }
+
+    model Bar {
+        id Int @id
+        bytes Bytes
+        foo Foo? @relation(fields: [fooId], references: [id])
+        fooId Int? @unique
+    }
+    `;
+
+    it('field types', async () => {
+        const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
+
+        const _handler = makeHandler({ endpoint: 'http://localhost/api', pageSize: 5 });
+        handler = (args) => _handler({ ...args, zodSchemas, modelMeta, url: new URL(`http://localhost/${args.path}`) });
+
+        await prisma.bar.create({ data: { id: 1, bytes: Buffer.from([7, 8, 9]) } });
+
+        const decimalValue1 = new Decimal('0.046875');
+        const decimalValue2 = new Decimal('0.0146875');
+
+        const createAttrs = {
+            string: 'string',
+            int: 123,
+            bigInt: BigInt(534543543534),
+            date: new Date(),
+            float: 1.23,
+            decimal: decimalValue1,
+            boolean: true,
+            bytes: Buffer.from([1, 2, 3, 4]),
+        };
+
+        const { json: createPayload, meta: createMeta } = SuperJSON.serialize({
+            data: {
+                type: 'foo',
+                attributes: { id: 1, ...createAttrs },
+                relationships: {
+                    bars: {
+                        data: [{ type: 'bar', id: 1 }],
+                    },
+                },
+            },
+        });
+
+        let r = await handler({
+            method: 'post',
+            path: '/foo',
+            query: {},
+            requestBody: {
+                ...(createPayload as any),
+                meta: {
+                    serialization: createMeta,
+                },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(201);
+        // result is serializable
+        expect(JSON.stringify(r.body)).toBeTruthy();
+        let serializationMeta = (r.body as any).meta.serialization;
+        expect(serializationMeta).toBeTruthy();
+        let deserialized: any = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        expect(deserialized.data.attributes).toEqual(expect.objectContaining(createAttrs));
+
+        const updateAttrs = {
+            bigInt: BigInt(1534543543534),
+            date: new Date(),
+            decimal: decimalValue2,
+            bytes: Buffer.from([5, 2, 3, 4]),
+        };
+        const { json: updatePayload, meta: updateMeta } = SuperJSON.serialize({
+            data: {
+                type: 'foo',
+                attributes: updateAttrs,
+            },
+        });
+
+        r = await handler({
+            method: 'put',
+            path: '/foo/1',
+            query: {},
+            requestBody: {
+                ...(updatePayload as any),
+                meta: {
+                    serialization: updateMeta,
+                },
+            },
+            prisma,
+        });
+        expect(r.status).toBe(200);
+        // result is serializable
+        expect(JSON.stringify(r.body)).toBeTruthy();
+
+        serializationMeta = (r.body as any).meta.serialization;
+        expect(serializationMeta).toBeTruthy();
+        deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        expect(deserialized.data.attributes).toEqual(expect.objectContaining(updateAttrs));
+
+        r = await handler({
+            method: 'get',
+            path: '/foo/1',
+            query: {},
+            prisma,
+        });
+        // result is serializable
+        expect(JSON.stringify(r.body)).toBeTruthy();
+        serializationMeta = (r.body as any).meta.serialization;
+        expect(serializationMeta).toBeTruthy();
+        deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        expect(deserialized.data.attributes).toEqual(expect.objectContaining({ ...createAttrs, ...updateAttrs }));
+
+        r = await handler({
+            method: 'get',
+            path: '/foo',
+            query: { include: 'bars' },
+            prisma,
+        });
+        // result is serializable
+        expect(JSON.stringify(r.body)).toBeTruthy();
+        serializationMeta = (r.body as any).meta.serialization;
+        expect(serializationMeta).toBeTruthy();
+        deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        expect(deserialized.data[0].attributes).toEqual(expect.objectContaining({ ...createAttrs, ...updateAttrs }));
+
+        const included = deserialized.included[0];
+        expect(Buffer.isBuffer(included.attributes.bytes)).toBeTruthy();
     });
 });

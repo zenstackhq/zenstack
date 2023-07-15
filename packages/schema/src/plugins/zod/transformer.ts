@@ -23,6 +23,7 @@ export default class Transformer {
     static provider: string;
     private static outputPath = './generated';
     private hasJson = false;
+    private hasDecimal = false;
     private project: Project;
     private zmodel: Model;
 
@@ -110,8 +111,11 @@ export default class Transformer {
         let alternatives = lines.reduce<string[]>((result, inputType) => {
             if (inputType.type === 'String') {
                 result.push(this.wrapWithZodValidators('z.string()', field, inputType));
-            } else if (inputType.type === 'Int' || inputType.type === 'Float' || inputType.type === 'Decimal') {
+            } else if (inputType.type === 'Int' || inputType.type === 'Float') {
                 result.push(this.wrapWithZodValidators('z.number()', field, inputType));
+            } else if (inputType.type === 'Decimal') {
+                this.hasDecimal = true;
+                result.push(this.wrapWithZodValidators('decimalSchema', field, inputType));
             } else if (inputType.type === 'BigInt') {
                 result.push(this.wrapWithZodValidators('z.bigint()', field, inputType));
             } else if (inputType.type === 'Boolean') {
@@ -119,7 +123,7 @@ export default class Transformer {
             } else if (inputType.type === 'DateTime') {
                 result.push(this.wrapWithZodValidators(['z.date()', 'z.string().datetime()'], field, inputType));
             } else if (inputType.type === 'Bytes') {
-                result.push(this.wrapWithZodValidators('z.number().array()', field, inputType));
+                result.push(this.wrapWithZodValidators(`z.instanceof(Uint8Array)`, field, inputType));
             } else if (inputType.type === 'Json') {
                 this.hasJson = true;
                 result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
@@ -243,8 +247,9 @@ export default class Transformer {
         const prismaImportStatement = this.generateImportPrismaStatement();
 
         const json = this.generateJsonSchemaImplementation();
+        const decimal = this.generateDecimalSchemaImplementation();
 
-        return `${this.generateObjectSchemaImportStatements()}${prismaImportStatement}${json}${objectSchema}`;
+        return `${this.generateObjectSchemaImportStatements()}${prismaImportStatement}${json}${decimal}${objectSchema}`;
     }
 
     generateExportObjectSchemaStatement(schema: string) {
@@ -253,9 +258,9 @@ export default class Transformer {
         if (isAggregateInputType(name)) {
             name = `${name}Type`;
         }
-        return `export const ${this.name}ObjectSchema: z.ZodType<Omit<Prisma.${name}, ${AUXILIARY_FIELDS.map(
-            (f) => "'" + f + "'"
-        ).join('|')}>> = ${schema};`;
+        const outType = `z.ZodType<Omit<Prisma.${name}, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join('|')}>>`;
+        return `type SchemaType = ${outType};
+export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
 
     addFinalWrappers({ zodStringFields }: { zodStringFields: string[] }) {
@@ -284,6 +289,13 @@ export default class Transformer {
         }
 
         return jsonSchemaImplementation;
+    }
+
+    generateDecimalSchemaImplementation() {
+        // number of Decimal from 'decimal.js'
+        return this.hasDecimal
+            ? `\nconst decimalSchema = z.union([z.number(), z.object({d: z.number().array(), e: z.number(), s: z.number()})]);\n\n`
+            : '';
     }
 
     generateObjectSchemaImportStatements() {

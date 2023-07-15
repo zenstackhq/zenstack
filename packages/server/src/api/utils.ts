@@ -1,33 +1,8 @@
-import { DbOperations } from '@zenstackhq/runtime';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AUXILIARY_FIELDS } from '@zenstackhq/runtime/constants';
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
-import { upperCaseFirst } from 'upper-case-first';
-import { fromZodError } from 'zod-validation-error';
+import { Decimal } from 'decimal.js';
+import SuperJSON from 'superjson';
 import { LoggerConfig } from '../types';
-
-export function getZodSchema(zodSchemas: ZodSchemas, model: string, operation: keyof DbOperations) {
-    // e.g.: UserInputSchema { findUnique: [schema] }
-    return zodSchemas.input?.[`${upperCaseFirst(model)}InputSchema`]?.[operation];
-}
-
-export function zodValidate(
-    zodSchemas: ZodSchemas | undefined,
-    model: string,
-    operation: keyof DbOperations,
-    args: unknown
-) {
-    const zodSchema = zodSchemas && getZodSchema(zodSchemas, model, operation);
-    if (zodSchema) {
-        const parseResult = zodSchema.safeParse(args);
-        if (parseResult.success) {
-            return { data: parseResult.data, error: undefined };
-        } else {
-            return { data: undefined, error: fromZodError(parseResult.error).message };
-        }
-    } else {
-        return { data: args, error: undefined };
-    }
-}
 
 export function logError(logger: LoggerConfig | undefined | null, message: string, code?: string) {
     if (logger === undefined) {
@@ -53,10 +28,7 @@ export function logInfo(logger: LoggerConfig | undefined | null, message: string
     }
 }
 
-/**
- * Recursively strip auxiliary fields from the given data.
- */
-export function stripAuxFields(data: unknown) {
+function stripAuxFields(data: unknown) {
     if (Array.isArray(data)) {
         return data.forEach(stripAuxFields);
     } else if (data && typeof data === 'object') {
@@ -69,4 +41,36 @@ export function stripAuxFields(data: unknown) {
             }
         }
     }
+}
+
+/**
+ * Processes entity data returned from Prisma call.
+ */
+export function processEntityData(data: any) {
+    if (data) {
+        stripAuxFields(data);
+    }
+}
+
+/**
+ * Registers custom superjson serializers.
+ */
+export function registerCustomSerializers() {
+    SuperJSON.registerCustom<Decimal, string>(
+        {
+            isApplicable: (v): v is Decimal => Decimal.isDecimal(v),
+            serialize: (v) => v.toJSON(),
+            deserialize: (v) => new Decimal(v),
+        },
+        'Decimal'
+    );
+
+    SuperJSON.registerCustom<Buffer, string>(
+        {
+            isApplicable: (v): v is Buffer => Buffer.isBuffer(v),
+            serialize: (v) => v.toString('base64'),
+            deserialize: (v) => Buffer.from(v, 'base64'),
+        },
+        'Bytes'
+    );
 }

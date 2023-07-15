@@ -39,6 +39,11 @@ export default function createHandler(options: HandlerOptions): Handle {
 
     const requestHanler = options.handler ?? RPCApiHandler();
     const useSuperJson = options.useSuperJson === true;
+    if (useSuperJson) {
+        console.warn(
+            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
+        );
+    }
 
     return async ({ event, resolve }) => {
         if (event.url.pathname.startsWith(options.prefix)) {

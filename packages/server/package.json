@@ -9,7 +9,7 @@
         "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../.build'",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
-        "test": "jest",
+        "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
@@ -46,6 +46,7 @@
         "@zenstackhq/testtools": "workspace:*",
         "body-parser": "^1.20.2",
         "copyfiles": "^2.4.1",
+        "decimal.js": "^10.4.2",
         "express": "^4.18.2",
         "fastify": "^4.14.1",
         "fastify-plugin": "^4.5.0",

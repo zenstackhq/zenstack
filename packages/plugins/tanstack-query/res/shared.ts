@@ -1,3 +1,32 @@
+import SuperJSON from 'superjson';
+
+// Prisma's Decimal type is mapped to 'decimal.js' on the client side
+try {
+    const Decimal = require('decimal.js');
+    SuperJSON.registerCustom(
+        {
+            isApplicable: (v): v is any => Decimal.isDecimal(v),
+            serialize: (v) => v.toJSON(),
+            deserialize: (v) => new Decimal(v),
+        },
+        'Decimal'
+    );
+} catch {}
+
+// Prisma's Bytes type is mapped to 'Buffer' type on the client side; install 'buffer' package to use it in browser.
+declare var Buffer: any;
+
+if (Buffer) {
+    SuperJSON.registerCustom(
+        {
+            isApplicable: (v): v is any => Buffer.isBuffer(v),
+            serialize: (v) => v.toString('base64'),
+            deserialize: (v) => Buffer.from(v, 'base64'),
+        },
+        'Bytes'
+    );
+}
+
 /**
  * The default query endpoint.
  */
@@ -32,10 +61,19 @@ async function fetcher<R>(url: string, options?: RequestInit, fetch?: FetchFn) {
     const _fetch = fetch ?? window.fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
+        const errData = unmarshal(await res.text());
+        if (
+            errData.error?.prisma &&
+            errData.error?.code === 'P2004' &&
+            errData.error?.reason === 'RESULT_NOT_READABLE'
+        ) {
+            // policy doesn't allow mutation result to be read back, just return undefined
+            return undefined;
+        }
         const error: Error & { info?: unknown; status?: number } = new Error(
             'An error occurred while fetching the data.'
         );
-        error.info = unmarshal(await res.text());
+        error.info = errData.error;
         error.status = res.status;
         throw error;
     }

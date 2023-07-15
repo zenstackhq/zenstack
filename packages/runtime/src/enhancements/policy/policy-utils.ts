@@ -17,7 +17,7 @@ import {
 } from '../../types';
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
-import { NestedWriteVisitor, type VisitorContext } from '../nested-write-vistor';
+import { NestedWriteVisitor, type NestedWriteVisitorContext } from '../nested-write-vistor';
 import type { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
     enumerate,
@@ -469,7 +469,7 @@ export class PolicyUtil {
         };
 
         // build a reversed query for fetching entities affected by nested updates
-        const buildReversedQuery = async (context: VisitorContext) => {
+        const buildReversedQuery = async (context: NestedWriteVisitorContext) => {
             let result, currQuery: any;
             let currField: FieldInfo | undefined;
 
@@ -514,7 +514,7 @@ export class PolicyUtil {
         };
 
         // args processor for update/upsert
-        const processUpdate = async (model: string, where: any, context: VisitorContext) => {
+        const processUpdate = async (model: string, where: any, context: NestedWriteVisitorContext) => {
             const preGuard = this.getAuthGuard(model, 'update');
             if (preGuard === false) {
                 throw this.deniedByPolicy(model, 'update');
@@ -566,7 +566,7 @@ export class PolicyUtil {
         };
 
         // args processor for updateMany
-        const processUpdateMany = async (model: string, args: any, context: VisitorContext) => {
+        const processUpdateMany = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             const guard = this.getAuthGuard(model, 'update');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'update');
@@ -580,7 +580,7 @@ export class PolicyUtil {
 
         // for models with post-update rules, we need to read and store
         // entity values before the update for post-update check
-        const preparePostUpdateCheck = async (model: string, context: VisitorContext) => {
+        const preparePostUpdateCheck = async (model: string, context: NestedWriteVisitorContext) => {
             const postGuard = this.getAuthGuard(model, 'postUpdate');
             const schema = this.getModelSchema(model);
 
@@ -616,7 +616,7 @@ export class PolicyUtil {
         };
 
         // args processor for delete
-        const processDelete = async (model: string, args: any, context: VisitorContext) => {
+        const processDelete = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             const guard = this.getAuthGuard(model, 'delete');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'delete');
@@ -632,7 +632,7 @@ export class PolicyUtil {
         };
 
         // process relation updates: connect, connectOrCreate, and disconnect
-        const processRelationUpdate = async (model: string, args: any, context: VisitorContext) => {
+        const processRelationUpdate = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             // CHECK ME: equire the entity being connected readable?
             // await this.checkPolicyForFilter(model, args, 'read', this.db);
 
