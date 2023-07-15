@@ -5,28 +5,15 @@ import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
 import SuperJSON from 'superjson';
 
-// Prisma's Decimal type is mapped to 'decimal.js' on the client side
-try {
-    const Decimal = require('decimal.js');
-    SuperJSON.registerCustom(
-        {
-            isApplicable: (v): v is any => Decimal.isDecimal(v),
-            serialize: (v) => v.toJSON(),
-            deserialize: (v) => new Decimal(v),
-        },
-        'Decimal'
-    );
-} catch {}
-
 // Prisma's Bytes type is mapped to 'Buffer' type on the client side; install 'buffer' package to use it in browser.
 declare var Buffer: any;
 
 if (Buffer) {
     SuperJSON.registerCustom(
         {
-            isApplicable: (v): v is any => Buffer.isBuffer(v),
-            serialize: (v) => v.toString('base64'),
-            deserialize: (v) => Buffer.from(v, 'base64'),
+            isApplicable: (v: any): v is any => Buffer.isBuffer(v),
+            serialize: (v: any) => v.toString('base64'),
+            deserialize: (v: any) => Buffer.from(v, 'base64'),
         },
         'Bytes'
     );
@@ -89,7 +76,7 @@ export function get<Result, Error = any>(
     fetch?: FetchFn
 ): SWRResponse<Result, Error> {
     const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
-    return useSWR<Result, Error>(reqUrl, (url) => fetcher(url, undefined, fetch), {
+    return useSWR<Result, Error>(reqUrl, (url) => fetcher<Result, false>(url, undefined, fetch, false), {
         fallbackData: options?.initialData,
     });
 }
@@ -101,8 +88,14 @@ export function get<Result, Error = any>(
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function post<Result>(url: string, data: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
-    const r: Result = await fetcher(
+export async function post<Result, C extends boolean = boolean>(
+    url: string,
+    data: unknown,
+    mutate: Mutator,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? Result | undefined : Result> {
+    const r = await fetcher<Result, C>(
         url,
         {
             method: 'POST',
@@ -111,7 +104,8 @@ export async function post<Result>(url: string, data: unknown, mutate: Mutator, 
             },
             body: marshal(data),
         },
-        fetch
+        fetch,
+        checkReadBack
     );
     mutate();
     return r;
@@ -124,8 +118,14 @@ export async function post<Result>(url: string, data: unknown, mutate: Mutator, 
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function put<Result>(url: string, data: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
-    const r: Result = await fetcher(
+export async function put<Result, C extends boolean = boolean>(
+    url: string,
+    data: unknown,
+    mutate: Mutator,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? Result | undefined : Result> {
+    const r = await fetcher<Result, C>(
         url,
         {
             method: 'PUT',
@@ -134,7 +134,8 @@ export async function put<Result>(url: string, data: unknown, mutate: Mutator, f
             },
             body: marshal(data),
         },
-        fetch
+        fetch,
+        checkReadBack
     );
     mutate();
     return r;
@@ -147,14 +148,21 @@ export async function put<Result>(url: string, data: unknown, mutate: Mutator, f
  * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
  * @param mutate Mutator for invalidating cache.
  */
-export async function del<Result>(url: string, args: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
+export async function del<Result, C extends boolean = boolean>(
+    url: string,
+    args: unknown,
+    mutate: Mutator,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? Result | undefined : Result> {
     const reqUrl = makeUrl(url, args);
-    const r: Result = await fetcher(
+    const r = await fetcher<Result, C>(
         reqUrl,
         {
             method: 'DELETE',
         },
-        fetch
+        fetch,
+        checkReadBack
     );
     const path = url.split('/');
     path.pop();
@@ -183,18 +191,24 @@ export function getMutate(prefixes: string[]): Mutator {
     };
 }
 
-export async function fetcher<R>(url: string, options?: RequestInit, fetch?: FetchFn) {
+export async function fetcher<R, C extends boolean>(
+    url: string,
+    options?: RequestInit,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? R | undefined : R> {
     const _fetch = fetch ?? window.fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
         const errData = unmarshal(await res.text());
         if (
+            checkReadBack !== false &&
             errData.error?.prisma &&
             errData.error?.code === 'P2004' &&
             errData.error?.reason === 'RESULT_NOT_READABLE'
         ) {
             // policy doesn't allow mutation result to be read back, just return undefined
-            return undefined;
+            return undefined as any;
         }
         const error: Error & { info?: unknown; status?: number } = new Error(
             'An error occurred while fetching the data.'

@@ -53,7 +53,7 @@ ${sharedModel}
         `,
             true,
             false,
-            [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query'],
+            [`${origDir}/dist`, 'react', '@types/react', '@tanstack/react-query', 'superjson'],
             true
         );
     });
@@ -90,7 +90,7 @@ ${sharedModel}
         `,
             true,
             false,
-            [`${origDir}/dist`, 'svelte@^3.0.0', '@types/react', '@tanstack/svelte-query'],
+            [`${origDir}/dist`, 'svelte@^3.0.0', '@types/react', '@tanstack/svelte-query', 'superjson'],
             true
         );
     });

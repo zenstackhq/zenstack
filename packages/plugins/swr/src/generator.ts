@@ -1,6 +1,5 @@
 import { DMMF } from '@prisma/generator-helper';
 import {
-    CrudFailureReason,
     PluginOptions,
     createProject,
     getDataModels,
@@ -48,19 +47,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     return warnings;
 }
 
-function wrapReadbackErrorCheck(code: string) {
-    return `try {
-        ${code}
-    } catch (err: any) {
-        if (err.info?.prisma && err.info?.code === 'P2004' && err.info?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
-            // unable to readback data
-            return undefined;
-        } else {
-            throw err;
-        }
-    }`;
-}
-
 function generateModelHooks(project: Project, outDir: string, model: DataModel, mapping: DMMF.ModelMapping) {
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
@@ -99,7 +85,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}CreateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'post', 'create', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'post', 'create', argsType, inputType, returnType, true)
+        );
     }
 
     // createMany
@@ -107,7 +95,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'post', 'createMany', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'post', 'createMany', argsType, inputType, returnType, false)
+        );
     }
 
     // findMany
@@ -141,7 +131,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpdateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'put', 'update', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'put', 'update', argsType, inputType, returnType, true)
+        );
     }
 
     // updateMany
@@ -149,7 +141,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'put', 'updateMany', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'put', 'updateMany', argsType, inputType, returnType, false)
+        );
     }
 
     // upsert
@@ -159,7 +153,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpsertArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'post', 'upsert', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'post', 'upsert', argsType, inputType, returnType, true)
+        );
     }
 
     // del
@@ -169,7 +165,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}DeleteArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'delete', 'delete', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'delete', 'delete', argsType, inputType, returnType, true)
+        );
     }
 
     // deleteMany
@@ -178,7 +176,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
         mutationFuncs.push(
-            generateMutation(useMutation, model, 'delete', 'deleteMany', argsType, inputType, returnType)
+            generateMutation(useMutation, model, 'delete', 'deleteMany', argsType, inputType, returnType, false)
         );
     }
 
@@ -315,7 +313,8 @@ function generateMutation(
     operation: string,
     argsType: string,
     inputType: string,
-    returnType: string
+    returnType: string,
+    checkReadBack: boolean
 ) {
     const modelRouteName = lowerCaseFirst(model.name);
     const funcName = `${operation}${model.name}`;
@@ -333,9 +332,7 @@ function generateMutation(
     })
         .addBody()
         .addStatements([
-            wrapReadbackErrorCheck(
-                `return await request.${fetcherFunc}<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch);`
-            ),
+            `return await request.${fetcherFunc}<${returnType}, ${checkReadBack}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch, ${checkReadBack});`,
         ]);
     return funcName;
 }

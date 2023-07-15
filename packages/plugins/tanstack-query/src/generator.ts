@@ -102,16 +102,20 @@ function generateMutationHook(
     model: string,
     operation: string,
     httpVerb: 'post' | 'put' | 'delete',
+    checkReadBack: boolean,
     overrideReturnType?: string
 ) {
     const capOperation = upperCaseFirst(operation);
 
     const argsType = `Prisma.${model}${capOperation}Args`;
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-    const returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
+    let returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
+    if (checkReadBack) {
+        returnType = `(${returnType} | undefined )`;
+    }
     const nonGenericOptionsType = `Omit<${makeMutationOptions(
         target,
-        overrideReturnType ?? model,
+        checkReadBack ? `(${overrideReturnType ?? model} | undefined)` : overrideReturnType ?? model,
         argsType
     )}, 'mutationFn'>`;
     const optionsType = `Omit<${makeMutationOptions(target, returnType, inputType)}, 'mutationFn'>`;
@@ -143,9 +147,9 @@ function generateMutationHook(
                 initializer: `
                     ${httpVerb}Mutation<${argsType}, ${
                     overrideReturnType ?? model
-                }>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                }, ${checkReadBack}>('${model}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, options, fetch, invalidateQueries)
+                )}/${operation}\`, options, fetch, invalidateQueries, ${checkReadBack})
                 `,
             },
         ],
@@ -232,12 +236,12 @@ function generateModelHooks(
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.create || (mapping as any).createOne) {
-        generateMutationHook(target, sf, model.name, 'create', 'post');
+        generateMutationHook(target, sf, model.name, 'create', 'post', true);
     }
 
     // createMany
     if (mapping.createMany) {
-        generateMutationHook(target, sf, model.name, 'createMany', 'post', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'createMany', 'post', false, 'Prisma.BatchPayload');
     }
 
     // findMany
@@ -259,31 +263,31 @@ function generateModelHooks(
     // update is somehow named "updateOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.update || (mapping as any).updateOne) {
-        generateMutationHook(target, sf, model.name, 'update', 'put');
+        generateMutationHook(target, sf, model.name, 'update', 'put', true);
     }
 
     // updateMany
     if (mapping.updateMany) {
-        generateMutationHook(target, sf, model.name, 'updateMany', 'put', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'updateMany', 'put', false, 'Prisma.BatchPayload');
     }
 
     // upsert
     // upsert is somehow named "upsertOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.upsert || (mapping as any).upsertOne) {
-        generateMutationHook(target, sf, model.name, 'upsert', 'post');
+        generateMutationHook(target, sf, model.name, 'upsert', 'post', true);
     }
 
     // del
     // delete is somehow named "deleteOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.delete || (mapping as any).deleteOne) {
-        generateMutationHook(target, sf, model.name, 'delete', 'delete');
+        generateMutationHook(target, sf, model.name, 'delete', 'delete', true);
     }
 
     // deleteMany
     if (mapping.deleteMany) {
-        generateMutationHook(target, sf, model.name, 'deleteMany', 'delete', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'deleteMany', 'delete', false, 'Prisma.BatchPayload');
     }
 
     // aggregate
