@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
     useMutation,
     useQuery,
@@ -8,11 +9,20 @@ import {
     type UseQueryOptions,
 } from '@tanstack/react-query';
 import { createContext } from 'react';
+import {
+    DEFAULT_QUERY_ENDPOINT,
+    FetchFn,
+    QUERY_KEY_PREFIX,
+    fetcher,
+    makeUrl,
+    marshal,
+    type APIContext,
+} from './common';
 
 /**
  * Context for configuring react hooks.
  */
-export const RequestHandlerContext = createContext<RequestHandlerContext>({
+export const RequestHandlerContext = createContext<APIContext>({
     endpoint: DEFAULT_QUERY_ENDPOINT,
     fetch: undefined,
 });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
     createMutation,
     createQuery,
@@ -7,6 +8,9 @@ import {
     type QueryClient,
     type QueryOptions,
 } from '@tanstack/svelte-query';
+import { FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
+
+export { APIContext as RequestHandlerContext } from './common';
 
 /**
  * Key for setting and getting the global query context.

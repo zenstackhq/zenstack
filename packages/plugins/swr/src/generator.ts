@@ -10,7 +10,6 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
-import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { FunctionDeclaration, Project, SourceFile } from 'ts-morph';
@@ -32,7 +31,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const models = getDataModels(model);
 
     generateIndex(project, outDir, models);
-    generateHelper(project, outDir, options.useSuperJson === true);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -61,8 +59,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions } from './_helper';`,
-        `import * as request from './_helper';`,
+        `import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/swr/runtime';`,
+        `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
 
     const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
@@ -271,7 +269,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.addStatements(`export * from './_helper';`);
 }
 
 function generateQueryHook(
@@ -335,15 +332,4 @@ function generateMutation(
             `return await request.${fetcherFunc}<${returnType}, ${checkReadBack}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch, ${checkReadBack});`,
         ]);
     return funcName;
-}
-
-function generateHelper(project: Project, outDir: string, useSuperJson: boolean) {
-    const helperContent = fs.readFileSync(path.join(__dirname, './res/helper.ts'), 'utf-8');
-    const marshalContent = fs.readFileSync(
-        path.join(__dirname, useSuperJson ? './res/marshal-superjson.ts' : './res/marshal-json.ts'),
-        'utf-8'
-    );
-    project.createSourceFile(path.join(outDir, '_helper.ts'), `${helperContent}\n${marshalContent}`, {
-        overwrite: true,
-    });
 }

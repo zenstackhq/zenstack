@@ -117,8 +117,7 @@ function makeZodSchema(field: DataModelField) {
                 schema = 'z.number()';
                 break;
             case 'Decimal':
-                // number or Decimal from 'decimal.js'
-                schema = 'z.union([z.number(), z.object({d: z.number().array(), e: z.number(), s: z.number()})])';
+                schema = 'DecimalSchema';
                 break;
             case 'BigInt':
                 schema = 'z.bigint()';

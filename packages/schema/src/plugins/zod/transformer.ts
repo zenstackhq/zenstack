@@ -115,7 +115,7 @@ export default class Transformer {
                 result.push(this.wrapWithZodValidators('z.number()', field, inputType));
             } else if (inputType.type === 'Decimal') {
                 this.hasDecimal = true;
-                result.push(this.wrapWithZodValidators('decimalSchema', field, inputType));
+                result.push(this.wrapWithZodValidators('DecimalSchema', field, inputType));
             } else if (inputType.type === 'BigInt') {
                 result.push(this.wrapWithZodValidators('z.bigint()', field, inputType));
             } else if (inputType.type === 'Boolean') {
@@ -247,9 +247,8 @@ export default class Transformer {
         const prismaImportStatement = this.generateImportPrismaStatement();
 
         const json = this.generateJsonSchemaImplementation();
-        const decimal = this.generateDecimalSchemaImplementation();
 
-        return `${this.generateObjectSchemaImportStatements()}${prismaImportStatement}${json}${decimal}${objectSchema}`;
+        return `${this.generateObjectSchemaImportStatements()}${prismaImportStatement}${json}${objectSchema}`;
     }
 
     generateExportObjectSchemaStatement(schema: string) {
@@ -291,16 +290,12 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return jsonSchemaImplementation;
     }
 
-    generateDecimalSchemaImplementation() {
-        // number of Decimal from 'decimal.js'
-        return this.hasDecimal
-            ? `\nconst decimalSchema = z.union([z.number(), z.object({d: z.number().array(), e: z.number(), s: z.number()})]);\n\n`
-            : '';
-    }
-
     generateObjectSchemaImportStatements() {
         let generatedImports = this.generateImportZodStatement();
         generatedImports += this.generateSchemaImports();
+        if (this.hasDecimal) {
+            generatedImports += this.generateDecimalImport();
+        }
         generatedImports += '\n\n';
         return generatedImports;
     }
@@ -310,14 +305,18 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             .map((name) => {
                 const { isModelQueryType, modelName } = this.checkIsModelQueryType(name);
                 if (isModelQueryType) {
-                    return `import { ${modelName}InputSchema } from '../input/${modelName}Input.schema'`;
+                    return `import { ${modelName}InputSchema } from '../input/${modelName}Input.schema';`;
                 } else if (Transformer.enumNames.includes(name)) {
-                    return `import { ${name}Schema } from '../enums/${name}.schema'`;
+                    return `import { ${name}Schema } from '../enums/${name}.schema';`;
                 } else {
-                    return `import { ${name}ObjectSchema } from './${name}.schema'`;
+                    return `import { ${name}ObjectSchema } from './${name}.schema';`;
                 }
             })
-            .join(';\r\n');
+            .join('\n');
+    }
+
+    private generateDecimalImport() {
+        return `import { DecimalSchema } from '../common/Decimal.schema';\n\n`;
     }
 
     checkIsModelQueryType(type: string) {

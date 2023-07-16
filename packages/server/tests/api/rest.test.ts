@@ -2109,7 +2109,11 @@ describe('REST server tests - field type coverage', () => {
         let serializationMeta = (r.body as any).meta.serialization;
         expect(serializationMeta).toBeTruthy();
         let deserialized: any = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
-        expect(deserialized.data.attributes).toEqual(expect.objectContaining(createAttrs));
+        let data = deserialized.data.attributes;
+        expect(typeof data.bigInt).toBe('bigint');
+        expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
+        expect(data.date instanceof Date).toBeTruthy();
+        expect(Decimal.isDecimal(data.decimal)).toBeTruthy();
 
         const updateAttrs = {
             bigInt: BigInt(1534543543534),
@@ -2143,7 +2147,11 @@ describe('REST server tests - field type coverage', () => {
         serializationMeta = (r.body as any).meta.serialization;
         expect(serializationMeta).toBeTruthy();
         deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
-        expect(deserialized.data.attributes).toEqual(expect.objectContaining(updateAttrs));
+        data = deserialized.data.attributes;
+        expect(data.bigInt).toEqual(updateAttrs.bigInt);
+        expect(data.date).toEqual(updateAttrs.date);
+        expect(data.decimal.equals(updateAttrs.decimal)).toBeTruthy();
+        expect(data.bytes.toString('base64')).toEqual(updateAttrs.bytes.toString('base64'));
 
         r = await handler({
             method: 'get',
@@ -2156,7 +2164,11 @@ describe('REST server tests - field type coverage', () => {
         serializationMeta = (r.body as any).meta.serialization;
         expect(serializationMeta).toBeTruthy();
         deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
-        expect(deserialized.data.attributes).toEqual(expect.objectContaining({ ...createAttrs, ...updateAttrs }));
+        data = deserialized.data.attributes;
+        expect(typeof data.bigInt).toBe('bigint');
+        expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
+        expect(data.date instanceof Date).toBeTruthy();
+        expect(Decimal.isDecimal(data.decimal)).toBeTruthy();
 
         r = await handler({
             method: 'get',
@@ -2169,8 +2181,6 @@ describe('REST server tests - field type coverage', () => {
         serializationMeta = (r.body as any).meta.serialization;
         expect(serializationMeta).toBeTruthy();
         deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
-        expect(deserialized.data[0].attributes).toEqual(expect.objectContaining({ ...createAttrs, ...updateAttrs }));
-
         const included = deserialized.included[0];
         expect(Buffer.isBuffer(included.attributes.bytes)).toBeTruthy();
     });

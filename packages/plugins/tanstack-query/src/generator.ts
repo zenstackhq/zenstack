@@ -11,7 +11,6 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
-import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
@@ -38,7 +37,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     }
 
     generateIndex(project, outDir, models);
-    generateHelper(target, project, outDir, options.useSuperJson === true);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -392,34 +390,6 @@ function generateModelHooks(
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.addStatements(`export * from './_helper';`);
-}
-
-function generateHelper(target: TargetFramework, project: Project, outDir: string, useSuperJson: boolean) {
-    let srcFile: string;
-    switch (target) {
-        case 'react':
-            srcFile = path.join(__dirname, './res/react/helper.ts');
-            break;
-        case 'svelte':
-            srcFile = path.join(__dirname, './res/svelte/helper.ts');
-            break;
-        default:
-            throw new PluginError(name, `Unsupported target: ${target}`);
-    }
-
-    // merge content of `shared.ts`, `helper.ts` and `marshal-?.ts`
-    const sharedContent = fs.readFileSync(path.join(__dirname, './res/shared.ts'), 'utf-8');
-    const helperContent = fs.readFileSync(srcFile, 'utf-8');
-    const marshalContent = fs.readFileSync(
-        path.join(__dirname, useSuperJson ? './res/marshal-superjson.ts' : './res/marshal-json.ts'),
-        'utf-8'
-    );
-
-    const finalContent = `${sharedContent}\n${helperContent}\n${marshalContent}`;
-    project.createSourceFile(path.join(outDir, '_helper.ts'), finalContent, {
-        overwrite: true,
-    });
 }
 
 function makeGetContext(target: TargetFramework) {
@@ -434,13 +404,15 @@ function makeGetContext(target: TargetFramework) {
 }
 
 function makeBaseImports(target: TargetFramework) {
-    const shared = [`import { query, postMutation, putMutation, deleteMutation } from './_helper';`];
+    const shared = [
+        `import { query, postMutation, putMutation, deleteMutation } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+    ];
     switch (target) {
         case 'react':
             return [
                 `import { useContext } from 'react';`,
                 `import type { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';`,
-                `import { RequestHandlerContext } from './_helper';`,
+                `import { RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
         case 'svelte':
@@ -448,7 +420,7 @@ function makeBaseImports(target: TargetFramework) {
                 `import { getContext } from 'svelte';`,
                 `import { derived } from 'svelte/store';`,
                 `import type { MutationOptions, QueryOptions } from '@tanstack/svelte-query';`,
-                `import { SvelteQueryContextKey, type RequestHandlerContext } from './_helper';`,
+                `import { SvelteQueryContextKey, type RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
         default:

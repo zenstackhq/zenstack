@@ -1,23 +1,9 @@
-/* eslint-disable */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createContext } from 'react';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
 import SuperJSON from 'superjson';
-
-// Prisma's Bytes type is mapped to 'Buffer' type on the client side; install 'buffer' package to use it in browser.
-declare var Buffer: any;
-
-if (Buffer) {
-    SuperJSON.registerCustom(
-        {
-            isApplicable: (v: any): v is any => Buffer.isBuffer(v),
-            serialize: (v: any) => v.toString('base64'),
-            deserialize: (v: any) => Buffer.from(v, 'base64'),
-        },
-        'Bytes'
-    );
-}
+import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 
 /**
  * Function signature for `fetch`.
@@ -220,9 +206,42 @@ export async function fetcher<R, C extends boolean>(
 
     const textResult = await res.text();
     try {
-        return unmarshal(textResult) as R;
+        return unmarshal(textResult).data as R;
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
+        console.error(err);
         throw err;
     }
+}
+
+function marshal(value: unknown) {
+    const { data, meta } = serialize(value);
+    if (meta) {
+        return JSON.stringify({ ...(data as any), meta: { serialization: meta } });
+    } else {
+        return JSON.stringify(data);
+    }
+}
+
+function unmarshal(value: string) {
+    const parsed = JSON.parse(value);
+    if (parsed.data && parsed.meta?.serialization) {
+        const deserializedData = deserialize(parsed.data, parsed.meta.serialization);
+        return { ...parsed, data: deserializedData };
+    } else {
+        return parsed;
+    }
+}
+
+function makeUrl(url: string, args: unknown) {
+    if (!args) {
+        return url;
+    }
+
+    const { json, meta } = SuperJSON.serialize(args);
+    let result = `${url}?q=${encodeURIComponent(JSON.stringify(json))}`;
+    if (meta) {
+        result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
+    }
+    return result;
 }

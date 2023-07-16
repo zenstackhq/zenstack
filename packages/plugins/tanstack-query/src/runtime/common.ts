@@ -1,20 +1,5 @@
-/* eslint-disable */
-
-import SuperJSON from 'superjson';
-
-// Prisma's Bytes type is mapped to 'Buffer' type on the client side; install 'buffer' package to use it in browser.
-declare var Buffer: any;
-
-if (Buffer) {
-    SuperJSON.registerCustom(
-        {
-            isApplicable: (v: any): v is any => Buffer.isBuffer(v),
-            serialize: (v: any) => v.toString('base64'),
-            deserialize: (v: any) => Buffer.from(v, 'base64'),
-        },
-        'Bytes'
-    );
-}
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { serialize, deserialize } from '@zenstackhq/runtime/browser';
 
 /**
  * The default query endpoint.
@@ -34,7 +19,7 @@ export type FetchFn = (url: string, options?: RequestInit) => Promise<Response>;
 /**
  * Context type for configuring the hooks.
  */
-export type RequestHandlerContext = {
+export type APIContext = {
     /**
      * The endpoint to use for the queries.
      */
@@ -46,7 +31,7 @@ export type RequestHandlerContext = {
     fetch?: FetchFn;
 };
 
-async function fetcher<R, C extends boolean>(
+export async function fetcher<R, C extends boolean>(
     url: string,
     options?: RequestInit,
     fetch?: FetchFn,
@@ -80,4 +65,36 @@ async function fetcher<R, C extends boolean>(
         console.error(`Unable to deserialize data:`, textResult);
         throw err;
     }
+}
+
+export function marshal(value: unknown) {
+    const { data, meta } = serialize(value);
+    if (meta) {
+        return JSON.stringify({ ...(data as any), meta: { serialization: meta } });
+    } else {
+        return JSON.stringify(data);
+    }
+}
+
+export function unmarshal(value: string) {
+    const parsed = JSON.parse(value);
+    if (parsed.data && parsed.meta?.serialization) {
+        const deserializedData = deserialize(parsed.data, parsed.meta.serialization);
+        return { ...parsed, data: deserializedData };
+    } else {
+        return parsed;
+    }
+}
+
+export function makeUrl(url: string, args: unknown) {
+    if (!args) {
+        return url;
+    }
+
+    const { data, meta } = serialize(args);
+    let result = `${url}?q=${encodeURIComponent(JSON.stringify(data))}`;
+    if (meta) {
+        result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
+    }
+    return result;
 }

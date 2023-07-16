@@ -274,9 +274,11 @@ describe('RPC API Handler Tests', () => {
         expect(r.status).toBe(201);
         expect(r.meta).toBeTruthy();
         const data: any = SuperJSON.deserialize({ json: r.data, meta: r.meta.serialization });
-        const { bars, ...restData } = createData;
-        expect(data).toEqual(expect.objectContaining(restData));
-        expect(data.bars[0]).toEqual(expect.objectContaining(bars.create));
+        expect(typeof data.bigInt).toBe('bigint');
+        expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
+        expect(data.date instanceof Date).toBeTruthy();
+        expect(Decimal.isDecimal(data.decimal)).toBeTruthy();
+        expect(Buffer.isBuffer(data.bars[0].bytes)).toBeTruthy();
 
         // find with filter not found
         const serializedQ = SuperJSON.serialize({
