@@ -4,14 +4,31 @@
     "version": "1.0.0-beta.8",
     "description": "ZenStack plugin for generating tanstack-query hooks",
     "main": "index.js",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./runtime/react": {
+            "import": "./runtime/react.mjs",
+            "require": "./runtime/react.js",
+            "default": "./runtime/react.js",
+            "types": "./runtime/react.d.ts"
+        },
+        "./runtime/svelte": {
+            "import": "./runtime/svelte.mjs",
+            "require": "./runtime/svelte.js",
+            "default": "./runtime/svelte.js",
+            "types": "./runtime/svelte.d.ts"
+        }
+    },
     "repository": {
         "type": "git",
         "url": "https://github.com/zenstackhq/zenstack"
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
-        "watch": "tsc --watch",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "watch": "tsup-node --watch",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",

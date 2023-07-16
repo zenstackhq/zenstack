@@ -18,5 +18,5 @@
         "paths": {}
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["dist", "node_modules"]
+    "exclude": ["src/browser"]
 }

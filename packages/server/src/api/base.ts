@@ -1,5 +1,4 @@
-import { getDefaultModelMeta } from '@zenstackhq/runtime/enhancements/model-meta';
-import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
+import { ModelMeta, getDefaultModelMeta } from '@zenstackhq/runtime';
 
 /**
  * Base class for API handlers

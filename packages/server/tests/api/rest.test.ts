@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import { withPolicy } from '@zenstackhq/runtime';
-import { CrudFailureReason } from '@zenstackhq/runtime/constants';
-import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
+import { CrudFailureReason, ModelMeta, withPolicy } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';

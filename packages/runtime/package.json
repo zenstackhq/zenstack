@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
@@ -17,6 +17,17 @@
     },
     "main": "index.js",
     "types": "index.d.ts",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./browser": {
+            "import": "./browser/index.mjs",
+            "require": "./browser/index.js",
+            "default": "./browser/index.js",
+            "types": "./browser/index.d.ts"
+        }
+    },
     "publishConfig": {
         "directory": "dist",
         "linkDirectory": true

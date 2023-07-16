@@ -60,7 +60,7 @@ export async function fetcher<R, C extends boolean>(
 
     const textResult = await res.text();
     try {
-        return unmarshal(textResult) as R;
+        return unmarshal(textResult).data as R;
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
         throw err;

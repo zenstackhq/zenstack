@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AUXILIARY_FIELDS } from '@zenstackhq/runtime/constants';
+import { AUXILIARY_FIELDS } from '@zenstackhq/runtime';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import { LoggerConfig } from '../types';

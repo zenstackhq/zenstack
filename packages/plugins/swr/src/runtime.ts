@@ -209,7 +209,6 @@ export async function fetcher<R, C extends boolean>(
         return unmarshal(textResult).data as R;
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
-        console.error(err);
         throw err;
     }
 }

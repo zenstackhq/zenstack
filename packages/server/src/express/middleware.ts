@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import type { Handler, Request, Response } from 'express';
 import RPCAPIHandler from '../api/rpc';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 
 /**
  * Express middleware options

@@ -1,5 +1,5 @@
+import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
-import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 
 type LoggerMethod = (message: string, code?: string) => void;
 

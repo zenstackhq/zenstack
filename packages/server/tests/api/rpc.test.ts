@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
+import type { ZodSchemas } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';

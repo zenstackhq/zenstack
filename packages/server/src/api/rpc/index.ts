@@ -1,10 +1,10 @@
 import {
     DbOperations,
+    ZodSchemas,
     isPrismaClientKnownRequestError,
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
-import { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import SuperJSON from 'superjson';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';

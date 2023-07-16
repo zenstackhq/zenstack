@@ -1,10 +1,10 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
+import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToString, unmarshalFromString } from '../utils';
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 
 /**
  * SvelteKit request handler options

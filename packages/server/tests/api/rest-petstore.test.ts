@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
+import { ModelMeta } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
-import { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import makeHandler from '../../src/api/rest';
 import { Response } from '../../src/types';
 

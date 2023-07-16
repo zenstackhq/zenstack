@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
@@ -6,7 +7,6 @@ import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
 import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 
 /**
  * Fastify plugin options

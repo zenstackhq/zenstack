@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
+import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { NextRequest, NextResponse } from 'next/server';
 import { AppRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';

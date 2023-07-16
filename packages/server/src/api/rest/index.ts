@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
 import {
     DbClientContract,
     FieldInfo,
@@ -6,7 +7,6 @@ import {
     getIdFields,
     isPrismaClientKnownRequestError,
 } from '@zenstackhq/runtime';
-import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import SuperJSON from 'superjson';
