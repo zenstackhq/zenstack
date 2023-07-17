@@ -1325,8 +1325,7 @@ components:
             allOf:
                 - $ref: '#/components/schemas/_resourceIdentifier'
                 - type: object
-                  description: A resource with attributes and relationships serialized with
-                      superjson
+                  description: A resource with attributes and relationships
                   properties:
                       attributes:
                           type: object
@@ -1512,7 +1511,7 @@ components:
                 - ADMIN
         User:
             type: object
-            description: The "User" model serialized with superjson
+            description: The "User" model
             required:
                 - id
                 - type
@@ -1548,7 +1547,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "User" model serialized with superjson
+                    description: The "User" model
                     required:
                         - id
                         - type
@@ -1589,7 +1588,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "User" model serialized with superjson
+                    description: The "User" model
                     required:
                         - id
                         - type
@@ -1676,7 +1675,7 @@ components:
                         - $ref: '#/components/schemas/_pagination'
         Post:
             type: object
-            description: The "Post" model serialized with superjson
+            description: The "Post" model
             required:
                 - id
                 - type
@@ -1716,7 +1715,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Post" model serialized with superjson
+                    description: The "Post" model
                     required:
                         - id
                         - type
@@ -1761,7 +1760,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Post" model serialized with superjson
+                    description: The "Post" model
                     required:
                         - id
                         - type

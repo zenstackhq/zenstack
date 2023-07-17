@@ -305,6 +305,7 @@ paths:
                   schema:
                       type: string
                       format: byte
+                      description: Base64 encoded byte array
             responses:
                 '200':
                     description: Successful operation
@@ -493,8 +494,7 @@ components:
             allOf:
                 - $ref: '#/components/schemas/_resourceIdentifier'
                 - type: object
-                  description: A resource with attributes and relationships serialized with
-                      superjson
+                  description: A resource with attributes and relationships
                   properties:
                       attributes:
                           type: object
@@ -576,7 +576,7 @@ components:
                     $ref: '#/components/schemas/_errors'
         Foo:
             type: object
-            description: The "Foo" model serialized with superjson
+            description: The "Foo" model
             required:
                 - id
                 - type
@@ -609,6 +609,7 @@ components:
                         bytes:
                             type: string
                             format: byte
+                            description: Base64 encoded byte array
         FooCreateRequest:
             type: object
             description: Input for creating a "Foo"
@@ -617,7 +618,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Foo" model serialized with superjson
+                    description: The "Foo" model
                     required:
                         - id
                         - type
@@ -659,6 +660,7 @@ components:
                                 bytes:
                                     type: string
                                     format: byte
+                                    description: Base64 encoded byte array
                 meta:
                     $ref: '#/components/schemas/_meta'
         FooUpdateRequest:
@@ -669,7 +671,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Foo" model serialized with superjson
+                    description: The "Foo" model
                     required:
                         - id
                         - type
@@ -702,6 +704,7 @@ components:
                                 bytes:
                                     type: string
                                     format: byte
+                                    description: Base64 encoded byte array
                 meta:
                     $ref: '#/components/schemas/_meta'
         FooResponse:

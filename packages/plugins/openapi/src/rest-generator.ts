@@ -559,7 +559,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _resource: this.allOf(this.ref('_resourceIdentifier'), {
                 type: 'object',
-                description: 'A resource with attributes and relationships serialized with superjson',
+                description: 'A resource with attributes and relationships',
                 properties: {
                     attributes: { type: 'object', description: 'Resource attributes' },
                     relationships: { type: 'object', description: 'Resource relationships' },
@@ -862,7 +862,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = {
             type: 'object',
-            description: `The "${model.name}" model serialized with superjson`,
+            description: `The "${model.name}" model`,
             required: ['id', 'type', 'attributes'],
             properties: {
                 type: { type: 'string' },
@@ -909,7 +909,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             case 'DateTime':
                 return { type: 'string', format: 'date-time' };
             case 'Bytes':
-                return { type: 'string', format: 'byte' };
+                return { type: 'string', format: 'byte', description: 'Base64 encoded byte array' };
             case 'Json':
                 return {};
             default: {
