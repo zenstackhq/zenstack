@@ -114,8 +114,10 @@ function makeZodSchema(field: DataModelField) {
         switch (field.type.type) {
             case 'Int':
             case 'Float':
-            case 'Decimal':
                 schema = 'z.number()';
+                break;
+            case 'Decimal':
+                schema = 'DecimalSchema';
                 break;
             case 'BigInt':
                 schema = 'z.bigint()';
@@ -130,7 +132,7 @@ function makeZodSchema(field: DataModelField) {
                 schema = 'z.date()';
                 break;
             case 'Bytes':
-                schema = 'z.number().array()';
+                schema = 'z.union([z.string(), z.instanceof(Uint8Array)])';
                 break;
             default:
                 schema = 'z.any()';

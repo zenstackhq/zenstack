@@ -1301,11 +1301,12 @@ components:
             properties:
                 version:
                     type: string
-                meta:
-                    $ref: '#/components/schemas/_meta'
         _meta:
             type: object
-            description: Meta information about the response
+            description: Meta information about the request or response
+            properties:
+                serialization:
+                    description: Superjson serialization metadata
             additionalProperties: true
         _resourceIdentifier:
             type: object
@@ -1577,6 +1578,8 @@ components:
                             properties:
                                 posts:
                                     $ref: '#/components/schemas/_toManyRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
         UserUpdateRequest:
             type: object
             description: Input for updating a "User"
@@ -1613,6 +1616,8 @@ components:
                             properties:
                                 posts:
                                     $ref: '#/components/schemas/_toManyRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
         UserResponse:
             type: object
             description: Response for a "User"
@@ -1631,6 +1636,8 @@ components:
                                   properties: &a1
                                       posts:
                                           $ref: '#/components/schemas/_toManyRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
                 included:
                     type: array
                     items:
@@ -1656,6 +1663,8 @@ components:
                                   relationships:
                                       type: object
                                       properties: *a1
+                meta:
+                    $ref: '#/components/schemas/_meta'
                 included:
                     type: array
                     items:
@@ -1741,6 +1750,8 @@ components:
                             properties:
                                 author:
                                     $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
         PostUpdateRequest:
             type: object
             description: Input for updating a "Post"
@@ -1781,6 +1792,8 @@ components:
                             properties:
                                 author:
                                     $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
         PostResponse:
             type: object
             description: Response for a "Post"
@@ -1799,6 +1812,8 @@ components:
                                   properties: &a2
                                       author:
                                           $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
                 included:
                     type: array
                     items:
@@ -1824,6 +1839,8 @@ components:
                                   relationships:
                                       type: object
                                       properties: *a2
+                meta:
+                    $ref: '#/components/schemas/_meta'
                 included:
                     type: array
                     items:

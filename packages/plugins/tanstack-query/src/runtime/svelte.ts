@@ -1,5 +1,4 @@
-/* eslint-disable */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
     createMutation,
     createQuery,
@@ -9,6 +8,9 @@ import {
     type QueryClient,
     type QueryOptions,
 } from '@tanstack/svelte-query';
+import { FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
+
+export { APIContext as RequestHandlerContext } from './common';
 
 /**
  * Key for setting and getting the global query context.
@@ -29,7 +31,7 @@ export function query<R>(model: string, url: string, args?: unknown, options?: Q
     const reqUrl = makeUrl(url, args);
     return createQuery<R>({
         queryKey: [QUERY_KEY_PREFIX + model, url, args],
-        queryFn: () => fetcher<R>(reqUrl, undefined, fetch),
+        queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
 }
@@ -43,16 +45,17 @@ export function query<R>(model: string, url: string, args?: unknown, options?: Q
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function postMutation<T, R = any>(
+export function postMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
     url: string,
-    options?: Omit<MutationOptions<R, unknown, T>, 'mutationFn'>,
+    options?: Omit<MutationOptions<Result, unknown, T>, 'mutationFn'>,
     fetch?: FetchFn,
-    invalidateQueries = true
+    invalidateQueries = true,
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) =>
-        fetcher<R>(
+        fetcher<R, C>(
             url,
             {
                 method: 'POST',
@@ -61,11 +64,12 @@ export function postMutation<T, R = any>(
                 },
                 body: marshal(data),
             },
-            fetch
-        );
+            fetch,
+            checkReadBack
+        ) as Promise<Result>;
 
-    const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = createMutation<R, unknown, T>(finalOptions);
+    const finalOptions = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = createMutation<Result, unknown, T>(finalOptions);
     return mutation;
 }
 
@@ -78,16 +82,17 @@ export function postMutation<T, R = any>(
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function putMutation<T, R = any>(
+export function putMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
     url: string,
-    options?: Omit<MutationOptions<R, unknown, T>, 'mutationFn'>,
+    options?: Omit<MutationOptions<Result, unknown, T>, 'mutationFn'>,
     fetch?: FetchFn,
-    invalidateQueries = true
+    invalidateQueries = true,
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) =>
-        fetcher<R>(
+        fetcher<R, C>(
             url,
             {
                 method: 'PUT',
@@ -96,11 +101,12 @@ export function putMutation<T, R = any>(
                 },
                 body: marshal(data),
             },
-            fetch
-        );
+            fetch,
+            checkReadBack
+        ) as Promise<Result>;
 
-    const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = createMutation<R, unknown, T>(finalOptions);
+    const finalOptions = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = createMutation<Result, unknown, T>(finalOptions);
     return mutation;
 }
 
@@ -113,25 +119,27 @@ export function putMutation<T, R = any>(
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function deleteMutation<T, R = any>(
+export function deleteMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
     url: string,
-    options?: Omit<MutationOptions<R, unknown, T>, 'mutationFn'>,
+    options?: Omit<MutationOptions<Result, unknown, T>, 'mutationFn'>,
     fetch?: FetchFn,
-    invalidateQueries = true
+    invalidateQueries = true,
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) =>
-        fetcher<R>(
+        fetcher<R, C>(
             makeUrl(url, data),
             {
                 method: 'DELETE',
             },
-            fetch
-        );
+            fetch,
+            checkReadBack
+        ) as Promise<Result>;
 
-    const finalOptions = mergeOptions<T, R>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = createMutation<R, unknown, T>(finalOptions);
+    const finalOptions = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = createMutation<Result, unknown, T>(finalOptions);
     return mutation;
 }
 

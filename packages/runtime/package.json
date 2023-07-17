@@ -9,14 +9,34 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
-        "watch": "tsc --watch",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
     "main": "index.js",
     "types": "index.d.ts",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./zod": {
+            "default": "./zod/index.js"
+        },
+        "./zod/input": {
+            "default": "./zod/input.js"
+        },
+        "./zod/models": {
+            "default": "./zod/models.js"
+        },
+        "./browser": {
+            "import": "./browser/index.mjs",
+            "require": "./browser/index.js",
+            "default": "./browser/index.js",
+            "types": "./browser/index.d.ts"
+        }
+    },
     "publishConfig": {
         "directory": "dist",
         "linkDirectory": true
@@ -25,6 +45,7 @@
         "@paralleldrive/cuid2": "^2.2.0",
         "@types/bcryptjs": "^2.4.2",
         "bcryptjs": "^2.4.3",
+        "buffer": "^6.0.3",
         "change-case": "^4.1.2",
         "colors": "1.4.0",
         "decimal.js": "^10.4.2",

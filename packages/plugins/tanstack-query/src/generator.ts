@@ -11,7 +11,6 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
-import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
@@ -38,7 +37,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     }
 
     generateIndex(project, outDir, models);
-    generateHelper(target, project, outDir, options.useSuperJson === true);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -102,16 +100,20 @@ function generateMutationHook(
     model: string,
     operation: string,
     httpVerb: 'post' | 'put' | 'delete',
+    checkReadBack: boolean,
     overrideReturnType?: string
 ) {
     const capOperation = upperCaseFirst(operation);
 
     const argsType = `Prisma.${model}${capOperation}Args`;
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-    const returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
+    let returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
+    if (checkReadBack) {
+        returnType = `(${returnType} | undefined )`;
+    }
     const nonGenericOptionsType = `Omit<${makeMutationOptions(
         target,
-        overrideReturnType ?? model,
+        checkReadBack ? `(${overrideReturnType ?? model} | undefined)` : overrideReturnType ?? model,
         argsType
     )}, 'mutationFn'>`;
     const optionsType = `Omit<${makeMutationOptions(target, returnType, inputType)}, 'mutationFn'>`;
@@ -143,9 +145,9 @@ function generateMutationHook(
                 initializer: `
                     ${httpVerb}Mutation<${argsType}, ${
                     overrideReturnType ?? model
-                }>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                }, ${checkReadBack}>('${model}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, options, fetch, invalidateQueries)
+                )}/${operation}\`, options, fetch, invalidateQueries, ${checkReadBack})
                 `,
             },
         ],
@@ -232,12 +234,12 @@ function generateModelHooks(
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.create || (mapping as any).createOne) {
-        generateMutationHook(target, sf, model.name, 'create', 'post');
+        generateMutationHook(target, sf, model.name, 'create', 'post', true);
     }
 
     // createMany
     if (mapping.createMany) {
-        generateMutationHook(target, sf, model.name, 'createMany', 'post', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'createMany', 'post', false, 'Prisma.BatchPayload');
     }
 
     // findMany
@@ -259,31 +261,31 @@ function generateModelHooks(
     // update is somehow named "updateOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.update || (mapping as any).updateOne) {
-        generateMutationHook(target, sf, model.name, 'update', 'put');
+        generateMutationHook(target, sf, model.name, 'update', 'put', true);
     }
 
     // updateMany
     if (mapping.updateMany) {
-        generateMutationHook(target, sf, model.name, 'updateMany', 'put', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'updateMany', 'put', false, 'Prisma.BatchPayload');
     }
 
     // upsert
     // upsert is somehow named "upsertOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.upsert || (mapping as any).upsertOne) {
-        generateMutationHook(target, sf, model.name, 'upsert', 'post');
+        generateMutationHook(target, sf, model.name, 'upsert', 'post', true);
     }
 
     // del
     // delete is somehow named "deleteOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.delete || (mapping as any).deleteOne) {
-        generateMutationHook(target, sf, model.name, 'delete', 'delete');
+        generateMutationHook(target, sf, model.name, 'delete', 'delete', true);
     }
 
     // deleteMany
     if (mapping.deleteMany) {
-        generateMutationHook(target, sf, model.name, 'deleteMany', 'delete', 'Prisma.BatchPayload');
+        generateMutationHook(target, sf, model.name, 'deleteMany', 'delete', false, 'Prisma.BatchPayload');
     }
 
     // aggregate
@@ -388,33 +390,6 @@ function generateModelHooks(
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.addStatements(`export * from './_helper';`);
-}
-
-function generateHelper(target: TargetFramework, project: Project, outDir: string, useSuperJson: boolean) {
-    let srcFile: string;
-    switch (target) {
-        case 'react':
-            srcFile = path.join(__dirname, './res/react/helper.ts');
-            break;
-        case 'svelte':
-            srcFile = path.join(__dirname, './res/svelte/helper.ts');
-            break;
-        default:
-            throw new PluginError(name, `Unsupported target: ${target}`);
-    }
-
-    // merge content of `shared.ts`, `helper.ts` and `marshal-?.ts`
-    const sharedContent = fs.readFileSync(path.join(__dirname, './res/shared.ts'), 'utf-8');
-    const helperContent = fs.readFileSync(srcFile, 'utf-8');
-    const marshalContent = fs.readFileSync(
-        path.join(__dirname, useSuperJson ? './res/marshal-superjson.ts' : './res/marshal-json.ts'),
-        'utf-8'
-    );
-
-    project.createSourceFile(path.join(outDir, '_helper.ts'), `${sharedContent}\n${helperContent}\n${marshalContent}`, {
-        overwrite: true,
-    });
 }
 
 function makeGetContext(target: TargetFramework) {
@@ -429,13 +404,15 @@ function makeGetContext(target: TargetFramework) {
 }
 
 function makeBaseImports(target: TargetFramework) {
-    const shared = [`import { query, postMutation, putMutation, deleteMutation } from './_helper';`];
+    const shared = [
+        `import { query, postMutation, putMutation, deleteMutation } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+    ];
     switch (target) {
         case 'react':
             return [
                 `import { useContext } from 'react';`,
                 `import type { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';`,
-                `import { RequestHandlerContext } from './_helper';`,
+                `import { RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
         case 'svelte':
@@ -443,7 +420,7 @@ function makeBaseImports(target: TargetFramework) {
                 `import { getContext } from 'svelte';`,
                 `import { derived } from 'svelte/store';`,
                 `import type { MutationOptions, QueryOptions } from '@tanstack/svelte-query';`,
-                `import { SvelteQueryContextKey, type RequestHandlerContext } from './_helper';`,
+                `import { SvelteQueryContextKey, type RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
         default:

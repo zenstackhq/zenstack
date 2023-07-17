@@ -1,31 +1,44 @@
 import {
     DbOperations,
+    ZodSchemas,
     isPrismaClientKnownRequestError,
     isPrismaClientUnknownRequestError,
     isPrismaClientValidationError,
 } from '@zenstackhq/runtime';
+import SuperJSON from 'superjson';
+import { upperCaseFirst } from 'upper-case-first';
+import { fromZodError } from 'zod-validation-error';
 import { RequestContext, Response } from '../../types';
-import { logError, stripAuxFields, zodValidate } from '../utils';
+import { APIHandlerBase } from '../base';
+import { logError, processEntityData, registerCustomSerializers } from '../utils';
+
+registerCustomSerializers();
 
 /**
  * Prisma RPC style API request handler that mirrors the Prisma Client API
  */
-class RequestHandler {
+class RequestHandler extends APIHandlerBase {
     async handleRequest({
         prisma,
         method,
         path,
         query,
         requestBody,
+        modelMeta,
         zodSchemas,
         logger,
     }: RequestContext): Promise<Response> {
+        modelMeta = modelMeta ?? this.defaultModelMeta;
+        if (!modelMeta) {
+            throw new Error('Model meta is not provided or loaded from default location');
+        }
+
         const parts = path.split('/').filter((p) => !!p);
         const op = parts.pop();
         const model = parts.pop();
 
         if (parts.length !== 0 || !op || !model) {
-            return { status: 400, body: { message: 'invalid request path' } };
+            return { status: 400, body: this.makeError('invalid request path') };
         }
 
         method = method.toUpperCase();
@@ -38,10 +51,13 @@ class RequestHandler {
             case 'createMany':
             case 'upsert':
                 if (method !== 'POST') {
-                    return { status: 400, body: { message: 'invalid request method, only POST is supported' } };
+                    return {
+                        status: 400,
+                        body: this.makeError('invalid request method, only POST is supported'),
+                    };
                 }
                 if (!requestBody) {
-                    return { status: 400, body: { message: 'missing request body' } };
+                    return { status: 400, body: this.makeError('missing request body') };
                 }
 
                 args = requestBody;
@@ -57,12 +73,15 @@ class RequestHandler {
             case 'groupBy':
             case 'count':
                 if (method !== 'GET') {
-                    return { status: 400, body: { message: 'invalid request method, only GET is supported' } };
+                    return {
+                        status: 400,
+                        body: this.makeError('invalid request method, only GET is supported'),
+                    };
                 }
                 try {
-                    args = query?.q ? this.unmarshal(query.q as string) : {};
+                    args = query?.q ? this.unmarshalQ(query.q as string, query.meta as string | undefined) : {};
                 } catch {
-                    return { status: 400, body: { message: 'query param must contain valid JSON' } };
+                    return { status: 400, body: this.makeError('invalid "q" query parameter') };
                 }
                 break;
 
@@ -71,11 +90,11 @@ class RequestHandler {
                 if (method !== 'PUT' && method !== 'PATCH') {
                     return {
                         status: 400,
-                        body: { message: 'invalid request method, only PUT AND PATCH are supported' },
+                        body: this.makeError('invalid request method, only PUT AND PATCH are supported'),
                     };
                 }
                 if (!requestBody) {
-                    return { status: 400, body: { message: 'missing request body' } };
+                    return { status: 400, body: this.makeError('missing request body') };
                 }
 
                 args = requestBody;
@@ -84,35 +103,48 @@ class RequestHandler {
             case 'delete':
             case 'deleteMany':
                 if (method !== 'DELETE') {
-                    return { status: 400, body: { message: 'invalid request method, only DELETE is supported' } };
+                    return {
+                        status: 400,
+                        body: this.makeError('invalid request method, only DELETE is supported'),
+                    };
                 }
                 try {
-                    args = query?.q ? this.unmarshal(query.q as string) : {};
+                    args = query?.q ? this.unmarshalQ(query.q as string, query.meta as string | undefined) : {};
                 } catch {
-                    return { status: 400, body: { message: 'query param must contain valid JSON' } };
+                    return { status: 400, body: this.makeError('invalid "q" query parameter') };
                 }
                 break;
 
             default:
-                return { status: 400, body: { message: 'invalid operation: ' + op } };
+                return { status: 400, body: this.makeError('invalid operation: ' + op) };
         }
 
-        if (zodSchemas) {
-            const { data, error } = zodValidate(zodSchemas, model, dbOp, args);
-            if (error) {
-                return { status: 400, body: { message: error } };
-            } else {
-                args = data;
-            }
+        const { error, data: parsedArgs } = await this.processRequestPayload(args, model, dbOp, zodSchemas);
+        if (error) {
+            return { status: 400, body: this.makeError(error) };
         }
 
         try {
             if (!prisma[model]) {
-                return { status: 400, body: { message: `unknown model name: ${model}` } };
+                return { status: 400, body: this.makeError(`unknown model name: ${model}`) };
             }
-            const result = await prisma[model][dbOp](args);
-            stripAuxFields(result);
-            return { status: resCode, body: result };
+
+            const result = await prisma[model][dbOp](parsedArgs);
+            processEntityData(result);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let response: any = { data: result };
+
+            // superjson serialize response
+            if (result) {
+                const { json, meta } = SuperJSON.serialize(result);
+                response = { data: json };
+                if (meta) {
+                    response.meta = { serialization: meta };
+                }
+            }
+
+            return { status: resCode, body: response };
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
                 logError(logger, err.code, err.message);
@@ -121,21 +153,25 @@ class RequestHandler {
                     return {
                         status: 403,
                         body: {
-                            prisma: true,
-                            rejectedByPolicy: true,
-                            code: err.code,
-                            message: err.message,
-                            reason: err.meta?.reason,
+                            error: {
+                                prisma: true,
+                                rejectedByPolicy: true,
+                                code: err.code,
+                                message: err.message,
+                                reason: err.meta?.reason,
+                            },
                         },
                     };
                 } else {
                     return {
                         status: 400,
                         body: {
-                            prisma: true,
-                            code: err.code,
-                            message: err.message,
-                            reason: err.meta?.reason,
+                            error: {
+                                prisma: true,
+                                code: err.code,
+                                message: err.message,
+                                reason: err.meta?.reason,
+                            },
                         },
                     };
                 }
@@ -144,8 +180,10 @@ class RequestHandler {
                 return {
                     status: 400,
                     body: {
-                        prisma: true,
-                        message: err.message,
+                        error: {
+                            prisma: true,
+                            message: err.message,
+                        },
                     },
                 };
             } else {
@@ -153,16 +191,79 @@ class RequestHandler {
                 logError(logger, _err.message + (_err.stack ? '\n' + _err.stack : ''));
                 return {
                     status: 400,
-                    body: {
-                        message: (err as Error).message,
-                    },
+                    body: this.makeError((err as Error).message),
                 };
             }
         }
     }
 
-    private unmarshal(value: string) {
-        return JSON.parse(value);
+    private makeError(message: string) {
+        return { error: { message: message } };
+    }
+
+    private async processRequestPayload(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        args: any,
+        model: string,
+        dbOp: string,
+        zodSchemas: ZodSchemas | undefined
+    ) {
+        const { meta, ...rest } = args;
+        if (meta?.serialization) {
+            // superjson deserialization
+            args = SuperJSON.deserialize({ json: rest, meta: meta.serialization });
+        }
+        return this.zodValidate(zodSchemas, model, dbOp as keyof DbOperations, args);
+    }
+
+    private getZodSchema(zodSchemas: ZodSchemas, model: string, operation: keyof DbOperations) {
+        // e.g.: UserInputSchema { findUnique: [schema] }
+        return zodSchemas.input?.[`${upperCaseFirst(model)}InputSchema`]?.[operation];
+    }
+
+    private zodValidate(
+        zodSchemas: ZodSchemas | undefined,
+        model: string,
+        operation: keyof DbOperations,
+        args: unknown
+    ) {
+        const zodSchema = zodSchemas && this.getZodSchema(zodSchemas, model, operation);
+        if (zodSchema) {
+            const parseResult = zodSchema.safeParse(args);
+            if (parseResult.success) {
+                return { data: args, error: undefined };
+            } else {
+                return { data: undefined, error: fromZodError(parseResult.error).message };
+            }
+        } else {
+            return { data: args, error: undefined };
+        }
+    }
+
+    private unmarshalQ(value: string, meta: string | undefined) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let parsedValue: any;
+        try {
+            parsedValue = JSON.parse(value);
+        } catch {
+            throw new Error('invalid "q" query parameter');
+        }
+
+        if (meta) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let parsedMeta: any;
+            try {
+                parsedMeta = JSON.parse(meta);
+            } catch {
+                throw new Error('invalid "meta" query parameter');
+            }
+
+            if (parsedMeta.serialization) {
+                return SuperJSON.deserialize({ json: parsedValue, meta: parsedMeta.serialization });
+            }
+        }
+
+        return parsedValue;
     }
 }
 

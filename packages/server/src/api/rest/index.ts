@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
 import {
     DbClientContract,
     FieldInfo,
@@ -6,16 +7,17 @@ import {
     getIdFields,
     isPrismaClientKnownRequestError,
 } from '@zenstackhq/runtime';
-import { getDefaultModelMeta } from '@zenstackhq/runtime/enhancements/model-meta';
-import type { ModelMeta } from '@zenstackhq/runtime/enhancements/types';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
-import { DataDocument, Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
+import SuperJSON from 'superjson';
+import { Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
+import { upperCaseFirst } from 'upper-case-first';
 import UrlPattern from 'url-pattern';
 import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig, RequestContext, Response } from '../../types';
-import { logWarning, stripAuxFields } from '../utils';
+import { APIHandlerBase } from '../base';
+import { logWarning, processEntityData, registerCustomSerializers } from '../utils';
 
 const urlPatterns = {
     // collection operations
@@ -88,10 +90,12 @@ const FilterOperations = [
 
 type FilterOperationType = (typeof FilterOperations)[number] | undefined;
 
+registerCustomSerializers();
+
 /**
  * RESTful-style API request handler (compliant with JSON:API)
  */
-class RequestHandler {
+class RequestHandler extends APIHandlerBase {
     // resource serializers
     private serializers: Map<string, Serializer>;
 
@@ -186,6 +190,7 @@ class RequestHandler {
                     )
                     .optional(),
             }),
+            meta: z.object({}).passthrough().optional(),
         })
         .strict();
 
@@ -202,15 +207,8 @@ class RequestHandler {
     // all known types and their metadata
     private typeMap: Record<string, ModelInfo>;
 
-    // model meta loaded from default location
-    private readonly defaultModelMeta: ModelMeta;
-
     constructor(private readonly options: Options) {
-        try {
-            this.defaultModelMeta = getDefaultModelMeta();
-        } catch {
-            // noop
-        }
+        super();
     }
 
     async handleRequest({
@@ -221,14 +219,19 @@ class RequestHandler {
         requestBody,
         logger,
         modelMeta,
-    }: /* zodSchemas, */
-    RequestContext): Promise<Response> {
+        zodSchemas,
+    }: RequestContext): Promise<Response> {
+        modelMeta = modelMeta ?? this.defaultModelMeta;
+        if (!modelMeta) {
+            throw new Error('Model meta is not provided or loaded from default location');
+        }
+
         if (!this.serializers) {
-            this.buildSerializers(modelMeta ?? this.defaultModelMeta);
+            this.buildSerializers(modelMeta);
         }
 
         if (!this.typeMap) {
-            this.buildTypeMap(logger, modelMeta ?? this.defaultModelMeta);
+            this.buildTypeMap(logger, modelMeta);
         }
 
         method = method.toUpperCase();
@@ -260,7 +263,7 @@ class RequestHandler {
                             match.id,
                             match.relationship,
                             query,
-                            modelMeta ?? this.defaultModelMeta
+                            modelMeta
                         );
                     }
 
@@ -274,10 +277,14 @@ class RequestHandler {
                 }
 
                 case 'POST': {
+                    if (!requestBody) {
+                        return this.makeError('invalidPayload');
+                    }
+
                     let match = urlPatterns.collection.match(path);
                     if (match) {
                         // resource creation
-                        return await this.processCreate(prisma, match.type, query, requestBody /*, zodSchemas */);
+                        return await this.processCreate(prisma, match.type, query, requestBody, zodSchemas);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -300,16 +307,14 @@ class RequestHandler {
                 // TODO: PUT for full update
                 case 'PUT':
                 case 'PATCH': {
+                    if (!requestBody) {
+                        return this.makeError('invalidPayload');
+                    }
+
                     let match = urlPatterns.single.match(path);
                     if (match) {
                         // resource update
-                        return await this.processUpdate(
-                            prisma,
-                            match.type,
-                            match.id,
-                            query,
-                            requestBody /*, zodSchemas */
-                        );
+                        return await this.processUpdate(prisma, match.type, match.id, query, requestBody, zodSchemas);
                     }
 
                     match = urlPatterns.relationship.match(path);
@@ -666,41 +671,56 @@ class RequestHandler {
         }));
     }
 
+    private processRequestBody(
+        type: string,
+        requestBody: unknown,
+        zodSchemas: ZodSchemas | undefined,
+        mode: 'create' | 'update'
+    ) {
+        let body: any = requestBody;
+        if (body.meta?.serialization) {
+            // superjson deserialize body if a serialization meta is provided
+            body = SuperJSON.deserialize({ json: body, meta: body.meta.serialization });
+        }
+
+        const parsed = this.createUpdatePayloadSchema.parse(body);
+        const attributes: any = parsed.data.attributes;
+
+        if (attributes) {
+            const schemaName = `${upperCaseFirst(type)}${upperCaseFirst(mode)}Schema`;
+            // zod-parse attributes if a schema is provided
+            const payloadSchema = zodSchemas?.models?.[schemaName];
+            if (payloadSchema) {
+                const parsed = payloadSchema.safeParse(attributes);
+                if (!parsed.success) {
+                    return { error: this.makeError('invalidPayload', fromZodError(parsed.error).message) };
+                }
+            }
+        }
+
+        return { attributes, relationships: parsed.data.relationships };
+    }
+
     private async processCreate(
         prisma: DbClientContract,
         type: string,
         _query: Record<string, string | string[]> | undefined,
-        requestBody: unknown
-        // zodSchemas?: ModelZodSchema
+        requestBody: unknown,
+        zodSchemas?: ZodSchemas
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
             return this.makeUnsupportedModelError(type);
         }
 
-        // zod-parse payload
-        const parsed = this.createUpdatePayloadSchema.safeParse(requestBody);
-        if (!parsed.success) {
-            return this.makeError('invalidPayload', fromZodError(parsed.error).message);
+        const { error, attributes, relationships } = this.processRequestBody(type, requestBody, zodSchemas, 'create');
+        if (error) {
+            return error;
         }
 
-        const parsedPayload = parsed.data;
-        const createPayload: any = { data: { ...parsedPayload.data?.attributes } };
-
-        // TODO: we need to somehow exclude relation fields from the zod schema because relations are
-        // not part of "data" in the payload
-        //
-        // // zod-parse attributes if a schema is provided
-        // const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'create') : undefined;
-        // if (dataSchema) {
-        //     const dataParsed = dataSchema.safeParse(createPayload);
-        //     if (!dataParsed.success) {
-        //         return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
-        //     }
-        // }
+        const createPayload: any = { data: { ...attributes } };
 
         // turn relashionship payload into Prisma connect objects
-        const relationships = parsedPayload.data?.relationships;
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
@@ -836,26 +856,18 @@ class RequestHandler {
         prisma: DbClientContract,
         type: any,
         resourceId: string,
-        query: Record<string, string | string[]> | undefined,
-        requestBody: unknown
-        // zodSchemas?: ModelZodSchema
+        _query: Record<string, string | string[]> | undefined,
+        requestBody: unknown,
+        zodSchemas?: ZodSchemas
     ): Promise<Response> {
         const typeInfo = this.typeMap[type];
         if (!typeInfo) {
             return this.makeUnsupportedModelError(type);
         }
 
-        // zod-parse payload
-        const parsed = this.createUpdatePayloadSchema.safeParse(requestBody);
-        if (!parsed.success) {
-            return this.makeError('invalidPayload', fromZodError(parsed.error).message);
-        }
-
-        const parsedPayload = parsed.data;
-
-        const attributes = parsedPayload.data?.attributes;
-        if (!attributes) {
-            return this.makeError('invalidPayload');
+        const { error, attributes, relationships } = this.processRequestBody(type, requestBody, zodSchemas, 'update');
+        if (error) {
+            return error;
         }
 
         const updatePayload: any = {
@@ -863,20 +875,7 @@ class RequestHandler {
             data: { ...attributes },
         };
 
-        // TODO: we need to somehow exclude relation fields from the zod schema because relations are
-        // not part of "data" in the payload
-        //
-        // // zod-parse attributes if a schema is provided
-        // const dataSchema = zodSchemas ? getZodSchema(zodSchemas, type, 'update') : undefined;
-        // if (dataSchema) {
-        //     const dataParsed = dataSchema.safeParse(updatePayload);
-        //     if (!dataParsed.success) {
-        //         return this.makeError('invalidPayload', fromZodError(dataParsed.error).message);
-        //     }
-        // }
-
         // turn relationships into prisma payload
-        const relationships = parsedPayload.data?.relationships;
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
@@ -1089,20 +1088,62 @@ class RequestHandler {
         }
     }
 
-    private async serializeItems(
-        model: string,
-        items: unknown,
-        options?: Partial<SerializerOptions<any>>
-    ): Promise<Partial<DataDocument<any>>> {
+    private async serializeItems(model: string, items: unknown, options?: Partial<SerializerOptions<any>>) {
         model = lowerCaseFirst(model);
         const serializer = this.serializers.get(model);
         if (!serializer) {
             throw new Error(`serializer not found for model ${model}`);
         }
 
-        stripAuxFields(items);
+        processEntityData(items);
 
-        return JSON.parse(JSON.stringify(await serializer.serialize(items, options)));
+        // serialize to JSON:API strcuture
+        const serialized = await serializer.serialize(items, options);
+
+        // convert the serialization result to plain object otherwise SuperJSON won't work
+        const plainResult = this.toPlainObject(serialized);
+
+        // superjson serialize the result
+        const { json, meta } = SuperJSON.serialize(plainResult);
+
+        const result: any = json;
+        if (meta) {
+            result.meta = { ...result.meta, serialization: meta };
+        }
+
+        return result;
+    }
+
+    private toPlainObject(data: any): any {
+        if (data === undefined || data === null) {
+            return data;
+        }
+
+        if (Array.isArray(data)) {
+            return data.map((item: any) => this.toPlainObject(item));
+        }
+
+        if (typeof data === 'object') {
+            if (typeof data.toJSON === 'function') {
+                // custom toJSON function
+                return data.toJSON();
+            }
+            const result: any = {};
+            for (const [field, value] of Object.entries(data)) {
+                if (value === undefined || typeof value === 'function') {
+                    // trim undefined and functions
+                    continue;
+                } else if (field === 'attributes') {
+                    // don't visit into entity data
+                    result[field] = value;
+                } else {
+                    result[field] = this.toPlainObject(value);
+                }
+            }
+            return result;
+        }
+
+        return data;
     }
 
     private replaceURLSearchParams(url: string, params: Record<string, string | number>) {

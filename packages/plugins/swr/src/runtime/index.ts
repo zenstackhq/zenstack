@@ -1,5 +1,5 @@
-/* eslint-disable */
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 import { createContext } from 'react';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
@@ -61,7 +61,7 @@ export function get<Result, Error = any>(
     fetch?: FetchFn
 ): SWRResponse<Result, Error> {
     const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
-    return useSWR<Result, Error>(reqUrl, (url) => fetcher(url, undefined, fetch), {
+    return useSWR<Result, Error>(reqUrl, (url) => fetcher<Result, false>(url, undefined, fetch, false), {
         fallbackData: options?.initialData,
     });
 }
@@ -73,8 +73,14 @@ export function get<Result, Error = any>(
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function post<Result>(url: string, data: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
-    const r: Result = await fetcher(
+export async function post<Result, C extends boolean = boolean>(
+    url: string,
+    data: unknown,
+    mutate: Mutator,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? Result | undefined : Result> {
+    const r = await fetcher<Result, C>(
         url,
         {
             method: 'POST',
@@ -83,7 +89,8 @@ export async function post<Result>(url: string, data: unknown, mutate: Mutator, 
             },
             body: marshal(data),
         },
-        fetch
+        fetch,
+        checkReadBack
     );
     mutate();
     return r;
@@ -96,8 +103,14 @@ export async function post<Result>(url: string, data: unknown, mutate: Mutator, 
  * @param data The request data.
  * @param mutate Mutator for invalidating cache.
  */
-export async function put<Result>(url: string, data: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
-    const r: Result = await fetcher(
+export async function put<Result, C extends boolean = boolean>(
+    url: string,
+    data: unknown,
+    mutate: Mutator,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? Result | undefined : Result> {
+    const r = await fetcher<Result, C>(
         url,
         {
             method: 'PUT',
@@ -106,7 +119,8 @@ export async function put<Result>(url: string, data: unknown, mutate: Mutator, f
             },
             body: marshal(data),
         },
-        fetch
+        fetch,
+        checkReadBack
     );
     mutate();
     return r;
@@ -119,14 +133,21 @@ export async function put<Result>(url: string, data: unknown, mutate: Mutator, f
  * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
  * @param mutate Mutator for invalidating cache.
  */
-export async function del<Result>(url: string, args: unknown, mutate: Mutator, fetch?: FetchFn): Promise<Result> {
+export async function del<Result, C extends boolean = boolean>(
+    url: string,
+    args: unknown,
+    mutate: Mutator,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? Result | undefined : Result> {
     const reqUrl = makeUrl(url, args);
-    const r: Result = await fetcher(
+    const r = await fetcher<Result, C>(
         reqUrl,
         {
             method: 'DELETE',
         },
-        fetch
+        fetch,
+        checkReadBack
     );
     const path = url.split('/');
     path.pop();
@@ -155,23 +176,70 @@ export function getMutate(prefixes: string[]): Mutator {
     };
 }
 
-export async function fetcher<R>(url: string, options?: RequestInit, fetch?: FetchFn) {
+export async function fetcher<R, C extends boolean>(
+    url: string,
+    options?: RequestInit,
+    fetch?: FetchFn,
+    checkReadBack?: C
+): Promise<C extends true ? R | undefined : R> {
     const _fetch = fetch ?? window.fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
+        const errData = unmarshal(await res.text());
+        if (
+            checkReadBack !== false &&
+            errData.error?.prisma &&
+            errData.error?.code === 'P2004' &&
+            errData.error?.reason === 'RESULT_NOT_READABLE'
+        ) {
+            // policy doesn't allow mutation result to be read back, just return undefined
+            return undefined as any;
+        }
         const error: Error & { info?: unknown; status?: number } = new Error(
             'An error occurred while fetching the data.'
         );
-        error.info = unmarshal(await res.text());
+        error.info = errData.error;
         error.status = res.status;
         throw error;
     }
 
     const textResult = await res.text();
     try {
-        return unmarshal(textResult) as R;
+        return unmarshal(textResult).data as R;
     } catch (err) {
         console.error(`Unable to deserialize data:`, textResult);
         throw err;
     }
+}
+
+function marshal(value: unknown) {
+    const { data, meta } = serialize(value);
+    if (meta) {
+        return JSON.stringify({ ...(data as any), meta: { serialization: meta } });
+    } else {
+        return JSON.stringify(data);
+    }
+}
+
+function unmarshal(value: string) {
+    const parsed = JSON.parse(value);
+    if (parsed.data && parsed.meta?.serialization) {
+        const deserializedData = deserialize(parsed.data, parsed.meta.serialization);
+        return { ...parsed, data: deserializedData };
+    } else {
+        return parsed;
+    }
+}
+
+function makeUrl(url: string, args: unknown) {
+    if (!args) {
+        return url;
+    }
+
+    const { data, meta } = serialize(args);
+    let result = `${url}?q=${encodeURIComponent(JSON.stringify(data))}`;
+    if (meta) {
+        result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
+    }
+    return result;
 }

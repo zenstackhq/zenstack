@@ -53,6 +53,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const project = createProject();
 
+    await generateCommonSchemas(project, output);
+
     await generateEnumSchemas(
         prismaClientDmmf.schema.enumTypes.prisma,
         prismaClientDmmf.schema.enumTypes.model ?? [],
@@ -95,6 +97,18 @@ async function handleGeneratorOutputValue(output: string) {
     await removeDir(output, isRemoveContentsOnly);
 
     Transformer.setOutputPath(output);
+}
+
+async function generateCommonSchemas(project: Project, output: string) {
+    // Decimal
+    project.createSourceFile(
+        path.join(output, 'common', 'Decimal.schema.ts'),
+        `
+import { z } from 'zod';
+export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()})]);
+`,
+        { overwrite: true }
+    );
 }
 
 async function generateEnumSchemas(
@@ -212,6 +226,11 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
                 const name = upperCaseFirst(field.type.reference?.ref.name);
                 writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
             }
+        }
+
+        // import Decimal
+        if (fields.some((field) => field.type.type === 'Decimal')) {
+            writer.writeLine(`import { DecimalSchema } from '../common/Decimal.schema';`);
         }
 
         // create base schema
