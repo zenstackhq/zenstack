@@ -21,6 +21,15 @@
         ".": {
             "default": "./index.js"
         },
+        "./zod": {
+            "default": "./zod/index.js"
+        },
+        "./zod/input": {
+            "default": "./zod/input.js"
+        },
+        "./zod/models": {
+            "default": "./zod/models.js"
+        },
         "./browser": {
             "import": "./browser/index.mjs",
             "require": "./browser/index.js",
