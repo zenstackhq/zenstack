@@ -4,25 +4,14 @@
     "version": "1.0.0-beta.8",
     "description": "ZenStack plugin for generating SWR hooks",
     "main": "index.js",
-    "exports": {
-        ".": {
-            "default": "./index.js"
-        },
-        "./runtime": {
-            "import": "./runtime/index.mjs",
-            "require": "./runtime/index.js",
-            "default": "./runtime/index.js",
-            "types": "./runtime/index.d.ts"
-        }
-    },    
     "repository": {
         "type": "git",
         "url": "https://github.com/zenstackhq/zenstack"
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
-        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
+        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
@@ -37,12 +26,11 @@
     "license": "MIT",
     "dependencies": {
         "@prisma/generator-helper": "4.10.0",
-        "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
+        "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
         "decimal.js": "^10.4.2",
         "lower-case-first": "^2.0.2",
-        "superjson": "^1.11.0",
         "ts-morph": "^16.0.0",
         "upper-case-first": "^2.0.2"
     },

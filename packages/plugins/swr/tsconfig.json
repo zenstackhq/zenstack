@@ -17,6 +17,5 @@
         "strictPropertyInitialization": false,
         "paths": {}
     },
-    "include": ["src/**/*.ts"],
-    "exclude": ["src/runtime"]
+    "include": ["src/**/*.ts"]
 }

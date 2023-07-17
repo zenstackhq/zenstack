@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 import { createContext } from 'react';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
-import SuperJSON from 'superjson';
-import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 
 /**
  * Function signature for `fetch`.
@@ -237,8 +236,8 @@ function makeUrl(url: string, args: unknown) {
         return url;
     }
 
-    const { json, meta } = SuperJSON.serialize(args);
-    let result = `${url}?q=${encodeURIComponent(JSON.stringify(json))}`;
+    const { data, meta } = serialize(args);
+    let result = `${url}?q=${encodeURIComponent(JSON.stringify(data))}`;
     if (meta) {
         result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
     }
