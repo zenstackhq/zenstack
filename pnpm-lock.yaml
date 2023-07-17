@@ -11,6 +11,9 @@ importers:
       '@changesets/cli':
         specifier: ^2.26.0
         version: 2.26.0
+      concurrently:
+        specifier: ^7.4.0
+        version: 7.4.0
       tsup:
         specifier: ^7.1.0
         version: 7.1.0

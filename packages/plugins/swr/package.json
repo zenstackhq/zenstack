@@ -4,14 +4,25 @@
     "version": "1.0.0-beta.8",
     "description": "ZenStack plugin for generating SWR hooks",
     "main": "index.js",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./runtime": {
+            "import": "./runtime/index.mjs",
+            "require": "./runtime/index.js",
+            "default": "./runtime/index.js",
+            "types": "./runtime/index.d.ts"
+        }
+    },    
     "repository": {
         "type": "git",
         "url": "https://github.com/zenstackhq/zenstack"
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
-        "watch": "tsc --watch",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",

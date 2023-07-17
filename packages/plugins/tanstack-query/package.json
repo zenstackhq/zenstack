@@ -28,7 +28,7 @@
     "scripts": {
         "clean": "rimraf dist",
         "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
-        "watch": "tsup-node --watch",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
