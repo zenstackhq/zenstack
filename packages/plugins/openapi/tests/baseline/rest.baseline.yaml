@@ -1306,7 +1306,7 @@ components:
             description: Meta information about the request or response
             properties:
                 serialization:
-                    description: Serialization metadata
+                    description: Superjson serialization metadata
             additionalProperties: true
         _resourceIdentifier:
             type: object

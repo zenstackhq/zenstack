@@ -543,7 +543,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 description: 'Meta information about the request or response',
                 properties: {
                     serialization: {
-                        description: 'Serialization metadata',
+                        description: 'Superjson serialization metadata',
                     },
                 },
                 additionalProperties: true,
