@@ -2620,8 +2620,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2657,8 +2659,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2694,8 +2698,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2741,8 +2747,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2790,8 +2798,10 @@ paths:
                                         type: array
                                         items:
                                             $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2837,8 +2847,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2874,8 +2886,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2911,8 +2925,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2951,8 +2967,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -2988,8 +3006,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3037,8 +3057,10 @@ paths:
                                         oneOf:
                                             - type: integer
                                             - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3084,8 +3106,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/AggregateUser'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3133,8 +3157,10 @@ paths:
                                         type: array
                                         items:
                                             $ref: '#/components/schemas/UserGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3180,8 +3206,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3217,8 +3245,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3254,8 +3284,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3301,8 +3333,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3348,8 +3382,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3385,8 +3421,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3422,8 +3460,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3459,8 +3499,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3506,8 +3548,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3555,8 +3599,10 @@ paths:
                                         oneOf:
                                             - type: integer
                                             - $ref: '#/components/schemas/PostCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3602,8 +3648,10 @@ paths:
                                 properties:
                                     data:
                                         $ref: '#/components/schemas/AggregatePost'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:
@@ -3651,8 +3699,10 @@ paths:
                                         type: array
                                         items:
                                             $ref: '#/components/schemas/PostGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
                     content:
                         application/json:

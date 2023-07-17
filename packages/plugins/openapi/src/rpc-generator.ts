@@ -793,20 +793,20 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
     }
 
-    private ref(type: string, rooted = true) {
+    private ref(type: string, rooted = true, description?: string): OAPI.ReferenceObject {
         if (rooted) {
             this.usedComponents.add(type);
         }
-        return { $ref: `#/components/schemas/${type}` };
+        return { $ref: `#/components/schemas/${type}`, description };
     }
 
-    private response(schema: object): OAPI.SchemaObject {
+    private response(schema: OAPI.SchemaObject): OAPI.SchemaObject {
         return {
             type: 'object',
             required: ['data'],
             properties: {
-                data: schema,
-                meta: this.ref('_Meta'),
+                data: { ...schema, description: 'The Prisma response data serialized with superjson' },
+                meta: this.ref('_Meta', true, 'The superjson serialization metadata for the "data" field'),
             },
         };
     }

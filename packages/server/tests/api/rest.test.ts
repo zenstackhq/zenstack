@@ -6,12 +6,11 @@ import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import makeHandler from '../../src/api/rest';
-import { Response } from '../../src/types';
 
 let prisma: any;
 let zodSchemas: any;
 let modelMeta: ModelMeta;
-let handler: (any: any) => Promise<Response>;
+let handler: (any: any) => Promise<{ status: number; body: any }>;
 
 describe('REST server tests - regular prisma', () => {
     const schema = `
@@ -363,8 +362,8 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 'user2' });
 
                 // String filter
                 r = await handler({
@@ -373,8 +372,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email]']: 'user1@abc.com' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 'user1' });
 
                 r = await handler({
                     method: 'get',
@@ -382,8 +381,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email$contains]']: '1@abc' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 'user1' });
 
                 r = await handler({
                     method: 'get',
@@ -391,7 +390,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email$contains]']: '1@bc' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 r = await handler({
                     method: 'get',
@@ -399,8 +398,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email$startsWith]']: 'user1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 'user1' });
 
                 r = await handler({
                     method: 'get',
@@ -408,7 +407,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email$startsWith]']: 'ser1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 r = await handler({
                     method: 'get',
@@ -416,8 +415,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email$endsWith]']: '1@abc.com' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 'user1' });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 'user1' });
 
                 r = await handler({
                     method: 'get',
@@ -425,7 +424,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[email$endsWith]']: '1@abc' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 // Int filter
                 r = await handler({
@@ -434,8 +433,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount]']: '1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 r = await handler({
                     method: 'get',
@@ -443,8 +442,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount$gt]']: '0' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 r = await handler({
                     method: 'get',
@@ -452,8 +451,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount$gte]']: '1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 r = await handler({
                     method: 'get',
@@ -461,7 +460,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount$lt]']: '0' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 r = await handler({
                     method: 'get',
@@ -469,8 +468,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount$lte]']: '0' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 1 });
 
                 // Boolean filter
                 r = await handler({
@@ -479,8 +478,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[published]']: 'true' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // deep to-one filter
                 r = await handler({
@@ -489,7 +488,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[author][email]']: 'user1@abc.com' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
+                expect(r.body.data).toHaveLength(1);
 
                 // deep to-many filter
                 r = await handler({
@@ -498,7 +497,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[posts][published]']: 'true' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
+                expect(r.body.data).toHaveLength(1);
 
                 // filter to empty
                 r = await handler({
@@ -507,7 +506,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[id]']: 'user3' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 // to-many relation collection filter
                 r = await handler({
@@ -516,8 +515,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[posts]']: '2' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 'user2' });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 'user2' });
 
                 r = await handler({
                     method: 'get',
@@ -525,7 +524,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[posts]']: '1,2,3' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(2);
+                expect(r.body.data).toHaveLength(2);
 
                 // multi filter
                 r = await handler({
@@ -534,7 +533,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[id]']: 'user1', ['filter[posts]']: '2' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 // to-one relation filter
                 r = await handler({
@@ -543,8 +542,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[author]']: 'user1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
-                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+                expect(r.body.data).toHaveLength(1);
+                expect(r.body.data[0]).toMatchObject({ id: 1 });
 
                 // invalid filter field
                 r = await handler({
@@ -624,7 +623,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount]']: '1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 r = await handler({
                     method: 'get',
@@ -632,7 +631,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount]']: '1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
+                expect(r.body.data).toHaveLength(1);
             });
 
             it('relationship filtering', async () => {
@@ -661,7 +660,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount]']: '1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 r = await handler({
                     method: 'get',
@@ -669,7 +668,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['filter[viewCount]']: '1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(1);
+                expect(r.body.data).toHaveLength(1);
             });
 
             it('toplevel sorting', async () => {
@@ -700,7 +699,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+                expect(r.body.data[0]).toMatchObject({ id: 1 });
 
                 // basic sorting desc
                 r = await handler({
@@ -710,7 +709,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // by relation id
                 r = await handler({
@@ -720,7 +719,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // by relation field
                 r = await handler({
@@ -730,7 +729,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // multi-field sorting
                 r = await handler({
@@ -740,7 +739,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 r = await handler({
                     method: 'get',
@@ -749,7 +748,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+                expect(r.body.data[0]).toMatchObject({ id: 1 });
 
                 r = await handler({
                     method: 'get',
@@ -758,7 +757,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // invalid field
                 r = await handler({
@@ -846,7 +845,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+                expect(r.body.data[0]).toMatchObject({ id: 1 });
 
                 // desc
                 r = await handler({
@@ -856,7 +855,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // relation field
                 r = await handler({
@@ -866,7 +865,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
             });
 
             it('relationship sorting', async () => {
@@ -903,7 +902,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 1 });
+                expect(r.body.data[0]).toMatchObject({ id: 1 });
 
                 // desc
                 r = await handler({
@@ -913,7 +912,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
 
                 // relation field
                 r = await handler({
@@ -923,7 +922,7 @@ describe('REST server tests - regular prisma', () => {
                     prisma,
                 });
                 expect(r.status).toBe(200);
-                expect((r.body as any).data[0]).toMatchObject({ id: 2 });
+                expect(r.body.data[0]).toMatchObject({ id: 2 });
             });
 
             it('including', async () => {
@@ -962,8 +961,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { include: 'posts' },
                     prisma,
                 });
-                expect((r.body as any).included).toHaveLength(2);
-                expect((r.body as any).included[0]).toMatchObject({
+                expect(r.body.included).toHaveLength(2);
+                expect(r.body.included[0]).toMatchObject({
                     type: 'post',
                     id: 1,
                     attributes: { title: 'Post1' },
@@ -976,8 +975,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { include: 'posts' },
                     prisma,
                 });
-                expect((r.body as any).included).toHaveLength(1);
-                expect((r.body as any).included[0]).toMatchObject({
+                expect(r.body.included).toHaveLength(1);
+                expect(r.body.included[0]).toMatchObject({
                     type: 'post',
                     id: 1,
                     attributes: { title: 'Post1' },
@@ -990,8 +989,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { include: 'posts.comments' },
                     prisma,
                 });
-                expect((r.body as any).included).toHaveLength(1);
-                expect((r.body as any).included[0]).toMatchObject({
+                expect(r.body.included).toHaveLength(1);
+                expect(r.body.included[0]).toMatchObject({
                     type: 'comment',
                     attributes: { content: 'Comment1' },
                 });
@@ -1003,7 +1002,7 @@ describe('REST server tests - regular prisma', () => {
                     query: { include: 'posts.comments', ['filter[published]']: 'true' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
+                expect(r.body.data).toHaveLength(0);
 
                 // deep include
                 r = await handler({
@@ -1012,8 +1011,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { include: 'posts.comments' },
                     prisma,
                 });
-                expect((r.body as any).included).toHaveLength(3);
-                expect((r.body as any).included[2]).toMatchObject({
+                expect(r.body.included).toHaveLength(3);
+                expect(r.body.included[2]).toMatchObject({
                     type: 'comment',
                     attributes: { content: 'Comment1' },
                 });
@@ -1025,8 +1024,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { include: 'posts.comments,profile' },
                     prisma,
                 });
-                expect((r.body as any).included).toHaveLength(4);
-                const profile = (r.body as any).included.find((item: any) => item.type === 'profile');
+                expect(r.body.included).toHaveLength(4);
+                const profile = r.body.included.find((item: any) => item.type === 'profile');
                 expect(profile).toMatchObject({
                     type: 'profile',
                     attributes: { gender: 'male' },
@@ -1062,9 +1061,9 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '3' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(3);
-                expect((r.body as any).meta.total).toBe(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(3);
+                expect(r.body.meta.total).toBe(5);
+                expect(r.body.links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user?page%5Boffset%5D=3',
                     prev: null,
@@ -1078,9 +1077,9 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '3', ['page[offset]']: '3' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(2);
-                expect((r.body as any).meta.total).toBe(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(2);
+                expect(r.body.meta.total).toBe(5);
+                expect(r.body.links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user?page%5Boffset%5D=3',
                     prev: 'http://localhost/api/user?page%5Boffset%5D=0&page%5Blimit%5D=3',
@@ -1094,8 +1093,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '10' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(5);
+                expect(r.body.links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=5',
                     last: 'http://localhost/api/user?page%5Boffset%5D=0',
                     prev: null,
@@ -1109,8 +1108,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[offset]']: '10' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(0);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(0);
+                expect(r.body.links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=5',
                     last: 'http://localhost/api/user?page%5Boffset%5D=0',
                     prev: null,
@@ -1124,8 +1123,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[offset]']: '-1' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(5);
+                expect(r.body.links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=5',
                     last: 'http://localhost/api/user?page%5Boffset%5D=0',
                     prev: null,
@@ -1139,8 +1138,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '0' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(5);
+                expect(r.body.links).toMatchObject({
                     first: 'http://localhost/api/user?page%5Blimit%5D=5',
                     last: 'http://localhost/api/user?page%5Boffset%5D=0',
                     prev: null,
@@ -1168,8 +1167,8 @@ describe('REST server tests - regular prisma', () => {
                     path: '/user/user1/posts',
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(5);
+                expect(r.body.links).toMatchObject({
                     self: 'http://localhost/api/user/user1/posts',
                     first: 'http://localhost/api/user/user1/posts?page%5Blimit%5D=5',
                     last: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=5',
@@ -1184,8 +1183,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '3' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(3);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(3);
+                expect(r.body.links).toMatchObject({
                     self: 'http://localhost/api/user/user1/posts',
                     first: 'http://localhost/api/user/user1/posts?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=9',
@@ -1200,8 +1199,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '3', ['page[offset]']: '8' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(2);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(2);
+                expect(r.body.links).toMatchObject({
                     self: 'http://localhost/api/user/user1/posts',
                     first: 'http://localhost/api/user/user1/posts?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user/user1/posts?page%5Boffset%5D=9',
@@ -1230,8 +1229,8 @@ describe('REST server tests - regular prisma', () => {
                     path: '/user/user1/relationships/posts',
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(5);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(5);
+                expect(r.body.links).toMatchObject({
                     self: 'http://localhost/api/user/user1/relationships/posts',
                     first: 'http://localhost/api/user/user1/relationships/posts?page%5Blimit%5D=5',
                     last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=5',
@@ -1246,8 +1245,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '3' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(3);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(3);
+                expect(r.body.links).toMatchObject({
                     self: 'http://localhost/api/user/user1/relationships/posts',
                     first: 'http://localhost/api/user/user1/relationships/posts?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=9',
@@ -1262,8 +1261,8 @@ describe('REST server tests - regular prisma', () => {
                     query: { ['page[limit]']: '3', ['page[offset]']: '8' },
                     prisma,
                 });
-                expect((r.body as any).data).toHaveLength(2);
-                expect((r.body as any).links).toMatchObject({
+                expect(r.body.data).toHaveLength(2);
+                expect(r.body.links).toMatchObject({
                     self: 'http://localhost/api/user/user1/relationships/posts',
                     first: 'http://localhost/api/user/user1/relationships/posts?page%5Blimit%5D=3',
                     last: 'http://localhost/api/user/user1/relationships/posts?page%5Boffset%5D=9',
@@ -1910,7 +1909,7 @@ describe('REST server tests - enhanced prisma', () => {
             prisma,
         });
         expect(r.status).toBe(403);
-        expect((r.body as any).errors[0].reason).toBe(CrudFailureReason.RESULT_NOT_READABLE);
+        expect(r.body.errors[0].reason).toBe(CrudFailureReason.RESULT_NOT_READABLE);
     });
 });
 
@@ -1997,7 +1996,7 @@ describe('REST server tests - NextAuth project regression', () => {
             prisma,
         });
         expect(r.status).toBe(200);
-        expect((r.body as any).data).toHaveLength(0);
+        expect(r.body.data).toHaveLength(0);
 
         r = await handler({
             method: 'post',
@@ -2016,7 +2015,7 @@ describe('REST server tests - NextAuth project regression', () => {
             prisma,
         });
         expect(r.status).toBe(200);
-        expect((r.body as any).data).toHaveLength(1);
+        expect(r.body.data).toHaveLength(1);
 
         r = await handler({
             method: 'post',
@@ -2028,7 +2027,7 @@ describe('REST server tests - NextAuth project regression', () => {
             prisma,
         });
         expect(r.status).toBe(400);
-        expect((r.body as any).errors[0].prismaCode).toBe('P2002');
+        expect(r.body.errors[0].prismaCode).toBe('P2002');
     });
 });
 
@@ -2104,9 +2103,9 @@ describe('REST server tests - field type coverage', () => {
         expect(r.status).toBe(201);
         // result is serializable
         expect(JSON.stringify(r.body)).toBeTruthy();
-        let serializationMeta = (r.body as any).meta.serialization;
+        let serializationMeta = r.body.meta.serialization;
         expect(serializationMeta).toBeTruthy();
-        let deserialized: any = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        let deserialized: any = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
         let data = deserialized.data.attributes;
         expect(typeof data.bigInt).toBe('bigint');
         expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
@@ -2142,9 +2141,9 @@ describe('REST server tests - field type coverage', () => {
         // result is serializable
         expect(JSON.stringify(r.body)).toBeTruthy();
 
-        serializationMeta = (r.body as any).meta.serialization;
+        serializationMeta = r.body.meta.serialization;
         expect(serializationMeta).toBeTruthy();
-        deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
         data = deserialized.data.attributes;
         expect(data.bigInt).toEqual(updateAttrs.bigInt);
         expect(data.date).toEqual(updateAttrs.date);
@@ -2159,9 +2158,9 @@ describe('REST server tests - field type coverage', () => {
         });
         // result is serializable
         expect(JSON.stringify(r.body)).toBeTruthy();
-        serializationMeta = (r.body as any).meta.serialization;
+        serializationMeta = r.body.meta.serialization;
         expect(serializationMeta).toBeTruthy();
-        deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
         data = deserialized.data.attributes;
         expect(typeof data.bigInt).toBe('bigint');
         expect(Buffer.isBuffer(data.bytes)).toBeTruthy();
@@ -2176,9 +2175,9 @@ describe('REST server tests - field type coverage', () => {
         });
         // result is serializable
         expect(JSON.stringify(r.body)).toBeTruthy();
-        serializationMeta = (r.body as any).meta.serialization;
+        serializationMeta = r.body.meta.serialization;
         expect(serializationMeta).toBeTruthy();
-        deserialized = SuperJSON.deserialize({ json: r.body as any, meta: serializationMeta });
+        deserialized = SuperJSON.deserialize({ json: r.body, meta: serializationMeta });
         const included = deserialized.included[0];
         expect(Buffer.isBuffer(included.attributes.bytes)).toBeTruthy();
     });

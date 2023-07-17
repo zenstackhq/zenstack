@@ -493,7 +493,8 @@ components:
             allOf:
                 - $ref: '#/components/schemas/_resourceIdentifier'
                 - type: object
-                  description: A resource with attributes and relationships
+                  description: A resource with attributes and relationships serialized with
+                      superjson
                   properties:
                       attributes:
                           type: object
@@ -575,7 +576,7 @@ components:
                     $ref: '#/components/schemas/_errors'
         Foo:
             type: object
-            description: The "Foo" model
+            description: The "Foo" model, serialized with superjson
             required:
                 - id
                 - type
@@ -616,7 +617,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Foo" model
+                    description: The "Foo" model, serialized with superjson
                     required:
                         - id
                         - type
@@ -668,7 +669,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Foo" model
+                    description: The "Foo" model, serialized with superjson
                     required:
                         - id
                         - type
