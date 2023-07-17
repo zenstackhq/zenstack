@@ -576,7 +576,7 @@ components:
                     $ref: '#/components/schemas/_errors'
         Foo:
             type: object
-            description: The "Foo" model, serialized with superjson
+            description: The "Foo" model serialized with superjson
             required:
                 - id
                 - type
@@ -617,7 +617,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Foo" model, serialized with superjson
+                    description: The "Foo" model serialized with superjson
                     required:
                         - id
                         - type
@@ -669,7 +669,7 @@ components:
             properties:
                 data:
                     type: object
-                    description: The "Foo" model, serialized with superjson
+                    description: The "Foo" model serialized with superjson
                     required:
                         - id
                         - type
