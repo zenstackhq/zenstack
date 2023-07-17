@@ -22,7 +22,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const project = createProject();
     const warnings: string[] = [];
 
-    if (options.useSuperJson === true) {
+    if (options.useSuperJson !== undefined) {
         warnings.push(
             'The option "useSuperJson" is deprecated. The generated hooks always use superjson for serialization.'
         );

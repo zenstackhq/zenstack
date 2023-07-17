@@ -5,7 +5,6 @@ import { DbClientContract } from '@zenstackhq/runtime';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PagesRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';
-import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Creates a Next.js API endpoint (traditional "pages" route) request handler which encapsulates Prisma CRUD operations.
@@ -27,8 +26,7 @@ export default function factory(
     }
 
     const requestHandler = options.handler || RPCAPIHandler();
-    const useSuperJson = options.useSuperJson === true;
-    if (useSuperJson) {
+    if (options.useSuperJson !== undefined) {
         console.warn(
             'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
         );
@@ -37,22 +35,12 @@ export default function factory(
     return async (req: NextApiRequest, res: NextApiResponse) => {
         const prisma = (await options.getPrisma(req, res)) as DbClientContract;
         if (!prisma) {
-            res.status(500).json(
-                marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson)
-            );
-            return;
-        }
-
-        let query: Record<string, string | string[]> = {};
-        try {
-            query = buildUrlQuery(req.query, useSuperJson);
-        } catch {
-            res.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
+            res.status(500).json({ message: 'unable to get prisma from request context' });
             return;
         }
 
         if (!req.query.path) {
-            res.status(400).json(marshalToObject({ message: 'missing path parameter' }, useSuperJson));
+            res.status(400).json({ message: 'missing path parameter' });
             return;
         }
         const path = (req.query.path as string[]).join('/');
@@ -61,16 +49,16 @@ export default function factory(
             const r = await requestHandler({
                 method: req.method!,
                 path,
-                query,
-                requestBody: unmarshalFromObject(req.body, useSuperJson),
+                query: req.query as Record<string, string | string[]>,
+                requestBody: req.body,
                 prisma,
                 modelMeta: options.modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });
-            res.status(r.status).send(marshalToObject(r.body, useSuperJson));
+            res.status(r.status).send(r.body);
         } catch (err) {
-            res.status(500).send(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
+            res.status(500).send({ message: `An unhandled error occurred: ${err}` });
         }
     };
 }

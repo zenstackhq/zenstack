@@ -4,7 +4,6 @@ import { DbClientContract } from '@zenstackhq/runtime';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
-import { buildUrlQuery, marshalToString, unmarshalFromString } from '../utils';
 
 /**
  * SvelteKit request handler options
@@ -38,8 +37,7 @@ export default function createHandler(options: HandlerOptions): Handle {
     }
 
     const requestHanler = options.handler ?? RPCApiHandler();
-    const useSuperJson = options.useSuperJson === true;
-    if (useSuperJson) {
+    if (options.useSuperJson !== undefined) {
         console.warn(
             'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
         );
@@ -49,28 +47,7 @@ export default function createHandler(options: HandlerOptions): Handle {
         if (event.url.pathname.startsWith(options.prefix)) {
             const prisma = (await options.getPrisma(event)) as DbClientContract;
             if (!prisma) {
-                return new Response(
-                    marshalToString({ message: 'unable to get prisma from request context' }, useSuperJson),
-                    {
-                        status: 400,
-                        headers: {
-                            'content-type': 'application/json',
-                        },
-                    }
-                );
-            }
-
-            const queryObj: Record<string, string[]> = {};
-            for (const key of event.url.searchParams.keys()) {
-                const values = event.url.searchParams.getAll(key);
-                queryObj[key] = values;
-            }
-
-            let query: Record<string, string | string[]> = {};
-            try {
-                query = buildUrlQuery(queryObj, useSuperJson);
-            } catch {
-                return new Response(marshalToString({ message: 'invalid query parameters' }, useSuperJson), {
+                return new Response(JSON.stringify({ message: 'unable to get prisma from request context' }), {
                     status: 400,
                     headers: {
                         'content-type': 'application/json',
@@ -78,11 +55,12 @@ export default function createHandler(options: HandlerOptions): Handle {
                 });
             }
 
+            const query = Object.fromEntries(event.url.searchParams);
             let requestBody: unknown;
             if (event.request.body) {
                 const text = await event.request.text();
                 if (text) {
-                    requestBody = unmarshalFromString(text, useSuperJson);
+                    requestBody = JSON.parse(text);
                 }
             }
 
@@ -99,14 +77,14 @@ export default function createHandler(options: HandlerOptions): Handle {
                     modelMeta: options.modelMeta,
                 });
 
-                return new Response(marshalToString(r.body, useSuperJson), {
+                return new Response(JSON.stringify(r.body), {
                     status: r.status,
                     headers: {
                         'content-type': 'application/json',
                     },
                 });
             } catch (err) {
-                return new Response(marshalToString({ message: `An unhandled error occurred: ${err}` }, useSuperJson), {
+                return new Response(JSON.stringify({ message: `An unhandled error occurred: ${err}` }), {
                     status: 500,
                     headers: {
                         'content-type': 'application/json',

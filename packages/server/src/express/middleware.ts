@@ -4,7 +4,6 @@ import { DbClientContract } from '@zenstackhq/runtime';
 import type { Handler, Request, Response } from 'express';
 import RPCAPIHandler from '../api/rpc';
 import { AdapterBaseOptions } from '../types';
-import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Express middleware options
@@ -43,8 +42,7 @@ const factory = (options: MiddlewareOptions): Handler => {
     }
 
     const requestHandler = options.handler || RPCAPIHandler();
-    const useSuperJson = options.useSuperJson === true;
-    if (useSuperJson) {
+    if (options.useSuperJson !== undefined) {
         console.warn(
             'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
         );
@@ -59,37 +57,22 @@ const factory = (options: MiddlewareOptions): Handler => {
         }
 
         if (!prisma) {
-            return response
-                .status(500)
-                .json(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
+            return response.status(500).json({ message: 'unable to get prisma from request context' });
         }
 
-        let query: Record<string, string | string[]> = {};
-        try {
-            // express converts query parameters with square brackets into object
-            // e.g.: filter[foo]=bar is parsed to { filter: { foo: 'bar' } }
-            // we need to revert this behavior and reconstruct params from original URL
-            const url = request.protocol + '://' + request.get('host') + request.originalUrl;
-            const searchParams = new URL(url).searchParams;
-            const rawQuery: Record<string, string | string[]> = {};
-            for (const key of searchParams.keys()) {
-                const values = searchParams.getAll(key);
-                rawQuery[key] = values.length === 1 ? values[0] : values;
-            }
-            query = buildUrlQuery(rawQuery, useSuperJson);
-        } catch {
-            if (sendResponse === false) {
-                throw new Error('invalid query parameters');
-            }
-            return response.status(400).json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
-        }
+        // express converts query parameters with square brackets into object
+        // e.g.: filter[foo]=bar is parsed to { filter: { foo: 'bar' } }
+        // we need to revert this behavior and reconstruct params from original URL
+        const url = request.protocol + '://' + request.get('host') + request.originalUrl;
+        const searchParams = new URL(url).searchParams;
+        const query = Object.fromEntries(searchParams);
 
         try {
             const r = await requestHandler({
                 method: request.method,
                 path: request.path,
                 query,
-                requestBody: unmarshalFromObject(request.body, useSuperJson),
+                requestBody: request.body,
                 prisma,
                 modelMeta: options.modelMeta,
                 zodSchemas,
@@ -103,14 +86,12 @@ const factory = (options: MiddlewareOptions): Handler => {
                 };
                 return next();
             }
-            return response.status(r.status).json(marshalToObject(r.body, useSuperJson));
+            return response.status(r.status).json(r.body);
         } catch (err) {
             if (sendResponse === false) {
                 throw err;
             }
-            return response
-                .status(500)
-                .json(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
+            return response.status(500).json({ message: `An unhandled error occurred: ${err}` });
         }
     };
 };

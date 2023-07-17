@@ -6,7 +6,6 @@ import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
 import { AdapterBaseOptions } from '../types';
-import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 
 /**
  * Fastify plugin options
@@ -41,8 +40,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     }
 
     const requestHanler = options.handler ?? RPCApiHandler();
-    const useSuperJson = options.useSuperJson === true;
-    if (useSuperJson) {
+    if (options.useSuperJson !== undefined) {
         console.warn(
             'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
         );
@@ -51,17 +49,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
         if (!prisma) {
-            reply
-                .status(500)
-                .send(marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson));
-            return;
-        }
-
-        let query: Record<string, string | string[]> = {};
-        try {
-            query = buildUrlQuery(request.query, useSuperJson);
-        } catch {
-            reply.status(400).send(marshalToObject({ message: 'invalid query parameters' }, useSuperJson));
+            reply.status(500).send({ message: 'unable to get prisma from request context' });
             return;
         }
 
@@ -69,16 +57,16 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
             const response = await requestHanler({
                 method: request.method,
                 path: (request.params as any)['*'],
-                query,
-                requestBody: unmarshalFromObject(request.body, useSuperJson),
+                query: request.query as Record<string, string | string[]>,
+                requestBody: request.body,
                 prisma,
                 modelMeta: options.modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });
-            reply.status(response.status).send(marshalToObject(response.body, useSuperJson));
+            reply.status(response.status).send(response.body);
         } catch (err) {
-            reply.status(500).send(marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson));
+            reply.status(500).send({ message: `An unhandled error occurred: ${err}` });
         }
     });
 
