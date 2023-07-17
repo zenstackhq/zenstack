@@ -2023,10 +2023,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/findFirst:
         get:
             operationId: findFirstFoo
@@ -2064,10 +2071,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/findMany:
         get:
             operationId: findManyFoo
@@ -2107,10 +2121,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooFindManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/update:
         patch:
             operationId: updateFoo
@@ -2262,10 +2283,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooDeleteUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/deleteMany:
         delete:
             operationId: deleteManyFoo
@@ -2303,10 +2331,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/count:
         get:
             operationId: countFoo
@@ -2346,10 +2381,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/aggregate:
         get:
             operationId: aggregateFoo
@@ -2387,10 +2429,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /foo/groupBy:
         get:
             operationId: groupByFoo
@@ -2430,7 +2479,14 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/FooGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}

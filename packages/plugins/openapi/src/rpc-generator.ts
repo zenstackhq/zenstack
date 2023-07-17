@@ -522,9 +522,20 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             name: 'q',
                             in: 'query',
                             required: true,
+                            description: 'Superjson-serialized Prisma query object',
                             content: {
                                 'application/json': {
                                     schema: inputType,
+                                },
+                            },
+                        },
+                        {
+                            name: 'meta',
+                            in: 'query',
+                            description: 'Superjson serialization metadata for parameter "q"',
+                            content: {
+                                'application/json': {
+                                    schema: {},
                                 },
                             },
                         },

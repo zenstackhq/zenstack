@@ -2712,10 +2712,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/findFirst:
         get:
             operationId: findFirstUser
@@ -2752,10 +2759,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/findMany:
         get:
             operationId: findManyUser
@@ -2794,10 +2808,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserFindManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/update:
         patch:
             operationId: updateUser
@@ -2985,10 +3006,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/count:
         get:
             operationId: countUser
@@ -3027,10 +3055,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/aggregate:
         get:
             operationId: aggregateUser
@@ -3067,10 +3102,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/groupBy:
         get:
             operationId: groupByUser
@@ -3109,10 +3151,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/create:
         post:
             operationId: createPost
@@ -3223,10 +3272,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/findFirst:
         get:
             operationId: findFirstPost
@@ -3263,10 +3319,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/update:
         patch:
             operationId: updatePost
@@ -3414,10 +3477,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostDeleteUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/deleteMany:
         delete:
             operationId: deleteManyPost
@@ -3454,10 +3524,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/count:
         get:
             operationId: countPost
@@ -3496,10 +3573,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/aggregate:
         get:
             operationId: aggregatePost
@@ -3536,10 +3620,17 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/groupBy:
         get:
             operationId: groupByPost
@@ -3578,7 +3669,14 @@ paths:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
