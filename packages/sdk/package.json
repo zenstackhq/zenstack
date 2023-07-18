@@ -20,7 +20,7 @@
     "license": "MIT",
     "dependencies": {
         "@prisma/generator-helper": "^5.0.0",
-        "@prisma/internals": "^4.0.0",
+        "@prisma/internals": "4.10.0",
         "@prisma/internals-v5": "npm:@prisma/internals@^5.0.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
