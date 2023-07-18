@@ -123,7 +123,7 @@ function getPrismaOperationTypes(model: string, operation: string) {
               ? { orderBy: Prisma.${capModel}GroupByArgs['orderBy'] }
               : { orderBy?: Prisma.${capModel}GroupByArgs['orderBy'] },
             OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>,
-            ByFields extends Prisma.TupleToUnion<T['by']>,
+            ByFields extends Prisma.MaybeTupleToUnion<T['by']>,
             ByValid extends Prisma.Has<ByFields, OrderFields>,
             HavingFields extends Prisma.GetHavingFields<T['having']>,
             HavingValid extends Prisma.Has<ByFields, HavingFields>,

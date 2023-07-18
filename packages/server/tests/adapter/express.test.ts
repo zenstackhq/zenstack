@@ -165,7 +165,7 @@ describe('Express adapter tests - rest handler', () => {
     });
 });
 
-describe('Express adapter tests - rest handler with customMiddleware', () => {
+describe('Express adapter tests - rest handler with custom middleware', () => {
     it('run middleware', async () => {
         const { prisma, zodSchemas, modelMeta } = await loadSchema(schema);
 

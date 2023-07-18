@@ -129,10 +129,17 @@ export default class Transformer {
                 result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
             } else if (inputType.type === 'True') {
                 result.push(this.wrapWithZodValidators('z.literal(true)', field, inputType));
+            } else if (inputType.type === 'Null') {
+                result.push(this.wrapWithZodValidators('z.null()', field, inputType));
             } else {
                 const isEnum = inputType.location === 'enumTypes';
+                const isFieldRef = inputType.location === 'fieldRefTypes';
 
-                if (inputType.namespace === 'prisma' || isEnum) {
+                if (
+                    // fieldRefTypes refer to other fields in the model and don't need to be generated as part of schema
+                    !isFieldRef &&
+                    ('prisma' || isEnum)
+                ) {
                     if (inputType.type !== this.name && typeof inputType.type === 'string') {
                         this.addSchemaImport(inputType.type);
                     }
@@ -257,7 +264,7 @@ export default class Transformer {
         if (isAggregateInputType(name)) {
             name = `${name}Type`;
         }
-        const outType = `z.ZodType<Omit<Prisma.${name}, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join('|')}>>`;
+        const outType = `z.ZodType<Purge<Prisma.${name}>>`;
         return `type SchemaType = ${outType};
 export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
@@ -293,9 +300,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     generateObjectSchemaImportStatements() {
         let generatedImports = this.generateImportZodStatement();
         generatedImports += this.generateSchemaImports();
-        if (this.hasDecimal) {
-            generatedImports += this.generateDecimalImport();
-        }
+        generatedImports += this.generateCommonImport();
         generatedImports += '\n\n';
         return generatedImports;
     }
@@ -315,8 +320,13 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             .join('\n');
     }
 
-    private generateDecimalImport() {
-        return `import { DecimalSchema } from '../common/Decimal.schema';\n\n`;
+    private generateCommonImport() {
+        let r = `import type { Purge } from '../common';\n`;
+        if (this.hasDecimal) {
+            r += `import { DecimalSchema } from '../common';\n`;
+        }
+        r += '\n';
+        return r;
     }
 
     checkIsModelQueryType(type: string) {
@@ -589,9 +599,9 @@ ${operations
     .join(',\n')}
             }
 
-            export const ${modelName}InputSchema: ${modelName}InputSchemaType = {
+            export const ${modelName}InputSchema = {
             ${indentString(codeBody, 4)}
-            };
+            } as ${modelName}InputSchemaType;
                         `;
 
             this.project.createSourceFile(filePath, content, { overwrite: true });

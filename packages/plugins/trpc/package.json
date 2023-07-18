@@ -40,7 +40,6 @@
         "@trpc/react-query": "^10.32.0",
         "@trpc/server": "^10.32.0",
         "@types/jest": "^29.5.0",
-        "@types/lower-case-first": "^1.0.1",
         "@types/prettier": "^2.7.2",
         "@zenstackhq/testtools": "workspace:*",
         "copyfiles": "^2.4.1",
