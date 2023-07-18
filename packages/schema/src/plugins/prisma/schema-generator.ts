@@ -26,6 +26,7 @@ import {
     getDataModels,
     getLiteral,
     getLiteralArray,
+    getPrismaVersion,
     GUARD_FIELD_NAME,
     PluginError,
     PluginOptions,
@@ -237,15 +238,6 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private getPrismaVersion() {
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            return require('@prisma/client/package.json').version;
-        } catch {
-            return undefined;
-        }
-    }
-
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
         const generator = prisma.addGenerator(
             decl.name,
@@ -258,7 +250,7 @@ export default class PrismaSchemaGenerator {
         // deal with configuring PrismaClient preview features
         const provider = generator.fields.find((f) => f.name === 'provider');
         if (provider?.value === 'prisma-client-js') {
-            const prismaVersion = this.getPrismaVersion();
+            const prismaVersion = getPrismaVersion();
             if (prismaVersion && semver.lt(prismaVersion, '4.7.0')) {
                 // insert interactiveTransactions preview feature
                 let previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures');

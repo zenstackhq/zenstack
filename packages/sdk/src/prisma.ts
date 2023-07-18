@@ -60,3 +60,21 @@ export function getPrismaClientImportSpec(model: Model, importingFromDir: string
 function normalizePath(p: string) {
     return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
+
+/**
+ * Gets installed Prisma version by first checking "@prisma/client" and if not available,
+ * "prisma".
+ */
+export function getPrismaVersion() {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        return require('@prisma/client/package.json').version;
+    } catch {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            return require('prisma/package.json').version;
+        } catch {
+            return undefined;
+        }
+    }
+}
