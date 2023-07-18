@@ -97,7 +97,7 @@ export type GetDMMFOptions = {
  */
 export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
     const prismaVersion = getPrismaVersion();
-    if (semver.gte(prismaVersion, '5.0.0')) {
+    if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
         return getDMMF5(options);
     } else {
         return getDMMF4(options);

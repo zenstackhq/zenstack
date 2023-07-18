@@ -587,7 +587,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     modelName
                 )}ScalarFieldEnumSchema), ${aggregateOperations.join(', ')} }),`;
 
-                if (semver.gte(prismaVersion, '5.0.0')) {
+                if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
                     // Prisma V5 has a different casing for this guy ...
                     operations.push(['groupBy', modelName]);
                 } else {
