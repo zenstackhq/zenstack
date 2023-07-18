@@ -35,7 +35,6 @@
         "zenstack": "workspace: *"
     },
     "dependencies": {
-        "@prisma/client": "^4.0.0",
         "@types/node": "^18.0.0",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
