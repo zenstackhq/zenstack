@@ -713,7 +713,12 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         const fields = input.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name));
         for (const field of fields) {
             const options = field.inputTypes
-                .filter((f) => f.type !== 'Null')
+                .filter(
+                    (f) =>
+                        f.type !== 'Null' &&
+                        // fieldRefTypes refer to other fields in the model and don't need to be generated as part of schema
+                        f.location !== 'fieldRefTypes'
+                )
                 .map((f) => {
                     return this.wrapArray(this.prismaTypeToOpenAPIType(f.type), f.isList);
                 });
