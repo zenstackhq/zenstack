@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { DMMF } from '@prisma/generator-helper';
-import { getDMMF } from '@prisma/internals';
 import { isPlugin, Plugin } from '@zenstackhq/language/ast';
 import {
     getDataModels,
+    getDMMF,
     getLiteral,
     getLiteralArray,
     hasValidationAttributes,

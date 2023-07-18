@@ -24,7 +24,7 @@
   "author": "ZenStack Team",
   "license": "MIT",
   "dependencies": {
-    "@prisma/generator-helper": "4.10.0",
+    "@prisma/generator-helper": "^5.0.0",
     "@zenstackhq/runtime": "workspace:*",
     "@zenstackhq/sdk": "workspace:*",
     "change-case": "^4.1.2",
@@ -36,10 +36,9 @@
     "zod-validation-error": "^0.2.1"
   },
   "devDependencies": {
-    "@prisma/internals": "4.10.0",
     "@readme/openapi-parser": "^2.4.0",
     "@types/jest": "^29.5.0",
-    "@types/lower-case-first": "^1.0.1",
+    "@types/node": "^18.0.0",
     "@types/pluralize": "^0.0.29",
     "@types/tmp": "^0.2.3",
     "@typescript-eslint/eslint-plugin": "^5.54.0",

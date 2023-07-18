@@ -1,4 +1,4 @@
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginOptions,
     createProject,
@@ -59,7 +59,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions } from '@zenstackhq/swr/runtime';`,
+        `import { RequestHandlerContext, type RequestOptions, type PickEnumerable } from '@zenstackhq/swr/runtime';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
 
@@ -193,7 +193,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
             `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
             `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
-            `ByFields extends Prisma.TupleToUnion<T['by']>`,
+            `ByFields extends Prisma.MaybeTupleToUnion<T['by']>`,
             `ByValid extends Prisma.Has<ByFields, OrderFields>`,
             `HavingFields extends Prisma.GetHavingFields<T['having']>`,
             `HavingValid extends Prisma.Has<ByFields, HavingFields>`,
@@ -243,7 +243,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         ];
         const inputType = `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`;
         const returnType = `{} extends InputErrors ? 
-        Array<Prisma.PickArray<Prisma.${model.name}GroupByOutputType, T['by']> &
+        Array<PickEnumerable<Prisma.${model.name}GroupByOutputType, T['by']> &
           {
             [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
               ? T[P] extends boolean

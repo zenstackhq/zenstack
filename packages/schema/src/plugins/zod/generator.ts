@@ -1,5 +1,4 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
-import { Dictionary } from '@prisma/internals';
 import {
     AUXILIARY_FIELDS,
     PluginOptions,
@@ -70,9 +69,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     Transformer.provider = dataSourceProvider;
 
-    const generatorConfigOptions: Dictionary<string> = {};
-    Object.entries(options).forEach(([k, v]) => (generatorConfigOptions[k] = v as string));
-
     addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
 
     const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
@@ -102,10 +98,22 @@ async function handleGeneratorOutputValue(output: string) {
 async function generateCommonSchemas(project: Project, output: string) {
     // Decimal
     project.createSourceFile(
-        path.join(output, 'common', 'Decimal.schema.ts'),
+        path.join(output, 'common', 'index.ts'),
         `
 import { z } from 'zod';
 export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()})]);
+
+// https://stackoverflow.com/a/54487392/20415796
+type OmitDistributive<T, K extends PropertyKey> = T extends any ? (T extends object ? OmitRecursively<T, K> : T) : never;
+type OmitRecursively<T extends any, K extends PropertyKey> = Omit<
+    { [P in keyof T]: OmitDistributive<T[P], K> },
+    K
+>;
+
+/**
+ * Strips auxiliary fields recursively
+ */
+export type Purge<T> = OmitRecursively<T, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join('|')}>;
 `,
         { overwrite: true }
     );
@@ -230,7 +238,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
         // import Decimal
         if (fields.some((field) => field.type.type === 'Decimal')) {
-            writer.writeLine(`import { DecimalSchema } from '../common/Decimal.schema';`);
+            writer.writeLine(`import { DecimalSchema } from '../common';`);
         }
 
         // create base schema

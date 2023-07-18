@@ -3,6 +3,7 @@ import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 import { createContext } from 'react';
 import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
+export * from './prisma-types';
 
 /**
  * Function signature for `fetch`.

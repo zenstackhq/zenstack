@@ -22,11 +22,9 @@ describe('tRPC Routers Generation Tests', () => {
         fs.mkdirSync(testDir, { recursive: true });
         fse.copySync(path.join(__dirname, './test-project'), testDir);
 
-        const nodePath = path.resolve(path.join(__dirname, '../../node_modules'));
-
         process.chdir(testDir);
         run('npm install');
-        run('npx zenstack generate --schema ./todo.zmodel', { NODE_PATH: nodePath });
-        run('npm run build', { NODE_PATH: nodePath });
+        run('npx zenstack generate --no-dependency-check --schema ./todo.zmodel', { NODE_PATH: 'node_modules' });
+        run('npm run build', { NODE_PATH: 'node_modules' });
     });
 });

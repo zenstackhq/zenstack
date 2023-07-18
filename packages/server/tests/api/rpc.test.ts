@@ -141,7 +141,7 @@ describe('RPC API Handler Tests', () => {
             prisma,
         });
         expect(r.status).toBe(400);
-        expect(r.error.message).toContain('Argument where is missing');
+        expect(r.error.message).toMatch(/Argument.+missing/);
 
         handleRequest = makeHandler(zodSchemas);
 

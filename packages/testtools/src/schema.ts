@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
-import { getDMMF } from '@prisma/internals';
 import type { Model } from '@zenstackhq/language/ast';
 import { withOmit, withPassword, withPolicy, withPresets, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
+import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import json from 'json5';
 import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
-import json from 'json5';
 
 /** 
  * Use it to represent multiple files in a single string like this

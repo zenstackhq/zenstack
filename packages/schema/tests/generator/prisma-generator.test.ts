@@ -1,9 +1,9 @@
 /// <reference types="@types/jest" />
 
-import { getDMMF } from '@prisma/internals';
+import { getDMMF } from '@zenstackhq/sdk';
 import fs from 'fs';
-import tmp from 'tmp';
 import path from 'path';
+import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';

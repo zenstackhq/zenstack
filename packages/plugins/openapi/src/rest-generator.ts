@@ -1,6 +1,6 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import {
     AUXILIARY_FIELDS,
     analyzePolicies,

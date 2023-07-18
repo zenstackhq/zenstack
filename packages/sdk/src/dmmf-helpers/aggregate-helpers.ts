@@ -1,4 +1,4 @@
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import { AggregateOperationSupport } from './types';
 
 const isAggregateOutputType = (name: string) => /(?:Count|Avg|Sum|Min|Max)AggregateOutputType$/.test(name);
