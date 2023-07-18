@@ -113,7 +113,7 @@
     "devDependencies": {
         "@types/async-exit-hook": "^2.0.0",
         "@types/jest": "^29.5.0",
-        "@types/node": "^14.18.32",
+        "@types/node": "^18.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
         "@types/strip-color": "^0.1.0",
