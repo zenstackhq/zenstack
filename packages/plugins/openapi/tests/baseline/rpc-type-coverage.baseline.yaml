@@ -19,16 +19,16 @@ components:
                 - decimal
                 - boolean
                 - bytes
-        SortOrder:
-            type: string
-            enum:
-                - asc
-                - desc
         QueryMode:
             type: string
             enum:
                 - default
                 - insensitive
+        SortOrder:
+            type: string
+            enum:
+                - asc
+                - desc
         Foo:
             type: object
             properties:
@@ -149,58 +149,6 @@ components:
             properties:
                 id:
                     type: string
-                AND:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooWhereInput'
-                OR:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/FooWhereInput'
-                NOT:
-                    oneOf:
-                        - $ref: '#/components/schemas/FooWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/FooWhereInput'
-                string:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringFilter'
-                        - type: string
-                int:
-                    oneOf:
-                        - $ref: '#/components/schemas/IntFilter'
-                        - type: integer
-                bigInt:
-                    oneOf:
-                        - $ref: '#/components/schemas/BigIntFilter'
-                        - type: integer
-                date:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                float:
-                    oneOf:
-                        - $ref: '#/components/schemas/FloatFilter'
-                        - type: number
-                decimal:
-                    oneOf:
-                        - $ref: '#/components/schemas/DecimalFilter'
-                        - oneOf:
-                              - type: string
-                              - type: number
-                boolean:
-                    oneOf:
-                        - $ref: '#/components/schemas/BoolFilter'
-                        - type: boolean
-                bytes:
-                    oneOf:
-                        - $ref: '#/components/schemas/BytesFilter'
-                        - type: string
-                          format: byte
         FooScalarWhereWithAggregatesInput:
             type: object
             properties:

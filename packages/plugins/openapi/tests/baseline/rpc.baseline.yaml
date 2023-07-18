@@ -14,14 +14,6 @@ components:
             enum:
                 - USER
                 - ADMIN
-        UserScalarFieldEnum:
-            type: string
-            enum:
-                - id
-                - createdAt
-                - updatedAt
-                - email
-                - role
         PostScalarFieldEnum:
             type: string
             enum:
@@ -32,21 +24,24 @@ components:
                 - authorId
                 - published
                 - viewCount
-        SortOrder:
-            type: string
-            enum:
-                - asc
-                - desc
         QueryMode:
             type: string
             enum:
                 - default
                 - insensitive
-        NullsOrder:
+        SortOrder:
             type: string
             enum:
-                - first
-                - last
+                - asc
+                - desc
+        UserScalarFieldEnum:
+            type: string
+            enum:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+                - role
         User:
             type: object
             properties:
@@ -165,38 +160,6 @@ components:
                     type: string
                 email:
                     type: string
-                AND:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/UserWhereInput'
-                OR:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/UserWhereInput'
-                NOT:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/UserWhereInput'
-                createdAt:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                updatedAt:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                role:
-                    oneOf:
-                        - $ref: '#/components/schemas/EnumRoleFilter'
-                        - $ref: '#/components/schemas/Role'
-                posts:
-                    $ref: '#/components/schemas/PostListRelationFilter'
         UserScalarWhereWithAggregatesInput:
             type: object
             properties:
@@ -275,6 +238,10 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/StringFilter'
                         - type: string
+                author:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserWhereInput'
                 authorId:
                     oneOf:
                         - $ref: '#/components/schemas/StringNullableFilter'
@@ -287,10 +254,6 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/IntFilter'
                         - type: integer
-                author:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserNullableRelationFilter'
-                        - $ref: '#/components/schemas/UserWhereInput'
         PostOrderByWithRelationInput:
             type: object
             properties:
@@ -302,67 +265,19 @@ components:
                     $ref: '#/components/schemas/SortOrder'
                 title:
                     $ref: '#/components/schemas/SortOrder'
+                author:
+                    $ref: '#/components/schemas/UserOrderByWithRelationInput'
                 authorId:
-                    oneOf:
-                        - $ref: '#/components/schemas/SortOrder'
-                        - $ref: '#/components/schemas/SortOrderInput'
+                    $ref: '#/components/schemas/SortOrder'
                 published:
                     $ref: '#/components/schemas/SortOrder'
                 viewCount:
                     $ref: '#/components/schemas/SortOrder'
-                author:
-                    $ref: '#/components/schemas/UserOrderByWithRelationInput'
         PostWhereUniqueInput:
             type: object
             properties:
                 id:
                     type: string
-                AND:
-                    oneOf:
-                        - $ref: '#/components/schemas/PostWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/PostWhereInput'
-                OR:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/PostWhereInput'
-                NOT:
-                    oneOf:
-                        - $ref: '#/components/schemas/PostWhereInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/PostWhereInput'
-                createdAt:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                updatedAt:
-                    oneOf:
-                        - $ref: '#/components/schemas/DateTimeFilter'
-                        - type: string
-                          format: date-time
-                title:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringFilter'
-                        - type: string
-                authorId:
-                    oneOf:
-                        - $ref: '#/components/schemas/StringNullableFilter'
-                        - type: string
-                published:
-                    oneOf:
-                        - $ref: '#/components/schemas/BoolFilter'
-                        - type: boolean
-                viewCount:
-                    oneOf:
-                        - $ref: '#/components/schemas/IntFilter'
-                        - type: integer
-                author:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserNullableRelationFilter'
-                        - $ref: '#/components/schemas/UserWhereInput'
         PostScalarWhereWithAggregatesInput:
             type: object
             properties:
@@ -515,12 +430,12 @@ components:
                     format: date-time
                 title:
                     type: string
+                author:
+                    $ref: '#/components/schemas/UserCreateNestedOneWithoutPostsInput'
                 published:
                     type: boolean
                 viewCount:
                     type: integer
-                author:
-                    $ref: '#/components/schemas/UserCreateNestedOneWithoutPostsInput'
             required:
                 - id
                 - title
@@ -545,6 +460,8 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                author:
+                    $ref: '#/components/schemas/UserUpdateOneWithoutPostsNestedInput'
                 published:
                     oneOf:
                         - type: boolean
@@ -553,8 +470,6 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-                author:
-                    $ref: '#/components/schemas/UserUpdateOneWithoutPostsNestedInput'
         PostCreateManyInput:
             type: object
             properties:
@@ -804,6 +719,13 @@ components:
                     $ref: '#/components/schemas/NestedEnumRoleFilter'
                 _max:
                     $ref: '#/components/schemas/NestedEnumRoleFilter'
+        UserRelationFilter:
+            type: object
+            properties:
+                is:
+                    $ref: '#/components/schemas/UserWhereInput'
+                isNot:
+                    $ref: '#/components/schemas/UserWhereInput'
         StringNullableFilter:
             type: object
             properties:
@@ -871,22 +793,6 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntFilter'
-        UserNullableRelationFilter:
-            type: object
-            properties:
-                is:
-                    $ref: '#/components/schemas/UserWhereInput'
-                isNot:
-                    $ref: '#/components/schemas/UserWhereInput'
-        SortOrderInput:
-            type: object
-            properties:
-                sort:
-                    $ref: '#/components/schemas/SortOrder'
-                nulls:
-                    $ref: '#/components/schemas/NullsOrder'
-            required:
-                - sort
         StringNullableWithAggregatesFilter:
             type: object
             properties:
@@ -1099,6 +1005,27 @@ components:
                     $ref: '#/components/schemas/UserCreateOrConnectWithoutPostsInput'
                 connect:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
+        UserUpdateOneWithoutPostsNestedInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserCreateWithoutPostsInput'
+                        - $ref: '#/components/schemas/UserUncheckedCreateWithoutPostsInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/UserCreateOrConnectWithoutPostsInput'
+                upsert:
+                    $ref: '#/components/schemas/UserUpsertWithoutPostsInput'
+                disconnect:
+                    type: boolean
+                delete:
+                    type: boolean
+                connect:
+                    $ref: '#/components/schemas/UserWhereUniqueInput'
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
+                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
         BoolFieldUpdateOperationsInput:
             type: object
             properties:
@@ -1117,32 +1044,6 @@ components:
                     type: integer
                 divide:
                     type: integer
-        UserUpdateOneWithoutPostsNestedInput:
-            type: object
-            properties:
-                create:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserCreateWithoutPostsInput'
-                        - $ref: '#/components/schemas/UserUncheckedCreateWithoutPostsInput'
-                connectOrCreate:
-                    $ref: '#/components/schemas/UserCreateOrConnectWithoutPostsInput'
-                upsert:
-                    $ref: '#/components/schemas/UserUpsertWithoutPostsInput'
-                disconnect:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/UserWhereInput'
-                delete:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/UserWhereInput'
-                connect:
-                    $ref: '#/components/schemas/UserWhereUniqueInput'
-                update:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserUpdateToOneWithWhereWithoutPostsInput'
-                        - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
-                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
         NestedStringFilter:
             type: object
             properties:
@@ -1581,11 +1482,9 @@ components:
             type: object
             properties:
                 data:
-                    oneOf:
-                        - $ref: '#/components/schemas/PostCreateManyAuthorInput'
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/PostCreateManyAuthorInput'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/PostCreateManyAuthorInput'
                 skipDuplicates:
                     type: boolean
             required:
@@ -1627,7 +1526,7 @@ components:
                 data:
                     oneOf:
                         - $ref: '#/components/schemas/PostUpdateManyMutationInput'
-                        - $ref: '#/components/schemas/PostUncheckedUpdateManyWithoutAuthorInput'
+                        - $ref: '#/components/schemas/PostUncheckedUpdateManyWithoutPostsInput'
             required:
                 - where
                 - data
@@ -1739,22 +1638,9 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/UserCreateWithoutPostsInput'
                         - $ref: '#/components/schemas/UserUncheckedCreateWithoutPostsInput'
-                where:
-                    $ref: '#/components/schemas/UserWhereInput'
             required:
                 - update
                 - create
-        UserUpdateToOneWithWhereWithoutPostsInput:
-            type: object
-            properties:
-                where:
-                    $ref: '#/components/schemas/UserWhereInput'
-                data:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
-                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
-            required:
-                - data
         UserUpdateWithoutPostsInput:
             type: object
             properties:
@@ -1883,7 +1769,7 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-        PostUncheckedUpdateManyWithoutAuthorInput:
+        PostUncheckedUpdateManyWithoutPostsInput:
             type: object
             properties:
                 id:
