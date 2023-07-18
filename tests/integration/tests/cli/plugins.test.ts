@@ -73,7 +73,7 @@ describe('CLI Plugins Tests', () => {
             'swr',
             '@tanstack/react-query',
             '@trpc/server',
-            '@prisma/client@latest',
+            '@prisma/client@^4.0.0',
             `${path.join(__dirname, '../../../../.build/zenstackhq-language-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-sdk-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-runtime-' + ver + '.tgz')}`,
@@ -83,7 +83,7 @@ describe('CLI Plugins Tests', () => {
         const devDepPkgs = [
             'typescript',
             '@types/react',
-            'prisma@latest',
+            'prisma@^4.0.0',
             `${path.join(__dirname, '../../../../.build/zenstack-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-tanstack-query-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-swr-' + ver + '.tgz')}`,

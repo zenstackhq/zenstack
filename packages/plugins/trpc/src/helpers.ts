@@ -1,4 +1,4 @@
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import { PluginError, getPrismaClientImportSpec } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import { lowerCaseFirst } from 'lower-case-first';

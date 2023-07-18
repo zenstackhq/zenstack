@@ -36,7 +36,6 @@
     "zod-validation-error": "^0.2.1"
   },
   "devDependencies": {
-    "@prisma/internals": "4.10.0",
     "@readme/openapi-parser": "^2.4.0",
     "@types/jest": "^29.5.0",
     "@types/pluralize": "^0.0.29",

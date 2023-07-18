@@ -1,5 +1,4 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
-import { Dictionary } from '@prisma/internals';
 import {
     AUXILIARY_FIELDS,
     PluginOptions,
@@ -69,9 +68,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     ) as ConnectorType;
 
     Transformer.provider = dataSourceProvider;
-
-    const generatorConfigOptions: Dictionary<string> = {};
-    Object.entries(options).forEach(([k, v]) => (generatorConfigOptions[k] = v as string));
 
     addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
 

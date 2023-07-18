@@ -1,6 +1,10 @@
+import type { DMMF } from '@prisma/generator-helper';
+import { getDMMF as getDMMF4 } from '@prisma/internals';
+import { getDMMF as getDMMF5 } from '@prisma/internals-v5';
+import path from 'path';
+import * as semver from 'semver';
 import { GeneratorDecl, Model, Plugin, isGeneratorDecl, isPlugin } from './ast';
 import { getLiteral } from './utils';
-import path from 'path';
 
 /**
  * Given a ZModel and an import context directory, compute the import spec for the Prisma Client.
@@ -76,5 +80,26 @@ export function getPrismaVersion() {
         } catch {
             return undefined;
         }
+    }
+}
+
+export type GetDMMFOptions = {
+    datamodel?: string;
+    cwd?: string;
+    prismaPath?: string;
+    datamodelPath?: string;
+    retry?: number;
+    previewFeatures?: string[];
+};
+
+/**
+ * Loads Prisma DMMF with appropriate version
+ */
+export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
+    const prismaVersion = getPrismaVersion();
+    if (semver.gte(prismaVersion, '5.0.0')) {
+        return getDMMF5(options);
+    } else {
+        return getDMMF4(options);
     }
 }

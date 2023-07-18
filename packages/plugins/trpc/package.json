@@ -25,7 +25,6 @@
     "license": "MIT",
     "dependencies": {
         "@prisma/generator-helper": "4.10.0",
-        "@prisma/internals": "4.10.0",
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
         "lower-case-first": "^2.0.2",

@@ -1,4 +1,4 @@
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import { addMissingInputObjectTypesForAggregate } from './aggregate-helpers';
 import { addMissingInputObjectTypesForInclude } from './include-helpers';
 import { addMissingInputObjectTypesForModelArgs } from './modelArgs-helpers';
