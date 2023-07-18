@@ -25,7 +25,7 @@
     "author": "ZenStack Team",
     "license": "MIT",
     "dependencies": {
-        "@prisma/generator-helper": "4.10.0",
+        "@prisma/generator-helper": "^5.0.0",
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
