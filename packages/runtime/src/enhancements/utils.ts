@@ -60,16 +60,37 @@ let _PrismaClientUnknownRequestError: new (...args: unknown[]) => Error;
 function loadPrismaModule(prisma: any) {
     // https://github.com/prisma/prisma/discussions/17832
     if (prisma._engineConfig?.datamodelPath) {
+        // try engine path first
         const loadPath = path.dirname(prisma._engineConfig.datamodelPath);
         try {
             const _prisma = require(loadPath).Prisma;
-            if (typeof _prisma !== 'undefined') return _prisma;
-            return require('@prisma/client/runtime');
+            if (typeof _prisma !== 'undefined') {
+                return _prisma;
+            }
         } catch {
-            return require('@prisma/client/runtime');
+            // noop
         }
-    } else {
+    }
+
+    try {
+        // Prisma v4
         return require('@prisma/client/runtime');
+    } catch {
+        try {
+            // Prisma v5
+            return require('@prisma/client');
+        } catch (err) {
+            if (process.env.ZENSTACK_TEST === '1') {
+                // running in test, try cwd
+                try {
+                    return require(path.join(process.cwd(), 'node_modules/@prisma/client/runtime'));
+                } catch {
+                    return require(path.join(process.cwd(), 'node_modules/@prisma/client'));
+                }
+            } else {
+                throw err;
+            }
+        }
     }
 }
 

@@ -27,6 +27,8 @@
     "@zenstackhq/runtime": "../../../../../../packages/runtime/dist"
   },
   "devDependencies": {
-    "prisma": "^4.0.0"
+    "prisma": "^4.0.0",
+    "zenstack": "../../../../../../packages/schema/dist",
+    "@zenstackhq/trpc": "../../../../../../packages/plugins/trpc/dist"
   }
 }
