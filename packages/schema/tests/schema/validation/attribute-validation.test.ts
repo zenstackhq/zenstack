@@ -388,6 +388,116 @@ describe('Attribute tests', () => {
         ).toContain(`Value is not assignable to parameter`);
     });
 
+    it('policy expressions', async () => {
+        await loadModel(`
+           ${prelude}
+           model A {
+               id String @id
+               x Int
+               x1 Int
+               y DateTime
+               y1 DateTime
+               z Float
+               z1 Decimal
+               foo Boolean
+               bar Boolean
+
+               @@allow('all', x > 0)
+               @@allow('all', x > x1)
+               @@allow('all', y >= y1)
+               @@allow('all', z < z1)
+               @@allow('all', z1 < z)
+               @@allow('all', x < z)
+               @@allow('all', x < z1)
+               @@allow('all', foo && bar)
+               @@allow('all', foo || bar)
+               @@allow('all', !foo)
+           }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                @@allow('all', x > 0)
+            }
+        `)
+        ).toContain('invalid operand type for ">" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                @@allow('all', x < 0)
+            }
+        `)
+        ).toContain('invalid operand type for "<" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x < y)
+            }
+        `)
+        ).toContain('invalid operand type for "<" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x <= y)
+            }
+        `)
+        ).toContain('invalid operand type for "<=" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                y DateTime
+                @@allow('all', x <= y)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x && y)
+            }
+        `)
+        ).toContain('invalid operand type for "&&" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x || y)
+            }
+        `)
+        ).toContain('invalid operand type for "||" operator');
+    });
+
     it('policy filter function check', async () => {
         await loadModel(`
             ${prelude}

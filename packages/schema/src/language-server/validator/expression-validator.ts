@@ -1,4 +1,4 @@
-import { BinaryExpr, Expression, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
+import { BinaryExpr, Expression, ExpressionType, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
@@ -46,6 +46,51 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                         node: expr.right,
                     });
                 }
+                break;
+            }
+
+            case '>':
+            case '>=':
+            case '<':
+            case '<=':
+            case '&&':
+            case '||': {
+                let supportedShapes: ExpressionType[];
+                if (['>', '>=', '<', '<='].includes(expr.operator)) {
+                    supportedShapes = ['Int', 'Float', 'DateTime', 'Any'];
+                } else {
+                    supportedShapes = ['Boolean', 'Any'];
+                }
+
+                if (
+                    typeof expr.left.$resolvedType?.decl !== 'string' ||
+                    !supportedShapes.includes(expr.left.$resolvedType.decl)
+                ) {
+                    accept('error', `invalid operand type for "${expr.operator}" operator`, {
+                        node: expr.left,
+                    });
+                    return;
+                }
+                if (
+                    typeof expr.right.$resolvedType?.decl !== 'string' ||
+                    !supportedShapes.includes(expr.right.$resolvedType.decl)
+                ) {
+                    accept('error', `invalid operand type for "${expr.operator}" operator`, {
+                        node: expr.right,
+                    });
+                    return;
+                }
+
+                // DateTime comparison is only allowed between two DateTime values
+                if (expr.left.$resolvedType.decl === 'DateTime' && expr.right.$resolvedType.decl !== 'DateTime') {
+                    accept('error', 'incompatible operand types', { node: expr });
+                } else if (
+                    expr.right.$resolvedType.decl === 'DateTime' &&
+                    expr.left.$resolvedType.decl !== 'DateTime'
+                ) {
+                    accept('error', 'incompatible operand types', { node: expr });
+                }
+
                 break;
             }
         }
