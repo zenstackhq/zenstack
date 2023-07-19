@@ -106,8 +106,8 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             case '!': {
                 const supportedShapes: ExpressionType[] = ['Boolean', 'Any'];
                 if (
-                    !expr.operand.$resolvedType?.decl ||
-                    !supportedShapes.includes(expr.operand.$resolvedType.decl as ExpressionType)
+                    typeof expr.operand.$resolvedType?.decl !== 'string' ||
+                    !supportedShapes.includes(expr.operand.$resolvedType.decl)
                 ) {
                     accept('error', `invalid operand type for "${expr.operator}" operator`, {
                         node: expr.operand,
