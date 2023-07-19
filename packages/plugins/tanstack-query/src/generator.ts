@@ -390,7 +390,14 @@ function generateModelHooks(
 function generateIndex(project: Project, outDir: string, models: DataModel[], target: string) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.addStatements(`export { Provider } from '@zenstackhq/tanstack-query/runtime/${target}';`);
+    switch (target) {
+        case 'react':
+            sf.addStatements(`export { Provider } from '@zenstackhq/tanstack-query/runtime/react';`);
+            break;
+        case 'svelte':
+            sf.addStatements(`export { SvelteQueryContextKey } from '@zenstackhq/tanstack-query/runtime/svelte';`);
+            break;
+    }
 }
 
 function makeGetContext(target: TargetFramework) {
