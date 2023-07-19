@@ -1,5 +1,6 @@
 import {
     DbOperations,
+    PrismaErrorCode,
     ZodSchemas,
     isPrismaClientKnownRequestError,
     isPrismaClientUnknownRequestError,
@@ -148,7 +149,7 @@ class RequestHandler extends APIHandlerBase {
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
                 logError(logger, err.code, err.message);
-                if (err.code === 'P2004') {
+                if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
                     // rejected by policy
                     return {
                         status: 403,

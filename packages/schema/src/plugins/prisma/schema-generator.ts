@@ -23,6 +23,7 @@ import {
 import {
     analyzePolicies,
     getDataModels,
+    getDMMF,
     getLiteral,
     getLiteralArray,
     getPrismaVersion,
@@ -32,7 +33,6 @@ import {
     resolved,
     resolvePath,
     TRANSACTION_FIELD_NAME,
-    getDMMF
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';

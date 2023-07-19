@@ -48,10 +48,12 @@ model Foo {
     @@ignore
 }
         `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+                fullZod: true,
+            }
         );
     });
 
@@ -88,10 +90,12 @@ model Foo {
     @@ignore
 }
         `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+                fullZod: true,
+            }
         );
         expect(fs.existsSync(path.join(projectDir, 'trpc'))).toBe(true);
     });
@@ -116,11 +120,13 @@ model Post {
     authorId String?
 }
         `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
-            true,
-            'zenstack/schema.zmodel'
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+                fullZod: true,
+                customSchemaFilePath: 'zenstack/schema.zmodel',
+            }
         );
         expect(fs.existsSync(path.join(projectDir, 'zenstack/trpc'))).toBe(true);
     });
@@ -139,11 +145,13 @@ model Post {
     title String
 }
         `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
-            true,
-            'zenstack/schema.zmodel'
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+                fullZod: true,
+                customSchemaFilePath: 'zenstack/schema.zmodel',
+            }
         );
         const content = fs.readFileSync(path.join(projectDir, 'zenstack/trpc/routers/Post.router.ts'), 'utf-8');
         expect(content).toContain('findMany:');
@@ -167,11 +175,13 @@ model Post {
     title String
 }
         `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
-            true,
-            'zenstack/schema.zmodel'
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+                fullZod: true,
+                customSchemaFilePath: 'zenstack/schema.zmodel',
+            }
         );
         const content = fs.readFileSync(path.join(projectDir, 'zenstack/trpc/routers/Post.router.ts'), 'utf-8');
         expect(content).toContain('findMany:');
@@ -211,10 +221,12 @@ model Post {
 
             ${BLOG_BASE_SCHEMA}
             `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/react-query'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/react-query'],
+                compile: true,
+                fullZod: true,
+            }
         );
     });
 
@@ -229,10 +241,12 @@ model Post {
 
             ${BLOG_BASE_SCHEMA}
             `,
-            true,
-            false,
-            [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/next'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/next'],
+                compile: true,
+                fullZod: true,
+            }
         );
     });
 });

@@ -12,6 +12,55 @@ describe('With Policy:nested to-many', () => {
         process.chdir(origDir);
     });
 
+    it('read filtering', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2[]
+        
+            @@allow('all', true)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String
+        
+            @@allow('create', true)
+            @@allow('read', value > 0)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        let read = await db.m1.create({
+            include: { m2: true },
+            data: {
+                id: '1',
+                m2: {
+                    create: [{ value: 0 }],
+                },
+            },
+        });
+        expect(read.m2).toHaveLength(0);
+        read = await db.m1.findFirst({ where: { id: '1' }, include: { m2: true } });
+        expect(read.m2).toHaveLength(0);
+
+        await db.m1.create({
+            data: {
+                id: '2',
+                m2: {
+                    create: [{ value: 0 }, { value: 1 }, { value: 2 }],
+                },
+            },
+        });
+        read = await db.m1.findFirst({ where: { id: '2' }, include: { m2: true } });
+        expect(read.m2).toHaveLength(2);
+    });
+
     it('create simple', async () => {
         const { withPolicy } = await loadSchema(
             `
@@ -397,15 +446,14 @@ describe('With Policy:nested to-many', () => {
         expect(r.m2).toHaveLength(1);
 
         // read-back for to-one relation rejected
-        await expect(
-            db.m1.create({
-                include: { m3: true },
-                data: {
-                    value: 2,
-                    m3: { create: { value: 0 } },
-                },
-            })
-        ).toBeRejectedByPolicy();
+        const r1 = await db.m1.create({
+            include: { m3: true },
+            data: {
+                value: 2,
+                m3: { create: { value: 0 } },
+            },
+        });
+        expect(r1.m3).toBeNull();
     });
 
     it('update with nested read', async () => {
@@ -457,21 +505,20 @@ describe('With Policy:nested to-many', () => {
             },
         });
 
-        await expect(
-            db.m1.update({
-                where: { id: '1' },
-                include: { m3: true },
-                data: {
-                    m3: {
-                        update: {
-                            value: 1,
-                        },
+        const r = await db.m1.update({
+            where: { id: '1' },
+            include: { m3: true },
+            data: {
+                m3: {
+                    update: {
+                        value: 1,
                     },
                 },
-            })
-        ).toBeRejectedByPolicy();
+            },
+        });
+        expect(r.m3).toBeNull();
 
-        const r = await db.m1.update({
+        const r1 = await db.m1.update({
             where: { id: '1' },
             include: { m3: true, m2: true },
             data: {
@@ -483,11 +530,11 @@ describe('With Policy:nested to-many', () => {
             },
         });
         // m3 is ok now
-        expect(r.m3.value).toBe(2);
+        expect(r1.m3.value).toBe(2);
         // m2 got filtered
-        expect(r.m2).toHaveLength(0);
+        expect(r1.m2).toHaveLength(0);
 
-        const r1 = await db.m1.update({
+        const r2 = await db.m1.update({
             where: { id: '1' },
             select: { m2: true },
             data: {
@@ -500,6 +547,6 @@ describe('With Policy:nested to-many', () => {
             },
         });
         // one of m2 matches policy now
-        expect(r1.m2).toHaveLength(1);
+        expect(r2.m2).toHaveLength(1);
     });
 });

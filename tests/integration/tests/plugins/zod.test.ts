@@ -52,7 +52,7 @@ describe('Zod plugin tests', () => {
         }
         `;
 
-        const { zodSchemas } = await loadSchema(model, false, false);
+        const { zodSchemas } = await loadSchema(model, { addPrelude: false, pushDb: false });
         const schemas = zodSchemas.models;
         expect(schemas.UserSchema).toBeTruthy();
         expect(schemas.UserCreateSchema).toBeTruthy();
@@ -141,7 +141,7 @@ describe('Zod plugin tests', () => {
         }
         `;
 
-        const { zodSchemas } = await loadSchema(model, false, false);
+        const { zodSchemas } = await loadSchema(model, { addPrelude: false, pushDb: false });
 
         const schema = zodSchemas.models.MCreateSchema;
 
@@ -234,7 +234,7 @@ describe('Zod plugin tests', () => {
         }
         `;
 
-        const { zodSchemas } = await loadSchema(model, false, false);
+        const { zodSchemas } = await loadSchema(model, { addPrelude: false, pushDb: false });
 
         const schema = zodSchemas.models.MCreateSchema;
         expect(schema.safeParse({ email: 'abd@x.com', x: 0 }).error.toString()).toMatch(/condition1/);
@@ -285,7 +285,7 @@ describe('Zod plugin tests', () => {
         }
         `;
 
-        const { zodSchemas } = await loadSchema(model, false, false);
+        const { zodSchemas } = await loadSchema(model, { addPrelude: false, pushDb: false });
 
         const schema = zodSchemas.models.MCreateSchema;
         expect(schema.safeParse({}).error.toString()).toMatch(/condition1/);

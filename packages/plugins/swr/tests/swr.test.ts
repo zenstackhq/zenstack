@@ -50,10 +50,11 @@ plugin swr {
 
 ${sharedModel}
         `,
-            true,
-            false,
-            [`${origDir}/dist`, 'react', '@types/react', 'swr'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, 'react', '@types/react', 'swr'],
+                compile: true,
+            }
         );
     });
 });

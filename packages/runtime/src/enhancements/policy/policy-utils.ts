@@ -6,7 +6,14 @@ import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../../constants';
+import {
+    AUXILIARY_FIELDS,
+    CrudFailureReason,
+    GUARD_FIELD_NAME,
+    PrismaErrorCode,
+    TRANSACTION_FIELD_NAME,
+} from '../../constants';
+import { isPrismaClientKnownRequestError } from '../../error';
 import {
     AuthUser,
     DbClientContract,
@@ -402,7 +409,26 @@ export class PolicyUtil {
                             //         `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
                             //     );
                             // }
-                            await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                            try {
+                                await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                            } catch (err) {
+                                if (
+                                    isPrismaClientKnownRequestError(err) &&
+                                    err.code === PrismaErrorCode.CONSTRAINED_FAILED
+                                ) {
+                                    // denied by policy
+                                    if (fieldInfo.isOptional) {
+                                        // if the relation is optional, just nullify it
+                                        entityData[field] = null;
+                                    } else {
+                                        // otherwise reject
+                                        throw err;
+                                    }
+                                } else {
+                                    // unknown error
+                                    throw err;
+                                }
+                            }
                         }
                     }
 
@@ -772,7 +798,7 @@ export class PolicyUtil {
         return prismaClientKnownRequestError(
             this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: 'P2004', meta: { reason } }
+            { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: { reason } }
         );
     }
 
@@ -864,7 +890,12 @@ export class PolicyUtil {
                 if (this.logger.enabled('info')) {
                     this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
                 }
-                throw this.deniedByPolicy(model, operation, `entities failed schema check: [${error}]`);
+                throw this.deniedByPolicy(
+                    model,
+                    operation,
+                    `entities failed schema check: [${error}]`,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION
+                );
             }
         } else {
             // count entities with policy injected and see if any of them are filtered out

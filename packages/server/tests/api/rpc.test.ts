@@ -13,7 +13,7 @@ describe('RPC API Handler Tests', () => {
     let zodSchemas: any;
 
     beforeAll(async () => {
-        const params = await loadSchema(schema);
+        const params = await loadSchema(schema, { fullZod: true });
         prisma = params.prisma;
         zodSchemas = params.zodSchemas;
     });

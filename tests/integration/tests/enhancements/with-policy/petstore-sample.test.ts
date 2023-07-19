@@ -8,8 +8,8 @@ describe('Pet Store Policy Tests', () => {
 
     beforeAll(async () => {
         const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(
-            path.join(__dirname, '../schema/petstore.zmodel'),
-            false
+            path.join(__dirname, '../../schema/petstore.zmodel'),
+            { addPrelude: false }
         );
         getDb = withPolicy;
         prisma = _prisma;

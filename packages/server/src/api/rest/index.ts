@@ -3,6 +3,7 @@ import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
 import {
     DbClientContract,
     FieldInfo,
+    PrismaErrorCode,
     enumerate,
     getIdFields,
     isPrismaClientKnownRequestError,
@@ -1556,7 +1557,7 @@ class RequestHandler extends APIHandlerBase {
 
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
-            if (err.code === 'P2004') {
+            if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
                 return this.makeError('forbidden', undefined, 403, err.meta?.reason as string);
             } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');

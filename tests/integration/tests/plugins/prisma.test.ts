@@ -35,7 +35,7 @@ plugin prisma {
     output = './db/schema.prisma'
 }
         `;
-        const { projectDir } = await loadSchema(model, true, false);
+        const { projectDir } = await loadSchema(model, { pushDb: false });
         expect(fs.existsSync(path.join(projectDir, './db/schema.prisma'))).toEqual(true);
     });
 
@@ -53,7 +53,7 @@ plugin prisma {
     output = '${outDir}/db/schema.prisma'
 }
         `;
-        await loadSchema(model, true, false);
+        await loadSchema(model, { pushDb: false });
         expect(fs.existsSync(path.join(outDir, './db/schema.prisma'))).toEqual(true);
     });
 });

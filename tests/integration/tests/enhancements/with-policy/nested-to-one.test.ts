@@ -12,6 +12,93 @@ describe('With Policy:nested to-one', () => {
         process.chdir(origDir);
     });
 
+    it('read fitering for optional relation', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2?
+        
+            @@allow('all', true)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String @unique
+            value Int
+        
+            @@allow('create', true)
+            @@allow('read', value > 0)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        let read = await db.m1.create({
+            include: { m2: true },
+            data: {
+                id: '1',
+                m2: {
+                    create: { id: '1', value: 0 },
+                },
+            },
+        });
+        expect(read.m2).toBeNull();
+
+        await expect(db.m1.findUnique({ where: { id: '1' }, include: { m2: true } })).resolves.toEqual(
+            expect.objectContaining({ m2: null })
+        );
+        await expect(db.m1.findMany({ include: { m2: true } })).resolves.toEqual(
+            expect.arrayContaining([expect.objectContaining({ m2: null })])
+        );
+
+        await prisma.m2.update({ where: { id: '1' }, data: { value: 1 } });
+        read = await db.m1.findUnique({ where: { id: '1' }, include: { m2: true } });
+        expect(read.m2).toEqual(expect.objectContaining({ id: '1', value: 1 }));
+    });
+
+    it('read rejection for non-optional relation', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2?
+            value Int
+        
+            @@allow('create', true)
+            @@allow('read', value > 0)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String @unique
+        
+            @@allow('all', true)
+        }
+        `
+        );
+
+        await prisma.m1.create({
+            data: {
+                id: '1',
+                value: 0,
+                m2: {
+                    create: { id: '1' },
+                },
+            },
+        });
+
+        const db = withPolicy();
+        await expect(db.m2.findUnique({ where: { id: '1' }, include: { m1: true } })).toBeRejectedByPolicy();
+        await expect(db.m2.findMany({ include: { m1: true } })).toBeRejectedByPolicy();
+
+        await prisma.m1.update({ where: { id: '1' }, data: { value: 1 } });
+        await expect(db.m2.findMany({ include: { m1: true } })).toResolveTruthy();
+    });
+
     it('create and update tests', async () => {
         const { withPolicy } = await loadSchema(
             `

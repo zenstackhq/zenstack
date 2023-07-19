@@ -8,8 +8,8 @@ describe('Todo Policy Tests', () => {
 
     beforeAll(async () => {
         const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(
-            path.join(__dirname, '../schema/todo.zmodel'),
-            false
+            path.join(__dirname, '../../schema/todo.zmodel'),
+            { addPrelude: false }
         );
         getDb = withPolicy;
         prisma = _prisma;
