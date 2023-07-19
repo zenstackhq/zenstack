@@ -1,7 +1,8 @@
-import { BinaryExpr, Expression, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
+import { BinaryExpr, Expression, ExpressionType, UnaryExpr, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
+import { typeAssignable } from './utils';
 
 /**
  * Validates expressions.
@@ -31,6 +32,10 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             case 'BinaryExpr':
                 this.validateBinaryExpr(expr, accept);
                 break;
+
+            case 'UnaryExpr':
+                this.validateUnaryExpr(expr, accept);
+                break;
         }
     }
 
@@ -44,6 +49,68 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 if (!expr.right.$resolvedType?.array) {
                     accept('error', 'right operand of "in" must be an array', {
                         node: expr.right,
+                    });
+                }
+                break;
+            }
+
+            case '>':
+            case '>=':
+            case '<':
+            case '<=':
+            case '&&':
+            case '||': {
+                let supportedShapes: ExpressionType[];
+                if (['>', '>=', '<', '<='].includes(expr.operator)) {
+                    supportedShapes = ['Int', 'Float', 'DateTime', 'Any'];
+                } else {
+                    supportedShapes = ['Boolean', 'Any'];
+                }
+
+                if (
+                    typeof expr.left.$resolvedType?.decl !== 'string' ||
+                    !supportedShapes.includes(expr.left.$resolvedType.decl)
+                ) {
+                    accept('error', `invalid operand type for "${expr.operator}" operator`, {
+                        node: expr.left,
+                    });
+                    return;
+                }
+                if (
+                    typeof expr.right.$resolvedType?.decl !== 'string' ||
+                    !supportedShapes.includes(expr.right.$resolvedType.decl)
+                ) {
+                    accept('error', `invalid operand type for "${expr.operator}" operator`, {
+                        node: expr.right,
+                    });
+                    return;
+                }
+
+                // DateTime comparison is only allowed between two DateTime values
+                if (expr.left.$resolvedType.decl === 'DateTime' && expr.right.$resolvedType.decl !== 'DateTime') {
+                    accept('error', 'incompatible operand types', { node: expr });
+                } else if (
+                    expr.right.$resolvedType.decl === 'DateTime' &&
+                    expr.left.$resolvedType.decl !== 'DateTime'
+                ) {
+                    accept('error', 'incompatible operand types', { node: expr });
+                }
+
+                break;
+            }
+        }
+    }
+
+    private validateUnaryExpr(expr: UnaryExpr, accept: ValidationAcceptor) {
+        switch (expr.operator) {
+            case '!': {
+                const supportedShapes: ExpressionType[] = ['Boolean', 'Any'];
+                if (
+                    !expr.operand.$resolvedType?.decl ||
+                    !supportedShapes.includes(expr.operand.$resolvedType.decl as ExpressionType)
+                ) {
+                    accept('error', `invalid operand type for "${expr.operator}" operator`, {
+                        node: expr.operand,
                     });
                 }
                 break;
