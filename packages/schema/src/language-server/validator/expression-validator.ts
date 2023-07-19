@@ -1,4 +1,4 @@
-import { BinaryExpr, Expression, ExpressionType, UnaryExpr, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
+import { BinaryExpr, Expression, ExpressionType, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
@@ -30,10 +30,6 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         switch (expr.$type) {
             case 'BinaryExpr':
                 this.validateBinaryExpr(expr, accept);
-                break;
-
-            case 'UnaryExpr':
-                this.validateUnaryExpr(expr, accept);
                 break;
         }
     }
@@ -95,23 +91,6 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     accept('error', 'incompatible operand types', { node: expr });
                 }
 
-                break;
-            }
-        }
-    }
-
-    private validateUnaryExpr(expr: UnaryExpr, accept: ValidationAcceptor) {
-        switch (expr.operator) {
-            case '!': {
-                const supportedShapes: ExpressionType[] = ['Boolean', 'Any'];
-                if (
-                    typeof expr.operand.$resolvedType?.decl !== 'string' ||
-                    !supportedShapes.includes(expr.operand.$resolvedType.decl)
-                ) {
-                    accept('error', `invalid operand type for "${expr.operator}" operator`, {
-                        node: expr.operand,
-                    });
-                }
                 break;
             }
         }
