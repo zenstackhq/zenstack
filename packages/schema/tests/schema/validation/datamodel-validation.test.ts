@@ -128,6 +128,9 @@ describe('Data Model Validation Tests', () => {
             }
         `);
 
+        const err =
+            'Model must include a field with @id or @unique attribute, or a model-level @@id or @@unique attribute to use access policies';
+
         expect(
             await loadModelWithError(`
             ${prelude}
@@ -136,7 +139,27 @@ describe('Data Model Validation Tests', () => {
                 @@allow('all', x > 0)
             }
         `)
-        ).toContain(`Model must include a field with @id attribute or a model-level @@id attribute`);
+        ).toContain(err);
+
+        // @unique used as id
+        await loadModel(`
+            ${prelude}
+            model M {
+                id Int @unique
+                x Int
+                @@allow('all', x > 0)
+            }
+        `);
+
+        // @@unique used as id
+        await loadModel(`
+               ${prelude}
+               model M {
+                   x Int
+                   @@unique([x])
+                   @@allow('all', x > 0)
+               }
+           `);
 
         expect(
             await loadModelWithError(`
@@ -146,7 +169,7 @@ describe('Data Model Validation Tests', () => {
                 @@deny('all', x <= 0)
             }
         `)
-        ).toContain(`Model must include a field with @id attribute or a model-level @@id attribute`);
+        ).toContain(err);
 
         expect(
             await loadModelWithError(`
@@ -155,7 +178,7 @@ describe('Data Model Validation Tests', () => {
                 x Int @gt(0)
             }
         `)
-        ).toContain(`Model must include a field with @id attribute or a model-level @@id attribute`);
+        ).toContain(err);
 
         expect(
             await loadModelWithError(`

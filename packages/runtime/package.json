@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.0.0-beta.8",
+    "version": "1.0.0-beta.9",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,14 +9,34 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
-        "watch": "tsc --watch",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
     "main": "index.js",
     "types": "index.d.ts",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./zod": {
+            "default": "./zod/index.js"
+        },
+        "./zod/input": {
+            "default": "./zod/input.js"
+        },
+        "./zod/models": {
+            "default": "./zod/models.js"
+        },
+        "./browser": {
+            "import": "./browser/index.mjs",
+            "require": "./browser/index.js",
+            "default": "./browser/index.js",
+            "types": "./browser/index.d.ts"
+        }
+    },
     "publishConfig": {
         "directory": "dist",
         "linkDirectory": true
@@ -25,6 +45,7 @@
         "@paralleldrive/cuid2": "^2.2.0",
         "@types/bcryptjs": "^2.4.2",
         "bcryptjs": "^2.4.3",
+        "buffer": "^6.0.3",
         "change-case": "^4.1.2",
         "colors": "1.4.0",
         "decimal.js": "^10.4.2",
@@ -43,11 +64,9 @@
     "homepage": "https://zenstack.dev",
     "license": "MIT",
     "devDependencies": {
-        "@prisma/client": "^4.0.0",
         "@types/bcryptjs": "^2.4.2",
         "@types/jest": "^29.5.0",
-        "@types/lower-case-first": "^1.0.1",
-        "@types/node": "^14.18.29",
+        "@types/node": "^18.0.0",
         "@types/pluralize": "^0.0.29",
         "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",

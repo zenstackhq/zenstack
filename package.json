@@ -1,6 +1,6 @@
 {
     "name": "zenstack-monorepo",
-    "version": "1.0.0-beta.8",
+    "version": "1.0.0-beta.9",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
@@ -14,6 +14,9 @@
     "author": "",
     "license": "MIT",
     "devDependencies": {
-        "@changesets/cli": "^2.26.0"
+        "@changesets/cli": "^2.26.0",
+        "concurrently": "^7.4.0",
+        "replace-in-file": "^7.0.1",
+        "tsup": "^7.1.0"
     }
 }

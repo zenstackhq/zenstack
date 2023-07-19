@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
-import { getDMMF } from '@prisma/internals';
 import type { Model } from '@zenstackhq/language/ast';
 import { withOmit, withPassword, withPolicy, withPresets, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
+import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
+import json from 'json5';
 import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
-import json from 'json5';
 
 /** 
  * Use it to represent multiple files in a single string like this
@@ -39,12 +39,14 @@ export type WeakDbClientContract = Record<string, WeakDbOperations> & {
 };
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
+    const start = Date.now();
     execSync(cmd, {
         stdio: 'pipe',
         encoding: 'utf-8',
         env: { ...process.env, DO_NOT_TRACK: '1', ...env },
         cwd,
     });
+    console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
 }
 
 function normalizePath(p: string) {
@@ -81,23 +83,54 @@ generator js {
 
 plugin zod {
     provider = '@core/zod'
+    modelOnly = true
 }
 `;
 
-export async function loadSchemaFromFile(schemaFile: string, addPrelude = true, pushDb = true, logPrismaQuery = false) {
-    const content = fs.readFileSync(schemaFile, { encoding: 'utf-8' });
-    return loadSchema(content, addPrelude, pushDb, [], false, undefined, logPrismaQuery);
+const MODEL_PRELUDE_FULL_ZOD = `
+datasource db {
+    provider = 'sqlite'
+    url = 'file:./test.db'
 }
 
-export async function loadSchema(
-    schema: string,
-    addPrelude = true,
-    pushDb = true,
-    extraDependencies: string[] = [],
-    compile = false,
-    customSchemaFilePath?: string,
-    logPrismaQuery = false
-) {
+generator js {
+    provider = 'prisma-client-js'
+    previewFeatures = ['clientExtensions']
+}
+
+plugin zod {
+    provider = '@core/zod'
+    modelOnly = false
+}
+`;
+
+export type SchemaLoadOptions = {
+    addPrelude?: boolean;
+    pushDb?: boolean;
+    fullZod?: boolean;
+    extraDependencies?: string[];
+    compile?: boolean;
+    customSchemaFilePath?: string;
+    logPrismaQuery?: boolean;
+};
+
+const defaultOptions: SchemaLoadOptions = {
+    addPrelude: true,
+    pushDb: true,
+    fullZod: false,
+    extraDependencies: [],
+    compile: false,
+    logPrismaQuery: false,
+};
+
+export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
+    const content = fs.readFileSync(schemaFile, { encoding: 'utf-8' });
+    return loadSchema(content, options);
+}
+
+export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
+    const opt = { ...defaultOptions, ...options };
+
     const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
     const root = getWorkspaceRoot(__dirname);
@@ -129,9 +162,9 @@ export async function loadSchema(
             if (index === 0) {
                 // The first file is the main schema file
                 zmodelPath = path.join(projectRoot, fileName);
-                if (addPrelude) {
+                if (opt.addPrelude) {
                     // plugin need to be added after import statement
-                    fileContent = `${fileContent}\n${MODEL_PRELUDE}`;
+                    fileContent = `${fileContent}\n${opt.fullZod ? MODEL_PRELUDE_FULL_ZOD : MODEL_PRELUDE}`;
                 }
             }
 
@@ -141,9 +174,9 @@ export async function loadSchema(
         });
     } else {
         schema = schema.replaceAll('$projectRoot', projectRoot);
-        const content = addPrelude ? `${MODEL_PRELUDE}\n${schema}` : schema;
-        if (customSchemaFilePath) {
-            zmodelPath = path.join(projectRoot, customSchemaFilePath);
+        const content = opt.addPrelude ? `${opt.fullZod ? MODEL_PRELUDE_FULL_ZOD : MODEL_PRELUDE}\n${schema}` : schema;
+        if (opt.customSchemaFilePath) {
+            zmodelPath = path.join(projectRoot, opt.customSchemaFilePath);
             fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
             fs.writeFileSync(zmodelPath, content);
         } else {
@@ -153,7 +186,7 @@ export async function loadSchema(
 
     run('npm install');
 
-    if (customSchemaFilePath) {
+    if (opt.customSchemaFilePath) {
         run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check`, {
             NODE_PATH: './node_modules',
         });
@@ -161,19 +194,19 @@ export async function loadSchema(
         run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
     }
 
-    if (pushDb) {
+    if (opt.pushDb) {
         run('npx prisma db push');
     }
 
     const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
     const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
 
-    extraDependencies.forEach((dep) => {
+    opt.extraDependencies?.forEach((dep) => {
         console.log(`Installing dependency ${dep}`);
         run(`npm install ${dep}`);
     });
 
-    if (compile) {
+    if (opt.compile) {
         console.log('Compiling...');
         run('npx tsc --init');
 
@@ -213,11 +246,19 @@ export async function loadSchema(
         projectDir: projectRoot,
         prisma,
         withPolicy: (user?: AuthUser) =>
-            withPolicy<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery }),
+            withPolicy<WeakDbClientContract>(
+                prisma,
+                { user },
+                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
+            ),
         withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
         withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
         withPresets: (user?: AuthUser) =>
-            withPresets<WeakDbClientContract>(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery }),
+            withPresets<WeakDbClientContract>(
+                prisma,
+                { user },
+                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
+            ),
         policy,
         modelMeta,
         zodSchemas,

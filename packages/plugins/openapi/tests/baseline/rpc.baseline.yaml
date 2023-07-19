@@ -613,15 +613,6 @@ components:
                     $ref: '#/components/schemas/PostWhereInput'
                 none:
                     $ref: '#/components/schemas/PostWhereInput'
-        BoolFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolFilter'
         PostOrderByRelationAggregateInput:
             type: object
             properties:
@@ -728,21 +719,6 @@ components:
                     $ref: '#/components/schemas/NestedEnumRoleFilter'
                 _max:
                     $ref: '#/components/schemas/NestedEnumRoleFilter'
-        BoolWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBoolFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBoolFilter'
         UserRelationFilter:
             type: object
             properties:
@@ -783,6 +759,15 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/NestedStringNullableFilter'
+        BoolFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolFilter'
         IntFilter:
             type: object
             properties:
@@ -847,6 +832,21 @@ components:
                     $ref: '#/components/schemas/NestedStringNullableFilter'
                 _max:
                     $ref: '#/components/schemas/NestedStringNullableFilter'
+        BoolWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBoolFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBoolFilter'
         IntWithAggregatesFilter:
             type: object
             properties:
@@ -994,11 +994,6 @@ components:
                         - type: array
                           items:
                               $ref: '#/components/schemas/PostScalarWhereInput'
-        BoolFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: boolean
         UserCreateNestedOneWithoutPostsInput:
             type: object
             properties:
@@ -1031,6 +1026,11 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
                         - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
+        BoolFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: boolean
         IntFieldUpdateOperationsInput:
             type: object
             properties:
@@ -1125,15 +1125,6 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
                         - $ref: '#/components/schemas/NestedEnumRoleFilter'
-        NestedBoolFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolFilter'
         NestedStringWithAggregatesFilter:
             type: object
             properties:
@@ -1258,21 +1249,6 @@ components:
                     $ref: '#/components/schemas/NestedEnumRoleFilter'
                 _max:
                     $ref: '#/components/schemas/NestedEnumRoleFilter'
-        NestedBoolWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedBoolFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedBoolFilter'
         NestedStringNullableFilter:
             type: object
             properties:
@@ -1304,6 +1280,15 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/NestedStringNullableFilter'
+        NestedBoolFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolFilter'
         NestedStringNullableWithAggregatesFilter:
             type: object
             properties:
@@ -1366,6 +1351,21 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntNullableFilter'
+        NestedBoolWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolWithAggregatesFilter'
+                _count:
+                    $ref: '#/components/schemas/NestedIntFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedBoolFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedBoolFilter'
         NestedIntWithAggregatesFilter:
             type: object
             properties:
@@ -2192,6 +2192,42 @@ components:
                     type: boolean
                 viewCount:
                     type: integer
+        _Meta:
+            type: object
+            properties:
+                meta:
+                    type: object
+                    description: Meta information about the request or response
+                    properties:
+                        serialization:
+                            description: Serialization metadata
+                    additionalProperties: true
+        _Error:
+            type: object
+            required:
+                - error
+            properties:
+                error:
+                    type: object
+                    required:
+                        - message
+                    properties:
+                        prisma:
+                            type: boolean
+                            description: Indicates if the error occurred during a Prisma call
+                        rejectedByPolicy:
+                            type: boolean
+                            description: Indicates if the error was due to rejection by a policy
+                        code:
+                            type: string
+                            description: Prisma error code. Only available when "prisma" field is true.
+                        message:
+                            type: string
+                            description: Error message
+                        reason:
+                            type: string
+                            description: Detailed error reason
+                    additionalProperties: true
         BatchPayload:
             type: object
             properties:
@@ -2199,6 +2235,8 @@ components:
                     type: integer
         UserCreateArgs:
             type: object
+            required:
+                - data
             properties:
                 select:
                     $ref: '#/components/schemas/UserSelect'
@@ -2206,13 +2244,21 @@ components:
                     $ref: '#/components/schemas/UserInclude'
                 data:
                     $ref: '#/components/schemas/UserCreateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserCreateManyArgs:
             type: object
+            required:
+                - data
             properties:
                 data:
                     $ref: '#/components/schemas/UserCreateManyInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserFindUniqueArgs:
             type: object
+            required:
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/UserSelect'
@@ -2220,6 +2266,8 @@ components:
                     $ref: '#/components/schemas/UserInclude'
                 where:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserFindFirstArgs:
             type: object
             properties:
@@ -2229,6 +2277,8 @@ components:
                     $ref: '#/components/schemas/UserInclude'
                 where:
                     $ref: '#/components/schemas/UserWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserFindManyArgs:
             type: object
             properties:
@@ -2238,8 +2288,13 @@ components:
                     $ref: '#/components/schemas/UserInclude'
                 where:
                     $ref: '#/components/schemas/UserWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserUpdateArgs:
             type: object
+            required:
+                - where
+                - data
             properties:
                 select:
                     $ref: '#/components/schemas/UserSelect'
@@ -2249,15 +2304,25 @@ components:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
                 data:
                     $ref: '#/components/schemas/UserUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserUpdateManyArgs:
             type: object
+            required:
+                - data
             properties:
                 where:
                     $ref: '#/components/schemas/UserWhereInput'
                 data:
                     $ref: '#/components/schemas/UserUpdateManyMutationInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserUpsertArgs:
             type: object
+            required:
+                - create
+                - update
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/UserSelect'
@@ -2269,8 +2334,12 @@ components:
                     $ref: '#/components/schemas/UserCreateInput'
                 update:
                     $ref: '#/components/schemas/UserUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserDeleteUniqueArgs:
             type: object
+            required:
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/UserSelect'
@@ -2278,11 +2347,15 @@ components:
                     $ref: '#/components/schemas/UserInclude'
                 where:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserDeleteManyArgs:
             type: object
             properties:
                 where:
                     $ref: '#/components/schemas/UserWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserCountArgs:
             type: object
             properties:
@@ -2290,6 +2363,8 @@ components:
                     $ref: '#/components/schemas/UserSelect'
                 where:
                     $ref: '#/components/schemas/UserWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserAggregateArgs:
             type: object
             properties:
@@ -2311,6 +2386,8 @@ components:
                     $ref: '#/components/schemas/UserMinAggregateInput'
                 _max:
                     $ref: '#/components/schemas/UserMaxAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         UserGroupByArgs:
             type: object
             properties:
@@ -2334,8 +2411,12 @@ components:
                     $ref: '#/components/schemas/UserMinAggregateInput'
                 _max:
                     $ref: '#/components/schemas/UserMaxAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostCreateArgs:
             type: object
+            required:
+                - data
             properties:
                 select:
                     $ref: '#/components/schemas/PostSelect'
@@ -2343,13 +2424,21 @@ components:
                     $ref: '#/components/schemas/PostInclude'
                 data:
                     $ref: '#/components/schemas/PostCreateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostCreateManyArgs:
             type: object
+            required:
+                - data
             properties:
                 data:
                     $ref: '#/components/schemas/PostCreateManyInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostFindUniqueArgs:
             type: object
+            required:
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/PostSelect'
@@ -2357,6 +2446,8 @@ components:
                     $ref: '#/components/schemas/PostInclude'
                 where:
                     $ref: '#/components/schemas/PostWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostFindFirstArgs:
             type: object
             properties:
@@ -2366,6 +2457,8 @@ components:
                     $ref: '#/components/schemas/PostInclude'
                 where:
                     $ref: '#/components/schemas/PostWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostFindManyArgs:
             type: object
             properties:
@@ -2375,8 +2468,13 @@ components:
                     $ref: '#/components/schemas/PostInclude'
                 where:
                     $ref: '#/components/schemas/PostWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostUpdateArgs:
             type: object
+            required:
+                - where
+                - data
             properties:
                 select:
                     $ref: '#/components/schemas/PostSelect'
@@ -2386,15 +2484,25 @@ components:
                     $ref: '#/components/schemas/PostWhereUniqueInput'
                 data:
                     $ref: '#/components/schemas/PostUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostUpdateManyArgs:
             type: object
+            required:
+                - data
             properties:
                 where:
                     $ref: '#/components/schemas/PostWhereInput'
                 data:
                     $ref: '#/components/schemas/PostUpdateManyMutationInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostUpsertArgs:
             type: object
+            required:
+                - create
+                - update
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/PostSelect'
@@ -2406,8 +2514,12 @@ components:
                     $ref: '#/components/schemas/PostCreateInput'
                 update:
                     $ref: '#/components/schemas/PostUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostDeleteUniqueArgs:
             type: object
+            required:
+                - where
             properties:
                 select:
                     $ref: '#/components/schemas/PostSelect'
@@ -2415,11 +2527,15 @@ components:
                     $ref: '#/components/schemas/PostInclude'
                 where:
                     $ref: '#/components/schemas/PostWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostDeleteManyArgs:
             type: object
             properties:
                 where:
                     $ref: '#/components/schemas/PostWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostCountArgs:
             type: object
             properties:
@@ -2427,6 +2543,8 @@ components:
                     $ref: '#/components/schemas/PostSelect'
                 where:
                     $ref: '#/components/schemas/PostWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostAggregateArgs:
             type: object
             properties:
@@ -2452,6 +2570,8 @@ components:
                     $ref: '#/components/schemas/PostSumAggregateInput'
                 _avg:
                     $ref: '#/components/schemas/PostAvgAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
         PostGroupByArgs:
             type: object
             properties:
@@ -2479,6 +2599,8 @@ components:
                     $ref: '#/components/schemas/PostSumAggregateInput'
                 _avg:
                     $ref: '#/components/schemas/PostAvgAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
 paths:
     /user/create:
         post:
@@ -2492,10 +2614,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2514,10 +2653,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2536,19 +2692,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/findFirst:
         get:
             operationId: findFirstUser
@@ -2561,19 +2741,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/findMany:
         get:
             operationId: findManyUser
@@ -2586,21 +2790,45 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserFindManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/update:
         patch:
             operationId: updateUser
@@ -2613,10 +2841,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2635,10 +2880,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2657,10 +2919,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2682,10 +2961,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/User'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/User'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2704,19 +3000,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/count:
         get:
             operationId: countUser
@@ -2729,21 +3049,45 @@ paths:
                     content:
                         application/json:
                             schema:
-                                oneOf:
-                                    - type: integer
-                                    - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/aggregate:
         get:
             operationId: aggregateUser
@@ -2756,19 +3100,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/AggregateUser'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregateUser'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /user/groupBy:
         get:
             operationId: groupByUser
@@ -2781,21 +3149,45 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: '#/components/schemas/UserGroupByOutputType'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/UserGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/create:
         post:
             operationId: createPost
@@ -2808,10 +3200,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Post'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2830,10 +3239,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2852,19 +3278,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Post'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/findFirst:
         get:
             operationId: findFirstPost
@@ -2877,19 +3327,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Post'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/update:
         patch:
             operationId: updatePost
@@ -2902,10 +3376,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Post'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2924,10 +3415,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2946,10 +3454,27 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Post'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             requestBody:
                 content:
@@ -2968,19 +3493,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/Post'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Post'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostDeleteUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/deleteMany:
         delete:
             operationId: deleteManyPost
@@ -2993,19 +3542,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/BatchPayload'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/count:
         get:
             operationId: countPost
@@ -3018,21 +3591,45 @@ paths:
                     content:
                         application/json:
                             schema:
-                                oneOf:
-                                    - type: integer
-                                    - $ref: '#/components/schemas/PostCountAggregateOutputType'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/PostCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/aggregate:
         get:
             operationId: aggregatePost
@@ -3045,19 +3642,43 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/AggregatePost'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregatePost'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
     /post/groupBy:
         get:
             operationId: groupByPost
@@ -3070,18 +3691,42 @@ paths:
                     content:
                         application/json:
                             schema:
-                                type: array
-                                items:
-                                    $ref: '#/components/schemas/PostGroupByOutputType'
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/PostGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
                 '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Invalid request
                 '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
             parameters:
                 - name: q
                   in: query
                   required: true
+                  description: Superjson-serialized Prisma query object
                   content:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/PostGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}

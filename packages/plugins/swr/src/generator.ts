@@ -1,6 +1,5 @@
-import { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '@prisma/generator-helper';
 import {
-    CrudFailureReason,
     PluginOptions,
     createProject,
     getDataModels,
@@ -11,7 +10,6 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
-import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { FunctionDeclaration, Project, SourceFile } from 'ts-morph';
@@ -23,10 +21,16 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const project = createProject();
     const warnings: string[] = [];
+
+    if (options.useSuperJson !== undefined) {
+        warnings.push(
+            'The option "useSuperJson" is deprecated. The generated hooks always use superjson for serialization.'
+        );
+    }
+
     const models = getDataModels(model);
 
     generateIndex(project, outDir, models);
-    generateHelper(project, outDir, options.useSuperJson === true);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -39,19 +43,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     await saveProject(project);
     return warnings;
-}
-
-function wrapReadbackErrorCheck(code: string) {
-    return `try {
-        ${code}
-    } catch (err: any) {
-        if (err.info?.prisma && err.info?.code === 'P2004' && err.info?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
-            // unable to readback data
-            return undefined;
-        } else {
-            throw err;
-        }
-    }`;
 }
 
 function generateModelHooks(project: Project, outDir: string, model: DataModel, mapping: DMMF.ModelMapping) {
@@ -68,8 +59,8 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions } from './_helper';`,
-        `import * as request from './_helper';`,
+        `import { RequestHandlerContext, type RequestOptions, type PickEnumerable } from '@zenstackhq/swr/runtime';`,
+        `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
 
     const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
@@ -92,7 +83,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}CreateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'post', 'create', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'post', 'create', argsType, inputType, returnType, true)
+        );
     }
 
     // createMany
@@ -100,7 +93,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'post', 'createMany', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'post', 'createMany', argsType, inputType, returnType, false)
+        );
     }
 
     // findMany
@@ -134,7 +129,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpdateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'put', 'update', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'put', 'update', argsType, inputType, returnType, true)
+        );
     }
 
     // updateMany
@@ -142,7 +139,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'put', 'updateMany', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'put', 'updateMany', argsType, inputType, returnType, false)
+        );
     }
 
     // upsert
@@ -152,7 +151,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}UpsertArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'post', 'upsert', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'post', 'upsert', argsType, inputType, returnType, true)
+        );
     }
 
     // del
@@ -162,7 +163,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}DeleteArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(generateMutation(useMutation, model, 'delete', 'delete', argsType, inputType, returnType));
+        mutationFuncs.push(
+            generateMutation(useMutation, model, 'delete', 'delete', argsType, inputType, returnType, true)
+        );
     }
 
     // deleteMany
@@ -171,7 +174,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Prisma.BatchPayload`;
         mutationFuncs.push(
-            generateMutation(useMutation, model, 'delete', 'deleteMany', argsType, inputType, returnType)
+            generateMutation(useMutation, model, 'delete', 'deleteMany', argsType, inputType, returnType, false)
         );
     }
 
@@ -190,7 +193,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
             `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
             `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
-            `ByFields extends Prisma.TupleToUnion<T['by']>`,
+            `ByFields extends Prisma.MaybeTupleToUnion<T['by']>`,
             `ByValid extends Prisma.Has<ByFields, OrderFields>`,
             `HavingFields extends Prisma.GetHavingFields<T['having']>`,
             `HavingValid extends Prisma.Has<ByFields, HavingFields>`,
@@ -240,7 +243,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         ];
         const inputType = `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`;
         const returnType = `{} extends InputErrors ? 
-        Array<Prisma.PickArray<Prisma.${model.name}GroupByOutputType, T['by']> &
+        Array<PickEnumerable<Prisma.${model.name}GroupByOutputType, T['by']> &
           {
             [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
               ? T[P] extends boolean
@@ -266,7 +269,6 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    sf.addStatements(`export * from './_helper';`);
 }
 
 function generateQueryHook(
@@ -308,7 +310,8 @@ function generateMutation(
     operation: string,
     argsType: string,
     inputType: string,
-    returnType: string
+    returnType: string,
+    checkReadBack: boolean
 ) {
     const modelRouteName = lowerCaseFirst(model.name);
     const funcName = `${operation}${model.name}`;
@@ -326,20 +329,7 @@ function generateMutation(
     })
         .addBody()
         .addStatements([
-            wrapReadbackErrorCheck(
-                `return await request.${fetcherFunc}<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch);`
-            ),
+            `return await request.${fetcherFunc}<${returnType}, ${checkReadBack}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch, ${checkReadBack});`,
         ]);
     return funcName;
-}
-
-function generateHelper(project: Project, outDir: string, useSuperJson: boolean) {
-    const helperContent = fs.readFileSync(path.join(__dirname, './res/helper.ts'), 'utf-8');
-    const marshalContent = fs.readFileSync(
-        path.join(__dirname, useSuperJson ? './res/marshal-superjson.ts' : './res/marshal-json.ts'),
-        'utf-8'
-    );
-    project.createSourceFile(path.join(outDir, '_helper.ts'), `${helperContent}\n${marshalContent}`, {
-        overwrite: true,
-    });
 }

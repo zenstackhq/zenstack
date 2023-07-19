@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "1.0.0-beta.8",
+    "version": "1.0.0-beta.9",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
@@ -19,13 +19,17 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@prisma/generator-helper": "4.10.0",
+        "@prisma/generator-helper": "^5.0.0",
+        "@prisma/internals": "4.10.0",
+        "@prisma/internals-v5": "npm:@prisma/internals@^5.0.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "prettier": "^2.8.3",
+        "semver": "^7.3.8",
         "ts-morph": "^16.0.0"
     },
     "devDependencies": {
+        "@types/semver": "^7.3.13",
         "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.4"

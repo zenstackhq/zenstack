@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "1.0.0-beta.8",
+    "version": "1.0.0-beta.9",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -24,8 +24,7 @@
     "author": "ZenStack Team",
     "license": "MIT",
     "dependencies": {
-        "@prisma/generator-helper": "4.10.0",
-        "@prisma/internals": "4.10.0",
+        "@prisma/generator-helper": "^5.0.0",
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
         "lower-case-first": "^2.0.2",
@@ -40,7 +39,7 @@
         "@trpc/react-query": "^10.32.0",
         "@trpc/server": "^10.32.0",
         "@types/jest": "^29.5.0",
-        "@types/lower-case-first": "^1.0.1",
+        "@types/node": "^18.0.0",
         "@types/prettier": "^2.7.2",
         "@zenstackhq/testtools": "workspace:*",
         "copyfiles": "^2.4.1",

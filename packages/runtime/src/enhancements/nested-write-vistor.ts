@@ -11,7 +11,7 @@ type NestingPathItem = { field?: FieldInfo; model: string; where: any; unique: b
 /**
  * Context for visiting
  */
-export type VisitorContext = {
+export type NestedWriteVisitorContext = {
     /**
      * Parent data, can be used to replace fields
      */
@@ -32,29 +32,42 @@ export type VisitorContext = {
  * NestedWriteVisitor's callback actions
  */
 export type NestedWriterVisitorCallback = {
-    create?: (model: string, args: any[], context: VisitorContext) => Promise<void>;
+    create?: (model: string, args: any[], context: NestedWriteVisitorContext) => Promise<void>;
 
-    connectOrCreate?: (model: string, args: { where: object; create: any }, context: VisitorContext) => Promise<void>;
+    connectOrCreate?: (
+        model: string,
+        args: { where: object; create: any },
+        context: NestedWriteVisitorContext
+    ) => Promise<void>;
 
-    connect?: (model: string, args: object, context: VisitorContext) => Promise<void>;
+    connect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<void>;
 
-    disconnect?: (model: string, args: object, context: VisitorContext) => Promise<void>;
+    disconnect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<void>;
 
-    update?: (model: string, args: { where: object; data: any }, context: VisitorContext) => Promise<void>;
+    update?: (model: string, args: { where: object; data: any }, context: NestedWriteVisitorContext) => Promise<void>;
 
-    updateMany?: (model: string, args: { where?: object; data: any }, context: VisitorContext) => Promise<void>;
+    updateMany?: (
+        model: string,
+        args: { where?: object; data: any },
+        context: NestedWriteVisitorContext
+    ) => Promise<void>;
 
     upsert?: (
         model: string,
         args: { where: object; create: any; update: any },
-        context: VisitorContext
+        context: NestedWriteVisitorContext
     ) => Promise<void>;
 
-    delete?: (model: string, args: object | boolean, context: VisitorContext) => Promise<void>;
+    delete?: (model: string, args: object | boolean, context: NestedWriteVisitorContext) => Promise<void>;
 
-    deleteMany?: (model: string, args: any | object, context: VisitorContext) => Promise<void>;
+    deleteMany?: (model: string, args: any | object, context: NestedWriteVisitorContext) => Promise<void>;
 
-    field?: (field: FieldInfo, action: PrismaWriteActionType, data: any, context: VisitorContext) => Promise<void>;
+    field?: (
+        field: FieldInfo,
+        action: PrismaWriteActionType,
+        data: any,
+        context: NestedWriteVisitorContext
+    ) => Promise<void>;
 };
 
 /**

@@ -1,4 +1,3 @@
-import { getDMMF } from '@prisma/internals';
 import {
     ArrayExpr,
     AstNode,
@@ -24,8 +23,10 @@ import {
 import {
     analyzePolicies,
     getDataModels,
+    getDMMF,
     getLiteral,
     getLiteralArray,
+    getPrismaVersion,
     GUARD_FIELD_NAME,
     PluginError,
     PluginOptions,
@@ -237,15 +238,6 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private getPrismaVersion() {
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            return require('@prisma/client/package.json').version;
-        } catch {
-            return undefined;
-        }
-    }
-
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
         const generator = prisma.addGenerator(
             decl.name,
@@ -258,7 +250,7 @@ export default class PrismaSchemaGenerator {
         // deal with configuring PrismaClient preview features
         const provider = generator.fields.find((f) => f.name === 'provider');
         if (provider?.value === 'prisma-client-js') {
-            const prismaVersion = this.getPrismaVersion();
+            const prismaVersion = getPrismaVersion();
             if (prismaVersion && semver.lt(prismaVersion, '4.7.0')) {
                 // insert interactiveTransactions preview feature
                 let previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures');
@@ -277,7 +269,7 @@ export default class PrismaSchemaGenerator {
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel, config?: Record<string, string>) {
-        const model = prisma.addModel(decl.name);
+        const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);
         }
@@ -336,6 +328,10 @@ export default class PrismaSchemaGenerator {
     }
 
     private shouldGenerateAuxFields(decl: DataModel) {
+        if (decl.isView) {
+            return false;
+        }
+
         const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
 
         if (!allowAll && !denyAll) {

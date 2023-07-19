@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
+import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
-import type { ZodSchemas } from '@zenstackhq/runtime/enhancements/types';
 import { NextRequest, NextResponse } from 'next/server';
 import { AppRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';
-import { buildUrlQuery, marshalToObject, unmarshalFromObject } from '../utils';
 
 type Context = { params: { path: string[] } };
 
@@ -29,31 +28,28 @@ export default function factory(
     }
 
     const requestHandler = options.handler || RPCAPIHandler();
-    const useSuperJson = options.useSuperJson === true;
+    if (options.useSuperJson !== undefined) {
+        console.warn(
+            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
+        );
+    }
 
     return async (req: NextRequest, context: Context) => {
         const prisma = (await options.getPrisma(req)) as DbClientContract;
         if (!prisma) {
-            return NextResponse.json(
-                marshalToObject({ message: 'unable to get prisma from request context' }, useSuperJson),
-                { status: 500 }
-            );
+            return NextResponse.json({ message: 'unable to get prisma from request context' }, { status: 500 });
         }
 
         const url = new URL(req.url);
-        let query: Record<string, string | string[]> = Object.fromEntries(url.searchParams);
-        try {
-            query = buildUrlQuery(query, useSuperJson);
-        } catch {
-            return NextResponse.json(marshalToObject({ message: 'invalid query parameters' }, useSuperJson), {
-                status: 400,
-            });
-        }
+        const query = Object.fromEntries(url.searchParams);
 
         if (!context.params.path) {
-            return NextResponse.json(marshalToObject({ message: 'missing path parameter' }, useSuperJson), {
-                status: 400,
-            });
+            return NextResponse.json(
+                { message: 'missing path parameter' },
+                {
+                    status: 400,
+                }
+            );
         }
         const path = context.params.path.join('/');
 
@@ -71,18 +67,15 @@ export default function factory(
                 method: req.method!,
                 path,
                 query,
-                requestBody: unmarshalFromObject(requestBody, useSuperJson),
+                requestBody,
                 prisma,
                 modelMeta: options.modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });
-            return NextResponse.json(marshalToObject(r.body, useSuperJson), { status: r.status });
+            return NextResponse.json(r.body, { status: r.status });
         } catch (err) {
-            return NextResponse.json(
-                marshalToObject({ message: `An unhandled error occurred: ${err}` }, useSuperJson),
-                { status: 500 }
-            );
+            return NextResponse.json({ message: `An unhandled error occurred: ${err}` }, { status: 500 });
         }
     };
 }

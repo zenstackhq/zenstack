@@ -6,7 +6,14 @@ import { lowerCaseFirst } from 'lower-case-first';
 import pluralize from 'pluralize';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '../../constants';
+import {
+    AUXILIARY_FIELDS,
+    CrudFailureReason,
+    GUARD_FIELD_NAME,
+    PrismaErrorCode,
+    TRANSACTION_FIELD_NAME,
+} from '../../constants';
+import { isPrismaClientKnownRequestError } from '../../error';
 import {
     AuthUser,
     DbClientContract,
@@ -17,7 +24,7 @@ import {
 } from '../../types';
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
-import { NestedWriteVisitor, type VisitorContext } from '../nested-write-vistor';
+import { NestedWriteVisitor, type NestedWriteVisitorContext } from '../nested-write-vistor';
 import type { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
     enumerate,
@@ -402,7 +409,26 @@ export class PolicyUtil {
                             //         `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
                             //     );
                             // }
-                            await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                            try {
+                                await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                            } catch (err) {
+                                if (
+                                    isPrismaClientKnownRequestError(err) &&
+                                    err.code === PrismaErrorCode.CONSTRAINED_FAILED
+                                ) {
+                                    // denied by policy
+                                    if (fieldInfo.isOptional) {
+                                        // if the relation is optional, just nullify it
+                                        entityData[field] = null;
+                                    } else {
+                                        // otherwise reject
+                                        throw err;
+                                    }
+                                } else {
+                                    // unknown error
+                                    throw err;
+                                }
+                            }
                         }
                     }
 
@@ -469,7 +495,7 @@ export class PolicyUtil {
         };
 
         // build a reversed query for fetching entities affected by nested updates
-        const buildReversedQuery = async (context: VisitorContext) => {
+        const buildReversedQuery = async (context: NestedWriteVisitorContext) => {
             let result, currQuery: any;
             let currField: FieldInfo | undefined;
 
@@ -514,7 +540,7 @@ export class PolicyUtil {
         };
 
         // args processor for update/upsert
-        const processUpdate = async (model: string, where: any, context: VisitorContext) => {
+        const processUpdate = async (model: string, where: any, context: NestedWriteVisitorContext) => {
             const preGuard = this.getAuthGuard(model, 'update');
             if (preGuard === false) {
                 throw this.deniedByPolicy(model, 'update');
@@ -566,7 +592,7 @@ export class PolicyUtil {
         };
 
         // args processor for updateMany
-        const processUpdateMany = async (model: string, args: any, context: VisitorContext) => {
+        const processUpdateMany = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             const guard = this.getAuthGuard(model, 'update');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'update');
@@ -580,7 +606,7 @@ export class PolicyUtil {
 
         // for models with post-update rules, we need to read and store
         // entity values before the update for post-update check
-        const preparePostUpdateCheck = async (model: string, context: VisitorContext) => {
+        const preparePostUpdateCheck = async (model: string, context: NestedWriteVisitorContext) => {
             const postGuard = this.getAuthGuard(model, 'postUpdate');
             const schema = this.getModelSchema(model);
 
@@ -616,7 +642,7 @@ export class PolicyUtil {
         };
 
         // args processor for delete
-        const processDelete = async (model: string, args: any, context: VisitorContext) => {
+        const processDelete = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             const guard = this.getAuthGuard(model, 'delete');
             if (guard === false) {
                 throw this.deniedByPolicy(model, 'delete');
@@ -632,7 +658,7 @@ export class PolicyUtil {
         };
 
         // process relation updates: connect, connectOrCreate, and disconnect
-        const processRelationUpdate = async (model: string, args: any, context: VisitorContext) => {
+        const processRelationUpdate = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             // CHECK ME: equire the entity being connected readable?
             // await this.checkPolicyForFilter(model, args, 'read', this.db);
 
@@ -772,7 +798,7 @@ export class PolicyUtil {
         return prismaClientKnownRequestError(
             this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: 'P2004', meta: { reason } }
+            { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: { reason } }
         );
     }
 
@@ -864,7 +890,12 @@ export class PolicyUtil {
                 if (this.logger.enabled('info')) {
                     this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
                 }
-                throw this.deniedByPolicy(model, operation, `entities failed schema check: [${error}]`);
+                throw this.deniedByPolicy(
+                    model,
+                    operation,
+                    `entities failed schema check: [${error}]`,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION
+                );
             }
         } else {
             // count entities with policy injected and see if any of them are filtered out

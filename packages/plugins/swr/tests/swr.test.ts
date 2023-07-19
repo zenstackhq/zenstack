@@ -40,7 +40,7 @@ model Foo {
 }
     `;
 
-    it('swr generator regular json', async () => {
+    it('run plugin', async () => {
         await loadSchema(
             `
 plugin swr {
@@ -50,28 +50,11 @@ plugin swr {
 
 ${sharedModel}
         `,
-            true,
-            false,
-            [`${origDir}/dist`, 'react', '@types/react', 'swr'],
-            true
-        );
-    });
-
-    it('swr generator superjson', async () => {
-        await loadSchema(
-            `
-plugin swr {
-    provider = '${process.cwd()}/dist'
-    output = '$projectRoot/hooks'
-    useSuperJson = true
-}
-
-${sharedModel}
-        `,
-            true,
-            false,
-            [`${origDir}/dist`, 'react', '@types/react', 'swr', 'superjson'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, 'react', '@types/react', 'swr'],
+                compile: true,
+            }
         );
     });
 });

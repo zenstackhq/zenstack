@@ -1,5 +1,5 @@
 import { format } from 'util';
-import { isPrismaClientKnownRequestError } from '@zenstackhq/runtime/error';
+import { isPrismaClientKnownRequestError } from '@zenstackhq/runtime';
 
 export const toBeRejectedByPolicy = async function (received: Promise<unknown>, expectedMessages?: string[]) {
     if (!(received instanceof Promise)) {

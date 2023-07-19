@@ -138,9 +138,9 @@ export function isEnumFieldReference(node: AstNode): node is ReferenceExpr {
 }
 
 /**
- * Gets id fields declared at the data model level
+ * Gets `@@id` fields declared at the data model level
  */
-export function getIdFields(model: DataModel) {
+export function getModelIdFields(model: DataModel) {
     const idAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@id');
     if (!idAttr) {
         return [];
@@ -156,20 +156,57 @@ export function getIdFields(model: DataModel) {
 }
 
 /**
+ * Gets `@@unique` fields declared at the data model level
+ */
+export function getModelUniqueFields(model: DataModel) {
+    const uniqueAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@unique');
+    if (!uniqueAttr) {
+        return [];
+    }
+    const fieldsArg = uniqueAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+        return [];
+    }
+
+    return fieldsArg.value.items
+        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+        .map((item) => resolved(item.target) as DataModelField);
+}
+
+/**
  * Returns if the given field is declared as an id field.
  */
 export function isIdField(field: DataModelField) {
     // field-level @id attribute
-    if (field.attributes.some((attr) => attr.decl.ref?.name === '@id')) {
+    if (hasAttribute(field, '@id')) {
         return true;
     }
 
-    // model-level @@id attribute with a list of fields
     const model = field.$container as DataModel;
-    const modelLevelIds = getIdFields(model);
+
+    // model-level @@id attribute with a list of fields
+    const modelLevelIds = getModelIdFields(model);
     if (modelLevelIds.includes(field)) {
         return true;
     }
+
+    if (model.fields.some((f) => hasAttribute(f, '@id')) || modelLevelIds.length > 0) {
+        // the model already has id field, don't check @unique and @@unique
+        return false;
+    }
+
+    // then, the first field with @unique can be used as id
+    const firstUniqueField = model.fields.find((f) => hasAttribute(f, '@unique'));
+    if (firstUniqueField) {
+        return firstUniqueField === field;
+    }
+
+    // last, the first model level @@unique can be used as id
+    const modelLevelUnique = getModelUniqueFields(model);
+    if (modelLevelUnique.includes(field)) {
+        return true;
+    }
+
     return false;
 }
 
