@@ -2,7 +2,6 @@ import { BinaryExpr, Expression, ExpressionType, UnaryExpr, isBinaryExpr, isEnum
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
-import { typeAssignable } from './utils';
 
 /**
  * Validates expressions.
