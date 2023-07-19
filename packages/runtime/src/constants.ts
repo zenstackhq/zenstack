@@ -19,11 +19,23 @@ export const GUARD_FIELD_NAME = 'zenstack_guard';
 export const AUXILIARY_FIELDS = [TRANSACTION_FIELD_NAME, GUARD_FIELD_NAME];
 
 /**
- * Reasons for a CRUD operation to fail.
+ * Reasons for a CRUD operation to fail
  */
 export enum CrudFailureReason {
     /**
      * CRUD suceeded but the result was not readable.
      */
     RESULT_NOT_READABLE = 'RESULT_NOT_READABLE',
+
+    /**
+     * CRUD failed because of a data validation rule violation.
+     */
+    DATA_VALIDATION_VIOLATION = 'DATA_VALIDATION_VIOLATION',
+}
+
+/**
+ * Prisma error codes used
+ */
+export enum PrismaErrorCode {
+    CONSTRAINED_FAILED = 'P2004',
 }

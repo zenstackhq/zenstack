@@ -39,12 +39,14 @@ export type WeakDbClientContract = Record<string, WeakDbOperations> & {
 };
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
+    const start = Date.now();
     execSync(cmd, {
         stdio: 'pipe',
         encoding: 'utf-8',
         env: { ...process.env, DO_NOT_TRACK: '1', ...env },
         cwd,
     });
+    console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
 }
 
 function normalizePath(p: string) {
