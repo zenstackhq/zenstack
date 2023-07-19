@@ -269,6 +269,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
+    sf.addStatements(`export { Provider } from '@zenstackhq/swr/runtime';`);
 }
 
 function generateQueryHook(

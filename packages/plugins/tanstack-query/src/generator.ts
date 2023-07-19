@@ -36,7 +36,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         );
     }
 
-    generateIndex(project, outDir, models);
+    generateIndex(project, outDir, models, target);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -387,9 +387,10 @@ function generateModelHooks(
     }
 }
 
-function generateIndex(project: Project, outDir: string, models: DataModel[]) {
+function generateIndex(project: Project, outDir: string, models: DataModel[], target: string) {
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
+    sf.addStatements(`export { Provider } from '@zenstackhq/tanstack-query/runtime/${target}';`);
 }
 
 function makeGetContext(target: TargetFramework) {
