@@ -215,7 +215,13 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolveUnary(node: UnaryExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         this.resolve(node.operand, document, extraScopes);
-        node.$resolvedType = node.operand.$resolvedType;
+        switch (node.operator) {
+            case '!':
+                this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
+                break;
+            default:
+                throw Error(`Unsupported unary operator: ${node.operator}`);
+        }
     }
 
     private resolveObject(node: ObjectExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
