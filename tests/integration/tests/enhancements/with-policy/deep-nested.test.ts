@@ -204,22 +204,21 @@ describe('With Policy:deep nested', () => {
         });
         expect(r1.m2.m4).toHaveLength(1);
 
-        // create read-back rejection: M3 @@deny('read', value == 200)
-        await expect(
-            db.m1.create({
-                include: { m2: { include: { m3: true } } },
-                data: {
-                    m2: {
-                        create: {
-                            value: 1,
-                            m3: {
-                                create: { value: 200 },
-                            },
+        // create read-back filtering: M3 @@deny('read', value == 200)
+        const r2 = await db.m1.create({
+            include: { m2: { include: { m3: true } } },
+            data: {
+                m2: {
+                    create: {
+                        value: 1,
+                        m3: {
+                            create: { value: 200 },
                         },
                     },
                 },
-            })
-        ).toBeRejectedByPolicy();
+            },
+        });
+        expect(r2.m2.m3).toBeNull();
     });
 
     it('update', async () => {
@@ -364,21 +363,20 @@ describe('With Policy:deep nested', () => {
         expect(r1.m2.m4).not.toContain(expect.objectContaining({ id: 'm4-1' }));
 
         // update read-back rejection: M3 @@deny('read', value == 200)
-        await expect(
-            db.m1.update({
-                where: { myId: '1' },
-                include: { m2: { include: { m3: true } } },
-                data: {
-                    m2: {
-                        update: {
-                            m3: {
-                                update: { value: 200 },
-                            },
+        const r2 = await db.m1.update({
+            where: { myId: '1' },
+            include: { m2: { include: { m3: true } } },
+            data: {
+                m2: {
+                    update: {
+                        m3: {
+                            update: { value: 200 },
                         },
                     },
                 },
-            })
-        ).toBeRejectedByPolicy();
+            },
+        });
+        expect(r2.m2.m3).toBeNull();
     });
 
     it('delete', async () => {

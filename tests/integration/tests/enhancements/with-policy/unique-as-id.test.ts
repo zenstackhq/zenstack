@@ -47,14 +47,13 @@ describe('With Policy: unique as id', () => {
             db.a.create({ data: { x: '2', y: 3, value: 1, b: { create: { b1: '1', b2: '2', value: 1 } } } })
         ).toBeRejectedByPolicy();
 
-        await expect(
-            db.a.create({
-                include: { b: true },
-                data: { x: '2', y: 3, value: 1, b: { create: { b1: '1', b2: '2', value: 2 } } },
-            })
-        ).toBeRejectedByPolicy();
-        const r = await prisma.b.findUnique({ where: { b1: '1' } });
-        expect(r.value).toBe(2);
+        const r = await db.a.create({
+            include: { b: true },
+            data: { x: '2', y: 3, value: 1, b: { create: { b1: '1', b2: '2', value: 2 } } },
+        });
+        expect(r.b).toBeNull();
+        const r1 = await prisma.b.findUnique({ where: { b1: '1' } });
+        expect(r1.value).toBe(2);
 
         await expect(
             db.a.create({
@@ -101,14 +100,13 @@ describe('With Policy: unique as id', () => {
             db.a.create({ data: { x: '2', y: 3, value: 1, b: { create: { b1: '1', b2: '2', value: 1 } } } })
         ).toBeRejectedByPolicy();
 
-        await expect(
-            db.a.create({
-                include: { b: true },
-                data: { x: '2', y: 3, value: 1, b: { create: { b1: '1', b2: '2', value: 2 } } },
-            })
-        ).toBeRejectedByPolicy();
-        const r = await prisma.b.findUnique({ where: { b1: '1' } });
-        expect(r.value).toBe(2);
+        const r = await db.a.create({
+            include: { b: true },
+            data: { x: '2', y: 3, value: 1, b: { create: { b1: '1', b2: '2', value: 2 } } },
+        });
+        expect(r.b).toBeNull();
+        const r1 = await prisma.b.findUnique({ where: { b1: '1' } });
+        expect(r1.value).toBe(2);
 
         await expect(
             db.a.create({
@@ -158,14 +156,13 @@ describe('With Policy: unique as id', () => {
             db.a.create({ data: { x: '2', y: 1, value: 1, b: { create: { b1: '1', b2: '2', value: 1 } } } })
         ).toBeRejectedByPolicy();
 
-        await expect(
-            db.a.create({
-                include: { b: true },
-                data: { x: '2', y: 1, value: 1, b: { create: { b1: '1', b2: '2', value: 2 } } },
-            })
-        ).toBeRejectedByPolicy();
-        const r = await prisma.b.findUnique({ where: { b1_b2: { b1: '1', b2: '2' } } });
-        expect(r.value).toBe(2);
+        const r = await db.a.create({
+            include: { b: true },
+            data: { x: '2', y: 1, value: 1, b: { create: { b1: '1', b2: '2', value: 2 } } },
+        });
+        expect(r.b).toBeNull();
+        const r1 = await prisma.b.findUnique({ where: { b1_b2: { b1: '1', b2: '2' } } });
+        expect(r1.value).toBe(2);
 
         await expect(
             db.a.create({
