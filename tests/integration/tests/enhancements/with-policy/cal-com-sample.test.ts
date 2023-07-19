@@ -3,6 +3,9 @@ import path from 'path';
 
 describe('Cal.com Sample Integration Tests', () => {
     it('model loading', async () => {
-        await loadSchemaFromFile(path.join(__dirname, '../schema/cal-com.zmodel'), false, false);
+        await loadSchemaFromFile(path.join(__dirname, '../../schema/cal-com.zmodel'), {
+            addPrelude: false,
+            pushDb: false,
+        });
     });
 });

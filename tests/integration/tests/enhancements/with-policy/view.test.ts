@@ -52,7 +52,7 @@ describe('View Policy Test', () => {
                 @@allow('read', postCount > 1)
             }
             `,
-            false
+            { addPrelude: false }
         );
 
         await prisma.$executeRaw`CREATE VIEW UserInfo as select user.id, user.name, user.email, user.id as userId, count(post.id) as postCount from user left join post on user.id = post.authorId group by user.id;`;

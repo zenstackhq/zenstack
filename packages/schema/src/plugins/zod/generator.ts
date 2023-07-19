@@ -14,11 +14,7 @@ import {
     saveProject,
 } from '@zenstackhq/sdk';
 import { DataModel, DataSource, EnumField, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
-import {
-    AggregateOperationSupport,
-    addMissingInputObjectTypes,
-    resolveAggregateOperationSupport,
-} from '@zenstackhq/sdk/dmmf-helpers';
+import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { promises as fs } from 'fs';
 import { streamAllContents } from 'langium';
 import path from 'path';
@@ -52,8 +48,10 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const project = createProject();
 
+    // common schemas
     await generateCommonSchemas(project, output);
 
+    // enums
     await generateEnumSchemas(
         prismaClientDmmf.schema.enumTypes.prisma,
         prismaClientDmmf.schema.enumTypes.model ?? [],
@@ -67,15 +65,34 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         dataSource?.fields.find((f) => f.name === 'provider')?.value
     ) as ConnectorType;
 
-    Transformer.provider = dataSourceProvider;
+    await generateModelSchemas(project, model, output);
 
-    addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
+    if (options.modelOnly !== true) {
+        // detailed object schemas referenced from input schemas
+        Transformer.provider = dataSourceProvider;
+        addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
+        const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
+        await generateObjectSchemas(inputObjectTypes, project, output, model);
 
-    const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
+        // input schemas
+        const transformer = new Transformer({
+            models,
+            modelOperations,
+            aggregateOperationSupport,
+            project,
+            zmodel: model,
+        });
+        await transformer.generateInputSchemas();
+    }
 
-    await generateObjectSchemas(inputObjectTypes, project, output, model);
-    await generateModelSchemas(models, modelOperations, aggregateOperationSupport, project, model, output);
+    // create barrel file
+    const exports = [`export * as models from './models'`, `export * as enums from './enums'`];
+    if (options.modelOnly !== true) {
+        exports.push(`export * as input from './input'`, `export * as objects from './objects'`);
+    }
+    project.createSourceFile(path.join(output, 'index.ts'), exports.join(';\n'), { overwrite: true });
 
+    // emit
     const shouldCompile = options.compile !== false;
     if (!shouldCompile || options.preserveTsFiles === true) {
         // save ts files
@@ -157,23 +174,7 @@ async function generateObjectSchemas(
     );
 }
 
-async function generateModelSchemas(
-    models: DMMF.Model[],
-    modelOperations: DMMF.ModelMapping[],
-    aggregateOperationSupport: AggregateOperationSupport,
-    project: Project,
-    zmodel: Model,
-    output: string
-) {
-    const transformer = new Transformer({
-        models,
-        modelOperations,
-        aggregateOperationSupport,
-        project,
-        zmodel,
-    });
-    await transformer.generateInputSchemas();
-
+async function generateModelSchemas(project: Project, zmodel: Model, output: string) {
     const schemaNames: string[] = [];
     for (const dm of getDataModels(zmodel)) {
         schemaNames.push(await generateModelSchema(dm, project, output));
@@ -182,16 +183,6 @@ async function generateModelSchemas(
     project.createSourceFile(
         path.join(output, 'models', 'index.ts'),
         schemaNames.map((name) => `export * from './${name}';`).join('\n'),
-        { overwrite: true }
-    );
-
-    project.createSourceFile(
-        path.join(output, 'index.ts'),
-        `export * as input from './input';
-    export * as models from './models';
-    export * as objects from './objects';
-    export * as enums from './enums';
-    `,
         { overwrite: true }
     );
 }

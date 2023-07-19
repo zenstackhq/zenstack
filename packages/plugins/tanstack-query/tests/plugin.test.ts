@@ -51,10 +51,16 @@ plugin tanstack {
 
 ${sharedModel}
         `,
-            true,
-            false,
-            [`${origDir}/dist`, 'react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@4.29.7'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [
+                    `${origDir}/dist`,
+                    'react@18.2.0',
+                    '@types/react@18.2.0',
+                    '@tanstack/react-query@4.29.7',
+                ],
+                compile: true,
+            }
         );
     });
 
@@ -69,10 +75,11 @@ plugin tanstack {
 
 ${sharedModel}
         `,
-            true,
-            false,
-            [`${origDir}/dist`, 'svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
-            true
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, 'svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
+                compile: true,
+            }
         );
     });
 });

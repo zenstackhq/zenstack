@@ -99,24 +99,35 @@ export class PluginRunner {
         }
 
         // make sure prerequisites are included
-        const corePlugins = ['@core/prisma', '@core/model-meta', '@core/access-policy'];
+        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [
+            { provider: '@core/prisma' },
+            { provider: '@core/model-meta' },
+            { provider: '@core/access-policy' },
+        ];
 
         if (getDataModels(context.schema).some((model) => hasValidationAttributes(model))) {
             // '@core/zod' plugin is auto-enabled if there're validation rules
-            corePlugins.push('@core/zod');
+            corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
         }
 
-        // core dependencies introduced by dependencies
+        // core plugins introduced by dependencies
         plugins
             .flatMap((p) => p.dependencies)
             .forEach((dep) => {
-                if (dep.startsWith('@core/') && !corePlugins.includes(dep)) {
-                    corePlugins.push(dep);
+                if (dep.startsWith('@core/')) {
+                    const existing = corePlugins.find((p) => p.provider === dep);
+                    if (existing) {
+                        // reset options to default
+                        existing.options = undefined;
+                    } else {
+                        // add core dependency
+                        corePlugins.push({ provider: dep });
+                    }
                 }
             });
 
         for (const corePlugin of corePlugins.reverse()) {
-            const existingIdx = plugins.findIndex((p) => p.provider === corePlugin);
+            const existingIdx = plugins.findIndex((p) => p.provider === corePlugin.provider);
             if (existingIdx >= 0) {
                 // shift the plugin to the front
                 const existing = plugins[existingIdx];
@@ -124,13 +135,13 @@ export class PluginRunner {
                 plugins.unshift(existing);
             } else {
                 // synthesize a plugin and insert front
-                const pluginModule = require(this.getPluginModulePath(corePlugin));
-                const pluginName = this.getPluginName(pluginModule, corePlugin);
+                const pluginModule = require(this.getPluginModulePath(corePlugin.provider));
+                const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
                 plugins.unshift({
                     name: pluginName,
-                    provider: corePlugin,
+                    provider: corePlugin.provider,
                     dependencies: [],
-                    options: { schemaPath: context.schemaPath, name: pluginName },
+                    options: { schemaPath: context.schemaPath, name: pluginName, ...corePlugin.options },
                     run: pluginModule.default,
                     module: pluginModule,
                 });
@@ -154,7 +165,9 @@ export class PluginRunner {
 
         let dmmf: DMMF.Document | undefined = undefined;
         for (const { name, provider, run, options } of plugins) {
+            // const start = Date.now();
             await this.runPlugin(name, run, context, options, dmmf, warnings);
+            // console.log(`✅ Plugin ${colors.bold(name)} (${provider}) completed in ${Date.now() - start}ms`);
             if (provider === '@core/prisma') {
                 // load prisma DMMF
                 dmmf = await getDMMF({
