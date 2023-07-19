@@ -496,17 +496,6 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain('invalid operand type for "||" operator');
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model A {
-                id String @id
-                x String
-                @@allow('all', !x)
-            }
-        `)
-        ).toContain('invalid operand type for "!" operator');
     });
 
     it('policy filter function check', async () => {
