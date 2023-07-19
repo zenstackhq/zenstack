@@ -8,6 +8,7 @@ import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import { getVersion } from './utils/version-utils';
+import { getPrismaVersion } from '@zenstackhq/sdk';
 
 /**
  * Telemetry events
@@ -34,6 +35,7 @@ export class Telemetry {
     private readonly sessionid = createId();
     private readonly _os = os.platform();
     private readonly version = getVersion();
+    private readonly prismaVersion = getPrismaVersion();
     private exitWait = 200;
 
     constructor() {
@@ -90,6 +92,7 @@ export class Telemetry {
                 $os: this._os,
                 nodeVersion: process.version,
                 version: this.version,
+                prismaVersion: this.prismaVersion,
                 ...properties,
             };
             this.mixpanel.track(event, payload);

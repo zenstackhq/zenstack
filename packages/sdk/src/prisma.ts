@@ -69,7 +69,7 @@ function normalizePath(p: string) {
  * Gets installed Prisma version by first checking "@prisma/client" and if not available,
  * "prisma".
  */
-export function getPrismaVersion() {
+export function getPrismaVersion(): string | undefined {
     try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('@prisma/client/package.json').version;
