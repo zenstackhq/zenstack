@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/server",
-    "version": "1.0.0-beta.9",
+    "version": "1.0.0-beta.10",
     "displayName": "ZenStack Server-side Adapters",
     "description": "ZenStack server-side adapters",
     "homepage": "https://zenstack.dev",
