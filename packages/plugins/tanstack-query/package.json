@@ -8,6 +8,9 @@
         ".": {
             "default": "./index.js"
         },
+        "./package.json": {
+            "default": "./package.json"
+        },
         "./runtime/react": {
             "import": "./runtime/react.mjs",
             "require": "./runtime/react.js",

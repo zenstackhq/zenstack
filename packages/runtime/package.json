@@ -21,6 +21,9 @@
         ".": {
             "default": "./index.js"
         },
+        "./package.json": {
+            "default": "./package.json"
+        },
         "./zod": {
             "default": "./zod/index.js"
         },
