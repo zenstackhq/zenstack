@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Buffer } from 'buffer';
 import Decimal from 'decimal.js';
 import SuperJSON from 'superjson';
 
