@@ -39,3 +39,13 @@ export enum CrudFailureReason {
 export enum PrismaErrorCode {
     CONSTRAINED_FAILED = 'P2004',
 }
+
+/**
+ * Field name for storing in-transaction flag
+ */
+export const PRISIMA_TX_FLAG = '$__zenstack_tx';
+
+/**
+ * Field name for getting current enhancer
+ */
+export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';

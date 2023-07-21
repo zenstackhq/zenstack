@@ -1,17 +1,13 @@
-import { withOmit, WithOmitOptions } from './omit';
-import { withPassword, WithPasswordOptions } from './password';
-import { withPolicy, WithPolicyContext, WithPolicyOptions } from './policy';
-
-/**
- * Options @see withPresets
- */
-export type WithPresetsOptions = WithPolicyOptions & WithPasswordOptions & WithOmitOptions;
+import { EnhancementOptions, enhance } from './enhance';
+import { WithPolicyContext } from './policy';
 
 /**
  * Gets a Prisma client enhanced with all essential behaviors, including access
  * policy, field validation, field omission and password hashing.
  *
  * It's a shortcut for calling withOmit(withPassword(withPolicy(prisma, options))).
+ *
+ * @deprecated This API is deprecated. Please call `enhance` instead.
  *
  * @param prisma The Prisma client to enhance.
  * @param context The context to for evaluating access policies.
@@ -20,7 +16,7 @@ export type WithPresetsOptions = WithPolicyOptions & WithPasswordOptions & WithO
 export function withPresets<DbClient extends object>(
     prisma: DbClient,
     context?: WithPolicyContext,
-    options?: WithPresetsOptions
+    options?: EnhancementOptions
 ) {
-    return withPolicy(withOmit(withPassword(prisma, options), options), context, options);
+    return enhance(prisma, context, options);
 }
