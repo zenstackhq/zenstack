@@ -8,7 +8,7 @@ describe('Type Coverage Tests', () => {
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPresets, prisma: _prisma } = await loadSchema(
+        const { enhance, prisma: _prisma } = await loadSchema(
             `
             model Foo {
                 id String @id @default(cuid())
@@ -26,7 +26,7 @@ describe('Type Coverage Tests', () => {
             }
             `
         );
-        getDb = withPresets;
+        getDb = enhance;
         prisma = _prisma;
     });
 

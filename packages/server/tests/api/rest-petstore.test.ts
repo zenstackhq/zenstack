@@ -59,7 +59,7 @@ describe('REST server tests - Pet Store API', () => {
         const params = await loadSchema(schema);
 
         prisma = params.prisma;
-        db = params.withPresets({ id: 'user1' });
+        db = params.enhance({ id: 'user1' });
         zodSchemas = params.zodSchemas;
         modelMeta = params.modelMeta;
 

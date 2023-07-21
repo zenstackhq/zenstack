@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import { withOmit, withPassword, withPolicy, withPresets, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
+import { enhance, withOmit, withPassword, withPolicy, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
 import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -253,8 +253,8 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             ),
         withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
         withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
-        withPresets: (user?: AuthUser) =>
-            withPresets<WeakDbClientContract>(
+        enhance: (user?: AuthUser) =>
+            enhance<WeakDbClientContract>(
                 prisma,
                 { user },
                 { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }

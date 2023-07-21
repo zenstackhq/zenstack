@@ -2,7 +2,7 @@ import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Misc Function Coverage Tests', () => {
     it('now() function', async () => {
-        const { withPresets } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model Foo {
                 id String @id @default(cuid())
@@ -13,7 +13,7 @@ describe('Misc Function Coverage Tests', () => {
             `
         );
 
-        const db = withPresets();
+        const db = enhance();
         const now = new Date();
 
         await db.foo.create({ data: { id: '1', dt: new Date(now.getTime() + 1000) } });

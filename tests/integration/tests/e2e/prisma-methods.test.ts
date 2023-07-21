@@ -6,7 +6,7 @@ describe('Prisma Methods Tests', () => {
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPresets, prisma: _prisma } = await loadSchema(
+        const { enhance, prisma: _prisma } = await loadSchema(
             `
             model Model {
                 id String @id @default(cuid())
@@ -16,7 +16,7 @@ describe('Prisma Methods Tests', () => {
             }
             `
         );
-        getDb = withPresets;
+        getDb = enhance;
         prisma = _prisma;
     });
 
