@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { PRISIMA_TX_FLAG, PRISMA_PROXY_ENHANCER } from '../constants';
 import { DbClientContract } from '../types';
 import { ModelMeta } from './types';
 
@@ -165,20 +166,22 @@ export function makeProxy<T extends PrismaProxyHandler>(
     prisma: any,
     modelMeta: ModelMeta,
     makeHandler: (prisma: object, model: string) => T,
-    name = 'unnamed_enhancer',
-    inTransaction = false
+    name = 'unnamed_enhancer'
+    // inTransaction = false
 ) {
+    // // put a transaction marker on the proxy target
+    // prisma[PRISIMA_TX_FLAG] = inTransaction;
+
     const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             // enhancer metadata
-            if (prop === '__zenstack_enhancer') {
+            if (prop === PRISMA_PROXY_ENHANCER) {
                 return name;
             }
 
-            // transaction metadata
-            if (prop === '__zenstack_tx') {
-                return inTransaction;
+            if (prop === 'toString') {
+                return () => `$zenstack_${name}[${target.toString()}]`;
             }
 
             if (prop === '$transaction') {
@@ -200,7 +203,8 @@ export function makeProxy<T extends PrismaProxyHandler>(
 
                         const txFunc = input;
                         return $transaction.bind(target)((tx: any) => {
-                            const txProxy = makeProxy(tx, modelMeta, makeHandler, name + '$tx', true);
+                            const txProxy = makeProxy(tx, modelMeta, makeHandler, name + '$tx');
+                            txProxy[PRISIMA_TX_FLAG] = true;
                             return txFunc(txProxy);
                         }, ...rest);
                     };
@@ -215,8 +219,8 @@ export function makeProxy<T extends PrismaProxyHandler>(
             }
 
             const propVal = Reflect.get(target, prop, receiver);
-            if (!propVal) {
-                return undefined;
+            if (!propVal || typeof propVal !== 'object') {
+                return propVal;
             }
 
             return createHandlerProxy(makeHandler(target, prop));

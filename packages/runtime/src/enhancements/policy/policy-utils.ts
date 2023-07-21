@@ -10,6 +10,7 @@ import {
     AUXILIARY_FIELDS,
     CrudFailureReason,
     GUARD_FIELD_NAME,
+    PRISIMA_TX_FLAG,
     PrismaErrorCode,
     TRANSACTION_FIELD_NAME,
 } from '../../constants';
@@ -786,7 +787,7 @@ export class PolicyUtil {
     }
 
     private transaction(db: DbClientContract, action: (tx: Record<string, DbOperations>) => Promise<any>) {
-        if (db.__zenstack_tx) {
+        if (db[PRISIMA_TX_FLAG]) {
             // already in transaction, don't nest
             return action(db);
         } else {
