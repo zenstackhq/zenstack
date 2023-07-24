@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.0.0-beta.11",
+    "version": "1.0.0-beta.12",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -55,6 +55,7 @@
         "deepcopy": "^2.1.0",
         "lower-case-first": "^2.0.2",
         "pluralize": "^8.0.0",
+        "semver": "^7.3.8",
         "superjson": "^1.11.0",
         "tslib": "^2.4.1",
         "upper-case-first": "^2.0.2",
@@ -71,6 +72,7 @@
         "@types/jest": "^29.5.0",
         "@types/node": "^18.0.0",
         "@types/pluralize": "^0.0.29",
+        "@types/semver": "^7.3.13",
         "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.3"

@@ -175,9 +175,9 @@ model M {
 }
         `;
 
-        const { withPresets } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        await makeTestClient('/m/create', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/create', { getPrisma: () => enhance() })
             .post('/m/create')
             .send({ data: { value: 0 } })
             .expect(403)
@@ -185,38 +185,38 @@ model M {
                 expect(resp.body.error.reason).toBe('RESULT_NOT_READABLE');
             });
 
-        await makeTestClient('/m/create', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/create', { getPrisma: () => enhance() })
             .post('/')
             .send({ data: { id: '1', value: 1 } })
             .expect(201);
 
-        await makeTestClient('/m/findMany', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/findMany', { getPrisma: () => enhance() })
             .get('/')
             .expect(200)
             .expect((resp) => {
                 expect(resp.body.data).toHaveLength(1);
             });
 
-        await makeTestClient('/m/update', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/update', { getPrisma: () => enhance() })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 0 } })
             .expect(403);
 
-        await makeTestClient('/m/update', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/update', { getPrisma: () => enhance() })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 2 } })
             .expect(200);
 
-        await makeTestClient('/m/delete', { getPrisma: () => withPresets() }, { where: { id: '1' } })
+        await makeTestClient('/m/delete', { getPrisma: () => enhance() }, { where: { id: '1' } })
             .del('/')
             .expect(403);
 
-        await makeTestClient('/m/update', { getPrisma: () => withPresets() })
+        await makeTestClient('/m/update', { getPrisma: () => enhance() })
             .put('/')
             .send({ where: { id: '1' }, data: { value: 3 } })
             .expect(200);
 
-        await makeTestClient('/m/delete', { getPrisma: () => withPresets() }, { where: { id: '1' } })
+        await makeTestClient('/m/delete', { getPrisma: () => enhance() }, { where: { id: '1' } })
             .del('/')
             .expect(200);
     });

@@ -8,11 +8,10 @@ describe('Todo Presets Tests', () => {
     let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
-        const { withPresets, prisma: _prisma } = await loadSchemaFromFile(
-            path.join(__dirname, '../schema/todo.zmodel'),
-            { addPrelude: false }
-        );
-        getDb = withPresets;
+        const { enhance, prisma: _prisma } = await loadSchemaFromFile(path.join(__dirname, '../schema/todo.zmodel'), {
+            addPrelude: false,
+        });
+        getDb = enhance;
         prisma = _prisma;
     });
 
