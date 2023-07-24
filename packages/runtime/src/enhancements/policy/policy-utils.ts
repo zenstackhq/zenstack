@@ -38,10 +38,6 @@ import {
 import { Logger } from './logger';
 import semver from 'semver';
 
-// use Prisma version to detect if we can filter when nested-fetching to-one relation
-const prismaVersion = getPrismaVersion();
-const supportNestedToOneFilter = prismaVersion ? semver.gte(prismaVersion, '4.8.0') : false;
-
 /**
  * Access policy enforcement utilities
  */
@@ -49,6 +45,8 @@ export class PolicyUtil {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     private readonly logger: Logger;
+
+    private supportNestedToOneFilter = false;
 
     constructor(
         private readonly db: DbClientContract,
@@ -59,6 +57,10 @@ export class PolicyUtil {
         private readonly logPrismaQuery?: boolean
     ) {
         this.logger = new Logger(db);
+
+        // use Prisma version to detect if we can filter when nested-fetching to-one relation
+        const prismaVersion = getPrismaVersion();
+        this.supportNestedToOneFilter = prismaVersion ? semver.gte(prismaVersion, '4.8.0') : false;
     }
 
     /**
@@ -352,7 +354,7 @@ export class PolicyUtil {
                 // if Prisma version is high enough to support filtering directly when
                 // fetching a nullable to-one relation, let's do it that way
                 // https://github.com/prisma/prisma/discussions/20350
-                (supportNestedToOneFilter && fieldInfo.isOptional)
+                (this.supportNestedToOneFilter && fieldInfo.isOptional)
             ) {
                 if (typeof injectTarget[field] !== 'object') {
                     injectTarget[field] = {};
@@ -416,7 +418,7 @@ export class PolicyUtil {
                     fieldInfo.isDataModel &&
                     !fieldInfo.isArray &&
                     // if Prisma version supports filtering nullable to-one relation, no need to further check
-                    !(supportNestedToOneFilter && fieldInfo.isOptional)
+                    !(this.supportNestedToOneFilter && fieldInfo.isOptional)
                 ) {
                     // to-one relation data cannot be trimmed by injected guards, we have to
                     // post-check them
