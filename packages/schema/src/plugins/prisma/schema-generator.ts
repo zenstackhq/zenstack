@@ -251,8 +251,7 @@ export default class PrismaSchemaGenerator {
         const provider = generator.fields.find((f) => f.name === 'provider');
         if (provider?.value === 'prisma-client-js') {
             const prismaVersion = getPrismaVersion();
-            if (prismaVersion && semver.lt(prismaVersion, '4.7.0')) {
-                // insert interactiveTransactions preview feature
+            if (prismaVersion) {
                 let previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures');
                 if (!previewFeatures) {
                     previewFeatures = { name: 'previewFeatures', value: [] };
@@ -261,8 +260,19 @@ export default class PrismaSchemaGenerator {
                 if (!Array.isArray(previewFeatures.value)) {
                     throw new PluginError(name, 'option "previewFeatures" must be an array');
                 }
-                if (!previewFeatures.value.includes('interactiveTransactions')) {
-                    previewFeatures.value.push('interactiveTransactions');
+
+                if (semver.lt(prismaVersion, '4.7.0')) {
+                    // interactiveTransactions feature is opt-in before 4.7.0
+                    if (!previewFeatures.value.includes('interactiveTransactions')) {
+                        previewFeatures.value.push('interactiveTransactions');
+                    }
+                }
+
+                if (semver.gte(prismaVersion, '4.8.0') && semver.lt(prismaVersion, '5.0.0')) {
+                    // extendedWhereUnique feature is opt-in during [4.8.0, 5.0.0)
+                    if (!previewFeatures.value.includes('extendedWhereUnique')) {
+                        previewFeatures.value.push('extendedWhereUnique');
+                    }
                 }
             }
         }

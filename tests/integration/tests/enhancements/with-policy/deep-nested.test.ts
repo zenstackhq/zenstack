@@ -394,13 +394,12 @@ describe('With Policy:deep nested', () => {
             },
         });
 
-        // delete read-back reject: M4 @@deny('read', value == 200)
-        await expect(
-            db.m1.delete({
-                where: { myId: '1' },
-                include: { m2: { select: { m4: true } } },
-            })
-        ).toBeRejectedByPolicy(['result is not allowed to be read back']);
+        // delete read-back filtered: M4 @@deny('read', value == 200)
+        const r = await db.m1.delete({
+            where: { myId: '1' },
+            include: { m2: { select: { m4: true } } },
+        });
+        expect(r.m2.m4).toHaveLength(1);
 
         await expect(db.m4.findMany()).resolves.toHaveLength(0);
 
@@ -418,12 +417,11 @@ describe('With Policy:deep nested', () => {
             },
         });
 
-        // delete read-back reject: M3 @@deny('read', value == 200)
-        await expect(
-            db.m1.delete({
-                where: { myId: '2' },
-                include: { m2: { select: { m3: { select: { id: true } } } } },
-            })
-        ).toBeRejectedByPolicy();
+        // delete read-back filtered: M3 @@deny('read', value == 200)
+        const r1 = await db.m1.delete({
+            where: { myId: '2' },
+            include: { m2: { select: { m3: { select: { id: true } } } } },
+        });
+        expect(r1.m2.m3).toBeNull();
     });
 });

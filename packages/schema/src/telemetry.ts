@@ -1,4 +1,5 @@
 import { createId } from '@paralleldrive/cuid2';
+import { getPrismaVersion } from '@zenstackhq/sdk';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
 import { init, Mixpanel } from 'mixpanel';
@@ -8,7 +9,6 @@ import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import { getVersion } from './utils/version-utils';
-import { getPrismaVersion } from '@zenstackhq/sdk';
 
 /**
  * Telemetry events
