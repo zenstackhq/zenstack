@@ -23,7 +23,7 @@ import {
     PolicyOperationKind,
     PrismaWriteActionType,
 } from '../../types';
-import { getVersion } from '../../version';
+import { getPrismaVersion, getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
 import { NestedWriteVisitor, type NestedWriteVisitorContext } from '../nested-write-vistor';
 import type { ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
@@ -36,6 +36,11 @@ import {
     prismaClientUnknownRequestError,
 } from '../utils';
 import { Logger } from './logger';
+import semver from 'semver';
+
+// use Prisma version to detect if we can filter when nested-fetching to-one relation
+const prismaVersion = getPrismaVersion();
+const supportNestedToOneFilter = prismaVersion ? semver.gte(prismaVersion, '4.8.0') : false;
 
 /**
  * Access policy enforcement utilities
@@ -334,6 +339,7 @@ export class PolicyUtil {
         }
 
         const idFields = this.getIdFields(model);
+
         for (const field of getModelFields(injectTarget)) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel) {
@@ -341,12 +347,17 @@ export class PolicyUtil {
                 continue;
             }
 
-            if (fieldInfo.isArray) {
+            if (
+                fieldInfo.isArray ||
+                // if Prisma version is high enough to support filtering directly when
+                // fetching a nullable to-one relation, let's do it that way
+                // https://github.com/prisma/prisma/discussions/20350
+                (supportNestedToOneFilter && fieldInfo.isOptional)
+            ) {
                 if (typeof injectTarget[field] !== 'object') {
                     injectTarget[field] = {};
                 }
-                // inject extra condition for to-many relation
-
+                // inject extra condition for to-many or nullable to-one relation
                 await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
             } else {
                 // there's no way of injecting condition for to-one relation, so if there's
@@ -361,9 +372,6 @@ export class PolicyUtil {
                     }
                 }
             }
-
-            // recurse
-            await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
         }
     }
 
@@ -373,69 +381,79 @@ export class PolicyUtil {
      * omitted.
      */
     async postProcessForRead(data: any, model: string, args: any, operation: PolicyOperationKind) {
-        for (const entityData of enumerate(data)) {
-            if (typeof entityData !== 'object' || !entityData) {
+        await Promise.all(
+            enumerate(data).map((entityData) => this.postProcessSingleEntityForRead(entityData, model, args, operation))
+        );
+    }
+
+    private async postProcessSingleEntityForRead(data: any, model: string, args: any, operation: PolicyOperationKind) {
+        if (typeof data !== 'object' || !data) {
+            return;
+        }
+
+        // strip auxiliary fields
+        for (const auxField of AUXILIARY_FIELDS) {
+            if (auxField in data) {
+                delete data[auxField];
+            }
+        }
+
+        const injectTarget = args.select ?? args.include;
+        if (!injectTarget) {
+            return;
+        }
+
+        // recurse into nested entities
+        for (const field of Object.keys(injectTarget)) {
+            const fieldData = data[field];
+            if (typeof fieldData !== 'object' || !fieldData) {
                 continue;
             }
 
-            // strip auxiliary fields
-            for (const auxField of AUXILIARY_FIELDS) {
-                if (auxField in entityData) {
-                    delete entityData[auxField];
-                }
-            }
+            const fieldInfo = resolveField(this.modelMeta, model, field);
+            if (fieldInfo) {
+                if (
+                    fieldInfo.isDataModel &&
+                    !fieldInfo.isArray &&
+                    // if Prisma version supports filtering nullable to-one relation, no need to further check
+                    !(supportNestedToOneFilter && fieldInfo.isOptional)
+                ) {
+                    // to-one relation data cannot be trimmed by injected guards, we have to
+                    // post-check them
+                    const ids = this.getEntityIds(fieldInfo.type, fieldData);
 
-            const injectTarget = args.select ?? args.include;
-            if (!injectTarget) {
-                continue;
-            }
+                    if (Object.keys(ids).length !== 0) {
+                        if (this.logger.enabled('info')) {
+                            this.logger.info(
+                                `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
+                            );
+                        }
 
-            // recurse into nested entities
-            for (const field of Object.keys(injectTarget)) {
-                const fieldData = entityData[field];
-                if (typeof fieldData !== 'object' || !fieldData) {
-                    continue;
-                }
-
-                const fieldInfo = resolveField(this.modelMeta, model, field);
-                if (fieldInfo) {
-                    if (fieldInfo.isDataModel && !fieldInfo.isArray) {
-                        // to-one relation data cannot be trimmed by injected guards, we have to
-                        // post-check them
-                        const ids = this.getEntityIds(fieldInfo.type, fieldData);
-
-                        if (Object.keys(ids).length !== 0) {
-                            // if (this.logger.enabled('info')) {
-                            //     this.logger.info(
-                            //         `Validating read of to-one relation: ${fieldInfo.type}#${formatObject(ids)}`
-                            //     );
-                            // }
-                            try {
-                                await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
-                            } catch (err) {
-                                if (
-                                    isPrismaClientKnownRequestError(err) &&
-                                    err.code === PrismaErrorCode.CONSTRAINED_FAILED
-                                ) {
-                                    // denied by policy
-                                    if (fieldInfo.isOptional) {
-                                        // if the relation is optional, just nullify it
-                                        entityData[field] = null;
-                                    } else {
-                                        // otherwise reject
-                                        throw err;
-                                    }
+                        try {
+                            await this.checkPolicyForFilter(fieldInfo.type, ids, operation, this.db);
+                        } catch (err) {
+                            if (
+                                isPrismaClientKnownRequestError(err) &&
+                                err.code === PrismaErrorCode.CONSTRAINED_FAILED
+                            ) {
+                                // denied by policy
+                                if (fieldInfo.isOptional) {
+                                    // if the relation is optional, just nullify it
+                                    data[field] = null;
                                 } else {
-                                    // unknown error
+                                    // otherwise reject
                                     throw err;
                                 }
+                            } else {
+                                // unknown error
+                                throw err;
                             }
                         }
                     }
-
-                    // recurse
-                    await this.postProcessForRead(fieldData, fieldInfo.type, injectTarget[field], operation);
                 }
+
+                // recurse
+                await this.postProcessForRead(fieldData, fieldInfo.type, injectTarget[field], operation);
             }
         }
     }
