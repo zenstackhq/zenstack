@@ -7,8 +7,6 @@ import { WithPolicyContext } from './policy';
  *
  * It's a shortcut for calling withOmit(withPassword(withPolicy(prisma, options))).
  *
- * @deprecated This API is deprecated. Please call `enhance` instead.
- *
  * @param prisma The Prisma client to enhance.
  * @param context The context to for evaluating access policies.
  * @param options Options.
