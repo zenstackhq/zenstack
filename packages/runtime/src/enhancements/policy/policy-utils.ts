@@ -361,6 +361,9 @@ export class PolicyUtil {
                 }
                 // inject extra condition for to-many or nullable to-one relation
                 await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
+
+                // recurse
+                await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
             } else {
                 // there's no way of injecting condition for to-one relation, so if there's
                 // "select" clause we make sure 'id' fields are selected and check them against
