@@ -49,3 +49,8 @@ export const PRISIMA_TX_FLAG = '$__zenstack_tx';
  * Field name for getting current enhancer
  */
 export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';
+
+/**
+ * Minimum Prisma version supported
+ */
+export const PRISMA_MINIMUM_VERSION = '4.8.0';
