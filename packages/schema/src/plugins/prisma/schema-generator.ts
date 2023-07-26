@@ -20,6 +20,7 @@ import {
     LiteralExpr,
     Model,
 } from '@zenstackhq/language/ast';
+import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     analyzePolicies,
     getDataModels,
@@ -80,8 +81,16 @@ export default class PrismaSchemaGenerator {
 `;
 
     async generate(model: Model, options: PluginOptions, config?: Record<string, string>) {
-        const prisma = new PrismaModel();
         const warnings: string[] = [];
+
+        const prismaVersion = getPrismaVersion();
+        if (prismaVersion && semver.lt(prismaVersion, PRISMA_MINIMUM_VERSION)) {
+            warnings.push(
+                `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVersion}".`
+            );
+        }
+
+        const prisma = new PrismaModel();
 
         for (const decl of model.declarations) {
             switch (decl.$type) {
@@ -252,26 +261,23 @@ export default class PrismaSchemaGenerator {
         if (provider?.value === 'prisma-client-js') {
             const prismaVersion = getPrismaVersion();
             if (prismaVersion) {
-                let previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures');
-                if (!previewFeatures) {
-                    previewFeatures = { name: 'previewFeatures', value: [] };
-                    generator.fields.push(previewFeatures);
-                }
-                if (!Array.isArray(previewFeatures.value)) {
+                const previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures')?.value ?? [];
+
+                if (!Array.isArray(previewFeatures)) {
                     throw new PluginError(name, 'option "previewFeatures" must be an array');
                 }
 
-                if (semver.lt(prismaVersion, '4.7.0')) {
-                    // interactiveTransactions feature is opt-in before 4.7.0
-                    if (!previewFeatures.value.includes('interactiveTransactions')) {
-                        previewFeatures.value.push('interactiveTransactions');
+                if (semver.lt(prismaVersion, '5.0.0')) {
+                    // extendedWhereUnique feature is opt-in pre V5
+                    if (!previewFeatures.includes('extendedWhereUnique')) {
+                        previewFeatures.push('extendedWhereUnique');
                     }
                 }
 
-                if (semver.gte(prismaVersion, '4.8.0') && semver.lt(prismaVersion, '5.0.0')) {
-                    // extendedWhereUnique feature is opt-in during [4.8.0, 5.0.0)
-                    if (!previewFeatures.value.includes('extendedWhereUnique')) {
-                        previewFeatures.value.push('extendedWhereUnique');
+                if (previewFeatures.length > 0) {
+                    const curr = generator.fields.find((f) => f.name === 'previewFeatures');
+                    if (!curr) {
+                        generator.fields.push({ name: 'previewFeatures', value: previewFeatures });
                     }
                 }
             }

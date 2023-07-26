@@ -118,7 +118,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // entity fails access policies
         const result: any = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) => {
             if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`create\`: ${formatObject(writeArgs)}`);
+                this.logger.info(`[withPolicy] \`create\` ${this.model}: ${formatObject(writeArgs)}`);
             }
             return dbOps.create(writeArgs);
         });
@@ -147,7 +147,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // entity fails access policies
         const result = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) => {
             if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`createMany\`: ${formatObject(writeArgs)}`);
+                this.logger.info(`[withPolicy] \`createMany\` ${this.model}: ${formatObject(writeArgs)}`);
             }
             return dbOps.createMany(writeArgs, skipDuplicates);
         });
@@ -175,7 +175,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // create fails access policies
         const result: any = await this.utils.processWrite(this.model, 'update', args, (dbOps, writeArgs) => {
             if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`update\`: ${formatObject(writeArgs)}`);
+                this.logger.info(`[withPolicy] \`update\` ${this.model}: ${formatObject(writeArgs)}`);
             }
             return dbOps.update(writeArgs);
         });
@@ -203,7 +203,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // create fails access policies
         const result = await this.utils.processWrite(this.model, 'updateMany', args, (dbOps, writeArgs) => {
             if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`updateMany\`: ${formatObject(writeArgs)}`);
+                this.logger.info(`[withPolicy] \`updateMany\` ${this.model}: ${formatObject(writeArgs)}`);
             }
             return dbOps.updateMany(writeArgs);
         });
@@ -235,7 +235,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // create fails access policies
         const result: any = await this.utils.processWrite(this.model, 'upsert', args, (dbOps, writeArgs) => {
             if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`upsert\`: ${formatObject(writeArgs)}`);
+                this.logger.info(`[withPolicy] \`upsert\` ${this.model}: ${formatObject(writeArgs)}`);
             }
             return dbOps.upsert(writeArgs);
         });
@@ -273,7 +273,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // conduct the deletion
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`delete\`:\n${formatObject(args)}`);
+            this.logger.info(`[withPolicy] \`delete\` ${this.model}:\n${formatObject(args)}`);
         }
         await this.modelClient.delete(args);
 
@@ -298,7 +298,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // conduct the deletion
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`deleteMany\`:\n${formatObject(args)}`);
+            this.logger.info(`[withPolicy] \`deleteMany\` ${this.model}:\n${formatObject(args)}`);
         }
         return this.modelClient.deleteMany(args);
     }
@@ -314,7 +314,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`aggregate\`:\n${formatObject(args)}`);
+            this.logger.info(`[withPolicy] \`aggregate\` ${this.model}:\n${formatObject(args)}`);
         }
         return this.modelClient.aggregate(args);
     }
@@ -330,7 +330,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`groupBy\`:\n${formatObject(args)}`);
+            this.logger.info(`[withPolicy] \`groupBy\` ${this.model}:\n${formatObject(args)}`);
         }
         return this.modelClient.groupBy(args);
     }
@@ -343,7 +343,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`count\`:\n${formatObject(args)}`);
+            this.logger.info(`[withPolicy] \`count\` ${this.model}:\n${formatObject(args)}`);
         }
         return this.modelClient.count(args);
     }

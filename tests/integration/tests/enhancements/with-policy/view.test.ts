@@ -100,6 +100,6 @@ describe('View Policy Test', () => {
         expect(r1.user).toBeTruthy();
 
         // user not readable
-        await expect(db.userInfo.findFirst({ include: { user: true } })).toBeRejectedByPolicy();
+        await expect(db.userInfo.findFirst({ include: { user: true } })).toResolveFalsy();
     });
 });

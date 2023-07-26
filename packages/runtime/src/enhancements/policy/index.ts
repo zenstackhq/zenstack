@@ -2,6 +2,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import path from 'path';
+import semver from 'semver';
+import { PRISMA_MINIMUM_VERSION } from '../../constants';
 import { AuthUser, DbClientContract } from '../../types';
 import { getDefaultModelMeta } from '../model-meta';
 import { makeProxy } from '../proxy';
@@ -53,6 +55,17 @@ export function withPolicy<DbClient extends object>(
     context?: WithPolicyContext,
     options?: WithPolicyOptions
 ): DbClient {
+    if (!prisma) {
+        throw new Error('Invalid prisma instance');
+    }
+
+    const prismaVer = (prisma as any)._clientVersion;
+    if (prismaVer && semver.lt(prismaVer, PRISMA_MINIMUM_VERSION)) {
+        console.warn(
+            `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVer}".`
+        );
+    }
+
     const _policy = options?.policy ?? getDefaultPolicy();
     const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas();
