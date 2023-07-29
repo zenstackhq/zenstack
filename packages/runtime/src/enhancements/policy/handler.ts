@@ -148,6 +148,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
+        await this.tryReject('create');
+
         const origArgs = args;
         args = this.utils.clone(args);
 
@@ -436,6 +438,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
+        await this.tryReject('update');
+
         const origArgs = args;
         args = this.utils.clone(args);
 
@@ -696,27 +700,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'update field is required in query argument');
         }
 
-        const origArgs = args;
-        args = this.utils.clone(args);
-
         await this.tryReject('create');
         await this.tryReject('update');
 
-        // use a transaction to wrap the write so it can be reverted if any nested
-        // create fails access policies
-        const result: any = await this.utils.processWrite(this.model, 'upsert', args, (dbOps, writeArgs) => {
-            if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`upsert\` ${this.model}: ${formatObject(writeArgs)}`);
-            }
-            return dbOps.upsert(writeArgs);
+        const select = this.utils.makeIdSelection(this.model);
+        const existing = await this.prisma[this.model].findUnique({
+            where: args.where,
+            select,
         });
 
-        const ids = this.utils.getEntityIds(this.model, result);
-        if (Object.keys(ids).length === 0) {
-            throw this.utils.unknownError(`unexpected error: upsert didn't return an id`);
-        }
+        const { where, create, update, ...rest } = args;
 
-        return this.checkReadBack(origArgs, ids, 'update');
+        if (existing) {
+            return this.update({ where, data: update, ...rest });
+        } else {
+            return await this.create({ data: create, ...rest });
+        }
     }
 
     //#endregion
@@ -733,34 +732,29 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         await this.tryReject('delete');
 
-        // ensures the item under deletion passes policy check
-        await this.utils.checkPolicyForFilter(this.model, args.where, 'delete', this.prisma);
-
         // read the entity under deletion with respect to read policies
-        let readResult: any;
+        let err: Error | undefined = undefined;
+        let result: any;
         try {
-            const items = await this.utils.readWithCheck(this.model, args);
-            readResult = items[0];
-        } catch (err) {
-            // not readable
-            readResult = undefined;
+            result = await this.checkReadBack(args, args.where, 'delete');
+        } catch (_err) {
+            err = _err as Error;
         }
 
-        // conduct the deletion
+        // inject delete guard
+        const guard = await this.utils.getAuthGuard(this.model, 'delete');
+        const deleteArgs = guard === true ? args : { where: { ...args.where, AND: guard } };
+
+        // proceed with the deletion
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`delete\` ${this.model}:\n${formatObject(args)}`);
+            this.logger.info(`[withPolicy] \`delete\` ${this.model}:\n${formatObject(deleteArgs)}`);
         }
-        await this.modelClient.delete(args);
+        await this.modelClient.delete(deleteArgs);
 
-        if (!readResult) {
-            throw this.utils.deniedByPolicy(
-                this.model,
-                'delete',
-                'result is not allowed to be read back',
-                CrudFailureReason.RESULT_NOT_READABLE
-            );
+        if (err) {
+            throw err;
         } else {
-            return readResult;
+            return result;
         }
     }
 
@@ -787,8 +781,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
 
-        await this.tryReject('read');
-
         // inject policy conditions
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
@@ -803,8 +795,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
 
-        await this.tryReject('read');
-
         // inject policy conditions
         await this.utils.injectAuthGuard(args, this.model, 'read');
 
@@ -815,8 +805,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async count(args: any) {
-        await this.tryReject('read');
-
         // inject policy conditions
         args = args ?? {};
         await this.utils.injectAuthGuard(args, this.model, 'read');
@@ -831,19 +819,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     //#region Utils
 
-    tryReject(operation: PolicyOperationKind) {
+    private tryReject(operation: PolicyOperationKind) {
         const guard = this.utils.getAuthGuard(this.model, operation);
         if (guard === false) {
             throw this.utils.deniedByPolicy(this.model, operation);
         }
     }
 
-    private async checkReadBack(origArgs: any, ids: Record<string, unknown>, operation: PolicyOperationKind) {
-        let readWithIds = ids;
+    private async checkReadBack(origArgs: any, ids: any, operation: PolicyOperationKind): Promise<unknown> {
+        origArgs = this.utils.clone(origArgs);
+
+        let readWithIds = this.utils.clone(ids);
         if (Object.keys(readWithIds).length > 1) {
             // multi-field Id, turn into 'id1_id2: { id1: ..., id2: ... }' format
             readWithIds = {
-                [Object.keys(readWithIds).join('_')]: ids,
+                [Object.keys(readWithIds).join('_')]: readWithIds,
             };
         }
 
@@ -855,8 +845,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             CrudFailureReason.RESULT_NOT_READABLE
         );
 
-        const r = await this.utils.injectForRead(this.model, readArgs);
-        if (!r) {
+        const injectResult = await this.utils.injectForRead(this.model, readArgs);
+        if (!injectResult) {
             throw err;
         }
 

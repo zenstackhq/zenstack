@@ -172,7 +172,7 @@ describe('With Policy:toplevel operations', () => {
             })
         ).toBeRejectedByPolicy();
 
-        await expect(db.model.delete({ where: { id: '1' } })).toBeRejectedByPolicy();
+        await expect(db.model.delete({ where: { id: '1' } })).toBeNotFound();
         expect(await prisma.model.findUnique({ where: { id: '1' } })).toBeTruthy();
 
         await expect(
