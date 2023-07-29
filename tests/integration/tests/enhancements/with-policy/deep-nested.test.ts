@@ -154,7 +154,6 @@ describe('With Policy:deep nested', () => {
                     myId: '1',
                     m2: {
                         create: {
-                            id: 201,
                             value: 1,
                             m3: {
                                 create: {
@@ -308,7 +307,6 @@ describe('With Policy:deep nested', () => {
                 data: {
                     m2: {
                         create: {
-                            id: 201,
                             value: 2,
                             m3: {
                                 create: { id: 'm3-1', value: 11 },

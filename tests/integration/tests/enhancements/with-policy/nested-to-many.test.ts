@@ -347,7 +347,7 @@ describe('With Policy:nested to-many', () => {
                     },
                 },
             })
-        ).toBeRejectedWithCode('P2017');
+        ).toBeNotFound();
 
         await expect(
             db.m1.update({

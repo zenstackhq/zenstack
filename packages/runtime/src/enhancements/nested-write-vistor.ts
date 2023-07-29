@@ -44,6 +44,8 @@ export type NestedWriterVisitorCallback = {
 
     disconnect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<void>;
 
+    set?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<void>;
+
     update?: (model: string, args: { where: object; data: any }, context: NestedWriteVisitorContext) => Promise<void>;
 
     updateMany?: (
@@ -120,8 +122,9 @@ export class NestedWriteVisitor {
             return;
         }
 
-        const isToOneUpdate = field?.isDataModel && !field.isArray;
+        // const isToOneUpdate = field?.isDataModel && !field.isArray;
         const context = { parent, field, nestingPath: [...nestingPath] };
+        const toplevel = field == undefined;
 
         // visit payload
         switch (action) {
@@ -149,7 +152,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'connectOrCreate':
-                context.nestingPath.push({ field, model, where: data.where, unique: true });
+                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
                     if (this.callback.connectOrCreate) {
                         await this.callback.connectOrCreate(model, item, context);
@@ -188,13 +191,20 @@ export class NestedWriteVisitor {
                 }
                 break;
 
+            case 'set':
+                context.nestingPath.push({ field, model, where: {}, unique: false });
+                if (this.callback.set) {
+                    await this.callback.set(model, data, context);
+                }
+                break;
+
             case 'update':
                 context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
                     if (this.callback.update) {
                         await this.callback.update(model, item, context);
                     }
-                    const payload = isToOneUpdate ? item : item.data;
+                    const payload = typeof item.data === 'object' ? item.data : item;
                     await this.visitSubPayload(model, action, payload, context.nestingPath);
                 }
                 break;
@@ -210,7 +220,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'upsert': {
-                context.nestingPath.push({ field, model, where: data.where, unique: true });
+                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
                     if (this.callback.upsert) {
                         await this.callback.upsert(model, item, context);
@@ -223,9 +233,15 @@ export class NestedWriteVisitor {
 
             case 'delete': {
                 if (this.callback.delete) {
-                    context.nestingPath.push({ field, model, where: data.where, unique: false });
                     for (const item of enumerate(data)) {
-                        await this.callback.delete(model, item, context);
+                        const newContext = {
+                            ...context,
+                            nestingPath: [
+                                ...context.nestingPath,
+                                { field, model, where: toplevel ? item.where : item, unique: false },
+                            ],
+                        };
+                        await this.callback.delete(model, item, newContext);
                     }
                 }
                 break;
@@ -233,9 +249,15 @@ export class NestedWriteVisitor {
 
             case 'deleteMany':
                 if (this.callback.deleteMany) {
-                    context.nestingPath.push({ field, model, where: data.where, unique: false });
                     for (const item of enumerate(data)) {
-                        await this.callback.deleteMany(model, item, context);
+                        const newContext = {
+                            ...context,
+                            nestingPath: [
+                                ...context.nestingPath,
+                                { field, model, where: toplevel ? item.where : item, unique: false },
+                            ],
+                        };
+                        await this.callback.deleteMany(model, item, newContext);
                     }
                 }
                 break;

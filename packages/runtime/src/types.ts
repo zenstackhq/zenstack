@@ -103,7 +103,7 @@ export type FieldInfo = {
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>) => Promise<T>;
+    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>, options?: unknown) => Promise<T>;
 };
 
 export const PrismaWriteActions = [
@@ -115,6 +115,7 @@ export const PrismaWriteActions = [
     'upsert',
     'connect',
     'disconnect',
+    'set',
     'delete',
     'deleteMany',
 ] as const;

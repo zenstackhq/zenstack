@@ -135,14 +135,14 @@ export const toResolveNull = async function (received: Promise<unknown>) {
 function expectPrismaCode(err: any, code: string) {
     if (!isPrismaClientKnownRequestError(err)) {
         return {
-            message: () => `expected PrismaClientKnownRequestError', got ${err}`,
+            message: () => `expected PrismaClientKnownRequestError, got ${err}`,
             pass: false,
         };
     }
     const errCode = err.code;
     if (errCode !== code) {
         return {
-            message: () => `expected PrismaClientKnownRequestError.code 'P2004', got ${errCode ?? err}`,
+            message: () => `expected PrismaClientKnownRequestError.code '${code}', got '${errCode ?? err}'`,
             pass: false,
         };
     }

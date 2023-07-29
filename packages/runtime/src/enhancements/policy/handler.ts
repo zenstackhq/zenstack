@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { CrudFailureReason } from '../../constants';
-import { AuthUser, DbClientContract, PolicyOperationKind } from '../../types';
+import { upperCaseFirst } from 'upper-case-first';
+import { fromZodError } from 'zod-validation-error';
+import { CrudFailureReason, PrismaErrorCode } from '../../constants';
+import { isPrismaClientKnownRequestError } from '../../error';
+import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
+import { ModelDataVisitor } from '../model-data-visitor';
+import { resolveField } from '../model-meta';
+import { NestedWriteVisitor, NestedWriteVisitorContext } from '../nested-write-vistor';
 import { BatchResult, PrismaProxyHandler } from '../proxy';
 import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
-import { formatObject, prismaClientValidationError } from '../utils';
+import { enumerate, formatObject, getIdFields, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
 
@@ -39,6 +45,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return this.prisma[this.model];
     }
 
+    //#region Find
+
     async findUnique(args: any) {
         if (!args) {
             throw prismaClientValidationError(this.prisma, 'query argument is required');
@@ -47,59 +55,90 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
         }
 
-        const guard = this.utils.getAuthGuard(this.model, 'read');
-        if (guard === false) {
+        args = this.utils.clone(args);
+        if (!(await this.utils.injectForRead(this.model, args))) {
             return null;
         }
 
-        const entities = await this.utils.readWithCheck(this.model, args);
-        return entities[0] ?? null;
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`findUnique\` ${this.model}:\n${formatObject(args)}`);
+        }
+
+        const result = await this.modelClient.findUnique(args);
+        this.utils.postProcessForRead(result);
+        return result;
     }
 
     async findUniqueOrThrow(args: any) {
-        const guard = this.utils.getAuthGuard(this.model, 'read');
-        if (guard === false) {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, 'query argument is required');
+        }
+        if (!args.where) {
+            throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
+        }
+
+        args = this.utils.clone(args);
+        if (!(await this.utils.injectForRead(this.model, args))) {
             throw this.utils.notFound(this.model);
         }
 
-        const entity = await this.findUnique(args);
-        if (!entity) {
-            throw this.utils.notFound(this.model);
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`findUniqueOrThrow\` ${this.model}:\n${formatObject(args)}`);
         }
-        return entity;
+
+        const result = await this.modelClient.findUniqueOrThrow(args);
+        this.utils.postProcessForRead(result);
+        return result;
     }
 
     async findFirst(args: any) {
-        const guard = this.utils.getAuthGuard(this.model, 'read');
-        if (guard === false) {
+        args = args ? this.utils.clone(args) : {};
+        if (!(await this.utils.injectForRead(this.model, args))) {
             return null;
         }
 
-        const entities = await this.utils.readWithCheck(this.model, args);
-        return entities[0] ?? null;
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`findFirst\` ${this.model}:\n${formatObject(args)}`);
+        }
+
+        const result = await this.modelClient.findFirst(args);
+        this.utils.postProcessForRead(result);
+        return result;
     }
 
     async findFirstOrThrow(args: any) {
-        const guard = this.utils.getAuthGuard(this.model, 'read');
-        if (guard === false) {
+        args = args ? this.utils.clone(args) : {};
+        if (!(await this.utils.injectForRead(this.model, args))) {
             throw this.utils.notFound(this.model);
         }
 
-        const entity = await this.findFirst(args);
-        if (!entity) {
-            throw this.utils.notFound(this.model);
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`findFirstOrThrow\` ${this.model}:\n${formatObject(args)}`);
         }
-        return entity;
+
+        const result = await this.modelClient.findFirstOrThrow(args);
+        this.utils.postProcessForRead(result);
+        return result;
     }
 
     async findMany(args: any) {
-        const guard = this.utils.getAuthGuard(this.model, 'read');
-        if (guard === false) {
+        args = args ? this.utils.clone(args) : {};
+        if (!(await this.utils.injectForRead(this.model, args))) {
             return [];
         }
 
-        return this.utils.readWithCheck(this.model, args);
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`findMany\` ${this.model}:\n${formatObject(args)}`);
+        }
+
+        const result = await this.modelClient.findMany(args);
+        this.utils.postProcessForRead(result);
+        return result;
     }
+
+    //#endregion
+
+    //#region Create
 
     async create(args: any) {
         if (!args) {
@@ -109,26 +148,211 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        await this.tryReject('create');
-
         const origArgs = args;
         args = this.utils.clone(args);
 
-        // use a transaction to wrap the write so it can be reverted if the created
-        // entity fails access policies
-        const result: any = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) => {
-            if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`create\` ${this.model}: ${formatObject(writeArgs)}`);
-            }
-            return dbOps.create(writeArgs);
-        });
-
-        const ids = this.utils.getEntityIds(this.model, result);
-        if (Object.keys(ids).length === 0) {
-            throw this.utils.unknownError(`unexpected error: create didn't return an id`);
+        // input check for top-level create data
+        const inputCheck = this.utils.checkInputGuard(this.model, args.data, 'create');
+        if (inputCheck === false) {
+            throw this.utils.deniedByPolicy(this.model, 'create');
         }
 
-        return this.checkReadback(origArgs, ids, 'create', 'create');
+        const hasNestedCreateOrConnect = await this.hasNestedCreateOrConnect(args);
+
+        if (
+            !hasNestedCreateOrConnect &&
+            // MUST check true here since inputCheck can be undefined (meaning static input check not possible)
+            inputCheck === true
+        ) {
+            // there's no nested write and we've passed input check, proceed directly without a transaction
+
+            // validate zod schema if any
+            this.validateCreateInputSchema(this.model, args.data);
+
+            // make a create args only containing data and ID selection
+            const createArgs: any = { data: args.data };
+            createArgs.select = this.utils.makeIdSelection(this.model);
+
+            if (this.shouldLogQuery) {
+                this.logger.info(`[withPolicy] \`create\` ${this.model}: ${formatObject(createArgs)}`);
+            }
+            const result = await this.modelClient.create(createArgs);
+
+            // filter the read-back data
+            const ids = this.utils.getEntityIds(this.model, result);
+            return this.checkReadBack(args, ids, 'create');
+        } else {
+            // use a transaction to encapsulate all create/connect operations
+
+            const result = await this.prisma.$transaction(async (tx) => {
+                const { result, postWriteChecks } = await this.doCreate(this.model, args, tx);
+
+                // execute post-write checks
+                await Promise.all(
+                    postWriteChecks.map(({ model, operation, ids }) =>
+                        this.utils.checkPolicyForUnique(model, ids, operation, tx)
+                    )
+                );
+
+                return result;
+            });
+
+            // filter the read-back data
+            const ids = this.utils.getEntityIds(this.model, result);
+            return this.checkReadBack(origArgs, ids, 'create');
+        }
+    }
+
+    private async doCreate(model: string, args: any, db: Record<string, DbOperations>) {
+        const idSelections: Array<{ path: FieldInfo[]; ids: string[] }> = [];
+
+        // record id fields involved in the nesting context
+        const pushIdFields = (model: string, context: NestedWriteVisitorContext) => {
+            const idFields = getIdFields(this.modelMeta, model);
+            idSelections.push({
+                path: context.nestingPath.map((p) => p.field).filter((f): f is FieldInfo => !!f),
+                ids: idFields.map((f) => f.name),
+            });
+        };
+
+        const getEntityKey = (model: string, ids: any) =>
+            `${upperCaseFirst(model)}#${Object.keys(ids)
+                .sort()
+                .map((f) => `${f}:${ids[f]?.toString()}`)
+                .join('_')}`;
+
+        const connectedEntities = new Set<string>();
+
+        const visitor = new NestedWriteVisitor(this.modelMeta, {
+            create: async (model, args, context) => {
+                // validate zod schema if any
+                this.validateCreateInputSchema(model, args);
+                pushIdFields(model, context);
+            },
+
+            connectOrCreate: async (model, args, context) => {
+                // validate zod schema if any
+                this.validateCreateInputSchema(model, args.create);
+
+                const existing: any = await db[model].findUnique({
+                    select: this.utils.makeIdSelection(model),
+                    where: args.where,
+                });
+
+                if (existing) {
+                    if (context.field?.backLink) {
+                        const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
+                        if (backLinkField.isRelationOwner) {
+                            // the target side of relation owns the relation,
+                            // check if it's updatable
+                            await this.utils.checkPolicyForUnique(model, args.where, 'update', db);
+                        }
+                    }
+
+                    if (context.parent.connect) {
+                        if (Array.isArray(context.parent.connect)) {
+                            context.parent.connect.push(args.where);
+                        } else {
+                            context.parent.connect = [context.parent.connect, args.where];
+                        }
+                    } else {
+                        context.parent.connect = args.where;
+                    }
+                    // record the key of connected entities so we can avoid validating them later
+                    connectedEntities.add(getEntityKey(model, existing));
+                } else {
+                    pushIdFields(model, context);
+                    context.parent.create = args.create;
+                }
+                delete context.parent['connectOrCreate'];
+            },
+
+            connect: async (model, args, context) => {
+                if (context.field?.backLink) {
+                    const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
+                    if (backLinkField.isRelationOwner) {
+                        // the target side of relation owns the relation,
+                        // check if it's updatable
+                        await this.utils.checkPolicyForUnique(model, args, 'update', db);
+                    }
+                }
+            },
+        });
+
+        await visitor.visit(model, 'create', args);
+
+        // consolidate the nested ID selections
+        let select: any = undefined;
+        if (idSelections.length > 0) {
+            select = {};
+            idSelections.forEach(({ path, ids }) => {
+                let curr = select;
+                for (const p of path) {
+                    if (!curr[p.name]) {
+                        curr[p.name] = { select: {} };
+                    }
+                    curr = curr[p.name].select;
+                }
+                Object.assign(curr, ...ids.map((f) => ({ [f]: true })));
+            });
+        }
+
+        // proceed with the create
+        const createArgs = { data: args.data, select };
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`create\` ${model}: ${formatObject(createArgs)}`);
+        }
+        const result = await db[model].create(createArgs);
+
+        // post create policy check for the top-level and nested creates
+        const postCreateChecks = new Map<string, { model: string; operation: PolicyOperationKind; ids: any }>();
+
+        const modelDataVisitor = new ModelDataVisitor(this.modelMeta);
+        modelDataVisitor.visit(model, result, (model, _data, scalarData) => {
+            const key = getEntityKey(model, scalarData);
+            // only check if entity is created, not connected
+            if (!connectedEntities.has(key) && !postCreateChecks.has(key)) {
+                postCreateChecks.set(key, { model, operation: 'create', ids: scalarData });
+            }
+        });
+
+        return { result, postWriteChecks: [...postCreateChecks.values()] };
+    }
+
+    private async hasNestedCreateOrConnect(args: any) {
+        let hasNestedCreateOrConnect = false;
+
+        const visitor = new NestedWriteVisitor(this.modelMeta, {
+            async connect() {
+                hasNestedCreateOrConnect = true;
+            },
+            async connectOrCreate() {
+                hasNestedCreateOrConnect = true;
+            },
+            async create(model, args, context) {
+                if (context.field) {
+                    hasNestedCreateOrConnect = true;
+                }
+            },
+        });
+
+        await visitor.visit(this.model, 'create', args);
+        return hasNestedCreateOrConnect;
+    }
+
+    private validateCreateInputSchema(model: string, data: any) {
+        const schema = this.utils.getModelSchema(model, 'create');
+        if (schema) {
+            const parseResult = schema.safeParse(data);
+            if (!parseResult.success) {
+                throw this.utils.deniedByPolicy(
+                    model,
+                    'create',
+                    `input failed schema check: ${fromZodError(parseResult.error)}`,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION
+                );
+            }
+        }
     }
 
     async createMany(args: any, skipDuplicates?: boolean) {
@@ -139,21 +363,65 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required and must be an array');
         }
 
-        await this.tryReject('create');
-
         args = this.utils.clone(args);
 
-        // use a transaction to wrap the write so it can be reverted if any created
-        // entity fails access policies
-        const result = await this.utils.processWrite(this.model, 'create', args, (dbOps, writeArgs) => {
-            if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`createMany\` ${this.model}: ${formatObject(writeArgs)}`);
+        let needPostCreateCheck = false;
+        for (const item of enumerate(args.data)) {
+            const inputCheck = this.utils.checkInputGuard(this.model, item, 'create');
+            if (inputCheck === false) {
+                throw this.utils.deniedByPolicy(this.model, 'create');
+            } else if (inputCheck === true) {
+                this.validateCreateInputSchema(this.model, item);
+            } else if (inputCheck === undefined) {
+                needPostCreateCheck = true;
+                break;
             }
-            return dbOps.createMany(writeArgs, skipDuplicates);
-        });
+        }
 
-        return result as BatchResult;
+        if (!needPostCreateCheck) {
+            return this.modelClient.createMany(args, skipDuplicates);
+        } else {
+            // create entities in a transaction with post-create checks
+            return this.prisma.$transaction(async (tx) => {
+                // create entities
+                let createResult = await Promise.all(
+                    enumerate(args.data).map(async (item) => {
+                        try {
+                            return await tx[this.model].create({
+                                select: this.utils.makeIdSelection(this.model),
+                                data: item,
+                            });
+                        } catch (err) {
+                            if (
+                                isPrismaClientKnownRequestError(err) &&
+                                err.code === PrismaErrorCode.UNIQUE_CONSTRAINT_FAILED
+                            ) {
+                                if (skipDuplicates) {
+                                    // ignore duplicate errors
+                                    return undefined;
+                                }
+                            }
+                            throw err;
+                        }
+                    })
+                );
+
+                // filter undefined values due to skipDuplicates
+                createResult = createResult.filter((p) => !!p);
+
+                // post-create check
+                await Promise.all(
+                    createResult.map((data) => this.utils.checkPolicyForUnique(this.model, data, 'create', tx))
+                );
+
+                return { count: createResult.length };
+            });
+        }
     }
+
+    //#endregion
+
+    //#region Update & Upsert
 
     async update(args: any) {
         if (!args) {
@@ -166,25 +434,225 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        await this.tryReject('update');
-
         const origArgs = args;
         args = this.utils.clone(args);
 
-        // use a transaction to wrap the write so it can be reverted if any nested
-        // create fails access policies
-        const result: any = await this.utils.processWrite(this.model, 'update', args, (dbOps, writeArgs) => {
-            if (this.shouldLogQuery) {
-                this.logger.info(`[withPolicy] \`update\` ${this.model}: ${formatObject(writeArgs)}`);
-            }
-            return dbOps.update(writeArgs);
-        });
+        const postWriteChecks: Array<{ model: string; operation: PolicyOperationKind; ids: any; preValue?: any }> = [];
 
-        const ids = this.utils.getEntityIds(this.model, result);
-        if (Object.keys(ids).length === 0) {
-            throw this.utils.unknownError(`unexpected error: update didn't return an id`);
-        }
-        return this.checkReadback(origArgs, ids, 'update', 'update');
+        const result: any = await this.prisma.$transaction(
+            async (tx) => {
+                // const _update = async (model: string, args: any, context: NestedWriteVisitorContext) => {
+                //     const where = args.where ?? {};
+                //     const data = typeof args.data === 'object' ? args.data : args;
+                //     const updateData = this.removeRelationFields(model, data);
+                //     const reversedQuery = this.buildReversedQuery(context);
+                //     const updateWhere = this.utils.and(where, reversedQuery);
+                //     const { postWriteChecks: checks } = await this.doUpdate(
+                //         model,
+                //         { where: updateWhere, data: updateData },
+                //         tx
+                //     );
+                //     postWriteChecks.push(...checks);
+                // };
+
+                const _create = async (model: string, args: any, context: NestedWriteVisitorContext) => {
+                    let createData = args;
+                    if (context.field?.backLink) {
+                        const reversedQuery = await this.buildReversedQuery(context);
+                        createData = {
+                            ...createData,
+                            [context.field.backLink]: { connect: reversedQuery[context.field.backLink] },
+                        };
+                    }
+                    const { postWriteChecks: checks } = await this.doCreate(model, { data: createData }, tx);
+                    postWriteChecks.push(...checks);
+                };
+
+                const _connectDisconnect = async (model: string, args: any, context: NestedWriteVisitorContext) => {
+                    if (context.field?.backLink) {
+                        const backLinkField = this.utils.getModelField(model, context.field.backLink);
+                        if (backLinkField.isRelationOwner) {
+                            // update happens on the related model, require updatable
+                            await this.utils.checkPolicyForUnique(model, args, 'update', tx);
+
+                            // register post-update check
+                            await _registerPostUpdateCheck(model, context, args);
+                        }
+                    }
+                };
+
+                const _registerPostUpdateCheck = async (
+                    model: string,
+                    context: NestedWriteVisitorContext,
+                    where: any
+                ) => {
+                    let preValueQuery: any;
+                    let preValue: any;
+                    if (this.utils.hasAuthGuard(model, 'postUpdate')) {
+                        const preValueSelect = await this.utils.getPreValueSelect(model);
+                        if (preValueSelect && Object.keys(preValueSelect).length > 0) {
+                            preValue = await tx[model].findFirst({ where, select: preValueSelect });
+                        }
+                        // const reversedQuery = await this.buildReversedQuery(context);
+                        preValueQuery = where;
+                    }
+
+                    if (preValueQuery) {
+                        postWriteChecks.push({ model, operation: 'postUpdate', ids: preValueQuery, preValue });
+                    }
+                };
+
+                const visitor = new NestedWriteVisitor(this.modelMeta, {
+                    update: async (model, args, context) => {
+                        const where = await this.buildReversedQuery(context);
+                        const existing = await tx[model].findFirst({
+                            select: this.utils.makeIdSelection(model),
+                            where,
+                        });
+                        if (!existing) {
+                            // throw not found instead
+                            throw this.utils.notFound(model);
+                        }
+
+                        // check pre-update guard
+                        await this.utils.checkPolicyForUnique(model, where, 'update', tx);
+
+                        // register post-update check
+                        await _registerPostUpdateCheck(model, context, where);
+                    },
+
+                    updateMany: async (model, args, context) => {
+                        await this.utils.injectAuthGuard(args, model, 'update');
+
+                        if (this.utils.hasAuthGuard(model, 'postUpdate')) {
+                            let select = this.utils.makeIdSelection(model);
+                            const preValueSelect = await this.utils.getPreValueSelect(model);
+                            if (preValueSelect) {
+                                select = { ...select, ...preValueSelect };
+                            }
+
+                            const reversedQuery = await this.buildReversedQuery(context);
+                            const currentSetQuery = { select, where: reversedQuery };
+                            await this.utils.injectAuthGuard(currentSetQuery, model, 'read');
+                            const currentSet = await tx[model].findMany(currentSetQuery);
+                            currentSet.forEach((preValue) => {
+                                postWriteChecks.push({
+                                    model,
+                                    operation: 'postUpdate',
+                                    ids: preValue,
+                                    preValue: preValueSelect ? preValue : undefined,
+                                });
+                            });
+                        }
+                    },
+
+                    create: async (model, args, context) => {
+                        await _create(model, args, context);
+                        delete context.parent.create;
+                    },
+
+                    upsert: async (model, args, context) => {
+                        const existing = await tx[model].findUnique({ where: args.where });
+                        if (existing) {
+                            // check pre-update guard
+                            await this.utils.checkPolicyForUnique(model, args.where, 'update', tx);
+
+                            // register post-update check
+                            await _registerPostUpdateCheck(model, context, args.where);
+
+                            // convert upsert to update
+                            context.parent.update = args.update;
+                        } else {
+                            // do inline create for the subtree directly
+                            await _create(model, args, context);
+
+                            // remove upsert from payload
+                            delete context.parent.upsert;
+                        }
+                    },
+
+                    connect: _connectDisconnect,
+
+                    connectOrCreate: async (model, args, context) => {
+                        const existing = await tx[model].findUnique({ where: args.where });
+                        if (existing) {
+                            // connect
+                            await _connectDisconnect(model, args.where, context);
+                        } else {
+                            // create
+                            await _create(model, args.create, context);
+                        }
+                    },
+
+                    disconnect: _connectDisconnect,
+
+                    set: async (model, args, context) => {
+                        const reversedQuery = await this.buildReversedQuery(context);
+                        const currentSet = await tx[model].findMany({
+                            select: this.utils.makeIdSelection(model),
+                            where: reversedQuery,
+                        });
+
+                        // register current set for update
+                        await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context)));
+
+                        //
+                        await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context)));
+                    },
+
+                    delete: async (model, args, context) => {
+                        const where = await this.buildReversedQuery(context);
+                        const existing = await tx[model].findFirst({
+                            select: this.utils.makeIdSelection(model),
+                            where,
+                        });
+                        if (!existing) {
+                            // throw not found instead
+                            throw this.utils.notFound(model);
+                        }
+
+                        // check delete guard
+                        await this.utils.checkPolicyForUnique(model, where, 'delete', tx);
+                    },
+
+                    deleteMany: async (model, args, context) => {
+                        // inject delete guard
+                        const guard = await this.utils.getAuthGuard(model, 'delete');
+                        context.parent.deleteMany = this.utils.and(args, guard);
+                    },
+                });
+
+                await visitor.visit(this.model, 'update', args);
+
+                if (this.shouldLogQuery) {
+                    this.logger.info(`[withPolicy] \`update\` ${this.model}: ${formatObject(args)}`);
+                }
+                const result = await tx[this.model].update({
+                    where: args.where,
+                    data: args.data,
+                    select: this.utils.makeIdSelection(this.model),
+                });
+
+                // run post-write checks
+                await Promise.all(
+                    postWriteChecks.map(async ({ model, operation, ids, preValue }) => {
+                        if (this.shouldLogQuery) {
+                            this.logger.info(
+                                `[withPolicy] \`postUpdate\` ${model}: ${formatObject(ids)}, preValue: ${formatObject(
+                                    preValue
+                                )}`
+                            );
+                        }
+                        await this.utils.checkPolicyForUnique(model, ids, operation, tx, preValue);
+                    })
+                );
+
+                return result;
+            },
+            { timeout: 100000 }
+        );
+
+        return this.checkReadBack(origArgs, result, 'update');
     }
 
     async updateMany(args: any) {
@@ -245,8 +713,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw this.utils.unknownError(`unexpected error: upsert didn't return an id`);
         }
 
-        return this.checkReadback(origArgs, ids, 'upsert', 'update');
+        return this.checkReadBack(origArgs, ids, 'update');
     }
+
+    //#endregion
+
+    //#region Delete
 
     async delete(args: any) {
         if (!args) {
@@ -303,6 +775,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return this.modelClient.deleteMany(args);
     }
 
+    //#endregion
+
+    //#region Aggregation
+
     async aggregate(args: any) {
         if (!args) {
             throw prismaClientValidationError(this.prisma, 'query argument is required');
@@ -348,6 +824,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return this.modelClient.count(args);
     }
 
+    //#endregion
+
+    //#region Utils
+
     tryReject(operation: PolicyOperationKind) {
         const guard = this.utils.getAuthGuard(this.model, operation);
         if (guard === false) {
@@ -355,29 +835,78 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private async checkReadback(
-        origArgs: any,
-        ids: Record<string, unknown>,
-        action: string,
-        operation: PolicyOperationKind
-    ) {
-        const readArgs = { select: origArgs.select, include: origArgs.include, where: ids };
-        const result = await this.utils.readWithCheck(this.model, readArgs);
-        if (result.length === 0) {
-            this.logger.info(`${action} result cannot be read back`);
-            throw this.utils.deniedByPolicy(
-                this.model,
-                operation,
-                'result is not allowed to be read back',
-                CrudFailureReason.RESULT_NOT_READABLE
-            );
-        } else if (result.length > 1) {
-            throw this.utils.unknownError('write unexpected resulted in multiple readback entities');
+    private async checkReadBack(origArgs: any, ids: Record<string, unknown>, operation: PolicyOperationKind) {
+        let readWithIds = ids;
+        if (Object.keys(readWithIds).length > 1) {
+            // multi-field Id, turn into 'id1_id2: { id1: ..., id2: ... }' format
+            readWithIds = {
+                [Object.keys(readWithIds).join('_')]: ids,
+            };
         }
-        return result[0];
+
+        const readArgs = { select: origArgs.select, include: origArgs.include, where: readWithIds };
+        const err = this.utils.deniedByPolicy(
+            this.model,
+            operation,
+            'result is not allowed to be read back',
+            CrudFailureReason.RESULT_NOT_READABLE
+        );
+
+        const r = await this.utils.injectForRead(this.model, readArgs);
+        if (!r) {
+            throw err;
+        }
+
+        const result = await this.modelClient.findUnique(readArgs);
+        if (!result) {
+            throw err;
+        }
+
+        this.utils.postProcessForRead(result);
+        return result;
     }
 
     private get shouldLogQuery() {
         return this.logPrismaQuery && this.logger.enabled('info');
     }
+
+    private async buildReversedQuery(context: NestedWriteVisitorContext) {
+        let result, currQuery: any;
+        let currField: FieldInfo | undefined;
+
+        for (let i = context.nestingPath.length - 1; i >= 0; i--) {
+            const { field, model, where } = context.nestingPath[i];
+
+            // never modify the original where because it's shared in the structure
+            const visitWhere = { ...where };
+            if (model && where) {
+                // make sure composite unique condition is flattened
+                await this.utils.flattenGeneratedUniqueField(model, visitWhere);
+            }
+
+            if (!result) {
+                // first segment (bottom), just use its where clause
+                result = currQuery = { ...visitWhere };
+                currField = field;
+            } else {
+                if (!currField) {
+                    throw this.utils.unknownError(`missing field in nested path`);
+                }
+                if (!currField.backLink) {
+                    throw this.utils.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
+                }
+                const backLinkField = this.utils.getModelField(currField.type, currField.backLink);
+                if (backLinkField?.isArray) {
+                    // many-side of relationship, wrap with "some" query
+                    currQuery[currField.backLink] = { some: { ...visitWhere } };
+                } else {
+                    currQuery[currField.backLink] = { ...visitWhere };
+                }
+                currQuery = currQuery[currField.backLink];
+                currField = field;
+            }
+        }
+        return result;
+    }
+    //#endregion
 }

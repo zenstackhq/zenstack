@@ -37,13 +37,14 @@ export enum CrudFailureReason {
  * Prisma error codes used
  */
 export enum PrismaErrorCode {
+    UNIQUE_CONSTRAINT_FAILED = 'P2002',
     CONSTRAINED_FAILED = 'P2004',
 }
 
 /**
  * Field name for storing in-transaction flag
  */
-export const PRISIMA_TX_FLAG = '$__zenstack_tx';
+export const PRISMA_TX_FLAG = '$__zenstack_tx';
 
 /**
  * Field name for getting current enhancer

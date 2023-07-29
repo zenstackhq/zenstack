@@ -12,7 +12,7 @@ describe('With Policy:nested to-one', () => {
         process.chdir(origDir);
     });
 
-    it('read fitering for optional relation', async () => {
+    it('read filtering for optional relation', async () => {
         const { prisma, withPolicy } = await loadSchema(
             `
         model M1 {
@@ -119,7 +119,8 @@ describe('With Policy:nested to-one', () => {
             @@allow('create', value > 0)
             @@allow('update', value > 1)
         }
-        `
+        `,
+            { logPrismaQuery: true }
         );
 
         const db = withPolicy();
@@ -179,7 +180,8 @@ describe('With Policy:nested to-one', () => {
             @@allow('create', value > 0)
             @@allow('update', value > 1)
         }
-        `
+        `,
+            { logPrismaQuery: true }
         );
 
         const db = withPolicy();

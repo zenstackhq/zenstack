@@ -34,7 +34,7 @@ describe('With Policy:empty policy', () => {
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
         await expect(db.model.createMany({ data: [{}] })).toBeRejectedByPolicy();
 
-        await expect(db.model.update({ where: { id: '1' }, data: {} })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: '1' }, data: {} })).toBeNotFound();
         await expect(db.model.updateMany({ data: {} })).toBeRejectedByPolicy();
         await expect(
             db.model.upsert({
