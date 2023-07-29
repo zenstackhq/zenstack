@@ -264,7 +264,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     pushIdFields(model, context);
                     context.parent.create = args.create;
                 }
+
                 delete context.parent['connectOrCreate'];
+                return false;
             },
 
             connect: async (model, args, context) => {
@@ -441,28 +443,25 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         const result: any = await this.prisma.$transaction(
             async (tx) => {
-                // const _update = async (model: string, args: any, context: NestedWriteVisitorContext) => {
-                //     const where = args.where ?? {};
-                //     const data = typeof args.data === 'object' ? args.data : args;
-                //     const updateData = this.removeRelationFields(model, data);
-                //     const reversedQuery = this.buildReversedQuery(context);
-                //     const updateWhere = this.utils.and(where, reversedQuery);
-                //     const { postWriteChecks: checks } = await this.doUpdate(
-                //         model,
-                //         { where: updateWhere, data: updateData },
-                //         tx
-                //     );
-                //     postWriteChecks.push(...checks);
-                // };
-
                 const _create = async (model: string, args: any, context: NestedWriteVisitorContext) => {
                     let createData = args;
                     if (context.field?.backLink) {
                         const reversedQuery = await this.buildReversedQuery(context);
-                        createData = {
-                            ...createData,
-                            [context.field.backLink]: { connect: reversedQuery[context.field.backLink] },
-                        };
+                        if (reversedQuery[context.field.backLink]) {
+                            // the built reverse query contains a condition for the backlink field, build a "connect" with it
+                            createData = {
+                                ...createData,
+                                [context.field.backLink]: {
+                                    connect: reversedQuery[context.field.backLink],
+                                },
+                            };
+                        } else {
+                            // otherwise, the reverse query is translated to foreign key setting, merge it to the create data
+                            createData = {
+                                ...createData,
+                                ...reversedQuery,
+                            };
+                        }
                     }
                     const { postWriteChecks: checks } = await this.doCreate(model, { data: createData }, tx);
                     postWriteChecks.push(...checks);
@@ -488,7 +487,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 ) => {
                     let preValueQuery: any;
                     let preValue: any;
-                    if (this.utils.hasAuthGuard(model, 'postUpdate')) {
+                    if (this.utils.hasAuthGuard(model, 'postUpdate') || this.utils.getModelSchema(model)) {
                         const preValueSelect = await this.utils.getPreValueSelect(model);
                         if (preValueSelect && Object.keys(preValueSelect).length > 0) {
                             preValue = await tx[model].findFirst({ where, select: preValueSelect });
@@ -503,7 +502,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 };
 
                 const visitor = new NestedWriteVisitor(this.modelMeta, {
-                    update: async (model, args, context) => {
+                    update: async (model, _args, context) => {
                         const where = await this.buildReversedQuery(context);
                         const existing = await tx[model].findFirst({
                             select: this.utils.makeIdSelection(model),
@@ -524,7 +523,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     updateMany: async (model, args, context) => {
                         await this.utils.injectAuthGuard(args, model, 'update');
 
-                        if (this.utils.hasAuthGuard(model, 'postUpdate')) {
+                        if (this.utils.hasAuthGuard(model, 'postUpdate') || this.utils.getModelSchema(model)) {
                             let select = this.utils.makeIdSelection(model);
                             const preValueSelect = await this.utils.getPreValueSelect(model);
                             if (preValueSelect) {
@@ -549,25 +548,29 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     create: async (model, args, context) => {
                         await _create(model, args, context);
                         delete context.parent.create;
+                        return false;
                     },
 
                     upsert: async (model, args, context) => {
-                        const existing = await tx[model].findUnique({ where: args.where });
+                        const reversedQuery = await this.buildReversedQuery(context);
+                        const existing = await tx[model].findUnique({ where: reversedQuery });
                         if (existing) {
                             // check pre-update guard
-                            await this.utils.checkPolicyForUnique(model, args.where, 'update', tx);
+                            await this.utils.checkPolicyForUnique(model, reversedQuery, 'update', tx);
 
                             // register post-update check
-                            await _registerPostUpdateCheck(model, context, args.where);
+                            await _registerPostUpdateCheck(model, context, reversedQuery);
 
                             // convert upsert to update
                             context.parent.update = args.update;
+                            return true;
                         } else {
                             // do inline create for the subtree directly
                             await _create(model, args, context);
 
                             // remove upsert from payload
                             delete context.parent.upsert;
+                            return false;
                         }
                     },
 
@@ -643,7 +646,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                                 )}`
                             );
                         }
-                        await this.utils.checkPolicyForUnique(model, ids, operation, tx, preValue);
+                        return this.utils.checkPolicyForUnique(model, ids, operation, tx, preValue);
                     })
                 );
 
@@ -900,7 +903,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
                 } else {
-                    currQuery[currField.backLink] = { ...visitWhere };
+                    if (where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping) {
+                        for (const [r, fk] of Object.entries<string>(backLinkField.foreignKeyMapping)) {
+                            currQuery[fk] = visitWhere[r];
+                        }
+                    } else {
+                        currQuery[currField.backLink] = { ...visitWhere };
+                    }
                 }
                 currQuery = currQuery[currField.backLink];
                 currField = field;

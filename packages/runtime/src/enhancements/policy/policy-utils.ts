@@ -977,7 +977,7 @@ export class PolicyUtil {
             throw this.deniedByPolicy(model, operation, `entity ${JSON.stringify(uniqueFilter)} failed policy check`);
         }
 
-        const schema = (operation === 'create' || operation === 'update') && this.getModelSchema(model);
+        const schema = ['create', 'postUpdate'].includes(operation) ? this.getModelSchema(model) : undefined;
 
         if (guard === true && !schema) {
             // unconditionally allowed
@@ -996,8 +996,7 @@ export class PolicyUtil {
 
         // query with policy guard
         if (guard !== true) {
-            // we must merge conditions directly instead of with "and" for making findUnique call
-            where = { ...where, ...guard };
+            where = this.and(where, guard);
         }
         const query = { select, where };
         const result = await db[model].findFirst(query);

@@ -2,8 +2,10 @@ import {
     ArrayExpr,
     DataModel,
     DataModelField,
+    isArrayExpr,
     isDataModel,
     isLiteralExpr,
+    isReferenceExpr,
     Model,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
@@ -11,6 +13,7 @@ import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import {
     createProject,
     emitProject,
+    getAttributeArg,
     getAttributeArgs,
     getDataModels,
     getLiteral,
@@ -67,6 +70,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                 writer.block(() => {
                     for (const f of model.fields) {
                         const backlink = getBackLink(f);
+                        const fkMapping = generateForeignKeyMapping(f);
                         writer.write(`${f.name}: {
                     name: "${f.name}",
                     type: "${
@@ -82,6 +86,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     attributes: ${JSON.stringify(getFieldAttributes(f))},
                     backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
                     isRelationOwner: ${isRelationOwner(f, backlink)},
+                    foreignKeyMapping: ${fkMapping ? JSON.stringify(fkMapping) : 'undefined'}
                 },`);
                     }
                 });
@@ -192,4 +197,29 @@ function isRelationOwner(field: DataModelField, backLink: DataModelField | undef
     } else {
         return false;
     }
+}
+
+function generateForeignKeyMapping(field: DataModelField) {
+    const relation = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (!relation) {
+        return undefined;
+    }
+    const fields = getAttributeArg(relation, 'fields');
+    const references = getAttributeArg(relation, 'references');
+    if (!isArrayExpr(fields) || !isArrayExpr(references) || fields.items.length !== references.items.length) {
+        return undefined;
+    }
+
+    const fieldNames = fields.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
+    const referenceNames = references.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, string> = {};
+    referenceNames.forEach((name, i) => {
+        if (name) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[name] = fieldNames[i]!;
+        }
+    });
+    return result;
 }

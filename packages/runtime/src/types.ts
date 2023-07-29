@@ -100,6 +100,8 @@ export type FieldInfo = {
      * If the field is the owner side of a relation
      */
     isRelationOwner: boolean;
+
+    foreignKeyMapping?: Record<string, string>;
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
