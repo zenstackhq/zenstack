@@ -38,10 +38,8 @@ import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import {
     FunctionDeclaration,
-    FunctionDeclarationStructure,
     SourceFile,
     StatementStructures,
-    StructureKind,
     VariableDeclarationKind,
     WriterFunction,
 } from 'ts-morph';
