@@ -209,7 +209,7 @@ model M {
 
         await makeTestClient('/m/delete', { getPrisma: () => enhance() }, { where: { id: '1' } })
             .del('/')
-            .expect(403);
+            .expect(404);
 
         await makeTestClient('/m/update', { getPrisma: () => enhance() })
             .put('/')
