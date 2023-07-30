@@ -345,9 +345,6 @@ importers:
 
   packages/runtime:
     dependencies:
-      '@paralleldrive/cuid2':
-        specifier: ^2.2.0
-        version: 2.2.0
       '@types/bcryptjs':
         specifier: ^2.4.2
         version: 2.4.2
