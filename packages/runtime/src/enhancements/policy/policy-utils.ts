@@ -16,6 +16,7 @@ import {
     getModelFields,
     prismaClientKnownRequestError,
     prismaClientUnknownRequestError,
+    prismaClientValidationError,
 } from '../utils';
 import { Logger } from './logger';
 
@@ -563,6 +564,12 @@ export class PolicyUtil {
         return prismaClientKnownRequestError(this.db, `entity not found for model ${model}`, {
             clientVersion: getVersion(),
             code: 'P2025',
+        });
+    }
+
+    validationError(message: string) {
+        return prismaClientValidationError(this.db, message, {
+            clientVersion: getVersion(),
         });
     }
 

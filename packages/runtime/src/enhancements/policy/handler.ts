@@ -226,6 +226,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             },
 
             connectOrCreate: async (model, args, context) => {
+                if (!args.where) {
+                    throw this.utils.validationError(`'where' field is required for connectOrCreate`);
+                }
+
                 // validate zod schema if any
                 this.validateCreateInputSchema(model, args.create);
 
@@ -265,12 +269,20 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             },
 
             connect: async (model, args, context) => {
+                if (!args || typeof args !== 'object' || Object.keys(args).length === 0) {
+                    throw this.utils.validationError(`'connect' field must be an non-empty object`);
+                }
                 if (context.field?.backLink) {
                     const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
                     if (backLinkField.isRelationOwner) {
-                        // the target side of relation owns the relation,
-                        // check if it's updatable
-                        await this.utils.checkPolicyForUnique(model, args, 'update', db);
+                        const existing = await db[model].findUnique({ where: args });
+                        if (!existing) {
+                            throw this.utils.notFound(model);
+                        } else {
+                            // the target side of relation owns the relation,
+                            // check if it's updatable
+                            await this.utils.checkPolicyForUnique(model, args, 'update', db);
+                        }
                     }
                 }
             },
