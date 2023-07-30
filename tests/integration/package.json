@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "lint": "eslint . --ext .ts",
-        "test": "ZENSTACK_TEST=1 jest"
+        "test": "ZENSTACK_TEST=1 jest -t 'With Policy: with postgres'"
     },
     "keywords": [],
     "author": "",
@@ -14,6 +14,7 @@
         "@types/bcryptjs": "^2.4.2",
         "@types/fs-extra": "^11.0.1",
         "@types/jest": "^29.5.0",
+        "@types/pg": "^8.10.2",
         "@types/supertest": "^2.0.12",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
@@ -40,6 +41,7 @@
         "@zenstackhq/testtools": "workspace:*",
         "bcryptjs": "^2.4.3",
         "decimal.js": "^10.4.2",
+        "pg": "^8.11.1",
         "sleep-promise": "^9.1.0",
         "superjson": "^1.11.0"
     }
