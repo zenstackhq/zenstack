@@ -10,20 +10,13 @@ describe('With Policy: with postgres', () => {
     let getDb: (user?: AuthUser) => WeakDbClientContract;
     let prisma: WeakDbClientContract;
 
-    const pool = new Pool({
-        host: 'localhost',
-        port: 5432,
-        user: 'postgres',
-        password: 'abc123',
-    });
+    const pool = new Pool({ user: 'postgres', password: 'abc123' });
 
     beforeAll(async () => {
         origDir = path.resolve('.');
     });
 
     beforeEach(async () => {
-        console.log('Creating database...');
-
         await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
         await pool.query(`CREATE DATABASE "${DB_NAME}";`);
 
@@ -40,11 +33,10 @@ describe('With Policy: with postgres', () => {
     afterEach(async () => {
         process.chdir(origDir);
         await prisma.$disconnect();
-        console.log('Dropping database...');
         await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
     });
 
-    it('test with postgres', async () => {
+    it('user', async () => {
         const user1 = {
             id: 'user1',
             email: 'user1@zenstack.dev',

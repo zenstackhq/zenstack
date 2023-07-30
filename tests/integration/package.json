@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "lint": "eslint . --ext .ts",
-        "test": "ZENSTACK_TEST=1 jest -t 'With Policy: with postgres'"
+        "test": "ZENSTACK_TEST=1 jest"
     },
     "keywords": [],
     "author": "",
