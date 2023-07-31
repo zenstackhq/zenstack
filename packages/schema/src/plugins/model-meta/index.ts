@@ -11,6 +11,7 @@ import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import {
     createProject,
     emitProject,
+    getAttributeArg,
     getAttributeArgs,
     getDataModels,
     getLiteral,
@@ -182,14 +183,25 @@ function isRelationOwner(field: DataModelField, backLink: DataModelField | undef
         return false;
     }
 
-    if (hasAttribute(field, '@relation')) {
-        // this field has `@relation` attribute
+    if (!backLink) {
+        // CHECKME: can this really happen?
         return true;
-    } else if (!backLink || !hasAttribute(backLink, '@relation')) {
-        // if the opposite side field doesn't have `@relation` attribute either,
-        // it's an implicit many-to-many relation, both sides are owners
+    }
+
+    if (!hasAttribute(field, '@relation') && !hasAttribute(backLink, '@relation')) {
+        // if neither side has `@relation` attribute, it's an implicit many-to-many relation,
+        // both sides are owners
         return true;
-    } else {
+    }
+
+    return holdsForeignKey(field);
+}
+
+function holdsForeignKey(field: DataModelField) {
+    const relation = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (!relation) {
         return false;
     }
+    const fields = getAttributeArg(relation, 'fields');
+    return !!fields;
 }
