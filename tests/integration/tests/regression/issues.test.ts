@@ -300,4 +300,58 @@ describe('GitHub issues regression', () => {
             },
         });
     });
+
+    it('issue 609', async () => {
+        const { withPolicy, prisma } = await loadSchema(
+            `
+            model User {
+                id String @id @default(cuid())
+                comments Comment[]
+            }
+    
+            model Comment {
+                id                 String      @id @default(cuid())
+                parentCommentId    String? 
+                replies            Comment[]   @relation("CommentToComment")
+                parent             Comment?    @relation("CommentToComment", fields: [parentCommentId], references: [id])
+                comment            String
+                author             User        @relation(fields: [authorId], references: [id])
+                authorId           String      
+                
+                @@allow('read,create', true)
+                @@allow('update,delete', auth() == author)
+            }    
+            `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: '1',
+                comments: {
+                    create: {
+                        id: '1',
+                        comment: 'Comment 1',
+                    },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: '2',
+            },
+        });
+
+        // connecting a child comment from a different user to a parent comment should succeed
+        const db = withPolicy({ id: '2' });
+        await expect(
+            db.comment.create({
+                data: {
+                    comment: 'Comment 2',
+                    author: { connect: { id: '2' } },
+                    parent: { connect: { id: '1' } },
+                },
+            })
+        ).toResolveTruthy();
+    });
 });
