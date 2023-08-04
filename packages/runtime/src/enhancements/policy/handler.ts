@@ -2,7 +2,7 @@
 
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { CrudFailureReason } from '../../constants';
+import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { ModelDataVisitor } from '../model-data-visitor';
 import { resolveField } from '../model-meta';
@@ -165,7 +165,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         const hasNestedCreateOrConnect = await this.hasNestedCreateOrConnect(args);
 
-        const { result, error } = await this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.transaction(async (tx) => {
             if (
                 // MUST check true here since inputCheck can be undefined (meaning static input check not possible)
                 inputCheck === true &&
@@ -427,7 +427,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return this.modelClient.createMany(args);
         } else {
             // create entities in a transaction with post-create checks
-            return this.prisma.$transaction(async (tx) => {
+            return this.transaction(async (tx) => {
                 const { result, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
                 // post-create check
                 await this.runPostWriteChecks(postWriteChecks, tx);
@@ -509,7 +509,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        const { result, error } = await this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.transaction(async (tx) => {
             // proceed with nested writes and collect post-write checks
             const { result, postWriteChecks } = await this.doUpdate(args, tx);
 
@@ -845,7 +845,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         if (this.utils.hasAuthGuard(this.model, 'postUpdate') || this.utils.getZodSchema(this.model)) {
             // use a transaction to do post-update checks
             const postWriteChecks: PostWriteCheckRecord[] = [];
-            return this.prisma.$transaction(async (tx) => {
+            return this.transaction(async (tx) => {
                 // collect pre-update values
                 let select = this.utils.makeIdSelection(this.model);
                 const preValueSelect = this.utils.getPreValueSelect(this.model);
@@ -906,7 +906,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // We can call the native "upsert" because we can't tell if an entity was created or updated
         // for doing post-write check accordingly. Instead, decompose it into create or update.
 
-        const { result, error } = await this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.transaction(async (tx) => {
             const { where, create, update, ...rest } = args;
             const existing = await this.utils.checkExistence(tx, this.model, args.where);
 
@@ -947,7 +947,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         await this.utils.tryReject(this.model, 'delete');
 
-        const { result, error } = await this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.transaction(async (tx) => {
             // do a read-back before delete
             const r = await this.utils.readBack(tx, this.model, 'delete', args, args.where);
             const error = r.error;
@@ -1038,6 +1038,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     private get shouldLogQuery() {
         return !!this.logPrismaQuery && this.logger.enabled('info');
+    }
+
+    private transaction(action: (tx: Record<string, DbOperations>) => Promise<any>) {
+        if (this.prisma[PRISMA_TX_FLAG]) {
+            // already in transaction, don't nest
+            return action(this.prisma);
+        } else {
+            return this.prisma.$transaction((tx) => action(tx));
+        }
     }
 
     private async runPostWriteChecks(postWriteChecks: PostWriteCheckRecord[], db: Record<string, DbOperations>) {
