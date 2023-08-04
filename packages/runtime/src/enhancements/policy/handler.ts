@@ -165,7 +165,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         const hasNestedCreateOrConnect = await this.hasNestedCreateOrConnect(args);
 
-        return this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.prisma.$transaction(async (tx) => {
             if (
                 // MUST check true here since inputCheck can be undefined (meaning static input check not possible)
                 inputCheck === true &&
@@ -198,6 +198,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 return this.utils.readBack(tx, this.model, 'create', origArgs, result);
             }
         });
+
+        if (error) {
+            throw error;
+        } else {
+            return result;
+        }
     }
 
     // create with nested write
@@ -503,7 +509,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        return await this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.prisma.$transaction(async (tx) => {
             // proceed with nested writes and collect post-write checks
             const { result, postWriteChecks } = await this.doUpdate(args, tx);
 
@@ -513,6 +519,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             // filter the read-back data
             return this.utils.readBack(tx, this.model, 'update', args, result);
         });
+
+        if (error) {
+            throw error;
+        } else {
+            return result;
+        }
     }
 
     private async doUpdate(args: any, db: Record<string, DbOperations>) {
@@ -894,7 +906,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // We can call the native "upsert" because we can't tell if an entity was created or updated
         // for doing post-write check accordingly. Instead, decompose it into create or update.
 
-        return await this.prisma.$transaction(async (tx) => {
+        const { result, error } = await this.prisma.$transaction(async (tx) => {
             const { where, create, update, ...rest } = args;
             const existing = await this.utils.checkExistence(tx, this.model, args.where);
 
@@ -910,6 +922,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 return this.utils.readBack(tx, this.model, 'create', args, result);
             }
         });
+
+        if (error) {
+            throw error;
+        } else {
+            return result;
+        }
     }
 
     //#endregion
@@ -931,13 +949,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         const { result, error } = await this.prisma.$transaction(async (tx) => {
             // do a read-back before delete
-            let read: any;
-            let error: Error | undefined;
-            try {
-                read = await this.utils.readBack(tx, this.model, 'delete', args, args.where);
-            } catch (_err) {
-                error = _err as Error;
-            }
+            const r = await this.utils.readBack(tx, this.model, 'delete', args, args.where);
+            const error = r.error;
+            const read = r.result;
 
             // check existence
             await this.utils.checkExistence(tx, this.model, args.where, true);

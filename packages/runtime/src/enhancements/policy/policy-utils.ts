@@ -577,11 +577,11 @@ export class PolicyUtil {
         operation: PolicyOperationKind,
         selectInclude: { select?: any; include?: any },
         uniqueFilter: any
-    ): Promise<unknown> {
+    ): Promise<{ result: unknown; error?: Error }> {
         uniqueFilter = this.clone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
         const readArgs = { select: selectInclude.select, include: selectInclude.include, where: uniqueFilter };
-        const err = this.deniedByPolicy(
+        const error = this.deniedByPolicy(
             model,
             operation,
             'result is not allowed to be read back',
@@ -590,7 +590,7 @@ export class PolicyUtil {
 
         const injectResult = await this.injectForRead(model, readArgs);
         if (!injectResult) {
-            throw err;
+            return { error, result: undefined };
         }
 
         if (this.shouldLogQuery) {
@@ -598,11 +598,11 @@ export class PolicyUtil {
         }
         const result = await db[model].findFirst(readArgs);
         if (!result) {
-            throw err;
+            return { error, result: undefined };
         }
 
         this.postProcessForRead(result);
-        return result;
+        return { result, error: undefined };
     }
 
     //#endregion
