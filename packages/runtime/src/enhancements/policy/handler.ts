@@ -2,8 +2,7 @@
 
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { CrudFailureReason, PrismaErrorCode } from '../../constants';
-import { isPrismaClientKnownRequestError } from '../../error';
+import { CrudFailureReason } from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { ModelDataVisitor } from '../model-data-visitor';
 import { resolveField } from '../model-meta';
@@ -13,6 +12,8 @@ import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { enumerate, formatObject, getIdFields, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
+
+type PostWriteCheckRecord = { model: string; operation: PolicyOperationKind; uniqueFilter: any; preValue?: any };
 
 /**
  * Prisma proxy handler for injecting access policy check.
@@ -31,7 +32,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         private readonly logPrismaQuery?: boolean
     ) {
         this.logger = new Logger(prisma);
-        this.utils = new PolicyUtil(this.prisma, this.modelMeta, this.policy, this.zodSchemas, this.user);
+        this.utils = new PolicyUtil(
+            this.prisma,
+            this.modelMeta,
+            this.policy,
+            this.zodSchemas,
+            this.user,
+            this.shouldLogQuery
+        );
     }
 
     private get modelClient() {
@@ -174,27 +182,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             const result = await this.modelClient.create(createArgs);
 
             // filter the read-back data
-            const ids = this.utils.getEntityIds(this.model, result);
-            return this.utils.readBack(this.prisma, this.model, 'create', args, ids);
+            return this.utils.readBack(this.prisma, this.model, 'create', args, result);
         } else {
             // use a transaction to encapsulate all create/connect operations
-
             const result = await this.prisma.$transaction(async (tx) => {
                 const { result, postWriteChecks } = await this.doCreate(this.model, args, tx);
-
                 // execute post-write checks
-                await Promise.all(
-                    postWriteChecks.map(({ model, operation, uniqueFilter }) =>
-                        this.utils.checkPolicyForUnique(model, uniqueFilter, operation, tx)
-                    )
-                );
-
+                await this.runPostWriteChecks(postWriteChecks, tx);
                 return result;
             });
 
             // filter the read-back data
-            const ids = this.utils.getEntityIds(this.model, result);
-            return this.utils.readBack(this.prisma, this.model, 'create', origArgs, ids);
+            return this.utils.readBack(this.prisma, this.model, 'create', origArgs, result);
         }
     }
 
@@ -225,6 +224,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 pushIdFields(model, context);
             },
 
+            createMany: async (model, args, context) => {
+                enumerate(args.data).forEach((item) => this.validateCreateInputSchema(model, item));
+                pushIdFields(model, context);
+            },
+
             connectOrCreate: async (model, args, context) => {
                 if (!args.where) {
                     throw this.utils.validationError(`'where' field is required for connectOrCreate`);
@@ -233,15 +237,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 // validate zod schema if any
                 this.validateCreateInputSchema(model, args.create);
 
-                const existing: any = await db[model].findUnique({
-                    select: this.utils.makeIdSelection(model),
-                    where: args.where,
-                });
-
+                const existing = await this.utils.checkExistence(db, model, args.where);
                 if (existing) {
                     if (context.field?.backLink) {
                         const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
-                        if (backLinkField.isRelationOwner) {
+                        if (backLinkField?.isRelationOwner) {
                             // the target side of relation owns the relation,
                             // check if it's updatable
                             await this.utils.checkPolicyForUnique(model, args.where, 'update', db);
@@ -274,15 +274,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
                 if (context.field?.backLink) {
                     const backLinkField = resolveField(this.modelMeta, model, context.field.backLink);
-                    if (backLinkField.isRelationOwner) {
-                        const existing = await db[model].findUnique({ where: args });
-                        if (!existing) {
-                            throw this.utils.notFound(model);
-                        } else {
-                            // the target side of relation owns the relation,
-                            // check if it's updatable
-                            await this.utils.checkPolicyForUnique(model, args, 'update', db);
-                        }
+                    if (backLinkField?.isRelationOwner) {
+                        // check existence
+                        await this.utils.checkExistence(db, model, args, true);
+
+                        // the target side of relation owns the relation,
+                        // check if it's updatable
+                        await this.utils.checkPolicyForUnique(model, args, 'update', db);
                     }
                 }
             },
@@ -314,10 +312,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const result = await db[model].create(createArgs);
 
         // post create policy check for the top-level and nested creates
-        const postCreateChecks = new Map<
-            string,
-            { model: string; operation: PolicyOperationKind; uniqueFilter: any }
-        >();
+        const postCreateChecks = new Map<string, PostWriteCheckRecord>();
 
         const modelDataVisitor = new ModelDataVisitor(this.modelMeta);
         modelDataVisitor.visit(model, result, (model, _data, scalarData) => {
@@ -328,23 +323,28 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
         });
 
-        return { result, postWriteChecks: [...postCreateChecks.values()] };
+        // return only the ids of the top-level entity
+        const ids = this.utils.getEntityIds(this.model, result);
+        return { result: ids, postWriteChecks: [...postCreateChecks.values()] };
     }
 
     private async hasNestedCreateOrConnect(args: any) {
         let hasNestedCreateOrConnect = false;
 
         const visitor = new NestedWriteVisitor(this.modelMeta, {
+            async create(_model, _args, context) {
+                if (context.field) {
+                    hasNestedCreateOrConnect = true;
+                }
+            },
             async connect() {
                 hasNestedCreateOrConnect = true;
             },
             async connectOrCreate() {
                 hasNestedCreateOrConnect = true;
             },
-            async create(model, args, context) {
-                if (context.field) {
-                    hasNestedCreateOrConnect = true;
-                }
+            async createMany() {
+                hasNestedCreateOrConnect = true;
             },
         });
 
@@ -367,7 +367,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    async createMany(args: any, skipDuplicates?: boolean) {
+    async createMany(args: { data: any; skipDuplicates?: boolean }) {
         if (!args) {
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
@@ -393,44 +393,58 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         if (!needPostCreateCheck) {
-            return this.modelClient.createMany(args, skipDuplicates);
+            return this.modelClient.createMany(args);
         } else {
             // create entities in a transaction with post-create checks
             return this.prisma.$transaction(async (tx) => {
-                // create entities
-                let createResult = await Promise.all(
-                    enumerate(args.data).map(async (item) => {
-                        try {
-                            return await tx[this.model].create({
-                                select: this.utils.makeIdSelection(this.model),
-                                data: item,
-                            });
-                        } catch (err) {
-                            if (
-                                isPrismaClientKnownRequestError(err) &&
-                                err.code === PrismaErrorCode.UNIQUE_CONSTRAINT_FAILED
-                            ) {
-                                if (skipDuplicates) {
-                                    // ignore duplicate errors
-                                    return undefined;
-                                }
-                            }
-                            throw err;
-                        }
-                    })
-                );
-
-                // filter undefined values due to skipDuplicates
-                createResult = createResult.filter((p) => !!p);
-
+                const { result, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
                 // post-create check
-                await Promise.all(
-                    createResult.map((data) => this.utils.checkPolicyForUnique(this.model, data, 'create', tx))
-                );
-
-                return { count: createResult.length };
+                await this.runPostWriteChecks(postWriteChecks, tx);
+                return result;
             });
         }
+    }
+
+    private async doCreateMany(model: string, args: any, db: Record<string, DbOperations>) {
+        // create entities
+        let createResult = await Promise.all(
+            enumerate(args.data).map(async (item) => {
+                if (args.skipDuplicates) {
+                    // check unique constraint conflicts
+                    // we can't rely on try/catch/ignore constraint violation error: https://github.com/prisma/prisma/issues/20496
+                    // TODO: for simple cases we should be able to translate it to an `upsert` with empty `update` payload
+                    const uniqueConstraints = this.utils.getUniqueConstraints(model);
+                    for (const constraint of Object.values(uniqueConstraints)) {
+                        if (constraint.fields.every((f) => item[f] !== undefined)) {
+                            const uniqueFilter = constraint.fields.reduce((acc, f) => ({ ...acc, [f]: item[f] }), {});
+                            const existing = await this.utils.checkExistence(db, model, uniqueFilter);
+                            if (existing) {
+                                if (this.shouldLogQuery) {
+                                    this.logger.info(`[withPolicy] skipping duplicate ${formatObject(item)}`);
+                                }
+                                return undefined;
+                            }
+                        }
+                    }
+                }
+
+                if (this.shouldLogQuery) {
+                    this.logger.info(`[withPolicy] \`create\` ${model}: ${formatObject(item)}`);
+                }
+                return await db[model].create({ select: this.utils.makeIdSelection(model), data: item });
+            })
+        );
+
+        // filter undefined values due to skipDuplicates
+        createResult = createResult.filter((p) => !!p);
+        return {
+            result: { count: createResult.length },
+            postWriteChecks: createResult.map((data) => ({
+                model,
+                operation: 'create' as PolicyOperationKind,
+                uniqueFilter: data,
+            })),
+        };
     }
 
     //#endregion
@@ -448,9 +462,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        await this.utils.tryReject(this.model, 'update');
+        return await this.prisma.$transaction(async (tx) => {
+            const { result, postWriteChecks } = await this.doUpdate(args, tx);
+            await this.runPostWriteChecks(postWriteChecks, tx);
+            return this.utils.readBack(tx, this.model, 'update', args, result);
+        });
+    }
 
-        const origArgs = args;
+    private async doUpdate(args: any, db: Record<string, DbOperations>) {
         args = this.utils.clone(args);
 
         const postWriteChecks: Array<{
@@ -491,6 +510,23 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             postWriteChecks.push(...checks);
         };
 
+        const _createMany = async (
+            model: string,
+            args: any,
+            context: NestedWriteVisitorContext,
+            db: Record<string, DbOperations>
+        ) => {
+            if (context.field?.backLink) {
+                // handles the connection to upstream entity
+                const reversedQuery = await this.utils.buildReversedQuery(context);
+                for (const item of enumerate(args.data)) {
+                    Object.assign(item, reversedQuery);
+                }
+            }
+            const { postWriteChecks: checks } = await this.doCreateMany(model, args, db);
+            postWriteChecks.push(...checks);
+        };
+
         // handles nested connect/disconnect inside update
         const _connectDisconnect = async (
             model: string,
@@ -524,185 +560,203 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
         };
 
-        // update always happens inside a transaction
-        const result: any = await this.prisma.$transaction(
-            async (tx) => {
-                // visit nested writes
-                const visitor = new NestedWriteVisitor(this.modelMeta, {
-                    update: async (model, _args, context) => {
-                        // build a unique query including upstream conditions
-                        const uniqueFilter = await this.utils.buildReversedQuery(context);
+        // visit nested writes
+        const visitor = new NestedWriteVisitor(this.modelMeta, {
+            update: async (model, args, context) => {
+                // build a unique query including upstream conditions
+                const uniqueFilter = await this.utils.buildReversedQuery(context);
 
-                        // handle not-found
-                        const existing = await tx[model].findFirst({
-                            select: this.utils.makeIdSelection(model),
-                            where: uniqueFilter,
-                        });
-                        if (!existing) {
-                            throw this.utils.notFound(model);
-                        }
+                // handle not-found
+                const existing = await this.utils.checkExistence(db, model, uniqueFilter, true);
 
-                        // check pre-update guard
-                        await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', tx);
-
-                        // register post-update check
-                        await _registerPostUpdateCheck(model, uniqueFilter, tx);
-                    },
-
-                    updateMany: async (model, args, context) => {
-                        // injects auth guard into where clause
-                        await this.utils.injectAuthGuard(args, model, 'update');
-
-                        // prepare for post-update check
-                        if (this.utils.hasAuthGuard(model, 'postUpdate') || this.utils.getZodSchema(model)) {
-                            let select = this.utils.makeIdSelection(model);
-                            const preValueSelect = await this.utils.getPreValueSelect(model);
-                            if (preValueSelect) {
-                                select = { ...select, ...preValueSelect };
+                let thisModelUpdate = false;
+                const updatePayload: any = (args as any).data ?? args;
+                if (updatePayload) {
+                    for (const key of Object.keys(updatePayload)) {
+                        const field = resolveField(this.modelMeta, model, key);
+                        if (field) {
+                            if (!field.isDataModel) {
+                                // scalar field, require this model to be updatable
+                                thisModelUpdate = true;
+                                break;
+                            } else if (field.isRelationOwner) {
+                                // relation is being updated and this model owns foreign key, require updatable
+                                thisModelUpdate = true;
+                                break;
                             }
-                            const reversedQuery = await this.utils.buildReversedQuery(context);
-                            const currentSetQuery = { select, where: reversedQuery };
-                            await this.utils.injectAuthGuard(currentSetQuery, model, 'read');
-                            const currentSet = await tx[model].findMany(currentSetQuery);
-                            currentSet.forEach((preValue) => {
-                                postWriteChecks.push({
-                                    model,
-                                    operation: 'postUpdate',
-                                    uniqueFilter: preValue,
-                                    preValue: preValueSelect ? preValue : undefined,
-                                });
-                            });
                         }
-                    },
-
-                    create: async (model, args, context) => {
-                        // process the entire create subtree separately
-                        await _create(model, args, context, tx);
-
-                        // remove it from the update payload
-                        delete context.parent.create;
-
-                        // don't visit payload
-                        return false;
-                    },
-
-                    upsert: async (model, args, context) => {
-                        // build a unique query including upstream conditions
-                        const uniqueFilter = await this.utils.buildReversedQuery(context);
-
-                        // branch based on if the update target exists
-                        const existing = await tx[model].findUnique({ where: uniqueFilter });
-                        if (existing) {
-                            // check pre-update guard
-                            await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', tx);
-
-                            // register post-update check
-                            await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
-
-                            // convert upsert to update
-                            context.parent.update = args.update;
-
-                            // should continue visiting payload
-                            return true;
-                        } else {
-                            // process the entire create subtree separately
-                            await _create(model, args, context, tx);
-
-                            // remove it from the update payload
-                            delete context.parent.upsert;
-
-                            // don't visit payload
-                            return false;
-                        }
-                    },
-
-                    connect: async (model, args, context) => _connectDisconnect(model, args, context, tx),
-
-                    connectOrCreate: async (model, args, context) => {
-                        // the where condition is already unique, so we can use it to check if the target exists
-                        const existing = await tx[model].findUnique({ where: args.where });
-                        if (existing) {
-                            // connect
-                            await _connectDisconnect(model, args.where, context, tx);
-                        } else {
-                            // create
-                            await _create(model, args.create, context, tx);
-                        }
-                    },
-
-                    disconnect: async (model, args, context) => _connectDisconnect(model, args, context, tx),
-
-                    set: async (model, args, context) => {
-                        // find the set of items to be replaced
-                        const reversedQuery = await this.utils.buildReversedQuery(context);
-                        const currentSet = await tx[model].findMany({
-                            select: this.utils.makeIdSelection(model),
-                            where: reversedQuery,
-                        });
-
-                        // register current set for update (foreign key)
-                        await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context, tx)));
-
-                        // proceed with connecting the new set
-                        await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context, tx)));
-                    },
-
-                    delete: async (model, args, context) => {
-                        // build a unique query including upstream conditions
-                        const uniqueFilter = await this.utils.buildReversedQuery(context);
-
-                        // handle not-found
-                        const existing = await tx[model].findFirst({
-                            select: this.utils.makeIdSelection(model),
-                            where: uniqueFilter,
-                        });
-                        if (!existing) {
-                            // throw not found instead
-                            throw this.utils.notFound(model);
-                        }
-
-                        // check delete guard
-                        await this.utils.checkPolicyForUnique(model, uniqueFilter, 'delete', tx);
-                    },
-
-                    deleteMany: async (model, args, context) => {
-                        // inject delete guard
-                        const guard = await this.utils.getAuthGuard(model, 'delete');
-                        context.parent.deleteMany = this.utils.and(args, guard);
-                    },
-                });
-
-                await visitor.visit(this.model, 'update', args);
-
-                if (this.shouldLogQuery) {
-                    this.logger.info(`[withPolicy] \`update\` ${this.model}: ${formatObject(args)}`);
+                    }
                 }
-                const result = await tx[this.model].update({
-                    where: args.where,
-                    data: args.data,
-                    select: this.utils.makeIdSelection(this.model),
-                });
 
-                // run post-write checks
-                await Promise.all(
-                    postWriteChecks.map(async ({ model, operation, uniqueFilter, preValue }) => {
-                        if (this.shouldLogQuery) {
-                            this.logger.info(
-                                `[withPolicy] \`postUpdate\` ${model}: ${formatObject(
-                                    uniqueFilter
-                                )}, preValue: ${formatObject(preValue)}`
-                            );
+                if (thisModelUpdate) {
+                    this.utils.tryReject(this.model, 'update');
+
+                    // check pre-update guard
+                    await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', db);
+
+                    // handles the case where id fields are updated
+                    const ids = this.utils.clone(existing);
+                    for (const key of Object.keys(existing)) {
+                        const updateValue = (args as any).data ? (args as any).data[key] : (args as any)[key];
+                        if (
+                            typeof updateValue === 'string' ||
+                            typeof updateValue === 'number' ||
+                            typeof updateValue === 'bigint'
+                        ) {
+                            ids[key] = updateValue;
                         }
-                        return this.utils.checkPolicyForUnique(model, uniqueFilter, operation, tx, preValue);
-                    })
-                );
+                    }
 
-                return result;
+                    // register post-update check
+                    await _registerPostUpdateCheck(model, ids, db);
+                }
             },
-            { timeout: 100000 }
-        );
 
-        return this.utils.readBack(this.prisma, this.model, 'update', origArgs, result);
+            updateMany: async (model, args, context) => {
+                // injects auth guard into where clause
+                await this.utils.injectAuthGuard(args, model, 'update');
+
+                // prepare for post-update check
+                if (this.utils.hasAuthGuard(model, 'postUpdate') || this.utils.getZodSchema(model)) {
+                    let select = this.utils.makeIdSelection(model);
+                    const preValueSelect = await this.utils.getPreValueSelect(model);
+                    if (preValueSelect) {
+                        select = { ...select, ...preValueSelect };
+                    }
+                    const reversedQuery = await this.utils.buildReversedQuery(context);
+                    const currentSetQuery = { select, where: reversedQuery };
+                    await this.utils.injectAuthGuard(currentSetQuery, model, 'read');
+                    const currentSet = await db[model].findMany(currentSetQuery);
+
+                    postWriteChecks.push(
+                        ...currentSet.map((preValue) => ({
+                            model,
+                            operation: 'postUpdate' as PolicyOperationKind,
+                            uniqueFilter: preValue,
+                            preValue: preValueSelect ? preValue : undefined,
+                        }))
+                    );
+                }
+            },
+
+            create: async (model, args, context) => {
+                // process the entire create subtree separately
+                await _create(model, args, context, db);
+
+                // remove it from the update payload
+                delete context.parent.create;
+
+                // don't visit payload
+                return false;
+            },
+
+            createMany: async (model, args, context) => {
+                // process createMany separately
+                await _createMany(model, args, context, db);
+
+                // remove it from the update payload
+                delete context.parent.createMany;
+
+                // don't visit payload
+                return false;
+            },
+
+            upsert: async (model, args, context) => {
+                // build a unique query including upstream conditions
+                const uniqueFilter = await this.utils.buildReversedQuery(context);
+
+                // branch based on if the update target exists
+                const existing = await this.utils.checkExistence(db, model, uniqueFilter);
+                if (existing) {
+                    // check pre-update guard
+                    await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', db);
+
+                    // register post-update check
+                    await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
+
+                    // convert upsert to update
+                    context.parent.update = { where: args.where, data: args.update };
+                    delete context.parent.upsert;
+
+                    // should continue visiting payload
+                    return context.parent.update;
+                } else {
+                    // process the entire create subtree separately
+                    await _create(model, args.create, context, db);
+
+                    // remove it from the update payload
+                    delete context.parent.upsert;
+
+                    // don't visit payload
+                    return false;
+                }
+            },
+
+            connect: async (model, args, context) => _connectDisconnect(model, args, context, db),
+
+            connectOrCreate: async (model, args, context) => {
+                // the where condition is already unique, so we can use it to check if the target exists
+                const existing = await this.utils.checkExistence(db, model, args.where);
+                if (existing) {
+                    // connect
+                    await _connectDisconnect(model, args.where, context, db);
+                } else {
+                    // create
+                    await _create(model, args.create, context, db);
+                }
+            },
+
+            disconnect: async (model, args, context) => _connectDisconnect(model, args, context, db),
+
+            set: async (model, args, context) => {
+                // find the set of items to be replaced
+                const reversedQuery = await this.utils.buildReversedQuery(context);
+                const findCurrSetArgs = {
+                    select: this.utils.makeIdSelection(model),
+                    where: reversedQuery,
+                };
+                if (this.shouldLogQuery) {
+                    this.logger.info(`[withPolicy] \`findMany\` ${model}:\n${formatObject(findCurrSetArgs)}`);
+                }
+                const currentSet = await db[model].findMany(findCurrSetArgs);
+
+                // register current set for update (foreign key)
+                await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context, db)));
+
+                // proceed with connecting the new set
+                await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context, db)));
+            },
+
+            delete: async (model, args, context) => {
+                // build a unique query including upstream conditions
+                const uniqueFilter = await this.utils.buildReversedQuery(context);
+
+                // handle not-found
+                await this.utils.checkExistence(db, model, uniqueFilter, true);
+
+                // check delete guard
+                await this.utils.checkPolicyForUnique(model, uniqueFilter, 'delete', db);
+            },
+
+            deleteMany: async (model, args, context) => {
+                // inject delete guard
+                const guard = await this.utils.getAuthGuard(model, 'delete');
+                context.parent.deleteMany = this.utils.and(args, guard);
+            },
+        });
+
+        await visitor.visit(this.model, 'update', args);
+
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`update\` ${this.model}: ${formatObject(args)}`);
+        }
+        const result = await db[this.model].update({
+            where: args.where,
+            data: args.data,
+            select: this.utils.makeIdSelection(this.model),
+        });
+
+        return { result, postWriteChecks };
     }
 
     async updateMany(args: any) {
@@ -718,7 +772,34 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = this.utils.clone(args);
         await this.utils.injectAuthGuard(args, this.model, 'update');
 
-        return this.modelClient.updateMany(args);
+        if (this.utils.hasAuthGuard(this.model, 'postUpdate') || this.utils.getZodSchema(this.model)) {
+            // use a transaction to do post-update checks
+            const postWriteChecks: PostWriteCheckRecord[] = [];
+            return this.prisma.$transaction(async (tx) => {
+                let select = this.utils.makeIdSelection(this.model);
+                const preValueSelect = await this.utils.getPreValueSelect(this.model);
+                if (preValueSelect) {
+                    select = { ...select, ...preValueSelect };
+                }
+                const currentSetQuery = { select, where: args.where };
+                await this.utils.injectAuthGuard(currentSetQuery, this.model, 'read');
+                const currentSet = await tx[this.model].findMany(currentSetQuery);
+                postWriteChecks.push(
+                    ...currentSet.map((preValue) => ({
+                        model: this.model,
+                        operation: 'postUpdate' as PolicyOperationKind,
+                        uniqueFilter: this.utils.getEntityIds(this.model, preValue),
+                        preValue: preValueSelect ? preValue : undefined,
+                    }))
+                );
+                const result = await tx[this.model].updateMany(args);
+                await this.runPostWriteChecks(postWriteChecks, tx);
+                return result;
+            });
+        } else {
+            // proceed without a transaction
+            return this.modelClient.updateMany(args);
+        }
     }
 
     async upsert(args: any) {
@@ -740,19 +821,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // decompose upsert into create or update
 
-        const select = this.utils.makeIdSelection(this.model);
-        const existing = await this.prisma[this.model].findUnique({
-            where: args.where,
-            select,
+        return await this.prisma.$transaction(async (tx) => {
+            const { where, create, update, ...rest } = args;
+            const existing = await this.utils.checkExistence(tx, this.model, args.where);
+
+            if (existing) {
+                // update
+                const { result, postWriteChecks } = await this.doUpdate({ where, data: update, ...rest }, tx);
+                await this.runPostWriteChecks(postWriteChecks, tx);
+                return this.utils.readBack(tx, this.model, 'update', args, result);
+            } else {
+                // create
+                const { result, postWriteChecks } = await this.doCreate(this.model, { data: create, ...rest }, tx);
+                await this.runPostWriteChecks(postWriteChecks, tx);
+                return this.utils.readBack(tx, this.model, 'create', args, result);
+            }
         });
-
-        const { where, create, update, ...rest } = args;
-
-        if (existing) {
-            return this.update({ where, data: update, ...rest });
-        } else {
-            return await this.create({ data: create, ...rest });
-        }
     }
 
     //#endregion
@@ -771,22 +855,28 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // read the entity under deletion with respect to read policies
         let err: Error | undefined = undefined;
-        let result: any;
-        try {
-            result = await this.utils.readBack(this.prisma, this.model, 'delete', args, args.where);
-        } catch (_err) {
-            err = _err as Error;
-        }
 
-        // inject delete guard
-        const guard = await this.utils.getAuthGuard(this.model, 'delete');
-        const deleteArgs = guard === true ? args : { where: { ...args.where, AND: guard } };
+        const result = await this.prisma.$transaction(async (tx) => {
+            let read: any;
+            try {
+                read = await this.utils.readBack(tx, this.model, 'delete', args, args.where);
+            } catch (_err) {
+                err = _err as Error;
+            }
 
-        // proceed with the deletion
-        if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`delete\` ${this.model}:\n${formatObject(deleteArgs)}`);
-        }
-        await this.modelClient.delete(deleteArgs);
+            // check existence
+            await this.utils.checkExistence(tx, this.model, args.where, true);
+
+            // inject delete guard
+            await this.utils.checkPolicyForUnique(this.model, args.where, 'delete', tx);
+
+            // proceed with the deletion
+            if (this.shouldLogQuery) {
+                this.logger.info(`[withPolicy] \`delete\` ${this.model}:\n${formatObject(args)}`);
+            }
+            await tx[this.model].delete(args);
+            return read;
+        });
 
         if (err) {
             throw err;
@@ -857,7 +947,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     //#region Utils
 
     private get shouldLogQuery() {
-        return this.logPrismaQuery && this.logger.enabled('info');
+        return !!this.logPrismaQuery && this.logger.enabled('info');
+    }
+
+    private async runPostWriteChecks(postWriteChecks: PostWriteCheckRecord[], db: Record<string, DbOperations>) {
+        await Promise.all(
+            postWriteChecks.map(async ({ model, operation, uniqueFilter, preValue }) =>
+                this.utils.checkPolicyForUnique(model, uniqueFilter, operation, db, preValue)
+            )
+        );
     }
 
     //#endregion

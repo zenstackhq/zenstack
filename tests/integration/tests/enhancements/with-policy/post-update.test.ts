@@ -227,7 +227,7 @@ describe('With Policy: post update', () => {
                 where: { id: '1' },
                 data: { m2: { update: { value: 0 } } },
             })
-        ).toBeRejectedByPolicy();
+        ).toResolveTruthy(); // m2 updatable
 
         await expect(
             db.m1.update({

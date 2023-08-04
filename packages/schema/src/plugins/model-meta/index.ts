@@ -163,6 +163,8 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
 
 function getUniqueConstraints(model: DataModel) {
     const constraints: Array<{ name: string; fields: string[] }> = [];
+
+    // model-level constraints
     for (const attr of model.attributes.filter(
         (attr) => attr.decl.ref?.name === '@@unique' || attr.decl.ref?.name === '@@id'
     )) {
@@ -179,6 +181,14 @@ function getUniqueConstraints(model: DataModel) {
             constraints.push({ name: constraintName, fields: fieldNames });
         }
     }
+
+    // field-level constraints
+    for (const field of model.fields) {
+        if (hasAttribute(field, '@id') || hasAttribute(field, '@unique')) {
+            constraints.push({ name: field.name, fields: [field.name] });
+        }
+    }
+
     return constraints;
 }
 

@@ -13,7 +13,7 @@ describe('With Policy:empty policy', () => {
     });
 
     it('direct operations', async () => {
-        const { withPolicy } = await loadSchema(
+        const { prisma, withPolicy } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -24,6 +24,7 @@ describe('With Policy:empty policy', () => {
 
         const db = withPolicy();
 
+        await prisma.model.create({ data: { id: '1', value: 0 } });
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
 
         expect(await db.model.findMany()).toHaveLength(0);
@@ -35,13 +36,13 @@ describe('With Policy:empty policy', () => {
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
         await expect(db.model.createMany({ data: [{}] })).toBeRejectedByPolicy();
 
-        await expect(db.model.update({ where: { id: '1' }, data: {} })).toBeRejectedByPolicy();
-        await expect(db.model.updateMany({ data: {} })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: '1' }, data: { value: 1 } })).toBeRejectedByPolicy();
+        await expect(db.model.updateMany({ data: { value: 1 } })).toBeRejectedByPolicy();
         await expect(
             db.model.upsert({
                 where: { id: '1' },
-                create: {},
-                update: {},
+                create: { value: 1 },
+                update: { value: 1 },
             })
         ).toBeRejectedByPolicy();
 

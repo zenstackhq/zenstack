@@ -399,18 +399,7 @@ describe('With Policy:deep nested', () => {
         await expect(
             db.m1.update({
                 where: { myId: '2' },
-                data: {
-                    m2: {
-                        update: {
-                            m4: {
-                                updateMany: {
-                                    where: { value: { gt: 0 } },
-                                    data: { value: 102 },
-                                },
-                            },
-                        },
-                    },
-                },
+                data: { value: 1 },
             })
         ).toBeRejectedByPolicy();
 

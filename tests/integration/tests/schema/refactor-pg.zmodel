@@ -34,6 +34,8 @@ model Profile {
     name String
     homepage String? @url
     private Boolean @default(false)
+    image Image? @relation(fields: [imageId], references: [id], onDelete: Cascade)
+    imageId Int? @unique
 
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId Int @unique
@@ -45,9 +47,21 @@ model Profile {
     @@allow('all', auth() == user || auth().role == ADMIN)
 }
 
+model Image {
+    id Int @id @default(autoincrement())
+    url String @url
+    profile Profile?
+
+    comment Comment? @relation(fields: [commentId], references: [id])
+    commentId Int?
+
+    @@allow('create,read', true)
+    @@allow('update,delete', auth().role == ADMIN)
+}
+
 model Post {
     id Int @id @default(autoincrement())
-    title String @length(0, 8)
+    title String @length(1, 8)
     published Boolean @default(false)
     comments Comment[]
     author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -69,6 +83,8 @@ model Comment {
 
     post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
     postId Int
+
+    images Image[]
     
     // comments are readable by all
     @@allow('read', post.published)

@@ -113,7 +113,7 @@ describe('With Policy: with postgres', () => {
         ).toResolveTruthy();
 
         // delete user2 as user1
-        await expect(user1Db.user.delete({ where: { id: user2.id } })).toBeNotFound();
+        await expect(user1Db.user.delete({ where: { id: user2.id } })).toBeRejectedByPolicy();
 
         // delete user1 as user1
         await expect(user1Db.user.delete({ where: { id: user1.id } })).toResolveTruthy();
@@ -228,7 +228,7 @@ describe('With Policy: with postgres', () => {
         ).toBeRejectedByPolicy();
 
         // delete list
-        await expect(user2Db.list.delete({ where: { id: 'list1' } })).toBeNotFound();
+        await expect(user2Db.list.delete({ where: { id: 'list1' } })).toBeRejectedByPolicy();
         await expect(user1Db.list.delete({ where: { id: 'list1' } })).toResolveTruthy();
         await expect(user1Db.list.findUnique({ where: { id: 'list1' } })).toResolveNull();
     });

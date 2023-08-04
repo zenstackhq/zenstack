@@ -34,39 +34,49 @@ export type NestedWriteVisitorContext = {
 export type NestedWriterVisitorCallback = {
     create?: (model: string, args: any[], context: NestedWriteVisitorContext) => Promise<boolean | void>;
 
+    createMany?: (
+        model: string,
+        args: { data: any; skipDuplicates?: boolean },
+        context: NestedWriteVisitorContext
+    ) => Promise<boolean | object | void>;
+
     connectOrCreate?: (
         model: string,
         args: { where: object; create: any },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | void>;
+    ) => Promise<boolean | object | void>;
 
-    connect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | void>;
+    connect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
 
-    disconnect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | void>;
+    disconnect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
 
-    set?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | void>;
+    set?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
 
-    update?: (
-        model: string,
-        args: { where: object; data: any },
-        context: NestedWriteVisitorContext
-    ) => Promise<boolean | void>;
+    update?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
 
     updateMany?: (
         model: string,
         args: { where?: object; data: any },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | void>;
+    ) => Promise<boolean | object | void>;
 
     upsert?: (
         model: string,
         args: { where: object; create: any; update: any },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | void>;
+    ) => Promise<boolean | object | void>;
 
-    delete?: (model: string, args: object | boolean, context: NestedWriteVisitorContext) => Promise<boolean | void>;
+    delete?: (
+        model: string,
+        args: object | boolean,
+        context: NestedWriteVisitorContext
+    ) => Promise<boolean | object | void>;
 
-    deleteMany?: (model: string, args: any | object, context: NestedWriteVisitorContext) => Promise<boolean | void>;
+    deleteMany?: (
+        model: string,
+        args: any | object,
+        context: NestedWriteVisitorContext
+    ) => Promise<boolean | object | void>;
 
     field?: (
         field: FieldInfo,
@@ -140,23 +150,22 @@ export class NestedWriteVisitor {
                         callbackResult = await this.callback.create(model, item, context);
                     }
                     if (callbackResult !== false) {
-                        await this.visitSubPayload(model, action, item, context.nestingPath);
+                        const subPayload = typeof callbackResult === 'object' ? callbackResult : item;
+                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
                     }
                 }
                 break;
 
             case 'createMany':
-                // skip the 'data' layer so as to keep consistency with 'create'
-                if (data.data) {
+                if (data) {
                     context.nestingPath.push({ field, model, where: {}, unique: false });
-                    for (const item of enumerate(data.data)) {
-                        let callbackResult: any;
-                        if (this.callback.create) {
-                            callbackResult = await this.callback.create(model, item, context);
-                        }
-                        if (callbackResult !== false) {
-                            await this.visitSubPayload(model, action, item, context.nestingPath);
-                        }
+                    let callbackResult: any;
+                    if (this.callback.createMany) {
+                        callbackResult = await this.callback.createMany(model, data, context);
+                    }
+                    if (callbackResult !== false) {
+                        const subPayload = typeof callbackResult === 'object' ? callbackResult : data.data;
+                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
                     }
                 }
                 break;
@@ -169,7 +178,8 @@ export class NestedWriteVisitor {
                         callbackResult = await this.callback.connectOrCreate(model, item, context);
                     }
                     if (callbackResult !== false) {
-                        await this.visitSubPayload(model, action, item.create, context.nestingPath);
+                        const subPayload = typeof callbackResult === 'object' ? callbackResult : item.create;
+                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
                     }
                 }
                 break;
@@ -205,8 +215,8 @@ export class NestedWriteVisitor {
                 break;
 
             case 'set':
-                context.nestingPath.push({ field, model, where: {}, unique: false });
                 if (this.callback.set) {
+                    context.nestingPath.push({ field, model, where: {}, unique: false });
                     await this.callback.set(model, data, context);
                 }
                 break;
@@ -218,9 +228,14 @@ export class NestedWriteVisitor {
                     if (this.callback.update) {
                         callbackResult = await this.callback.update(model, item, context);
                     }
-                    const payload = typeof item.data === 'object' ? item.data : item;
                     if (callbackResult !== false) {
-                        await this.visitSubPayload(model, action, payload, context.nestingPath);
+                        const subPayload =
+                            typeof callbackResult === 'object'
+                                ? callbackResult
+                                : typeof item.data === 'object'
+                                ? item.data
+                                : item;
+                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
                     }
                 }
                 break;
@@ -233,7 +248,8 @@ export class NestedWriteVisitor {
                         callbackResult = await this.callback.updateMany(model, item, context);
                     }
                     if (callbackResult !== false) {
-                        await this.visitSubPayload(model, action, item, context.nestingPath);
+                        const subPayload = typeof callbackResult === 'object' ? callbackResult : item;
+                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
                     }
                 }
                 break;
@@ -246,8 +262,12 @@ export class NestedWriteVisitor {
                         callbackResult = await this.callback.upsert(model, item, context);
                     }
                     if (callbackResult !== false) {
-                        await this.visitSubPayload(model, action, item.create, context.nestingPath);
-                        await this.visitSubPayload(model, action, item.update, context.nestingPath);
+                        if (typeof callbackResult === 'object') {
+                            await this.visitSubPayload(model, action, callbackResult, context.nestingPath);
+                        } else {
+                            await this.visitSubPayload(model, action, item.create, context.nestingPath);
+                            await this.visitSubPayload(model, action, item.update, context.nestingPath);
+                        }
                     }
                 }
                 break;

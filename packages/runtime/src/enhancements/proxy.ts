@@ -71,7 +71,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
 
     async findFirst(args: any): Promise<unknown> {
         args = await this.preprocessArgs('findFirst', args);
-        const r = this.prisma[this.model].findFirst(args);
+        const r = await this.prisma[this.model].findFirst(args);
         return this.processResultEntity(r);
     }
 
@@ -100,7 +100,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
 
     async update(args: any): Promise<unknown> {
         args = await this.preprocessArgs('update', args);
-        const r = this.prisma[this.model].update(args);
+        const r = await this.prisma[this.model].update(args);
         return this.processResultEntity(r);
     }
 
@@ -111,13 +111,13 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
 
     async upsert(args: any): Promise<unknown> {
         args = await this.preprocessArgs('upsert', args);
-        const r = this.prisma[this.model].upsert(args);
+        const r = await this.prisma[this.model].upsert(args);
         return this.processResultEntity(r);
     }
 
     async delete(args: any): Promise<unknown> {
         args = await this.preprocessArgs('delete', args);
-        const r = this.prisma[this.model].delete(args);
+        const r = await this.prisma[this.model].delete(args);
         return this.processResultEntity(r);
     }
 

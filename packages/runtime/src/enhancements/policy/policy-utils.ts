@@ -12,6 +12,7 @@ import { NestedWriteVisitorContext } from '../nested-write-vistor';
 import type { InputCheckFunc, ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import {
     enumerate,
+    formatObject,
     getIdFields,
     getModelFields,
     prismaClientKnownRequestError,
@@ -33,7 +34,8 @@ export class PolicyUtil {
         private readonly modelMeta: ModelMeta,
         private readonly policy: PolicyDef,
         private readonly zodSchemas: ZodSchemas | undefined,
-        private readonly user?: AuthUser
+        private readonly user?: AuthUser,
+        private readonly shouldLogQuery = false
     ) {
         this.logger = new Logger(db);
     }
@@ -157,6 +159,9 @@ export class PolicyUtil {
     async injectAuthGuard(args: any, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(model, operation);
         if (guard === false) {
+            // use OR with 0 filters to represent filtering out everything
+            // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
+            args.where = { OR: [] };
             return false;
         }
 
@@ -293,19 +298,28 @@ export class PolicyUtil {
     }
 
     // flatten unique constraint filters
-    private async flattenGeneratedUniqueField(model: string, args: any) {
+    private flattenGeneratedUniqueField(model: string, args: any) {
         // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
         const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
         if (uniqueConstraints && Object.keys(uniqueConstraints).length > 0) {
             for (const [field, value] of Object.entries<any>(args)) {
-                if (uniqueConstraints[field] && typeof value === 'object') {
+                if (
+                    uniqueConstraints[field] &&
+                    uniqueConstraints[field].fields.length > 1 &&
+                    typeof value === 'object'
+                ) {
+                    // multi-field unique constraint, flatten it
+                    delete args[field];
                     for (const [f, v] of Object.entries(value)) {
                         args[f] = v;
                     }
-                    delete args[field];
                 }
             }
         }
+    }
+
+    getUniqueConstraints(model: string) {
+        return this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)] ?? {};
     }
 
     async buildReversedQuery(context: NestedWriteVisitorContext) {
@@ -319,7 +333,7 @@ export class PolicyUtil {
             const visitWhere = { ...where };
             if (model && where) {
                 // make sure composite unique condition is flattened
-                await this.flattenGeneratedUniqueField(model, visitWhere);
+                this.flattenGeneratedUniqueField(model, visitWhere);
             }
 
             if (!result) {
@@ -341,6 +355,9 @@ export class PolicyUtil {
                     if (where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping) {
                         for (const [r, fk] of Object.entries<string>(backLinkField.foreignKeyMapping)) {
                             currQuery[fk] = visitWhere[r];
+                        }
+                        if (i > 0) {
+                            currQuery[currField.backLink] = {};
                         }
                     } else {
                         currQuery[currField.backLink] = { ...visitWhere };
@@ -468,13 +485,17 @@ export class PolicyUtil {
 
         let where = this.clone(uniqueFilter);
         // query args may have be of combined-id form, need to flatten it to call findFirst
-        await this.flattenGeneratedUniqueField(model, where);
+        this.flattenGeneratedUniqueField(model, where);
 
         // query with policy guard
         if (guard !== true) {
             where = this.and(where, guard);
         }
         const query = { select, where };
+
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] checking ${model} for ${operation}, \`findFirst\`:\n${formatObject(query)}`);
+        }
         const result = await db[model].findFirst(query);
         if (!result) {
             throw this.deniedByPolicy(model, operation, `entity ${JSON.stringify(uniqueFilter)} failed policy check`);
@@ -508,25 +529,41 @@ export class PolicyUtil {
         }
     }
 
+    async checkExistence(
+        db: Record<string, DbOperations>,
+        model: string,
+        uniqueFilter: any,
+        throwIfNotFound = false
+    ): Promise<any> {
+        uniqueFilter = this.clone(uniqueFilter);
+        this.flattenGeneratedUniqueField(model, uniqueFilter);
+
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] checking ${model} existence, \`findFirst\`:\n${formatObject(uniqueFilter)}`);
+        }
+        const existing = await db[model].findFirst({
+            where: uniqueFilter,
+            select: this.makeIdSelection(model),
+        });
+        if (!existing && throwIfNotFound) {
+            throw this.notFound(model);
+        }
+        return existing;
+    }
+
     /**
      * Returns an entity given a unique filter with read policy checked. Reject if not readable.
      */
     async readBack(
-        db: DbClientContract,
+        db: Record<string, DbOperations>,
         model: string,
         operation: PolicyOperationKind,
         selectInclude: any,
         uniqueFilter: any
     ): Promise<unknown> {
-        let readWithIds = this.clone(uniqueFilter);
-        if (Object.keys(readWithIds).length > 1) {
-            // multi-field Id, turn into 'id1_id2: { id1: ..., id2: ... }' format
-            readWithIds = {
-                [Object.keys(readWithIds).join('_')]: readWithIds,
-            };
-        }
-
-        const readArgs = { select: selectInclude.select, include: selectInclude.include, where: readWithIds };
+        uniqueFilter = this.clone(uniqueFilter);
+        this.flattenGeneratedUniqueField(model, uniqueFilter);
+        const readArgs = { select: selectInclude.select, include: selectInclude.include, where: uniqueFilter };
         const err = this.deniedByPolicy(
             model,
             operation,
@@ -539,7 +576,10 @@ export class PolicyUtil {
             throw err;
         }
 
-        const result = await db[model].findUnique(readArgs);
+        if (this.shouldLogQuery) {
+            this.logger.info(`[withPolicy] \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
+        }
+        const result = await db[model].findFirst(readArgs);
         if (!result) {
             throw err;
         }
@@ -640,7 +680,7 @@ export class PolicyUtil {
     /**
      * Clones an object and makes sure it's not empty.
      */
-    clone(value: unknown) {
+    clone(value: unknown): any {
         return value ? deepcopy(value) : {};
     }
 
