@@ -12,7 +12,7 @@ import { enumerate, getModelFields } from './utils';
  */
 export type WithOmitOptions = {
     /**
-     * Model metatadata
+     * Model metadata
      */
     modelMeta?: ModelMeta;
 };

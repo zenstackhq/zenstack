@@ -100,10 +100,15 @@ export type FieldInfo = {
      * If the field is the owner side of a relation
      */
     isRelationOwner: boolean;
+
+    /**
+     * Mapping from foreign key field names to relation field names
+     */
+    foreignKeyMapping?: Record<string, string>;
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>) => Promise<T>;
+    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>, options?: unknown) => Promise<T>;
 };
 
 export const PrismaWriteActions = [
@@ -115,6 +120,7 @@ export const PrismaWriteActions = [
     'upsert',
     'connect',
     'disconnect',
+    'set',
     'delete',
     'deleteMany',
 ] as const;

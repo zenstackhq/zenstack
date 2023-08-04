@@ -271,7 +271,7 @@ export class TypeScriptExpressionTransformer {
                 return `context.preValue?.${expr.target.ref.name}`;
             } else {
                 return this.options?.fieldReferenceContext
-                    ? `${this.options.fieldReferenceContext}.${expr.target.ref.name}`
+                    ? `${this.options.fieldReferenceContext}?.${expr.target.ref.name}`
                     : expr.target.ref.name;
             }
         }

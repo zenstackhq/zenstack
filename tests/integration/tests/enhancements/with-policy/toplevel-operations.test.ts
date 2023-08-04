@@ -72,7 +72,8 @@ describe('With Policy:toplevel operations', () => {
             @@allow('create', value > 0)
             @@allow('update', value > 1)
         }
-        `
+        `,
+            { logPrismaQuery: true }
         );
 
         const db = withPolicy();

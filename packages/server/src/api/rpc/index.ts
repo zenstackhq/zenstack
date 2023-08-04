@@ -15,6 +15,12 @@ import { logError, processEntityData, registerCustomSerializers } from '../utils
 
 registerCustomSerializers();
 
+const ERROR_STATUS_MAPPING: Record<string, number> = {
+    [PrismaErrorCode.CONSTRAINED_FAILED]: 403,
+    [PrismaErrorCode.REQUIRED_CONNECTED_RECORD_NOT_FOUND]: 404,
+    [PrismaErrorCode.DEPEND_ON_RECORD_NOT_FOUND]: 404,
+};
+
 /**
  * Prisma RPC style API request handler that mirrors the Prisma Client API
  */
@@ -149,33 +155,20 @@ class RequestHandler extends APIHandlerBase {
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
                 logError(logger, err.code, err.message);
-                if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
-                    // rejected by policy
-                    return {
-                        status: 403,
-                        body: {
-                            error: {
-                                prisma: true,
-                                rejectedByPolicy: true,
-                                code: err.code,
-                                message: err.message,
-                                reason: err.meta?.reason,
-                            },
+                const status = ERROR_STATUS_MAPPING[err.code] ?? 400;
+                const rejectedByPolicy = err.code === PrismaErrorCode.CONSTRAINED_FAILED ? true : undefined;
+                return {
+                    status,
+                    body: {
+                        error: {
+                            prisma: true,
+                            rejectedByPolicy,
+                            code: err.code,
+                            message: err.message,
+                            reason: err.meta?.reason,
                         },
-                    };
-                } else {
-                    return {
-                        status: 400,
-                        body: {
-                            error: {
-                                prisma: true,
-                                code: err.code,
-                                message: err.message,
-                                reason: err.meta?.reason,
-                            },
-                        },
-                    };
-                }
+                    },
+                };
             } else if (isPrismaClientUnknownRequestError(err) || isPrismaClientValidationError(err)) {
                 logError(logger, err.message);
                 return {

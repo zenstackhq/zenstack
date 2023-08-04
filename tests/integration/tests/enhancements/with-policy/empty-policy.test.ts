@@ -13,16 +13,18 @@ describe('With Policy:empty policy', () => {
     });
 
     it('direct operations', async () => {
-        const { withPolicy } = await loadSchema(
+        const { prisma, withPolicy } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
+            value Int
         }
         `
         );
 
         const db = withPolicy();
 
+        await prisma.model.create({ data: { id: '1', value: 0 } });
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
 
         expect(await db.model.findMany()).toHaveLength(0);
@@ -34,22 +36,24 @@ describe('With Policy:empty policy', () => {
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
         await expect(db.model.createMany({ data: [{}] })).toBeRejectedByPolicy();
 
-        await expect(db.model.update({ where: { id: '1' }, data: {} })).toBeRejectedByPolicy();
-        await expect(db.model.updateMany({ data: {} })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: '1' }, data: { value: 1 } })).toBeRejectedByPolicy();
+        await expect(db.model.updateMany({ data: { value: 1 } })).toBeRejectedByPolicy();
         await expect(
             db.model.upsert({
                 where: { id: '1' },
-                create: {},
-                update: {},
+                create: { value: 1 },
+                update: { value: 1 },
             })
         ).toBeRejectedByPolicy();
 
         await expect(db.model.delete({ where: { id: '1' } })).toBeRejectedByPolicy();
         await expect(db.model.deleteMany()).toBeRejectedByPolicy();
 
-        await expect(db.model.aggregate({})).toBeRejectedByPolicy();
-        await expect(db.model.groupBy({})).toBeRejectedByPolicy();
-        await expect(db.model.count()).toBeRejectedByPolicy();
+        await expect(db.model.aggregate({ _avg: { value: true } })).resolves.toEqual(
+            expect.objectContaining({ _avg: { value: null } })
+        );
+        await expect(db.model.groupBy({ by: ['id'], _avg: { value: true } })).resolves.toHaveLength(0);
+        await expect(db.model.count()).resolves.toEqual(0);
     });
 
     it('to-many write', async () => {

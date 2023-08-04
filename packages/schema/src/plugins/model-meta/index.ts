@@ -2,8 +2,10 @@ import {
     ArrayExpr,
     DataModel,
     DataModelField,
+    isArrayExpr,
     isDataModel,
     isLiteralExpr,
+    isReferenceExpr,
     Model,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
@@ -68,6 +70,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                 writer.block(() => {
                     for (const f of model.fields) {
                         const backlink = getBackLink(f);
+                        const fkMapping = generateForeignKeyMapping(f);
                         writer.write(`${f.name}: {
                     name: "${f.name}",
                     type: "${
@@ -83,6 +86,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     attributes: ${JSON.stringify(getFieldAttributes(f))},
                     backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
                     isRelationOwner: ${isRelationOwner(f, backlink)},
+                    foreignKeyMapping: ${fkMapping ? JSON.stringify(fkMapping) : 'undefined'}
                 },`);
                     }
                 });
@@ -159,6 +163,8 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
 
 function getUniqueConstraints(model: DataModel) {
     const constraints: Array<{ name: string; fields: string[] }> = [];
+
+    // model-level constraints
     for (const attr of model.attributes.filter(
         (attr) => attr.decl.ref?.name === '@@unique' || attr.decl.ref?.name === '@@id'
     )) {
@@ -175,6 +181,14 @@ function getUniqueConstraints(model: DataModel) {
             constraints.push({ name: constraintName, fields: fieldNames });
         }
     }
+
+    // field-level constraints
+    for (const field of model.fields) {
+        if (hasAttribute(field, '@id') || hasAttribute(field, '@unique')) {
+            constraints.push({ name: field.name, fields: [field.name] });
+        }
+    }
+
     return constraints;
 }
 
@@ -204,4 +218,29 @@ function holdsForeignKey(field: DataModelField) {
     }
     const fields = getAttributeArg(relation, 'fields');
     return !!fields;
+}
+
+function generateForeignKeyMapping(field: DataModelField) {
+    const relation = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (!relation) {
+        return undefined;
+    }
+    const fields = getAttributeArg(relation, 'fields');
+    const references = getAttributeArg(relation, 'references');
+    if (!isArrayExpr(fields) || !isArrayExpr(references) || fields.items.length !== references.items.length) {
+        return undefined;
+    }
+
+    const fieldNames = fields.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
+    const referenceNames = references.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, string> = {};
+    referenceNames.forEach((name, i) => {
+        if (name) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[name] = fieldNames[i]!;
+        }
+    });
+    return result;
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
 import { FieldInfo, PolicyOperationKind, QueryContext } from '../types';
 
@@ -21,6 +22,11 @@ export type ModelMeta = {
 export type PolicyFunc = (context: QueryContext) => object;
 
 /**
+ * Function for getting policy guard with a given context
+ */
+export type InputCheckFunc = (args: any, context: QueryContext) => boolean;
+
+/**
  * Policy definition
  */
 export type PolicyDef = {
@@ -31,6 +37,8 @@ export type PolicyDef = {
             allowAll?: boolean;
             denyAll?: boolean;
         } & Partial<Record<PolicyOperationKind, PolicyFunc>> & {
+                create_input: InputCheckFunc;
+            } & {
                 preValueSelect?: object;
             }
     >;

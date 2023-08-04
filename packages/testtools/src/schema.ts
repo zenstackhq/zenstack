@@ -210,7 +210,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         console.log('Compiling...');
         run('npx tsc --init');
 
-        // add genetated '.zenstack/zod' folder to typescript's search path,
+        // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
         const tsconfig = json.parse(fs.readFileSync(path.join(projectRoot, './tsconfig.json'), 'utf-8'));
         tsconfig.compilerOptions.paths = {
