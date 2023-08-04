@@ -101,6 +101,9 @@ export type FieldInfo = {
      */
     isRelationOwner: boolean;
 
+    /**
+     * Mapping from foreign key field names to relation field names
+     */
     foreignKeyMapping?: Record<string, string>;
 };
 

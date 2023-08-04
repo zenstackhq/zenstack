@@ -29,7 +29,9 @@ export type NestedWriteVisitorContext = {
 };
 
 /**
- * NestedWriteVisitor's callback actions
+ * NestedWriteVisitor's callback actions. A call back function should return true or void to indicate
+ * that the visitor should continue traversing its children, or false to stop. It can also return an object
+ * to let the visitor traverse it instead of its original children.
  */
 export type NestedWriterVisitorCallback = {
     create?: (model: string, args: any[], context: NestedWriteVisitorContext) => Promise<boolean | void>;
@@ -87,7 +89,7 @@ export type NestedWriterVisitorCallback = {
 };
 
 /**
- * Recursive visitor for nested write (create/update) payload
+ * Recursive visitor for nested write (create/update) payload.
  */
 export class NestedWriteVisitor {
     constructor(private readonly modelMeta: ModelMeta, private readonly callback: NestedWriterVisitorCallback) {}
@@ -107,7 +109,6 @@ export class NestedWriteVisitor {
         }
 
         let topData = args;
-        // const topWhere = { ...topData.where };
 
         switch (action) {
             // create has its data wrapped in 'data' field
@@ -136,7 +137,6 @@ export class NestedWriteVisitor {
             return;
         }
 
-        // const isToOneUpdate = field?.isDataModel && !field.isArray;
         const context = { parent, field, nestingPath: [...nestingPath] };
         const toplevel = field == undefined;
 

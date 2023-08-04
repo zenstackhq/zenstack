@@ -199,7 +199,7 @@ export default class PolicyGenerator {
     }
 
     private hasFutureReference(expr: Expression) {
-        for (const node of streamAllContents(expr)) {
+        for (const node of this.allNodes(expr)) {
             if (isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref)) {
                 return true;
             }
@@ -265,7 +265,7 @@ export default class PolicyGenerator {
 
     private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
         return [...allows, ...denies].every((rule) => {
-            return [rule, ...streamAllContents(rule)].every((expr) => {
+            return [...this.allNodes(rule)].every((expr) => {
                 if (isThisExpr(expr)) {
                     return false;
                 }
@@ -334,9 +334,7 @@ export default class PolicyGenerator {
         };
 
         for (const rule of [...allows, ...denies]) {
-            for (const expr of [rule, ...streamAllContents(rule)].filter((node): node is Expression =>
-                isExpression(node)
-            )) {
+            for (const expr of [...this.allNodes(rule)].filter((node): node is Expression => isExpression(node))) {
                 // only care about member access and reference expressions
                 if (!isMemberAccessExpr(expr) && !isReferenceExpr(expr)) {
                     continue;
@@ -372,7 +370,7 @@ export default class PolicyGenerator {
 
         // check if any allow or deny rule contains 'auth()' invocation
         const hasAuthRef = [...denies, ...allows].some((rule) =>
-            streamAllContents(rule).some((child) => isAuthInvocation(child))
+            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
         );
 
         if (hasAuthRef) {
@@ -396,7 +394,7 @@ export default class PolicyGenerator {
         }
 
         const hasFieldAccess = [...denies, ...allows].some((rule) =>
-            [rule, ...streamAllContents(rule)].some(
+            [...this.allNodes(rule)].some(
                 (child) =>
                     // this.???
                     isThisExpr(child) ||
@@ -500,7 +498,7 @@ export default class PolicyGenerator {
 
         // check if any allow or deny rule contains 'auth()' invocation
         const hasAuthRef = [...denies, ...allows].some((rule) =>
-            streamAllContents(rule).some((child) => isAuthInvocation(child))
+            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
         );
 
         if (hasAuthRef) {
@@ -572,5 +570,10 @@ export default class PolicyGenerator {
         });
 
         return func;
+    }
+
+    private *allNodes(expr: Expression) {
+        yield expr;
+        yield* streamAllContents(expr);
     }
 }

@@ -2,13 +2,22 @@
 import { resolveField } from './model-meta';
 import { ModelMeta } from './types';
 
+/**
+ * Callback for @see ModelDataVisitor.
+ */
 export type ModelDataVisitorCallback = (model: string, data: any, scalarData: any) => void;
 
+/**
+ * Visitor that traverses data returned by a Prisma query.
+ */
 export class ModelDataVisitor {
     constructor(private modelMeta: ModelMeta) {}
 
+    /**
+     * Visits the given model data.
+     */
     visit(model: string, data: any, callback: ModelDataVisitorCallback) {
-        if (!data) {
+        if (!data || typeof data !== 'object') {
             return;
         }
 

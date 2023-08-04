@@ -46,6 +46,8 @@ export class PolicyUtil {
      * Creates a conjunction of a list of query conditions.
      */
     and(...conditions: (boolean | object)[]): any {
+        // TODO: reduction
+
         if (conditions.includes(false)) {
             // always false
             return { [GUARD_FIELD_NAME]: false };
@@ -67,6 +69,8 @@ export class PolicyUtil {
      * Creates a disjunction of a list of query conditions.
      */
     or(...conditions: (boolean | object)[]): any {
+        // TODO: reduction
+
         if (conditions.includes(true)) {
             // always true
             return { [GUARD_FIELD_NAME]: true };
@@ -125,6 +129,9 @@ export class PolicyUtil {
      */
     hasAuthGuard(model: string, operation: PolicyOperationKind): boolean {
         const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            return false;
+        }
         const provider: PolicyFunc | boolean | undefined = guard[operation];
         return typeof provider !== 'boolean' || provider !== true;
     }
@@ -318,10 +325,16 @@ export class PolicyUtil {
         }
     }
 
+    /**
+     * Gets unique constraints for the given model.
+     */
     getUniqueConstraints(model: string) {
         return this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)] ?? {};
     }
 
+    /**
+     * Builds a reversed query for the given nested path.
+     */
     async buildReversedQuery(context: NestedWriteVisitorContext) {
         let result, currQuery: any;
         let currField: FieldInfo | undefined;
@@ -467,9 +480,10 @@ export class PolicyUtil {
     ) {
         const guard = this.getAuthGuard(model, operation, preValue);
         if (guard === false) {
-            throw this.deniedByPolicy(model, operation, `entity ${JSON.stringify(uniqueFilter)} failed policy check`);
+            throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
         }
 
+        // Zod schema is to be checked for "create" and "postUpdate"
         const schema = ['create', 'postUpdate'].includes(operation) ? this.getZodSchema(model) : undefined;
 
         if (guard === true && !schema) {
@@ -494,11 +508,11 @@ export class PolicyUtil {
         const query = { select, where };
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] checking ${model} for ${operation}, \`findFirst\`:\n${formatObject(query)}`);
+            this.logger.info(`[policy] checking ${model} for ${operation}, \`findFirst\`:\n${formatObject(query)}`);
         }
         const result = await db[model].findFirst(query);
         if (!result) {
-            throw this.deniedByPolicy(model, operation, `entity ${JSON.stringify(uniqueFilter)} failed policy check`);
+            throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
         }
 
         if (schema) {
@@ -507,12 +521,12 @@ export class PolicyUtil {
             if (!parseResult.success) {
                 const error = fromZodError(parseResult.error);
                 if (this.logger.enabled('info')) {
-                    this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
+                    this.logger.info(`entity ${model} failed validation for operation ${operation}: ${error}`);
                 }
                 throw this.deniedByPolicy(
                     model,
                     operation,
-                    `entities ${JSON.stringify(uniqueFilter)} failed schema check: [${error}]`,
+                    `entities ${JSON.stringify(uniqueFilter)} failed validation: [${error}]`,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION
                 );
             }
@@ -529,6 +543,9 @@ export class PolicyUtil {
         }
     }
 
+    /**
+     * Checks if a model exists given a unique filter.
+     */
     async checkExistence(
         db: Record<string, DbOperations>,
         model: string,
@@ -539,7 +556,7 @@ export class PolicyUtil {
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] checking ${model} existence, \`findFirst\`:\n${formatObject(uniqueFilter)}`);
+            this.logger.info(`[policy] checking ${model} existence, \`findFirst\`:\n${formatObject(uniqueFilter)}`);
         }
         const existing = await db[model].findFirst({
             where: uniqueFilter,
@@ -558,7 +575,7 @@ export class PolicyUtil {
         db: Record<string, DbOperations>,
         model: string,
         operation: PolicyOperationKind,
-        selectInclude: any,
+        selectInclude: { select?: any; include?: any },
         uniqueFilter: any
     ): Promise<unknown> {
         uniqueFilter = this.clone(uniqueFilter);
@@ -577,7 +594,7 @@ export class PolicyUtil {
         }
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[withPolicy] \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
+            this.logger.info(`[policy] \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
         }
         const result = await db[model].findFirst(readArgs);
         if (!result) {
@@ -623,7 +640,10 @@ export class PolicyUtil {
 
     //#region Misc
 
-    async getPreValueSelect(model: string): Promise<object | undefined> {
+    /**
+     * Gets field selection for fetching pre-update entity values for the given model.
+     */
+    getPreValueSelect(model: string): object | undefined {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -635,6 +655,11 @@ export class PolicyUtil {
         return this.policy.validation?.[lowerCaseFirst(model)]?.hasValidation === true;
     }
 
+    /**
+     * Gets Zod schema for the given model and access kind.
+     *
+     * @param kind If undefined, returns the full schema.
+     */
     getZodSchema(model: string, kind: 'create' | 'update' | undefined = undefined) {
         if (!this.hasFieldValidation(model)) {
             return undefined;
@@ -672,6 +697,9 @@ export class PolicyUtil {
         }
     }
 
+    /**
+     * Gets information for a specific model field.
+     */
     getModelField(model: string, field: string) {
         model = lowerCaseFirst(model);
         return this.modelMeta.fields[model]?.[field];
@@ -685,14 +713,14 @@ export class PolicyUtil {
     }
 
     /**
-     * Gets "id" field for a given model.
+     * Gets "id" fields for a given model.
      */
     getIdFields(model: string) {
         return getIdFields(this.modelMeta, model, true);
     }
 
     /**
-     * Gets id field value from an entity.
+     * Gets id field values from an entity.
      */
     getEntityIds(model: string, entityData: any) {
         const idFields = this.getIdFields(model);
@@ -703,6 +731,9 @@ export class PolicyUtil {
         return result;
     }
 
+    /**
+     * Creates a selection object for id fields for the given model.
+     */
     makeIdSelection(model: string) {
         const idFields = this.getIdFields(model);
         return Object.assign({}, ...idFields.map((f) => ({ [f.name]: true })));
