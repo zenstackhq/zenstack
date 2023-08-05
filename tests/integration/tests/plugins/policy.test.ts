@@ -13,6 +13,9 @@ describe('Policy plugin tests', () => {
         process.chdir(origDir);
     });
 
+    const TRUE = { AND: [] };
+    const FALSE = { OR: [] };
+
     it('short-circuit', async () => {
         const model = `
 model User {
@@ -33,18 +36,18 @@ model M {
 
         const { policy } = await loadSchema(model);
 
-        expect(policy.guard.m.read({ user: undefined })).toEqual(false);
-        expect(policy.guard.m.read({ user: { id: '1' } })).toEqual(true);
+        expect(policy.guard.m.read({ user: undefined })).toEqual(FALSE);
+        expect(policy.guard.m.read({ user: { id: '1' } })).toEqual(TRUE);
 
-        expect(policy.guard.m.create({ user: undefined })).toEqual(false);
-        expect(policy.guard.m.create({ user: { id: '1' } })).toEqual(false);
-        expect(policy.guard.m.create({ user: { id: '1', value: 0 } })).toEqual(false);
-        expect(policy.guard.m.create({ user: { id: '1', value: 1 } })).toEqual(true);
+        expect(policy.guard.m.create({ user: undefined })).toEqual(FALSE);
+        expect(policy.guard.m.create({ user: { id: '1' } })).toEqual(FALSE);
+        expect(policy.guard.m.create({ user: { id: '1', value: 0 } })).toEqual(FALSE);
+        expect(policy.guard.m.create({ user: { id: '1', value: 1 } })).toEqual(TRUE);
 
-        expect(policy.guard.m.update({ user: undefined })).toEqual(false);
-        expect(policy.guard.m.update({ user: { id: '1' } })).toEqual(false);
-        expect(policy.guard.m.update({ user: { id: '1', value: 0 } })).toEqual(false);
-        expect(policy.guard.m.update({ user: { id: '1', value: 1 } })).toEqual(true);
+        expect(policy.guard.m.update({ user: undefined })).toEqual(FALSE);
+        expect(policy.guard.m.update({ user: { id: '1' } })).toEqual(FALSE);
+        expect(policy.guard.m.update({ user: { id: '1', value: 0 } })).toEqual(FALSE);
+        expect(policy.guard.m.update({ user: { id: '1', value: 1 } })).toEqual(TRUE);
     });
 
     it('no short-circuit', async () => {
