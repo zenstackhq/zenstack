@@ -534,16 +534,16 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const postWriteChecks: PostWriteCheckRecord[] = [];
 
         // registers a post-update check task
-        const _registerPostUpdateCheck = async (model: string, where: any, db: Record<string, DbOperations>) => {
+        const _registerPostUpdateCheck = async (model: string, uniqueFilter: any) => {
             // both "post-update" rules and Zod schemas require a post-update check
             if (this.utils.hasAuthGuard(model, 'postUpdate') || this.utils.getZodSchema(model)) {
                 // select pre-update field values
                 let preValue: any;
                 const preValueSelect = this.utils.getPreValueSelect(model);
                 if (preValueSelect && Object.keys(preValueSelect).length > 0) {
-                    preValue = await db[model].findFirst({ where, select: preValueSelect });
+                    preValue = await db[model].findFirst({ where: uniqueFilter, select: preValueSelect });
                 }
-                postWriteChecks.push({ model, operation: 'postUpdate', uniqueFilter: where, preValue });
+                postWriteChecks.push({ model, operation: 'postUpdate', uniqueFilter, preValue });
             }
         };
 
@@ -552,12 +552,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // Instead, handle nested create inside update as an atomic operation that creates an entire
         // subtree (containing nested creates/connects)
 
-        const _create = async (
-            model: string,
-            args: any,
-            context: NestedWriteVisitorContext,
-            db: Record<string, DbOperations>
-        ) => {
+        const _create = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             let createData = args;
             if (context.field?.backLink) {
                 // handles the connection to upstream entity
@@ -584,12 +579,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             postWriteChecks.push(...checks);
         };
 
-        const _createMany = async (
-            model: string,
-            args: any,
-            context: NestedWriteVisitorContext,
-            db: Record<string, DbOperations>
-        ) => {
+        const _createMany = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             if (context.field?.backLink) {
                 // handles the connection to upstream entity
                 const reversedQuery = await this.utils.buildReversedQuery(context);
@@ -602,12 +592,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             postWriteChecks.push(...checks);
         };
 
-        const _connectDisconnect = async (
-            model: string,
-            args: any,
-            context: NestedWriteVisitorContext,
-            db: Record<string, DbOperations>
-        ) => {
+        const _connectDisconnect = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             if (context.field?.backLink) {
                 const backLinkField = this.utils.getModelField(model, context.field.backLink);
                 if (backLinkField.isRelationOwner) {
@@ -615,7 +600,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await this.utils.checkPolicyForUnique(model, args, 'update', db);
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, args, db);
+                    await _registerPostUpdateCheck(model, args);
                 }
             }
         };
@@ -669,7 +654,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     }
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, ids, db);
+                    await _registerPostUpdateCheck(model, ids);
                 }
             },
 
@@ -706,7 +691,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             create: async (model, args, context) => {
                 // process the entire create subtree separately
-                await _create(model, args, context, db);
+                await _create(model, args, context);
 
                 // remove it from the update payload
                 delete context.parent.create;
@@ -717,7 +702,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             createMany: async (model, args, context) => {
                 // process createMany separately
-                await _createMany(model, args, context, db);
+                await _createMany(model, args, context);
 
                 // remove it from the update payload
                 delete context.parent.createMany;
@@ -739,7 +724,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', db);
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
+                    await _registerPostUpdateCheck(model, uniqueFilter);
 
                     // convert upsert to update
                     context.parent.update = { where: args.where, data: args.update };
@@ -751,7 +736,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     // create case
 
                     // process the entire create subtree separately
-                    await _create(model, args.create, context, db);
+                    await _create(model, args.create, context);
 
                     // remove it from the update payload
                     delete context.parent.upsert;
@@ -761,21 +746,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
             },
 
-            connect: async (model, args, context) => _connectDisconnect(model, args, context, db),
+            connect: async (model, args, context) => _connectDisconnect(model, args, context),
 
             connectOrCreate: async (model, args, context) => {
                 // the where condition is already unique, so we can use it to check if the target exists
                 const existing = await this.utils.checkExistence(db, model, args.where);
                 if (existing) {
                     // connect
-                    await _connectDisconnect(model, args.where, context, db);
+                    await _connectDisconnect(model, args.where, context);
                 } else {
                     // create
-                    await _create(model, args.create, context, db);
+                    await _create(model, args.create, context);
                 }
             },
 
-            disconnect: async (model, args, context) => _connectDisconnect(model, args, context, db),
+            disconnect: async (model, args, context) => _connectDisconnect(model, args, context),
 
             set: async (model, args, context) => {
                 // find the set of items to be replaced
@@ -790,10 +775,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 const currentSet = await db[model].findMany(findCurrSetArgs);
 
                 // register current set for update (foreign key)
-                await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context, db)));
+                await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context)));
 
                 // proceed with connecting the new set
-                await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context, db)));
+                await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context)));
             },
 
             delete: async (model, args, context) => {

@@ -64,10 +64,10 @@ model M {
         const { policy } = await loadSchema(model);
 
         expect(policy.guard.m.read({ user: undefined })).toEqual(
-            expect.objectContaining({ AND: [{ zenstack_guard: false }, { value: { gt: 0 } }] })
+            expect.objectContaining({ AND: [{ OR: [] }, { value: { gt: 0 } }] })
         );
         expect(policy.guard.m.read({ user: { id: '1' } })).toEqual(
-            expect.objectContaining({ AND: [{ zenstack_guard: true }, { value: { gt: 0 } }] })
+            expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 0 } }] })
         );
     });
 });

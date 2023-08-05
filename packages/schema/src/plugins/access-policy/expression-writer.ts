@@ -14,13 +14,7 @@ import {
     ReferenceExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import {
-    ExpressionContext,
-    getFunctionExpressionContext,
-    getLiteral,
-    GUARD_FIELD_NAME,
-    PluginError,
-} from '@zenstackhq/sdk';
+import { ExpressionContext, getFunctionExpressionContext, getLiteral, PluginError } from '@zenstackhq/sdk';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '.';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
@@ -46,6 +40,11 @@ type FilterOperators =
     | 'hasEvery'
     | 'hasSome'
     | 'isEmpty';
+
+// { OR: [] } filters to nothing, { AND: [] } includes everything
+// https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
+const TRUE = '{ AND: [] }';
+const FALSE = '{ OR: [] }';
 
 /**
  * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer
@@ -110,19 +109,19 @@ export class ExpressionWriter {
     }
 
     private writeMemberAccess(expr: MemberAccessExpr) {
-        this.block(() => {
-            if (this.isAuthOrAuthMemberAccess(expr)) {
-                // member access of `auth()`, generate plain expression
-                this.guard(() => this.plain(expr), true);
-            } else {
+        if (this.isAuthOrAuthMemberAccess(expr)) {
+            // member access of `auth()`, generate plain expression
+            this.guard(() => this.plain(expr), true);
+        } else {
+            this.block(() => {
                 // must be a boolean member
                 this.writeFieldCondition(expr.operand, () => {
                     this.block(() => {
                         this.writer.write(`${expr.member.ref?.name}: true`);
                     });
                 });
-            }
-        });
+            });
+        }
     }
 
     private writeExprList(exprs: Expression[]) {
@@ -168,33 +167,35 @@ export class ExpressionWriter {
         const leftIsFieldAccess = this.isFieldAccess(expr.left);
         const rightIsFieldAccess = this.isFieldAccess(expr.right);
 
-        this.block(() => {
-            if (!leftIsFieldAccess && !rightIsFieldAccess) {
-                // 'in' without referencing fields
-                this.guard(() => this.plain(expr));
-            } else if (leftIsFieldAccess && !rightIsFieldAccess) {
-                // 'in' with left referencing a field, right is an array literal
-                this.writeFieldCondition(
-                    expr.left,
-                    () => {
-                        this.plain(expr.right);
-                    },
-                    'in'
-                );
-            } else if (!leftIsFieldAccess && rightIsFieldAccess) {
-                // 'in' with right referencing an array field, left is a literal
-                // transform it into a 'has' filter
-                this.writeFieldCondition(
-                    expr.right,
-                    () => {
-                        this.plain(expr.left);
-                    },
-                    'has'
-                );
-            } else {
-                throw new PluginError(name, '"in" operator cannot be used with field references on both sides');
-            }
-        });
+        if (!leftIsFieldAccess && !rightIsFieldAccess) {
+            // 'in' without referencing fields
+            this.guard(() => this.plain(expr));
+        } else {
+            this.block(() => {
+                if (leftIsFieldAccess && !rightIsFieldAccess) {
+                    // 'in' with left referencing a field, right is an array literal
+                    this.writeFieldCondition(
+                        expr.left,
+                        () => {
+                            this.plain(expr.right);
+                        },
+                        'in'
+                    );
+                } else if (!leftIsFieldAccess && rightIsFieldAccess) {
+                    // 'in' with right referencing an array field, left is a literal
+                    // transform it into a 'has' filter
+                    this.writeFieldCondition(
+                        expr.right,
+                        () => {
+                            this.plain(expr.left);
+                        },
+                        'has'
+                    );
+                } else {
+                    throw new PluginError(name, '"in" operator cannot be used with field references on both sides');
+                }
+            });
+        }
     }
 
     private writeCollectionPredicate(expr: BinaryExpr, operator: string) {
@@ -228,14 +229,14 @@ export class ExpressionWriter {
         return false;
     }
 
-    private guard(write: () => void, cast = false) {
-        this.writer.write(`${GUARD_FIELD_NAME}: `);
+    private guard(condition: () => void, cast = false) {
         if (cast) {
             this.writer.write('!!');
-            write();
+            condition();
         } else {
-            write();
+            condition();
         }
+        this.writer.write(` ? ${TRUE} : ${FALSE}`);
     }
 
     private plain(expr: Expression) {
@@ -260,10 +261,8 @@ export class ExpressionWriter {
 
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
             // compile down to a plain expression
-            this.block(() => {
-                this.guard(() => {
-                    this.plain(expr);
-                });
+            this.guard(() => {
+                this.plain(expr);
             });
             return;
         }
@@ -294,11 +293,11 @@ export class ExpressionWriter {
         if (this.isAuthOrAuthMemberAccess(operand) && !fieldAccess.$resolvedType?.nullable) {
             try {
                 this.writer.write(
-                    `(${this.plainExprBuilder.transform(operand)} == null) ? { ${GUARD_FIELD_NAME}: ${
+                    `(${this.plainExprBuilder.transform(operand)} == null) ? ${
                         // auth().x != user.x is true when auth().x is null and user is not nullable
                         // other expressions are evaluated to false when null is involved
-                        operator === '!=' ? 'true' : 'false'
-                    } } : `
+                        operator === '!=' ? TRUE : FALSE
+                    } : `
                 );
             } catch (err) {
                 if (err instanceof TypeScriptExpressionTransformerError) {
@@ -555,11 +554,15 @@ export class ExpressionWriter {
     }
 
     private writeLiteral(expr: LiteralExpr) {
-        this.block(() => {
+        if (expr.value === true) {
+            this.writer.write(TRUE);
+        } else if (expr.value === false) {
+            this.writer.write(FALSE);
+        } else {
             this.guard(() => {
                 this.plain(expr);
             });
-        });
+        }
     }
 
     private writeInvocation(expr: InvocationExpr) {
@@ -575,7 +578,7 @@ export class ExpressionWriter {
         ) {
             if (!expr.args.some((arg) => this.isFieldAccess(arg.value))) {
                 // filter functions without referencing fields
-                this.block(() => this.guard(() => this.plain(expr)));
+                this.guard(() => this.plain(expr));
                 return;
             }
 

@@ -23,7 +23,6 @@ import {
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
-    GUARD_FIELD_NAME,
     hasAttribute,
     hasValidationAttributes,
     PluginError,
@@ -466,7 +465,7 @@ export default class PolicyGenerator {
                     writeAllows();
                 } else {
                     // disallow any operation
-                    writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
+                    writer.write(`{ OR: [] }`);
                 }
                 writer.write(';');
             });

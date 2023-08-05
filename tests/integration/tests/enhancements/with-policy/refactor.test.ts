@@ -28,7 +28,6 @@ describe('With Policy: refactor tests', () => {
             path.join(__dirname, '../../schema/refactor-pg.zmodel'),
             {
                 addPrelude: false,
-                logPrismaQuery: true,
             }
         );
         getDb = withPolicy;
