@@ -426,7 +426,7 @@ export default class PolicyGenerator {
                         throw err;
                     }
                 }
-                writer.write('return false;');
+                writer.write(`return ${FALSE};`);
             });
         } else {
             statements.push((writer) => {
