@@ -1,7 +1,6 @@
 /// <reference types="@types/jest" />
 
 import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/language/ast';
-import { GUARD_FIELD_NAME } from '@zenstackhq/sdk';
 import * as tmp from 'tmp';
 import { Project, VariableDeclarationKind } from 'ts-morph';
 import { ExpressionWriter } from '../../src/plugins/access-policy/expression-writer';
@@ -17,7 +16,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ ${GUARD_FIELD_NAME}: true }`
+            `{ AND: [] }`
         );
 
         await check(
@@ -28,7 +27,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ ${GUARD_FIELD_NAME}: false }`
+            `{ OR: [] }`
         );
     });
 
@@ -121,7 +120,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user == null) ? { zenstack_guard: false } : { id: user.id }`
+            `(user == null) ? { OR: [] } : { id: user.id }`
         );
 
         await check(
@@ -133,7 +132,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user == null) ? { zenstack_guard: true } : { NOT: { id: user.id } }`
+            `(user == null) ? { AND: [] } : { NOT: { id: user.id } }`
         );
 
         await check(
@@ -537,7 +536,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: (user == null) }`,
+            `(user==null)?{AND:[]}:{OR:[]}`,
             '{ id: "1" }'
         );
 
@@ -555,7 +554,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: (user == null) }`,
+            `(user==null)?{AND:[]}:{OR:[]}`,
             '{ x: "1", y: "2" }'
         );
 
@@ -571,7 +570,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: (user != null) }`,
+            `(user!=null)?{AND:[]}:{OR:[]}`,
             '{ id: "1" }'
         );
 
@@ -589,7 +588,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: (user != null) }`,
+            `(user!=null)?{AND:[]}:{OR:[]}`,
             '{ x: "1", y: "2" }'
         );
     });
@@ -608,7 +607,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ zenstack_guard: !!(user?.admin ?? null) }`,
+            `!!(user?.admin??null)?{AND:[]}:{OR:[]}`,
             '{ id: "1", admin: true }'
         );
 
@@ -625,7 +624,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{ NOT: { zenstack_guard: !!(user?.admin ?? null) } }`,
+            `{ NOT: !!(user?.admin??null)?{AND:[]}:{OR:[]} }`,
             '{ id: "1", admin: true }'
         );
     });
@@ -646,7 +645,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user==null) ? { zenstack_guard: false } : { owner: { is: { id : user.id } } }`
+            `(user==null) ? { OR: [] } : { owner: { is: { id : user.id } } }`
         );
 
         await check(
@@ -664,7 +663,7 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `(user==null) ? { zenstack_guard: true } : 
+            `(user==null) ? { AND: [] } : 
             { 
                 owner: {
                     isNot: { id: user.id }
@@ -688,7 +687,7 @@ describe('Expression Writer Tests', () => {
                 `,
             (model) => model.attributes[0].args[1].value,
             `((user?.id??null)==null) ?
-                { zenstack_guard : false } : 
+                { OR: [] } : 
                 { owner: { id: { equals: (user?.id ?? null) } } }`
         );
     });
@@ -714,7 +713,7 @@ describe('Expression Writer Tests', () => {
             `,
             (model) => model.attributes[1].args[1].value,
             `(user==null) ? 
-                { zenstack_guard: false } : 
+                { OR: [] } : 
                 { owner: { is: { x: user.x, y: user.y } } }`,
             '{ x: "1", y: "2" }'
         );
@@ -739,7 +738,7 @@ describe('Expression Writer Tests', () => {
             `,
             (model) => model.attributes[1].args[1].value,
             `(user==null) ? 
-                { zenstack_guard: true } : 
+                { AND: [] } : 
                 { owner: { isNot: { x: user.x, y: user.y } } }`,
             '{ x: "1", y: "2" }'
         );
@@ -765,8 +764,8 @@ describe('Expression Writer Tests', () => {
             (model) => model.attributes[1].args[1].value,
             `{ 
                 AND: [
-                    ((user?.x??null)==null) ? { zenstack_guard: false } : { owner: { x: { equals: (user?.x ?? null) } } },
-                    ((user?.y??null)==null) ? { zenstack_guard: false } : { owner: { y: { equals: (user?.y ?? null) } } }
+                    ((user?.x??null)==null) ? { OR: [] } : { owner: { x: { equals: (user?.x ?? null) } } },
+                    ((user?.y??null)==null) ? { OR: [] } : { owner: { y: { equals: (user?.y ?? null) } } }
                 ]
             }`,
             '{ x: "1", y: "2" }'
@@ -833,7 +832,7 @@ describe('Expression Writer Tests', () => {
                 }
                 `,
             (model) => model.attributes[0].args[1].value,
-            `((user?.id??null)==null) ? { zenstack_guard: false } : { owner: { id: { equals: (user?.id ?? null) } } }`
+            `((user?.id??null)==null) ? { OR: [] } : { owner: { id: { equals: (user?.id ?? null) } } }`
         );
     });
 
@@ -858,8 +857,8 @@ describe('Expression Writer Tests', () => {
                 AND: [
                     { 
                         AND: [
-                            { zenstack_guard: (user!=null) },
-                            ((user?.id??null)==null) ? {zenstack_guard:false} : { owner: { id: { equals: (user?.id??null) } } } 
+                            (user!=null)?{AND:[]}:{OR:[]},
+                            ((user?.id??null)==null) ? {OR:[]} : { owner: { id: { equals: (user?.id??null) } } } 
                         ]
                     },
                     { value: { gt: 0 } }
@@ -887,8 +886,8 @@ describe('Expression Writer Tests', () => {
                 OR: [
                     { 
                         OR: [
-                            { zenstack_guard:(user==null) },
-                            ((user?.id??null)==null) ? {zenstack_guard:true} : { owner : { id: { not: { equals: (user?.id??null) } } } }
+                            (user==null)?{AND:[]}:{OR:[]},
+                            ((user?.id??null)==null) ? {AND:[]} : { owner : { id: { not: { equals: (user?.id??null) } } } }
                         ]
                     },
                     { value: { lte: 0 } }
@@ -1159,7 +1158,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
+            `(user?.roles?.includes(Role.ADMIN)??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1186,7 +1185,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.email?.includes('test')??false)}`,
+            `(user?.email?.includes('test')??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1199,7 +1198,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)}`,
+            `(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1212,7 +1211,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.email?.startsWith('test')??false)}`,
+            `(user?.email?.startsWith('test')??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1225,7 +1224,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.email?.endsWith('test')??false)}`,
+            `(user?.email?.endsWith('test')??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1238,7 +1237,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:(user?.roles?.includes(Role.ADMIN)??false)}`,
+            `(user?.roles?.includes(Role.ADMIN)??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1251,7 +1250,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)}`,
+            `([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1264,7 +1263,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)}`,
+            `([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1277,7 +1276,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `{zenstack_guard:((!user?.roles||user?.roles?.length===0)??false)}`,
+            `((!user?.roles||user?.roles?.length===0)??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
     });

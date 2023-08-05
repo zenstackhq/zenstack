@@ -37,15 +37,38 @@ export enum CrudFailureReason {
  * Prisma error codes used
  */
 export enum PrismaErrorCode {
+    /**
+     * Unique constraint failed
+     */
+    UNIQUE_CONSTRAINT_FAILED = 'P2002',
+
+    /**
+     * A constraint failed on the database
+     */
     CONSTRAINED_FAILED = 'P2004',
+
+    /**
+     * The required connected records were not found
+     */
+    REQUIRED_CONNECTED_RECORD_NOT_FOUND = 'P2018',
+
+    /**
+     * An operation failed because it depends on one or more records that were required but not found
+     */
+    DEPEND_ON_RECORD_NOT_FOUND = 'P2025',
 }
 
 /**
  * Field name for storing in-transaction flag
  */
-export const PRISIMA_TX_FLAG = '$__zenstack_tx';
+export const PRISMA_TX_FLAG = '$__zenstack_tx';
 
 /**
  * Field name for getting current enhancer
  */
 export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';
+
+/**
+ * Minimum Prisma version supported
+ */
+export const PRISMA_MINIMUM_VERSION = '4.8.0';

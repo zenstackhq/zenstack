@@ -23,7 +23,7 @@ import {
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
-    GUARD_FIELD_NAME,
+    hasAttribute,
     hasValidationAttributes,
     PluginError,
     PluginOptions,
@@ -35,7 +35,13 @@ import {
 import { streamAllContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import { FunctionDeclaration, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import {
+    FunctionDeclaration,
+    SourceFile,
+    StatementStructures,
+    VariableDeclarationKind,
+    WriterFunction,
+} from 'ts-morph';
 import { name } from '.';
 import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
@@ -44,7 +50,7 @@ import {
     TypeScriptExpressionTransformerError,
 } from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
-import { ExpressionWriter } from './expression-writer';
+import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 import { isFutureExpr } from './utils';
 
 /**
@@ -192,7 +198,7 @@ export default class PolicyGenerator {
     }
 
     private hasFutureReference(expr: Expression) {
-        for (const node of streamAllContents(expr)) {
+        for (const node of this.allNodes(expr)) {
             if (isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref)) {
                 return true;
             }
@@ -209,6 +215,9 @@ export default class PolicyGenerator {
         for (const kind of ALL_OPERATION_KINDS) {
             if (policies[kind] === true || policies[kind] === false) {
                 result[kind] = policies[kind];
+                if (kind === 'create') {
+                    result[kind + '_input'] = policies[kind];
+                }
                 continue;
             }
 
@@ -233,9 +242,9 @@ export default class PolicyGenerator {
                 continue;
             }
 
-            const func = this.generateQueryGuardFunction(sourceFile, model, kind, allows, denies);
+            const guardFunc = this.generateQueryGuardFunction(sourceFile, model, kind, allows, denies);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            result[kind] = func.getName()!;
+            result[kind] = guardFunc.getName()!;
 
             if (kind === 'postUpdate') {
                 const preValueSelect = this.generatePreValueSelect(model, allows, denies);
@@ -243,8 +252,43 @@ export default class PolicyGenerator {
                     result['preValueSelect'] = preValueSelect;
                 }
             }
+
+            if (kind === 'create' && this.canCheckCreateBasedOnInput(model, allows, denies)) {
+                const inputCheckFunc = this.generateInputCheckFunction(sourceFile, model, kind, allows, denies);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                result[kind + '_input'] = inputCheckFunc.getName()!;
+            }
         }
         return result;
+    }
+
+    private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
+        return [...allows, ...denies].every((rule) => {
+            return [...this.allNodes(rule)].every((expr) => {
+                if (isThisExpr(expr)) {
+                    return false;
+                }
+                if (isReferenceExpr(expr)) {
+                    if (isDataModel(expr.$resolvedType?.decl)) {
+                        // if policy rules uses relation fields,
+                        // we can't check based on create input
+                        return false;
+                    }
+                    if (
+                        isDataModelField(expr.target.ref) &&
+                        expr.target.ref.$container === model &&
+                        hasAttribute(expr.target.ref, '@default')
+                    ) {
+                        // reference to field of current model
+                        // if it has default value, we can't check
+                        // based on create input
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        });
     }
 
     // generates an object that can be used as the 'select' argument when fetching pre-update
@@ -289,7 +333,7 @@ export default class PolicyGenerator {
         };
 
         for (const rule of [...allows, ...denies]) {
-            for (const expr of streamAllContents(rule).filter((node): node is Expression => isExpression(node))) {
+            for (const expr of [...this.allNodes(rule)].filter((node): node is Expression => isExpression(node))) {
                 // only care about member access and reference expressions
                 if (!isMemberAccessExpr(expr) && !isReferenceExpr(expr)) {
                     continue;
@@ -321,22 +365,11 @@ export default class PolicyGenerator {
         allows: Expression[],
         denies: Expression[]
     ): FunctionDeclaration {
-        const func = sourceFile
-            .addFunction({
-                name: model.name + '_' + kind,
-                returnType: 'any',
-                parameters: [
-                    {
-                        name: 'context',
-                        type: 'QueryContext',
-                    },
-                ],
-            })
-            .addBody();
+        const statements: (string | WriterFunction | StatementStructures)[] = [];
 
         // check if any allow or deny rule contains 'auth()' invocation
         const hasAuthRef = [...denies, ...allows].some((rule) =>
-            streamAllContents(rule).some((child) => isAuthInvocation(child))
+            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
         );
 
         if (hasAuthRef) {
@@ -352,7 +385,7 @@ export default class PolicyGenerator {
             }
 
             // normalize user to null to avoid accidentally use undefined in filter
-            func.addStatements(
+            statements.push(
                 `const user = hasAllFields(context.user, [${userIdFields
                     .map((f) => "'" + f.name + "'")
                     .join(', ')}]) ? context.user as any : null;`
@@ -360,7 +393,7 @@ export default class PolicyGenerator {
         }
 
         const hasFieldAccess = [...denies, ...allows].some((rule) =>
-            [rule, ...streamAllContents(rule)].some(
+            [...this.allNodes(rule)].some(
                 (child) =>
                     // this.???
                     isThisExpr(child) ||
@@ -374,17 +407,17 @@ export default class PolicyGenerator {
         if (!hasFieldAccess) {
             // none of the rules reference model fields, we can compile down to a plain boolean
             // function in this case (so we can skip doing SQL queries when validating)
-            func.addStatements((writer) => {
+            statements.push((writer) => {
                 const transformer = new TypeScriptExpressionTransformer({
                     context: ExpressionContext.AccessPolicy,
                     isPostGuard: kind === 'postUpdate',
                 });
                 try {
                     denies.forEach((rule) => {
-                        writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
+                        writer.write(`if (${transformer.transform(rule, false)}) { return ${FALSE}; }`);
                     });
                     allows.forEach((rule) => {
-                        writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
+                        writer.write(`if (${transformer.transform(rule, false)}) { return ${TRUE}; }`);
                     });
                 } catch (err) {
                     if (err instanceof TypeScriptExpressionTransformerError) {
@@ -393,10 +426,10 @@ export default class PolicyGenerator {
                         throw err;
                     }
                 }
-                writer.write('return false;');
+                writer.write(`return ${FALSE};`);
             });
         } else {
-            func.addStatements((writer) => {
+            statements.push((writer) => {
                 writer.write('return ');
                 const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
                 const writeDenies = () => {
@@ -432,11 +465,114 @@ export default class PolicyGenerator {
                     writeAllows();
                 } else {
                     // disallow any operation
-                    writer.write(`{ ${GUARD_FIELD_NAME}: false }`);
+                    writer.write(`{ OR: [] }`);
                 }
                 writer.write(';');
             });
         }
+
+        const func = sourceFile.addFunction({
+            name: model.name + '_' + kind,
+            returnType: 'any',
+            parameters: [
+                {
+                    name: 'context',
+                    type: 'QueryContext',
+                },
+            ],
+            statements,
+        });
+
         return func;
+    }
+
+    private generateInputCheckFunction(
+        sourceFile: SourceFile,
+        model: DataModel,
+        kind: 'create' | 'update',
+        allows: Expression[],
+        denies: Expression[]
+    ): FunctionDeclaration {
+        const statements: (string | WriterFunction | StatementStructures)[] = [];
+
+        // check if any allow or deny rule contains 'auth()' invocation
+        const hasAuthRef = [...denies, ...allows].some((rule) =>
+            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
+        );
+
+        if (hasAuthRef) {
+            const userModel = model.$container.declarations.find(
+                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
+            );
+            if (!userModel) {
+                throw new PluginError(name, 'User model not found');
+            }
+            const userIdFields = getIdFields(userModel);
+            if (!userIdFields || userIdFields.length === 0) {
+                throw new PluginError(name, 'User model does not have an id field');
+            }
+
+            // normalize user to null to avoid accidentally use undefined in filter
+            statements.push(
+                `const user = hasAllFields(context.user, [${userIdFields
+                    .map((f) => "'" + f.name + "'")
+                    .join(', ')}]) ? context.user as any : null;`
+            );
+        }
+
+        statements.push((writer) => {
+            if (allows.length === 0) {
+                writer.write('return false;');
+                return;
+            }
+
+            const transformer = new TypeScriptExpressionTransformer({
+                context: ExpressionContext.AccessPolicy,
+                fieldReferenceContext: 'input',
+            });
+
+            let expr =
+                denies.length > 0
+                    ? '!(' +
+                      denies
+                          .map((deny) => {
+                              return transformer.transform(deny);
+                          })
+                          .join(' || ') +
+                      ')'
+                    : undefined;
+
+            const allowStmt = allows
+                .map((allow) => {
+                    return transformer.transform(allow);
+                })
+                .join(' || ');
+
+            expr = expr ? `${expr} && (${allowStmt})` : allowStmt;
+            writer.write('return ' + expr);
+        });
+
+        const func = sourceFile.addFunction({
+            name: model.name + '_' + kind + '_input',
+            returnType: 'boolean',
+            parameters: [
+                {
+                    name: 'input',
+                    type: 'any',
+                },
+                {
+                    name: 'context',
+                    type: 'QueryContext',
+                },
+            ],
+            statements,
+        });
+
+        return func;
+    }
+
+    private *allNodes(expr: Expression) {
+        yield expr;
+        yield* streamAllContents(expr);
     }
 }

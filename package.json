@@ -1,11 +1,11 @@
 {
     "name": "zenstack-monorepo",
-    "version": "1.0.0-beta.13",
+    "version": "1.0.0-beta.15",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
-        "test": "ZENSTACK_TEST=1 pnpm -r run test --silent",
-        "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent",
+        "test": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
+        "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry http://localhost:4873"

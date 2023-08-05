@@ -1,8 +1,12 @@
 import { format } from 'util';
 import { isPrismaClientKnownRequestError } from '@zenstackhq/runtime';
 
+function isPromise(value: any) {
+    return typeof value.then === 'function' && typeof value.catch === 'function';
+}
+
 export const toBeRejectedByPolicy = async function (received: Promise<unknown>, expectedMessages?: string[]) {
-    if (!(received instanceof Promise)) {
+    if (!isPromise(received)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
@@ -28,7 +32,7 @@ export const toBeRejectedByPolicy = async function (received: Promise<unknown>, 
 };
 
 export const toBeNotFound = async function (received: Promise<unknown>) {
-    if (!(received instanceof Promise)) {
+    if (!isPromise(received)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
@@ -43,7 +47,7 @@ export const toBeNotFound = async function (received: Promise<unknown>) {
 };
 
 export const toBeRejectedWithCode = async function (received: Promise<unknown>, code: string) {
-    if (!(received instanceof Promise)) {
+    if (!isPromise(received)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
@@ -58,7 +62,7 @@ export const toBeRejectedWithCode = async function (received: Promise<unknown>, 
 };
 
 export const toResolveTruthy = async function (received: Promise<unknown>) {
-    if (!(received instanceof Promise)) {
+    if (!isPromise(received)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
@@ -83,7 +87,7 @@ export const toResolveTruthy = async function (received: Promise<unknown>) {
 };
 
 export const toResolveFalsy = async function (received: Promise<unknown>) {
-    if (!(received instanceof Promise)) {
+    if (!isPromise(received)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
@@ -108,7 +112,7 @@ export const toResolveFalsy = async function (received: Promise<unknown>) {
 };
 
 export const toResolveNull = async function (received: Promise<unknown>) {
-    if (!(received instanceof Promise)) {
+    if (!isPromise(received)) {
         return { message: () => 'a promise is expected', pass: false };
     }
     try {
@@ -135,14 +139,14 @@ export const toResolveNull = async function (received: Promise<unknown>) {
 function expectPrismaCode(err: any, code: string) {
     if (!isPrismaClientKnownRequestError(err)) {
         return {
-            message: () => `expected PrismaClientKnownRequestError', got ${err}`,
+            message: () => `expected PrismaClientKnownRequestError, got ${err}`,
             pass: false,
         };
     }
     const errCode = err.code;
     if (errCode !== code) {
         return {
-            message: () => `expected PrismaClientKnownRequestError.code 'P2004', got ${errCode ?? err}`,
+            message: () => `expected PrismaClientKnownRequestError.code '${code}', got '${errCode ?? err}'`,
             pass: false,
         };
     }

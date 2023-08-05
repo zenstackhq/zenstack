@@ -1,0 +1,100 @@
+datasource db {
+    provider = 'postgresql'
+    url = 'postgres://postgres:abc123@localhost:5432/refactor'
+}
+
+generator js {
+    provider = 'prisma-client-js'
+}
+
+enum Role {
+    USER
+    ADMIN
+}
+
+model User {
+    id Int @id @default(autoincrement())
+    email String @unique @email
+    role Role @default(USER)
+    profile Profile?
+    posts Post[]
+    comments Comment[]
+    
+    // everybody can signup
+    @@allow('create', true)
+
+    @@allow('read', auth() != null)
+
+    // full-access by self
+    @@allow('all', auth() == this || auth().role == ADMIN)
+}
+
+model Profile {
+    id Int @id @default(autoincrement())
+    name String
+    homepage String? @url
+    private Boolean @default(false)
+    image Image? @relation(fields: [imageId], references: [id], onDelete: Cascade)
+    imageId Int? @unique
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId Int @unique
+    
+    // user profile is publicly readable
+    @@allow('read', auth() != null && !private)
+    
+    // user profile is only updatable by the user
+    @@allow('all', auth() == user || auth().role == ADMIN)
+}
+
+model Image {
+    id Int @id @default(autoincrement())
+    url String @url
+    profile Profile?
+
+    comment Comment? @relation(fields: [commentId], references: [id])
+    commentId Int?
+
+    @@allow('create,read', true)
+    @@allow('update,delete', auth().role == ADMIN)
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    title String @length(1, 8)
+    published Boolean @default(false)
+    comments Comment[]
+    author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    authorId Int
+
+    // posts are readable by all
+    @@allow('read', published)
+    
+    // posts are updatable by the author
+    @@allow('all', auth() == author || auth().role == ADMIN)
+}
+
+model Comment {
+    id Int @id @default(autoincrement())
+    content String
+
+    author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    authorId Int
+
+    post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+    postId Int
+
+    images Image[]
+    
+    // comments are readable by all
+    @@allow('read', post.published)
+
+    @@allow('create', auth() != null && post.published && auth() == author)
+
+    @@allow('update', auth() == author && future().author == auth())
+
+    @@allow('delete', auth() == author || auth() == post.author)
+    
+    // comments are updatable by the author
+    @@allow('all', auth().role == ADMIN)
+}

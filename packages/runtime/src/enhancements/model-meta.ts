@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
+import { FieldInfo } from '../types';
 import { ModelMeta } from './types';
 
 /**
@@ -26,7 +27,7 @@ export function getDefaultModelMeta(): ModelMeta {
 /**
  * Resolves a model field to its metadata. Returns undefined if not found.
  */
-export function resolveField(modelMeta: ModelMeta, model: string, field: string) {
+export function resolveField(modelMeta: ModelMeta, model: string, field: string): FieldInfo | undefined {
     return modelMeta.fields[lowerCaseFirst(model)][field];
 }
 

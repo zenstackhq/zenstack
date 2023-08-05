@@ -10,10 +10,12 @@ describe('With Policy:deep nested', () => {
     model M1 {
         myId String @id @default(cuid())
         m2 M2?
+        value Int @default(0)
 
         @@allow('all', true)
         @@deny('create', m2.m4?[value == 100])
         @@deny('update', m2.m4?[value == 101])
+        @@deny('read', value == 100)
     }
 
     model M2 {
@@ -59,18 +61,90 @@ describe('With Policy:deep nested', () => {
     `;
 
     let db: WeakDbClientContract;
+    let prisma: WeakDbClientContract;
 
     beforeAll(async () => {
         origDir = path.resolve('.');
     });
 
     beforeEach(async () => {
-        const { withPolicy } = await loadSchema(model);
-        db = withPolicy();
+        const params = await loadSchema(model);
+        db = params.withPolicy();
+        prisma = params.prisma;
     });
 
     afterEach(() => {
         process.chdir(origDir);
+    });
+
+    it('read', async () => {
+        await prisma.m1.create({
+            data: {
+                myId: '1',
+                m2: {
+                    create: {
+                        value: 1,
+                        m3: {
+                            create: { id: '3-1', value: 31 },
+                        },
+                        m4: {
+                            create: [{ value: 41 }, { value: 42 }],
+                        },
+                    },
+                },
+            },
+        });
+        // all readable
+        let r = await db.m1.findUnique({
+            where: { myId: '1' },
+            include: { m2: { include: { m3: true, m4: true } } },
+        });
+        expect(r.m2.m3).toBeTruthy();
+        expect(r.m2.m4).toHaveLength(2);
+        r = await db.m3.findUnique({ where: { id: '3-1' }, include: { m2: { include: { m1: true } } } });
+        expect(r.m2.m1).toBeTruthy();
+
+        await prisma.m1.create({
+            data: {
+                myId: '2',
+                m2: {
+                    create: {
+                        value: 1,
+                        m3: {
+                            create: { value: 200 },
+                        },
+                        m4: {
+                            create: [{ value: 22 }, { value: 200 }],
+                        },
+                    },
+                },
+            },
+        });
+        // check filtered
+        r = await db.m1.findUnique({
+            where: { myId: '2' },
+            include: { m2: { include: { m3: true, m4: true } } },
+        });
+        expect(r.m2.m3).toBeNull();
+        expect(r.m2.m4).toHaveLength(1);
+
+        await prisma.m1.create({
+            data: {
+                myId: '3',
+                value: 100,
+                m2: {
+                    create: {
+                        value: 1,
+                        m3: {
+                            create: { id: '3-2', value: 31 },
+                        },
+                    },
+                },
+            },
+        });
+        // check hoisted filtering, due to m1 is not readable
+        r = await db.m3.findUnique({ where: { id: '3-2' }, include: { m2: { include: { m1: true } } } });
+        expect(r).toBeNull();
     });
 
     it('create', async () => {
@@ -80,7 +154,6 @@ describe('With Policy:deep nested', () => {
                     myId: '1',
                     m2: {
                         create: {
-                            id: 201,
                             value: 1,
                             m3: {
                                 create: {
@@ -234,7 +307,6 @@ describe('With Policy:deep nested', () => {
                 data: {
                     m2: {
                         create: {
-                            id: 201,
                             value: 2,
                             m3: {
                                 create: { id: 'm3-1', value: 11 },
@@ -327,18 +399,7 @@ describe('With Policy:deep nested', () => {
         await expect(
             db.m1.update({
                 where: { myId: '2' },
-                data: {
-                    m2: {
-                        update: {
-                            m4: {
-                                updateMany: {
-                                    where: { value: { gt: 0 } },
-                                    data: { value: 102 },
-                                },
-                            },
-                        },
-                    },
-                },
+                data: { value: 1 },
             })
         ).toBeRejectedByPolicy();
 
