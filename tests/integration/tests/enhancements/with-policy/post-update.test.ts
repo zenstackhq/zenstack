@@ -93,8 +93,7 @@ describe('With Policy: post update', () => {
             @@allow('create,read', true)
             @@allow('update', future().value > 1)
         }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         const db = withPolicy();

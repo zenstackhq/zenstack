@@ -4,7 +4,7 @@ import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { AUXILIARY_FIELDS, CrudFailureReason, GUARD_FIELD_NAME, PrismaErrorCode } from '../../constants';
+import { AUXILIARY_FIELDS, CrudFailureReason, PrismaErrorCode } from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
@@ -45,56 +45,111 @@ export class PolicyUtil {
     /**
      * Creates a conjunction of a list of query conditions.
      */
-    and(...conditions: (boolean | object)[]): any {
-        // TODO: reduction
-
-        if (conditions.includes(false)) {
-            // always false
-            return { [GUARD_FIELD_NAME]: false };
-        }
-
-        const filtered = conditions.filter(
-            (c): c is object => typeof c === 'object' && !!c && Object.keys(c).length > 0
-        );
-        if (filtered.length === 0) {
-            return undefined;
-        } else if (filtered.length === 1) {
-            return filtered[0];
-        } else {
-            return { AND: filtered };
-        }
+    and(...conditions: (boolean | object)[]): object {
+        return this.reduce({ AND: conditions });
     }
 
     /**
      * Creates a disjunction of a list of query conditions.
      */
-    or(...conditions: (boolean | object)[]): any {
-        // TODO: reduction
-
-        if (conditions.includes(true)) {
-            // always true
-            return { [GUARD_FIELD_NAME]: true };
-        }
-
-        const filtered = conditions.filter((c): c is object => typeof c === 'object' && !!c);
-        if (filtered.length === 0) {
-            return undefined;
-        } else if (filtered.length === 1) {
-            return filtered[0];
-        } else {
-            return { OR: filtered };
-        }
+    or(...conditions: (boolean | object)[]): object {
+        return this.reduce({ OR: conditions });
     }
 
     /**
      * Creates a negation of a query condition.
      */
-    not(condition: object | boolean): any {
-        if (typeof condition === 'boolean') {
-            return !condition;
+    not(condition: object | boolean | undefined): object {
+        if (condition === undefined) {
+            return this.makeTrue();
+        } else if (typeof condition === 'boolean') {
+            return this.reduce(!condition);
         } else {
-            return { NOT: condition };
+            return this.reduce({ NOT: condition });
         }
+    }
+
+    // Static True/False conditions
+    // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
+
+    private isTrue(condition: object) {
+        if (condition === null || condition === undefined) {
+            return false;
+        } else {
+            return (
+                (typeof condition === 'object' && Object.keys(condition).length === 0) ||
+                ('AND' in condition && Array.isArray(condition.AND) && condition.AND.length === 0)
+            );
+        }
+    }
+
+    private isFalse(condition: object) {
+        if (condition === null || condition === undefined) {
+            return false;
+        } else {
+            return 'OR' in condition && Array.isArray(condition.OR) && condition.OR.length === 0;
+        }
+    }
+
+    private makeTrue() {
+        return { AND: [] };
+    }
+
+    private makeFalse() {
+        return { OR: [] };
+    }
+
+    private reduce(condition: object | boolean | undefined): object {
+        if (condition === true || condition === undefined) {
+            return this.makeTrue();
+        }
+
+        if (condition === false) {
+            return this.makeFalse();
+        }
+
+        if ('AND' in condition && Array.isArray(condition.AND)) {
+            const children = condition.AND.map((c: any) => this.reduce(c)).filter(
+                (c) => c !== undefined && !this.isTrue(c)
+            );
+            if (children.length === 0) {
+                return this.makeTrue();
+            } else if (children.some((c) => this.isFalse(c))) {
+                return this.makeFalse();
+            } else if (children.length === 1) {
+                return children[0];
+            } else {
+                return { AND: children };
+            }
+        }
+
+        if ('OR' in condition && Array.isArray(condition.OR)) {
+            const children = condition.OR.map((c: any) => this.reduce(c)).filter(
+                (c) => c !== undefined && !this.isFalse(c)
+            );
+            if (children.length === 0) {
+                return this.makeFalse();
+            } else if (children.some((c) => this.isTrue(c))) {
+                return this.makeTrue();
+            } else if (children.length === 1) {
+                return children[0];
+            } else {
+                return { OR: children };
+            }
+        }
+
+        if ('NOT' in condition && condition.NOT !== null && typeof condition.NOT === 'object') {
+            const child = this.reduce(condition.NOT);
+            if (this.isTrue(child)) {
+                return this.makeFalse();
+            } else if (this.isFalse(child)) {
+                return this.makeTrue();
+            } else {
+                return { NOT: child };
+            }
+        }
+
+        return condition;
     }
 
     //#endregion
@@ -107,7 +162,7 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): boolean | object {
+    getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): object {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -115,13 +170,14 @@ export class PolicyUtil {
 
         const provider: PolicyFunc | boolean | undefined = guard[operation];
         if (typeof provider === 'boolean') {
-            return provider;
+            return this.reduce(provider);
         }
 
         if (!provider) {
             throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
-        return provider({ user: this.user, preValue });
+        const r = provider({ user: this.user, preValue });
+        return this.reduce(r);
     }
 
     /**
@@ -165,10 +221,8 @@ export class PolicyUtil {
      */
     async injectAuthGuard(args: any, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(model, operation);
-        if (guard === false) {
-            // use OR with 0 filters to represent filtering out everything
-            // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
-            args.where = { OR: [] };
+        if (this.isFalse(guard)) {
+            args.where = this.makeFalse();
             return false;
         }
 
@@ -179,15 +233,7 @@ export class PolicyUtil {
             await this.injectGuardForRelationFields(model, args.where, operation);
         }
 
-        const combined = this.and(args.where, guard);
-        if (combined !== undefined) {
-            args.where = combined;
-        } else {
-            // use AND with 0 filters to represent no filtering
-            // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
-            args.where = { AND: [] };
-        }
-
+        args.where = this.and(args.where, guard);
         return true;
     }
 
@@ -286,7 +332,7 @@ export class PolicyUtil {
             await this.injectGuardForRelationFields(model, args.where, 'read');
         }
 
-        if (injected.where && Object.keys(injected.where).length > 0) {
+        if (injected.where && Object.keys(injected.where).length > 0 && !this.isTrue(injected.where)) {
             args.where = args.where ?? {};
             Object.assign(args.where, injected.where);
         }
@@ -445,11 +491,7 @@ export class PolicyUtil {
                 await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
             } else {
                 // hoist non-nullable to-one filter to the parent level
-                const guard = this.getAuthGuard(fieldInfo.type, 'read');
-                if (guard !== true) {
-                    // use "and" to resolve boolean values
-                    hoisted = this.and(guard);
-                }
+                hoisted = this.getAuthGuard(fieldInfo.type, 'read');
             }
 
             // recurse
@@ -459,7 +501,7 @@ export class PolicyUtil {
                 hoisted = this.and(hoisted, ...subHoisted);
             }
 
-            if (hoisted !== undefined) {
+            if (hoisted && !this.isTrue(hoisted)) {
                 hoistedConditions.push({ [field]: hoisted });
             }
         }
@@ -479,14 +521,14 @@ export class PolicyUtil {
         preValue?: any
     ) {
         const guard = this.getAuthGuard(model, operation, preValue);
-        if (guard === false) {
+        if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
         }
 
         // Zod schema is to be checked for "create" and "postUpdate"
         const schema = ['create', 'postUpdate'].includes(operation) ? this.getZodSchema(model) : undefined;
 
-        if (guard === true && !schema) {
+        if (this.isTrue(guard) && !schema) {
             // unconditionally allowed
             return;
         }
@@ -502,9 +544,7 @@ export class PolicyUtil {
         this.flattenGeneratedUniqueField(model, where);
 
         // query with policy guard
-        if (guard !== true) {
-            where = this.and(where, guard);
-        }
+        where = this.and(where, guard);
         const query = { select, where };
 
         if (this.shouldLogQuery) {
@@ -538,7 +578,7 @@ export class PolicyUtil {
      */
     tryReject(model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(model, operation);
-        if (guard === false) {
+        if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation);
         }
     }
@@ -594,7 +634,7 @@ export class PolicyUtil {
         }
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[policy] \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
+            this.logger.info(`[policy] checking read-back, \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
         }
         const result = await db[model].findFirst(readArgs);
         if (!result) {

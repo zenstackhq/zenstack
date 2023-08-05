@@ -68,7 +68,7 @@ describe('With Policy:deep nested', () => {
     });
 
     beforeEach(async () => {
-        const params = await loadSchema(model, { logPrismaQuery: true });
+        const params = await loadSchema(model);
         db = params.withPolicy();
         prisma = params.prisma;
     });
