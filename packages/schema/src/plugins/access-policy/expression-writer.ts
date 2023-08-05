@@ -43,8 +43,8 @@ type FilterOperators =
 
 // { OR: [] } filters to nothing, { AND: [] } includes everything
 // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
-const TRUE = '{ AND: [] }';
-const FALSE = '{ OR: [] }';
+export const TRUE = '{ AND: [] }';
+export const FALSE = '{ OR: [] }';
 
 /**
  * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer

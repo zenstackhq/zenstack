@@ -50,7 +50,7 @@ import {
     TypeScriptExpressionTransformerError,
 } from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
-import { ExpressionWriter } from './expression-writer';
+import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 import { isFutureExpr } from './utils';
 
 /**
@@ -414,10 +414,10 @@ export default class PolicyGenerator {
                 });
                 try {
                     denies.forEach((rule) => {
-                        writer.write(`if (${transformer.transform(rule, false)}) { return false; }`);
+                        writer.write(`if (${transformer.transform(rule, false)}) { return ${FALSE}; }`);
                     });
                     allows.forEach((rule) => {
-                        writer.write(`if (${transformer.transform(rule, false)}) { return true; }`);
+                        writer.write(`if (${transformer.transform(rule, false)}) { return ${TRUE}; }`);
                     });
                 } catch (err) {
                     if (err instanceof TypeScriptExpressionTransformerError) {
@@ -426,7 +426,7 @@ export default class PolicyGenerator {
                         throw err;
                     }
                 }
-                writer.write('return false;');
+                writer.write(`return ${FALSE};`);
             });
         } else {
             statements.push((writer) => {
