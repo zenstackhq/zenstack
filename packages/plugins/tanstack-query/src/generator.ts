@@ -107,7 +107,7 @@ function generateMutationHook(
 
     const argsType = `Prisma.${model}${capOperation}Args`;
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-    let returnType = overrideReturnType ?? `Prisma.CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
+    let returnType = overrideReturnType ?? `CheckSelect<T, ${model}, Prisma.${model}GetPayload<T>>`;
     if (checkReadBack) {
         returnType = `(${returnType} | undefined )`;
     }
@@ -414,7 +414,7 @@ function makeGetContext(target: TargetFramework) {
 function makeBaseImports(target: TargetFramework) {
     const shared = [
         `import { query, postMutation, putMutation, deleteMutation } from '@zenstackhq/tanstack-query/runtime/${target}';`,
-        `import type { PickEnumerable } from '@zenstackhq/tanstack-query/runtime';`,
+        `import type { PickEnumerable, CheckSelect } from '@zenstackhq/tanstack-query/runtime';`,
     ];
     switch (target) {
         case 'react':

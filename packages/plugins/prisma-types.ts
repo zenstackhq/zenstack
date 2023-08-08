@@ -10,3 +10,22 @@ export type TupleToUnion<K extends readonly any[]> = _TupleToUnion<K>;
 export type MaybeTupleToUnion<T> = T extends any[] ? TupleToUnion<T> : T;
 
 export type PickEnumerable<T, K extends Enumerable<keyof T> | keyof T> = Pick<T, MaybeTupleToUnion<K>>;
+
+type SelectAndInclude = {
+    select: any;
+    include: any;
+};
+type HasSelect = {
+    select: any;
+};
+type HasInclude = {
+    include: any;
+};
+
+export type CheckSelect<T, S, U> = T extends SelectAndInclude
+    ? 'Please either choose `select` or `include`'
+    : T extends HasSelect
+    ? U
+    : T extends HasInclude
+    ? U
+    : S;
