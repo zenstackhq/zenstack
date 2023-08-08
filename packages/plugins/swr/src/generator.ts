@@ -59,7 +59,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions, type PickEnumerable } from '@zenstackhq/swr/runtime';`,
+        `import { RequestHandlerContext, type RequestOptions, type PickEnumerable, type CheckSelect } from '@zenstackhq/swr/runtime';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
 
@@ -82,7 +82,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     if (mapping.create || (mapping as any).createOne) {
         const argsType = `Prisma.${model.name}CreateArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
+        const returnType = `CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
         mutationFuncs.push(
             generateMutation(useMutation, model, 'post', 'create', argsType, inputType, returnType, true)
         );
