@@ -25,6 +25,10 @@ describe('Zod plugin tests', () => {
             provider = 'prisma-client-js'
         }
 
+        plugin zod {
+            provider = "@core/zod"
+        }
+
         enum Role {
             USER
             ADMIN 
