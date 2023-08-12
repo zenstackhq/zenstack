@@ -8,7 +8,7 @@ require('esbuild')
         entryPoints: ['src/extension.ts', 'src/language-server/main.ts'],
         outdir: 'bundle',
         bundle: true,
-        external: ['vscode'],
+        external: ['vscode', '@prisma/*'],
         platform: 'node',
         sourcemap: !minify,
         watch: watch
