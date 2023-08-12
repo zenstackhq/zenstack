@@ -61,6 +61,88 @@ describe('With Policy:nested to-many', () => {
         expect(read.m2).toHaveLength(2);
     });
 
+    it('read condition hoisting', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2[]
+        
+            @@allow('all', true)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String
+
+            m3 M3 @relation(fields: [m3Id], references:[id])
+            m3Id String @unique
+
+            m4 M4 @relation(fields: [m4Id], references:[id])
+            m4Id String
+        
+            @@allow('create', true)
+            @@allow('read', value > 0)
+        }
+
+        model M3 {
+            id String @id @default(uuid())
+            value Int
+            m2 M2?
+        
+            @@allow('create', true)
+            @@allow('read', value > 1)
+        }
+
+        model M4 {
+            id String @id @default(uuid())
+            value Int
+            m2 M2[]
+        
+            @@allow('create', true)
+            @@allow('read', value > 1)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.m1.create({
+            include: { m2: true },
+            data: {
+                id: '1',
+                m2: {
+                    create: [
+                        { id: 'm2-1', value: 1, m3: { create: { value: 1 } }, m4: { create: { value: 1 } } },
+                        { id: 'm2-2', value: 1, m3: { create: { value: 2 } }, m4: { create: { value: 2 } } },
+                    ],
+                },
+            },
+        });
+
+        let read = await db.m1.findFirst({ include: { m2: true } });
+        expect(read.m2).toHaveLength(2);
+        read = await db.m1.findFirst({ select: { m2: { select: { id: true } } } });
+        expect(read.m2).toHaveLength(2);
+
+        // check m2-m3 filtering
+        // including m3 causes m2 to be filtered since m3 is not nullable
+        read = await db.m1.findFirst({ include: { m2: { include: { m3: true } } } });
+        expect(read.m2).toHaveLength(1);
+        read = await db.m1.findFirst({ select: { m2: { select: { m3: true } } } });
+        expect(read.m2).toHaveLength(1);
+
+        // check m2-m4 filtering
+        // including m3 causes m2 to be filtered since m4 is not nullable
+        read = await db.m1.findFirst({ include: { m2: { include: { m4: true } } } });
+        expect(read.m2).toHaveLength(1);
+        read = await db.m1.findFirst({ select: { m2: { select: { m4: true } } } });
+        expect(read.m2).toHaveLength(1);
+    });
+
     it('create simple', async () => {
         const { withPolicy } = await loadSchema(
             `
