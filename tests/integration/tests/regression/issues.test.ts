@@ -439,8 +439,7 @@ model Group {
     // group is shared by organization
     @@allow('all', org.members?[auth() == this])
 }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         const userData = [
