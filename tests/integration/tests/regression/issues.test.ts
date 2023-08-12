@@ -354,4 +354,199 @@ describe('GitHub issues regression', () => {
             })
         ).toResolveTruthy();
     });
+
+    it('issue 624', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+model User {
+    id String @id @default(uuid())
+    email String @unique
+    password String? @password @omit
+    name String?
+    orgs Organization[]
+    posts Post[]
+    groups Group[]
+    comments Comment[]
+    // can be created by anyone, even not logged in
+    @@allow('create', true)
+    // can be read by users in the same organization
+    @@allow('read', orgs?[members?[auth() == this]])
+    // full access by oneself
+    @@allow('all', auth() == this)
+}
+
+model Organization {
+    id String @id @default(uuid())
+    name String
+    members User[]
+    post Post[]
+    groups Group[]
+    comments Comment[]
+
+    // everyone can create a organization
+    @@allow('create', true)
+    // any user in the organization can read the organization
+    @@allow('read', members?[auth() == this])
+}
+
+abstract model organizationBaseEntity {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    isDeleted Boolean @default(false) @omit
+    isPublic Boolean @default(false)
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    ownerId String
+    org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+    orgId String
+    groups Group[]
+
+    // when create, owner must be set to current user, and user must be in the organization
+    @@allow('create', owner == auth() && org.members?[this == auth()])
+    // only the owner can update it and is not allowed to change the owner
+    @@allow('update', owner == auth() && org.members?[this == auth()] && future().owner == owner)
+    // allow owner to read
+    @@allow('read', owner == auth())
+    // allow shared group members to read it
+    @@allow('read', groups?[users?[this == auth()]])
+    // allow organization to access if public
+    @@allow('read', isPublic && org.members?[this == auth()])
+    // can not be read if deleted
+    @@deny('all', isDeleted == true)
+}
+
+model Post extends organizationBaseEntity {
+    title String
+    content String
+    comments Comment[]
+}
+
+model Comment extends organizationBaseEntity {
+    content String
+    post Post @relation(fields: [postId], references: [id])
+    postId String
+}
+
+model Group {
+    id String @id @default(uuid())
+    name String
+    users User[]
+    posts Post[]
+    comments Comment[]
+    org Organization @relation(fields: [orgId], references: [id])
+    orgId String
+
+    // group is shared by organization
+    @@allow('all', org.members?[auth() == this])
+}
+        `,
+            { logPrismaQuery: true }
+        );
+
+        const userData = [
+            {
+                id: 'robin@prisma.io',
+                name: 'Robin',
+                email: 'robin@prisma.io',
+                orgs: {
+                    create: [
+                        {
+                            id: 'prisma',
+                            name: 'prisma',
+                        },
+                    ],
+                },
+                groups: {
+                    create: [
+                        {
+                            id: 'community',
+                            name: 'community',
+                            orgId: 'prisma',
+                        },
+                    ],
+                },
+                posts: {
+                    create: [
+                        {
+                            id: 'slack',
+                            title: 'Join the Prisma Slack',
+                            content: 'https://slack.prisma.io',
+                            orgId: 'prisma',
+                            comments: {
+                                create: [
+                                    {
+                                        id: 'comment-1',
+                                        content: 'This is the first comment',
+                                        orgId: 'prisma',
+                                        ownerId: 'robin@prisma.io',
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                id: 'bryan@prisma.io',
+                name: 'Bryan',
+                email: 'bryan@prisma.io',
+                orgs: {
+                    connect: {
+                        id: 'prisma',
+                    },
+                },
+                posts: {
+                    create: [
+                        {
+                            id: 'discord',
+                            title: 'Join the Prisma Discord',
+                            content: 'https://discord.gg/jS3XY7vp46',
+                            orgId: 'prisma',
+                            groups: {
+                                connect: {
+                                    id: 'community',
+                                },
+                            },
+                        },
+                    ],
+                },
+            },
+        ];
+
+        for (const u of userData) {
+            const user = await prisma.user.create({
+                data: u,
+            });
+            console.log(`Created user with id: ${user.id}`);
+        }
+
+        const db = withPolicy({ id: 'robin@prisma.io' });
+        await expect(
+            db.post.findMany({
+                where: {},
+                select: {
+                    id: true,
+                    content: true,
+                    owner: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+                    comments: {
+                        select: {
+                            id: true,
+                            content: true,
+                            owner: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            })
+        ).resolves.toHaveLength(2);
+    });
 });

@@ -489,16 +489,21 @@ export class PolicyUtil {
                 }
                 // inject extra condition for to-many or nullable to-one relation
                 await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
+
+                // recurse
+                const subHoisted = await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
+                if (subHoisted.length > 0) {
+                    // we can convert it to a where at this level
+                    injectTarget[field].where = this.and(injectTarget[field].where, ...subHoisted);
+                }
             } else {
                 // hoist non-nullable to-one filter to the parent level
                 hoisted = this.getAuthGuard(fieldInfo.type, 'read');
-            }
-
-            // recurse
-            const subHoisted = await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
-
-            if (subHoisted.length > 0) {
-                hoisted = this.and(hoisted, ...subHoisted);
+                // recurse
+                const subHoisted = await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
+                if (subHoisted.length > 0) {
+                    hoisted = this.and(hoisted, ...subHoisted);
+                }
             }
 
             if (hoisted && !this.isTrue(hoisted)) {
