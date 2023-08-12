@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 import type { DMMF } from '@prisma/generator-helper';
-import { getDMMF as getDMMF4 } from '@prisma/internals';
-import { getDMMF as getDMMF5 } from '@prisma/internals-v5';
 import { getPrismaVersion } from '@zenstackhq/runtime';
 import path from 'path';
 import * as semver from 'semver';
@@ -84,8 +84,10 @@ export type GetDMMFOptions = {
 export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
     const prismaVersion = getPrismaVersion();
     if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-        return getDMMF5(options);
+        const _getDMMF = require('@prisma/internals-v5').getDMMF;
+        return _getDMMF(options);
     } else {
-        return getDMMF4(options);
+        const _getDMMF = require('@prisma/internals').getDMMF;
+        return _getDMMF(options);
     }
 }
