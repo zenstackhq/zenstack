@@ -99,6 +99,59 @@ describe('With Policy:nested to-one', () => {
         await expect(db.m2.findMany({ include: { m1: true } })).toResolveTruthy();
     });
 
+    it('read condition hoisting', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2 @relation(fields: [m2Id], references:[id])
+            m2Id String @unique
+        
+            @@allow('all', true)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+
+            m1 M1?
+
+            m3 M3 @relation(fields: [m3Id], references:[id])
+            m3Id String @unique
+
+            @@allow('create', true)
+            @@allow('read', value > 0)
+        }
+
+        model M3 {
+            id String @id @default(uuid())
+            value Int
+            m2 M2?
+        
+            @@allow('create', true)
+            @@allow('read', value > 1)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.m1.create({
+            include: { m2: true },
+            data: {
+                id: '1',
+                m2: {
+                    create: { id: 'm2-1', value: 1, m3: { create: { value: 1 } } },
+                },
+            },
+        });
+
+        // check m2-m3 filtering
+        // including m3 causes m1 to be filtered due to hosting
+        await expect(db.m1.findFirst({ include: { m2: { include: { m3: true } } } })).toResolveNull();
+        await expect(db.m1.findFirst({ select: { m2: { select: { m3: true } } } })).toResolveNull();
+    });
+
     it('create and update tests', async () => {
         const { withPolicy } = await loadSchema(
             `

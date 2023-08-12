@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "1.0.0-beta.16",
+    "version": "1.0.0-beta.17",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
@@ -29,6 +29,7 @@
         "ts-morph": "^16.0.0"
     },
     "devDependencies": {
+        "@types/node": "^18.0.0",
         "@types/semver": "^7.3.13",
         "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
