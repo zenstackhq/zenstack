@@ -162,7 +162,12 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): object {
+    getAuthGuard(
+        db: Record<string, DbOperations>,
+        model: string,
+        operation: PolicyOperationKind,
+        preValue?: any
+    ): object {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -176,7 +181,7 @@ export class PolicyUtil {
         if (!provider) {
             throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
-        const r = provider({ user: this.user, preValue });
+        const r = provider({ user: this.user, preValue }, db);
         return this.reduce(r);
     }
 
@@ -219,8 +224,8 @@ export class PolicyUtil {
     /**
      * Injects model auth guard as where clause.
      */
-    async injectAuthGuard(args: any, model: string, operation: PolicyOperationKind) {
-        const guard = this.getAuthGuard(model, operation);
+    async injectAuthGuard(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
+        const guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
             args.where = this.makeFalse();
             return false;
@@ -230,14 +235,19 @@ export class PolicyUtil {
             // inject into relation fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            await this.injectGuardForRelationFields(model, args.where, operation);
+            await this.injectGuardForRelationFields(db, model, args.where, operation);
         }
 
         args.where = this.and(args.where, guard);
         return true;
     }
 
-    private async injectGuardForRelationFields(model: string, payload: any, operation: PolicyOperationKind) {
+    private async injectGuardForRelationFields(
+        db: Record<string, DbOperations>,
+        model: string,
+        payload: any,
+        operation: PolicyOperationKind
+    ) {
         for (const [field, subPayload] of Object.entries<any>(payload)) {
             if (!subPayload) {
                 continue;
@@ -249,26 +259,27 @@ export class PolicyUtil {
             }
 
             if (fieldInfo.isArray) {
-                await this.injectGuardForToManyField(fieldInfo, subPayload, operation);
+                await this.injectGuardForToManyField(db, fieldInfo, subPayload, operation);
             } else {
-                await this.injectGuardForToOneField(fieldInfo, subPayload, operation);
+                await this.injectGuardForToOneField(db, fieldInfo, subPayload, operation);
             }
         }
     }
 
     private async injectGuardForToManyField(
+        db: Record<string, DbOperations>,
         fieldInfo: FieldInfo,
         payload: { some?: any; every?: any; none?: any },
         operation: PolicyOperationKind
     ) {
-        const guard = this.getAuthGuard(fieldInfo.type, operation);
+        const guard = this.getAuthGuard(db, fieldInfo.type, operation);
         if (payload.some) {
-            await this.injectGuardForRelationFields(fieldInfo.type, payload.some, operation);
+            await this.injectGuardForRelationFields(db, fieldInfo.type, payload.some, operation);
             // turn "some" into: { some: { AND: [guard, payload.some] } }
             payload.some = this.and(payload.some, guard);
         }
         if (payload.none) {
-            await this.injectGuardForRelationFields(fieldInfo.type, payload.none, operation);
+            await this.injectGuardForRelationFields(db, fieldInfo.type, payload.none, operation);
             // turn none into: { none: { AND: [guard, payload.none] } }
             payload.none = this.and(payload.none, guard);
         }
@@ -278,7 +289,7 @@ export class PolicyUtil {
             // ignore empty every clause
             Object.keys(payload.every).length > 0
         ) {
-            await this.injectGuardForRelationFields(fieldInfo.type, payload.every, operation);
+            await this.injectGuardForRelationFields(db, fieldInfo.type, payload.every, operation);
 
             // turn "every" into: { none: { AND: [guard, { NOT: payload.every }] } }
             if (!payload.none) {
@@ -290,25 +301,26 @@ export class PolicyUtil {
     }
 
     private async injectGuardForToOneField(
+        db: Record<string, DbOperations>,
         fieldInfo: FieldInfo,
         payload: { is?: any; isNot?: any } & Record<string, any>,
         operation: PolicyOperationKind
     ) {
-        const guard = this.getAuthGuard(fieldInfo.type, operation);
+        const guard = this.getAuthGuard(db, fieldInfo.type, operation);
         if (payload.is || payload.isNot) {
             if (payload.is) {
-                await this.injectGuardForRelationFields(fieldInfo.type, payload.is, operation);
+                await this.injectGuardForRelationFields(db, fieldInfo.type, payload.is, operation);
                 // turn "is" into: { is: { AND: [ originalIs, guard ] }
                 payload.is = this.and(payload.is, guard);
             }
             if (payload.isNot) {
-                await this.injectGuardForRelationFields(fieldInfo.type, payload.isNot, operation);
+                await this.injectGuardForRelationFields(db, fieldInfo.type, payload.isNot, operation);
                 // turn "isNot" into: { isNot: { AND: [ originalIsNot, { NOT: guard } ] } }
                 payload.isNot = this.and(payload.isNot, this.not(guard));
                 delete payload.isNot;
             }
         } else {
-            await this.injectGuardForRelationFields(fieldInfo.type, payload, operation);
+            await this.injectGuardForRelationFields(db, fieldInfo.type, payload, operation);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
             const combined = this.and(deepcopy(payload), guard);
             Object.keys(payload).forEach((key) => delete payload[key]);
@@ -319,9 +331,9 @@ export class PolicyUtil {
     /**
      * Injects auth guard for read operations.
      */
-    async injectForRead(model: string, args: any) {
+    async injectForRead(db: Record<string, DbOperations>, model: string, args: any) {
         const injected: any = {};
-        if (!(await this.injectAuthGuard(injected, model, 'read'))) {
+        if (!(await this.injectAuthGuard(db, injected, model, 'read'))) {
             return false;
         }
 
@@ -329,7 +341,7 @@ export class PolicyUtil {
             // inject into relation fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            await this.injectGuardForRelationFields(model, args.where, 'read');
+            await this.injectGuardForRelationFields(db, model, args.where, 'read');
         }
 
         if (injected.where && Object.keys(injected.where).length > 0 && !this.isTrue(injected.where)) {
@@ -338,7 +350,7 @@ export class PolicyUtil {
         }
 
         // recursively inject read guard conditions into nested select, include, and _count
-        const hoistedConditions = await this.injectNestedReadConditions(model, args);
+        const hoistedConditions = await this.injectNestedReadConditions(db, model, args);
 
         // the injection process may generate conditions that need to be hoisted to the toplevel,
         // if so, merge it with the existing where
@@ -429,7 +441,11 @@ export class PolicyUtil {
         return result;
     }
 
-    private async injectNestedReadConditions(model: string, args: any): Promise<any[]> {
+    private async injectNestedReadConditions(
+        db: Record<string, DbOperations>,
+        model: string,
+        args: any
+    ): Promise<any[]> {
         const injectTarget = args.select ?? args.include;
         if (!injectTarget) {
             return [];
@@ -462,7 +478,7 @@ export class PolicyUtil {
                     continue;
                 }
                 // inject into the "where" clause inside select
-                await this.injectAuthGuard(injectTarget._count.select[field], fieldInfo.type, 'read');
+                await this.injectAuthGuard(db, injectTarget._count.select[field], fieldInfo.type, 'read');
             }
         }
 
@@ -488,19 +504,19 @@ export class PolicyUtil {
                     injectTarget[field] = {};
                 }
                 // inject extra condition for to-many or nullable to-one relation
-                await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
+                await this.injectAuthGuard(db, injectTarget[field], fieldInfo.type, 'read');
 
                 // recurse
-                const subHoisted = await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
+                const subHoisted = await this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);
                 if (subHoisted.length > 0) {
                     // we can convert it to a where at this level
                     injectTarget[field].where = this.and(injectTarget[field].where, ...subHoisted);
                 }
             } else {
                 // hoist non-nullable to-one filter to the parent level
-                hoisted = this.getAuthGuard(fieldInfo.type, 'read');
+                hoisted = this.getAuthGuard(db, fieldInfo.type, 'read');
                 // recurse
-                const subHoisted = await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
+                const subHoisted = await this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);
                 if (subHoisted.length > 0) {
                     hoisted = this.and(hoisted, ...subHoisted);
                 }
@@ -525,7 +541,7 @@ export class PolicyUtil {
         db: Record<string, DbOperations>,
         preValue?: any
     ) {
-        const guard = this.getAuthGuard(model, operation, preValue);
+        const guard = this.getAuthGuard(db, model, operation, preValue);
         if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
         }
@@ -581,8 +597,8 @@ export class PolicyUtil {
     /**
      * Tries rejecting a request based on static "false" policy.
      */
-    tryReject(model: string, operation: PolicyOperationKind) {
-        const guard = this.getAuthGuard(model, operation);
+    tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
+        const guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation);
         }
@@ -633,7 +649,7 @@ export class PolicyUtil {
             CrudFailureReason.RESULT_NOT_READABLE
         );
 
-        const injectResult = await this.injectForRead(model, readArgs);
+        const injectResult = await this.injectForRead(db, model, readArgs);
         if (!injectResult) {
             return { error, result: undefined };
         }

@@ -11,6 +11,7 @@ import {
     InternalAttribute,
     isArrayExpr,
     isDataModel,
+    isDataModelField,
     isEnumField,
     isLiteralExpr,
     isObjectExpr,
@@ -20,8 +21,8 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import path from 'path';
-import { PluginOptions } from './types';
 import { ExpressionContext } from './constants';
+import { PluginOptions } from './types';
 
 /**
  * Gets data models that are not ignored
@@ -135,6 +136,10 @@ export function getAttributeArgLiteral<T extends string | number | boolean>(
 
 export function isEnumFieldReference(node: AstNode): node is ReferenceExpr {
     return isReferenceExpr(node) && isEnumField(node.target.ref);
+}
+
+export function isDataModelFieldReference(node: AstNode): node is ReferenceExpr {
+    return isReferenceExpr(node) && isDataModelField(node.target.ref);
 }
 
 /**

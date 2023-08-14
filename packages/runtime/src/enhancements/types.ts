@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
-import { FieldInfo, PolicyOperationKind, QueryContext } from '../types';
+import type { DbOperations, FieldInfo, PolicyOperationKind, QueryContext } from '../types';
 
 /**
  * Metadata for a model-level unique constraint
@@ -19,7 +19,7 @@ export type ModelMeta = {
 /**
  * Function for getting policy guard with a given context
  */
-export type PolicyFunc = (context: QueryContext) => object;
+export type PolicyFunc = (context: QueryContext, db: Record<string, DbOperations>) => object;
 
 /**
  * Function for getting policy guard with a given context

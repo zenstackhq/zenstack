@@ -14,7 +14,14 @@ import {
     ReferenceExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { ExpressionContext, getFunctionExpressionContext, getLiteral, PluginError } from '@zenstackhq/sdk';
+import {
+    ExpressionContext,
+    getFunctionExpressionContext,
+    getLiteral,
+    isDataModelFieldReference,
+    PluginError,
+} from '@zenstackhq/sdk';
+import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '.';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
@@ -191,6 +198,19 @@ export class ExpressionWriter {
                         },
                         'has'
                     );
+                } else if (
+                    isDataModelFieldReference(expr.left) &&
+                    isDataModelFieldReference(expr.right) &&
+                    expr.left.target.ref?.$container === expr.right.target.ref?.$container
+                ) {
+                    // comparing two fields of the same model
+                    this.writeFieldCondition(
+                        expr.left,
+                        () => {
+                            this.writeFieldReference(expr.right as ReferenceExpr);
+                        },
+                        'in'
+                    );
                 } else {
                     throw new PluginError(name, '"in" operator cannot be used with field references on both sides');
                 }
@@ -223,7 +243,7 @@ export class ExpressionWriter {
                 return this.isFieldAccess(expr.operand);
             }
         }
-        if (isReferenceExpr(expr) && isDataModelField(expr.target.ref) && !this.isPostGuard) {
+        if (isDataModelFieldReference(expr) && !this.isPostGuard) {
             return true;
         }
         return false;
@@ -257,11 +277,9 @@ export class ExpressionWriter {
 
         if (leftIsFieldAccess && rightIsFieldAccess) {
             if (
-                isReferenceExpr(expr.left) &&
-                isDataModelField(expr.left.target.ref) &&
-                isReferenceExpr(expr.right) &&
-                isDataModelField(expr.right.target.ref) &&
-                expr.left.target.ref.$container === expr.right.target.ref.$container
+                isDataModelFieldReference(expr.left) &&
+                isDataModelFieldReference(expr.right) &&
+                expr.left.target.ref?.$container === expr.right.target.ref?.$container
             ) {
                 // comparing fields from the same model
             } else {
@@ -368,7 +386,11 @@ export class ExpressionWriter {
                             });
                         } else {
                             this.writeOperator(operator, fieldAccess, () => {
-                                this.plain(operand);
+                                if (isDataModelFieldReference(operand)) {
+                                    this.writeFieldReference(operand);
+                                } else {
+                                    this.plain(operand);
+                                }
                             });
                         }
                     }, !isThisExpr(fieldAccess));
@@ -378,6 +400,15 @@ export class ExpressionWriter {
             // avoid generating a new layer
             !isThisExpr(fieldAccess)
         );
+    }
+
+    // https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#compare-columns-in-the-same-table
+    private writeFieldReference(expr: ReferenceExpr) {
+        if (!expr.target.ref) {
+            throw new PluginError(name, `Unresolved reference "${expr.target.$refText}"`);
+        }
+        const containingModel = expr.target.ref.$container;
+        this.writer.write(`db.${lowerCaseFirst(containingModel.name)}.fields.${expr.target.ref.name}`);
     }
 
     private isAuthOrAuthMemberAccess(expr: Expression) {

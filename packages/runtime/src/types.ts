@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * Weakly-typed database access methods
  */
@@ -17,6 +19,7 @@ export interface DbOperations {
     aggregate(args: unknown): Promise<unknown>;
     groupBy(args: unknown): Promise<unknown>;
     count(args?: unknown): Promise<unknown>;
+    fields: Record<string, any>;
 }
 
 /**
@@ -43,6 +46,9 @@ export type QueryContext = {
      */
     user?: AuthUser;
 
+    /**
+     * Pre-update value of the entity
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     preValue?: any;
 };
