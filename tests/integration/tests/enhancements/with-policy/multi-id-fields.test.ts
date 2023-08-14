@@ -124,7 +124,7 @@ describe('With Policy: multiple id fields', () => {
         await prisma.user.create({ data: { x: '1', y: '1' } });
         await prisma.user.create({ data: { x: '1', y: '2' } });
 
-        const anonDb = withPolicy({});
+        const anonDb = withPolicy();
 
         await expect(
             anonDb.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })
