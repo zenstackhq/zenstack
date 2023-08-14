@@ -256,7 +256,17 @@ export class ExpressionWriter {
         const rightIsFieldAccess = this.isFieldAccess(expr.right);
 
         if (leftIsFieldAccess && rightIsFieldAccess) {
-            throw new PluginError(name, `Comparison between fields are not supported yet`);
+            if (
+                isReferenceExpr(expr.left) &&
+                isDataModelField(expr.left.target.ref) &&
+                isReferenceExpr(expr.right) &&
+                isDataModelField(expr.right.target.ref) &&
+                expr.left.target.ref.$container === expr.right.target.ref.$container
+            ) {
+                // comparing fields from the same model
+            } else {
+                throw new PluginError(name, `Comparing fields from different models is not supported`);
+            }
         }
 
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
