@@ -113,8 +113,7 @@ describe('With Policy: auth() test', () => {
         const authDb = withPolicy();
         await expect(authDb.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        const authDb1 = withPolicy({ id: null });
-        await expect(authDb1.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).rejects.toThrow();
+        expect(() => withPolicy({ id: null })).toThrow(/Invalid user context/);
 
         const authDb2 = withPolicy({ id: 'user1' });
         await expect(authDb2.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();
@@ -147,9 +146,6 @@ describe('With Policy: auth() test', () => {
         await expect(db.post.create({ data: { id: '1', title: 'abc', authorId: 'user1' } })).toResolveTruthy();
 
         await expect(db.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
-
-        const authDb1 = withPolicy({ id: null });
-        await expect(authDb1.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).rejects.toThrow();
 
         const authDb2 = withPolicy({ id: 'user1' });
         await expect(authDb2.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();

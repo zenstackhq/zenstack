@@ -5,9 +5,11 @@ import path from 'path';
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../../constants';
 import { AuthUser, DbClientContract } from '../../types';
+import { hasAllFields } from '../../validation';
 import { getDefaultModelMeta } from '../model-meta';
 import { makeProxy } from '../proxy';
 import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
+import { getIdFields } from '../utils';
 import { PolicyProxyHandler } from './handler';
 
 /**
@@ -69,6 +71,21 @@ export function withPolicy<DbClient extends object>(
     const _policy = options?.policy ?? getDefaultPolicy();
     const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas();
+
+    // validate user context
+    if (context?.user) {
+        const idFields = getIdFields(_modelMeta, 'User', true);
+        if (
+            !hasAllFields(
+                context.user,
+                idFields.map((f) => f.name)
+            )
+        ) {
+            throw new Error(
+                `Invalid user context: must have valid ID field ${idFields.map((f) => `"${f.name}"`).join(', ')}`
+            );
+        }
+    }
 
     return makeProxy(
         prisma,
