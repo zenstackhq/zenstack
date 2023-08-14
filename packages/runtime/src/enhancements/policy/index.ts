@@ -74,7 +74,7 @@ export function withPolicy<DbClient extends object>(
 
     // validate user context
     if (context?.user) {
-        const idFields = getIdFields(_modelMeta, 'User', true);
+        const idFields = getIdFields(_modelMeta, 'User');
         if (
             !hasAllFields(
                 context.user,

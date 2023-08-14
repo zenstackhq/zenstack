@@ -18,9 +18,13 @@ export function getModelFields(data: object) {
  * Gets id fields for the given model.
  */
 export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
-    const fields = modelMeta.fields[lowerCaseFirst(model)];
+    let fields = modelMeta.fields[lowerCaseFirst(model)];
     if (!fields) {
-        throw new Error(`Unable to load fields for ${model}`);
+        if (throwIfNotFound) {
+            throw new Error(`Unable to load fields for ${model}`);
+        } else {
+            fields = {};
+        }
     }
     const result = Object.values(fields).filter((f) => f.isId);
     if (result.length === 0 && throwIfNotFound) {
