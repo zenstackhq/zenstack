@@ -4,7 +4,6 @@ import {
     Expression,
     InvocationExpr,
     isDataModel,
-    isDataModelField,
     isEnumField,
     isMemberAccessExpr,
     isReferenceExpr,
