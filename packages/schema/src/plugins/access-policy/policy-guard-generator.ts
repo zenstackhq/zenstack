@@ -25,6 +25,7 @@ import {
     getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
+    isForeignKeyField,
     PluginError,
     PluginOptions,
     resolved,
@@ -274,6 +275,7 @@ export default class PolicyGenerator {
                         // we can't check based on create input
                         return false;
                     }
+
                     if (
                         isDataModelField(expr.target.ref) &&
                         expr.target.ref.$container === model &&
@@ -282,6 +284,12 @@ export default class PolicyGenerator {
                         // reference to field of current model
                         // if it has default value, we can't check
                         // based on create input
+                        return false;
+                    }
+
+                    if (isDataModelField(expr.target.ref) && isForeignKeyField(expr.target.ref)) {
+                        // reference to foreign key field
+                        // we can't check based on create input
                         return false;
                     }
                 }

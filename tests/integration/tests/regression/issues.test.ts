@@ -548,4 +548,55 @@ model Group {
             })
         ).resolves.toHaveLength(2);
     });
+
+    it('issue 627', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+model User {
+    id String @id @default(uuid())
+}
+
+abstract model BaseEntityWithTenant {
+    id String @id @default(uuid())
+
+    name String
+    tenant_id String
+    tenant tenant? @relation(fields: [tenant_id], references: [id])
+
+    @@allow('all', auth().id == tenant_id)
+}
+
+model tenant {
+    id String @id @default(uuid())
+    equipments Equipment[]
+}
+
+model Equipment extends BaseEntityWithTenant {
+    a String
+}
+`,
+            { logPrismaQuery: true }
+        );
+
+        await prisma.tenant.create({
+            data: {
+                id: 'tenant-1',
+            },
+        });
+
+        const db = withPolicy({ id: 'tenant-1' });
+        const r = await db.equipment.create({
+            data: {
+                name: 'equipment-1',
+                tenant: {
+                    connect: {
+                        id: 'tenant-1',
+                    },
+                },
+                a: 'a',
+            },
+        });
+
+        console.log(r);
+    });
 });
