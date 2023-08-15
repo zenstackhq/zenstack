@@ -385,7 +385,9 @@ export class ExpressionWriter {
                             });
                         } else {
                             this.writeOperator(operator, fieldAccess, () => {
-                                if (isDataModelFieldReference(operand)) {
+                                if (isDataModelFieldReference(operand) && !this.isPostGuard) {
+                                    // if operand is a field reference and we're not generating for post-update guard,
+                                    // we should generate a field reference (comparing fields in the same model)
                                     this.writeFieldReference(operand);
                                 } else {
                                     this.plain(operand);
