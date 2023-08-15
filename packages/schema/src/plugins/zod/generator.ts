@@ -220,10 +220,14 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         }
 
         // import enum schemas
+        const importedEnumSchemas = new Set<string>();
         for (const field of fields) {
             if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
                 const name = upperCaseFirst(field.type.reference?.ref.name);
-                writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
+                if (!importedEnumSchemas.has(name)) {
+                    writer.writeLine(`import { ${name}Schema } from '../enums/${name}.schema';`);
+                    importedEnumSchemas.add(name);
+                }
             }
         }
 

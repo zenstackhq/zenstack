@@ -23,11 +23,13 @@
     "@zenstackhq/runtime": "workspace:*",
     "@zenstackhq/sdk": "workspace:*",
     "json5": "^2.2.3",
+    "pg": "^8.11.1",
     "tmp": "^0.2.1",
     "zenstack": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^18.0.0",
+    "@types/pg": "^8.10.2",
     "@types/tmp": "^0.2.3",
     "copyfiles": "^2.4.1",
     "rimraf": "^3.0.2",

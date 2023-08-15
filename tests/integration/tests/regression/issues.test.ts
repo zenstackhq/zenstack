@@ -1,4 +1,4 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('GitHub issues regression', () => {
@@ -585,18 +585,46 @@ model Equipment extends BaseEntityWithTenant {
         });
 
         const db = withPolicy({ id: 'tenant-1' });
-        const r = await db.equipment.create({
-            data: {
-                name: 'equipment-1',
-                tenant: {
-                    connect: {
-                        id: 'tenant-1',
+        await expect(
+            db.equipment.create({
+                data: {
+                    name: 'equipment-1',
+                    tenant: {
+                        connect: {
+                            id: 'tenant-1',
+                        },
                     },
+                    a: 'a',
                 },
-                a: 'a',
-            },
-        });
+            })
+        ).toResolveTruthy();
+    });
 
-        console.log(r);
+    it('issue 632', async () => {
+        const dbUrl = await createPostgresDb('issue-632');
+        try {
+            await loadSchema(
+                `
+enum InventoryUnit {
+    DIGITAL
+    FL_OZ
+    GRAMS
+    MILLILITERS
+    OUNCES
+    UNIT
+    UNLIMITED
+}
+    
+model TwoEnumsOneModelTest {
+    id String @id @default(cuid())
+    inventoryUnit   InventoryUnit @default(UNIT)
+    inputUnit       InventoryUnit @default(UNIT)
+}
+`,
+                { provider: 'postgresql', dbUrl }
+            );
+        } finally {
+            await dropPostgresDb('issue-632');
+        }
     });
 });

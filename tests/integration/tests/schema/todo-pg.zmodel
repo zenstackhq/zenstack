@@ -2,15 +2,6 @@
 * Sample model for a collaborative Todo app
 */
 
-datasource db {
-    provider = 'postgresql'
-    url = 'postgres://postgres:abc123@localhost:5432/todo-pg'
-}
-
-generator js {
-    provider = 'prisma-client-js'
-}
-
 enum UserRole {
     ADMIN
     USER

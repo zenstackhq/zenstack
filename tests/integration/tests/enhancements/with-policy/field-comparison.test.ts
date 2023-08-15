@@ -1,44 +1,33 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadSchema, createPostgresDb, dropPostgresDb } from '@zenstackhq/testtools';
 import path from 'path';
-import { Pool } from 'pg';
 
 const DB_NAME = 'field-comparison';
 
 describe('WithPolicy: field comparison tests', () => {
     let origDir: string;
+    let dbUrl: string;
     let prisma: any;
-
-    const pool = new Pool({ user: 'postgres', password: 'abc123' });
 
     beforeAll(async () => {
         origDir = path.resolve('.');
     });
 
     beforeEach(async () => {
-        await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
-        await pool.query(`CREATE DATABASE "${DB_NAME}";`);
+        dbUrl = await createPostgresDb(DB_NAME);
     });
 
     afterEach(async () => {
-        process.chdir(origDir);
         if (prisma) {
             await prisma.$disconnect();
+            prisma = undefined;
         }
-        await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
+        await dropPostgresDb(DB_NAME);
+        process.chdir(origDir);
     });
 
     it('field comparison success with input check', async () => {
         const r = await loadSchema(
             `
-        datasource db {
-            provider = 'postgresql'
-            url = 'postgres://postgres:abc123@localhost:5432/${DB_NAME}'
-        }
-            
-        generator js {
-            provider = 'prisma-client-js'
-        }
-
         model Model {
             id String @id @default(uuid())
             x Int
@@ -48,7 +37,7 @@ describe('WithPolicy: field comparison tests', () => {
             @@allow('read', true)
         }
         `,
-            { addPrelude: false }
+            { provider: 'postgresql', dbUrl }
         );
 
         prisma = r.prisma;
@@ -60,15 +49,6 @@ describe('WithPolicy: field comparison tests', () => {
     it('field comparison success with policy check', async () => {
         const r = await loadSchema(
             `
-        datasource db {
-            provider = 'postgresql'
-            url = 'postgres://postgres:abc123@localhost:5432/${DB_NAME}'
-        }
-            
-        generator js {
-            provider = 'prisma-client-js'
-        }
-
         model Model {
             id String @id @default(uuid())
             x Int @default(0)
@@ -78,7 +58,7 @@ describe('WithPolicy: field comparison tests', () => {
             @@allow('read', true)
         }
         `,
-            { addPrelude: false }
+            { provider: 'postgresql', dbUrl }
         );
 
         prisma = r.prisma;
@@ -90,15 +70,6 @@ describe('WithPolicy: field comparison tests', () => {
     it('field in operator success with input check', async () => {
         const r = await loadSchema(
             `
-        datasource db {
-            provider = 'postgresql'
-            url = 'postgres://postgres:abc123@localhost:5432/${DB_NAME}'
-        }
-            
-        generator js {
-            provider = 'prisma-client-js'
-        }
-
         model Model {
             id String @id @default(uuid())
             x String
@@ -108,7 +79,7 @@ describe('WithPolicy: field comparison tests', () => {
             @@allow('read', x in y)
         }
         `,
-            { addPrelude: false }
+            { provider: 'postgresql', dbUrl }
         );
 
         prisma = r.prisma;
@@ -120,15 +91,6 @@ describe('WithPolicy: field comparison tests', () => {
     it('field in operator success with policy check', async () => {
         const r = await loadSchema(
             `
-        datasource db {
-            provider = 'postgresql'
-            url = 'postgres://postgres:abc123@localhost:5432/${DB_NAME}'
-        }
-            
-        generator js {
-            provider = 'prisma-client-js'
-        }
-
         model Model {
             id String @id @default(uuid())
             x String @default('x')
@@ -138,7 +100,7 @@ describe('WithPolicy: field comparison tests', () => {
             @@allow('read', x in y)
         }
         `,
-            { addPrelude: false }
+            { provider: 'postgresql', dbUrl }
         );
 
         prisma = r.prisma;
