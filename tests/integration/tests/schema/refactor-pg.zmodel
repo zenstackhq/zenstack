@@ -1,12 +1,3 @@
-datasource db {
-    provider = 'postgresql'
-    url = 'postgres://postgres:abc123@localhost:5432/refactor'
-}
-
-generator js {
-    provider = 'prisma-client-js'
-}
-
 enum Role {
     USER
     ADMIN

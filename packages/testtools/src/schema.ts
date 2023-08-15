@@ -70,10 +70,11 @@ export function getWorkspaceNpmCacheFolder(start: string) {
     return root ? path.join(root, '.npmcache') : './.npmcache';
 }
 
-const MODEL_PRELUDE = `
+function makePrelude(options: SchemaLoadOptions) {
+    return `
 datasource db {
-    provider = 'sqlite'
-    url = 'file:./test.db'
+    provider = '${options.provider}'
+    url = '${options.dbUrl}'
 }
 
 generator js {
@@ -83,26 +84,10 @@ generator js {
 
 plugin zod {
     provider = '@core/zod'
-    modelOnly = true
+    modelOnly = ${!options.fullZod}
 }
 `;
-
-const MODEL_PRELUDE_FULL_ZOD = `
-datasource db {
-    provider = 'sqlite'
-    url = 'file:./test.db'
 }
-
-generator js {
-    provider = 'prisma-client-js'
-    previewFeatures = ['clientExtensions']
-}
-
-plugin zod {
-    provider = '@core/zod'
-    modelOnly = false
-}
-`;
 
 export type SchemaLoadOptions = {
     addPrelude?: boolean;
@@ -112,6 +97,8 @@ export type SchemaLoadOptions = {
     compile?: boolean;
     customSchemaFilePath?: string;
     logPrismaQuery?: boolean;
+    provider?: 'sqlite' | 'postgresql';
+    dbUrl?: string;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -121,6 +108,8 @@ const defaultOptions: SchemaLoadOptions = {
     extraDependencies: [],
     compile: false,
     logPrismaQuery: false,
+    provider: 'sqlite',
+    dbUrl: 'file:./test.db',
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
@@ -164,7 +153,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
                 zmodelPath = path.join(projectRoot, fileName);
                 if (opt.addPrelude) {
                     // plugin need to be added after import statement
-                    fileContent = `${fileContent}\n${opt.fullZod ? MODEL_PRELUDE_FULL_ZOD : MODEL_PRELUDE}`;
+                    fileContent = `${fileContent}\n${makePrelude(opt)}`;
                 }
             }
 
@@ -174,7 +163,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         });
     } else {
         schema = schema.replaceAll('$projectRoot', projectRoot);
-        const content = opt.addPrelude ? `${opt.fullZod ? MODEL_PRELUDE_FULL_ZOD : MODEL_PRELUDE}\n${schema}` : schema;
+        const content = opt.addPrelude ? `${makePrelude(opt)}\n${schema}` : schema;
         if (opt.customSchemaFilePath) {
             zmodelPath = path.join(projectRoot, opt.customSchemaFilePath);
             fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });

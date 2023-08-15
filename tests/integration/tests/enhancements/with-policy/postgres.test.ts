@@ -1,29 +1,26 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchemaFromFile, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchemaFromFile, type WeakDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
-import { Pool } from 'pg';
 
 const DB_NAME = 'todo-pg';
 
 describe('With Policy: with postgres', () => {
     let origDir: string;
+    let dbUrl: string;
     let getDb: (user?: AuthUser) => WeakDbClientContract;
     let prisma: WeakDbClientContract;
-
-    const pool = new Pool({ user: 'postgres', password: 'abc123' });
 
     beforeAll(async () => {
         origDir = path.resolve('.');
     });
 
     beforeEach(async () => {
-        await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
-        await pool.query(`CREATE DATABASE "${DB_NAME}";`);
-
+        dbUrl = await createPostgresDb(DB_NAME);
         const { prisma: _prisma, withPolicy } = await loadSchemaFromFile(
             path.join(__dirname, '../../schema/todo-pg.zmodel'),
             {
-                addPrelude: false,
+                provider: 'postgresql',
+                dbUrl,
             }
         );
         getDb = withPolicy;
@@ -32,8 +29,10 @@ describe('With Policy: with postgres', () => {
 
     afterEach(async () => {
         process.chdir(origDir);
-        await prisma.$disconnect();
-        await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
+        if (prisma) {
+            await prisma.$disconnect();
+        }
+        await dropPostgresDb(DB_NAME);
     });
 
     it('user', async () => {
