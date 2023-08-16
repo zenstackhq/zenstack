@@ -345,8 +345,11 @@ export class PolicyUtil {
         }
 
         if (injected.where && Object.keys(injected.where).length > 0 && !this.isTrue(injected.where)) {
-            args.where = args.where ?? {};
-            Object.assign(args.where, injected.where);
+            if (!args.where) {
+                args.where = injected.where;
+            } else {
+                this.mergeWhereClause(args.where, injected.where);
+            }
         }
 
         // recursively inject read guard conditions into nested select, include, and _count
@@ -355,8 +358,11 @@ export class PolicyUtil {
         // the injection process may generate conditions that need to be hoisted to the toplevel,
         // if so, merge it with the existing where
         if (hoistedConditions.length > 0) {
-            args.where = args.where ?? {};
-            Object.assign(args.where, ...hoistedConditions);
+            if (!args.where) {
+                args.where = this.and(...hoistedConditions);
+            } else {
+                this.mergeWhereClause(args.where, this.and(...hoistedConditions));
+            }
         }
 
         return true;
@@ -798,6 +804,33 @@ export class PolicyUtil {
     makeIdSelection(model: string) {
         const idFields = this.getIdFields(model);
         return Object.assign({}, ...idFields.map((f) => ({ [f.name]: true })));
+    }
+
+    private mergeWhereClause(where: any, extra: any) {
+        if (!where) {
+            throw new Error('invalid where clause');
+        }
+
+        extra = this.reduce(extra);
+        if (this.isTrue(extra)) {
+            return;
+        }
+
+        // instead of simply wrapping with AND, we preserve the structure
+        // of the original where clause and merge `extra` into it so that
+        // unique query can continue working
+        if (where.AND) {
+            // merge into existing AND clause
+            const conditions = Array.isArray(where.AND) ? [...where.AND] : [where.AND];
+            conditions.push(extra);
+            const combined: any = this.and(...conditions);
+
+            // make sure the merging always goes under AND
+            where.AND = combined.AND ?? combined;
+        } else {
+            // insert an AND clause
+            where.AND = [extra];
+        }
     }
 
     //#endregion
