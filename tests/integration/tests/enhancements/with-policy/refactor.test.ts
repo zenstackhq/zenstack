@@ -1,12 +1,12 @@
 import { AuthUser, PrismaErrorCode } from '@zenstackhq/runtime';
-import { loadSchemaFromFile, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchemaFromFile, type WeakDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
-import { Pool } from 'pg';
 
 const DB_NAME = 'refactor';
 
 describe('With Policy: refactor tests', () => {
     let origDir: string;
+    let dbUrl: string;
     let getDb: (user?: AuthUser) => WeakDbClientContract;
     let prisma: WeakDbClientContract;
     let anonDb: WeakDbClientContract;
@@ -14,20 +14,18 @@ describe('With Policy: refactor tests', () => {
     let user1Db: WeakDbClientContract;
     let user2Db: WeakDbClientContract;
 
-    const pool = new Pool({ user: 'postgres', password: 'abc123' });
-
     beforeAll(async () => {
         origDir = path.resolve('.');
     });
 
     beforeEach(async () => {
-        await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
-        await pool.query(`CREATE DATABASE "${DB_NAME}";`);
+        dbUrl = await createPostgresDb(DB_NAME);
 
         const { prisma: _prisma, withPolicy } = await loadSchemaFromFile(
             path.join(__dirname, '../../schema/refactor-pg.zmodel'),
             {
-                addPrelude: false,
+                provider: 'postgresql',
+                dbUrl,
             }
         );
         getDb = withPolicy;
@@ -40,8 +38,10 @@ describe('With Policy: refactor tests', () => {
 
     afterEach(async () => {
         process.chdir(origDir);
-        await prisma.$disconnect();
-        await pool.query(`DROP DATABASE IF EXISTS "${DB_NAME}";`);
+        if (prisma) {
+            await prisma.$disconnect();
+        }
+        await dropPostgresDb(DB_NAME);
     });
 
     it('read', async () => {

@@ -274,6 +274,13 @@ export default class PrismaSchemaGenerator {
                     }
                 }
 
+                if (semver.lt(prismaVersion, '5.0.0')) {
+                    // fieldReference feature is opt-in pre V5
+                    if (!previewFeatures.includes('fieldReference')) {
+                        previewFeatures.push('fieldReference');
+                    }
+                }
+
                 if (previewFeatures.length > 0) {
                     const curr = generator.fields.find((f) => f.name === 'previewFeatures');
                     if (!curr) {

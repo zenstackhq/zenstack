@@ -70,7 +70,7 @@ export default class PolicyGenerator {
         sf.addStatements('/* eslint-disable */');
 
         sf.addImportDeclaration({
-            namedImports: [{ name: 'type QueryContext' }, { name: 'hasAllFields' }],
+            namedImports: [{ name: 'type QueryContext' }, { name: 'type DbOperations' }, { name: 'hasAllFields' }],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
 
@@ -486,6 +486,10 @@ export default class PolicyGenerator {
                 {
                     name: 'context',
                     type: 'QueryContext',
+                },
+                {
+                    name: 'db',
+                    type: 'Record<string, DbOperations>',
                 },
             ],
             statements,
