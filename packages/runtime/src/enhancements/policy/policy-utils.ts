@@ -666,6 +666,47 @@ export class PolicyUtil {
         return { result, error: undefined };
     }
 
+    injectReadCheckSelect(args: any) {
+        const readFieldSelect = this.getReadFieldSelect(args.model);
+        if (!readFieldSelect) {
+            return;
+        }
+        this.doInjectReadCheckSelect(args, readFieldSelect);
+    }
+
+    private doInjectReadCheckSelect(args: any, input: any) {
+        let target: any;
+        let isInclude = false;
+
+        if (args.select) {
+            target = args.select;
+            isInclude = false;
+        } else if (args.include) {
+            target = args.include;
+            isInclude = true;
+        } else {
+            target = args.select = {};
+            isInclude = false;
+        }
+
+        if (!isInclude) {
+            // merge selects
+            for (const [k, v] of Object.entries(input.select)) {
+                if (v === true) {
+                    if (!target[k]?.select) {
+                        target[k].select = true;
+                    }
+                }
+            }
+        }
+
+        for (const [k, v] of Object.entries<any>(input)) {
+            if (typeof v === 'object' && v?.select) {
+                this.doInjectReadCheckSelect(target[k], v);
+            }
+        }
+    }
+
     //#endregion
 
     //#region Errors
@@ -712,6 +753,14 @@ export class PolicyUtil {
         return guard.preValueSelect;
     }
 
+    getReadFieldSelect(model: string): object | undefined {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return guard.readFieldSelect;
+    }
+
     private hasFieldValidation(model: string): boolean {
         return this.policy.validation?.[lowerCaseFirst(model)]?.hasValidation === true;
     }
@@ -732,7 +781,7 @@ export class PolicyUtil {
     /**
      * Post processing checks and clean-up for read model entities.
      */
-    postProcessForRead(data: any) {
+    postProcessForRead(data: any, queryArgs: any) {
         if (data === null || data === undefined) {
             return;
         }

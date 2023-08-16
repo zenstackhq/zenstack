@@ -69,11 +69,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return null;
         }
 
+        this.utils.injectReadCheckSelect(args);
+
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`findUnique\` ${this.model}:\n${formatObject(args)}`);
         }
         const result = await this.modelClient.findUnique(args);
-        this.utils.postProcessForRead(result);
+        this.utils.postProcessForRead(result, args);
         return result;
     }
 

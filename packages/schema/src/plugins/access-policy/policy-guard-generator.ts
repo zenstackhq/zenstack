@@ -1,6 +1,11 @@
 import {
     DataModel,
+    DataModelAttribute,
+    DataModelField,
+    DataModelFieldAttribute,
     Expression,
+    MemberAccessExpr,
+    Model,
     isBinaryExpr,
     isDataModel,
     isDataModelField,
@@ -11,29 +16,27 @@ import {
     isReferenceExpr,
     isThisExpr,
     isUnaryExpr,
-    MemberAccessExpr,
-    Model,
 } from '@zenstackhq/language/ast';
 import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
+    ExpressionContext,
+    PluginError,
+    PluginOptions,
+    RUNTIME_PACKAGE,
     analyzePolicies,
     createProject,
     emitProject,
-    ExpressionContext,
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
     isForeignKeyField,
-    PluginError,
-    PluginOptions,
-    resolved,
     resolvePath,
-    RUNTIME_PACKAGE,
+    resolved,
     saveProject,
 } from '@zenstackhq/sdk';
-import { streamAllContents } from 'langium';
+import { findRootNode, streamAllContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import {
@@ -143,8 +146,10 @@ export default class PolicyGenerator {
         }
     }
 
-    private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {
-        const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === `@@${kind}`);
+    private getPolicyExpressions(target: DataModel | DataModelField, kind: PolicyKind, operation: PolicyOperationKind) {
+        const attributes = target.attributes as (DataModelAttribute | DataModelFieldAttribute)[];
+        const attrName = isDataModel(target) ? `@@${kind}` : `@${kind}`;
+        const attrs = attributes.filter((attr) => attr.decl.ref?.name === attrName);
 
         const checkOperation = operation === 'postUpdate' ? 'update' : operation;
 
@@ -248,7 +253,7 @@ export default class PolicyGenerator {
             result[kind] = guardFunc.getName()!;
 
             if (kind === 'postUpdate') {
-                const preValueSelect = this.generatePreValueSelect(model, allows, denies);
+                const preValueSelect = this.generatePreValueSelect(allows, denies);
                 if (preValueSelect) {
                     result['preValueSelect'] = preValueSelect;
                 }
@@ -259,8 +264,111 @@ export default class PolicyGenerator {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 result[kind + '_input'] = inputCheckFunc.getName()!;
             }
+
+            const allFieldsAllows: Expression[] = [];
+            const allFieldsDenies: Expression[] = [];
+
+            for (const field of model.fields) {
+                const allows = this.getPolicyExpressions(field, 'allow', 'read');
+                const denies = this.getPolicyExpressions(field, 'deny', 'read');
+                allFieldsAllows.push(...allows);
+                allFieldsDenies.push(...denies);
+
+                if (denies.length === 0 && allows.length === 0) {
+                    continue;
+                }
+
+                const guardFunc = this.generateReadFieldGuardFunction(sourceFile, field, allows, denies);
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                result[`readFieldCheck$${field.name}`] = guardFunc.getName()!;
+            }
+
+            const readFieldCheckSelect = this.generatePreValueSelect(allFieldsAllows, allFieldsDenies);
+            if (readFieldCheckSelect) {
+                result[`readFieldSelect`] = readFieldCheckSelect;
+            }
         }
         return result;
+    }
+
+    private generateReadFieldGuardFunction(
+        sourceFile: SourceFile,
+        field: DataModelField,
+        allows: Expression[],
+        denies: Expression[]
+    ) {
+        const statements: (string | WriterFunction | StatementStructures)[] = [];
+
+        // check if any allow or deny rule contains 'auth()' invocation
+        const hasAuthRef = [...denies, ...allows].some((rule) =>
+            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
+        );
+
+        if (hasAuthRef) {
+            const root = findRootNode(field) as Model;
+            const userModel = root.declarations.find(
+                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
+            );
+            if (!userModel) {
+                throw new PluginError(name, 'User model not found');
+            }
+            const userIdFields = getIdFields(userModel);
+            if (!userIdFields || userIdFields.length === 0) {
+                throw new PluginError(name, 'User model does not have an id field');
+            }
+
+            // normalize user to null to avoid accidentally use undefined in filter
+            statements.push(
+                `const user = hasAllFields(context.user, [${userIdFields
+                    .map((f) => "'" + f.name + "'")
+                    .join(', ')}]) ? context.user as any : null;`
+            );
+        }
+
+        statements.push((writer) => {
+            const transformer = new TypeScriptExpressionTransformer({
+                context: ExpressionContext.AccessPolicy,
+                fieldReferenceContext: 'input',
+            });
+
+            let expr =
+                denies.length > 0
+                    ? '!(' +
+                      denies
+                          .map((deny) => {
+                              return transformer.transform(deny);
+                          })
+                          .join(' || ') +
+                      ')'
+                    : undefined;
+
+            const allowStmt = allows
+                .map((allow) => {
+                    return transformer.transform(allow);
+                })
+                .join(' || ');
+
+            expr = expr ? `${expr} && (${allowStmt})` : allowStmt;
+            writer.write('return ' + expr);
+        });
+
+        const func = sourceFile.addFunction({
+            name: `${field.$container.name}$${field.name}_read`,
+            returnType: 'boolean',
+            parameters: [
+                {
+                    name: 'input',
+                    type: 'any',
+                },
+                {
+                    name: 'context',
+                    type: 'QueryContext',
+                },
+            ],
+            statements,
+        });
+
+        return func;
     }
 
     private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
@@ -301,7 +409,7 @@ export default class PolicyGenerator {
 
     // generates an object that can be used as the 'select' argument when fetching pre-update
     // entity value
-    private generatePreValueSelect(model: DataModel, allows: Expression[], denies: Expression[]): object {
+    private generatePreValueSelect(allows: Expression[], denies: Expression[]): object {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = {};
         const addPath = (path: string[]) => {

@@ -40,6 +40,7 @@ export type PolicyDef = {
                 create_input: InputCheckFunc;
             } & {
                 preValueSelect?: object;
+                readFieldSelect?: object;
             }
     >;
     validation: Record<string, { hasValidation: boolean }>;
