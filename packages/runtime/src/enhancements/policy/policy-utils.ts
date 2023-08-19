@@ -11,13 +11,13 @@ import { getFields, resolveField } from '../model-meta';
 import { NestedWriteVisitorContext } from '../nested-write-vistor';
 import type { InputCheckFunc, ModelMeta, PolicyDef, PolicyFunc, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
-    enumerate,
     formatObject,
     getIdFields,
     getModelFields,
     prismaClientKnownRequestError,
     prismaClientUnknownRequestError,
     prismaClientValidationError,
+    zip,
 } from '../utils';
 import { Logger } from './logger';
 
@@ -903,7 +903,7 @@ export class PolicyUtil {
             return;
         }
 
-        for (const entityData of enumerate(data)) {
+        for (const [entityData, entityFullData] of zip(data, fullData)) {
             if (typeof entityData !== 'object' || !entityData) {
                 return;
             }
@@ -946,7 +946,7 @@ export class PolicyUtil {
                 }
 
                 // delete unreadable fields
-                if (!this.checkReadField(model, field, fullData)) {
+                if (!this.checkReadField(model, field, entityFullData)) {
                     if (this.shouldLogQuery) {
                         this.logger.info(`[policy] dropping unreadable field ${path ? path + '.' : ''}${field}`);
                     }
@@ -959,7 +959,7 @@ export class PolicyUtil {
                     this.doPostProcessForRead(
                         fieldData,
                         fieldInfo.type,
-                        fullData[field],
+                        entityFullData[field],
                         nextArgs,
                         path ? path + '.' + field : field
                     );

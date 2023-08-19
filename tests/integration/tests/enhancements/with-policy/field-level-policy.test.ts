@@ -330,7 +330,6 @@ describe('With Policy: field-level policy', () => {
         let r;
 
         // y is unreadable
-
         r = await db.model.create({
             data: {
                 id: 1,
@@ -351,8 +350,16 @@ describe('With Policy: field-level policy', () => {
         r = await db.model.findFirstOrThrow({ where: { id: 1 } });
         expect(r.y).toBeUndefined();
 
-        r = await db.model.findMany({ where: { id: 1 } });
+        await db.model.create({
+            data: {
+                id: 2,
+                x: 1,
+                y: 0,
+            },
+        });
+        r = await db.model.findMany({ where: { x: { gte: 0 } } });
         expect(r[0].y).toBeUndefined();
+        expect(r[1].y).toEqual(0);
     });
 
     it('update simple', async () => {
