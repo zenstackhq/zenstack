@@ -45,16 +45,10 @@ import {
     resolved,
     saveProject,
 } from '@zenstackhq/sdk';
-import { findRootNode, streamAllContents } from 'langium';
+import { streamAllContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import {
-    FunctionDeclaration,
-    SourceFile,
-    StatementStructures,
-    VariableDeclarationKind,
-    WriterFunction,
-} from 'ts-morph';
+import { FunctionDeclaration, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { name } from '.';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
 import {
