@@ -1,7 +1,8 @@
 import { Enum, EnumField } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
 import { AstValidator } from '../types';
-import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
+import { validateAttributeApplication } from './attribute-application-validator';
+import { validateDuplicatedDeclarations } from './utils';
 
 /**
  * Validates enum declarations.
@@ -17,14 +18,10 @@ export default class EnumValidator implements AstValidator<Enum> {
     }
 
     private validateAttributes(_enum: Enum, accept: ValidationAcceptor) {
-        _enum.attributes.forEach((attr) => {
-            validateAttributeApplication(attr, accept);
-        });
+        _enum.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
     }
 
     private validateField(field: EnumField, accept: ValidationAcceptor) {
-        field.attributes.forEach((attr) => {
-            validateAttributeApplication(attr, accept);
-        });
+        field.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
     }
 }

@@ -72,3 +72,28 @@ export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';
  * Minimum Prisma version supported
  */
 export const PRISMA_MINIMUM_VERSION = '4.8.0';
+
+/**
+ * Selector function name for fetching pre-update entity values.
+ */
+export const PRE_UPDATE_VALUE_SELECTOR = 'preValueSelect';
+
+/**
+ * Prefix for field-level read checker function name
+ */
+export const FIELD_LEVEL_READ_CHECKER_PREFIX = 'readFieldCheck$';
+
+/**
+ * Field-level access control evaluation selector function name
+ */
+export const FIELD_LEVEL_READ_CHECKER_SELECTOR = 'readFieldSelect';
+
+/**
+ * Prefix for field-level update guard function name
+ */
+export const FIELD_LEVEL_UPDATE_GUARD_PREFIX = 'updateFieldCheck$';
+
+/**
+ * Flag that indicates if the model has field-level access control
+ */
+export const HAS_FIELD_LEVEL_POLICY_FLAG = 'hasFieldLevelPolicy';

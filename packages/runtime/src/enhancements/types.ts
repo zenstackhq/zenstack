@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
+import {
+    FIELD_LEVEL_READ_CHECKER_SELECTOR,
+    HAS_FIELD_LEVEL_POLICY_FLAG,
+    PRE_UPDATE_VALUE_SELECTOR,
+} from '../constants';
 import type { DbOperations, FieldInfo, PolicyOperationKind, QueryContext } from '../types';
 
 /**
@@ -27,6 +32,11 @@ export type PolicyFunc = (context: QueryContext, db: Record<string, DbOperations
 export type InputCheckFunc = (args: any, context: QueryContext) => boolean;
 
 /**
+ * Function for getting policy guard with a given context
+ */
+export type ReadFieldCheckFunc = (input: any, context: QueryContext) => boolean;
+
+/**
  * Policy definition
  */
 export type PolicyDef = {
@@ -39,7 +49,10 @@ export type PolicyDef = {
         } & Partial<Record<PolicyOperationKind, PolicyFunc>> & {
                 create_input: InputCheckFunc;
             } & {
-                preValueSelect?: object;
+                [PRE_UPDATE_VALUE_SELECTOR]?: object;
+                [FIELD_LEVEL_READ_CHECKER_SELECTOR]?: object;
+            } & Record<string, ReadFieldCheckFunc | PolicyFunc> & {
+                [HAS_FIELD_LEVEL_POLICY_FLAG]?: boolean;
             }
     >;
     validation: Record<string, { hasValidation: boolean }>;

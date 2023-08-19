@@ -18,6 +18,7 @@ import {
     getFunctionExpressionContext,
     getLiteral,
     isDataModelFieldReference,
+    isFutureExpr,
     PluginError,
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
@@ -28,7 +29,6 @@ import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
 } from '../../utils/typescript-expression-transformer';
-import { isFutureExpr } from './utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
