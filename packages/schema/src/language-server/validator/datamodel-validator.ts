@@ -6,12 +6,13 @@ import {
     isLiteralExpr,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getModelIdFields, getModelUniqueFields, getLiteral } from '@zenstackhq/sdk';
+import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getUniqueFields } from '../utils';
-import { validateAttributeApplication, validateDuplicatedDeclarations } from './utils';
+import { validateAttributeApplication } from './attribute-application-validator';
+import { validateDuplicatedDeclarations } from './utils';
 
 /**
  * Validates data model declarations.
@@ -94,9 +95,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
     }
 
     private validateAttributes(dm: DataModel, accept: ValidationAcceptor) {
-        dm.attributes.forEach((attr) => {
-            validateAttributeApplication(attr, accept);
-        });
+        dm.attributes.forEach((attr) => validateAttributeApplication(attr, accept));
     }
 
     private parseRelation(field: DataModelField, accept?: ValidationAcceptor) {

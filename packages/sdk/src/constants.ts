@@ -13,3 +13,5 @@ export enum ExpressionContext {
     AccessPolicy = 'AccessPolicy',
     ValidationRule = 'ValidationRule',
 }
+
+export const STD_LIB_MODULE_NAME = 'stdlib.zmodel';

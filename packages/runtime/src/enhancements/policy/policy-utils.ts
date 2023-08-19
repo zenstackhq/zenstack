@@ -9,7 +9,7 @@ import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKin
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
 import { NestedWriteVisitorContext } from '../nested-write-vistor';
-import type { InputCheckFunc, ModelMeta, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
+import type { InputCheckFunc, ModelMeta, PolicyDef, PolicyFunc, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     enumerate,
     formatObject,
@@ -45,14 +45,14 @@ export class PolicyUtil {
     /**
      * Creates a conjunction of a list of query conditions.
      */
-    and(...conditions: (boolean | object)[]): object {
+    and(...conditions: (boolean | object | undefined)[]): object {
         return this.reduce({ AND: conditions });
     }
 
     /**
      * Creates a disjunction of a list of query conditions.
      */
-    or(...conditions: (boolean | object)[]): object {
+    or(...conditions: (boolean | object | undefined)[]): object {
         return this.reduce({ OR: conditions });
     }
 
@@ -173,7 +173,7 @@ export class PolicyUtil {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
 
-        const provider: PolicyFunc | boolean | undefined = guard[operation];
+        const provider = guard[operation];
         if (typeof provider === 'boolean') {
             return this.reduce(provider);
         }
@@ -182,6 +182,24 @@ export class PolicyUtil {
             throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
         const r = provider({ user: this.user, preValue }, db);
+        return this.reduce(r);
+    }
+
+    getFieldUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string): object {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+
+        const provider = guard[`updateFieldGuard$${field}`];
+        if (typeof provider === 'boolean') {
+            return this.reduce(provider);
+        }
+
+        if (!provider) {
+            return this.makeTrue();
+        }
+        const r = provider({ user: this.user }, db);
         return this.reduce(r);
     }
 
@@ -225,10 +243,21 @@ export class PolicyUtil {
      * Injects model auth guard as where clause.
      */
     async injectAuthGuard(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
-        const guard = this.getAuthGuard(db, model, operation);
+        let guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
             args.where = this.makeFalse();
             return false;
+        }
+
+        if (operation === 'update' && args) {
+            // merge field-level policy guards
+            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
+            if (fieldUpdateGuard.rejectedByField) {
+                args.where = this.makeFalse();
+                return false;
+            } else if (fieldUpdateGuard.guard) {
+                guard = this.and(guard, fieldUpdateGuard.guard);
+            }
         }
 
         if (args.where) {
@@ -545,11 +574,28 @@ export class PolicyUtil {
         uniqueFilter: any,
         operation: PolicyOperationKind,
         db: Record<string, DbOperations>,
+        args: any,
         preValue?: any
     ) {
-        const guard = this.getAuthGuard(db, model, operation, preValue);
+        let guard = this.getAuthGuard(db, model, operation, preValue);
         if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
+        }
+
+        if (operation === 'update' && args) {
+            // merge field-level policy guards
+            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
+            if (fieldUpdateGuard.rejectedByField) {
+                throw this.deniedByPolicy(
+                    model,
+                    'update',
+                    `entity ${formatObject(uniqueFilter)} failed update policy check for field "${
+                        fieldUpdateGuard.rejectedByField
+                    }"`
+                );
+            } else if (fieldUpdateGuard.guard) {
+                guard = this.and(guard, fieldUpdateGuard.guard);
+            }
         }
 
         // Zod schema is to be checked for "create" and "postUpdate"
@@ -600,6 +646,21 @@ export class PolicyUtil {
         }
     }
 
+    private getFieldUpdateGuards(db: Record<string, DbOperations>, model: string, args: any) {
+        let allFieldGuards;
+        for (const [k, v] of Object.entries<any>(args.data ?? args)) {
+            if (typeof v === 'undefined') {
+                continue;
+            }
+            const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
+            if (this.isFalse(fieldGuard)) {
+                return { guard: allFieldGuards, rejectedByField: k };
+            }
+            allFieldGuards = this.and(allFieldGuards, fieldGuard);
+        }
+        return { guard: allFieldGuards, rejectedByField: undefined };
+    }
+
     /**
      * Tries rejecting a request based on static "false" policy.
      */
@@ -648,6 +709,7 @@ export class PolicyUtil {
         uniqueFilter = this.clone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
         const readArgs = { select: selectInclude.select, include: selectInclude.include, where: uniqueFilter };
+
         const error = this.deniedByPolicy(
             model,
             operation,
@@ -660,6 +722,9 @@ export class PolicyUtil {
             return { error, result: undefined };
         }
 
+        // inject select needed for field-level read checks
+        this.injectReadCheckSelect(model, readArgs);
+
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] checking read-back, \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
         }
@@ -668,19 +733,23 @@ export class PolicyUtil {
             return { error, result: undefined };
         }
 
-        this.postProcessForRead(result);
+        this.postProcessForRead(result, model, selectInclude);
         return { result, error: undefined };
     }
 
-    injectReadCheckSelect(args: any) {
-        const readFieldSelect = this.getReadFieldSelect(args.model);
+    injectReadCheckSelect(model: string, args: any) {
+        const readFieldSelect = this.getReadFieldSelect(model);
         if (!readFieldSelect) {
             return;
         }
-        this.doInjectReadCheckSelect(args, readFieldSelect);
+        this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
     }
 
-    private doInjectReadCheckSelect(args: any, input: any) {
+    private doInjectReadCheckSelect(model: string, args: any, input: any) {
+        if (!input.select) {
+            return;
+        }
+
         let target: any;
         let isInclude = false;
 
@@ -691,7 +760,7 @@ export class PolicyUtil {
             target = args.include;
             isInclude = true;
         } else {
-            target = args.select = {};
+            target = args.select = this.makeAllScalarFieldSelect(model);
             isInclude = false;
         }
 
@@ -699,18 +768,42 @@ export class PolicyUtil {
             // merge selects
             for (const [k, v] of Object.entries(input.select)) {
                 if (v === true) {
-                    if (!target[k]?.select) {
-                        target[k].select = true;
+                    if (!target[k]) {
+                        target[k] = true;
                     }
                 }
             }
         }
 
-        for (const [k, v] of Object.entries<any>(input)) {
+        for (const [k, v] of Object.entries<any>(input.select)) {
             if (typeof v === 'object' && v?.select) {
-                this.doInjectReadCheckSelect(target[k], v);
+                const field = resolveField(this.modelMeta, model, k);
+                if (field && field.isDataModel) {
+                    // recurse into relation
+                    if (isInclude && target[k] === true) {
+                        // select all fields for the relation
+                        target[k] = { select: this.makeAllScalarFieldSelect(field.type) };
+                    } else if (!target[k]) {
+                        // ensure an empty select clause
+                        target[k] = { select: {} };
+                    }
+                    this.doInjectReadCheckSelect(field.type, target[k], v);
+                }
             }
         }
+    }
+
+    private makeAllScalarFieldSelect(model: string): any {
+        const fields = this.modelMeta.fields[lowerCaseFirst(model)];
+        const result: any = {};
+        if (fields) {
+            Object.entries(fields).forEach(([k, v]) => {
+                if (!v.isDataModel) {
+                    result[k] = true;
+                }
+            });
+        }
+        return result;
     }
 
     //#endregion
@@ -767,6 +860,19 @@ export class PolicyUtil {
         return guard.readFieldSelect;
     }
 
+    checkReadField(model: string, field: string, entity: any) {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        const func = guard[`readFieldCheck$${field}`] as ReadFieldCheckFunc | undefined;
+        if (!func) {
+            return true;
+        } else {
+            return func(entity, { user: this.user });
+        }
+    }
+
     private hasFieldValidation(model: string): boolean {
         return this.policy.validation?.[lowerCaseFirst(model)]?.hasValidation === true;
     }
@@ -787,7 +893,12 @@ export class PolicyUtil {
     /**
      * Post processing checks and clean-up for read model entities.
      */
-    postProcessForRead(data: any, queryArgs: any) {
+    postProcessForRead(data: any, model: string, queryArgs: any) {
+        const origData = this.clone(data);
+        this.doPostProcessForRead(data, model, origData, queryArgs);
+    }
+
+    private doPostProcessForRead(data: any, model: string, fullData: any, queryArgs: any, path = '') {
         if (data === null || data === undefined) {
             return;
         }
@@ -804,11 +915,55 @@ export class PolicyUtil {
                 }
             }
 
-            for (const fieldData of Object.values(entityData)) {
-                if (typeof fieldData !== 'object' || !fieldData) {
+            for (const [field, fieldData] of Object.entries(entityData)) {
+                if (fieldData === undefined) {
                     continue;
                 }
-                this.postProcessForRead(fieldData);
+
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (!fieldInfo) {
+                    // could be _count, etc.
+                    continue;
+                }
+
+                if (!fieldInfo.isDataModel) {
+                    // scalar field, delete unselected ones
+                    const select = queryArgs?.select;
+                    if (select && typeof select === 'object' && select[field] !== true) {
+                        // there's a select clause but this field is not included
+                        delete entityData[field];
+                        continue;
+                    }
+                } else {
+                    // relation field, delete if not included
+                    const include = queryArgs?.include;
+                    const select = queryArgs?.select;
+                    if (!include?.[field] && !select?.[field]) {
+                        // relation field not included or selected
+                        delete entityData[field];
+                        continue;
+                    }
+                }
+
+                // delete unreadable fields
+                if (!this.checkReadField(model, field, fullData)) {
+                    if (this.shouldLogQuery) {
+                        this.logger.info(`[policy] dropping unreadable field ${path ? path + '.' : ''}${field}`);
+                    }
+                    delete entityData[field];
+                    continue;
+                }
+
+                if (fieldInfo.isDataModel) {
+                    const nextArgs = (queryArgs?.select ?? queryArgs?.include)?.[field];
+                    this.doPostProcessForRead(
+                        fieldData,
+                        fieldInfo.type,
+                        fullData[field],
+                        nextArgs,
+                        path ? path + '.' + field : field
+                    );
+                }
             }
         }
     }

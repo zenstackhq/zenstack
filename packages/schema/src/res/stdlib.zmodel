@@ -164,7 +164,7 @@ function isEmpty(field: Any[]): Boolean {
 /**
  * Marks an attribute to be only applicable to certain field types.
  */
-attribute @@@targetField(targetField: AttributeTargetField[])
+attribute @@@targetField(_ targetField: AttributeTargetField[])
 
 /**
  * Marks an attribute to be used for data validation.

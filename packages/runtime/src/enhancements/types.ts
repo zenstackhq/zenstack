@@ -27,6 +27,11 @@ export type PolicyFunc = (context: QueryContext, db: Record<string, DbOperations
 export type InputCheckFunc = (args: any, context: QueryContext) => boolean;
 
 /**
+ * Function for getting policy guard with a given context
+ */
+export type ReadFieldCheckFunc = (input: any, context: QueryContext) => boolean;
+
+/**
  * Policy definition
  */
 export type PolicyDef = {
@@ -41,7 +46,7 @@ export type PolicyDef = {
             } & {
                 preValueSelect?: object;
                 readFieldSelect?: object;
-            }
+            } & Record<string, ReadFieldCheckFunc | PolicyFunc>
     >;
     validation: Record<string, { hasValidation: boolean }>;
 };

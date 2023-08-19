@@ -14,10 +14,9 @@ import {
 import { AstNode, ValidationAcceptor } from 'langium';
 import { getDataModelFieldReference } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
-import { isFromStdlib } from '../utils';
 import { typeAssignable } from './utils';
 import { match, P } from 'ts-pattern';
-import { ExpressionContext, getFunctionExpressionContext, isEnumFieldReference } from '@zenstackhq/sdk';
+import { ExpressionContext, getFunctionExpressionContext, isEnumFieldReference, isFromStdlib } from '@zenstackhq/sdk';
 
 /**
  * InvocationExpr validation

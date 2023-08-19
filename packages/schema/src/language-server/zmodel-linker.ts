@@ -45,8 +45,8 @@ import {
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
 import { getAllDeclarationsFromImports } from '../utils/ast-utils';
-import { getContainingModel, isFromStdlib } from './utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
+import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;

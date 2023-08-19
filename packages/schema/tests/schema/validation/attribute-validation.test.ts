@@ -942,4 +942,58 @@ describe('Attribute tests', () => {
         `)
         ).toContain('function "search" is not allowed in the current context: ValidationRule');
     });
+
+    it('invalid policy rule kind', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@allow('read,foo', x > 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "create", "read", "update", "delete", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@deny('update,foo', x > 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "create", "read", "update", "delete", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int @allow('foo', x > 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "read", "update", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int @deny('foo', x < 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "read", "update", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int @allow('update', future().x > 0)
+            }
+        `)
+        ).toContain('"future()" is not allowed in field-level policy rules');
+    });
 });

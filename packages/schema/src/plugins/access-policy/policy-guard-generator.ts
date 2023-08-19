@@ -32,6 +32,8 @@ import {
     hasAttribute,
     hasValidationAttributes,
     isForeignKeyField,
+    isFromStdlib,
+    isFutureExpr,
     resolvePath,
     resolved,
     saveProject,
@@ -47,7 +49,6 @@ import {
     WriterFunction,
 } from 'ts-morph';
 import { name } from '.';
-import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
 import {
     TypeScriptExpressionTransformer,
@@ -55,7 +56,6 @@ import {
 } from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
-import { isFutureExpr } from './utils';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -264,31 +264,44 @@ export default class PolicyGenerator {
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 result[kind + '_input'] = inputCheckFunc.getName()!;
             }
-
-            const allFieldsAllows: Expression[] = [];
-            const allFieldsDenies: Expression[] = [];
-
-            for (const field of model.fields) {
-                const allows = this.getPolicyExpressions(field, 'allow', 'read');
-                const denies = this.getPolicyExpressions(field, 'deny', 'read');
-                allFieldsAllows.push(...allows);
-                allFieldsDenies.push(...denies);
-
-                if (denies.length === 0 && allows.length === 0) {
-                    continue;
-                }
-
-                const guardFunc = this.generateReadFieldGuardFunction(sourceFile, field, allows, denies);
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                result[`readFieldCheck$${field.name}`] = guardFunc.getName()!;
-            }
-
-            const readFieldCheckSelect = this.generatePreValueSelect(allFieldsAllows, allFieldsDenies);
-            if (readFieldCheckSelect) {
-                result[`readFieldSelect`] = readFieldCheckSelect;
-            }
         }
+
+        // generate field read checkers
+        this.generateReadFieldsGuards(model, sourceFile, result);
+
+        // generate field update guards
+        this.generateUpdateFieldsGuards(model, sourceFile, result);
+
         return result;
+    }
+
+    private generateReadFieldsGuards(
+        model: DataModel,
+        sourceFile: SourceFile,
+        result: Record<string, string | boolean | object>
+    ) {
+        const allFieldsAllows: Expression[] = [];
+        const allFieldsDenies: Expression[] = [];
+
+        for (const field of model.fields) {
+            const allows = this.getPolicyExpressions(field, 'allow', 'read');
+            const denies = this.getPolicyExpressions(field, 'deny', 'read');
+            allFieldsAllows.push(...allows);
+            allFieldsDenies.push(...denies);
+
+            if (denies.length === 0 && allows.length === 0) {
+                continue;
+            }
+
+            const guardFunc = this.generateReadFieldGuardFunction(sourceFile, field, allows, denies);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[`readFieldCheck$${field.name}`] = guardFunc.getName()!;
+        }
+
+        const readFieldCheckSelect = this.generatePreValueSelect(allFieldsAllows, allFieldsDenies);
+        if (readFieldCheckSelect) {
+            result[`readFieldSelect`] = readFieldCheckSelect;
+        }
     }
 
     private generateReadFieldGuardFunction(
@@ -369,6 +382,25 @@ export default class PolicyGenerator {
         });
 
         return func;
+    }
+
+    private generateUpdateFieldsGuards(
+        model: DataModel,
+        sourceFile: SourceFile,
+        result: Record<string, string | boolean | object>
+    ) {
+        for (const field of model.fields) {
+            const allows = this.getPolicyExpressions(field, 'allow', 'update');
+            const denies = this.getPolicyExpressions(field, 'deny', 'update');
+
+            if (denies.length === 0 && allows.length === 0) {
+                continue;
+            }
+
+            const guardFunc = this.generateQueryGuardFunction(sourceFile, model, 'update', allows, denies, field);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[`updateFieldGuard$${field.name}`] = guardFunc.getName()!;
+        }
     }
 
     private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
@@ -471,7 +503,7 @@ export default class PolicyGenerator {
             }
         }
 
-        return Object.keys(result).length === 0 ? null : result;
+        return Object.keys(result).length === 0 ? undefined : result;
     }
 
     private generateQueryGuardFunction(
@@ -479,7 +511,8 @@ export default class PolicyGenerator {
         model: DataModel,
         kind: PolicyOperationKind,
         allows: Expression[],
-        denies: Expression[]
+        denies: Expression[],
+        forField?: DataModelField
     ): FunctionDeclaration {
         const statements: (string | WriterFunction | StatementStructures)[] = [];
 
@@ -588,7 +621,7 @@ export default class PolicyGenerator {
         }
 
         const func = sourceFile.addFunction({
-            name: model.name + '_' + kind,
+            name: `${model.name}${forField ? '$' + forField.name : ''}_${kind}`,
             returnType: 'any',
             parameters: [
                 {
@@ -596,6 +629,7 @@ export default class PolicyGenerator {
                     type: 'QueryContext',
                 },
                 {
+                    // for generating field references used by field comparison in the same model
                     name: 'db',
                     type: 'Record<string, DbOperations>',
                 },
