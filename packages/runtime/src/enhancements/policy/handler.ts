@@ -70,9 +70,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return null;
         }
 
-        if (this.utils.hasFieldLevelPolicy(this.model)) {
-            this.utils.injectReadCheckSelect(this.model, args);
-        }
+        this.utils.injectReadCheckSelect(this.model, args);
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`findUnique\` ${this.model}:\n${formatObject(args)}`);
@@ -96,9 +94,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw this.utils.notFound(this.model);
         }
 
-        if (this.utils.hasFieldLevelPolicy(this.model)) {
-            this.utils.injectReadCheckSelect(this.model, args);
-        }
+        this.utils.injectReadCheckSelect(this.model, args);
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`findUniqueOrThrow\` ${this.model}:\n${formatObject(args)}`);
@@ -115,9 +111,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return null;
         }
 
-        if (this.utils.hasFieldLevelPolicy(this.model)) {
-            this.utils.injectReadCheckSelect(this.model, args);
-        }
+        this.utils.injectReadCheckSelect(this.model, args);
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`findFirst\` ${this.model}:\n${formatObject(args)}`);
@@ -134,9 +128,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw this.utils.notFound(this.model);
         }
 
-        if (this.utils.hasFieldLevelPolicy(this.model)) {
-            this.utils.injectReadCheckSelect(this.model, args);
-        }
+        this.utils.injectReadCheckSelect(this.model, args);
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`findFirstOrThrow\` ${this.model}:\n${formatObject(args)}`);
@@ -153,9 +145,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return [];
         }
 
-        if (this.utils.hasFieldLevelPolicy(this.model)) {
-            this.utils.injectReadCheckSelect(this.model, args);
-        }
+        this.utils.injectReadCheckSelect(this.model, args);
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`findMany\` ${this.model}:\n${formatObject(args)}`);

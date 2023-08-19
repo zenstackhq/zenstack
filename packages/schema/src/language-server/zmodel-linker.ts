@@ -29,6 +29,7 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
+import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -46,7 +47,6 @@ import {
 import { CancellationToken } from 'vscode-jsonrpc';
 import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
-import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
 
 interface DefaultReference extends Reference {
     _ref?: AstNode | LinkingError;

@@ -15,10 +15,10 @@ import {
     isEnum,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { ValidationAcceptor, streamAllContents } from 'langium';
-import { AstValidator } from '../types';
-import pluralize from 'pluralize';
 import { isFutureExpr, resolved } from '@zenstackhq/sdk';
+import { ValidationAcceptor, streamAllContents } from 'langium';
+import pluralize from 'pluralize';
+import { AstValidator } from '../types';
 import { getStringLiteral, mapBuiltinTypeToExpressionType, typeAssignable } from './utils';
 
 // a registry of function handlers marked with @func

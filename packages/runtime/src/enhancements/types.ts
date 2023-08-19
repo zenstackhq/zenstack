@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
 import {
-    FIELD_LEVEL_POLICY_GUARD_SELECTOR,
+    FIELD_LEVEL_READ_CHECKER_SELECTOR,
     HAS_FIELD_LEVEL_POLICY_FLAG,
     PRE_UPDATE_VALUE_SELECTOR,
 } from '../constants';
@@ -50,7 +50,7 @@ export type PolicyDef = {
                 create_input: InputCheckFunc;
             } & {
                 [PRE_UPDATE_VALUE_SELECTOR]?: object;
-                [FIELD_LEVEL_POLICY_GUARD_SELECTOR]?: object;
+                [FIELD_LEVEL_READ_CHECKER_SELECTOR]?: object;
             } & Record<string, ReadFieldCheckFunc | PolicyFunc> & {
                 [HAS_FIELD_LEVEL_POLICY_FLAG]?: boolean;
             }
