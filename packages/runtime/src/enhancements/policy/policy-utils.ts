@@ -4,7 +4,15 @@ import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { AUXILIARY_FIELDS, CrudFailureReason, PrismaErrorCode } from '../../constants';
+import {
+    AUXILIARY_FIELDS,
+    CrudFailureReason,
+    FIELD_LEVEL_POLICY_GUARD_PREFIX,
+    FIELD_LEVEL_POLICY_GUARD_SELECTOR,
+    HAS_FIELD_LEVEL_POLICY_FLAG,
+    PRE_UPDATE_VALUE_SELECTOR,
+    PrismaErrorCode,
+} from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
@@ -849,7 +857,7 @@ export class PolicyUtil {
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
-        return guard.preValueSelect;
+        return guard[PRE_UPDATE_VALUE_SELECTOR];
     }
 
     getReadFieldSelect(model: string): object | undefined {
@@ -857,7 +865,7 @@ export class PolicyUtil {
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
-        return guard.readFieldSelect;
+        return guard[FIELD_LEVEL_POLICY_GUARD_SELECTOR];
     }
 
     checkReadField(model: string, field: string, entity: any) {
@@ -865,7 +873,7 @@ export class PolicyUtil {
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
-        const func = guard[`readFieldCheck$${field}`] as ReadFieldCheckFunc | undefined;
+        const func = guard[`${FIELD_LEVEL_POLICY_GUARD_PREFIX}${field}`] as ReadFieldCheckFunc | undefined;
         if (!func) {
             return true;
         } else {
@@ -875,6 +883,17 @@ export class PolicyUtil {
 
     private hasFieldValidation(model: string): boolean {
         return this.policy.validation?.[lowerCaseFirst(model)]?.hasValidation === true;
+    }
+
+    /**
+     * Returns if the given model has field-level policy.
+     */
+    hasFieldLevelPolicy(model: string) {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return !!guard[HAS_FIELD_LEVEL_POLICY_FLAG];
     }
 
     /**
@@ -895,10 +914,17 @@ export class PolicyUtil {
      */
     postProcessForRead(data: any, model: string, queryArgs: any) {
         const origData = this.clone(data);
-        this.doPostProcessForRead(data, model, origData, queryArgs);
+        this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
     }
 
-    private doPostProcessForRead(data: any, model: string, fullData: any, queryArgs: any, path = '') {
+    private doPostProcessForRead(
+        data: any,
+        model: string,
+        fullData: any,
+        queryArgs: any,
+        hasFieldLevelPolicy: boolean,
+        path = ''
+    ) {
         if (data === null || data === undefined) {
             return;
         }
@@ -926,32 +952,37 @@ export class PolicyUtil {
                     continue;
                 }
 
-                if (!fieldInfo.isDataModel) {
-                    // scalar field, delete unselected ones
-                    const select = queryArgs?.select;
-                    if (select && typeof select === 'object' && select[field] !== true) {
-                        // there's a select clause but this field is not included
-                        delete entityData[field];
-                        continue;
-                    }
-                } else {
-                    // relation field, delete if not included
-                    const include = queryArgs?.include;
-                    const select = queryArgs?.select;
-                    if (!include?.[field] && !select?.[field]) {
-                        // relation field not included or selected
-                        delete entityData[field];
-                        continue;
-                    }
-                }
+                if (hasFieldLevelPolicy) {
+                    // 1. remove fields selected for checking field-level policies but not selected by the original query args
+                    // 2. evaluate field-level policies and remove fields that are not readable
 
-                // delete unreadable fields
-                if (!this.checkReadField(model, field, entityFullData)) {
-                    if (this.shouldLogQuery) {
-                        this.logger.info(`[policy] dropping unreadable field ${path ? path + '.' : ''}${field}`);
+                    if (!fieldInfo.isDataModel) {
+                        // scalar field, delete unselected ones
+                        const select = queryArgs?.select;
+                        if (select && typeof select === 'object' && select[field] !== true) {
+                            // there's a select clause but this field is not included
+                            delete entityData[field];
+                            continue;
+                        }
+                    } else {
+                        // relation field, delete if not included
+                        const include = queryArgs?.include;
+                        const select = queryArgs?.select;
+                        if (!include?.[field] && !select?.[field]) {
+                            // relation field not included or selected
+                            delete entityData[field];
+                            continue;
+                        }
                     }
-                    delete entityData[field];
-                    continue;
+
+                    // delete unreadable fields
+                    if (!this.checkReadField(model, field, entityFullData)) {
+                        if (this.shouldLogQuery) {
+                            this.logger.info(`[policy] dropping unreadable field ${path ? path + '.' : ''}${field}`);
+                        }
+                        delete entityData[field];
+                        continue;
+                    }
                 }
 
                 if (fieldInfo.isDataModel) {
@@ -961,6 +992,7 @@ export class PolicyUtil {
                         fieldInfo.type,
                         entityFullData[field],
                         nextArgs,
+                        hasFieldLevelPolicy,
                         path ? path + '.' + field : field
                     );
                 }

@@ -17,7 +17,13 @@ import {
     isThisExpr,
     isUnaryExpr,
 } from '@zenstackhq/language/ast';
-import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
+import {
+    FIELD_LEVEL_POLICY_GUARD_PREFIX,
+    FIELD_LEVEL_POLICY_GUARD_SELECTOR,
+    HAS_FIELD_LEVEL_POLICY_FLAG,
+    type PolicyKind,
+    type PolicyOperationKind,
+} from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     PluginError,
@@ -295,12 +301,15 @@ export default class PolicyGenerator {
 
             const guardFunc = this.generateReadFieldGuardFunction(sourceFile, field, allows, denies);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            result[`readFieldCheck$${field.name}`] = guardFunc.getName()!;
+            result[`${FIELD_LEVEL_POLICY_GUARD_PREFIX}${field.name}`] = guardFunc.getName()!;
         }
 
-        const readFieldCheckSelect = this.generatePreValueSelect(allFieldsAllows, allFieldsDenies);
-        if (readFieldCheckSelect) {
-            result[`readFieldSelect`] = readFieldCheckSelect;
+        if (allFieldsAllows.length > 0 || allFieldsDenies.length > 0) {
+            result[HAS_FIELD_LEVEL_POLICY_FLAG] = true;
+            const readFieldCheckSelect = this.generatePreValueSelect(allFieldsAllows, allFieldsDenies);
+            if (readFieldCheckSelect) {
+                result[FIELD_LEVEL_POLICY_GUARD_SELECTOR] = readFieldCheckSelect;
+            }
         }
     }
 
