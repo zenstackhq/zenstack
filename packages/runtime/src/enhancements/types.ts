@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
+import type { DbOperations, FieldInfo, PolicyOperationKind, QueryContext } from '../types';
 import {
     FIELD_LEVEL_READ_CHECKER_SELECTOR,
-    HAS_FIELD_LEVEL_POLICY_FLAG,
     PRE_UPDATE_VALUE_SELECTOR,
+    FIELD_LEVEL_READ_CHECKER_PREFIX,
+    FIELD_LEVEL_UPDATE_GUARD_PREFIX,
+    HAS_FIELD_LEVEL_POLICY_FLAG,
 } from '../constants';
-import type { DbOperations, FieldInfo, PolicyOperationKind, QueryContext } from '../types';
 
 /**
  * Metadata for a model-level unique constraint
@@ -43,15 +45,18 @@ export type PolicyDef = {
     // Prisma query guards
     guard: Record<
         string,
-        {
-            allowAll?: boolean;
-            denyAll?: boolean;
-        } & Partial<Record<PolicyOperationKind, PolicyFunc>> & {
-                create_input: InputCheckFunc;
-            } & {
+        // policy operation guard functions
+        Partial<Record<PolicyOperationKind, PolicyFunc | boolean>> &
+            // 'create_input' checker function
+            Partial<Record<`${PolicyOperationKind}_input`, InputCheckFunc | boolean>> &
+            // field-level read checker functions or update guard functions
+            Record<`${typeof FIELD_LEVEL_READ_CHECKER_PREFIX}${string}`, ReadFieldCheckFunc> &
+            Record<`${typeof FIELD_LEVEL_UPDATE_GUARD_PREFIX}${string}`, PolicyFunc> & {
+                // pre-update value selector
                 [PRE_UPDATE_VALUE_SELECTOR]?: object;
+                // field-level read checker selector
                 [FIELD_LEVEL_READ_CHECKER_SELECTOR]?: object;
-            } & Record<string, ReadFieldCheckFunc | PolicyFunc> & {
+                // flag that indicates if the model has field-level access control
                 [HAS_FIELD_LEVEL_POLICY_FLAG]?: boolean;
             }
     >;

@@ -22,6 +22,7 @@ import {
     FIELD_LEVEL_READ_CHECKER_SELECTOR,
     FIELD_LEVEL_UPDATE_GUARD_PREFIX,
     HAS_FIELD_LEVEL_POLICY_FLAG,
+    PRE_UPDATE_VALUE_SELECTOR,
     type PolicyKind,
     type PolicyOperationKind,
 } from '@zenstackhq/runtime';
@@ -74,7 +75,12 @@ export default class PolicyGenerator {
         sf.addStatements('/* eslint-disable */');
 
         sf.addImportDeclaration({
-            namedImports: [{ name: 'type QueryContext' }, { name: 'type DbOperations' }, { name: 'hasAllFields' }],
+            namedImports: [
+                { name: 'type QueryContext' },
+                { name: 'type DbOperations' },
+                { name: 'hasAllFields' },
+                { name: 'type PolicyDef' },
+            ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
 
@@ -99,6 +105,7 @@ export default class PolicyGenerator {
             declarations: [
                 {
                     name: 'policy',
+                    type: 'PolicyDef',
                     initializer: (writer) => {
                         writer.block(() => {
                             writer.write('guard:');
@@ -256,7 +263,7 @@ export default class PolicyGenerator {
             if (kind === 'postUpdate') {
                 const preValueSelect = this.generateSelectForRules(allows, denies);
                 if (preValueSelect) {
-                    result['preValueSelect'] = preValueSelect;
+                    result[PRE_UPDATE_VALUE_SELECTOR] = preValueSelect;
                 }
             }
 

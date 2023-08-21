@@ -18,7 +18,7 @@ import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKin
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
 import { NestedWriteVisitorContext } from '../nested-write-vistor';
-import type { InputCheckFunc, ModelMeta, PolicyDef, PolicyFunc, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import type { InputCheckFunc, ModelMeta, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,
     getIdFields,
@@ -223,7 +223,7 @@ export class PolicyUtil {
         if (!guard) {
             return false;
         }
-        const provider: PolicyFunc | boolean | undefined = guard[operation];
+        const provider = guard[operation];
         return typeof provider !== 'boolean' || provider !== true;
     }
 
