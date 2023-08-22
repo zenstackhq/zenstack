@@ -81,7 +81,7 @@ export class PolicyUtil {
     // Static True/False conditions
     // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
 
-    private isTrue(condition: object) {
+    public isTrue(condition: object) {
         if (condition === null || condition === undefined) {
             return false;
         } else {
@@ -92,7 +92,7 @@ export class PolicyUtil {
         }
     }
 
-    private isFalse(condition: object) {
+    public isFalse(condition: object) {
         if (condition === null || condition === undefined) {
             return false;
         } else {
