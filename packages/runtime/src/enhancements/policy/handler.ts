@@ -524,6 +524,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
+        args = this.utils.clone(args);
+
         const { result, error } = await this.transaction(async (tx) => {
             // proceed with nested writes and collect post-write checks
             const { result, postWriteChecks } = await this.doUpdate(args, tx);
@@ -543,8 +545,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     private async doUpdate(args: any, db: Record<string, DbOperations>) {
-        args = this.utils.clone(args);
-
         // collected post-update checks
         const postWriteChecks: PostWriteCheckRecord[] = [];
 
@@ -903,6 +903,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         await this.utils.tryReject(this.prisma, this.model, 'create');
         await this.utils.tryReject(this.prisma, this.model, 'update');
 
+        args = this.utils.clone(args);
+
         // We can call the native "upsert" because we can't tell if an entity was created or updated
         // for doing post-write check accordingly. Instead, decompose it into create or update.
 
@@ -998,6 +1000,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
 
+        args = this.utils.clone(args);
+
         // inject policy conditions
         await this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
 
@@ -1012,6 +1016,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
 
+        args = this.utils.clone(args);
+
         // inject policy conditions
         await this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
 
@@ -1023,13 +1029,62 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async count(args: any) {
         // inject policy conditions
-        args = args ?? {};
+        args = args ? this.utils.clone(args) : {};
         await this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`count\` ${this.model}:\n${formatObject(args)}`);
         }
         return this.modelClient.count(args);
+    }
+
+    //#endregion
+
+    //#region Subscribe (Prisma Pulse)
+
+    async subscribe(args: any) {
+        const readGuard = this.utils.getAuthGuard(this.prisma, this.model, 'read');
+        if (this.utils.isTrue(readGuard)) {
+            // no need to inject
+            if (this.shouldLogQuery) {
+                this.logger.info(`[policy] \`subscribe\` ${this.model}:\n${formatObject(args)}`);
+            }
+            return this.modelClient.subscribe(args);
+        }
+
+        if (!args) {
+            // include all
+            args = { create: {}, update: {}, delete: {} };
+        } else {
+            if (typeof args !== 'object') {
+                throw prismaClientValidationError(this.prisma, 'argument must be an object');
+            }
+            if (Object.keys(args).length === 0) {
+                // include all
+                args = { create: {}, update: {}, delete: {} };
+            } else {
+                args = this.utils.clone(args);
+            }
+        }
+
+        // inject into subscribe conditions
+
+        if (args.create) {
+            args.create.after = this.utils.and(args.create.after, readGuard);
+        }
+
+        if (args.update) {
+            args.update.after = this.utils.and(args.update.after, readGuard);
+        }
+
+        if (args.delete) {
+            args.delete.before = this.utils.and(args.delete.before, readGuard);
+        }
+
+        if (this.shouldLogQuery) {
+            this.logger.info(`[policy] \`subscribe\` ${this.model}:\n${formatObject(args)}`);
+        }
+        return this.modelClient.subscribe(args);
     }
 
     //#endregion

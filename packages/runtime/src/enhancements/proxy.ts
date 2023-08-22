@@ -42,6 +42,8 @@ export interface PrismaProxyHandler {
     groupBy(args: any): Promise<unknown>;
 
     count(args: any): Promise<unknown | number>;
+
+    subscribe(args: any): Promise<unknown>;
 }
 
 /**
@@ -139,6 +141,11 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     async count(args: any): Promise<unknown> {
         args = await this.preprocessArgs('count', args);
         return this.prisma[this.model].count(args);
+    }
+
+    async subscribe(args: any): Promise<unknown> {
+        args = await this.preprocessArgs('subscribe', args);
+        return this.prisma[this.model].subscribe(args);
     }
 
     /**

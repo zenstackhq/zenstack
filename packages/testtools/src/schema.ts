@@ -99,6 +99,7 @@ export type SchemaLoadOptions = {
     logPrismaQuery?: boolean;
     provider?: 'sqlite' | 'postgresql';
     dbUrl?: string;
+    pulseApiKey?: string;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -187,13 +188,22 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         run('npx prisma db push');
     }
 
-    const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
-    const prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
+    if (opt.pulseApiKey) {
+        opt.extraDependencies?.push('@prisma/extension-pulse');
+    }
 
     opt.extraDependencies?.forEach((dep) => {
         console.log(`Installing dependency ${dep}`);
         run(`npm install ${dep}`);
     });
+
+    const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
+    let prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
+
+    if (opt.pulseApiKey) {
+        const withPulse = require(path.join(projectRoot, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
+        prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
+    }
 
     if (opt.compile) {
         console.log('Compiling...');
