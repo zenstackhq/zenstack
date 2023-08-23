@@ -578,8 +578,8 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     ', '
                 )} }),`;
 
+                // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
                 if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-                    // Prisma V5 has a different casing for this guy ...
                     operations.push(['groupBy', origModelName]);
                 } else {
                     operations.push(['groupBy', modelName]);

@@ -195,6 +195,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     if (mapping.groupBy) {
         let useName = modelNameCap;
         if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
+            // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
             useName = model.name;
         }
         const typeParameters = [
