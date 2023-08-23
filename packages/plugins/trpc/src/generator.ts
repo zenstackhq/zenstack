@@ -236,7 +236,7 @@ function generateModelCreateRouter(
         },
     ]);
 
-    generateRouterSchemaImports(modelRouter, model, zodSchemasImport);
+    generateRouterSchemaImports(modelRouter, upperCaseFirst(model), zodSchemasImport);
     generateHelperImport(modelRouter);
     if (generateClientHelpers) {
         generateRouterTypingImports(modelRouter, zmodel);
@@ -278,7 +278,7 @@ function generateModelCreateRouter(
                     inputType &&
                     (!generateModelActions || generateModelActions.includes(generateOpName))
                 ) {
-                    generateProcedure(funcWriter, generateOpName, inputType, model, baseOpType);
+                    generateProcedure(funcWriter, generateOpName, upperCaseFirst(inputType), model, baseOpType);
 
                     if (routerTypingStructure) {
                         routerTypingStructure.properties?.push({

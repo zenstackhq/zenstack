@@ -173,7 +173,7 @@ describe('CLI Plugins Tests', () => {
         url = env('DATABASE_URL')
     }
     
-    enum Role {
+    enum role {
         USER
         ADMIN
     }
@@ -181,13 +181,13 @@ describe('CLI Plugins Tests', () => {
     model User {
         id String @id @default(cuid())
         email String @unique @email
-        role Role @default(USER)
-        posts Post[]
+        role role @default(USER)
+        posts post_item[]
         @@allow('create', true)
         @@allow('all', auth() == this || role == ADMIN)
     }
     
-    model Post {
+    model post_item {
         id String @id @default(cuid())
         createdAt DateTime @default(now())
         published Boolean @default(false)

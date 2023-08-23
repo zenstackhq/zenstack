@@ -4,6 +4,7 @@ import {
     createProject,
     getDataModels,
     getPrismaClientImportSpec,
+    getPrismaVersion,
     requireOption,
     resolvePath,
     saveProject,
@@ -12,6 +13,7 @@ import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
+import semver from 'semver';
 import { FunctionDeclaration, Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 
@@ -62,6 +64,9 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         `import { RequestHandlerContext, type RequestOptions, type PickEnumerable, type CheckSelect } from '@zenstackhq/swr/runtime';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
+
+    const modelNameCap = upperCaseFirst(model.name);
+    const prismaVersion = getPrismaVersion();
 
     const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
     const useMutation = sf.addFunction({
@@ -180,18 +185,22 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
 
     // aggregate
     if (mapping.aggregate) {
-        const argsType = `Prisma.${model.name}AggregateArgs`;
+        const argsType = `Prisma.${modelNameCap}AggregateArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
-        const returnType = `Prisma.Get${model.name}AggregateType<T>`;
+        const returnType = `Prisma.Get${modelNameCap}AggregateType<T>`;
         generateQueryHook(sf, model, 'aggregate', argsType, inputType, returnType);
     }
 
     // groupBy
     if (mapping.groupBy) {
+        let useName = modelNameCap;
+        if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
+            useName = model.name;
+        }
         const typeParameters = [
-            `T extends Prisma.${model.name}GroupByArgs`,
+            `T extends Prisma.${useName}GroupByArgs`,
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
-            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
+            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${useName}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${useName}GroupByArgs['orderBy'] },`,
             `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
             `ByFields extends Prisma.MaybeTupleToUnion<T['by']>`,
             `ByValid extends Prisma.Has<ByFields, OrderFields>`,
@@ -241,15 +250,15 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
                     : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
                 }[OrderFields]`,
         ];
-        const inputType = `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`;
+        const inputType = `Prisma.SubsetIntersection<T, Prisma.${useName}GroupByArgs, OrderByArg> & InputErrors`;
         const returnType = `{} extends InputErrors ? 
-        Array<PickEnumerable<Prisma.${model.name}GroupByOutputType, T['by']> &
+        Array<PickEnumerable<Prisma.${useName}GroupByOutputType, T['by']> &
           {
-            [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
+            [P in ((keyof T) & (keyof Prisma.${useName}GroupByOutputType))]: P extends '_count'
               ? T[P] extends boolean
                 ? number
-                : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
-              : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+                : Prisma.GetScalarType<T[P], Prisma.${useName}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${useName}GroupByOutputType[P]>
           }
         > : InputErrors`;
         generateQueryHook(sf, model, 'groupBy', '', inputType, returnType, typeParameters);
@@ -259,7 +268,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     {
         const argsType = `Prisma.${model.name}CountArgs`;
         const inputType = `Prisma.Subset<T, ${argsType}>`;
-        const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`;
+        const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`;
         generateQueryHook(sf, model, 'count', argsType, inputType, returnType);
     }
 

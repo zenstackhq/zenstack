@@ -25,6 +25,10 @@ describe('Zod plugin tests', () => {
             provider = 'prisma-client-js'
         }
 
+        plugin zod {
+            provider = "@core/zod"
+        }
+
         enum Role {
             USER
             ADMIN 
@@ -108,6 +112,66 @@ describe('Zod plugin tests', () => {
         expect(schemas.PostCreateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
     });
 
+    it('mixed casing', async () => {
+        const model = `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+
+        plugin zod {
+            provider = "@core/zod"
+        }        
+
+        enum role {
+            USER
+            ADMIN 
+        }
+
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique @email @endsWith('@zenstack.dev')
+            password String @omit
+            role role @default(USER)
+            posts post_item[]
+            profile userProfile?
+        }
+
+        model userProfile {
+            id Int @id @default(autoincrement())
+            bio String
+            user User @relation(fields: [userId], references: [id])
+            userId Int @unique
+        }
+        
+        model post_item {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            title String @length(5, 10)
+            author User? @relation(fields: [authorId], references: [id])
+            authorId Int?
+            published Boolean @default(false)
+            viewCount Int @default(0)
+            reviews review[]
+        }
+
+        model review {
+            id Int @id @default(autoincrement())
+            post post_item @relation(fields: [postId], references: [id])
+            postId Int @unique
+        }
+        `;
+
+        await loadSchema(model, { addPrelude: false, pushDb: false });
+    });
+
     it('attribute coverage', async () => {
         const model = `
         datasource db {
@@ -118,6 +182,10 @@ describe('Zod plugin tests', () => {
         generator js {
             provider = 'prisma-client-js'
         }
+
+        plugin zod {
+            provider = "@core/zod"
+        }        
 
         model M {
             id Int @id @default(autoincrement())
@@ -272,6 +340,10 @@ describe('Zod plugin tests', () => {
         
         generator js {
             provider = 'prisma-client-js'
+        }
+
+        plugin zod {
+            provider = "@core/zod"
         }
 
         model M {

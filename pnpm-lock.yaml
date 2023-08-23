@@ -150,6 +150,9 @@ importers:
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
+      semver:
+        specifier: ^7.3.8
+        version: 7.5.3
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
@@ -169,6 +172,9 @@ importers:
       '@types/react':
         specifier: 18.2.0
         version: 18.2.0
+      '@types/semver':
+        specifier: ^7.3.13
+        version: 7.5.0
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
@@ -218,6 +224,9 @@ importers:
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
+      semver:
+        specifier: ^7.3.8
+        version: 7.5.3
       superjson:
         specifier: ^1.11.0
         version: 1.11.0
@@ -243,6 +252,9 @@ importers:
       '@types/react':
         specifier: 18.2.0
         version: 18.2.0
+      '@types/semver':
+        specifier: ^7.3.13
+        version: 7.5.0
       '@types/tmp':
         specifier: ^0.2.3
         version: 0.2.3
@@ -619,6 +631,9 @@ importers:
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
+      upper-case-first:
+        specifier: ^2.0.2
+        version: 2.0.2
     devDependencies:
       '@types/node':
         specifier: ^18.0.0
@@ -3370,7 +3385,7 @@ packages:
   /@swc/helpers@0.5.1:
     resolution: {integrity: sha512-sJ902EfIzn1Fa+qYmjdQqh8tPsoxyBz+8yBKC2HKUxyezKJFwPGOn7pv4WY6QuQW//ySQi5lJjA/ZT9sNWWNTg==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.6.0
     dev: true
 
   /@tanstack/query-core@4.27.0:
@@ -10947,6 +10962,7 @@ packages:
 
   /tslib@2.4.1:
     resolution: {integrity: sha512-tGyy4dAjRIEwI7BzsB0lynWgOpfqjUdq91XXAlIWD2OwKBH7oCl/GZG/HT4BOHrTlPMOASlMQ7veyTqpmRcrNA==}
+    dev: false
 
   /tslib@2.6.0:
     resolution: {integrity: sha512-7At1WUettjcSRHXCyYtTselblcHl9PJFFVKiCAy/bY97+BPZXSQ2wbq0P9s8tK2G7dFQfNnlJnPAiArVBVBsfA==}

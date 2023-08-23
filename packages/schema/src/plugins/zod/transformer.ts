@@ -5,13 +5,14 @@ import { AUXILIARY_FIELDS, getPrismaClientImportSpec, getPrismaVersion } from '@
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import indentString from '@zenstackhq/sdk/utils';
 import path from 'path';
+import * as semver from 'semver';
 import { Project } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { AggregateOperationSupport, TransformerParams } from './types';
-import * as semver from 'semver';
 
 export default class Transformer {
     name: string;
+    originalName: string;
     fields: PrismaDMMF.SchemaArg[];
     schemaImports = new Set<string>();
     models: PrismaDMMF.Model[];
@@ -29,7 +30,8 @@ export default class Transformer {
     private zmodel: Model;
 
     constructor(params: TransformerParams) {
-        this.name = params.name ?? '';
+        this.originalName = params.name ?? '';
+        this.name = params.name ? upperCaseFirst(params.name) : '';
         this.fields = params.fields ?? [];
         this.models = params.models ?? [];
         this.modelOperations = params.modelOperations ?? [];
@@ -49,8 +51,8 @@ export default class Transformer {
 
     async generateEnumSchemas() {
         for (const enumType of this.enumTypes) {
-            const { name, values } = enumType;
-            const filteredValues = values.filter((v) => !AUXILIARY_FIELDS.includes(v));
+            const name = upperCaseFirst(enumType.name);
+            const filteredValues = enumType.values.filter((v) => !AUXILIARY_FIELDS.includes(v));
 
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
             const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
@@ -61,7 +63,7 @@ export default class Transformer {
         }
         this.project.createSourceFile(
             path.join(Transformer.outputPath, `enums/index.ts`),
-            this.enumTypes.map((enumType) => `export * from './${enumType.name}.schema';`).join('\n'),
+            this.enumTypes.map((enumType) => `export * from './${upperCaseFirst(enumType.name)}.schema';`).join('\n'),
             { overwrite: true }
         );
     }
@@ -77,12 +79,11 @@ export default class Transformer {
     generateObjectSchema() {
         const zodObjectSchemaFields = this.generateObjectSchemaFields();
         const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields);
-        const objectSchemaName = this.resolveObjectSchemaName();
 
-        const filePath = path.join(Transformer.outputPath, `objects/${objectSchemaName}.schema.ts`);
+        const filePath = path.join(Transformer.outputPath, `objects/${this.name}.schema.ts`);
         const content = '/* eslint-disable */\n' + objectSchema;
         this.project.createSourceFile(filePath, content, { overwrite: true });
-        return `${objectSchemaName}.schema`;
+        return `${this.name}.schema`;
     }
 
     generateObjectSchemaFields() {
@@ -141,7 +142,7 @@ export default class Transformer {
                     !isFieldRef &&
                     ('prisma' || isEnum)
                 ) {
-                    if (inputType.type !== this.name && typeof inputType.type === 'string') {
+                    if (inputType.type !== this.originalName && typeof inputType.type === 'string') {
                         this.addSchemaImport(inputType.type);
                     }
 
@@ -204,7 +205,7 @@ export default class Transformer {
     }
 
     addSchemaImport(name: string) {
-        this.schemaImports.add(name);
+        this.schemaImports.add(upperCaseFirst(name));
     }
 
     generatePrismaStringLine(
@@ -219,8 +220,8 @@ export default class Transformer {
         const objectSchemaLine = isModelQueryType
             ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               this.resolveModelQuerySchemaName(modelName!, queryName!)
-            : `${inputType.type}ObjectSchema`;
-        const enumSchemaLine = `${inputType.type}Schema`;
+            : `${upperCaseFirst(inputType.type.toString())}ObjectSchema`;
+        const enumSchemaLine = `${upperCaseFirst(inputType.type.toString())}Schema`;
 
         const schema = inputType.type === this.name ? objectSchemaLine : isEnum ? enumSchemaLine : objectSchemaLine;
 
@@ -261,11 +262,13 @@ export default class Transformer {
 
     generateExportObjectSchemaStatement(schema: string) {
         let name = this.name;
+        let origName = this.originalName;
 
         if (isAggregateInputType(name)) {
             name = `${name}Type`;
+            origName = `${origName}Type`;
         }
-        const outType = `z.ZodType<Purge<Prisma.${name}>>`;
+        const outType = `z.ZodType<Purge<Prisma.${origName}>>`;
         return `type SchemaType = ${outType};
 export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
@@ -339,7 +342,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 const modelQueryTypeSuffixIndex = type.indexOf(modelQueryType);
                 return {
                     isModelQueryType: true,
-                    modelName: type.substring(0, modelQueryTypeSuffixIndex),
+                    modelName: upperCaseFirst(type.substring(0, modelQueryTypeSuffixIndex)),
                     queryName: modelQueryTypeSuffixToQueryName[modelQueryType],
                 };
             }
@@ -348,8 +351,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
 
     resolveModelQuerySchemaName(modelName: string, queryName: string) {
-        const modelNameCapitalized = upperCaseFirst(modelName);
-        return `${modelNameCapitalized}InputSchema.${queryName}`;
+        return `${modelName}InputSchema.${queryName}`;
     }
 
     wrapWithZodUnion(zodStringFields: string[]) {
@@ -374,16 +376,12 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return wrapped;
     }
 
-    resolveObjectSchemaName() {
-        return this.name;
-    }
-
     async generateInputSchemas() {
         const globalExports: string[] = [];
 
         for (const modelOperation of this.modelOperations) {
             const {
-                model: modelName,
+                model: origModelName,
                 findUnique,
                 findFirst,
                 findMany,
@@ -403,10 +401,12 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } = modelOperation;
 
+            const modelName = upperCaseFirst(origModelName);
+
             globalExports.push(`export * from './${modelName}Input.schema'`);
 
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const model = findModelByName(this.models, modelName)!;
+            const model = findModelByName(this.models, origModelName)!;
 
             const { selectImport, includeImport, selectZodSchemaLineLazy, includeZodSchemaLineLazy } =
                 this.resolveSelectIncludeImportAndZodSchemaLine(model);
@@ -425,7 +425,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
                 codeBody += `findUnique: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema }),`;
-                operations.push(['findUnique', modelName]);
+                operations.push(['findUnique', origModelName]);
             }
 
             if (findFirst) {
@@ -433,14 +433,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from '../objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from '../enums/${upperCaseFirst(
-                        modelName
-                    )}ScalarFieldEnum.schema'`
+                    `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
-                    modelName
-                )}ScalarFieldEnumSchema).optional() }),`;
-                operations.push(['findFirst', modelName]);
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
+                operations.push(['findFirst', origModelName]);
             }
 
             if (findMany) {
@@ -448,14 +444,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithRelationInputObjectSchema } from '../objects/${modelName}OrderByWithRelationInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
-                    `import { ${upperCaseFirst(modelName)}ScalarFieldEnumSchema } from '../enums/${upperCaseFirst(
-                        modelName
-                    )}ScalarFieldEnum.schema'`
+                    `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${upperCaseFirst(
-                    modelName
-                )}ScalarFieldEnumSchema).optional()  }),`;
-                operations.push(['findMany', modelName]);
+                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  }),`;
+                operations.push(['findMany', origModelName]);
             }
 
             if (createOne) {
@@ -464,7 +456,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}UncheckedCreateInputObjectSchema } from '../objects/${modelName}UncheckedCreateInput.schema'`
                 );
                 codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema]) }),`;
-                operations.push(['create', modelName]);
+                operations.push(['create', origModelName]);
             }
 
             if (createMany) {
@@ -472,7 +464,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}CreateManyInputObjectSchema } from '../objects/${modelName}CreateManyInput.schema'`
                 );
                 codeBody += `createMany: z.object({ data: z.union([${modelName}CreateManyInputObjectSchema, z.array(${modelName}CreateManyInputObjectSchema)]) }),`;
-                operations.push(['createMany', modelName]);
+                operations.push(['createMany', origModelName]);
             }
 
             if (deleteOne) {
@@ -480,7 +472,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
                 codeBody += `'delete': z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema  }),`;
-                operations.push(['delete', modelName]);
+                operations.push(['delete', origModelName]);
             }
 
             if (deleteMany) {
@@ -488,7 +480,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`
                 );
                 codeBody += `deleteMany: z.object({ where: ${modelName}WhereInputObjectSchema.optional()  }),`;
-                operations.push(['deleteMany', modelName]);
+                operations.push(['deleteMany', origModelName]);
             }
 
             if (updateOne) {
@@ -498,7 +490,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
                 codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema]), where: ${modelName}WhereUniqueInputObjectSchema  }),`;
-                operations.push(['update', modelName]);
+                operations.push(['update', origModelName]);
             }
 
             if (updateMany) {
@@ -508,7 +500,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`
                 );
                 codeBody += `updateMany: z.object({ data: z.union([${modelName}UpdateManyMutationInputObjectSchema, ${modelName}UncheckedUpdateManyInputObjectSchema]), where: ${modelName}WhereInputObjectSchema.optional()  }),`;
-                operations.push(['updateMany', modelName]);
+                operations.push(['updateMany', origModelName]);
             }
 
             if (upsertOne) {
@@ -520,47 +512,46 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}UncheckedUpdateInputObjectSchema } from '../objects/${modelName}UncheckedUpdateInput.schema'`
                 );
                 codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema]), update: z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema]) }),`;
-                operations.push(['upsert', modelName]);
+                operations.push(['upsert', origModelName]);
             }
 
             const aggregateOperations = [];
 
             // DMMF messed up the model name casing used in the aggregate operations,
             // AND the casing behavior varies from version to version -_-||
-            const modelNameCap = upperCaseFirst(modelName);
             const prismaVersion = getPrismaVersion();
 
-            if (this.aggregateOperationSupport[modelNameCap]?.count) {
+            if (this.aggregateOperationSupport[modelName]?.count) {
                 imports.push(
-                    `import { ${modelNameCap}CountAggregateInputObjectSchema } from '../objects/${modelNameCap}CountAggregateInput.schema'`
+                    `import { ${modelName}CountAggregateInputObjectSchema } from '../objects/${modelName}CountAggregateInput.schema'`
                 );
                 aggregateOperations.push(
-                    `_count: z.union([ z.literal(true), ${modelNameCap}CountAggregateInputObjectSchema ]).optional()`
+                    `_count: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional()`
                 );
             }
-            if (this.aggregateOperationSupport[modelNameCap]?.min) {
+            if (this.aggregateOperationSupport[modelName]?.min) {
                 imports.push(
-                    `import { ${modelNameCap}MinAggregateInputObjectSchema } from '../objects/${modelNameCap}MinAggregateInput.schema'`
+                    `import { ${modelName}MinAggregateInputObjectSchema } from '../objects/${modelName}MinAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_min: ${modelNameCap}MinAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_min: ${modelName}MinAggregateInputObjectSchema.optional()`);
             }
-            if (this.aggregateOperationSupport[modelNameCap]?.max) {
+            if (this.aggregateOperationSupport[modelName]?.max) {
                 imports.push(
-                    `import { ${modelNameCap}MaxAggregateInputObjectSchema } from '../objects/${modelNameCap}MaxAggregateInput.schema'`
+                    `import { ${modelName}MaxAggregateInputObjectSchema } from '../objects/${modelName}MaxAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_max: ${modelNameCap}MaxAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_max: ${modelName}MaxAggregateInputObjectSchema.optional()`);
             }
-            if (this.aggregateOperationSupport[modelNameCap]?.avg) {
+            if (this.aggregateOperationSupport[modelName]?.avg) {
                 imports.push(
-                    `import { ${modelNameCap}AvgAggregateInputObjectSchema } from '../objects/${modelNameCap}AvgAggregateInput.schema'`
+                    `import { ${modelName}AvgAggregateInputObjectSchema } from '../objects/${modelName}AvgAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_avg: ${modelNameCap}AvgAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_avg: ${modelName}AvgAggregateInputObjectSchema.optional()`);
             }
-            if (this.aggregateOperationSupport[modelNameCap]?.sum) {
+            if (this.aggregateOperationSupport[modelName]?.sum) {
                 imports.push(
-                    `import { ${modelNameCap}SumAggregateInputObjectSchema } from '../objects/${modelNameCap}SumAggregateInput.schema'`
+                    `import { ${modelName}SumAggregateInputObjectSchema } from '../objects/${modelName}SumAggregateInput.schema'`
                 );
-                aggregateOperations.push(`_sum: ${modelNameCap}SumAggregateInputObjectSchema.optional()`);
+                aggregateOperations.push(`_sum: ${modelName}SumAggregateInputObjectSchema.optional()`);
             }
 
             if (aggregate) {
@@ -573,7 +564,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
                     ', '
                 )} }),`;
-                operations.push(['aggregate', modelNameCap]);
+                operations.push(['aggregate', modelName]);
             }
 
             if (groupBy) {
@@ -581,17 +572,17 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
                     `import { ${modelName}OrderByWithAggregationInputObjectSchema } from '../objects/${modelName}OrderByWithAggregationInput.schema'`,
                     `import { ${modelName}ScalarWhereWithAggregatesInputObjectSchema } from '../objects/${modelName}ScalarWhereWithAggregatesInput.schema'`,
-                    `import { ${modelNameCap}ScalarFieldEnumSchema } from '../enums/${modelNameCap}ScalarFieldEnum.schema'`
+                    `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${upperCaseFirst(
-                    modelName
-                )}ScalarFieldEnumSchema), ${aggregateOperations.join(', ')} }),`;
+                codeBody += `groupBy: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithAggregationInputObjectSchema, ${modelName}OrderByWithAggregationInputObjectSchema.array()]).optional(), having: ${modelName}ScalarWhereWithAggregatesInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), by: z.array(${modelName}ScalarFieldEnumSchema), ${aggregateOperations.join(
+                    ', '
+                )} }),`;
 
                 if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
                     // Prisma V5 has a different casing for this guy ...
-                    operations.push(['groupBy', modelName]);
+                    operations.push(['groupBy', origModelName]);
                 } else {
-                    operations.push(['groupBy', modelNameCap]);
+                    operations.push(['groupBy', modelName]);
                 }
             }
 
@@ -604,7 +595,9 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             
             type ${modelName}InputSchemaType = {
 ${operations
-    .map((op) => indentString(`${op[0]}: z.ZodType<Prisma.${op[1]}${upperCaseFirst(op[0])}Args>`, 4))
+    .map(([operation, typeName]) =>
+        indentString(`${operation}: z.ZodType<Prisma.${typeName}${upperCaseFirst(operation)}Args>`, 4)
+    )
     .join(',\n')}
             }
 
@@ -632,7 +625,8 @@ ${globalExports.join(';\n')}
     }
 
     resolveSelectIncludeImportAndZodSchemaLine(model: PrismaDMMF.Model) {
-        const { name: modelName } = model;
+        const { name } = model;
+        const modelName = upperCaseFirst(name);
 
         const hasRelationToAnotherModel = checkModelHasModelRelation(model);
 

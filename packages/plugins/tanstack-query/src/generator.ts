@@ -5,6 +5,7 @@ import {
     createProject,
     getDataModels,
     getPrismaClientImportSpec,
+    getPrismaVersion,
     requireOption,
     resolvePath,
     saveProject,
@@ -13,6 +14,7 @@ import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
+import semver from 'semver';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
@@ -218,6 +220,8 @@ function generateModelHooks(
     model: DataModel,
     mapping: DMMF.ModelMapping
 ) {
+    const modelNameCap = upperCaseFirst(model.name);
+    const prismaVersion = getPrismaVersion();
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
@@ -290,15 +294,28 @@ function generateModelHooks(
 
     // aggregate
     if (mapping.aggregate) {
-        generateQueryHook(target, sf, model.name, 'aggregate', false, false, `Prisma.Get${model.name}AggregateType<T>`);
+        generateQueryHook(
+            target,
+            sf,
+            modelNameCap,
+            'aggregate',
+            false,
+            false,
+            `Prisma.Get${modelNameCap}AggregateType<T>`
+        );
     }
 
     // groupBy
     if (mapping.groupBy) {
+        let useName = modelNameCap;
+        if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
+            useName = model.name;
+        }
+
         const typeParameters = [
-            `T extends Prisma.${model.name}GroupByArgs`,
+            `T extends Prisma.${useName}GroupByArgs`,
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,
-            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${model.name}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${model.name}GroupByArgs['orderBy'] },`,
+            `OrderByArg extends Prisma.True extends HasSelectOrTake ? { orderBy: Prisma.${useName}GroupByArgs['orderBy'] }: { orderBy?: Prisma.${useName}GroupByArgs['orderBy'] },`,
             `OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>`,
             `ByFields extends Prisma.MaybeTupleToUnion<T['by']>`,
             `ByValid extends Prisma.Has<ByFields, OrderFields>`,
@@ -350,13 +367,13 @@ function generateModelHooks(
         ];
 
         const returnType = `{} extends InputErrors ? 
-        Array<PickEnumerable<Prisma.${model.name}GroupByOutputType, T['by']> &
+        Array<PickEnumerable<Prisma.${useName}GroupByOutputType, T['by']> &
           {
-            [P in ((keyof T) & (keyof Prisma.${model.name}GroupByOutputType))]: P extends '_count'
+            [P in ((keyof T) & (keyof Prisma.${useName}GroupByOutputType))]: P extends '_count'
               ? T[P] extends boolean
                 ? number
-                : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
-              : Prisma.GetScalarType<T[P], Prisma.${model.name}GroupByOutputType[P]>
+                : Prisma.GetScalarType<T[P], Prisma.${useName}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${useName}GroupByOutputType[P]>
           }
         > : InputErrors`;
 
@@ -368,7 +385,7 @@ function generateModelHooks(
             false,
             false,
             returnType,
-            `Prisma.SubsetIntersection<T, Prisma.${model.name}GroupByArgs, OrderByArg> & InputErrors`,
+            `Prisma.SubsetIntersection<T, Prisma.${useName}GroupByArgs, OrderByArg> & InputErrors`,
             typeParameters
         );
     }
@@ -382,7 +399,7 @@ function generateModelHooks(
             'count',
             false,
             true,
-            `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${model.name}CountAggregateOutputType> : number`
+            `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`
         );
     }
 }
