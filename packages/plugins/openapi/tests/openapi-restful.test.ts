@@ -17,7 +17,7 @@ plugin openapi {
     provider = '${process.cwd()}/dist'
 }
 
-enum Role {
+enum role {
     USER
     ADMIN
 }
@@ -27,11 +27,11 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique
-    role Role @default(USER)
-    posts Post[]
+    role role @default(USER)
+    posts post_Item[]
 }
 
-model Post {
+model post_Item {
     id String @id
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -69,7 +69,7 @@ model Bar {
         expect(api.tags).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ name: 'user', description: 'User operations' }),
-                expect.objectContaining({ name: 'post', description: 'Post-related operations' }),
+                expect.objectContaining({ name: 'post_Item', description: 'Post-related operations' }),
             ])
         );
 
@@ -83,9 +83,9 @@ model Bar {
         expect(api.paths?.['/user/{id}/relationships/posts']?.['get']).toBeTruthy();
         expect(api.paths?.['/user/{id}/relationships/posts']?.['post']).toBeTruthy();
         expect(api.paths?.['/user/{id}/relationships/posts']?.['patch']).toBeTruthy();
-        expect(api.paths?.['/post/{id}/relationships/author']?.['get']).toBeTruthy();
-        expect(api.paths?.['/post/{id}/relationships/author']?.['post']).toBeUndefined();
-        expect(api.paths?.['/post/{id}/relationships/author']?.['patch']).toBeTruthy();
+        expect(api.paths?.['/post_Item/{id}/relationships/author']?.['get']).toBeTruthy();
+        expect(api.paths?.['/post_Item/{id}/relationships/author']?.['post']).toBeUndefined();
+        expect(api.paths?.['/post_Item/{id}/relationships/author']?.['patch']).toBeTruthy();
         expect(api.paths?.['/foo']).toBeUndefined();
         expect(api.paths?.['/bar']).toBeUndefined();
 

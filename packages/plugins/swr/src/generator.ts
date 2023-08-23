@@ -252,13 +252,13 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         ];
         const inputType = `Prisma.SubsetIntersection<T, Prisma.${useName}GroupByArgs, OrderByArg> & InputErrors`;
         const returnType = `{} extends InputErrors ? 
-        Array<PickEnumerable<Prisma.${useName}GroupByOutputType, T['by']> &
+        Array<PickEnumerable<Prisma.${modelNameCap}GroupByOutputType, T['by']> &
           {
-            [P in ((keyof T) & (keyof Prisma.${useName}GroupByOutputType))]: P extends '_count'
+            [P in ((keyof T) & (keyof Prisma.${modelNameCap}GroupByOutputType))]: P extends '_count'
               ? T[P] extends boolean
                 ? number
-                : Prisma.GetScalarType<T[P], Prisma.${useName}GroupByOutputType[P]>
-              : Prisma.GetScalarType<T[P], Prisma.${useName}GroupByOutputType[P]>
+                : Prisma.GetScalarType<T[P], Prisma.${modelNameCap}GroupByOutputType[P]>
+              : Prisma.GetScalarType<T[P], Prisma.${modelNameCap}GroupByOutputType[P]>
           }
         > : InputErrors`;
         generateQueryHook(sf, model, 'groupBy', '', inputType, returnType, typeParameters);
