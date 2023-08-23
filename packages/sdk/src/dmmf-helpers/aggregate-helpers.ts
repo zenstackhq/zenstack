@@ -1,4 +1,5 @@
 import type { DMMF } from '@prisma/generator-helper';
+import { upperCaseFirst } from 'upper-case-first';
 import { AggregateOperationSupport } from './types';
 
 const isAggregateOutputType = (name: string) => /(?:Count|Avg|Sum|Min|Max)AggregateOutputType$/.test(name);
@@ -19,7 +20,7 @@ export function addMissingInputObjectTypesForAggregate(
         const name = aggregateOutputType.name.replace(/(?:OutputType|Output)$/, '');
         inputObjectTypes.push({
             constraints: { maxNumFields: null, minNumFields: null },
-            name: `${name}Input`,
+            name: `${upperCaseFirst(name)}Input`,
             fields: aggregateOutputType.fields.map((field) => ({
                 name: field.name,
                 isNullable: false,

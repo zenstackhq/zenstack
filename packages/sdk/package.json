@@ -26,7 +26,8 @@
         "@zenstackhq/runtime": "workspace:*",
         "prettier": "^2.8.3",
         "semver": "^7.3.8",
-        "ts-morph": "^16.0.0"
+        "ts-morph": "^16.0.0",
+        "upper-case-first": "^2.0.2"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",

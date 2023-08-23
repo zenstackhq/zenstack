@@ -19,11 +19,16 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique
-    role String @default('USER')
-    posts Post[]
+    role role @default(USER)
+    posts post_Item[]
 }
 
-model Post {
+enum role {
+    USER
+    ADMIN
+}
+
+model post_Item {
     id String @id
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -51,6 +56,7 @@ plugin swr {
 ${sharedModel}
         `,
             {
+                provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: [`${origDir}/dist`, 'react', '@types/react', 'swr'],
                 compile: true,

@@ -28,11 +28,16 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique
-    role String @default('USER')
-    posts Post[]
+    role role @default(USER)
+    posts post_Item[]
 }
 
-model Post {
+enum role {
+    USER
+    ADMIN
+}
+
+model post_Item {
     id String @id
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -49,6 +54,7 @@ model Foo {
 }
         `,
             {
+                provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
                 compile: true,
@@ -244,6 +250,36 @@ model Post {
             {
                 pushDb: false,
                 extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/next'],
+                compile: true,
+                fullZod: true,
+            }
+        );
+    });
+
+    it('mixed casing', async () => {
+        await loadSchema(
+            `
+plugin trpc {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/trpc'
+}
+
+model User {
+    id String @id
+    email String @unique
+    posts post_item[]
+}
+
+model post_item {
+    id String @id
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+}
+        `,
+            {
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }

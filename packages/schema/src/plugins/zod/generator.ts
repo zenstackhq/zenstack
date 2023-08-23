@@ -143,7 +143,7 @@ async function generateEnumSchemas(
     zmodel: Model
 ) {
     const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
-    const enumNames = enumTypes.map((enumItem) => enumItem.name);
+    const enumNames = enumTypes.map((enumItem) => upperCaseFirst(enumItem.name));
     Transformer.enumNames = enumNames ?? [];
     const transformer = new Transformer({
         enumTypes,
