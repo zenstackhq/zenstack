@@ -17,7 +17,7 @@ plugin openapi {
     provider = '${process.cwd()}/dist'
 }
 
-enum Role {
+enum role {
     USER
     ADMIN
 }
@@ -27,8 +27,8 @@ model User {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique
-    role Role @default(USER)
-    posts Post[]
+    role role @default(USER)
+    posts post_Item[]
 
     @@openapi.meta({
         findMany: {
@@ -45,7 +45,7 @@ model User {
     })
 }
 
-model Post {
+model post_Item {
     id String @id
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -91,7 +91,7 @@ model Bar {
         expect(api.tags).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ name: 'user', description: 'User operations' }),
-                expect.objectContaining({ name: 'post', description: 'Post-related operations' }),
+                expect.objectContaining({ name: 'post_Item', description: 'Post-related operations' }),
             ])
         );
 

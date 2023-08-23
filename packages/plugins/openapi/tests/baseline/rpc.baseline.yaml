@@ -5,7 +5,7 @@ info:
 tags:
     - name: user
       description: User operations
-    - name: post
+    - name: post_Item
       description: Post-related operations
 components:
     schemas:
@@ -14,7 +14,7 @@ components:
             enum:
                 - USER
                 - ADMIN
-        PostScalarFieldEnum:
+        Post_ItemScalarFieldEnum:
             type: string
             enum:
                 - id
@@ -60,14 +60,14 @@ components:
                 posts:
                     type: array
                     items:
-                        $ref: '#/components/schemas/Post'
+                        $ref: '#/components/schemas/Post_Item'
             required:
                 - id
                 - createdAt
                 - updatedAt
                 - email
                 - role
-        Post:
+        Post_Item:
             type: object
             properties:
                 id:
@@ -134,10 +134,10 @@ components:
                         - type: string
                 role:
                     oneOf:
-                        - $ref: '#/components/schemas/EnumRoleFilter'
+                        - $ref: '#/components/schemas/EnumroleFilter'
                         - $ref: '#/components/schemas/Role'
                 posts:
-                    $ref: '#/components/schemas/PostListRelationFilter'
+                    $ref: '#/components/schemas/Post_ItemListRelationFilter'
         UserOrderByWithRelationInput:
             type: object
             properties:
@@ -152,7 +152,7 @@ components:
                 role:
                     $ref: '#/components/schemas/SortOrder'
                 posts:
-                    $ref: '#/components/schemas/PostOrderByRelationAggregateInput'
+                    $ref: '#/components/schemas/Post_ItemOrderByRelationAggregateInput'
         UserWhereUniqueInput:
             type: object
             properties:
@@ -199,27 +199,27 @@ components:
                         - type: string
                 role:
                     oneOf:
-                        - $ref: '#/components/schemas/EnumRoleWithAggregatesFilter'
+                        - $ref: '#/components/schemas/EnumroleWithAggregatesFilter'
                         - $ref: '#/components/schemas/Role'
-        PostWhereInput:
+        Post_ItemWhereInput:
             type: object
             properties:
                 AND:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereInput'
+                              $ref: '#/components/schemas/Post_ItemWhereInput'
                 OR:
                     type: array
                     items:
-                        $ref: '#/components/schemas/PostWhereInput'
+                        $ref: '#/components/schemas/Post_ItemWhereInput'
                 NOT:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereInput'
+                              $ref: '#/components/schemas/Post_ItemWhereInput'
                 id:
                     oneOf:
                         - $ref: '#/components/schemas/StringFilter'
@@ -254,7 +254,7 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/IntFilter'
                         - type: integer
-        PostOrderByWithRelationInput:
+        Post_ItemOrderByWithRelationInput:
             type: object
             properties:
                 id:
@@ -273,30 +273,30 @@ components:
                     $ref: '#/components/schemas/SortOrder'
                 viewCount:
                     $ref: '#/components/schemas/SortOrder'
-        PostWhereUniqueInput:
+        Post_ItemWhereUniqueInput:
             type: object
             properties:
                 id:
                     type: string
-        PostScalarWhereWithAggregatesInput:
+        Post_ItemScalarWhereWithAggregatesInput:
             type: object
             properties:
                 AND:
                     oneOf:
-                        - $ref: '#/components/schemas/PostScalarWhereWithAggregatesInput'
+                        - $ref: '#/components/schemas/Post_ItemScalarWhereWithAggregatesInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostScalarWhereWithAggregatesInput'
+                              $ref: '#/components/schemas/Post_ItemScalarWhereWithAggregatesInput'
                 OR:
                     type: array
                     items:
-                        $ref: '#/components/schemas/PostScalarWhereWithAggregatesInput'
+                        $ref: '#/components/schemas/Post_ItemScalarWhereWithAggregatesInput'
                 NOT:
                     oneOf:
-                        - $ref: '#/components/schemas/PostScalarWhereWithAggregatesInput'
+                        - $ref: '#/components/schemas/Post_ItemScalarWhereWithAggregatesInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostScalarWhereWithAggregatesInput'
+                              $ref: '#/components/schemas/Post_ItemScalarWhereWithAggregatesInput'
                 id:
                     oneOf:
                         - $ref: '#/components/schemas/StringWithAggregatesFilter'
@@ -343,7 +343,7 @@ components:
                 role:
                     $ref: '#/components/schemas/Role'
                 posts:
-                    $ref: '#/components/schemas/PostCreateNestedManyWithoutAuthorInput'
+                    $ref: '#/components/schemas/Post_ItemCreateNestedManyWithoutAuthorInput'
             required:
                 - id
                 - email
@@ -371,9 +371,9 @@ components:
                 role:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/EnumRoleFieldUpdateOperationsInput'
+                        - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
                 posts:
-                    $ref: '#/components/schemas/PostUpdateManyWithoutAuthorNestedInput'
+                    $ref: '#/components/schemas/Post_ItemUpdateManyWithoutAuthorNestedInput'
         UserCreateManyInput:
             type: object
             properties:
@@ -416,8 +416,8 @@ components:
                 role:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/EnumRoleFieldUpdateOperationsInput'
-        PostCreateInput:
+                        - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+        Post_ItemCreateInput:
             type: object
             properties:
                 id:
@@ -439,7 +439,7 @@ components:
             required:
                 - id
                 - title
-        PostUpdateInput:
+        Post_ItemUpdateInput:
             type: object
             properties:
                 id:
@@ -470,7 +470,7 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-        PostCreateManyInput:
+        Post_ItemCreateManyInput:
             type: object
             properties:
                 id:
@@ -492,7 +492,7 @@ components:
             required:
                 - id
                 - title
-        PostUpdateManyMutationInput:
+        Post_ItemUpdateManyMutationInput:
             type: object
             properties:
                 id:
@@ -587,7 +587,7 @@ components:
                         - type: string
                           format: date-time
                         - $ref: '#/components/schemas/NestedDateTimeFilter'
-        EnumRoleFilter:
+        EnumroleFilter:
             type: object
             properties:
                 equals:
@@ -603,17 +603,17 @@ components:
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/NestedEnumRoleFilter'
-        PostListRelationFilter:
+                        - $ref: '#/components/schemas/NestedEnumroleFilter'
+        Post_ItemListRelationFilter:
             type: object
             properties:
                 every:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 some:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 none:
-                    $ref: '#/components/schemas/PostWhereInput'
-        PostOrderByRelationAggregateInput:
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
+        Post_ItemOrderByRelationAggregateInput:
             type: object
             properties:
                 _count:
@@ -696,7 +696,7 @@ components:
                     $ref: '#/components/schemas/NestedDateTimeFilter'
                 _max:
                     $ref: '#/components/schemas/NestedDateTimeFilter'
-        EnumRoleWithAggregatesFilter:
+        EnumroleWithAggregatesFilter:
             type: object
             properties:
                 equals:
@@ -712,13 +712,13 @@ components:
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/NestedEnumRoleWithAggregatesFilter'
+                        - $ref: '#/components/schemas/NestedEnumroleWithAggregatesFilter'
                 _count:
                     $ref: '#/components/schemas/NestedIntFilter'
                 _min:
-                    $ref: '#/components/schemas/NestedEnumRoleFilter'
+                    $ref: '#/components/schemas/NestedEnumroleFilter'
                 _max:
-                    $ref: '#/components/schemas/NestedEnumRoleFilter'
+                    $ref: '#/components/schemas/NestedEnumroleFilter'
         UserRelationFilter:
             type: object
             properties:
@@ -882,33 +882,33 @@ components:
                     $ref: '#/components/schemas/NestedIntFilter'
                 _max:
                     $ref: '#/components/schemas/NestedIntFilter'
-        PostCreateNestedManyWithoutAuthorInput:
+        Post_ItemCreateNestedManyWithoutAuthorInput:
             type: object
             properties:
                 create:
                     oneOf:
-                        - $ref: '#/components/schemas/PostCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostCreateWithoutAuthorInput'
-                        - $ref: '#/components/schemas/PostUncheckedCreateWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostUncheckedCreateWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
                 connectOrCreate:
                     oneOf:
-                        - $ref: '#/components/schemas/PostCreateOrConnectWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostCreateOrConnectWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
                 createMany:
-                    $ref: '#/components/schemas/PostCreateManyAuthorInputEnvelope'
+                    $ref: '#/components/schemas/Post_ItemCreateManyAuthorInputEnvelope'
                 connect:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereUniqueInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereUniqueInput'
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
         StringFieldUpdateOperationsInput:
             type: object
             properties:
@@ -920,80 +920,80 @@ components:
                 set:
                     type: string
                     format: date-time
-        EnumRoleFieldUpdateOperationsInput:
+        EnumroleFieldUpdateOperationsInput:
             type: object
             properties:
                 set:
                     $ref: '#/components/schemas/Role'
-        PostUpdateManyWithoutAuthorNestedInput:
+        Post_ItemUpdateManyWithoutAuthorNestedInput:
             type: object
             properties:
                 create:
                     oneOf:
-                        - $ref: '#/components/schemas/PostCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostCreateWithoutAuthorInput'
-                        - $ref: '#/components/schemas/PostUncheckedCreateWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostUncheckedCreateWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
                 connectOrCreate:
                     oneOf:
-                        - $ref: '#/components/schemas/PostCreateOrConnectWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostCreateOrConnectWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
                 upsert:
                     oneOf:
-                        - $ref: '#/components/schemas/PostUpsertWithWhereUniqueWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUpsertWithWhereUniqueWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostUpsertWithWhereUniqueWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemUpsertWithWhereUniqueWithoutAuthorInput'
                 createMany:
-                    $ref: '#/components/schemas/PostCreateManyAuthorInputEnvelope'
+                    $ref: '#/components/schemas/Post_ItemCreateManyAuthorInputEnvelope'
                 set:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereUniqueInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereUniqueInput'
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 disconnect:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereUniqueInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereUniqueInput'
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 delete:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereUniqueInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereUniqueInput'
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 connect:
                     oneOf:
-                        - $ref: '#/components/schemas/PostWhereUniqueInput'
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostWhereUniqueInput'
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 update:
                     oneOf:
-                        - $ref: '#/components/schemas/PostUpdateWithWhereUniqueWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUpdateWithWhereUniqueWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostUpdateWithWhereUniqueWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemUpdateWithWhereUniqueWithoutAuthorInput'
                 updateMany:
                     oneOf:
-                        - $ref: '#/components/schemas/PostUpdateManyWithWhereWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUpdateManyWithWhereWithoutAuthorInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostUpdateManyWithWhereWithoutAuthorInput'
+                              $ref: '#/components/schemas/Post_ItemUpdateManyWithWhereWithoutAuthorInput'
                 deleteMany:
                     oneOf:
-                        - $ref: '#/components/schemas/PostScalarWhereInput'
+                        - $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostScalarWhereInput'
+                              $ref: '#/components/schemas/Post_ItemScalarWhereInput'
         UserCreateNestedOneWithoutPostsInput:
             type: object
             properties:
@@ -1108,7 +1108,7 @@ components:
                         - type: string
                           format: date-time
                         - $ref: '#/components/schemas/NestedDateTimeFilter'
-        NestedEnumRoleFilter:
+        NestedEnumroleFilter:
             type: object
             properties:
                 equals:
@@ -1124,7 +1124,7 @@ components:
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/NestedEnumRoleFilter'
+                        - $ref: '#/components/schemas/NestedEnumroleFilter'
         NestedStringWithAggregatesFilter:
             type: object
             properties:
@@ -1226,7 +1226,7 @@ components:
                     $ref: '#/components/schemas/NestedDateTimeFilter'
                 _max:
                     $ref: '#/components/schemas/NestedDateTimeFilter'
-        NestedEnumRoleWithAggregatesFilter:
+        NestedEnumroleWithAggregatesFilter:
             type: object
             properties:
                 equals:
@@ -1242,13 +1242,13 @@ components:
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/NestedEnumRoleWithAggregatesFilter'
+                        - $ref: '#/components/schemas/NestedEnumroleWithAggregatesFilter'
                 _count:
                     $ref: '#/components/schemas/NestedIntFilter'
                 _min:
-                    $ref: '#/components/schemas/NestedEnumRoleFilter'
+                    $ref: '#/components/schemas/NestedEnumroleFilter'
                 _max:
-                    $ref: '#/components/schemas/NestedEnumRoleFilter'
+                    $ref: '#/components/schemas/NestedEnumroleFilter'
         NestedStringNullableFilter:
             type: object
             properties:
@@ -1426,7 +1426,7 @@ components:
                     oneOf:
                         - type: number
                         - $ref: '#/components/schemas/NestedFloatFilter'
-        PostCreateWithoutAuthorInput:
+        Post_ItemCreateWithoutAuthorInput:
             type: object
             properties:
                 id:
@@ -1446,7 +1446,7 @@ components:
             required:
                 - id
                 - title
-        PostUncheckedCreateWithoutAuthorInput:
+        Post_ItemUncheckedCreateWithoutAuthorInput:
             type: object
             properties:
                 id:
@@ -1466,89 +1466,89 @@ components:
             required:
                 - id
                 - title
-        PostCreateOrConnectWithoutAuthorInput:
+        Post_ItemCreateOrConnectWithoutAuthorInput:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 create:
                     oneOf:
-                        - $ref: '#/components/schemas/PostCreateWithoutAuthorInput'
-                        - $ref: '#/components/schemas/PostUncheckedCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
             required:
                 - where
                 - create
-        PostCreateManyAuthorInputEnvelope:
+        Post_ItemCreateManyAuthorInputEnvelope:
             type: object
             properties:
                 data:
                     type: array
                     items:
-                        $ref: '#/components/schemas/PostCreateManyAuthorInput'
+                        $ref: '#/components/schemas/Post_ItemCreateManyAuthorInput'
                 skipDuplicates:
                     type: boolean
             required:
                 - data
-        PostUpsertWithWhereUniqueWithoutAuthorInput:
+        Post_ItemUpsertWithWhereUniqueWithoutAuthorInput:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 update:
                     oneOf:
-                        - $ref: '#/components/schemas/PostUpdateWithoutAuthorInput'
-                        - $ref: '#/components/schemas/PostUncheckedUpdateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUpdateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedUpdateWithoutAuthorInput'
                 create:
                     oneOf:
-                        - $ref: '#/components/schemas/PostCreateWithoutAuthorInput'
-                        - $ref: '#/components/schemas/PostUncheckedCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
             required:
                 - where
                 - update
                 - create
-        PostUpdateWithWhereUniqueWithoutAuthorInput:
+        Post_ItemUpdateWithWhereUniqueWithoutAuthorInput:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 data:
                     oneOf:
-                        - $ref: '#/components/schemas/PostUpdateWithoutAuthorInput'
-                        - $ref: '#/components/schemas/PostUncheckedUpdateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUpdateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedUpdateWithoutAuthorInput'
             required:
                 - where
                 - data
-        PostUpdateManyWithWhereWithoutAuthorInput:
+        Post_ItemUpdateManyWithWhereWithoutAuthorInput:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostScalarWhereInput'
+                    $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                 data:
                     oneOf:
-                        - $ref: '#/components/schemas/PostUpdateManyMutationInput'
-                        - $ref: '#/components/schemas/PostUncheckedUpdateManyWithoutPostsInput'
+                        - $ref: '#/components/schemas/Post_ItemUpdateManyMutationInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedUpdateManyWithoutPostsInput'
             required:
                 - where
                 - data
-        PostScalarWhereInput:
+        Post_ItemScalarWhereInput:
             type: object
             properties:
                 AND:
                     oneOf:
-                        - $ref: '#/components/schemas/PostScalarWhereInput'
+                        - $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostScalarWhereInput'
+                              $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                 OR:
                     type: array
                     items:
-                        $ref: '#/components/schemas/PostScalarWhereInput'
+                        $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                 NOT:
                     oneOf:
-                        - $ref: '#/components/schemas/PostScalarWhereInput'
+                        - $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                         - type: array
                           items:
-                              $ref: '#/components/schemas/PostScalarWhereInput'
+                              $ref: '#/components/schemas/Post_ItemScalarWhereInput'
                 id:
                     oneOf:
                         - $ref: '#/components/schemas/StringFilter'
@@ -1665,7 +1665,7 @@ components:
                 role:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/EnumRoleFieldUpdateOperationsInput'
+                        - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
         UserUncheckedUpdateWithoutPostsInput:
             type: object
             properties:
@@ -1690,8 +1690,8 @@ components:
                 role:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/EnumRoleFieldUpdateOperationsInput'
-        PostCreateManyAuthorInput:
+                        - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+        Post_ItemCreateManyAuthorInput:
             type: object
             properties:
                 id:
@@ -1711,7 +1711,7 @@ components:
             required:
                 - id
                 - title
-        PostUpdateWithoutAuthorInput:
+        Post_ItemUpdateWithoutAuthorInput:
             type: object
             properties:
                 id:
@@ -1740,7 +1740,7 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-        PostUncheckedUpdateWithoutAuthorInput:
+        Post_ItemUncheckedUpdateWithoutAuthorInput:
             type: object
             properties:
                 id:
@@ -1769,7 +1769,7 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
-        PostUncheckedUpdateManyWithoutPostsInput:
+        Post_ItemUncheckedUpdateManyWithoutPostsInput:
             type: object
             properties:
                 id:
@@ -1811,12 +1811,12 @@ components:
                 posts:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/PostFindManyArgs'
+                        - $ref: '#/components/schemas/Post_ItemFindManyArgs'
                 _count:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/UserCountOutputTypeArgs'
-        PostInclude:
+        Post_ItemInclude:
             type: object
             properties:
                 author:
@@ -1849,12 +1849,12 @@ components:
                 posts:
                     oneOf:
                         - type: boolean
-                        - $ref: '#/components/schemas/PostFindManyArgs'
+                        - $ref: '#/components/schemas/Post_ItemFindManyArgs'
                 _count:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/UserCountOutputTypeArgs'
-        PostSelect:
+        Post_ItemSelect:
             type: object
             properties:
                 id:
@@ -1916,69 +1916,6 @@ components:
                     type: boolean
                 role:
                     type: boolean
-        PostCountAggregateInput:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                createdAt:
-                    type: boolean
-                updatedAt:
-                    type: boolean
-                title:
-                    type: boolean
-                authorId:
-                    type: boolean
-                published:
-                    type: boolean
-                viewCount:
-                    type: boolean
-                _all:
-                    type: boolean
-        PostAvgAggregateInput:
-            type: object
-            properties:
-                viewCount:
-                    type: boolean
-        PostSumAggregateInput:
-            type: object
-            properties:
-                viewCount:
-                    type: boolean
-        PostMinAggregateInput:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                createdAt:
-                    type: boolean
-                updatedAt:
-                    type: boolean
-                title:
-                    type: boolean
-                authorId:
-                    type: boolean
-                published:
-                    type: boolean
-                viewCount:
-                    type: boolean
-        PostMaxAggregateInput:
-            type: object
-            properties:
-                id:
-                    type: boolean
-                createdAt:
-                    type: boolean
-                updatedAt:
-                    type: boolean
-                title:
-                    type: boolean
-                authorId:
-                    type: boolean
-                published:
-                    type: boolean
-                viewCount:
-                    type: boolean
         AggregateUser:
             type: object
             properties:
@@ -2015,20 +1952,20 @@ components:
                 - updatedAt
                 - email
                 - role
-        AggregatePost:
+        AggregatePost_Item:
             type: object
             properties:
                 _count:
-                    $ref: '#/components/schemas/PostCountAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
                 _avg:
-                    $ref: '#/components/schemas/PostAvgAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
                 _sum:
-                    $ref: '#/components/schemas/PostSumAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
                 _min:
-                    $ref: '#/components/schemas/PostMinAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
                 _max:
-                    $ref: '#/components/schemas/PostMaxAggregateOutputType'
-        PostGroupByOutputType:
+                    $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+        Post_ItemGroupByOutputType:
             type: object
             properties:
                 id:
@@ -2048,15 +1985,15 @@ components:
                 viewCount:
                     type: integer
                 _count:
-                    $ref: '#/components/schemas/PostCountAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
                 _avg:
-                    $ref: '#/components/schemas/PostAvgAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
                 _sum:
-                    $ref: '#/components/schemas/PostSumAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
                 _min:
-                    $ref: '#/components/schemas/PostMinAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
                 _max:
-                    $ref: '#/components/schemas/PostMaxAggregateOutputType'
+                    $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
             required:
                 - id
                 - createdAt
@@ -2116,7 +2053,7 @@ components:
                     type: string
                 role:
                     $ref: '#/components/schemas/Role'
-        PostCountAggregateOutputType:
+        Post_ItemCountAggregateOutputType:
             type: object
             properties:
                 id:
@@ -2144,17 +2081,17 @@ components:
                 - published
                 - viewCount
                 - _all
-        PostAvgAggregateOutputType:
+        Post_ItemAvgAggregateOutputType:
             type: object
             properties:
                 viewCount:
                     type: number
-        PostSumAggregateOutputType:
+        Post_ItemSumAggregateOutputType:
             type: object
             properties:
                 viewCount:
                     type: integer
-        PostMinAggregateOutputType:
+        Post_ItemMinAggregateOutputType:
             type: object
             properties:
                 id:
@@ -2173,7 +2110,7 @@ components:
                     type: boolean
                 viewCount:
                     type: integer
-        PostMaxAggregateOutputType:
+        Post_ItemMaxAggregateOutputType:
             type: object
             properties:
                 id:
@@ -2413,91 +2350,91 @@ components:
                     $ref: '#/components/schemas/UserMaxAggregateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostCreateArgs:
+        Post_ItemCreateArgs:
             type: object
             required:
                 - data
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 data:
-                    $ref: '#/components/schemas/PostCreateInput'
+                    $ref: '#/components/schemas/Post_ItemCreateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostCreateManyArgs:
+        Post_ItemCreateManyArgs:
             type: object
             required:
                 - data
             properties:
                 data:
-                    $ref: '#/components/schemas/PostCreateManyInput'
+                    $ref: '#/components/schemas/Post_ItemCreateManyInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostFindUniqueArgs:
+        Post_ItemFindUniqueArgs:
             type: object
             required:
                 - where
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostFindFirstArgs:
+        Post_ItemFindFirstArgs:
             type: object
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostFindManyArgs:
+        Post_ItemFindManyArgs:
             type: object
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostUpdateArgs:
+        Post_ItemUpdateArgs:
             type: object
             required:
                 - where
                 - data
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 data:
-                    $ref: '#/components/schemas/PostUpdateInput'
+                    $ref: '#/components/schemas/Post_ItemUpdateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostUpdateManyArgs:
+        Post_ItemUpdateManyArgs:
             type: object
             required:
                 - data
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 data:
-                    $ref: '#/components/schemas/PostUpdateManyMutationInput'
+                    $ref: '#/components/schemas/Post_ItemUpdateManyMutationInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostUpsertArgs:
+        Post_ItemUpsertArgs:
             type: object
             required:
                 - create
@@ -2505,100 +2442,76 @@ components:
                 - where
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 create:
-                    $ref: '#/components/schemas/PostCreateInput'
+                    $ref: '#/components/schemas/Post_ItemCreateInput'
                 update:
-                    $ref: '#/components/schemas/PostUpdateInput'
+                    $ref: '#/components/schemas/Post_ItemUpdateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostDeleteUniqueArgs:
+        Post_ItemDeleteUniqueArgs:
             type: object
             required:
                 - where
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 include:
-                    $ref: '#/components/schemas/PostInclude'
+                    $ref: '#/components/schemas/Post_ItemInclude'
                 where:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostDeleteManyArgs:
+        Post_ItemDeleteManyArgs:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostCountArgs:
+        Post_ItemCountArgs:
             type: object
             properties:
                 select:
-                    $ref: '#/components/schemas/PostSelect'
+                    $ref: '#/components/schemas/Post_ItemSelect'
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostAggregateArgs:
+        Post_ItemAggregateArgs:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 orderBy:
-                    $ref: '#/components/schemas/PostOrderByWithRelationInput'
+                    $ref: '#/components/schemas/Post_ItemOrderByWithRelationInput'
                 cursor:
-                    $ref: '#/components/schemas/PostWhereUniqueInput'
+                    $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
                 take:
                     type: integer
                 skip:
                     type: integer
-                _count:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/PostCountAggregateInput'
-                _min:
-                    $ref: '#/components/schemas/PostMinAggregateInput'
-                _max:
-                    $ref: '#/components/schemas/PostMaxAggregateInput'
-                _sum:
-                    $ref: '#/components/schemas/PostSumAggregateInput'
-                _avg:
-                    $ref: '#/components/schemas/PostAvgAggregateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
-        PostGroupByArgs:
+        Post_ItemGroupByArgs:
             type: object
             properties:
                 where:
-                    $ref: '#/components/schemas/PostWhereInput'
+                    $ref: '#/components/schemas/Post_ItemWhereInput'
                 orderBy:
-                    $ref: '#/components/schemas/PostOrderByWithRelationInput'
+                    $ref: '#/components/schemas/Post_ItemOrderByWithRelationInput'
                 by:
-                    $ref: '#/components/schemas/PostScalarFieldEnum'
+                    $ref: '#/components/schemas/Post_ItemScalarFieldEnum'
                 having:
-                    $ref: '#/components/schemas/PostScalarWhereWithAggregatesInput'
+                    $ref: '#/components/schemas/Post_ItemScalarWhereWithAggregatesInput'
                 take:
                     type: integer
                 skip:
                     type: integer
-                _count:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/PostCountAggregateInput'
-                _min:
-                    $ref: '#/components/schemas/PostMinAggregateInput'
-                _max:
-                    $ref: '#/components/schemas/PostMaxAggregateInput'
-                _sum:
-                    $ref: '#/components/schemas/PostSumAggregateInput'
-                _avg:
-                    $ref: '#/components/schemas/PostAvgAggregateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
 paths:
@@ -3188,12 +3101,12 @@ paths:
                   content:
                       application/json:
                           schema: {}
-    /post/create:
+    /post_Item/create:
         post:
-            operationId: createPost
-            description: Create a new Post
+            operationId: createPost_Item
+            description: Create a new Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '201':
                     description: Successful operation
@@ -3205,7 +3118,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/Post'
+                                        $ref: '#/components/schemas/Post_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3226,13 +3139,13 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/PostCreateArgs'
-    /post/createMany:
+                            $ref: '#/components/schemas/Post_ItemCreateArgs'
+    /post_Item/createMany:
         post:
-            operationId: createManyPost
-            description: Create several Post
+            operationId: createManyPost_Item
+            description: Create several Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '201':
                     description: Successful operation
@@ -3265,13 +3178,13 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/PostCreateManyArgs'
-    /post/findUnique:
+                            $ref: '#/components/schemas/Post_ItemCreateManyArgs'
+    /post_Item/findUnique:
         get:
-            operationId: findUniquePost
-            description: Find one unique Post
+            operationId: findUniquePost_Item
+            description: Find one unique Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3283,7 +3196,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/Post'
+                                        $ref: '#/components/schemas/Post_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3308,19 +3221,19 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostFindUniqueArgs'
+                              $ref: '#/components/schemas/Post_ItemFindUniqueArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"
                   content:
                       application/json:
                           schema: {}
-    /post/findFirst:
+    /post_Item/findFirst:
         get:
-            operationId: findFirstPost
-            description: Find the first Post matching the given condition
+            operationId: findFirstPost_Item
+            description: Find the first Post_Item matching the given condition
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3332,7 +3245,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/Post'
+                                        $ref: '#/components/schemas/Post_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3357,19 +3270,19 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostFindFirstArgs'
+                              $ref: '#/components/schemas/Post_ItemFindFirstArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"
                   content:
                       application/json:
                           schema: {}
-    /post/update:
+    /post_Item/update:
         patch:
-            operationId: updatePost
-            description: Update a Post
+            operationId: updatePost_Item
+            description: Update a Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3381,7 +3294,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/Post'
+                                        $ref: '#/components/schemas/Post_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3402,13 +3315,13 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/PostUpdateArgs'
-    /post/updateMany:
+                            $ref: '#/components/schemas/Post_ItemUpdateArgs'
+    /post_Item/updateMany:
         patch:
-            operationId: updateManyPost
-            description: Update Posts matching the given condition
+            operationId: updateManyPost_Item
+            description: Update Post_Items matching the given condition
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3441,13 +3354,13 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/PostUpdateManyArgs'
-    /post/upsert:
+                            $ref: '#/components/schemas/Post_ItemUpdateManyArgs'
+    /post_Item/upsert:
         post:
-            operationId: upsertPost
-            description: Upsert a Post
+            operationId: upsertPost_Item
+            description: Upsert a Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3459,7 +3372,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/Post'
+                                        $ref: '#/components/schemas/Post_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3480,13 +3393,13 @@ paths:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/PostUpsertArgs'
-    /post/delete:
+                            $ref: '#/components/schemas/Post_ItemUpsertArgs'
+    /post_Item/delete:
         delete:
-            operationId: deletePost
-            description: Delete one unique Post
+            operationId: deletePost_Item
+            description: Delete one unique Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3498,7 +3411,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/Post'
+                                        $ref: '#/components/schemas/Post_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3523,19 +3436,19 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostDeleteUniqueArgs'
+                              $ref: '#/components/schemas/Post_ItemDeleteUniqueArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"
                   content:
                       application/json:
                           schema: {}
-    /post/deleteMany:
+    /post_Item/deleteMany:
         delete:
-            operationId: deleteManyPost
-            description: Delete Posts matching the given condition
+            operationId: deleteManyPost_Item
+            description: Delete Post_Items matching the given condition
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3572,19 +3485,19 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostDeleteManyArgs'
+                              $ref: '#/components/schemas/Post_ItemDeleteManyArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"
                   content:
                       application/json:
                           schema: {}
-    /post/count:
+    /post_Item/count:
         get:
-            operationId: countPost
-            description: Find a list of Post
+            operationId: countPost_Item
+            description: Find a list of Post_Item
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3598,7 +3511,7 @@ paths:
                                     data:
                                         oneOf:
                                             - type: integer
-                                            - $ref: '#/components/schemas/PostCountAggregateOutputType'
+                                            - $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3623,19 +3536,19 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostCountArgs'
+                              $ref: '#/components/schemas/Post_ItemCountArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"
                   content:
                       application/json:
                           schema: {}
-    /post/aggregate:
+    /post_Item/aggregate:
         get:
-            operationId: aggregatePost
-            description: Aggregate Posts
+            operationId: aggregatePost_Item
+            description: Aggregate Post_Items
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3647,7 +3560,7 @@ paths:
                                     - data
                                 properties:
                                     data:
-                                        $ref: '#/components/schemas/AggregatePost'
+                                        $ref: '#/components/schemas/AggregatePost_Item'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3672,19 +3585,19 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostAggregateArgs'
+                              $ref: '#/components/schemas/Post_ItemAggregateArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"
                   content:
                       application/json:
                           schema: {}
-    /post/groupBy:
+    /post_Item/groupBy:
         get:
-            operationId: groupByPost
-            description: Group Posts by fields
+            operationId: groupByPost_Item
+            description: Group Post_Items by fields
             tags:
-                - post
+                - post_Item
             responses:
                 '200':
                     description: Successful operation
@@ -3698,7 +3611,7 @@ paths:
                                     data:
                                         type: array
                                         items:
-                                            $ref: '#/components/schemas/PostGroupByOutputType'
+                                            $ref: '#/components/schemas/Post_ItemGroupByOutputType'
                                         description: The Prisma response data serialized with superjson
                                     meta:
                                         $ref: '#/components/schemas/_Meta'
@@ -3723,7 +3636,7 @@ paths:
                   content:
                       application/json:
                           schema:
-                              $ref: '#/components/schemas/PostGroupByArgs'
+                              $ref: '#/components/schemas/Post_ItemGroupByArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"

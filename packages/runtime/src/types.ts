@@ -19,6 +19,7 @@ export interface DbOperations {
     aggregate(args: unknown): Promise<unknown>;
     groupBy(args: unknown): Promise<unknown>;
     count(args?: unknown): Promise<unknown>;
+    subscribe(args?: unknown): Promise<unknown>;
     fields: Record<string, any>;
 }
 

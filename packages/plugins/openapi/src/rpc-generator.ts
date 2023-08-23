@@ -16,6 +16,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
+import { upperCaseFirst } from 'upper-case-first';
 import YAML from 'yaml';
 import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
@@ -120,6 +121,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             return undefined;
         }
 
+        const modelName = upperCaseFirst(model.name);
+
         type OperationDefinition = {
             method: 'get' | 'post' | 'put' | 'patch' | 'delete';
             operation: string;
@@ -141,21 +144,21 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'post',
                 operation: 'create',
                 inputType: this.component(
-                    `${model.name}CreateArgs`,
+                    `${modelName}CreateArgs`,
                     {
                         type: 'object',
                         required: ['data'],
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            data: this.ref(`${model.name}CreateInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            data: this.ref(`${modelName}CreateInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.ref(model.name)),
-                description: `Create a new ${model.name}`,
+                outputType: this.response(this.ref(modelName)),
+                description: `Create a new ${modelName}`,
                 successCode: 201,
                 security: create === true ? [] : undefined,
             });
@@ -166,19 +169,19 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'post',
                 operation: 'createMany',
                 inputType: this.component(
-                    `${model.name}CreateManyArgs`,
+                    `${modelName}CreateManyArgs`,
                     {
                         type: 'object',
                         required: ['data'],
                         properties: {
-                            data: this.ref(`${model.name}CreateManyInput`),
+                            data: this.ref(`${modelName}CreateManyInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
                 outputType: this.response(this.ref('BatchPayload')),
-                description: `Create several ${model.name}`,
+                description: `Create several ${modelName}`,
                 successCode: 201,
                 security: create === true ? [] : undefined,
             });
@@ -189,21 +192,21 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'get',
                 operation: 'findUnique',
                 inputType: this.component(
-                    `${model.name}FindUniqueArgs`,
+                    `${modelName}FindUniqueArgs`,
                     {
                         type: 'object',
                         required: ['where'],
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            where: this.ref(`${model.name}WhereUniqueInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            where: this.ref(`${modelName}WhereUniqueInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.ref(model.name)),
-                description: `Find one unique ${model.name}`,
+                outputType: this.response(this.ref(modelName)),
+                description: `Find one unique ${modelName}`,
                 security: read === true ? [] : undefined,
             });
         }
@@ -213,20 +216,20 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'get',
                 operation: 'findFirst',
                 inputType: this.component(
-                    `${model.name}FindFirstArgs`,
+                    `${modelName}FindFirstArgs`,
                     {
                         type: 'object',
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            where: this.ref(`${model.name}WhereInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            where: this.ref(`${modelName}WhereInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.ref(model.name)),
-                description: `Find the first ${model.name} matching the given condition`,
+                outputType: this.response(this.ref(modelName)),
+                description: `Find the first ${modelName} matching the given condition`,
                 security: read === true ? [] : undefined,
             });
         }
@@ -236,20 +239,20 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'get',
                 operation: 'findMany',
                 inputType: this.component(
-                    `${model.name}FindManyArgs`,
+                    `${modelName}FindManyArgs`,
                     {
                         type: 'object',
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            where: this.ref(`${model.name}WhereInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            where: this.ref(`${modelName}WhereInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.array(this.ref(model.name))),
-                description: `Find a list of ${model.name}`,
+                outputType: this.response(this.array(this.ref(modelName))),
+                description: `Find a list of ${modelName}`,
                 security: read === true ? [] : undefined,
             });
         }
@@ -259,22 +262,22 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'patch',
                 operation: 'update',
                 inputType: this.component(
-                    `${model.name}UpdateArgs`,
+                    `${modelName}UpdateArgs`,
                     {
                         type: 'object',
                         required: ['where', 'data'],
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            where: this.ref(`${model.name}WhereUniqueInput`),
-                            data: this.ref(`${model.name}UpdateInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            where: this.ref(`${modelName}WhereUniqueInput`),
+                            data: this.ref(`${modelName}UpdateInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.ref(model.name)),
-                description: `Update a ${model.name}`,
+                outputType: this.response(this.ref(modelName)),
+                description: `Update a ${modelName}`,
                 security: update === true ? [] : undefined,
             });
         }
@@ -284,20 +287,20 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 operation: 'updateMany',
                 method: 'patch',
                 inputType: this.component(
-                    `${model.name}UpdateManyArgs`,
+                    `${modelName}UpdateManyArgs`,
                     {
                         type: 'object',
                         required: ['data'],
                         properties: {
-                            where: this.ref(`${model.name}WhereInput`),
-                            data: this.ref(`${model.name}UpdateManyMutationInput`),
+                            where: this.ref(`${modelName}WhereInput`),
+                            data: this.ref(`${modelName}UpdateManyMutationInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
                 outputType: this.response(this.ref('BatchPayload')),
-                description: `Update ${model.name}s matching the given condition`,
+                description: `Update ${modelName}s matching the given condition`,
                 security: update === true ? [] : undefined,
             });
         }
@@ -307,23 +310,23 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'post',
                 operation: 'upsert',
                 inputType: this.component(
-                    `${model.name}UpsertArgs`,
+                    `${modelName}UpsertArgs`,
                     {
                         type: 'object',
                         required: ['create', 'update', 'where'],
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            where: this.ref(`${model.name}WhereUniqueInput`),
-                            create: this.ref(`${model.name}CreateInput`),
-                            update: this.ref(`${model.name}UpdateInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            where: this.ref(`${modelName}WhereUniqueInput`),
+                            create: this.ref(`${modelName}CreateInput`),
+                            update: this.ref(`${modelName}UpdateInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.ref(model.name)),
-                description: `Upsert a ${model.name}`,
+                outputType: this.response(this.ref(modelName)),
+                description: `Upsert a ${modelName}`,
                 security: create === true && update == true ? [] : undefined,
             });
         }
@@ -333,21 +336,21 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'delete',
                 operation: 'delete',
                 inputType: this.component(
-                    `${model.name}DeleteUniqueArgs`,
+                    `${modelName}DeleteUniqueArgs`,
                     {
                         type: 'object',
                         required: ['where'],
                         properties: {
-                            select: this.ref(`${model.name}Select`),
-                            include: hasRelation ? this.ref(`${model.name}Include`) : undefined,
-                            where: this.ref(`${model.name}WhereUniqueInput`),
+                            select: this.ref(`${modelName}Select`),
+                            include: hasRelation ? this.ref(`${modelName}Include`) : undefined,
+                            where: this.ref(`${modelName}WhereUniqueInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
-                outputType: this.response(this.ref(model.name)),
-                description: `Delete one unique ${model.name}`,
+                outputType: this.response(this.ref(modelName)),
+                description: `Delete one unique ${modelName}`,
                 security: del === true ? [] : undefined,
             });
         }
@@ -357,18 +360,18 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'delete',
                 operation: 'deleteMany',
                 inputType: this.component(
-                    `${model.name}DeleteManyArgs`,
+                    `${modelName}DeleteManyArgs`,
                     {
                         type: 'object',
                         properties: {
-                            where: this.ref(`${model.name}WhereInput`),
+                            where: this.ref(`${modelName}WhereInput`),
                             meta: this.ref('_Meta'),
                         },
                     },
                     components
                 ),
                 outputType: this.response(this.ref('BatchPayload')),
-                description: `Delete ${model.name}s matching the given condition`,
+                description: `Delete ${modelName}s matching the given condition`,
                 security: del === true ? [] : undefined,
             });
         }
@@ -378,21 +381,21 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             method: 'get',
             operation: 'count',
             inputType: this.component(
-                `${model.name}CountArgs`,
+                `${modelName}CountArgs`,
                 {
                     type: 'object',
                     properties: {
-                        select: this.ref(`${model.name}Select`),
-                        where: this.ref(`${model.name}WhereInput`),
+                        select: this.ref(`${modelName}Select`),
+                        where: this.ref(`${modelName}WhereInput`),
                         meta: this.ref('_Meta'),
                     },
                 },
                 components
             ),
             outputType: this.response(
-                this.oneOf({ type: 'integer' }, this.ref(`${model.name}CountAggregateOutputType`))
+                this.oneOf({ type: 'integer' }, this.ref(`${modelName}CountAggregateOutputType`))
             ),
-            description: `Find a list of ${model.name}`,
+            description: `Find a list of ${modelName}`,
             security: read === true ? [] : undefined,
         });
 
@@ -401,13 +404,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'get',
                 operation: 'aggregate',
                 inputType: this.component(
-                    `${model.name}AggregateArgs`,
+                    `${modelName}AggregateArgs`,
                     {
                         type: 'object',
                         properties: {
-                            where: this.ref(`${model.name}WhereInput`),
-                            orderBy: this.ref(`${model.name}OrderByWithRelationInput`),
-                            cursor: this.ref(`${model.name}WhereUniqueInput`),
+                            where: this.ref(`${modelName}WhereInput`),
+                            orderBy: this.ref(`${modelName}OrderByWithRelationInput`),
+                            cursor: this.ref(`${modelName}WhereUniqueInput`),
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
                             ...this.aggregateFields(model),
@@ -416,8 +419,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     },
                     components
                 ),
-                outputType: this.response(this.ref(`Aggregate${model.name}`)),
-                description: `Aggregate ${model.name}s`,
+                outputType: this.response(this.ref(`Aggregate${modelName}`)),
+                description: `Aggregate ${modelName}s`,
                 security: read === true ? [] : undefined,
             });
         }
@@ -427,14 +430,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 method: 'get',
                 operation: 'groupBy',
                 inputType: this.component(
-                    `${model.name}GroupByArgs`,
+                    `${modelName}GroupByArgs`,
                     {
                         type: 'object',
                         properties: {
-                            where: this.ref(`${model.name}WhereInput`),
-                            orderBy: this.ref(`${model.name}OrderByWithRelationInput`),
-                            by: this.ref(`${model.name}ScalarFieldEnum`),
-                            having: this.ref(`${model.name}ScalarWhereWithAggregatesInput`),
+                            where: this.ref(`${modelName}WhereInput`),
+                            orderBy: this.ref(`${modelName}OrderByWithRelationInput`),
+                            by: this.ref(`${modelName}ScalarFieldEnum`),
+                            having: this.ref(`${modelName}ScalarWhereWithAggregatesInput`),
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
                             ...this.aggregateFields(model),
@@ -443,8 +446,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     },
                     components
                 ),
-                outputType: this.response(this.array(this.ref(`${model.name}GroupByOutputType`))),
-                description: `Group ${model.name}s by fields`,
+                outputType: this.response(this.array(this.ref(`${modelName}GroupByOutputType`))),
+                description: `Group ${modelName}s by fields`,
                 security: read === true ? [] : undefined,
             });
         }
@@ -472,7 +475,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const def: OAPI.OperationObject = {
-                operationId: `${operation}${model.name}`,
+                operationId: `${operation}${modelName}`,
                 description: meta?.description ?? description,
                 tags: meta?.tags || [lowerCaseFirst(model.name)],
                 summary: meta?.summary,
@@ -556,21 +559,22 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private aggregateFields(model: DMMF.Model) {
         const result: Record<string, unknown> = {};
         const supportedOps = this.aggregateOperationSupport[model.name];
+        const modelName = upperCaseFirst(model.name);
         if (supportedOps) {
             if (supportedOps.count) {
-                result._count = this.oneOf({ type: 'boolean' }, this.ref(`${model.name}CountAggregateInput`));
+                result._count = this.oneOf({ type: 'boolean' }, this.ref(`${modelName}CountAggregateInput`));
             }
             if (supportedOps.min) {
-                result._min = this.ref(`${model.name}MinAggregateInput`);
+                result._min = this.ref(`${modelName}MinAggregateInput`);
             }
             if (supportedOps.max) {
-                result._max = this.ref(`${model.name}MaxAggregateInput`);
+                result._max = this.ref(`${modelName}MaxAggregateInput`);
             }
             if (supportedOps.sum) {
-                result._sum = this.ref(`${model.name}SumAggregateInput`);
+                result._sum = this.ref(`${modelName}SumAggregateInput`);
             }
             if (supportedOps.avg) {
-                result._avg = this.ref(`${model.name}AvgAggregateInput`);
+                result._avg = this.ref(`${modelName}AvgAggregateInput`);
             }
         }
         return result;
@@ -590,20 +594,20 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
 
         // user-defined and built-in enums
         for (const _enum of [...(this.dmmf.schema.enumTypes.model ?? []), ...this.dmmf.schema.enumTypes.prisma]) {
-            schemas[_enum.name] = this.generateEnumComponent(_enum);
+            schemas[upperCaseFirst(_enum.name)] = this.generateEnumComponent(_enum);
         }
 
         // data models
         for (const model of this.dmmf.datamodel.models) {
-            schemas[model.name] = this.generateEntityComponent(model);
+            schemas[upperCaseFirst(model.name)] = this.generateEntityComponent(model);
         }
 
         for (const input of this.inputObjectTypes) {
-            schemas[input.name] = this.generateInputComponent(input);
+            schemas[upperCaseFirst(input.name)] = this.generateInputComponent(input);
         }
 
         for (const output of this.outputObjectTypes.filter((t) => !['Query', 'Mutation'].includes(t.name))) {
-            schemas[output.name] = this.generateOutputComponent(output);
+            schemas[upperCaseFirst(output.name)] = this.generateOutputComponent(output);
         }
 
         schemas['_Meta'] = {
@@ -802,7 +806,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         if (rooted) {
             this.usedComponents.add(type);
         }
-        return { $ref: `#/components/schemas/${type}`, description };
+        return { $ref: `#/components/schemas/${upperCaseFirst(type)}`, description };
     }
 
     private response(schema: OAPI.SchemaObject): OAPI.SchemaObject {

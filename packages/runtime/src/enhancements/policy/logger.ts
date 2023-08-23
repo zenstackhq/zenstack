@@ -10,7 +10,7 @@ export class Logger {
     private eventNames: Array<string | symbol> = [];
 
     constructor(private readonly prisma: any) {
-        const engine = (this.prisma as any).getEngine();
+        const engine = (this.prisma as any)._engine;
         this.emitter = engine ? (engine.logEmitter as EventEmitter) : undefined;
         if (this.emitter) {
             this.eventNames = this.emitter.eventNames();

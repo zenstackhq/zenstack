@@ -10,6 +10,7 @@ import {
     hasAttribute,
     isEnumFieldReference,
     isForeignKeyField,
+    isFromStdlib,
     resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
@@ -20,7 +21,6 @@ import { streamAllContents } from 'langium';
 import path from 'path';
 import { Project } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
-import { isFromStdlib } from '../../language-server/utils';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
@@ -143,7 +143,7 @@ async function generateEnumSchemas(
     zmodel: Model
 ) {
     const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
-    const enumNames = enumTypes.map((enumItem) => enumItem.name);
+    const enumNames = enumTypes.map((enumItem) => upperCaseFirst(enumItem.name));
     Transformer.enumNames = enumNames ?? [];
     const transformer = new Transformer({
         enumTypes,

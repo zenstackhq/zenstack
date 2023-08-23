@@ -13,7 +13,9 @@ import {
     isDataModel,
     isDataModelField,
     isEnumField,
+    isInvocationExpr,
     isLiteralExpr,
+    isModel,
     isObjectExpr,
     isReferenceExpr,
     Model,
@@ -21,7 +23,7 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import path from 'path';
-import { ExpressionContext } from './constants';
+import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
 import { PluginOptions } from './types';
 
 /**
@@ -279,4 +281,20 @@ export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
         }
     }
     return funcAllowedContext;
+}
+
+export function isFutureExpr(node: AstNode) {
+    return !!(isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref));
+}
+
+export function isFromStdlib(node: AstNode) {
+    const model = getContainingModel(node);
+    return !!model && !!model.$document && model.$document.uri.path.endsWith(STD_LIB_MODULE_NAME);
+}
+
+export function getContainingModel(node: AstNode | undefined): Model | null {
+    if (!node) {
+        return null;
+    }
+    return isModel(node) ? node : getContainingModel(node.$container);
 }

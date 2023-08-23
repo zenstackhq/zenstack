@@ -62,14 +62,14 @@ The `zenstack` CLI transpiles the ZModel into a standard Prisma schema, which yo
 At runtime, transparent proxies are created around Prisma clients for intercepting queries and mutations to enforce access policies.
 
 ```ts
-import { withPolicy } from '@zenstackhq/runtime';
+import { enhance } from '@zenstackhq/runtime';
 
 // a regular Prisma client
 const prisma = new PrismaClient();
 
 async function getPosts(userId: string) {
     // create an enhanced Prisma client that has access control enabled
-    const enhanced = withPolicy(prisma, { user: userId });
+    const enhanced = enhance(prisma, { user: userId });
 
     // only posts that're visible to the user will be returned
     return enhanced.post.findMany();
@@ -84,14 +84,14 @@ Server adapter packages help you wrap an access-control-enabled Prisma client in
 // pages/api/model/[...path].ts
 
 import { requestHandler } from '@zenstackhq/next';
-import { withPolicy } from '@zenstackhq/runtime';
+import { enhance } from '@zenstackhq/runtime';
 import { getSessionUser } from '@lib/auth';
 import { prisma } from '@lib/db';
 
 // Mount Prisma-style APIs: "/api/model/post/findMany", "/api/model/post/create", etc.
 // Can be configured to provide standard RESTful APIs (using JSON:API) instead.
 export default requestHandler({
-    getPrisma: (req, res) => withPolicy(prisma, { user: getSessionUser(req, res) }),
+    getPrisma: (req, res) => enhance(prisma, { user: getSessionUser(req, res) }),
 });
 ```
 

@@ -12,9 +12,7 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { ExpressionContext, getLiteral } from '@zenstackhq/sdk';
-import { isFromStdlib } from '../language-server/utils';
-import { isFutureExpr } from '../plugins/access-policy/utils';
+import { ExpressionContext, getLiteral, isFromStdlib, isFutureExpr } from '@zenstackhq/sdk';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {

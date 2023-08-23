@@ -1,6 +1,11 @@
 import {
     DataModel,
+    DataModelAttribute,
+    DataModelField,
+    DataModelFieldAttribute,
     Expression,
+    MemberAccessExpr,
+    Model,
     isBinaryExpr,
     isDataModel,
     isDataModelField,
@@ -11,40 +16,41 @@ import {
     isReferenceExpr,
     isThisExpr,
     isUnaryExpr,
-    MemberAccessExpr,
-    Model,
 } from '@zenstackhq/language/ast';
-import type { PolicyKind, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
+    FIELD_LEVEL_READ_CHECKER_PREFIX,
+    FIELD_LEVEL_READ_CHECKER_SELECTOR,
+    FIELD_LEVEL_UPDATE_GUARD_PREFIX,
+    HAS_FIELD_LEVEL_POLICY_FLAG,
+    PRE_UPDATE_VALUE_SELECTOR,
+    type PolicyKind,
+    type PolicyOperationKind,
+} from '@zenstackhq/runtime';
+import {
+    ExpressionContext,
+    PluginError,
+    PluginOptions,
+    RUNTIME_PACKAGE,
     analyzePolicies,
     createProject,
     emitProject,
-    ExpressionContext,
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
     isForeignKeyField,
-    PluginError,
-    PluginOptions,
-    resolved,
+    isFromStdlib,
+    isFutureExpr,
     resolvePath,
-    RUNTIME_PACKAGE,
+    resolved,
     saveProject,
 } from '@zenstackhq/sdk';
 import { streamAllContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import {
-    FunctionDeclaration,
-    SourceFile,
-    StatementStructures,
-    VariableDeclarationKind,
-    WriterFunction,
-} from 'ts-morph';
+import { FunctionDeclaration, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { name } from '.';
-import { isFromStdlib } from '../../language-server/utils';
 import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
 import {
     TypeScriptExpressionTransformer,
@@ -52,7 +58,6 @@ import {
 } from '../../utils/typescript-expression-transformer';
 import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
-import { isFutureExpr } from './utils';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -70,7 +75,12 @@ export default class PolicyGenerator {
         sf.addStatements('/* eslint-disable */');
 
         sf.addImportDeclaration({
-            namedImports: [{ name: 'type QueryContext' }, { name: 'type DbOperations' }, { name: 'hasAllFields' }],
+            namedImports: [
+                { name: 'type QueryContext' },
+                { name: 'type DbOperations' },
+                { name: 'hasAllFields' },
+                { name: 'type PolicyDef' },
+            ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
 
@@ -95,6 +105,7 @@ export default class PolicyGenerator {
             declarations: [
                 {
                     name: 'policy',
+                    type: 'PolicyDef',
                     initializer: (writer) => {
                         writer.block(() => {
                             writer.write('guard:');
@@ -143,8 +154,10 @@ export default class PolicyGenerator {
         }
     }
 
-    private getPolicyExpressions(model: DataModel, kind: PolicyKind, operation: PolicyOperationKind) {
-        const attrs = model.attributes.filter((attr) => attr.decl.ref?.name === `@@${kind}`);
+    private getPolicyExpressions(target: DataModel | DataModelField, kind: PolicyKind, operation: PolicyOperationKind) {
+        const attributes = target.attributes as (DataModelAttribute | DataModelFieldAttribute)[];
+        const attrName = isDataModel(target) ? `@@${kind}` : `@${kind}`;
+        const attrs = attributes.filter((attr) => attr.decl.ref?.name === attrName);
 
         const checkOperation = operation === 'postUpdate' ? 'update' : operation;
 
@@ -248,9 +261,9 @@ export default class PolicyGenerator {
             result[kind] = guardFunc.getName()!;
 
             if (kind === 'postUpdate') {
-                const preValueSelect = this.generatePreValueSelect(model, allows, denies);
+                const preValueSelect = this.generateSelectForRules(allows, denies);
                 if (preValueSelect) {
-                    result['preValueSelect'] = preValueSelect;
+                    result[PRE_UPDATE_VALUE_SELECTOR] = preValueSelect;
                 }
             }
 
@@ -260,7 +273,138 @@ export default class PolicyGenerator {
                 result[kind + '_input'] = inputCheckFunc.getName()!;
             }
         }
+
+        // generate field read checkers
+        this.generateReadFieldsGuards(model, sourceFile, result);
+
+        // generate field update guards
+        this.generateUpdateFieldsGuards(model, sourceFile, result);
+
         return result;
+    }
+
+    private generateReadFieldsGuards(
+        model: DataModel,
+        sourceFile: SourceFile,
+        result: Record<string, string | boolean | object>
+    ) {
+        const allFieldsAllows: Expression[] = [];
+        const allFieldsDenies: Expression[] = [];
+
+        for (const field of model.fields) {
+            const allows = this.getPolicyExpressions(field, 'allow', 'read');
+            const denies = this.getPolicyExpressions(field, 'deny', 'read');
+            if (denies.length === 0 && allows.length === 0) {
+                continue;
+            }
+
+            allFieldsAllows.push(...allows);
+            allFieldsDenies.push(...denies);
+
+            const guardFunc = this.generateReadFieldGuardFunction(sourceFile, field, allows, denies);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[`${FIELD_LEVEL_READ_CHECKER_PREFIX}${field.name}`] = guardFunc.getName()!;
+        }
+
+        if (allFieldsAllows.length > 0 || allFieldsDenies.length > 0) {
+            result[HAS_FIELD_LEVEL_POLICY_FLAG] = true;
+            const readFieldCheckSelect = this.generateSelectForRules(allFieldsAllows, allFieldsDenies);
+            if (readFieldCheckSelect) {
+                result[FIELD_LEVEL_READ_CHECKER_SELECTOR] = readFieldCheckSelect;
+            }
+        }
+    }
+
+    private generateReadFieldGuardFunction(
+        sourceFile: SourceFile,
+        field: DataModelField,
+        allows: Expression[],
+        denies: Expression[]
+    ) {
+        const statements: (string | WriterFunction)[] = [];
+
+        this.generateNormalizedAuthRef(field.$container as DataModel, allows, denies, statements);
+
+        // compile rules down to typescript expressions
+        statements.push((writer) => {
+            const transformer = new TypeScriptExpressionTransformer({
+                context: ExpressionContext.AccessPolicy,
+                fieldReferenceContext: 'input',
+            });
+
+            const denyStmt =
+                denies.length > 0
+                    ? '!(' +
+                      denies
+                          .map((deny) => {
+                              return transformer.transform(deny);
+                          })
+                          .join(' || ') +
+                      ')'
+                    : undefined;
+
+            const allowStmt =
+                allows.length > 0
+                    ? '(' +
+                      allows
+                          .map((allow) => {
+                              return transformer.transform(allow);
+                          })
+                          .join(' || ') +
+                      ')'
+                    : undefined;
+
+            let expr: string | undefined;
+
+            if (denyStmt && allowStmt) {
+                expr = `${denyStmt} && ${allowStmt}`;
+            } else if (denyStmt) {
+                expr = denyStmt;
+            } else if (allowStmt) {
+                expr = allowStmt;
+            } else {
+                throw new Error('should not happen');
+            }
+
+            writer.write('return ' + expr);
+        });
+
+        const func = sourceFile.addFunction({
+            name: `${field.$container.name}$${field.name}_read`,
+            returnType: 'boolean',
+            parameters: [
+                {
+                    name: 'input',
+                    type: 'any',
+                },
+                {
+                    name: 'context',
+                    type: 'QueryContext',
+                },
+            ],
+            statements,
+        });
+
+        return func;
+    }
+
+    private generateUpdateFieldsGuards(
+        model: DataModel,
+        sourceFile: SourceFile,
+        result: Record<string, string | boolean | object>
+    ) {
+        for (const field of model.fields) {
+            const allows = this.getPolicyExpressions(field, 'allow', 'update');
+            const denies = this.getPolicyExpressions(field, 'deny', 'update');
+
+            if (denies.length === 0 && allows.length === 0) {
+                continue;
+            }
+
+            const guardFunc = this.generateQueryGuardFunction(sourceFile, model, 'update', allows, denies, field);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field.name}`] = guardFunc.getName()!;
+        }
     }
 
     private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
@@ -299,9 +443,9 @@ export default class PolicyGenerator {
         });
     }
 
-    // generates an object that can be used as the 'select' argument when fetching pre-update
-    // entity value
-    private generatePreValueSelect(model: DataModel, allows: Expression[], denies: Expression[]): object {
+    // generates a "select" object that contains (recursively) fields referenced by the
+    // given policy rules
+    private generateSelectForRules(allows: Expression[], denies: Expression[]): object {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = {};
         const addPath = (path: string[]) => {
@@ -363,7 +507,7 @@ export default class PolicyGenerator {
             }
         }
 
-        return Object.keys(result).length === 0 ? null : result;
+        return Object.keys(result).length === 0 ? undefined : result;
     }
 
     private generateQueryGuardFunction(
@@ -371,34 +515,12 @@ export default class PolicyGenerator {
         model: DataModel,
         kind: PolicyOperationKind,
         allows: Expression[],
-        denies: Expression[]
+        denies: Expression[],
+        forField?: DataModelField
     ): FunctionDeclaration {
-        const statements: (string | WriterFunction | StatementStructures)[] = [];
+        const statements: (string | WriterFunction)[] = [];
 
-        // check if any allow or deny rule contains 'auth()' invocation
-        const hasAuthRef = [...denies, ...allows].some((rule) =>
-            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
-        );
-
-        if (hasAuthRef) {
-            const userModel = model.$container.declarations.find(
-                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
-            );
-            if (!userModel) {
-                throw new PluginError(name, 'User model not found');
-            }
-            const userIdFields = getIdFields(userModel);
-            if (!userIdFields || userIdFields.length === 0) {
-                throw new PluginError(name, 'User model does not have an id field');
-            }
-
-            // normalize user to null to avoid accidentally use undefined in filter
-            statements.push(
-                `const user = hasAllFields(context.user, [${userIdFields
-                    .map((f) => "'" + f.name + "'")
-                    .join(', ')}]) ? context.user as any : null;`
-            );
-        }
+        this.generateNormalizedAuthRef(model, allows, denies, statements);
 
         const hasFieldAccess = [...denies, ...allows].some((rule) =>
             [...this.allNodes(rule)].some(
@@ -480,7 +602,7 @@ export default class PolicyGenerator {
         }
 
         const func = sourceFile.addFunction({
-            name: model.name + '_' + kind,
+            name: `${model.name}${forField ? '$' + forField.name : ''}_${kind}`,
             returnType: 'any',
             parameters: [
                 {
@@ -488,6 +610,7 @@ export default class PolicyGenerator {
                     type: 'QueryContext',
                 },
                 {
+                    // for generating field references used by field comparison in the same model
                     name: 'db',
                     type: 'Record<string, DbOperations>',
                 },
@@ -505,32 +628,9 @@ export default class PolicyGenerator {
         allows: Expression[],
         denies: Expression[]
     ): FunctionDeclaration {
-        const statements: (string | WriterFunction | StatementStructures)[] = [];
+        const statements: (string | WriterFunction)[] = [];
 
-        // check if any allow or deny rule contains 'auth()' invocation
-        const hasAuthRef = [...denies, ...allows].some((rule) =>
-            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
-        );
-
-        if (hasAuthRef) {
-            const userModel = model.$container.declarations.find(
-                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
-            );
-            if (!userModel) {
-                throw new PluginError(name, 'User model not found');
-            }
-            const userIdFields = getIdFields(userModel);
-            if (!userIdFields || userIdFields.length === 0) {
-                throw new PluginError(name, 'User model does not have an id field');
-            }
-
-            // normalize user to null to avoid accidentally use undefined in filter
-            statements.push(
-                `const user = hasAllFields(context.user, [${userIdFields
-                    .map((f) => "'" + f.name + "'")
-                    .join(', ')}]) ? context.user as any : null;`
-            );
-        }
+        this.generateNormalizedAuthRef(model, allows, denies, statements);
 
         statements.push((writer) => {
             if (allows.length === 0) {
@@ -581,6 +681,38 @@ export default class PolicyGenerator {
         });
 
         return func;
+    }
+
+    private generateNormalizedAuthRef(
+        model: DataModel,
+        allows: Expression[],
+        denies: Expression[],
+        statements: (string | WriterFunction)[]
+    ) {
+        // check if any allow or deny rule contains 'auth()' invocation
+        const hasAuthRef = [...allows, ...denies].some((rule) =>
+            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
+        );
+
+        if (hasAuthRef) {
+            const userModel = model.$container.declarations.find(
+                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
+            );
+            if (!userModel) {
+                throw new PluginError(name, 'User model not found');
+            }
+            const userIdFields = getIdFields(userModel);
+            if (!userIdFields || userIdFields.length === 0) {
+                throw new PluginError(name, 'User model does not have an id field');
+            }
+
+            // normalize user to null to avoid accidentally use undefined in filter
+            statements.push(
+                `const user = hasAllFields(context.user, [${userIdFields
+                    .map((f) => "'" + f.name + "'")
+                    .join(', ')}]) ? context.user as any : null;`
+            );
+        }
     }
 
     private *allNodes(expr: Expression) {

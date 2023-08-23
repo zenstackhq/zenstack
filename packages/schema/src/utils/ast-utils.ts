@@ -13,9 +13,9 @@ import {
     ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import { isFromStdlib } from '@zenstackhq/sdk';
 import { AstNode, getDocument, LangiumDocuments, Mutable } from 'langium';
 import { URI, Utils } from 'vscode-uri';
-import { isFromStdlib } from '../language-server/utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(

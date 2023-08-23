@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/sdk",
-    "version": "1.0.0-beta.19",
+    "version": "1.0.0-beta.20",
     "description": "ZenStack plugin development SDK",
     "main": "index.js",
     "scripts": {
@@ -26,7 +26,8 @@
         "@zenstackhq/runtime": "workspace:*",
         "prettier": "^2.8.3",
         "semver": "^7.3.8",
-        "ts-morph": "^16.0.0"
+        "ts-morph": "^16.0.0",
+        "upper-case-first": "^2.0.2"
     },
     "devDependencies": {
         "@types/node": "^18.0.0",

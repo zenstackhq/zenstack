@@ -5,7 +5,7 @@ info:
 tags:
     - name: user
       description: User operations
-    - name: post
+    - name: post_Item
       description: Post-related operations
 paths:
     /user:
@@ -172,7 +172,7 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      $ref: '#/components/schemas/Role'
+                      $ref: '#/components/schemas/role'
                 - name: filter[posts]
                   required: false
                   description: Equality filter for "posts"
@@ -496,7 +496,7 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      $ref: '#/components/schemas/Role'
+                      $ref: '#/components/schemas/role'
                 - name: filter[posts]
                   required: false
                   description: Equality filter for "posts"
@@ -513,7 +513,7 @@ paths:
                     content:
                         application/vnd.api+json:
                             schema:
-                                $ref: '#/components/schemas/PostListResponse'
+                                $ref: '#/components/schemas/post_ItemListResponse'
                 '403':
                     description: Request is forbidden
                     content:
@@ -690,7 +690,7 @@ paths:
                   style: form
                   explode: false
                   schema:
-                      $ref: '#/components/schemas/Role'
+                      $ref: '#/components/schemas/role'
                 - name: filter[posts]
                   required: false
                   description: Equality filter for "posts"
@@ -813,12 +813,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    /post:
+    /post_Item:
         get:
-            operationId: list-Post
-            description: List "Post" resources
+            operationId: list-post_Item
+            description: List "post_Item" resources
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/include'
                 - $ref: '#/components/parameters/sort'
@@ -1032,7 +1032,7 @@ paths:
                     content:
                         application/vnd.api+json:
                             schema:
-                                $ref: '#/components/schemas/PostListResponse'
+                                $ref: '#/components/schemas/post_ItemListResponse'
                 '403':
                     description: Request is forbidden
                     content:
@@ -1040,34 +1040,34 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
         post:
-            operationId: create-Post
-            description: Create a "Post" resource
+            operationId: create-post_Item
+            description: Create a "post_Item" resource
             tags:
-                - post
+                - post_Item
             requestBody:
                 content:
                     application/vnd.api+json:
                         schema:
-                            $ref: '#/components/schemas/PostCreateRequest'
+                            $ref: '#/components/schemas/post_ItemCreateRequest'
             responses:
                 '201':
                     description: Successful operation
                     content:
                         application/vnd.api+json:
                             schema:
-                                $ref: '#/components/schemas/PostResponse'
+                                $ref: '#/components/schemas/post_ItemResponse'
                 '403':
                     description: Request is forbidden
                     content:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/post/{id}':
+    '/post_Item/{id}':
         get:
-            operationId: fetch-Post
-            description: Fetch a "Post" resource
+            operationId: fetch-post_Item
+            description: Fetch a "post_Item" resource
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
                 - $ref: '#/components/parameters/include'
@@ -1077,7 +1077,7 @@ paths:
                     content:
                         application/vnd.api+json:
                             schema:
-                                $ref: '#/components/schemas/PostResponse'
+                                $ref: '#/components/schemas/post_ItemResponse'
                 '403':
                     description: Request is forbidden
                     content:
@@ -1091,24 +1091,24 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
         put:
-            operationId: update-Post-put
-            description: Update a "Post" resource
+            operationId: update-post_Item-put
+            description: Update a "post_Item" resource
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
             requestBody:
                 content:
                     application/vnd.api+json:
                         schema:
-                            $ref: '#/components/schemas/PostUpdateRequest'
+                            $ref: '#/components/schemas/post_ItemUpdateRequest'
             responses:
                 '200':
                     description: Successful operation
                     content:
                         application/vnd.api+json:
                             schema:
-                                $ref: '#/components/schemas/PostResponse'
+                                $ref: '#/components/schemas/post_ItemResponse'
                 '403':
                     description: Request is forbidden
                     content:
@@ -1122,24 +1122,24 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
         patch:
-            operationId: update-Post-patch
-            description: Update a "Post" resource
+            operationId: update-post_Item-patch
+            description: Update a "post_Item" resource
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
             requestBody:
                 content:
                     application/vnd.api+json:
                         schema:
-                            $ref: '#/components/schemas/PostUpdateRequest'
+                            $ref: '#/components/schemas/post_ItemUpdateRequest'
             responses:
                 '200':
                     description: Successful operation
                     content:
                         application/vnd.api+json:
                             schema:
-                                $ref: '#/components/schemas/PostResponse'
+                                $ref: '#/components/schemas/post_ItemResponse'
                 '403':
                     description: Request is forbidden
                     content:
@@ -1153,10 +1153,10 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
         delete:
-            operationId: delete-Post
-            description: Delete a "Post" resource
+            operationId: delete-post_Item
+            description: Delete a "post_Item" resource
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
             responses:
@@ -1174,12 +1174,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/post/{id}/author':
+    '/post_Item/{id}/author':
         get:
-            operationId: fetch-Post-related-author
-            description: Fetch the related "author" resource for "Post"
+            operationId: fetch-post_Item-related-author
+            description: Fetch the related "author" resource for "post_Item"
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
                 - $ref: '#/components/parameters/include'
@@ -1202,12 +1202,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/post/{id}/relationships/author':
+    '/post_Item/{id}/relationships/author':
         get:
-            operationId: fetch-Post-relationship-author
-            description: Fetch the "author" relationships for a "Post"
+            operationId: fetch-post_Item-relationship-author
+            description: Fetch the "author" relationships for a "post_Item"
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
             responses:
@@ -1230,10 +1230,10 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
         put:
-            operationId: update-Post-relationship-author-put
-            description: Update "author" relationship for a "Post"
+            operationId: update-post_Item-relationship-author-put
+            description: Update "author" relationship for a "post_Item"
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
             requestBody:
@@ -1261,10 +1261,10 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
         patch:
-            operationId: update-Post-relationship-author-patch
-            description: Update "author" relationship for a "Post"
+            operationId: update-post_Item-relationship-author-patch
+            description: Update "author" relationship for a "post_Item"
             tags:
-                - post
+                - post_Item
             parameters:
                 - $ref: '#/components/parameters/id'
             requestBody:
@@ -1503,9 +1503,9 @@ components:
                   properties:
                       jsonapi:
                           $ref: '#/components/schemas/_jsonapi'
-        Role:
+        role:
             type: string
-            description: The "Role" Enum
+            description: The "role" Enum
             enum:
                 - USER
                 - ADMIN
@@ -1533,7 +1533,7 @@ components:
                         email:
                             type: string
                         role:
-                            $ref: '#/components/schemas/Role'
+                            $ref: '#/components/schemas/role'
                 relationships:
                     type: object
                     properties:
@@ -1572,7 +1572,7 @@ components:
                                 email:
                                     type: string
                                 role:
-                                    $ref: '#/components/schemas/Role'
+                                    $ref: '#/components/schemas/role'
                         relationships:
                             type: object
                             properties:
@@ -1610,7 +1610,7 @@ components:
                                 email:
                                     type: string
                                 role:
-                                    $ref: '#/components/schemas/Role'
+                                    $ref: '#/components/schemas/role'
                         relationships:
                             type: object
                             properties:
@@ -1673,9 +1673,9 @@ components:
                     allOf:
                         - $ref: '#/components/schemas/_links'
                         - $ref: '#/components/schemas/_pagination'
-        Post:
+        post_Item:
             type: object
-            description: The "Post" model
+            description: The "post_Item" model
             required:
                 - id
                 - type
@@ -1707,15 +1707,15 @@ components:
                     properties:
                         author:
                             $ref: '#/components/schemas/_toOneRelationshipWithLinks'
-        PostCreateRequest:
+        post_ItemCreateRequest:
             type: object
-            description: Input for creating a "Post"
+            description: Input for creating a "post_Item"
             required:
                 - data
             properties:
                 data:
                     type: object
-                    description: The "Post" model
+                    description: The "post_Item" model
                     required:
                         - id
                         - type
@@ -1752,15 +1752,15 @@ components:
                                     $ref: '#/components/schemas/_toOneRelationship'
                 meta:
                     $ref: '#/components/schemas/_meta'
-        PostUpdateRequest:
+        post_ItemUpdateRequest:
             type: object
-            description: Input for updating a "Post"
+            description: Input for updating a "post_Item"
             required:
                 - data
             properties:
                 data:
                     type: object
-                    description: The "Post" model
+                    description: The "post_Item" model
                     required:
                         - id
                         - type
@@ -1794,9 +1794,9 @@ components:
                                     $ref: '#/components/schemas/_toOneRelationship'
                 meta:
                     $ref: '#/components/schemas/_meta'
-        PostResponse:
+        post_ItemResponse:
             type: object
-            description: Response for a "Post"
+            description: Response for a "post_Item"
             required:
                 - data
             properties:
@@ -1804,7 +1804,7 @@ components:
                     $ref: '#/components/schemas/_jsonapi'
                 data:
                     allOf:
-                        - $ref: '#/components/schemas/Post'
+                        - $ref: '#/components/schemas/post_Item'
                         - type: object
                           properties:
                               relationships:
@@ -1820,9 +1820,9 @@ components:
                         $ref: '#/components/schemas/_resource'
                 links:
                     $ref: '#/components/schemas/_links'
-        PostListResponse:
+        post_ItemListResponse:
             type: object
-            description: Response for a list of "Post"
+            description: Response for a list of "post_Item"
             required:
                 - data
                 - links
@@ -1833,7 +1833,7 @@ components:
                     type: array
                     items:
                         allOf:
-                            - $ref: '#/components/schemas/Post'
+                            - $ref: '#/components/schemas/post_Item'
                             - type: object
                               properties:
                                   relationships:
