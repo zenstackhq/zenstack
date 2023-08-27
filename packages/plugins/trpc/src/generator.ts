@@ -95,7 +95,6 @@ function createAppRouter(
         {
             namedImports: ['type PrismaClient', 'type Prisma'],
             moduleSpecifier: prismaImport,
-            isTypeOnly: true,
         },
         {
             namedImports: ['type createRouterFactory'],
