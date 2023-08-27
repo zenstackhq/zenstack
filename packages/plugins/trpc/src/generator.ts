@@ -131,10 +131,10 @@ function createAppRouter(
 
     appRouter
         .addFunction({
-            name: 'createRouter<Config extends BaseConfig>',
+            name: 'createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>',
             parameters: [
-                { name: 'router', type: 'RouterFactory<Config>' },
-                { name: 'procedure', type: 'ProcBuilder<Config>' },
+                { name: 'router', type: 'Router' },
+                { name: 'procedure', type: 'Proc' },
             ],
             isExported: true,
         })
@@ -159,7 +159,9 @@ function createAppRouter(
                         moduleSpecifier: `./${model}.router`,
                     });
 
-                    writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router<Config>(router, procedure),`);
+                    writer.writeLine(
+                        `${lowerCaseFirst(model)}: create${model}Router<Router, Proc>(router, procedure),`
+                    );
                 }
             });
             writer.write(');');
@@ -243,10 +245,10 @@ function generateModelCreateRouter(
     }
 
     const createRouterFunc = modelRouter.addFunction({
-        name: 'createRouter<Config extends BaseConfig>',
+        name: 'createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>',
         parameters: [
-            { name: 'router', type: 'RouterFactory<Config>' },
-            { name: 'procedure', type: 'ProcBuilder<Config>' },
+            { name: 'router', type: 'Router' },
+            { name: 'procedure', type: 'Proc' },
         ],
         isExported: true,
         isDefaultExport: true,
