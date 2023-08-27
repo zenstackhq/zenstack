@@ -21,14 +21,24 @@ export function generateProcedure(
         writer.write(`
         ${opType}: procedure.input(${typeName}).query(({ctx, input}) => checkRead(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input as any))),
+        )}.${prismaMethod}(input as any))) as ProcReturns<
+            "query",
+            Proc,
+            (typeof ${modelName}InputSchema)["${opType.replace('OrThrow', '')}"],
+            ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
+        >,
     `);
     } else if (procType === 'mutation') {
         // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
         ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => checkMutate(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input as any))),
+        )}.${prismaMethod}(input as any))) as ProcReturns<
+                "mutation",
+                Proc,
+                (typeof ${modelName}InputSchema)["${opType.replace('OrThrow', '')}"],
+                ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
+            >,
     `);
     }
 }
