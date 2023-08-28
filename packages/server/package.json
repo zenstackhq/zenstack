@@ -55,5 +55,16 @@
         "supertest": "^6.3.3",
         "ts-jest": "^29.0.5",
         "typescript": "^4.9.4"
+    },
+    "exports": {
+        "./api/rest": "./api/rest/index.js",
+        "./api/rpc": "./api/rpc/index.js",
+        "./express": "./express/index.js",
+        "./fastify": "./fastify/index.js",
+        "./next/app-route-handler": "./next/app-route-handler.js",
+        "./next": "./next/index.js",
+        "./next/pages-route-handler": "./next/pages-route-handler.js",
+        "./sveltekit": "./sveltekit/index.js",
+        "./types": "./types.js"
     }
 }
