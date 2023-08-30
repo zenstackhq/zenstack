@@ -89,35 +89,85 @@ function createAppRouter(
     const prismaImport = getPrismaClientImportSpec(zmodel, path.dirname(indexFile));
     appRouter.addImportDeclarations([
         {
-            namedImports: ['AnyRootConfig'],
+            namedImports: ['type AnyRootConfig', 'type Procedure', 'type ProcedureParams', 'type ProcedureType'],
             moduleSpecifier: '@trpc/server',
         },
         {
-            namedImports: ['PrismaClient'],
+            namedImports: ['type PrismaClient', 'type Prisma'],
             moduleSpecifier: prismaImport,
-            isTypeOnly: true,
         },
         {
-            namedImports: ['createRouterFactory', 'AnyRouter'],
+            namedImports: ['type createRouterFactory', 'AnyRouter'],
             moduleSpecifier: '@trpc/server/dist/core/router',
         },
         {
-            namedImports: ['createBuilder'],
+            namedImports: ['type ProcedureBuilder'],
             moduleSpecifier: '@trpc/server/dist/core/internals/procedureBuilder',
         },
+        { defaultImport: 'z', moduleSpecifier: 'zod', isTypeOnly: true },
     ]);
 
     appRouter.addStatements(`
+        ${/** to be used by the other routers without making a bigger commit */ ''}
+        export { PrismaClient } from '${prismaImport}'; 
+
         export type BaseConfig = AnyRootConfig;
 
         export type RouterFactory<Config extends BaseConfig> = ReturnType<
             typeof createRouterFactory<Config>
         >;
         
-        export type ProcBuilder<Config extends BaseConfig> = ReturnType<
-            typeof createBuilder<Config>
-        >;
+        ${
+            /** this is needed in order to prevent type errors between a procedure and a middleware-extended procedure */ ''
+        }
+        export type ProcBuilder<Config extends BaseConfig> = ProcedureBuilder<{
+            _config: Config;
+            _ctx_out: Config['$types']['ctx'];
+            _input_in: any;
+            _input_out: any;
+            _output_in: any;
+            _output_out: any;
+            _meta: Config['$types']['meta'];
+        }>;
+
+        type ExtractParamsFromProcBuilder<Builder extends ProcedureBuilder<any>> =
+            Builder extends ProcedureBuilder<infer P> ? P : never;
         
+        type FromPromise<P extends Promise<any>> = P extends Promise<infer T>
+            ? T
+            : never;
+          
+        ${/** workaround to avoid creating 'typeof unsetMarker & object' on the procedure output */ ''}
+        type Join<A, B> = A extends symbol ? B : A & B;
+
+        ${
+            /** you can name it whatever you want, but this is to make sure that 
+                the types from the middleware and the procedure are correctly merged */ ''
+        }
+        export type ProcReturns<
+            PType extends ProcedureType,
+            PBuilder extends ProcBuilder<BaseConfig>,
+            ZType extends z.ZodType,
+            PPromise extends Prisma.PrismaPromise<any>
+        > = Procedure<
+                PType,
+                ProcedureParams<
+                    ExtractParamsFromProcBuilder<PBuilder>["_config"],
+                    ExtractParamsFromProcBuilder<PBuilder>["_ctx_out"],
+                    Join<ExtractParamsFromProcBuilder<PBuilder>["_input_in"], z.infer<ZType>>,
+                    Join<ExtractParamsFromProcBuilder<PBuilder>["_input_out"], z.infer<ZType>>,
+                    Join<
+                        ExtractParamsFromProcBuilder<PBuilder>["_output_in"],
+                        FromPromise<PPromise>
+                    >,
+                    Join<
+                        ExtractParamsFromProcBuilder<PBuilder>["_output_out"],
+                        FromPromise<PPromise>
+                    >,
+                    ExtractParamsFromProcBuilder<PBuilder>["_meta"]
+                >
+            >;
+
         export function db(ctx: any) {
             if (!ctx.prisma) {
                 throw new Error('Missing "prisma" field in trpc context');
@@ -233,7 +283,14 @@ function generateModelCreateRouter(
 
     modelRouter.addImportDeclarations([
         {
-            namedImports: ['type RouterFactory', 'type ProcBuilder', 'type BaseConfig', 'db'],
+            namedImports: [
+                'type RouterFactory',
+                'type ProcBuilder',
+                'type BaseConfig',
+                'type ProcReturns',
+                'type PrismaClient',
+                'db',
+            ],
             moduleSpecifier: '.',
         },
     ]);
