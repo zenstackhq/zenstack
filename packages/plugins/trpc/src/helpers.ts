@@ -24,7 +24,7 @@ export function generateProcedure(
         )}.${prismaMethod}(input as any))) as ProcReturns<
             "query",
             Proc,
-            (typeof ${modelName}InputSchema)["${opType.replace('OrThrow', '')}"],
+            (typeof ${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
             ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
         >,
     `);
@@ -36,7 +36,7 @@ export function generateProcedure(
         )}.${prismaMethod}(input as any))) as ProcReturns<
                 "mutation",
                 Proc,
-                (typeof ${modelName}InputSchema)["${opType.replace('OrThrow', '')}"],
+                (typeof ${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
                 ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
             >,
     `);
