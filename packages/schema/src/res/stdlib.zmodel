@@ -239,12 +239,12 @@ attribute @map(_ name: String) @@@prisma
 attribute @@map(_ name: String) @@@prisma
 
 /**
-* Exclude a field from the Prisma Client (for example, a field that you do not want Prisma users to update).
+ * Exclude a field from the Prisma Client (for example, a field that you do not want Prisma users to update).
  */
 attribute @ignore() @@@prisma
 
 /**
-* Exclude a model from the Prisma Client (for example, a model that you do not want Prisma users to update).
+ * Exclude a model from the Prisma Client (for example, a model that you do not want Prisma users to update).
  */
 attribute @@ignore() @@@prisma
 
@@ -252,6 +252,12 @@ attribute @@ignore() @@@prisma
  * Automatically stores the time when a record was last updated.
  */
 attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma
+
+/**
+ * Add full text index (MySQL only).
+ */
+attribute @@fulltext(_ fields: FieldReference[]) @@@prisma
+
 
 // String type modifiers
 
@@ -352,7 +358,7 @@ attribute @@schema(_ name: String) @@@prisma
 attribute @@allow(_ operation: String, _ condition: Boolean)
 
 /**
- * Defines an access policy that allows a set of operations when the given condition is true.
+ * Defines an access policy that allows the annotated field to be read or updated.
  */
 attribute @allow(_ operation: String, _ condition: Boolean)
 
@@ -362,7 +368,7 @@ attribute @allow(_ operation: String, _ condition: Boolean)
 attribute @@deny(_ operation: String, _ condition: Boolean)
 
 /**
- * Defines an access policy that denies a set of operations when the given condition is true.
+ * Defines an access policy that denies the annotated field to be read or updated.
  */
 attribute @deny(_ operation: String, _ condition: Boolean)
 

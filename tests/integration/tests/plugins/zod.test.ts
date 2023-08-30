@@ -367,4 +367,50 @@ describe('Zod plugin tests', () => {
         expect(schema.safeParse({ arr: [4] }).error.toString()).toMatch(/condition4/);
         expect(schema.safeParse({ arr: [1, 2, 3] }).success).toBeTruthy();
     });
+
+    it('full-text search', async () => {
+        const model = `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+            previewFeatures = ["fullTextSearch"]
+        }
+
+        plugin zod {
+            provider = "@core/zod"
+        }
+
+        enum Role {
+            USER
+            ADMIN 
+        }
+
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique @email @endsWith('@zenstack.dev')
+            password String @omit
+            role Role @default(USER)
+            posts post_Item[]
+        }
+        
+        model post_Item {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            title String @length(5, 10)
+            author User? @relation(fields: [authorId], references: [id])
+            authorId Int?
+            published Boolean @default(false)
+            viewCount Int @default(0)
+        }
+        `;
+
+        await loadSchema(model, { addPrelude: false, pushDb: false });
+    });
 });
