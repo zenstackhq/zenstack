@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import type { DMMF as PrismaDMMF } from '@prisma/generator-helper';
+import type { DMMF, DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import { Model } from '@zenstackhq/language/ast';
 import { AUXILIARY_FIELDS, getPrismaClientImportSpec, getPrismaVersion } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
-import indentString from '@zenstackhq/sdk/utils';
+import { indentString } from '@zenstackhq/sdk/utils';
 import path from 'path';
 import * as semver from 'semver';
 import { Project } from 'ts-morph';
@@ -28,6 +28,7 @@ export default class Transformer {
     private hasDecimal = false;
     private project: Project;
     private zmodel: Model;
+    private inputObjectTypes: DMMF.InputType[];
 
     constructor(params: TransformerParams) {
         this.originalName = params.name ?? '';
@@ -39,6 +40,7 @@ export default class Transformer {
         this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
         this.zmodel = params.zmodel;
+        this.inputObjectTypes = params.inputObjectTypes;
     }
 
     static setOutputPath(outPath: string) {
@@ -420,6 +422,13 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             let codeBody = '';
             const operations: [string, string][] = [];
 
+            // OrderByWithRelationInput's name is different when "fullTextSearch" is enabled
+            const orderByWithRelationInput = this.inputObjectTypes
+                .map((o) => upperCaseFirst(o.name))
+                .includes(`${modelName}OrderByWithRelationInput`)
+                ? `${modelName}OrderByWithRelationInput`
+                : `${modelName}OrderByWithRelationAndSearchRelevanceInput`;
+
             if (findUnique) {
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
@@ -431,22 +440,22 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             if (findFirst) {
                 imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
-                    `import { ${modelName}OrderByWithRelationInputObjectSchema } from '../objects/${modelName}OrderByWithRelationInput.schema'`,
+                    `import { ${orderByWithRelationInput}ObjectSchema } from '../objects/${orderByWithRelationInput}.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
+                codeBody += `findFirst: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional() }),`;
                 operations.push(['findFirst', origModelName]);
             }
 
             if (findMany) {
                 imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
-                    `import { ${modelName}OrderByWithRelationInputObjectSchema } from '../objects/${modelName}OrderByWithRelationInput.schema'`,
+                    `import { ${orderByWithRelationInput}ObjectSchema } from '../objects/${orderByWithRelationInput}.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`
                 );
-                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  }),`;
+                codeBody += `findMany: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional()  }),`;
                 operations.push(['findMany', origModelName]);
             }
 
@@ -557,11 +566,11 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             if (aggregate) {
                 imports.push(
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
-                    `import { ${modelName}OrderByWithRelationInputObjectSchema } from '../objects/${modelName}OrderByWithRelationInput.schema'`,
+                    `import { ${orderByWithRelationInput}ObjectSchema } from '../objects/${orderByWithRelationInput}.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
 
-                codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${modelName}OrderByWithRelationInputObjectSchema, ${modelName}OrderByWithRelationInputObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
+                codeBody += `aggregate: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), ${aggregateOperations.join(
                     ', '
                 )} }),`;
                 operations.push(['aggregate', modelName]);

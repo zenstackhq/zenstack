@@ -399,6 +399,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             security: read === true ? [] : undefined,
         });
 
+        // OrderByWithRelationInput's name is different when "fullTextSearch" is enabled
+        const orderByWithRelationInput = this.inputObjectTypes
+            .map((o) => upperCaseFirst(o.name))
+            .includes(`${modelName}OrderByWithRelationInput`)
+            ? `${modelName}OrderByWithRelationInput`
+            : `${modelName}OrderByWithRelationAndSearchRelevanceInput`;
+
         if (ops['aggregate']) {
             definitions.push({
                 method: 'get',
@@ -409,7 +416,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         properties: {
                             where: this.ref(`${modelName}WhereInput`),
-                            orderBy: this.ref(`${modelName}OrderByWithRelationInput`),
+                            orderBy: this.ref(orderByWithRelationInput),
                             cursor: this.ref(`${modelName}WhereUniqueInput`),
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
@@ -435,7 +442,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         properties: {
                             where: this.ref(`${modelName}WhereInput`),
-                            orderBy: this.ref(`${modelName}OrderByWithRelationInput`),
+                            orderBy: this.ref(orderByWithRelationInput),
                             by: this.ref(`${modelName}ScalarFieldEnum`),
                             having: this.ref(`${modelName}ScalarWhereWithAggregatesInput`),
                             take: { type: 'integer' },

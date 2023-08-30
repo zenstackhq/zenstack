@@ -81,6 +81,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             aggregateOperationSupport,
             project,
             zmodel: model,
+            inputObjectTypes,
         });
         await transformer.generateInputSchemas();
     }
@@ -149,6 +150,7 @@ async function generateEnumSchemas(
         enumTypes,
         project,
         zmodel,
+        inputObjectTypes: [],
     });
     await transformer.generateEnumSchemas();
 }
@@ -163,7 +165,7 @@ async function generateObjectSchemas(
     for (let i = 0; i < inputObjectTypes.length; i += 1) {
         const fields = inputObjectTypes[i]?.fields;
         const name = inputObjectTypes[i]?.name;
-        const transformer = new Transformer({ name, fields, project, zmodel });
+        const transformer = new Transformer({ name, fields, project, zmodel, inputObjectTypes });
         const moduleName = transformer.generateObjectSchema();
         moduleNames.push(moduleName);
     }
