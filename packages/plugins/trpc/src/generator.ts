@@ -97,7 +97,7 @@ function createAppRouter(
             moduleSpecifier: prismaImport,
         },
         {
-            namedImports: ['type createRouterFactory'],
+            namedImports: ['type createRouterFactory', 'AnyRouter'],
             moduleSpecifier: '@trpc/server/dist/core/router',
         },
         {
