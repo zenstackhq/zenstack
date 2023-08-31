@@ -10,10 +10,12 @@ import {
     Enum,
     FunctionDecl,
     InvocationExpr,
-    LiteralExpr,
     ReferenceExpr,
     UnaryExpr,
     MemberAccessExpr,
+    StringLiteral,
+    BooleanLiteral,
+    NumberLiteral,
 } from '@zenstackhq/language/ast';
 import { loadModel } from '../utils';
 
@@ -40,7 +42,7 @@ describe('Parsing Tests', () => {
         );
         expect(ds.fields[1].name).toBe('url');
         expect((ds.fields[1].value as InvocationExpr).function.ref?.name).toBe('env');
-        expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(LiteralExpr);
+        expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(StringLiteral);
     });
 
     it('enum simple', async () => {
@@ -158,7 +160,7 @@ describe('Parsing Tests', () => {
         const doc = await loadModel(content, false);
         const model = doc.declarations[0] as DataModel;
         expect(model.fields[0].attributes[0].decl.ref?.name).toBe('@id');
-        expect(model.fields[1].attributes[0].args[0].value.$type).toBe(LiteralExpr);
+        expect(model.fields[1].attributes[0].args[0].value.$type).toBe(BooleanLiteral);
         expect(model.fields[1].attributes[1].decl.ref?.name).toBe('@unique');
     });
 
@@ -239,11 +241,7 @@ describe('Parsing Tests', () => {
 
         expect(attrs[1].args[1].value.$type).toBe(BinaryExpr);
         expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(ReferenceExpr);
-        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(LiteralExpr);
-
-        expect(attrs[1].args[1].value.$type).toBe(BinaryExpr);
-        expect((attrs[1].args[1].value as BinaryExpr).left.$type).toBe(ReferenceExpr);
-        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(LiteralExpr);
+        expect((attrs[1].args[1].value as BinaryExpr).right.$type).toBe(NumberLiteral);
 
         // expect(attrs[2].args[0].value.$type).toBe(BinaryExpr);
         // expect((attrs[2].args[0].value as BinaryExpr).left.$type).toBe(
