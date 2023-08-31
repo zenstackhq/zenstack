@@ -119,7 +119,7 @@ async function generateCommonSchemas(project: Project, output: string) {
         path.join(output, 'common', 'index.ts'),
         `
 import { z } from 'zod';
-export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()})]);
+export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()}).passthrough()]);
 
 // https://stackoverflow.com/a/54487392/20415796
 type OmitDistributive<T, K extends PropertyKey> = T extends any ? (T extends object ? OmitRecursively<T, K> : T) : never;
@@ -236,6 +236,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         // import Decimal
         if (fields.some((field) => field.type.type === 'Decimal')) {
             writer.writeLine(`import { DecimalSchema } from '../common';`);
+            writer.writeLine(`import { Decimal } from 'decimal.js';`);
         }
 
         // create base schema
