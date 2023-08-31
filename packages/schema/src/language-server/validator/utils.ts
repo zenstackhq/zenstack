@@ -11,8 +11,8 @@ import {
     isArrayExpr,
     isDataModelField,
     isEnum,
-    isLiteralExpr,
     isReferenceExpr,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
 import { resolved } from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
@@ -51,11 +51,7 @@ export function validateDuplicatedDeclarations(
  * Try getting string value from a potential string literal expression
  */
 export function getStringLiteral(node: AstNode | undefined): string | undefined {
-    if (isLiteralExpr(node) && typeof node.value === 'string') {
-        return node.value;
-    } else {
-        return undefined;
-    }
+    return isStringLiteral(node) ? node.value : undefined;
 }
 
 const isoDateTimeRegex = /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\d:\d\d)|Z)?)?)?)?$/i;
@@ -65,7 +61,7 @@ const isoDateTimeRegex = /^\d{4}(-\d\d(-\d\d(T\d\d:\d\d(:\d\d)?(\.\d+)?(([+-]\d\
  */
 export function typeAssignable(destType: ExpressionType, sourceType: ExpressionType, sourceExpr?: Expression): boolean {
     // implicit conversion from ISO datetime string to datetime
-    if (destType === 'DateTime' && sourceType === 'String' && sourceExpr && isLiteralExpr(sourceExpr)) {
+    if (destType === 'DateTime' && sourceType === 'String' && sourceExpr && isStringLiteral(sourceExpr)) {
         const literal = getStringLiteral(sourceExpr);
         if (literal && isoDateTimeRegex.test(literal)) {
             // implicitly convert to DateTime

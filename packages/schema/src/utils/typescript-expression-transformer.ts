@@ -1,6 +1,7 @@
 import {
     ArrayExpr,
     BinaryExpr,
+    BooleanLiteral,
     Expression,
     InvocationExpr,
     isEnumField,
@@ -8,7 +9,9 @@ import {
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    NumberLiteral,
     ReferenceExpr,
+    StringLiteral,
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
@@ -57,7 +60,9 @@ export class TypeScriptExpressionTransformer {
      */
     transform(expr: Expression, normalizeUndefined = true): string {
         switch (expr.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 return this.literal(expr as LiteralExpr);
 
             case ArrayExpr:
@@ -284,7 +289,7 @@ export class TypeScriptExpressionTransformer {
     }
 
     private literal(expr: LiteralExpr) {
-        if (typeof expr.value === 'string') {
+        if (expr.$type === StringLiteral) {
             return `'${expr.value}'`;
         } else {
             return expr.value.toString();

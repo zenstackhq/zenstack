@@ -1,5 +1,6 @@
 import {
     BinaryExpr,
+    BooleanLiteral,
     DataModel,
     Expression,
     InvocationExpr,
@@ -10,7 +11,9 @@ import {
     isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
+    NumberLiteral,
     ReferenceExpr,
+    StringLiteral,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
 import {
@@ -75,7 +78,9 @@ export class ExpressionWriter {
      */
     write(expr: Expression): void {
         switch (expr.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 this.writeLiteral(expr as LiteralExpr);
                 break;
 
@@ -628,14 +633,14 @@ export class ExpressionWriter {
 
             // isEmpty function is zero arity, it's mapped to a boolean literal
             if (funcDecl.name === 'isEmpty') {
-                valueArg = { $type: LiteralExpr, value: true } as LiteralExpr;
+                valueArg = { $type: BooleanLiteral, value: true } as LiteralExpr;
             }
 
             // contains function has a 3rd argument that indicates whether the comparison should be case-insensitive
             let extraArgs: Record<string, Expression> | undefined = undefined;
             if (funcDecl.name === 'contains') {
                 if (getLiteral<boolean>(expr.args[2]?.value) === true) {
-                    extraArgs = { mode: { $type: LiteralExpr, value: 'insensitive' } as LiteralExpr };
+                    extraArgs = { mode: { $type: StringLiteral, value: 'insensitive' } as LiteralExpr };
                 }
             }
 

@@ -3,31 +3,38 @@ import {
     AttributeArg,
     AttributeParam,
     BinaryExpr,
+    BooleanLiteral,
     DataModel,
     DataModelField,
     DataModelFieldType,
     Enum,
     EnumField,
     Expression,
+    ExpressionType,
     FunctionDecl,
     FunctionParam,
     FunctionParamType,
     InvocationExpr,
-    isArrayExpr,
-    isDataModel,
-    isDataModelField,
-    isDataModelFieldType,
-    isEnum,
-    isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    NumberLiteral,
     ObjectExpr,
     ReferenceExpr,
     ReferenceTarget,
     ResolvedShape,
+    StringLiteral,
     ThisExpr,
     UnaryExpr,
+    isArrayExpr,
+    isBooleanLiteral,
+    isDataModel,
+    isDataModelField,
+    isDataModelFieldType,
+    isEnum,
+    isNumberLiteral,
+    isReferenceExpr,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
 import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
@@ -36,14 +43,15 @@ import {
     AstNodeDescriptionProvider,
     DefaultLinker,
     DocumentState,
-    interruptAndCheck,
-    isReference,
     LangiumDocument,
     LangiumServices,
     LinkingError,
     Reference,
+    interruptAndCheck,
+    isReference,
     streamContents,
 } from 'langium';
+import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
 import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
@@ -118,7 +126,9 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolve(node: AstNode, document: LangiumDocument, extraScopes: ScopeProvider[] = []) {
         switch (node.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 this.resolveLiteral(node as LiteralExpr);
                 break;
 
@@ -295,14 +305,11 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveLiteral(node: LiteralExpr) {
-        const type =
-            typeof node.value === 'string'
-                ? 'String'
-                : typeof node.value === 'boolean'
-                ? 'Boolean'
-                : typeof node.value === 'number'
-                ? 'Int'
-                : undefined;
+        const type = match<LiteralExpr, ExpressionType>(node)
+            .when(isStringLiteral, () => 'String')
+            .when(isBooleanLiteral, () => 'Boolean')
+            .when(isNumberLiteral, () => 'Int')
+            .exhaustive();
 
         if (type) {
             this.resolveToBuiltinTypeOrDecl(node, type);

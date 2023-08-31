@@ -3,7 +3,7 @@ import {
     DataModel,
     DataModelField,
     isDataModel,
-    isLiteralExpr,
+    isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
@@ -87,7 +87,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             accept('error', 'Optional lists are not supported. Use either `Type[]` or `Type?`', { node: field.type });
         }
 
-        if (field.type.unsupported && typeof field.type.unsupported.value.value !== 'string') {
+        if (field.type.unsupported && !isStringLiteral(field.type.unsupported.value)) {
             accept('error', 'Unsupported type argument must be a string literal', { node: field.type.unsupported });
         }
 
@@ -112,7 +112,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
         for (const arg of relAttr.args) {
             if (!arg.name || arg.name === 'name') {
-                if (isLiteralExpr(arg.value)) {
+                if (isStringLiteral(arg.value)) {
                     name = arg.value.value as string;
                 }
             } else if (arg.name === 'fields') {

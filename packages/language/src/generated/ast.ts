@@ -64,6 +64,14 @@ export function isInternalAttributeName(item: unknown): item is InternalAttribut
     return typeof item === 'string';
 }
 
+export type LiteralExpr = BooleanLiteral | NumberLiteral | StringLiteral;
+
+export const LiteralExpr = 'LiteralExpr';
+
+export function isLiteralExpr(item: unknown): item is LiteralExpr {
+    return reflection.isInstance(item, LiteralExpr);
+}
+
 export type QualifiedName = string;
 
 export function isQualifiedName(item: unknown): item is QualifiedName {
@@ -185,6 +193,18 @@ export const BinaryExpr = 'BinaryExpr';
 
 export function isBinaryExpr(item: unknown): item is BinaryExpr {
     return reflection.isInstance(item, BinaryExpr);
+}
+
+export interface BooleanLiteral extends AstNode {
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
+    readonly $type: 'BooleanLiteral';
+    value: Boolean
+}
+
+export const BooleanLiteral = 'BooleanLiteral';
+
+export function isBooleanLiteral(item: unknown): item is BooleanLiteral {
+    return reflection.isInstance(item, BooleanLiteral);
 }
 
 export interface DataModel extends AstNode {
@@ -426,18 +446,6 @@ export function isInvocationExpr(item: unknown): item is InvocationExpr {
     return reflection.isInstance(item, InvocationExpr);
 }
 
-export interface LiteralExpr extends AstNode {
-    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
-    readonly $type: 'LiteralExpr';
-    value: Boolean | number | string
-}
-
-export const LiteralExpr = 'LiteralExpr';
-
-export function isLiteralExpr(item: unknown): item is LiteralExpr {
-    return reflection.isInstance(item, LiteralExpr);
-}
-
 export interface MemberAccessExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'MemberAccessExpr';
@@ -485,6 +493,18 @@ export const NullExpr = 'NullExpr';
 
 export function isNullExpr(item: unknown): item is NullExpr {
     return reflection.isInstance(item, NullExpr);
+}
+
+export interface NumberLiteral extends AstNode {
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
+    readonly $type: 'NumberLiteral';
+    value: string
+}
+
+export const NumberLiteral = 'NumberLiteral';
+
+export function isNumberLiteral(item: unknown): item is NumberLiteral {
+    return reflection.isInstance(item, NumberLiteral);
 }
 
 export interface ObjectExpr extends AstNode {
@@ -551,6 +571,18 @@ export function isReferenceExpr(item: unknown): item is ReferenceExpr {
     return reflection.isInstance(item, ReferenceExpr);
 }
 
+export interface StringLiteral extends AstNode {
+    readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
+    readonly $type: 'StringLiteral';
+    value: string
+}
+
+export const StringLiteral = 'StringLiteral';
+
+export function isStringLiteral(item: unknown): item is StringLiteral {
+    return reflection.isInstance(item, StringLiteral);
+}
+
 export interface ThisExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | DataSourceField | FieldInitializer | FunctionDecl | GeneratorField | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ThisExpr';
@@ -597,6 +629,7 @@ export type ZModelAstType = {
     AttributeParam: AttributeParam
     AttributeParamType: AttributeParamType
     BinaryExpr: BinaryExpr
+    BooleanLiteral: BooleanLiteral
     DataModel: DataModel
     DataModelAttribute: DataModelAttribute
     DataModelField: DataModelField
@@ -620,12 +653,14 @@ export type ZModelAstType = {
     Model: Model
     ModelImport: ModelImport
     NullExpr: NullExpr
+    NumberLiteral: NumberLiteral
     ObjectExpr: ObjectExpr
     Plugin: Plugin
     PluginField: PluginField
     ReferenceArg: ReferenceArg
     ReferenceExpr: ReferenceExpr
     ReferenceTarget: ReferenceTarget
+    StringLiteral: StringLiteral
     ThisExpr: ThisExpr
     TypeDeclaration: TypeDeclaration
     UnaryExpr: UnaryExpr
@@ -635,7 +670,7 @@ export type ZModelAstType = {
 export class ZModelAstReflection extends AbstractAstReflection {
 
     getAllTypes(): string[] {
-        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'GeneratorField', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
+        return ['AbstractDeclaration', 'Argument', 'ArrayExpr', 'Attribute', 'AttributeArg', 'AttributeParam', 'AttributeParamType', 'BinaryExpr', 'BooleanLiteral', 'DataModel', 'DataModelAttribute', 'DataModelField', 'DataModelFieldAttribute', 'DataModelFieldType', 'DataSource', 'DataSourceField', 'Enum', 'EnumField', 'Expression', 'FieldInitializer', 'FunctionDecl', 'FunctionParam', 'FunctionParamType', 'GeneratorDecl', 'GeneratorField', 'InternalAttribute', 'InvocationExpr', 'LiteralExpr', 'MemberAccessExpr', 'Model', 'ModelImport', 'NullExpr', 'NumberLiteral', 'ObjectExpr', 'Plugin', 'PluginField', 'ReferenceArg', 'ReferenceExpr', 'ReferenceTarget', 'StringLiteral', 'ThisExpr', 'TypeDeclaration', 'UnaryExpr', 'UnsupportedFieldType'];
     }
 
     protected override computeIsSubtype(subtype: string, supertype: string): boolean {
@@ -658,6 +693,11 @@ export class ZModelAstReflection extends AbstractAstReflection {
             case GeneratorDecl:
             case Plugin: {
                 return this.isSubtype(AbstractDeclaration, supertype);
+            }
+            case BooleanLiteral:
+            case NumberLiteral:
+            case StringLiteral: {
+                return this.isSubtype(LiteralExpr, supertype);
             }
             case DataModel:
             case Enum: {

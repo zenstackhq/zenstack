@@ -4,6 +4,7 @@ import {
     AttributeArg,
     BinaryExpr,
     BinaryExprOperatorPriority,
+    BooleanLiteral,
     DataModelAttribute,
     DataModelFieldAttribute,
     Expression,
@@ -12,9 +13,11 @@ import {
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    NumberLiteral,
     ObjectExpr,
     ReferenceArg,
     ReferenceExpr,
+    StringLiteral,
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
@@ -51,7 +54,9 @@ export default class ZModelCodeGenerator {
 
     generateExpression(ast: Expression): string {
         switch (ast.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 return this.generateLiteralExpr(ast as LiteralExpr);
             case UnaryExpr:
                 return this.generateUnaryExpr(ast as UnaryExpr);
@@ -88,7 +93,7 @@ export default class ZModelCodeGenerator {
     }
 
     generateLiteralExpr(ast: LiteralExpr) {
-        return typeof ast.value === 'string' ? `'${ast.value}'` : ast.value.toString();
+        return ast.$type === StringLiteral ? `'${ast.value}'` : ast.value.toString();
     }
 
     generateUnaryExpr(ast: UnaryExpr) {
