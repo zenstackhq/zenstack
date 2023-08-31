@@ -267,7 +267,8 @@ export class AttributeArgValue {
                 if (typeof value !== 'string') throw new Error('Value must be string');
                 break;
             case 'Number':
-                if (typeof value !== 'number') throw new Error('Value must be number');
+                if (typeof value !== 'number' && typeof value !== 'string')
+                    throw new Error('Value must be number or string');
                 break;
             case 'Boolean':
                 if (typeof value !== 'boolean') throw new Error('Value must be boolean');

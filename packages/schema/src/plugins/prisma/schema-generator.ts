@@ -1,7 +1,7 @@
 import {
     ArrayExpr,
-    AstNode,
     AttributeArg,
+    BooleanLiteral,
     DataModel,
     DataModelAttribute,
     DataModelField,
@@ -17,9 +17,14 @@ import {
     isInvocationExpr,
     isLiteralExpr,
     isReferenceExpr,
+    isStringLiteral,
     LiteralExpr,
     Model,
+    NumberLiteral,
+    StringLiteral,
 } from '@zenstackhq/language/ast';
+import { match } from 'ts-pattern';
+
 import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     analyzePolicies,
@@ -171,8 +176,8 @@ export default class PrismaSchemaGenerator {
         for (const f of dataSource.fields) {
             switch (f.name) {
                 case 'provider': {
-                    if (this.isStringLiteral(f.value)) {
-                        provider = f.value.value as string;
+                    if (isStringLiteral(f.value)) {
+                        provider = f.value.value;
                     } else {
                         throw new PluginError(name, 'Datasource provider must be set to a string');
                     }
@@ -233,13 +238,13 @@ export default class PrismaSchemaGenerator {
     }
 
     private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr | ArrayExpr) {
-        if (this.isStringLiteral(fieldValue)) {
-            return new PrismaDataSourceUrl(fieldValue.value as string, false);
+        if (isStringLiteral(fieldValue)) {
+            return new PrismaDataSourceUrl(fieldValue.value, false);
         } else if (
             isInvocationExpr(fieldValue) &&
             fieldValue.function.ref?.name === 'env' &&
             fieldValue.args.length === 1 &&
-            this.isStringLiteral(fieldValue.args[0].value)
+            isStringLiteral(fieldValue.args[0].value)
         ) {
             return new PrismaDataSourceUrl(fieldValue.args[0].value.value as string, true);
         } else {
@@ -460,16 +465,12 @@ export default class PrismaSchemaGenerator {
 
     private makeAttributeArgValue(node: Expression): PrismaAttributeArgValue {
         if (isLiteralExpr(node)) {
-            switch (typeof node.value) {
-                case 'string':
-                    return new PrismaAttributeArgValue('String', node.value);
-                case 'number':
-                    return new PrismaAttributeArgValue('Number', node.value);
-                case 'boolean':
-                    return new PrismaAttributeArgValue('Boolean', node.value);
-                default:
-                    throw new PluginError(name, `Unexpected literal type: ${typeof node.value}`);
-            }
+            const argType = match(node.$type)
+                .with(StringLiteral, () => 'String' as const)
+                .with(NumberLiteral, () => 'Number' as const)
+                .with(BooleanLiteral, () => 'Boolean' as const)
+                .exhaustive();
+            return new PrismaAttributeArgValue(argType, node.value);
         } else if (isArrayExpr(node)) {
             return new PrismaAttributeArgValue(
                 'Array',
@@ -548,9 +549,5 @@ export default class PrismaSchemaGenerator {
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
         _enum.addField(field.name, attributes, documentations);
-    }
-
-    private isStringLiteral(node: AstNode): node is LiteralExpr {
-        return isLiteralExpr(node) && typeof node.value === 'string';
     }
 }
