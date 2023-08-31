@@ -3,9 +3,11 @@ import {
     DataModel,
     DataModelField,
     isArrayExpr,
+    isBooleanLiteral,
     isDataModel,
-    isLiteralExpr,
+    isNumberLiteral,
     isReferenceExpr,
+    isStringLiteral,
     Model,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
@@ -150,11 +152,21 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
         .map((attr) => {
             const args: Array<{ name?: string; value: unknown }> = [];
             for (const arg of attr.args) {
-                if (!isLiteralExpr(arg.value)) {
+                if (isNumberLiteral(arg.value)) {
+                    let v = parseInt(arg.value.value);
+                    if (isNaN(v)) {
+                        v = parseFloat(arg.value.value);
+                    }
+                    if (isNaN(v)) {
+                        throw new Error(`Invalid number literal: ${arg.value.value}`);
+                    }
+                    args.push({ name: arg.name, value: v });
+                } else if (isStringLiteral(arg.value) || isBooleanLiteral(arg.value)) {
+                    args.push({ name: arg.name, value: arg.value.value });
+                } else {
                     // attributes with non-literal args are skipped
                     return undefined;
                 }
-                args.push({ name: arg.name, value: arg.value.value });
             }
             return { name: resolved(attr.decl).name, args };
         })
