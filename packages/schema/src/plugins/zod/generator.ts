@@ -1,6 +1,5 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import {
-    AUXILIARY_FIELDS,
     PluginOptions,
     createProject,
     emitProject,
@@ -120,18 +119,6 @@ async function generateCommonSchemas(project: Project, output: string) {
         `
 import { z } from 'zod';
 export const DecimalSchema = z.union([z.number(), z.string(), z.object({d: z.number().array(), e: z.number(), s: z.number()}).passthrough()]);
-
-// https://stackoverflow.com/a/54487392/20415796
-type OmitDistributive<T, K extends PropertyKey> = T extends any ? (T extends object ? OmitRecursively<T, K> : T) : never;
-type OmitRecursively<T extends any, K extends PropertyKey> = Omit<
-    { [P in keyof T]: OmitDistributive<T[P], K> },
-    K
->;
-
-/**
- * Strips auxiliary fields recursively
- */
-export type Purge<T> = OmitRecursively<T, ${AUXILIARY_FIELDS.map((f) => "'" + f + "'").join('|')}>;
 `,
         { overwrite: true }
     );
@@ -197,10 +184,8 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
     sf.replaceWithText((writer) => {
         const fields = model.fields.filter(
             (field) =>
-                !AUXILIARY_FIELDS.includes(field.name) &&
                 // scalar fields only
-                !isDataModel(field.type.reference?.ref) &&
-                !isForeignKeyField(field)
+                !isDataModel(field.type.reference?.ref) && !isForeignKeyField(field)
         );
 
         writer.writeLine('/* eslint-disable */');

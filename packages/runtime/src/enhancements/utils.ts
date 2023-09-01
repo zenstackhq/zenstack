@@ -3,7 +3,6 @@
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import * as util from 'util';
-import { AUXILIARY_FIELDS } from '../constants';
 import { DbClientContract } from '../types';
 import { ModelMeta } from './types';
 
@@ -11,7 +10,7 @@ import { ModelMeta } from './types';
  * Gets field names in a data model entity, filtering out internal fields.
  */
 export function getModelFields(data: object) {
-    return data ? Object.keys(data).filter((f) => !AUXILIARY_FIELDS.includes(f)) : [];
+    return data ? Object.keys(data) : [];
 }
 
 /**

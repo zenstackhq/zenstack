@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import type { DMMF, DMMF as PrismaDMMF } from '@prisma/generator-helper';
 import { Model } from '@zenstackhq/language/ast';
-import { AUXILIARY_FIELDS, getPrismaClientImportSpec, getPrismaVersion } from '@zenstackhq/sdk';
+import { getPrismaClientImportSpec, getPrismaVersion } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { indentString } from '@zenstackhq/sdk/utils';
 import path from 'path';
@@ -54,12 +54,10 @@ export default class Transformer {
     async generateEnumSchemas() {
         for (const enumType of this.enumTypes) {
             const name = upperCaseFirst(enumType.name);
-            const filteredValues = enumType.values.filter((v) => !AUXILIARY_FIELDS.includes(v));
-
             const filePath = path.join(Transformer.outputPath, `enums/${name}.schema.ts`);
             const content = `/* eslint-disable */\n${this.generateImportZodStatement()}\n${this.generateExportSchemaStatement(
                 `${name}`,
-                `z.enum(${JSON.stringify(filteredValues)})`
+                `z.enum(${JSON.stringify(enumType.values)})`
             )}`;
             this.project.createSourceFile(filePath, content, { overwrite: true });
         }
@@ -90,7 +88,6 @@ export default class Transformer {
 
     generateObjectSchemaFields() {
         const zodObjectSchemaFields = this.fields
-            .filter((field) => !AUXILIARY_FIELDS.includes(field.name))
             .map((field) => this.generateObjectSchemaField(field))
             .flatMap((item) => item)
             .map((item) => {
@@ -270,7 +267,7 @@ export default class Transformer {
             name = `${name}Type`;
             origName = `${origName}Type`;
         }
-        const outType = `z.ZodType<Purge<Prisma.${origName}>>`;
+        const outType = `z.ZodType<Prisma.${origName}>`;
         return `type SchemaType = ${outType};
 export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
@@ -327,11 +324,13 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
 
     private generateCommonImport() {
-        let r = `import type { Purge } from '../common';\n`;
+        let r = '';
         if (this.hasDecimal) {
             r += `import { DecimalSchema } from '../common';\n`;
         }
-        r += '\n';
+        if (r) {
+            r += '\n';
+        }
         return r;
     }
 

@@ -1,4 +1,3 @@
-import { AUXILIARY_FIELDS } from '@zenstackhq/sdk';
 import indentString from './indent-string';
 
 /**
@@ -155,19 +154,16 @@ export class Model extends ContainerDeclaration {
     }
 
     toString(): string {
-        const auxiliaryFields = this.fields.filter((f) => AUXILIARY_FIELDS.includes(f.name));
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result: any[] = this.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name));
+        const result: any[] = [...this.fields];
 
-        if (auxiliaryFields.length > 0) {
-            // Add a blank line before the auxiliary fields
-            result.push('', ...auxiliaryFields);
-            if (this.attributes.length > 0) {
-                // Add a blank line before the attributes
-                result.push('');
-            }
+        if (this.attributes.length > 0) {
+            // Add a blank line before the attributes
+            result.push('');
         }
+
         result.push(...this.attributes);
+
         return (
             super.toString() +
             `${this.isView ? 'view' : 'model'} ${this.name} {\n` +
