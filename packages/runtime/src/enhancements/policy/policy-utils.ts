@@ -5,7 +5,6 @@ import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import {
-    AUXILIARY_FIELDS,
     CrudFailureReason,
     FIELD_LEVEL_READ_CHECKER_PREFIX,
     FIELD_LEVEL_READ_CHECKER_SELECTOR,
@@ -950,13 +949,6 @@ export class PolicyUtil {
         for (const [entityData, entityFullData] of zip(data, fullData)) {
             if (typeof entityData !== 'object' || !entityData) {
                 return;
-            }
-
-            // strip auxiliary fields
-            for (const auxField of AUXILIARY_FIELDS) {
-                if (auxField in entityData) {
-                    delete entityData[auxField];
-                }
             }
 
             for (const [field, fieldData] of Object.entries(entityData)) {

@@ -58,10 +58,6 @@ describe('RPC API Handler Tests', () => {
                 ]),
             })
         );
-        expect(r.data.zenstack_guard).toBeUndefined();
-        expect(r.data.zenstack_transaction).toBeUndefined();
-        expect(r.data.posts[0].zenstack_guard).toBeUndefined();
-        expect(r.data.posts[0].zenstack_transaction).toBeUndefined();
 
         r = await handleRequest({
             method: 'get',

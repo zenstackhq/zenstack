@@ -27,18 +27,14 @@ import { match } from 'ts-pattern';
 
 import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
-    analyzePolicies,
-    getDataModels,
     getDMMF,
     getLiteral,
     getLiteralArray,
     getPrismaVersion,
-    GUARD_FIELD_NAME,
     PluginError,
     PluginOptions,
     resolved,
     resolvePath,
-    TRANSACTION_FIELD_NAME,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
@@ -85,7 +81,7 @@ export default class PrismaSchemaGenerator {
 
 `;
 
-    async generate(model: Model, options: PluginOptions, config?: Record<string, string>) {
+    async generate(model: Model, options: PluginOptions, _config?: Record<string, string>) {
         const warnings: string[] = [];
 
         const prismaVersion = getPrismaVersion();
@@ -108,7 +104,7 @@ export default class PrismaSchemaGenerator {
                     break;
 
                 case DataModel:
-                    this.generateModel(prisma, decl as DataModel, config);
+                    this.generateModel(prisma, decl as DataModel);
                     break;
 
                 case GeneratorDecl:
@@ -296,51 +292,10 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private generateModel(prisma: PrismaModel, decl: DataModel, config?: Record<string, string>) {
+    private generateModel(prisma: PrismaModel, decl: DataModel) {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);
-        }
-
-        if (this.shouldGenerateAuxFields(decl)) {
-            // generate auxiliary fields for policy check
-
-            // add an "zenstack_guard" field for dealing with boolean conditions
-            const guardField = model.addField(GUARD_FIELD_NAME, 'Boolean', [
-                new PrismaFieldAttribute('@default', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
-                ]),
-            ]);
-
-            if (config?.guardFieldName && config?.guardFieldName !== GUARD_FIELD_NAME) {
-                // generate a @map to rename field in the database
-                guardField.addAttribute('@map', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('String', config.guardFieldName)),
-                ]);
-            }
-
-            // add an "zenstack_transaction" field for tracking records created/updated with nested writes
-            const transactionField = model.addField(TRANSACTION_FIELD_NAME, 'String?');
-
-            // create an index for "zenstack_transaction" field
-            model.addAttribute('@@index', [
-                new PrismaAttributeArg(
-                    undefined,
-                    new PrismaAttributeArgValue('Array', [
-                        new PrismaAttributeArgValue('FieldReference', TRANSACTION_FIELD_NAME),
-                    ])
-                ),
-            ]);
-
-            if (config?.transactionFieldName && config?.transactionFieldName !== TRANSACTION_FIELD_NAME) {
-                // generate a @map to rename field in the database
-                transactionField.addAttribute('@map', [
-                    new PrismaAttributeArg(
-                        undefined,
-                        new PrismaAttributeArgValue('String', config.transactionFieldName)
-                    ),
-                ]);
-            }
         }
 
         for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
@@ -353,44 +308,6 @@ export default class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
-    }
-
-    private shouldGenerateAuxFields(decl: DataModel) {
-        if (decl.isView) {
-            return false;
-        }
-
-        const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
-
-        if (!allowAll && !denyAll) {
-            // has policy conditions
-            return true;
-        }
-
-        if (hasFieldValidation) {
-            return true;
-        }
-
-        // check if the model is related by other models, if so
-        // aux fields are needed for nested queries
-        const root = decl.$container;
-        for (const model of getDataModels(root)) {
-            if (model === decl) {
-                continue;
-            }
-            for (const field of model.fields) {
-                if (field.type.reference?.ref === decl) {
-                    // found a relation with policies
-                    const otherPolicies = analyzePolicies(model);
-                    if ((!otherPolicies.allowAll && !otherPolicies.denyAll) || otherPolicies.hasFieldValidation) {
-                        // the relating side has policies
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 
     private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {

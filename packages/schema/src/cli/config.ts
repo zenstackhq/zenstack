@@ -1,15 +1,10 @@
-import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 import fs from 'fs';
 import z, { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CliError } from './cli-error';
 
-const schema = z
-    .object({
-        guardFieldName: z.string().default(GUARD_FIELD_NAME),
-        transactionFieldName: z.string().default(TRANSACTION_FIELD_NAME),
-    })
-    .strict();
+// TODO: future use
+const schema = z.object({});
 
 export type ConfigType = z.infer<typeof schema>;
 

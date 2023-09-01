@@ -18,7 +18,7 @@ import z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig, RequestContext, Response } from '../../types';
 import { APIHandlerBase } from '../base';
-import { logWarning, processEntityData, registerCustomSerializers } from '../utils';
+import { logWarning, registerCustomSerializers } from '../utils';
 
 const urlPatterns = {
     // collection operations
@@ -1095,8 +1095,6 @@ class RequestHandler extends APIHandlerBase {
         if (!serializer) {
             throw new Error(`serializer not found for model ${model}`);
         }
-
-        processEntityData(items);
 
         // serialize to JSON:API strcuture
         const serialized = await serializer.serialize(items, options);

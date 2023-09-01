@@ -11,7 +11,7 @@ import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { RequestContext, Response } from '../../types';
 import { APIHandlerBase } from '../base';
-import { logError, processEntityData, registerCustomSerializers } from '../utils';
+import { logError, registerCustomSerializers } from '../utils';
 
 registerCustomSerializers();
 
@@ -137,7 +137,6 @@ class RequestHandler extends APIHandlerBase {
             }
 
             const result = await prisma[model][dbOp](parsedArgs);
-            processEntityData(result);
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let response: any = { data: result };

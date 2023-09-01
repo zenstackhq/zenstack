@@ -5,8 +5,6 @@ import * as fs from 'fs';
 import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
 import { CliError } from '../../../../packages/schema/src/cli/cli-error';
-import { config } from '../../../../packages/schema/src/cli/config';
-import { GUARD_FIELD_NAME, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
 
 describe('CLI Config Tests', () => {
     let origDir: string;
@@ -24,28 +22,14 @@ describe('CLI Config Tests', () => {
         process.chdir(origDir);
     });
 
-    it('invalid default config', async () => {
-        fs.writeFileSync('zenstack.config.json', JSON.stringify({ abc: 'def' }));
-
-        const program = createProgram();
-        await expect(program.parseAsync(['init', '--tag', 'latest'], { from: 'user' })).rejects.toBeInstanceOf(
-            CliError
-        );
-    });
-
+    // for ensuring backward compatibility only
     it('valid default config empty', async () => {
         fs.writeFileSync('zenstack.config.json', JSON.stringify({}));
-
         const program = createProgram();
         await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
-
-        // custom config
-        expect(config.guardFieldName).toBe(GUARD_FIELD_NAME);
-
-        // default value
-        expect(config.transactionFieldName).toBe(TRANSACTION_FIELD_NAME);
     });
 
+    // for ensuring backward compatibility only
     it('valid default config non-empty', async () => {
         fs.writeFileSync(
             'zenstack.config.json',
@@ -54,12 +38,6 @@ describe('CLI Config Tests', () => {
 
         const program = createProgram();
         await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
-
-        // custom config
-        expect(config.guardFieldName).toBe('myGuardField');
-
-        // default value
-        expect(config.transactionFieldName).toBe('myTransactionField');
     });
 
     it('custom config file does not exist', async () => {
@@ -79,23 +57,10 @@ describe('CLI Config Tests', () => {
         ).rejects.toThrow(/Config is not a valid JSON file/i);
     });
 
+    // for ensuring backward compatibility only
     it('valid custom config file', async () => {
         fs.writeFileSync('my.config.json', JSON.stringify({ guardFieldName: 'myGuardField' }));
         const program = createProgram();
         await program.parseAsync(['init', '--tag', 'latest', '--config', 'my.config.json'], { from: 'user' });
-
-        // custom config
-        expect(config.guardFieldName).toBe('myGuardField');
-
-        // default value
-        expect(config.transactionFieldName).toBe(TRANSACTION_FIELD_NAME);
-    });
-
-    it('invalid custom config file', async () => {
-        fs.writeFileSync('my.config.json', JSON.stringify({ abc: 'def' }));
-        const program = createProgram();
-        await expect(
-            program.parseAsync(['init', '--tag', 'latest', '--config', 'my.config.json'], { from: 'user' })
-        ).rejects.toThrow(/Config file my.config.json is not valid/i);
     });
 });

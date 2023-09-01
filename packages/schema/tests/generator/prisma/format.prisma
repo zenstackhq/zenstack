@@ -14,9 +14,4 @@ model Post {
   title     String
   content   String?
   published Boolean @default(false)
-
-  zenstack_guard       Boolean @default(true)
-  zenstack_transaction String?
-
-  @@index([zenstack_transaction])
 }
