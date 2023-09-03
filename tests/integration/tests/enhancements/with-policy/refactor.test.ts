@@ -1,5 +1,5 @@
 import { AuthUser, PrismaErrorCode } from '@zenstackhq/runtime';
-import { createPostgresDb, dropPostgresDb, loadSchemaFromFile, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchemaFromFile, type FullDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
 
 const DB_NAME = 'refactor';
@@ -7,12 +7,12 @@ const DB_NAME = 'refactor';
 describe('With Policy: refactor tests', () => {
     let origDir: string;
     let dbUrl: string;
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
-    let anonDb: WeakDbClientContract;
-    let adminDb: WeakDbClientContract;
-    let user1Db: WeakDbClientContract;
-    let user2Db: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
+    let anonDb: FullDbClientContract;
+    let adminDb: FullDbClientContract;
+    let user1Db: FullDbClientContract;
+    let user2Db: FullDbClientContract;
 
     beforeAll(async () => {
         origDir = path.resolve('.');

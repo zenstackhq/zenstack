@@ -1,11 +1,11 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchemaFromFile, run, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchemaFromFile, run, type FullDbClientContract } from '@zenstackhq/testtools';
 import { compareSync } from 'bcryptjs';
 import path from 'path';
 
 describe('Todo Presets Tests', () => {
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
         const { enhance, prisma: _prisma } = await loadSchemaFromFile(path.join(__dirname, '../schema/todo.zmodel'), {

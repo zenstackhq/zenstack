@@ -1,5 +1,5 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { createPostgresDb, dropPostgresDb, loadSchemaFromFile, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { createPostgresDb, dropPostgresDb, loadSchemaFromFile, type FullDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
 
 const DB_NAME = 'todo-pg';
@@ -7,8 +7,8 @@ const DB_NAME = 'todo-pg';
 describe('With Policy: with postgres', () => {
     let origDir: string;
     let dbUrl: string;
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
         origDir = path.resolve('.');
@@ -483,7 +483,7 @@ const space2 = {
     slug: 'space2',
 };
 
-async function createSpaceAndUsers(db: WeakDbClientContract) {
+async function createSpaceAndUsers(db: FullDbClientContract) {
     // create users
     await db.user.create({ data: user1 });
     await db.user.create({ data: user2 });

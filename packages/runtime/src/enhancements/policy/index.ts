@@ -29,7 +29,7 @@ export type WithPolicyOptions = {
     policy?: PolicyDef;
 
     /**
-     * Model metatadata
+     * Model metadata
      */
     modelMeta?: ModelMeta;
 
