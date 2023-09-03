@@ -1,11 +1,11 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchema, run, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchema, run, type FullDbClientContract } from '@zenstackhq/testtools';
 import Decimal from 'decimal.js';
 import superjson from 'superjson';
 
 describe('Type Coverage Tests', () => {
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
         const { enhance, prisma: _prisma } = await loadSchema(

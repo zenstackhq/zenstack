@@ -3,7 +3,11 @@ export function getVersion() {
     try {
         return require('../package.json').version;
     } catch {
-        // dev environment
-        return require('../../package.json').version;
+        try {
+            // dev environment
+            return require('../../package.json').version;
+        } catch {
+            return undefined;
+        }
     }
 }

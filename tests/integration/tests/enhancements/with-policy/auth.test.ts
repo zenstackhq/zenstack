@@ -12,7 +12,7 @@ describe('With Policy: auth() test', () => {
         process.chdir(origDir);
     });
 
-    it('undefined user with string id', async () => {
+    it('undefined user with string id simple', async () => {
         const { withPolicy } = await loadSchema(
             `
         model User {

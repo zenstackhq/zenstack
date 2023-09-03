@@ -1,10 +1,10 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchemaFromFile, run, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchemaFromFile, run, type FullDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('Todo Policy Tests', () => {
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
         const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(
@@ -468,7 +468,7 @@ const space2 = {
     slug: 'space2',
 };
 
-async function createSpaceAndUsers(db: WeakDbClientContract) {
+async function createSpaceAndUsers(db: FullDbClientContract) {
     // create users
     await db.user.create({ data: user1 });
     await db.user.create({ data: user2 });
