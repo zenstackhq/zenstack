@@ -193,6 +193,10 @@ function createAppRouter(
             writer.block(() => {
                 for (const modelOperation of filteredModelOperations) {
                     const { model, ...operations } = modelOperation;
+
+                    // "count" operation is missing from Prisma DMMF, add it here
+                    operations.count = `count${model}`;
+
                     generateModelCreateRouter(
                         project,
                         model,

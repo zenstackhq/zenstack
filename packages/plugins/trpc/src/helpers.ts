@@ -300,6 +300,9 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
         case 'groupBy':
             inputType = `${modelName}InputSchema.groupBy`;
             break;
+        case 'count':
+            inputType = `${modelName}InputSchema.count`;
+            break;
         default:
             console.log('getInputTypeByOpName: ', { opName, modelName });
     }
@@ -316,6 +319,7 @@ export const getProcedureTypeByOpName = (opName: string) => {
         case 'aggregate':
         case 'aggregateRaw':
         case 'groupBy':
+        case 'count':
             procType = 'query';
             break;
         case 'createOne':
