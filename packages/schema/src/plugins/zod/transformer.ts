@@ -594,6 +594,20 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 }
             }
 
+            // count
+            {
+                imports.push(
+                    `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`,
+                    `import { ${orderByWithRelationInput}ObjectSchema } from '../objects/${orderByWithRelationInput}.schema'`,
+                    `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
+                    `import { ${modelName}ScalarFieldEnumSchema } from '../enums/${modelName}ScalarFieldEnum.schema'`,
+                    `import { ${modelName}CountAggregateInputObjectSchema } from '../objects/${modelName}CountAggregateInput.schema'`
+                );
+
+                codeBody += `count: z.object({ where: ${modelName}WhereInputObjectSchema.optional(), orderBy: z.union([${orderByWithRelationInput}ObjectSchema, ${orderByWithRelationInput}ObjectSchema.array()]).optional(), cursor: ${modelName}WhereUniqueInputObjectSchema.optional(), take: z.number().optional(), skip: z.number().optional(), distinct: z.array(${modelName}ScalarFieldEnumSchema).optional(), select: z.union([ z.literal(true), ${modelName}CountAggregateInputObjectSchema ]).optional() })`;
+                operations.push(['count', origModelName]);
+            }
+
             imports = [...new Set(imports)];
 
             const filePath = path.join(Transformer.outputPath, `input/${modelName}Input.schema.ts`);
