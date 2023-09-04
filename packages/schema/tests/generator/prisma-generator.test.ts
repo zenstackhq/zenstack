@@ -330,7 +330,7 @@ describe('Prisma generator test', () => {
         const post = dmmf.datamodel.models.find((m) => m.name === 'Post');
 
         expect(post?.documentation?.replace(/\s/g, '')).toBe(
-            `@@allow('read', owner == auth()) @@allow('delete', ownerId == auth())`.replace(/\s/g, '')
+            `@@allow('read', owner == auth()) @@allow('delete', owner == auth())`.replace(/\s/g, '')
         );
 
         const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');

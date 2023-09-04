@@ -1,4 +1,14 @@
-import { BinaryExpr, Expression, ExpressionType, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
+import {
+    BinaryExpr,
+    Expression,
+    ExpressionType,
+    isBinaryExpr,
+    isDataModel,
+    isEnum,
+    isNullExpr,
+    isThisExpr,
+} from '@zenstackhq/language/ast';
+import { isDataModelFieldReference } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
@@ -91,6 +101,43 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     accept('error', 'incompatible operand types', { node: expr });
                 }
 
+                break;
+            }
+
+            case '==':
+            case '!=': {
+                // disallow comparing model type with scalar type or comparison between
+                // incompatible model types
+                const leftType = expr.left.$resolvedType?.decl;
+                const rightType = expr.right.$resolvedType?.decl;
+                if (isDataModel(leftType) && isDataModel(rightType)) {
+                    if (leftType != rightType) {
+                        // incompatible model types
+                        // TODO: inheritance case?
+                        accept('error', 'incompatible operand types', { node: expr });
+                    }
+
+                    // not supported:
+                    //   - foo == bar
+                    //   - foo == this
+                    if (
+                        isDataModelFieldReference(expr.left) &&
+                        (isThisExpr(expr.right) || isDataModelFieldReference(expr.right))
+                    ) {
+                        accept('error', 'comparison between model-typed fields are not supported', { node: expr });
+                    } else if (
+                        isDataModelFieldReference(expr.right) &&
+                        (isThisExpr(expr.left) || isDataModelFieldReference(expr.left))
+                    ) {
+                        accept('error', 'comparison between model-typed fields are not supported', { node: expr });
+                    }
+                } else if (
+                    (isDataModel(leftType) && !isNullExpr(expr.right)) ||
+                    (isDataModel(rightType) && !isNullExpr(expr.left))
+                ) {
+                    // comparing model against scalar (except null)
+                    accept('error', 'incompatible operand types', { node: expr });
+                }
                 break;
             }
         }

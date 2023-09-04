@@ -79,6 +79,7 @@ export default class PolicyGenerator {
                 { name: 'type QueryContext' },
                 { name: 'type DbOperations' },
                 { name: 'hasAllFields' },
+                { name: 'allFieldsEqual' },
                 { name: 'type PolicyDef' },
             ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
@@ -486,6 +487,14 @@ export default class PolicyGenerator {
 
         for (const rule of [...allows, ...denies]) {
             for (const expr of [...this.allNodes(rule)].filter((node): node is Expression => isExpression(node))) {
+                if (isThisExpr(expr) && !isMemberAccessExpr(expr.$container)) {
+                    // a standalone `this` expression, include all id fields
+                    const model = expr.$resolvedType?.decl as DataModel;
+                    const idFields = getIdFields(model);
+                    idFields.forEach((field) => addPath([field.name]));
+                    continue;
+                }
+
                 // only care about member access and reference expressions
                 if (!isMemberAccessExpr(expr) && !isReferenceExpr(expr)) {
                     continue;
