@@ -285,7 +285,8 @@ export class AttributeArgValue {
     toString(): string {
         switch (this.type) {
             case 'String':
-                return `"${this.value}"`;
+                // use JSON.stringify to escape quotes
+                return JSON.stringify(this.value);
             case 'Number':
                 return this.value.toString();
             case 'FieldReference': {

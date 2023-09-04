@@ -102,6 +102,24 @@ describe('Parsing Tests', () => {
         expect(m.fields[2].attributes[0].args[0].value.$resolvedType?.decl).toBe(firstEnum);
     });
 
+    it('string escape', async () => {
+        const content = `
+            model Example {
+                id Int @id
+                doubleQuote String @default("s\\"1")
+                singleQuote String @default('s\\'1')
+                json Json @default("{\\"theme\\": \\"light\\", \\"consoleDrawer\\": false}")
+            }
+        `;
+        const doc = await loadModel(content, false);
+        const model = doc.declarations[0] as DataModel;
+        expect((model.fields[1].attributes[0].args[0].value as StringLiteral).value).toBe('s"1');
+        expect((model.fields[2].attributes[0].args[0].value as StringLiteral).value).toBe("s'1");
+        expect((model.fields[3].attributes[0].args[0].value as StringLiteral).value).toBe(
+            '{"theme": "light", "consoleDrawer": false}'
+        );
+    });
+
     it('model field types', async () => {
         const content = `
             model User {
