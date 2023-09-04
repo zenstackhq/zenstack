@@ -559,6 +559,51 @@ describe('Attribute tests', () => {
             model A {
                 id String @id
                 x Int
+                other A? @relation('other', fields: [otherId], references: [id])
+                otherId String? @unique
+                holder A? @relation('other')
+                @@allow('all', other == this)
+            }
+        `)
+        ).toContain('comparison between model-typed fields are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                other A? @relation('other', fields: [otherId], references: [id])
+                otherId String? @unique
+                holder A? @relation('other')
+                @@allow('all', this != other)
+            }
+        `)
+        ).toContain('comparison between model-typed fields are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                other A? @relation('other', fields: [otherId], references: [id])
+                otherId String? @unique
+                holder A? @relation('other')
+                other1 A? @relation('other1', fields: [otherId1], references: [id])
+                other1Id String? @unique
+                holder1 A? @relation('other1')
+                @@allow('all', other == other1)
+            }
+        `)
+        ).toContain('comparison between model-typed fields are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
                 b B?
                 c C?
                 @@allow('all', b == c)

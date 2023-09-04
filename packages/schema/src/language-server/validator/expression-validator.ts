@@ -1,4 +1,14 @@
-import { BinaryExpr, Expression, ExpressionType, isBinaryExpr, isDataModel, isEnum } from '@zenstackhq/language/ast';
+import {
+    BinaryExpr,
+    Expression,
+    ExpressionType,
+    isBinaryExpr,
+    isDataModel,
+    isEnum,
+    isNullExpr,
+    isThisExpr,
+} from '@zenstackhq/language/ast';
+import { isDataModelFieldReference } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
@@ -106,8 +116,26 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                         // TODO: inheritance case?
                         accept('error', 'incompatible operand types', { node: expr });
                     }
-                } else if (isDataModel(leftType) || isDataModel(rightType)) {
-                    // comparing model against scalar
+
+                    // not supported:
+                    //   - foo == bar
+                    //   - foo == this
+                    if (
+                        isDataModelFieldReference(expr.left) &&
+                        (isThisExpr(expr.right) || isDataModelFieldReference(expr.right))
+                    ) {
+                        accept('error', 'comparison between model-typed fields are not supported', { node: expr });
+                    } else if (
+                        isDataModelFieldReference(expr.right) &&
+                        (isThisExpr(expr.left) || isDataModelFieldReference(expr.left))
+                    ) {
+                        accept('error', 'comparison between model-typed fields are not supported', { node: expr });
+                    }
+                } else if (
+                    (isDataModel(leftType) && !isNullExpr(expr.right)) ||
+                    (isDataModel(rightType) && !isNullExpr(expr.left))
+                ) {
+                    // comparing model against scalar (except null)
                     accept('error', 'incompatible operand types', { node: expr });
                 }
                 break;

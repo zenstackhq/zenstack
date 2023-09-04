@@ -113,26 +113,13 @@ describe('Expression Writer Tests', () => {
     it('this reference', async () => {
         await check(
             `
-            model User { id String @id }
             model Test {
                 id String @id
-                @@allow('all', auth() == this)
+                @@allow('all', this == this)
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user == null) ? { OR: [] } : { id: user.id }`
-        );
-
-        await check(
-            `
-            model User { id String @id }
-            model Test {
-                id String @id
-                @@deny('all', this != auth())
-            }
-            `,
-            (model) => model.attributes[0].args[1].value,
-            `(user == null) ? { AND: [] } : { NOT: { id: user.id } }`
+            `{OR:[]}`
         );
 
         await check(
