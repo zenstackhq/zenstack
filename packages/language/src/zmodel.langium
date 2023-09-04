@@ -275,7 +275,7 @@ hidden terminal WS: /\s+/;
 terminal NULL: 'null';
 terminal THIS: 'this';
 terminal ID: /[_a-zA-Z][\w_]*/;
-terminal STRING: /"[^"]*"|'[^']*'/;
+terminal STRING: /"(\\.|[^"\\])*"|'(\\.|[^'\\])*'/;
 terminal NUMBER: /[+-]?[0-9]+(\.[0-9]+)?/;
 terminal TRIPLE_SLASH_COMMENT: /\/\/\/[^\n\r]*/;
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;

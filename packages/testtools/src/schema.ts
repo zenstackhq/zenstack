@@ -67,10 +67,16 @@ export function getWorkspaceNpmCacheFolder(start: string) {
 }
 
 function makePrelude(options: SchemaLoadOptions) {
+    let dbUrl = options.dbUrl ?? (options.provider === 'postgresql' ? 'env("DATABASE_URL")' : 'file:./dev.db');
+
+    if (!dbUrl.includes('env(') && !dbUrl.startsWith("'") && !dbUrl.startsWith('"')) {
+        dbUrl = `'${dbUrl}'`;
+    }
+
     return `
 datasource db {
     provider = '${options.provider}'
-    url = '${options.dbUrl}'
+    url = ${dbUrl}
 }
 
 generator js {
@@ -106,7 +112,6 @@ const defaultOptions: SchemaLoadOptions = {
     compile: false,
     logPrismaQuery: false,
     provider: 'sqlite',
-    dbUrl: 'file:./test.db',
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
