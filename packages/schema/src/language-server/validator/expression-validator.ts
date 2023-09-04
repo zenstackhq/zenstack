@@ -1,4 +1,4 @@
-import { BinaryExpr, Expression, ExpressionType, isBinaryExpr, isEnum } from '@zenstackhq/language/ast';
+import { BinaryExpr, Expression, ExpressionType, isBinaryExpr, isDataModel, isEnum } from '@zenstackhq/language/ast';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
@@ -91,6 +91,25 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     accept('error', 'incompatible operand types', { node: expr });
                 }
 
+                break;
+            }
+
+            case '==':
+            case '!=': {
+                // disallow comparing model type with scalar type or comparison between
+                // incompatible model types
+                const leftType = expr.left.$resolvedType?.decl;
+                const rightType = expr.right.$resolvedType?.decl;
+                if (isDataModel(leftType) && isDataModel(rightType)) {
+                    if (leftType != rightType) {
+                        // incompatible model types
+                        // TODO: inheritance case?
+                        accept('error', 'incompatible operand types', { node: expr });
+                    }
+                } else if (isDataModel(leftType) || isDataModel(rightType)) {
+                    // comparing model against scalar
+                    accept('error', 'incompatible operand types', { node: expr });
+                }
                 break;
             }
         }

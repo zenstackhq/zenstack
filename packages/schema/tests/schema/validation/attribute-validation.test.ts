@@ -496,6 +496,108 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain('invalid operand type for "||" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                @@allow('all', x == this)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                @@allow('all', this != x)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                @@allow('all', b == this)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                @@allow('all', this != b)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                c C?
+                @@allow('all', b == c)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            model C {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                c C?
+                @@allow('all', b != c)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            model C {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            `)
+        ).toContain('incompatible operand types');
     });
 
     it('policy filter function check', async () => {
