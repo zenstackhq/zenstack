@@ -48,11 +48,6 @@ describe('Express adapter tests - rpc handler', () => {
                 ]),
             })
         );
-        // aux fields should have been removed
-        expect(data.zenstack_guard).toBeUndefined();
-        expect(data.zenstack_transaction).toBeUndefined();
-        expect(data.posts[0].zenstack_guard).toBeUndefined();
-        expect(data.posts[0].zenstack_transaction).toBeUndefined();
 
         r = await request(app).get(makeUrl('/api/post/findMany'));
         expect(r.status).toBe(200);

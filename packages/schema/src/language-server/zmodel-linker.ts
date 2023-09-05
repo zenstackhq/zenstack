@@ -3,31 +3,38 @@ import {
     AttributeArg,
     AttributeParam,
     BinaryExpr,
+    BooleanLiteral,
     DataModel,
     DataModelField,
     DataModelFieldType,
     Enum,
     EnumField,
     Expression,
+    ExpressionType,
     FunctionDecl,
     FunctionParam,
     FunctionParamType,
     InvocationExpr,
-    isArrayExpr,
-    isDataModel,
-    isDataModelField,
-    isDataModelFieldType,
-    isEnum,
-    isReferenceExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    NumberLiteral,
     ObjectExpr,
     ReferenceExpr,
     ReferenceTarget,
     ResolvedShape,
+    StringLiteral,
     ThisExpr,
     UnaryExpr,
+    isArrayExpr,
+    isBooleanLiteral,
+    isDataModel,
+    isDataModelField,
+    isDataModelFieldType,
+    isEnum,
+    isNumberLiteral,
+    isReferenceExpr,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
 import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
@@ -36,14 +43,15 @@ import {
     AstNodeDescriptionProvider,
     DefaultLinker,
     DocumentState,
-    interruptAndCheck,
-    isReference,
     LangiumDocument,
     LangiumServices,
     LinkingError,
     Reference,
+    interruptAndCheck,
+    isReference,
     streamContents,
 } from 'langium';
+import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
 import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
@@ -53,7 +61,7 @@ interface DefaultReference extends Reference {
     _nodeDescription?: AstNodeDescription;
 }
 
-type ScopeProvider = (name: string) => ReferenceTarget | undefined;
+type ScopeProvider = (name: string) => ReferenceTarget | DataModel | undefined;
 
 /**
  * Langium linker implementation which links references and resolves expression types
@@ -118,7 +126,9 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolve(node: AstNode, document: LangiumDocument, extraScopes: ScopeProvider[] = []) {
         switch (node.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 this.resolveLiteral(node as LiteralExpr);
                 break;
 
@@ -295,14 +305,11 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveLiteral(node: LiteralExpr) {
-        const type =
-            typeof node.value === 'string'
-                ? 'String'
-                : typeof node.value === 'boolean'
-                ? 'Boolean'
-                : typeof node.value === 'number'
-                ? 'Int'
-                : undefined;
+        const type = match<LiteralExpr, ExpressionType>(node)
+            .when(isStringLiteral, () => 'String')
+            .when(isBooleanLiteral, () => 'Boolean')
+            .when(isNumberLiteral, () => 'Int')
+            .exhaustive();
 
         if (type) {
             this.resolveToBuiltinTypeOrDecl(node, type);
@@ -335,7 +342,13 @@ export class ZModelLinker extends DefaultLinker {
         const resolvedType = node.left.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
             const dataModelDecl = resolvedType.decl;
-            const provider = (name: string) => dataModelDecl.$resolvedFields.find((f) => f.name === name);
+            const provider = (name: string) => {
+                if (name === 'this') {
+                    return dataModelDecl;
+                } else {
+                    return dataModelDecl.$resolvedFields.find((f) => f.name === name);
+                }
+            };
             extraScopes = [provider, ...extraScopes];
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
@@ -344,13 +357,16 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    private resolveThis(
-        node: ThisExpr,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        document: LangiumDocument<AstNode>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        extraScopes: ScopeProvider[]
-    ) {
+    private resolveThis(node: ThisExpr, _document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        // resolve from scopes first
+        for (const scope of extraScopes) {
+            const r = scope('this');
+            if (isDataModel(r)) {
+                this.resolveToBuiltinTypeOrDecl(node, r);
+                return;
+            }
+        }
+
         let decl: AstNode | undefined = node.$container;
 
         while (decl && !isDataModel(decl)) {
@@ -362,13 +378,7 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    private resolveNull(
-        node: NullExpr,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        document: LangiumDocument<AstNode>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        extraScopes: ScopeProvider[]
-    ) {
+    private resolveNull(node: NullExpr, _document: LangiumDocument<AstNode>, _extraScopes: ScopeProvider[]) {
         // TODO: how to really resolve null?
         this.resolveToBuiltinTypeOrDecl(node, 'Null');
     }

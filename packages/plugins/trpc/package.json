@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "1.0.0-beta.20",
+    "version": "1.0.0-beta.21",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -13,6 +13,7 @@
         "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE 'res/**/*' dist && pnpm pack dist --pack-destination '../../../../.build'",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
+        "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
     },
@@ -20,7 +21,7 @@
         "directory": "dist",
         "linkDirectory": true
     },
-    "keywords": [],
+    "keywords": ["trpc"],
     "author": "ZenStack Team",
     "license": "MIT",
     "dependencies": {

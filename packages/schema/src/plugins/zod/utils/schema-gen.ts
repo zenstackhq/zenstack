@@ -9,6 +9,7 @@ import {
 
 export function makeFieldSchema(field: DataModelField) {
     let schema = makeZodSchema(field);
+    const isDecimal = field.type.type === 'Decimal';
 
     for (const attr of field.attributes) {
         const message = getAttrLiteralArg<string>(attr, 'message');
@@ -70,28 +71,28 @@ export function makeFieldSchema(field: DataModelField) {
             case '@gt': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.gt(${value}${messageArg})`;
+                    schema += isDecimal ? refineDecimal('gt', value, messageArg) : `.gt(${value}${messageArg})`;
                 }
                 break;
             }
             case '@gte': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.gte(${value}${messageArg})`;
+                    schema += isDecimal ? refineDecimal('gte', value, messageArg) : `.gte(${value}${messageArg})`;
                 }
                 break;
             }
             case '@lt': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.lt(${value}${messageArg})`;
+                    schema += isDecimal ? refineDecimal('lt', value, messageArg) : `.lt(${value}${messageArg})`;
                 }
                 break;
             }
             case '@lte': {
                 const value = getAttrLiteralArg<number>(attr, 'value');
                 if (value !== undefined) {
-                    schema += `.lte(${value}${messageArg})`;
+                    schema += isDecimal ? refineDecimal('lte', value, messageArg) : `.lte(${value}${messageArg})`;
                 }
                 break;
             }
@@ -181,4 +182,14 @@ export function makeValidationRefinements(model: DataModel) {
 function getAttrLiteralArg<T extends string | number>(attr: DataModelFieldAttribute, paramName: string) {
     const arg = attr.args.find((arg) => arg.$resolvedParam?.name === paramName);
     return arg && getLiteral<T>(arg.value);
+}
+
+function refineDecimal(op: 'gt' | 'gte' | 'lt' | 'lte', value: number, messageArg: string) {
+    return `.refine(v => {
+        try {
+            return new Decimal(v.toString()).${op}(${value});
+        } catch {
+            return false;
+        }
+    }${messageArg})`;
 }

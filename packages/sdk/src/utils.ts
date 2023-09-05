@@ -8,11 +8,13 @@ import {
     EnumField,
     Expression,
     FunctionDecl,
+    GeneratorDecl,
     InternalAttribute,
     isArrayExpr,
     isDataModel,
     isDataModelField,
     isEnumField,
+    isGeneratorDecl,
     isInvocationExpr,
     isLiteralExpr,
     isModel,
@@ -88,7 +90,7 @@ export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined
     return result as T;
 }
 
-export default function indentString(string: string, count = 4): string {
+export function indentString(string: string, count = 4): string {
     const indent = ' ';
     return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
 }
@@ -297,4 +299,21 @@ export function getContainingModel(node: AstNode | undefined): Model | null {
         return null;
     }
     return isModel(node) ? node : getContainingModel(node.$container);
+}
+
+export function getPreviewFeatures(model: Model) {
+    const jsGenerator = model.declarations.find(
+        (d) =>
+            isGeneratorDecl(d) &&
+            d.fields.some((f) => f.name === 'provider' && getLiteral<string>(f.value) === 'prisma-client-js')
+    ) as GeneratorDecl | undefined;
+
+    if (jsGenerator) {
+        const previewFeaturesField = jsGenerator.fields.find((f) => f.name === 'previewFeatures');
+        if (previewFeaturesField) {
+            return getLiteralArray<string>(previewFeaturesField.value);
+        }
+    }
+
+    return [] as string[];
 }

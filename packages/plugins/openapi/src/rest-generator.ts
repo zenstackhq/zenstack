@@ -2,7 +2,6 @@
 
 import type { DMMF } from '@prisma/generator-helper';
 import {
-    AUXILIARY_FIELDS,
     analyzePolicies,
     getDataModels,
     hasAttribute,
@@ -829,7 +828,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     }
 
     private generateModelEntity(model: DataModel, mode: 'read' | 'create' | 'update'): OAPI.SchemaObject {
-        const fields = model.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name) && !isIdField(f));
+        const fields = model.fields.filter((f) => !isIdField(f));
 
         const attributes: Record<string, OAPI.SchemaObject> = {};
         const relationships: Record<string, OAPI.ReferenceObject> = {};

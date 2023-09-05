@@ -1,4 +1,4 @@
-import { loadSchema, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchema, type FullDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('With Policy:deep nested', () => {
@@ -60,8 +60,8 @@ describe('With Policy:deep nested', () => {
     }
     `;
 
-    let db: WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let db: FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
         origDir = path.resolve('.');

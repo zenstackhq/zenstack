@@ -24,18 +24,14 @@ import prismaPlugin from 'zenstack/plugins/prisma';
 */
 export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
-export type WeakDbOperations = {
-    [key in keyof DbOperations]: (...args: any[]) => Promise<any>;
-};
-
-export type WeakDbClientContract = Record<string, WeakDbOperations> & {
+export type FullDbClientContract = Record<string, DbOperations> & {
     $on(eventType: any, callback: (event: any) => void): void;
     $use(cb: any): void;
     $disconnect: () => Promise<void>;
-    $transaction: (input: ((tx: WeakDbClientContract) => Promise<any>) | any[], options?: any) => Promise<any>;
+    $transaction: (input: ((tx: FullDbClientContract) => Promise<any>) | any[], options?: any) => Promise<any>;
     $queryRaw: (query: TemplateStringsArray, ...args: any[]) => Promise<any>;
     $executeRaw: (query: TemplateStringsArray, ...args: any[]) => Promise<number>;
-    $extends: (args: any) => WeakDbClientContract;
+    $extends: (args: any) => FullDbClientContract;
 };
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
@@ -71,10 +67,16 @@ export function getWorkspaceNpmCacheFolder(start: string) {
 }
 
 function makePrelude(options: SchemaLoadOptions) {
+    let dbUrl = options.dbUrl ?? (options.provider === 'postgresql' ? 'env("DATABASE_URL")' : 'file:./dev.db');
+
+    if (!dbUrl.includes('env(') && !dbUrl.startsWith("'") && !dbUrl.startsWith('"')) {
+        dbUrl = `'${dbUrl}'`;
+    }
+
     return `
 datasource db {
     provider = '${options.provider}'
-    url = '${options.dbUrl}'
+    url = ${dbUrl}
 }
 
 generator js {
@@ -110,7 +112,6 @@ const defaultOptions: SchemaLoadOptions = {
     compile: false,
     logPrismaQuery: false,
     provider: 'sqlite',
-    dbUrl: 'file:./test.db',
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
@@ -245,15 +246,15 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         projectDir: projectRoot,
         prisma,
         withPolicy: (user?: AuthUser) =>
-            withPolicy<WeakDbClientContract>(
+            withPolicy<FullDbClientContract>(
                 prisma,
                 { user },
                 { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
             ),
-        withOmit: () => withOmit<WeakDbClientContract>(prisma, { modelMeta }),
-        withPassword: () => withPassword<WeakDbClientContract>(prisma, { modelMeta }),
+        withOmit: () => withOmit<FullDbClientContract>(prisma, { modelMeta }),
+        withPassword: () => withPassword<FullDbClientContract>(prisma, { modelMeta }),
         enhance: (user?: AuthUser) =>
-            enhance<WeakDbClientContract>(
+            enhance<FullDbClientContract>(
                 prisma,
                 { user },
                 { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }

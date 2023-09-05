@@ -309,42 +309,6 @@ describe('Prisma generator test', () => {
         expect(post.fields[4].name).toBe('published');
     });
 
-    it('custom aux field names', async () => {
-        const model = await loadModel(`
-            datasource db {
-                provider = 'postgresql'
-                url = env('URL')
-            }
-
-            model Foo {
-                id String @id 
-                value Int
-                @@allow('create', value > 0)
-            }
-        `);
-
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(
-            model,
-            {
-                name: 'Prisma',
-                provider: '@core/prisma',
-                schemaPath: 'schema.zmodel',
-                output: name,
-            },
-            { guardFieldName: 'myGuardField', transactionFieldName: 'myTransactionField' }
-        );
-
-        const content = fs.readFileSync(name, 'utf-8');
-        await getDMMF({ datamodel: content });
-        expect(content).toContain('@map("myGuardField")');
-        expect(content).toContain('@map("myTransactionField")');
-        expect(content).toContain('value Int\n\n    zenstack_guard');
-        expect(content).toContain(
-            'zenstack_transaction String? @map("myTransactionField")\n\n    @@index([zenstack_transaction])'
-        );
-    });
-
     it('abstract multi files', async () => {
         const model = await loadDocument(path.join(__dirname, './zmodel/schema.zmodel'));
 
@@ -366,7 +330,7 @@ describe('Prisma generator test', () => {
         const post = dmmf.datamodel.models.find((m) => m.name === 'Post');
 
         expect(post?.documentation?.replace(/\s/g, '')).toBe(
-            `@@allow('read', owner == auth()) @@allow('delete', ownerId == auth())`.replace(/\s/g, '')
+            `@@allow('read', owner == auth()) @@allow('delete', owner == auth())`.replace(/\s/g, '')
         );
 
         const todo = dmmf.datamodel.models.find((m) => m.name === 'Todo');
@@ -402,126 +366,6 @@ describe('Prisma generator test', () => {
         const expected = fs.readFileSync(path.join(__dirname, './prisma/format.prisma'), 'utf-8');
 
         expect(content).toBe(expected);
-    });
-
-    it('no aux fields without policy', async () => {
-        const model = await loadModel(`
-            datasource db {
-                provider = 'postgresql'
-                url = env('URL')
-            }
-
-            model Post {
-                id Int @id()
-                title String
-            }
-        `);
-
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
-            name: 'Prisma',
-            provider: '@core/prisma',
-            schemaPath: 'schema.zmodel',
-            output: name,
-            format: true,
-        });
-
-        const content = fs.readFileSync(name, 'utf-8');
-        expect(content).not.toContain('zenstack_guard');
-        expect(content).not.toContain('zenstack_transaction');
-    });
-
-    it('aux fields generated due to policies', async () => {
-        const model = await loadModel(`
-            datasource db {
-                provider = 'postgresql'
-                url = env('URL')
-            }
-
-            model Post {
-                id Int @id()
-                title String @length(1, 32)
-                @@allow('read', title == "foo")
-            }
-        `);
-
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
-            name: 'Prisma',
-            provider: '@core/prisma',
-            schemaPath: 'schema.zmodel',
-            output: name,
-            format: true,
-        });
-
-        const content = fs.readFileSync(name, 'utf-8');
-        expect(content).toContain('zenstack_guard');
-        expect(content).toContain('zenstack_transaction');
-    });
-
-    it('aux fields generated due to field validation', async () => {
-        const model = await loadModel(`
-            datasource db {
-                provider = 'postgresql'
-                url = env('URL')
-            }
-
-            model Post {
-                id Int @id()
-                title String @length(1, 32)
-            }
-        `);
-
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
-            name: 'Prisma',
-            provider: '@core/prisma',
-            schemaPath: 'schema.zmodel',
-            output: name,
-            format: true,
-        });
-
-        const content = fs.readFileSync(name, 'utf-8');
-        expect(content).toContain('zenstack_guard');
-        expect(content).toContain('zenstack_transaction');
-    });
-
-    it('aux fields generated due to relationship', async () => {
-        const model = await loadModel(`
-            datasource db {
-                provider = 'postgresql'
-                url = env('URL')
-            }
-
-            model User {
-                id Int @id()
-                age Int
-                posts Post[]
-                @@allow('all', age > 18)
-            }
-
-            model Post {
-                id Int @id()
-                title String
-                author User @relation(fields: [authorId], references: [id])
-                authorId Int
-            }
-        `);
-
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
-            name: 'Prisma',
-            provider: '@core/prisma',
-            schemaPath: 'schema.zmodel',
-            output: name,
-            format: true,
-        });
-
-        const content = fs.readFileSync(name, 'utf-8');
-        const dmmf = await getDMMF({ datamodel: content });
-        const post = dmmf.datamodel?.models?.find((m) => m.name === 'Post');
-        expect(post?.fields.map((f) => f.name)).toContain('zenstack_guard');
-        expect(post?.fields.map((f) => f.name)).toContain('zenstack_transaction');
     });
 
     it('view support', async () => {

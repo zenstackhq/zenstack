@@ -1,25 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+export type PrismaPromise<T> = Promise<T> & Record<string, (args?: any) => PrismaPromise<any>>;
+
 /**
  * Weakly-typed database access methods
  */
 export interface DbOperations {
-    findMany(args?: unknown): Promise<unknown[]>;
-    findFirst(args: unknown): Promise<unknown>;
-    findFirstOrThrow(args: unknown): Promise<unknown>;
-    findUnique(args: unknown): Promise<unknown>;
-    findUniqueOrThrow(args: unknown): Promise<unknown>;
-    create(args: unknown): Promise<unknown>;
+    findMany(args?: unknown): Promise<any[]>;
+    findFirst(args?: unknown): PrismaPromise<any>;
+    findFirstOrThrow(args?: unknown): PrismaPromise<any>;
+    findUnique(args: unknown): PrismaPromise<any>;
+    findUniqueOrThrow(args: unknown): PrismaPromise<any>;
+    create(args: unknown): Promise<any>;
     createMany(args: unknown, skipDuplicates?: boolean): Promise<{ count: number }>;
-    update(args: unknown): Promise<unknown>;
+    update(args: unknown): Promise<any>;
     updateMany(args: unknown): Promise<{ count: number }>;
-    upsert(args: unknown): Promise<unknown>;
-    delete(args: unknown): Promise<unknown>;
+    upsert(args: unknown): Promise<any>;
+    delete(args: unknown): Promise<any>;
     deleteMany(args?: unknown): Promise<{ count: number }>;
-    aggregate(args: unknown): Promise<unknown>;
-    groupBy(args: unknown): Promise<unknown>;
-    count(args?: unknown): Promise<unknown>;
-    subscribe(args?: unknown): Promise<unknown>;
+    aggregate(args: unknown): Promise<any>;
+    groupBy(args: unknown): Promise<any>;
+    count(args?: unknown): Promise<any>;
+    subscribe(args?: unknown): Promise<any>;
     fields: Record<string, any>;
 }
 

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
@@ -12,6 +13,7 @@ import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { enumerate, formatObject, getIdFields, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
+import { createDeferredPromise } from './promise';
 
 // a record for post-write policy check
 type PostWriteCheckRecord = {
@@ -21,19 +23,22 @@ type PostWriteCheckRecord = {
     preValue?: any;
 };
 
+type FindOperations = 'findUnique' | 'findUniqueOrThrow' | 'findFirst' | 'findFirstOrThrow' | 'findMany';
+
 /**
  * Prisma proxy handler for injecting access policy check.
  */
 export class PolicyProxyHandler<DbClient extends DbClientContract> implements PrismaProxyHandler {
     private readonly logger: Logger;
     private readonly utils: PolicyUtil;
+    private readonly model: string;
 
     constructor(
         private readonly prisma: DbClient,
         private readonly policy: PolicyDef,
         private readonly modelMeta: ModelMeta,
         private readonly zodSchemas: ZodSchemas | undefined,
-        private readonly model: string,
+        model: string,
         private readonly user?: AuthUser,
         private readonly logPrismaQuery?: boolean
     ) {
@@ -46,6 +51,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.user,
             this.shouldLogQuery
         );
+        this.model = lowerCaseFirst(model);
     }
 
     private get modelClient() {
@@ -56,103 +62,143 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     // find operations behaves as if the entities that don't match access policies don't exist
 
-    async findUnique(args: any) {
+    findUnique(args: any) {
         if (!args) {
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
         if (!args.where) {
             throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
         }
-
-        const origArgs = args;
-        args = this.utils.clone(args);
-        if (!(await this.utils.injectForRead(this.prisma, this.model, args))) {
-            return null;
-        }
-
-        this.utils.injectReadCheckSelect(this.model, args);
-
-        if (this.shouldLogQuery) {
-            this.logger.info(`[policy] \`findUnique\` ${this.model}:\n${formatObject(args)}`);
-        }
-        const result = await this.modelClient.findUnique(args);
-        this.utils.postProcessForRead(result, this.model, origArgs);
-        return result;
+        return this.findWithFluentCallStubs(args, 'findUnique', false, () => null);
     }
 
-    async findUniqueOrThrow(args: any) {
+    findUniqueOrThrow(args: any) {
         if (!args) {
             throw prismaClientValidationError(this.prisma, 'query argument is required');
         }
         if (!args.where) {
             throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
         }
-
-        const origArgs = args;
-        args = this.utils.clone(args);
-        if (!(await this.utils.injectForRead(this.prisma, this.model, args))) {
+        return this.findWithFluentCallStubs(args, 'findUniqueOrThrow', true, () => {
             throw this.utils.notFound(this.model);
-        }
-
-        this.utils.injectReadCheckSelect(this.model, args);
-
-        if (this.shouldLogQuery) {
-            this.logger.info(`[policy] \`findUniqueOrThrow\` ${this.model}:\n${formatObject(args)}`);
-        }
-        const result = await this.modelClient.findUniqueOrThrow(args);
-        this.utils.postProcessForRead(result, this.model, origArgs);
-        return result;
+        });
     }
 
-    async findFirst(args: any) {
-        const origArgs = args;
-        args = args ? this.utils.clone(args) : {};
-        if (!(await this.utils.injectForRead(this.prisma, this.model, args))) {
-            return null;
-        }
-
-        this.utils.injectReadCheckSelect(this.model, args);
-
-        if (this.shouldLogQuery) {
-            this.logger.info(`[policy] \`findFirst\` ${this.model}:\n${formatObject(args)}`);
-        }
-        const result = await this.modelClient.findFirst(args);
-        this.utils.postProcessForRead(result, this.model, origArgs);
-        return result;
+    findFirst(args?: any) {
+        return this.findWithFluentCallStubs(args, 'findFirst', false, () => null);
     }
 
-    async findFirstOrThrow(args: any) {
-        const origArgs = args;
-        args = args ? this.utils.clone(args) : {};
-        if (!(await this.utils.injectForRead(this.prisma, this.model, args))) {
+    findFirstOrThrow(args: any) {
+        return this.findWithFluentCallStubs(args, 'findFirstOrThrow', true, () => {
             throw this.utils.notFound(this.model);
-        }
+        });
+    }
 
-        this.utils.injectReadCheckSelect(this.model, args);
+    findMany(args?: any) {
+        return createDeferredPromise<unknown[]>(() => this.doFind(args, 'findMany', () => []));
+    }
 
-        if (this.shouldLogQuery) {
-            this.logger.info(`[policy] \`findFirstOrThrow\` ${this.model}:\n${formatObject(args)}`);
-        }
-        const result = await this.modelClient.findFirstOrThrow(args);
-        this.utils.postProcessForRead(result, this.model, origArgs);
+    // returns a promise for the given find operation, together with function stubs for fluent API calls
+    private findWithFluentCallStubs(
+        args: any,
+        actionName: FindOperations,
+        resolveRoot: boolean,
+        handleRejection: () => any
+    ) {
+        // create a deferred promise so it's only evaluated when awaited or .then() is called
+        const result = createDeferredPromise(() => this.doFind(args, actionName, handleRejection));
+        this.addFluentFunctions(result, this.model, args?.where, resolveRoot ? result : undefined);
         return result;
     }
 
-    async findMany(args: any) {
+    private doFind(args: any, actionName: FindOperations, handleRejection: () => any) {
         const origArgs = args;
-        args = args ? this.utils.clone(args) : {};
-        if (!(await this.utils.injectForRead(this.prisma, this.model, args))) {
-            return [];
+        const _args = this.utils.clone(args);
+        if (!this.utils.injectForRead(this.prisma, this.model, _args)) {
+            return handleRejection();
         }
 
-        this.utils.injectReadCheckSelect(this.model, args);
+        this.utils.injectReadCheckSelect(this.model, _args);
 
         if (this.shouldLogQuery) {
-            this.logger.info(`[policy] \`findMany\` ${this.model}:\n${formatObject(args)}`);
+            this.logger.info(`[policy] \`${actionName}\` ${this.model}:\n${formatObject(_args)}`);
         }
-        const result = await this.modelClient.findMany(args);
-        this.utils.postProcessForRead(result, this.model, origArgs);
-        return result;
+
+        return new Promise((resolve, reject) => {
+            this.modelClient[actionName](_args).then(
+                (value: any) => {
+                    this.utils.postProcessForRead(value, this.model, origArgs);
+                    resolve(value);
+                },
+                (err: any) => reject(err)
+            );
+        });
+    }
+
+    // returns a fluent API call function
+    private fluentCall(filter: any, fieldInfo: FieldInfo, rootPromise?: Promise<any>) {
+        return (args: any) => {
+            args = this.utils.clone(args);
+
+            // combine the parent filter with the current one
+            const backLinkField = this.requireBackLink(fieldInfo);
+            const condition = backLinkField.isArray
+                ? { [backLinkField.name]: { some: filter } }
+                : { [backLinkField.name]: { is: filter } };
+            args.where = this.utils.and(args.where, condition);
+
+            const promise = createDeferredPromise(() => {
+                // Promise for fetching
+                const fetchFluent = (resolve: (value: unknown) => void, reject: (reason?: any) => void) => {
+                    const handler = this.makeHandler(fieldInfo.type);
+                    if (fieldInfo.isArray) {
+                        // fluent call stops here
+                        handler.findMany(args).then(
+                            (value: any) => resolve(value),
+                            (err: any) => reject(err)
+                        );
+                    } else {
+                        handler.findFirst(args).then(
+                            (value) => resolve(value),
+                            (err) => reject(err)
+                        );
+                    }
+                };
+
+                return new Promise((resolve, reject) => {
+                    if (rootPromise) {
+                        // if a root promise exists, resolve it before fluent API call,
+                        // so that fluent calls start with `findUniqueOrThrow` and `findFirstOrThrow`
+                        // can throw error properly if the root promise is rejected
+                        rootPromise.then(
+                            () => fetchFluent(resolve, reject),
+                            (err) => reject(err)
+                        );
+                    } else {
+                        fetchFluent(resolve, reject);
+                    }
+                });
+            });
+
+            if (!fieldInfo.isArray) {
+                // prepare for a chained fluent API call
+                this.addFluentFunctions(promise, fieldInfo.type, args.where, rootPromise);
+            }
+
+            return promise;
+        };
+    }
+
+    // add fluent API functions to the given promise
+    private addFluentFunctions(promise: any, model: string, filter: any, rootPromise?: Promise<unknown>) {
+        const fields = this.utils.getModelFields(model);
+        if (fields) {
+            for (const [field, fieldInfo] of Object.entries(fields)) {
+                if (fieldInfo.isDataModel) {
+                    promise[field] = this.fluentCall(filter, fieldInfo, rootPromise);
+                }
+            }
+        }
     }
 
     //#endregion
@@ -167,7 +213,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        await this.utils.tryReject(this.prisma, this.model, 'create');
+        this.utils.tryReject(this.prisma, this.model, 'create');
 
         const origArgs = args;
         args = this.utils.clone(args);
@@ -571,7 +617,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             let createData = args;
             if (context.field?.backLink) {
                 // handles the connection to upstream entity
-                const reversedQuery = await this.utils.buildReversedQuery(context);
+                const reversedQuery = this.utils.buildReversedQuery(context);
                 if (reversedQuery[context.field.backLink]) {
                     // the built reverse query contains a condition for the backlink field, build a "connect" with it
                     createData = {
@@ -597,7 +643,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const _createMany = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             if (context.field?.backLink) {
                 // handles the connection to upstream entity
-                const reversedQuery = await this.utils.buildReversedQuery(context);
+                const reversedQuery = this.utils.buildReversedQuery(context);
                 for (const item of enumerate(args.data)) {
                     Object.assign(item, reversedQuery);
                 }
@@ -624,7 +670,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const visitor = new NestedWriteVisitor(this.modelMeta, {
             update: async (model, args, context) => {
                 // build a unique query including upstream conditions
-                const uniqueFilter = await this.utils.buildReversedQuery(context);
+                const uniqueFilter = this.utils.buildReversedQuery(context);
 
                 // handle not-found
                 const existing = await this.utils.checkExistence(db, model, uniqueFilter, true);
@@ -675,7 +721,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             updateMany: async (model, args, context) => {
                 // injects auth guard into where clause
-                await this.utils.injectAuthGuard(db, args, model, 'update');
+                this.utils.injectAuthGuard(db, args, model, 'update');
 
                 // prepare for post-update check
                 if (this.utils.hasAuthGuard(model, 'postUpdate') || this.utils.getZodSchema(model)) {
@@ -684,9 +730,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     if (preValueSelect) {
                         select = { ...select, ...preValueSelect };
                     }
-                    const reversedQuery = await this.utils.buildReversedQuery(context);
+                    const reversedQuery = this.utils.buildReversedQuery(context);
                     const currentSetQuery = { select, where: reversedQuery };
-                    await this.utils.injectAuthGuard(db, currentSetQuery, model, 'read');
+                    this.utils.injectAuthGuard(db, currentSetQuery, model, 'read');
 
                     if (this.shouldLogQuery) {
                         this.logger.info(`[policy] \`findMany\` ${model}:\n${formatObject(currentSetQuery)}`);
@@ -728,7 +774,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             upsert: async (model, args, context) => {
                 // build a unique query including upstream conditions
-                const uniqueFilter = await this.utils.buildReversedQuery(context);
+                const uniqueFilter = this.utils.buildReversedQuery(context);
 
                 // branch based on if the update target exists
                 const existing = await this.utils.checkExistence(db, model, uniqueFilter);
@@ -779,7 +825,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             set: async (model, args, context) => {
                 // find the set of items to be replaced
-                const reversedQuery = await this.utils.buildReversedQuery(context);
+                const reversedQuery = this.utils.buildReversedQuery(context);
                 const findCurrSetArgs = {
                     select: this.utils.makeIdSelection(model),
                     where: reversedQuery,
@@ -798,7 +844,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             delete: async (model, args, context) => {
                 // build a unique query including upstream conditions
-                const uniqueFilter = await this.utils.buildReversedQuery(context);
+                const uniqueFilter = this.utils.buildReversedQuery(context);
 
                 // handle not-found
                 await this.utils.checkExistence(db, model, uniqueFilter, true);
@@ -837,10 +883,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
         }
 
-        await this.utils.tryReject(this.prisma, this.model, 'update');
+        this.utils.tryReject(this.prisma, this.model, 'update');
 
         args = this.utils.clone(args);
-        await this.utils.injectAuthGuard(this.prisma, args, this.model, 'update');
+        this.utils.injectAuthGuard(this.prisma, args, this.model, 'update');
 
         if (this.utils.hasAuthGuard(this.model, 'postUpdate') || this.utils.getZodSchema(this.model)) {
             // use a transaction to do post-update checks
@@ -853,7 +899,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     select = { ...select, ...preValueSelect };
                 }
                 const currentSetQuery = { select, where: args.where };
-                await this.utils.injectAuthGuard(tx, currentSetQuery, this.model, 'read');
+                this.utils.injectAuthGuard(tx, currentSetQuery, this.model, 'read');
 
                 if (this.shouldLogQuery) {
                     this.logger.info(`[policy] \`findMany\` ${this.model}: ${formatObject(currentSetQuery)}`);
@@ -900,8 +946,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'update field is required in query argument');
         }
 
-        await this.utils.tryReject(this.prisma, this.model, 'create');
-        await this.utils.tryReject(this.prisma, this.model, 'update');
+        this.utils.tryReject(this.prisma, this.model, 'create');
+        this.utils.tryReject(this.prisma, this.model, 'update');
 
         args = this.utils.clone(args);
 
@@ -947,7 +993,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
         }
 
-        await this.utils.tryReject(this.prisma, this.model, 'delete');
+        this.utils.tryReject(this.prisma, this.model, 'delete');
 
         const { result, error } = await this.transaction(async (tx) => {
             // do a read-back before delete
@@ -978,11 +1024,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     async deleteMany(args: any) {
-        await this.utils.tryReject(this.prisma, this.model, 'delete');
+        this.utils.tryReject(this.prisma, this.model, 'delete');
 
         // inject policy conditions
         args = args ?? {};
-        await this.utils.injectAuthGuard(this.prisma, args, this.model, 'delete');
+        this.utils.injectAuthGuard(this.prisma, args, this.model, 'delete');
 
         // conduct the deletion
         if (this.shouldLogQuery) {
@@ -1003,7 +1049,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = this.utils.clone(args);
 
         // inject policy conditions
-        await this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
+        this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`aggregate\` ${this.model}:\n${formatObject(args)}`);
@@ -1019,7 +1065,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = this.utils.clone(args);
 
         // inject policy conditions
-        await this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
+        this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`groupBy\` ${this.model}:\n${formatObject(args)}`);
@@ -1030,7 +1076,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     async count(args: any) {
         // inject policy conditions
         args = args ? this.utils.clone(args) : {};
-        await this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
+        this.utils.injectAuthGuard(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`count\` ${this.model}:\n${formatObject(args)}`);
@@ -1110,6 +1156,26 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 this.utils.checkPolicyForUnique(model, uniqueFilter, operation, db, undefined, preValue)
             )
         );
+    }
+
+    private makeHandler(model: string) {
+        return new PolicyProxyHandler(
+            this.prisma,
+            this.policy,
+            this.modelMeta,
+            this.zodSchemas,
+            model,
+            this.user,
+            this.logPrismaQuery
+        );
+    }
+
+    private requireBackLink(fieldInfo: FieldInfo) {
+        const backLinkField = fieldInfo.backLink && resolveField(this.modelMeta, fieldInfo.type, fieldInfo.backLink);
+        if (!backLinkField) {
+            throw new Error('Missing back link for field: ' + fieldInfo.name);
+        }
+        return backLinkField;
     }
 
     //#endregion

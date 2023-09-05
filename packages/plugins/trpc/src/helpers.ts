@@ -21,14 +21,24 @@ export function generateProcedure(
         writer.write(`
         ${opType}: procedure.input(${typeName}).query(({ctx, input}) => checkRead(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input as any))),
+        )}.${prismaMethod}(input as any))) as ProcReturns<
+            "query",
+            Proc,
+            (typeof ${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
+            ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
+        >,
     `);
     } else if (procType === 'mutation') {
         // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
         ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => checkMutate(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input as any))),
+        )}.${prismaMethod}(input as any))) as ProcReturns<
+                "mutation",
+                Proc,
+                (typeof ${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
+                ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
+            >,
     `);
     }
 }
@@ -101,10 +111,10 @@ function getPrismaOperationTypes(model: string, operation: string) {
 
         case 'count':
             argsType = `Prisma.Subset<T, ${genericBase}>`;
-            resultType = `'select' extends keyof T'
+            resultType = `'select' extends keyof T
             ? T['select'] extends true
               ? number
-              : GetScalarType<T['select'], ${capModel}CountAggregateOutputType>
+              : Prisma.GetScalarType<T['select'], Prisma.${capModel}CountAggregateOutputType>
             : number`;
             break;
 
@@ -290,6 +300,9 @@ export const getInputSchemaByOpName = (opName: string, modelName: string) => {
         case 'groupBy':
             inputType = `${modelName}InputSchema.groupBy`;
             break;
+        case 'count':
+            inputType = `${modelName}InputSchema.count`;
+            break;
         default:
             console.log('getInputTypeByOpName: ', { opName, modelName });
     }
@@ -306,6 +319,7 @@ export const getProcedureTypeByOpName = (opName: string) => {
         case 'aggregate':
         case 'aggregateRaw':
         case 'groupBy':
+        case 'count':
             procType = 'query';
             break;
         case 'createOne':

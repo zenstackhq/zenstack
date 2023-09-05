@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { PRISMA_TX_FLAG, PRISMA_PROXY_ENHANCER } from '../constants';
+import { PRISMA_PROXY_ENHANCER, PRISMA_TX_FLAG } from '../constants';
 import { DbClientContract } from '../types';
+import { createDeferredPromise } from './policy/promise';
 import { ModelMeta } from './types';
 
 /**
@@ -174,11 +175,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
     modelMeta: ModelMeta,
     makeHandler: (prisma: object, model: string) => T,
     name = 'unnamed_enhancer'
-    // inTransaction = false
 ) {
-    // // put a transaction marker on the proxy target
-    // prisma[PRISIMA_TX_FLAG] = inTransaction;
-
     const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
@@ -248,20 +245,39 @@ function createHandlerProxy<T extends PrismaProxyHandler>(handler: T): T {
 
             // eslint-disable-next-line @typescript-eslint/ban-types
             const origMethod = prop as Function;
-            return async function (...args: any[]) {
-                // proxying async functions results in messed-up error stack trace,
+            return function (...args: any[]) {
+                // using proxy with async functions results in messed-up error stack trace,
                 // create an error to capture the current stack
                 const capture = new Error(ERROR_MARKER);
-                try {
-                    return await origMethod.apply(handler, args);
-                } catch (err) {
-                    if (capture.stack && err instanceof Error) {
-                        // save the original stack and replace it with a clean one
-                        (err as any).internalStack = err.stack;
-                        err.stack = cleanCallStack(capture.stack, propKey.toString(), err.message);
+
+                // the original proxy returned by the PrismaClient proxy
+                const promise: Promise<unknown> = origMethod.apply(handler, args);
+
+                // modify the error stack
+                const resultPromise = createDeferredPromise(() => {
+                    return new Promise((resolve, reject) => {
+                        promise.then(
+                            (value) => resolve(value),
+                            (err) => {
+                                if (capture.stack && err instanceof Error) {
+                                    // save the original stack and replace it with a clean one
+                                    (err as any).internalStack = err.stack;
+                                    err.stack = cleanCallStack(capture.stack, propKey.toString(), err.message);
+                                }
+                                reject(err);
+                            }
+                        );
+                    });
+                });
+
+                // carry over extra fields from the original promise
+                for (const [k, v] of Object.entries(promise)) {
+                    if (!(k in resultPromise)) {
+                        (resultPromise as any)[k] = v;
                     }
-                    throw err;
                 }
+
+                return resultPromise;
             };
         },
     });
@@ -287,7 +303,7 @@ function cleanCallStack(stack: string, method: string, message: string) {
         }
 
         // skip leading zenstack and anonymous lines
-        if (line.includes('@zenstackhq/runtime') || line.includes('<anonymous>')) {
+        if (line.includes('@zenstackhq/runtime') || line.includes('Proxy.<anonymous>')) {
             continue;
         }
 

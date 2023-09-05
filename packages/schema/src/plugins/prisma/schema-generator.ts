@@ -1,7 +1,7 @@
 import {
     ArrayExpr,
-    AstNode,
     AttributeArg,
+    BooleanLiteral,
     DataModel,
     DataModelAttribute,
     DataModelField,
@@ -17,23 +17,24 @@ import {
     isInvocationExpr,
     isLiteralExpr,
     isReferenceExpr,
+    isStringLiteral,
     LiteralExpr,
     Model,
+    NumberLiteral,
+    StringLiteral,
 } from '@zenstackhq/language/ast';
+import { match } from 'ts-pattern';
+
 import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
-    analyzePolicies,
-    getDataModels,
     getDMMF,
     getLiteral,
     getLiteralArray,
     getPrismaVersion,
-    GUARD_FIELD_NAME,
     PluginError,
     PluginOptions,
     resolved,
     resolvePath,
-    TRANSACTION_FIELD_NAME,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
@@ -80,7 +81,7 @@ export default class PrismaSchemaGenerator {
 
 `;
 
-    async generate(model: Model, options: PluginOptions, config?: Record<string, string>) {
+    async generate(model: Model, options: PluginOptions, _config?: Record<string, string>) {
         const warnings: string[] = [];
 
         const prismaVersion = getPrismaVersion();
@@ -103,7 +104,7 @@ export default class PrismaSchemaGenerator {
                     break;
 
                 case DataModel:
-                    this.generateModel(prisma, decl as DataModel, config);
+                    this.generateModel(prisma, decl as DataModel);
                     break;
 
                 case GeneratorDecl:
@@ -171,8 +172,8 @@ export default class PrismaSchemaGenerator {
         for (const f of dataSource.fields) {
             switch (f.name) {
                 case 'provider': {
-                    if (this.isStringLiteral(f.value)) {
-                        provider = f.value.value as string;
+                    if (isStringLiteral(f.value)) {
+                        provider = f.value.value;
                     } else {
                         throw new PluginError(name, 'Datasource provider must be set to a string');
                     }
@@ -233,13 +234,13 @@ export default class PrismaSchemaGenerator {
     }
 
     private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr | ArrayExpr) {
-        if (this.isStringLiteral(fieldValue)) {
-            return new PrismaDataSourceUrl(fieldValue.value as string, false);
+        if (isStringLiteral(fieldValue)) {
+            return new PrismaDataSourceUrl(fieldValue.value, false);
         } else if (
             isInvocationExpr(fieldValue) &&
             fieldValue.function.ref?.name === 'env' &&
             fieldValue.args.length === 1 &&
-            this.isStringLiteral(fieldValue.args[0].value)
+            isStringLiteral(fieldValue.args[0].value)
         ) {
             return new PrismaDataSourceUrl(fieldValue.args[0].value.value as string, true);
         } else {
@@ -291,51 +292,10 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private generateModel(prisma: PrismaModel, decl: DataModel, config?: Record<string, string>) {
+    private generateModel(prisma: PrismaModel, decl: DataModel) {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);
-        }
-
-        if (this.shouldGenerateAuxFields(decl)) {
-            // generate auxiliary fields for policy check
-
-            // add an "zenstack_guard" field for dealing with boolean conditions
-            const guardField = model.addField(GUARD_FIELD_NAME, 'Boolean', [
-                new PrismaFieldAttribute('@default', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
-                ]),
-            ]);
-
-            if (config?.guardFieldName && config?.guardFieldName !== GUARD_FIELD_NAME) {
-                // generate a @map to rename field in the database
-                guardField.addAttribute('@map', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('String', config.guardFieldName)),
-                ]);
-            }
-
-            // add an "zenstack_transaction" field for tracking records created/updated with nested writes
-            const transactionField = model.addField(TRANSACTION_FIELD_NAME, 'String?');
-
-            // create an index for "zenstack_transaction" field
-            model.addAttribute('@@index', [
-                new PrismaAttributeArg(
-                    undefined,
-                    new PrismaAttributeArgValue('Array', [
-                        new PrismaAttributeArgValue('FieldReference', TRANSACTION_FIELD_NAME),
-                    ])
-                ),
-            ]);
-
-            if (config?.transactionFieldName && config?.transactionFieldName !== TRANSACTION_FIELD_NAME) {
-                // generate a @map to rename field in the database
-                transactionField.addAttribute('@map', [
-                    new PrismaAttributeArg(
-                        undefined,
-                        new PrismaAttributeArgValue('String', config.transactionFieldName)
-                    ),
-                ]);
-            }
         }
 
         for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
@@ -348,44 +308,6 @@ export default class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
-    }
-
-    private shouldGenerateAuxFields(decl: DataModel) {
-        if (decl.isView) {
-            return false;
-        }
-
-        const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
-
-        if (!allowAll && !denyAll) {
-            // has policy conditions
-            return true;
-        }
-
-        if (hasFieldValidation) {
-            return true;
-        }
-
-        // check if the model is related by other models, if so
-        // aux fields are needed for nested queries
-        const root = decl.$container;
-        for (const model of getDataModels(root)) {
-            if (model === decl) {
-                continue;
-            }
-            for (const field of model.fields) {
-                if (field.type.reference?.ref === decl) {
-                    // found a relation with policies
-                    const otherPolicies = analyzePolicies(model);
-                    if ((!otherPolicies.allowAll && !otherPolicies.denyAll) || otherPolicies.hasFieldValidation) {
-                        // the relating side has policies
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
     }
 
     private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
@@ -460,16 +382,12 @@ export default class PrismaSchemaGenerator {
 
     private makeAttributeArgValue(node: Expression): PrismaAttributeArgValue {
         if (isLiteralExpr(node)) {
-            switch (typeof node.value) {
-                case 'string':
-                    return new PrismaAttributeArgValue('String', node.value);
-                case 'number':
-                    return new PrismaAttributeArgValue('Number', node.value);
-                case 'boolean':
-                    return new PrismaAttributeArgValue('Boolean', node.value);
-                default:
-                    throw new PluginError(name, `Unexpected literal type: ${typeof node.value}`);
-            }
+            const argType = match(node.$type)
+                .with(StringLiteral, () => 'String' as const)
+                .with(NumberLiteral, () => 'Number' as const)
+                .with(BooleanLiteral, () => 'Boolean' as const)
+                .exhaustive();
+            return new PrismaAttributeArgValue(argType, node.value);
         } else if (isArrayExpr(node)) {
             return new PrismaAttributeArgValue(
                 'Array',
@@ -548,9 +466,5 @@ export default class PrismaSchemaGenerator {
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
         _enum.addField(field.name, attributes, documentations);
-    }
-
-    private isStringLiteral(node: AstNode): node is LiteralExpr {
-        return isLiteralExpr(node) && typeof node.value === 'string';
     }
 }

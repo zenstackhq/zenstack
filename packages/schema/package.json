@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
-    "version": "1.0.0-beta.20",
+    "version": "1.0.0-beta.21",
     "author": {
         "name": "ZenStack Team"
     },
@@ -73,7 +73,7 @@
         "bundle": "pnpm clean && pnpm lint && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
-        "test": "jest",
+        "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --registry http://localhost:4873",
         "postinstall": "node bin/post-install.js"

@@ -1,5 +1,6 @@
 import {
     BinaryExpr,
+    BooleanLiteral,
     DataModel,
     Expression,
     InvocationExpr,
@@ -10,7 +11,9 @@ import {
     isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
+    NumberLiteral,
     ReferenceExpr,
+    StringLiteral,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
 import {
@@ -75,7 +78,9 @@ export class ExpressionWriter {
      */
     write(expr: Expression): void {
         switch (expr.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 this.writeLiteral(expr as LiteralExpr);
                 break;
 
@@ -274,18 +279,6 @@ export class ExpressionWriter {
         const leftIsFieldAccess = this.isFieldAccess(expr.left);
         const rightIsFieldAccess = this.isFieldAccess(expr.right);
 
-        if (leftIsFieldAccess && rightIsFieldAccess) {
-            if (
-                isDataModelFieldReference(expr.left) &&
-                isDataModelFieldReference(expr.right) &&
-                expr.left.target.ref?.$container === expr.right.target.ref?.$container
-            ) {
-                // comparing fields from the same model
-            } else {
-                throw new PluginError(name, `Comparing fields from different models is not supported`);
-            }
-        }
-
         if (!leftIsFieldAccess && !rightIsFieldAccess) {
             // compile down to a plain expression
             this.guard(() => {
@@ -313,7 +306,8 @@ export class ExpressionWriter {
                 $container: fieldAccess.$container,
                 target: fieldAccess.member,
                 $resolvedType: fieldAccess.$resolvedType,
-            } as ReferenceExpr;
+                $future: true,
+            } as unknown as ReferenceExpr;
         }
 
         // guard member access of `auth()` with null check
@@ -344,10 +338,7 @@ export class ExpressionWriter {
                             // right now this branch only serves comparison with `auth`, like
                             //     @@allow('all', owner == auth())
 
-                            const idFields = getIdFields(dataModel);
-                            if (!idFields || idFields.length === 0) {
-                                throw new PluginError(name, `Data model ${dataModel.name} does not have an id field`);
-                            }
+                            const idFields = this.requireIdFields(dataModel);
 
                             if (operator !== '==' && operator !== '!=') {
                                 throw new PluginError(name, 'Only == and != operators are allowed');
@@ -384,15 +375,21 @@ export class ExpressionWriter {
                                 });
                             });
                         } else {
-                            this.writeOperator(operator, fieldAccess, () => {
-                                if (isDataModelFieldReference(operand) && !this.isPostGuard) {
-                                    // if operand is a field reference and we're not generating for post-update guard,
-                                    // we should generate a field reference (comparing fields in the same model)
-                                    this.writeFieldReference(operand);
-                                } else {
-                                    this.plain(operand);
-                                }
-                            });
+                            if (this.equivalentRefs(fieldAccess, operand)) {
+                                // f == f or f != f
+                                // this == this or this != this
+                                this.writer.write(operator === '!=' ? TRUE : FALSE);
+                            } else {
+                                this.writeOperator(operator, fieldAccess, () => {
+                                    if (isDataModelFieldReference(operand) && !this.isPostGuard) {
+                                        // if operand is a field reference and we're not generating for post-update guard,
+                                        // we should generate a field reference (comparing fields in the same model)
+                                        this.writeFieldReference(operand);
+                                    } else {
+                                        this.plain(operand);
+                                    }
+                                });
+                            }
                         }
                     }, !isThisExpr(fieldAccess));
                 });
@@ -401,6 +398,32 @@ export class ExpressionWriter {
             // avoid generating a new layer
             !isThisExpr(fieldAccess)
         );
+    }
+
+    private requireIdFields(dataModel: DataModel) {
+        const idFields = getIdFields(dataModel);
+        if (!idFields || idFields.length === 0) {
+            throw new PluginError(name, `Data model ${dataModel.name} does not have an id field`);
+        }
+        return idFields;
+    }
+
+    private equivalentRefs(expr1: Expression, expr2: Expression) {
+        if (isThisExpr(expr1) && isThisExpr(expr2)) {
+            return true;
+        }
+
+        if (
+            isReferenceExpr(expr1) &&
+            isReferenceExpr(expr2) &&
+            expr1.target.ref === expr2.target.ref &&
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (expr1 as any).$future === (expr2 as any).$future // either both future or both not
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     // https://www.prisma.io/docs/reference/api-reference/prisma-client-reference#compare-columns-in-the-same-table
@@ -554,7 +577,7 @@ export class ExpressionWriter {
         // TODO: do we need short-circuit for logical operators?
 
         if (operator === '&&') {
-            // // && short-circuit: left && right -> left ? right : { zenstack_guard: false }
+            // // && short-circuit: left && right -> left ? right : FALSE
             // if (!this.hasFieldAccess(expr.left)) {
             //     this.plain(expr.left);
             //     this.writer.write(' ? ');
@@ -568,7 +591,7 @@ export class ExpressionWriter {
             });
             // }
         } else {
-            // // || short-circuit: left || right -> left ? { zenstack_guard: true } : right
+            // // || short-circuit: left || right -> left ? TRUE : right
             // if (!this.hasFieldAccess(expr.left)) {
             //     this.plain(expr.left);
             //     this.writer.write(' ? ');
@@ -628,14 +651,14 @@ export class ExpressionWriter {
 
             // isEmpty function is zero arity, it's mapped to a boolean literal
             if (funcDecl.name === 'isEmpty') {
-                valueArg = { $type: LiteralExpr, value: true } as LiteralExpr;
+                valueArg = { $type: BooleanLiteral, value: true } as LiteralExpr;
             }
 
             // contains function has a 3rd argument that indicates whether the comparison should be case-insensitive
             let extraArgs: Record<string, Expression> | undefined = undefined;
             if (funcDecl.name === 'contains') {
                 if (getLiteral<boolean>(expr.args[2]?.value) === true) {
-                    extraArgs = { mode: { $type: LiteralExpr, value: 'insensitive' } as LiteralExpr };
+                    extraArgs = { mode: { $type: StringLiteral, value: 'insensitive' } as LiteralExpr };
                 }
             }
 

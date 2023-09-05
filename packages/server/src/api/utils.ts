@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { AUXILIARY_FIELDS } from '@zenstackhq/runtime';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
 import { LoggerConfig } from '../types';
@@ -25,30 +23,6 @@ export function logInfo(logger: LoggerConfig | undefined | null, message: string
         console.log(`@zenstackhq/server: ${message}`);
     } else if (logger?.info) {
         logger.info(message);
-    }
-}
-
-function stripAuxFields(data: unknown) {
-    if (Array.isArray(data)) {
-        return data.forEach(stripAuxFields);
-    } else if (data && typeof data === 'object') {
-        for (const [key, value] of Object.entries(data)) {
-            if (AUXILIARY_FIELDS.includes(key)) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                delete (data as any)[key];
-            } else {
-                stripAuxFields(value);
-            }
-        }
-    }
-}
-
-/**
- * Processes entity data returned from Prisma call.
- */
-export function processEntityData(data: any) {
-    if (data) {
-        stripAuxFields(data);
     }
 }
 

@@ -1,7 +1,7 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
 import type { DMMF } from '@prisma/generator-helper';
-import { analyzePolicies, AUXILIARY_FIELDS, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
+import { analyzePolicies, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
 import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -399,6 +399,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             security: read === true ? [] : undefined,
         });
 
+        // OrderByWithRelationInput's name is different when "fullTextSearch" is enabled
+        const orderByWithRelationInput = this.inputObjectTypes
+            .map((o) => upperCaseFirst(o.name))
+            .includes(`${modelName}OrderByWithRelationInput`)
+            ? `${modelName}OrderByWithRelationInput`
+            : `${modelName}OrderByWithRelationAndSearchRelevanceInput`;
+
         if (ops['aggregate']) {
             definitions.push({
                 method: 'get',
@@ -409,7 +416,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         properties: {
                             where: this.ref(`${modelName}WhereInput`),
-                            orderBy: this.ref(`${modelName}OrderByWithRelationInput`),
+                            orderBy: this.ref(orderByWithRelationInput),
                             cursor: this.ref(`${modelName}WhereUniqueInput`),
                             take: { type: 'integer' },
                             skip: { type: 'integer' },
@@ -435,7 +442,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         properties: {
                             where: this.ref(`${modelName}WhereInput`),
-                            orderBy: this.ref(`${modelName}OrderByWithRelationInput`),
+                            orderBy: this.ref(orderByWithRelationInput),
                             by: this.ref(`${modelName}ScalarFieldEnum`),
                             having: this.ref(`${modelName}ScalarWhereWithAggregatesInput`),
                             take: { type: 'integer' },
@@ -674,7 +681,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generateEnumComponent(_enum: DMMF.SchemaEnum): OAPI.SchemaObject {
         const schema: OAPI.SchemaObject = {
             type: 'string',
-            enum: _enum.values.filter((f) => !AUXILIARY_FIELDS.includes(f)),
+            enum: _enum.values,
         };
         return schema;
     }
@@ -682,9 +689,8 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generateEntityComponent(model: DMMF.Model): OAPI.SchemaObject {
         const properties: Record<string, OAPI.ReferenceObject | OAPI.SchemaObject> = {};
 
-        const fields = model.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name));
         const required: string[] = [];
-        for (const field of fields) {
+        for (const field of model.fields) {
             properties[field.name] = this.generateField(field);
             if (field.isRequired && !(field.relationName && field.isList)) {
                 required.push(field.name);
@@ -714,8 +720,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
 
     private generateInputComponent(input: DMMF.InputType): OAPI.SchemaObject {
         const properties: Record<string, OAPI.ReferenceObject | OAPI.SchemaObject> = {};
-        const fields = input.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name));
-        for (const field of fields) {
+        for (const field of input.fields) {
             const options = field.inputTypes
                 .filter(
                     (f) =>
@@ -730,14 +735,13 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
 
         const result: OAPI.SchemaObject = { type: 'object', properties };
-        this.setInputRequired(fields, result);
+        this.setInputRequired(input.fields, result);
         return result;
     }
 
     private generateOutputComponent(output: DMMF.OutputType): OAPI.SchemaObject {
         const properties: Record<string, OAPI.ReferenceObject | OAPI.SchemaObject> = {};
-        const fields = output.fields.filter((f) => !AUXILIARY_FIELDS.includes(f.name));
-        for (const field of fields) {
+        for (const field of output.fields) {
             let outputType: OAPI.ReferenceObject | OAPI.SchemaObject;
             switch (field.outputType.location) {
                 case 'scalar':
@@ -755,7 +759,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
 
         const result: OAPI.SchemaObject = { type: 'object', properties };
-        this.setOutputRequired(fields, result);
+        this.setOutputRequired(output.fields, result);
         return result;
     }
 

@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-describe('With Policy:toplevel operations', () => {
+describe('With Policy: toplevel operations', () => {
     let origDir: string;
 
     beforeAll(async () => {

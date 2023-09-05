@@ -1,6 +1,8 @@
 import {
     ArrayExpr,
     BinaryExpr,
+    BooleanLiteral,
+    DataModel,
     Expression,
     InvocationExpr,
     isEnumField,
@@ -8,11 +10,14 @@ import {
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    NumberLiteral,
     ReferenceExpr,
+    StringLiteral,
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { ExpressionContext, getLiteral, isFromStdlib, isFutureExpr } from '@zenstackhq/sdk';
+import { getIdFields } from './ast-utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -57,7 +62,9 @@ export class TypeScriptExpressionTransformer {
      */
     transform(expr: Expression, normalizeUndefined = true): string {
         switch (expr.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 return this.literal(expr as LiteralExpr);
 
             case ArrayExpr:
@@ -89,10 +96,9 @@ export class TypeScriptExpressionTransformer {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private this(expr: ThisExpr) {
-        // "this" is mapped to id comparison
-        return 'id';
+    private this(_expr: ThisExpr) {
+        // "this" is mapped to the input argument
+        return 'input';
     }
 
     private memberAccess(expr: MemberAccessExpr, normalizeUndefined: boolean) {
@@ -284,7 +290,7 @@ export class TypeScriptExpressionTransformer {
     }
 
     private literal(expr: LiteralExpr) {
-        if (typeof expr.value === 'string') {
+        if (expr.$type === StringLiteral) {
             return `'${expr.value}'`;
         } else {
             return expr.value.toString();
@@ -301,6 +307,23 @@ export class TypeScriptExpressionTransformer {
                 expr.left,
                 normalizeUndefined
             )}) ?? false)`;
+        } else if (
+            (expr.operator === '==' || expr.operator === '!=') &&
+            (isThisExpr(expr.left) || isThisExpr(expr.right))
+        ) {
+            // map equality comparison with `this` to id comparison
+            const _this = isThisExpr(expr.left) ? expr.left : expr.right;
+            const model = _this.$resolvedType?.decl as DataModel;
+            const idFields = getIdFields(model);
+            if (!idFields || idFields.length === 0) {
+                throw new TypeScriptExpressionTransformerError(`model "${model.name}" does not have an id field`);
+            }
+            let result = `allFieldsEqual(${this.transform(expr.left, false)}, 
+                ${this.transform(expr.right, false)}, [${idFields.map((f) => "'" + f.name + "'").join(', ')}])`;
+            if (expr.operator === '!=') {
+                result = `!${result}`;
+            }
+            return result;
         } else {
             return `(${this.transform(expr.left, normalizeUndefined)} ${expr.operator} ${this.transform(
                 expr.right,

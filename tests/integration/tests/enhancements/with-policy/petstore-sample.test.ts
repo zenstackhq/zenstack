@@ -1,10 +1,10 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchemaFromFile, run, type WeakDbClientContract } from '@zenstackhq/testtools';
+import { loadSchemaFromFile, run, type FullDbClientContract } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('Pet Store Policy Tests', () => {
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
         const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(

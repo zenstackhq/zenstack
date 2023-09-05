@@ -376,6 +376,53 @@ model Foo {
         const baseline = YAML.parse(fs.readFileSync(`${__dirname}/baseline/rpc-type-coverage.baseline.yaml`, 'utf-8'));
         expect(parsed).toMatchObject(baseline);
     });
+
+    it('full-text search', async () => {
+        const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
+generator js {
+    provider = 'prisma-client-js'
+    previewFeatures = ['fullTextSearch']
+}
+        
+plugin openapi {
+    provider = '${process.cwd()}/dist'
+}
+
+enum role {
+    USER
+    ADMIN
+}
+
+model User {
+    id String @id
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    email String @unique
+    role role @default(USER)
+    posts post_Item[]
+}
+
+model post_Item {
+    id String @id
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+    published Boolean @default(false)
+    viewCount Int @default(0)
+}
+        `);
+
+        const { name: output } = tmp.fileSync({ postfix: '.yaml' });
+
+        const options = buildOptions(model, modelFile, output);
+        await generate(model, options, dmmf);
+
+        console.log('OpenAPI specification generated:', output);
+
+        await OpenAPIParser.validate(output);
+    });
 });
 
 function buildOptions(model: Model, modelFile: string, output: string) {

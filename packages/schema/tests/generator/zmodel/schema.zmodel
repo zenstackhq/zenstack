@@ -9,7 +9,7 @@ model Post extends Basic {
     title String
     content String?
 
-    @@allow('delete', ownerId == auth())
+    @@allow('delete', owner == auth())
 }
 
 model Todo extends Basic {

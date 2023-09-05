@@ -38,8 +38,17 @@ PluginField:
 Expression:
     LogicalExpr;
 
+NumberLiteral:
+    value=NUMBER;
+
+StringLiteral:
+    value=STRING;
+
+BooleanLiteral:
+    value=Boolean;
+
 LiteralExpr:
-    value=(Boolean | NUMBER | STRING);
+    NumberLiteral | StringLiteral | BooleanLiteral;
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
@@ -266,8 +275,8 @@ hidden terminal WS: /\s+/;
 terminal NULL: 'null';
 terminal THIS: 'this';
 terminal ID: /[_a-zA-Z][\w_]*/;
-terminal STRING: /"[^"]*"|'[^']*'/;
-terminal NUMBER returns number: /[+-]?[0-9]+(\.[0-9]+)?/;
+terminal STRING: /"(\\.|[^"\\])*"|'(\\.|[^'\\])*'/;
+terminal NUMBER: /[+-]?[0-9]+(\.[0-9]+)?/;
 terminal TRIPLE_SLASH_COMMENT: /\/\/\/[^\n\r]*/;
 hidden terminal ML_COMMENT: /\/\*[\s\S]*?\*\//;
 hidden terminal SL_COMMENT: /\/\/[^\n\r]*/;

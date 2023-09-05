@@ -26,6 +26,6 @@ model Post {
     author User? @relation(fields: [authorId], references: [id])
     authorId String?
     published Boolean @default(false)
-    @@allow('all', auth() == this)
+    @@allow('all', auth() == author)
     @@allow('read', published)
 }
