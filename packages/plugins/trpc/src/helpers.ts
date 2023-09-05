@@ -111,10 +111,10 @@ function getPrismaOperationTypes(model: string, operation: string) {
 
         case 'count':
             argsType = `Prisma.Subset<T, ${genericBase}>`;
-            resultType = `'select' extends keyof T'
+            resultType = `'select' extends keyof T
             ? T['select'] extends true
               ? number
-              : GetScalarType<T['select'], ${capModel}CountAggregateOutputType>
+              : Prisma.GetScalarType<T['select'], Prisma.${capModel}CountAggregateOutputType>
             : number`;
             break;
 

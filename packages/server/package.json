@@ -18,7 +18,7 @@
         "linkDirectory": true
     },
     "keywords": [
-        "fastify"
+        "fastify", "express", "nextjs", "sveltekit", "nuxtjs"
     ],
     "author": "",
     "license": "MIT",

@@ -73,7 +73,7 @@
         "bundle": "pnpm clean && pnpm lint && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
-        "test": "jest",
+        "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --registry http://localhost:4873",
         "postinstall": "node bin/post-install.js"
