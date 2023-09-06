@@ -614,7 +614,7 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0
       '@prisma/internals':
-        specifier: '4'
+        specifier: ^4.16.0
         version: 4.16.2
       '@prisma/internals-v5':
         specifier: npm:@prisma/internals@^5.0.0
