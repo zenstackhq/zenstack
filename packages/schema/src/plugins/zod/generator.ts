@@ -236,7 +236,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         // compile "@@validate" to ".refine"
         const refinements = makeValidationRefinements(model);
         if (refinements.length > 0) {
-            writer.writeLine(`function refine(schema: z.ZodType) { return schema${refinements.join('\n')}; }`);
+            writer.writeLine(`function refine<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join('\n')}; }`);
         }
 
         // model schema
