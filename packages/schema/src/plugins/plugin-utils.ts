@@ -27,8 +27,18 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
 export function ensureDefaultOutputFolder() {
     const output = getDefaultOutputFolder();
     if (output && !fs.existsSync(output)) {
+        const pkgJson = {
+            name: '.zenstack',
+            version: '1.0.0',
+            exports: {
+                './zod': {
+                    default: './zod/index.js',
+                    types: './zod/index.d.ts',
+                },
+            },
+        };
         fs.mkdirSync(output, { recursive: true });
-        fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify({ name: '.zenstack', version: '1.0.0' }));
+        fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify(pkgJson, undefined, 4));
     }
 }
 
