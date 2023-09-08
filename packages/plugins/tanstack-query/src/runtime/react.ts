@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+    useInfiniteQuery,
     useMutation,
     useQuery,
     useQueryClient,
     type MutateFunction,
     type QueryClient,
+    type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
 } from '@tanstack/react-query';
@@ -41,12 +43,36 @@ export const Provider = RequestHandlerContext.Provider;
  * @param options The react-query options object
  * @returns useQuery hook
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function query<R>(model: string, url: string, args?: unknown, options?: UseQueryOptions<R>, fetch?: FetchFn) {
     const reqUrl = makeUrl(url, args);
     return useQuery<R>({
         queryKey: [QUERY_KEY_PREFIX + model, url, args],
         queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
+        ...options,
+    });
+}
+
+/**
+ * Creates a react-query infinite query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The react-query infinite query options object
+ * @returns useInfiniteQuery hook
+ */
+export function infiniteQuery<R>(
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: UseInfiniteQueryOptions<R>,
+    fetch?: FetchFn
+) {
+    return useInfiniteQuery<R>({
+        queryKey: [QUERY_KEY_PREFIX + model, url, args],
+        queryFn: ({ pageParam }) => {
+            return fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+        },
         ...options,
     });
 }
