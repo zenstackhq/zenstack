@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+    createInfiniteQuery,
     createMutation,
     createQuery,
     useQueryClient,
+    type CreateInfiniteQueryOptions,
     type MutateFunction,
     type MutationOptions,
     type QueryClient,
@@ -26,12 +28,34 @@ export const SvelteQueryContextKey = 'zenstack-svelte-query-context';
  * @param options The svelte-query options object
  * @returns useQuery hook
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function query<R>(model: string, url: string, args?: unknown, options?: QueryOptions<R>, fetch?: FetchFn) {
     const reqUrl = makeUrl(url, args);
     return createQuery<R>({
         queryKey: [QUERY_KEY_PREFIX + model, url, args],
         queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
+        ...options,
+    });
+}
+
+/**
+ * Creates a svelte-query infinite query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The svelte-query infinite query options object
+ * @returns useQuery hook
+ */
+export function infiniteQuery<R>(
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: CreateInfiniteQueryOptions<R>,
+    fetch?: FetchFn
+) {
+    return createInfiniteQuery<R>({
+        queryKey: [QUERY_KEY_PREFIX + model, url, args],
+        queryFn: ({ pageParam }) => fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
         ...options,
     });
 }

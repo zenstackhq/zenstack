@@ -62,7 +62,8 @@ function generateQueryHook(
     optionalInput: boolean,
     overrideReturnType?: string,
     overrideInputType?: string,
-    overrideTypeParameters?: string[]
+    overrideTypeParameters?: string[],
+    infinite = false
 ) {
     const capOperation = upperCaseFirst(operation);
 
@@ -70,10 +71,10 @@ function generateQueryHook(
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
     const returnType =
         overrideReturnType ?? (returnArray ? `Array<Prisma.${model}GetPayload<T>>` : `Prisma.${model}GetPayload<T>`);
-    const optionsType = makeQueryOptions(target, returnType);
+    const optionsType = makeQueryOptions(target, returnType, infinite);
 
     const func = sf.addFunction({
-        name: `use${capOperation}${model}`,
+        name: `use${infinite ? 'Infinite' : ''}${capOperation}${model}`,
         typeParameters: overrideTypeParameters ?? [`T extends ${argsType}`],
         parameters: [
             {
@@ -90,7 +91,7 @@ function generateQueryHook(
 
     func.addStatements([
         makeGetContext(target),
-        `return query<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+        `return ${infinite ? 'infiniteQuery' : 'query'}<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
         )}/${operation}\`, args, options, fetch);`,
     ]);
@@ -248,7 +249,10 @@ function generateModelHooks(
 
     // findMany
     if (mapping.findMany) {
+        // regular findMany
         generateQueryHook(target, sf, model.name, 'findMany', true, true);
+        // infinite findMany
+        generateQueryHook(target, sf, model.name, 'findMany', true, true, undefined, undefined, undefined, true);
     }
 
     // findUnique
@@ -431,14 +435,14 @@ function makeGetContext(target: TargetFramework) {
 
 function makeBaseImports(target: TargetFramework) {
     const shared = [
-        `import { query, postMutation, putMutation, deleteMutation } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+        `import { query, infiniteQuery, postMutation, putMutation, deleteMutation } from '@zenstackhq/tanstack-query/runtime/${target}';`,
         `import type { PickEnumerable, CheckSelect } from '@zenstackhq/tanstack-query/runtime';`,
     ];
     switch (target) {
         case 'react':
             return [
                 `import { useContext } from 'react';`,
-                `import type { UseMutationOptions, UseQueryOptions } from '@tanstack/react-query';`,
+                `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';`,
                 `import { RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
@@ -446,7 +450,7 @@ function makeBaseImports(target: TargetFramework) {
             return [
                 `import { getContext } from 'svelte';`,
                 `import { derived } from 'svelte/store';`,
-                `import type { MutationOptions, QueryOptions } from '@tanstack/svelte-query';`,
+                `import type { MutationOptions, QueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
                 `import { SvelteQueryContextKey, type RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
@@ -455,12 +459,12 @@ function makeBaseImports(target: TargetFramework) {
     }
 }
 
-function makeQueryOptions(target: string, returnType: string) {
+function makeQueryOptions(target: string, returnType: string, infinite: boolean) {
     switch (target) {
         case 'react':
-            return `UseQueryOptions<${returnType}>`;
+            return `Use${infinite ? 'Infinite' : ''}QueryOptions<${returnType}>`;
         case 'svelte':
-            return `QueryOptions<${returnType}>`;
+            return `${infinite ? 'CreateInfinite' : ''}QueryOptions<${returnType}>`;
         default:
             throw new PluginError(name, `Unsupported target: ${target}`);
     }
