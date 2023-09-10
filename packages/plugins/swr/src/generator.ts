@@ -14,7 +14,7 @@ import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
-import { FunctionDeclaration, Project, SourceFile } from 'ts-morph';
+import { FunctionDeclaration, OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
@@ -61,7 +61,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     });
     sf.addStatements([
         `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type RequestOptions, type PickEnumerable, type CheckSelect } from '@zenstackhq/swr/runtime';`,
+        `import { RequestHandlerContext, type GetNextArgs, type RequestOptions, type InfiniteRequestOptions, type PickEnumerable, type CheckSelect } from '@zenstackhq/swr/runtime';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
 
@@ -108,7 +108,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         const argsType = `Prisma.${model.name}FindManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
         const returnType = `Array<Prisma.${model.name}GetPayload<T>>`;
+
+        // regular findMany
         generateQueryHook(sf, model, 'findMany', argsType, inputType, returnType);
+
+        // infinite findMany
+        generateQueryHook(sf, model, 'findMany', argsType, inputType, returnType, undefined, true);
     }
 
     // findUnique
@@ -289,28 +294,45 @@ function generateQueryHook(
     argsType: string,
     inputType: string,
     returnType: string,
-    typeParameters?: string[]
+    typeParameters?: string[],
+    infinite = false
 ) {
     const modelRouteName = lowerCaseFirst(model.name);
+
+    const typeParams = typeParameters ? [...typeParameters] : [`T extends ${argsType}`];
+    if (infinite) {
+        typeParams.push(`R extends ${returnType}`);
+    }
+
+    const parameters: OptionalKind<ParameterDeclarationStructure>[] = [];
+    if (!infinite) {
+        parameters.push({
+            name: 'args?',
+            type: inputType,
+        });
+    } else {
+        parameters.push({
+            name: 'getNextArgs',
+            type: `GetNextArgs<${inputType} | undefined, R>`,
+        });
+    }
+    parameters.push({
+        name: 'options?',
+        type: infinite ? `InfiniteRequestOptions<${returnType}>` : `RequestOptions<${returnType}>`,
+    });
+
     sf.addFunction({
-        name: `use${upperCaseFirst(operation)}${model.name}`,
-        typeParameters: typeParameters ?? [`T extends ${argsType}`],
+        name: `use${infinite ? 'Infinite' : ''}${upperCaseFirst(operation)}${model.name}`,
+        typeParameters: typeParams,
         isExported: true,
-        parameters: [
-            {
-                name: 'args?',
-                type: inputType,
-            },
-            {
-                name: 'options?',
-                type: `RequestOptions<${returnType}>`,
-            },
-        ],
+        parameters,
     })
         .addBody()
         .addStatements([
             'const { endpoint, fetch } = useContext(RequestHandlerContext);',
-            `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, options, fetch);`,
+            !infinite
+                ? `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, options, fetch);`
+                : `return request.infiniteGet<${inputType} | undefined, ${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, getNextArgs, options, fetch);`,
         ]);
 }
 

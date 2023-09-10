@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 import { createContext } from 'react';
-import type { MutatorCallback, MutatorOptions, SWRResponse } from 'swr';
+import type { Fetcher, MutatorCallback, MutatorOptions, SWRConfiguration, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
+import useSWRInfinite, { SWRInfiniteConfiguration, SWRInfiniteFetcher, SWRInfiniteResponse } from 'swr/infinite';
 export * from './prisma-types';
 
 /**
@@ -39,31 +40,92 @@ export const RequestHandlerContext = createContext<RequestHandlerContext>({
 export const Provider = RequestHandlerContext.Provider;
 
 /**
- * Client request options
+ * Client request options for regular query.
  */
-export type RequestOptions<T> = {
-    // disable data fetching
+export type RequestOptions<Result, Error = any> = {
+    /**
+     * Disable data fetching
+     */
     disabled?: boolean;
-    initialData?: T;
-};
+
+    /**
+     * Equivalent to @see SWRConfiguration.fallbackData
+     */
+    initialData?: Result;
+} & SWRConfiguration<Result, Error, Fetcher<Result>>;
+
+/**
+ * Client request options for infinite query.
+ */
+export type InfiniteRequestOptions<Result, Error = any> = {
+    /**
+     * Disable data fetching
+     */
+    disabled?: boolean;
+
+    /**
+     * Equivalent to @see SWRInfiniteConfiguration.fallbackData
+     */
+    initialData?: Result[];
+} & SWRInfiniteConfiguration<Result, Error, SWRInfiniteFetcher<Result>>;
 
 /**
  * Makes a GET request with SWR.
  *
  * @param url The request URL.
  * @param args The request args object, which will be superjson-stringified and appended as "?q=" parameter
+ * @param options Query options
+ * @param fetch Custom fetch function
  * @returns SWR response
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function get<Result, Error = any>(
     url: string | null,
     args?: unknown,
-    options?: RequestOptions<Result>,
+    options?: RequestOptions<Result, Error>,
     fetch?: FetchFn
 ): SWRResponse<Result, Error> {
     const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
     return useSWR<Result, Error>(reqUrl, (url) => fetcher<Result, false>(url, undefined, fetch, false), {
-        fallbackData: options?.initialData,
+        ...options,
+        fallbackData: options?.initialData ?? options?.fallbackData,
+    });
+}
+
+/**
+ * Function for computing the query args for fetching a page during an infinite query.
+ */
+export type GetNextArgs<Args, Result> = (pageIndex: number, previousPageData: Result | null) => Args | null;
+
+/**
+ * Makes an infinite GET request with SWR.
+ *
+ * @param url The request URL.
+ * @param getNextArgs Function for computing the query args for a page.
+ * @param options Query options
+ * @param fetch Custom fetch function
+ * @returns SWR infinite query response
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function infiniteGet<Args, Result, Error = any>(
+    url: string | null,
+    getNextArgs: GetNextArgs<Args, any>,
+    options?: InfiniteRequestOptions<Result, Error>,
+    fetch?: FetchFn
+): SWRInfiniteResponse<Result, Error> {
+    const getKey = (pageIndex: number, previousPageData: Result | null) => {
+        if (options?.disabled || !url) {
+            return null;
+        }
+        const nextArgs = getNextArgs(pageIndex, previousPageData);
+        return nextArgs !== null // null means reached the end
+            ? makeUrl(url, nextArgs)
+            : null;
+    };
+
+    return useSWRInfinite<Result, Error>(getKey, (url) => fetcher<Result, false>(url, undefined, fetch, false), {
+        ...options,
+        fallbackData: options?.initialData ?? options?.fallbackData,
     });
 }
 
