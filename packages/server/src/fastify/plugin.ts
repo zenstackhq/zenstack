@@ -50,7 +50,7 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;
         if (!prisma) {
             reply.status(500).send({ message: 'unable to get prisma from request context' });
-            return;
+            return reply;
         }
 
         try {
@@ -68,6 +68,8 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         } catch (err) {
             reply.status(500).send({ message: `An unhandled error occurred: ${err}` });
         }
+
+        return reply;
     });
 
     done();
