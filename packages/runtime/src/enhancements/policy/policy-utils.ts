@@ -19,6 +19,7 @@ import { getFields, resolveField } from '../model-meta';
 import { NestedWriteVisitorContext } from '../nested-write-vistor';
 import type { InputCheckFunc, ModelMeta, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
+    enumerate,
     formatObject,
     getIdFields,
     getModelFields,
@@ -116,48 +117,75 @@ export class PolicyUtil {
             return this.makeFalse();
         }
 
-        if ('AND' in condition && Array.isArray(condition.AND)) {
-            const children = condition.AND.map((c: any) => this.reduce(c)).filter(
-                (c) => c !== undefined && !this.isTrue(c)
-            );
-            if (children.length === 0) {
-                return this.makeTrue();
-            } else if (children.some((c) => this.isFalse(c))) {
-                return this.makeFalse();
-            } else if (children.length === 1) {
-                return children[0];
-            } else {
-                return { AND: children };
+        if (condition === null) {
+            return condition;
+        }
+
+        const result: any = {};
+        for (const [key, value] of Object.entries<any>(condition)) {
+            if (value === null || value === undefined) {
+                result[key] = value;
+                continue;
+            }
+
+            switch (key) {
+                case 'AND': {
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isTrue(c));
+                    if (children.length === 0) {
+                        result[key] = []; // true
+                    } else if (children.some((c) => this.isFalse(c))) {
+                        result['OR'] = []; // false
+                    } else {
+                        if (!this.isTrue({ AND: result[key] })) {
+                            // use AND only if it's not already true
+                            result[key] = children.length === 1 ? children[0] : children;
+                        }
+                    }
+                    break;
+                }
+
+                case 'OR': {
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isFalse(c));
+                    if (children.length === 0) {
+                        result[key] = []; // false
+                    } else if (children.some((c) => this.isTrue(c))) {
+                        result['AND'] = []; // true
+                    } else {
+                        if (!this.isFalse({ OR: result[key] })) {
+                            // use OR only if it's not already false
+                            result[key] = children.length === 1 ? children[0] : children;
+                        }
+                    }
+                    break;
+                }
+
+                case 'NOT': {
+                    result[key] = this.reduce(value);
+                    break;
+                }
+
+                default: {
+                    const booleanKeys = ['AND', 'OR', 'NOT', 'is', 'isNot', 'none', 'every', 'some'];
+                    if (
+                        typeof value === 'object' &&
+                        value &&
+                        // recurse only if the value has at least one boolean key
+                        Object.keys(value).some((k) => booleanKeys.includes(k))
+                    ) {
+                        result[key] = this.reduce(value);
+                    } else {
+                        result[key] = value;
+                    }
+                    break;
+                }
             }
         }
 
-        if ('OR' in condition && Array.isArray(condition.OR)) {
-            const children = condition.OR.map((c: any) => this.reduce(c)).filter(
-                (c) => c !== undefined && !this.isFalse(c)
-            );
-            if (children.length === 0) {
-                return this.makeFalse();
-            } else if (children.some((c) => this.isTrue(c))) {
-                return this.makeTrue();
-            } else if (children.length === 1) {
-                return children[0];
-            } else {
-                return { OR: children };
-            }
-        }
-
-        if ('NOT' in condition && condition.NOT !== null && typeof condition.NOT === 'object') {
-            const child = this.reduce(condition.NOT);
-            if (this.isTrue(child)) {
-                return this.makeFalse();
-            } else if (this.isFalse(child)) {
-                return this.makeTrue();
-            } else {
-                return { NOT: child };
-            }
-        }
-
-        return condition;
+        return result;
     }
 
     //#endregion
