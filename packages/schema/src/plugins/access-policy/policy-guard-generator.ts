@@ -3,6 +3,7 @@ import {
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    Enum,
     Expression,
     MemberAccessExpr,
     Model,
@@ -39,6 +40,7 @@ import {
     getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
+    isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
     isFutureExpr,
@@ -87,7 +89,7 @@ export default class PolicyGenerator {
 
         // import enums
         const prismaImport = getPrismaClientImportSpec(model, output);
-        for (const e of model.declarations.filter((d) => isEnum(d))) {
+        for (const e of model.declarations.filter((d) => isEnum(d) && this.isEnumReferenced(model, d))) {
             sf.addImportDeclaration({
                 namedImports: [{ name: e.name }],
                 moduleSpecifier: prismaImport,
@@ -153,6 +155,20 @@ export default class PolicyGenerator {
         if (shouldCompile) {
             await emitProject(project);
         }
+    }
+
+    private isEnumReferenced(model: Model, decl: Enum): unknown {
+        return streamAllContents(model).some((node) => {
+            if (isDataModelField(node) && node.type.reference?.ref === decl) {
+                // referenced as field type
+                return true;
+            }
+            if (isEnumFieldReference(node) && node.target.ref?.$container === decl) {
+                // enum field is referenced
+                return true;
+            }
+            return false;
+        });
     }
 
     private getPolicyExpressions(target: DataModel | DataModelField, kind: PolicyKind, operation: PolicyOperationKind) {
