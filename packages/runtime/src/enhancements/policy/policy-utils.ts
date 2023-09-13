@@ -140,7 +140,7 @@ export class PolicyUtil {
                     } else {
                         if (!this.isTrue({ AND: result[key] })) {
                             // use AND only if it's not already true
-                            result[key] = children.length === 1 ? children[0] : children;
+                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
                         }
                     }
                     break;
@@ -157,7 +157,7 @@ export class PolicyUtil {
                     } else {
                         if (!this.isFalse({ OR: result[key] })) {
                             // use OR only if it's not already false
-                            result[key] = children.length === 1 ? children[0] : children;
+                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
                         }
                     }
                     break;

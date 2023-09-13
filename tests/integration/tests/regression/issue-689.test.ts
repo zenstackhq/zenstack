@@ -10,7 +10,7 @@ describe('Regression: issue 689', () => {
             userId Int
             role String
 
-            // @@allow('all', true)
+            @@allow('all', true)
         }
         
         model User {
