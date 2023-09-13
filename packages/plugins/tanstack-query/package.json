@@ -11,6 +11,12 @@
         "./package.json": {
             "default": "./package.json"
         },
+        "./runtime": {
+            "import": "./runtime/index.mjs",
+            "require": "./runtime/index.js",
+            "default": "./runtime/index.js",
+            "types": "./runtime/index.d.ts"
+        },
         "./runtime/react": {
             "import": "./runtime/react.mjs",
             "require": "./runtime/react.js",
