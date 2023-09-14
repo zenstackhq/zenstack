@@ -206,7 +206,7 @@ describe('With Policy: relation one-to-one filter', () => {
                     },
                 },
             })
-        ).toResolveTruthy();
+        ).toResolveFalsy();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -257,7 +257,7 @@ describe('With Policy: relation one-to-one filter', () => {
                     },
                 },
             })
-        ).toResolveTruthy();
+        ).toResolveFalsy();
     });
 
     it('direct object filter', async () => {
