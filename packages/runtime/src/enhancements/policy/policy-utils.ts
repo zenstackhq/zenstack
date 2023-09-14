@@ -55,14 +55,28 @@ export class PolicyUtil {
      * Creates a conjunction of a list of query conditions.
      */
     and(...conditions: (boolean | object | undefined)[]): object {
-        return this.reduce({ AND: conditions });
+        const filtered = conditions.filter((c) => c !== undefined);
+        if (filtered.length === 0) {
+            return this.makeTrue();
+        } else if (filtered.length === 1) {
+            return this.reduce(filtered[0]);
+        } else {
+            return this.reduce({ AND: filtered });
+        }
     }
 
     /**
      * Creates a disjunction of a list of query conditions.
      */
     or(...conditions: (boolean | object | undefined)[]): object {
-        return this.reduce({ OR: conditions });
+        const filtered = conditions.filter((c) => c !== undefined);
+        if (filtered.length === 0) {
+            return this.makeFalse();
+        } else if (filtered.length === 1) {
+            return this.reduce(filtered[0]);
+        } else {
+            return this.reduce({ OR: filtered });
+        }
     }
 
     /**
@@ -377,18 +391,18 @@ export class PolicyUtil {
         operation: PolicyOperationKind
     ) {
         const guard = this.getAuthGuard(db, fieldInfo.type, operation);
+
+        // is|isNot and flat fields conditions are mutually exclusive
+
         if (payload.is || payload.isNot) {
             if (payload.is) {
                 this.injectGuardForRelationFields(db, fieldInfo.type, payload.is, operation);
-                // turn "is" into: { is: { AND: [ originalIs, guard ] }
-                payload.is = this.and(payload.is, guard);
             }
             if (payload.isNot) {
                 this.injectGuardForRelationFields(db, fieldInfo.type, payload.isNot, operation);
-                // turn "isNot" into: { isNot: { AND: [ originalIsNot, { NOT: guard } ] } }
-                payload.isNot = this.and(payload.isNot, this.not(guard));
-                delete payload.isNot;
             }
+            // merge guard with existing "is": { is: [originalIs, guard] }
+            payload.is = this.and(payload.is, guard);
         } else {
             this.injectGuardForRelationFields(db, fieldInfo.type, payload, operation);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
@@ -1090,7 +1104,6 @@ export class PolicyUtil {
             throw new Error('invalid where clause');
         }
 
-        extra = this.reduce(extra);
         if (this.isTrue(extra)) {
             return;
         }
