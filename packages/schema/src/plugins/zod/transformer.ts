@@ -377,7 +377,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return wrapped;
     }
 
-    async generateInputSchemas() {
+    async generateInputSchemas(generateUnchecked: boolean) {
         const globalExports: string[] = [];
 
         for (const modelOperation of this.modelOperations) {
@@ -460,10 +460,17 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
 
             if (createOne) {
                 imports.push(
-                    `import { ${modelName}CreateInputObjectSchema } from '../objects/${modelName}CreateInput.schema'`,
-                    `import { ${modelName}UncheckedCreateInputObjectSchema } from '../objects/${modelName}UncheckedCreateInput.schema'`
+                    `import { ${modelName}CreateInputObjectSchema } from '../objects/${modelName}CreateInput.schema'`
                 );
-                codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema]) }),`;
+                if (generateUnchecked) {
+                    imports.push(
+                        `import { ${modelName}UncheckedCreateInputObjectSchema } from '../objects/${modelName}UncheckedCreateInput.schema'`
+                    );
+                }
+                const dataSchema = generateUnchecked
+                    ? `z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema])`
+                    : `${modelName}CreateInputObjectSchema`;
+                codeBody += `create: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema} }),`;
                 operations.push(['create', origModelName]);
             }
 
@@ -494,20 +501,34 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
             if (updateOne) {
                 imports.push(
                     `import { ${modelName}UpdateInputObjectSchema } from '../objects/${modelName}UpdateInput.schema'`,
-                    `import { ${modelName}UncheckedUpdateInputObjectSchema } from '../objects/${modelName}UncheckedUpdateInput.schema'`,
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`
                 );
-                codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema]), where: ${modelName}WhereUniqueInputObjectSchema  }),`;
+                if (generateUnchecked) {
+                    imports.push(
+                        `import { ${modelName}UncheckedUpdateInputObjectSchema } from '../objects/${modelName}UncheckedUpdateInput.schema'`
+                    );
+                }
+                const dataSchema = generateUnchecked
+                    ? `z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema])`
+                    : `${modelName}UpdateInputObjectSchema`;
+                codeBody += `update: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} data: ${dataSchema}, where: ${modelName}WhereUniqueInputObjectSchema  }),`;
                 operations.push(['update', origModelName]);
             }
 
             if (updateMany) {
                 imports.push(
                     `import { ${modelName}UpdateManyMutationInputObjectSchema } from '../objects/${modelName}UpdateManyMutationInput.schema'`,
-                    `import { ${modelName}UncheckedUpdateManyInputObjectSchema } from '../objects/${modelName}UncheckedUpdateManyInput.schema'`,
                     `import { ${modelName}WhereInputObjectSchema } from '../objects/${modelName}WhereInput.schema'`
                 );
-                codeBody += `updateMany: z.object({ data: z.union([${modelName}UpdateManyMutationInputObjectSchema, ${modelName}UncheckedUpdateManyInputObjectSchema]), where: ${modelName}WhereInputObjectSchema.optional()  }),`;
+                if (generateUnchecked) {
+                    imports.push(
+                        `import { ${modelName}UncheckedUpdateManyInputObjectSchema } from '../objects/${modelName}UncheckedUpdateManyInput.schema'`
+                    );
+                }
+                const dataSchema = generateUnchecked
+                    ? `z.union([${modelName}UpdateManyMutationInputObjectSchema, ${modelName}UncheckedUpdateManyInputObjectSchema])`
+                    : `${modelName}UpdateManyMutationInputObjectSchema`;
+                codeBody += `updateMany: z.object({ data: ${dataSchema}, where: ${modelName}WhereInputObjectSchema.optional()  }),`;
                 operations.push(['updateMany', origModelName]);
             }
 
@@ -515,11 +536,21 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 imports.push(
                     `import { ${modelName}WhereUniqueInputObjectSchema } from '../objects/${modelName}WhereUniqueInput.schema'`,
                     `import { ${modelName}CreateInputObjectSchema } from '../objects/${modelName}CreateInput.schema'`,
-                    `import { ${modelName}UncheckedCreateInputObjectSchema } from '../objects/${modelName}UncheckedCreateInput.schema'`,
-                    `import { ${modelName}UpdateInputObjectSchema } from '../objects/${modelName}UpdateInput.schema'`,
-                    `import { ${modelName}UncheckedUpdateInputObjectSchema } from '../objects/${modelName}UncheckedUpdateInput.schema'`
+                    `import { ${modelName}UpdateInputObjectSchema } from '../objects/${modelName}UpdateInput.schema'`
                 );
-                codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema]), update: z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema]) }),`;
+                if (generateUnchecked) {
+                    imports.push(
+                        `import { ${modelName}UncheckedCreateInputObjectSchema } from '../objects/${modelName}UncheckedCreateInput.schema'`,
+                        `import { ${modelName}UncheckedUpdateInputObjectSchema } from '../objects/${modelName}UncheckedUpdateInput.schema'`
+                    );
+                }
+                const createSchema = generateUnchecked
+                    ? `z.union([${modelName}CreateInputObjectSchema, ${modelName}UncheckedCreateInputObjectSchema])`
+                    : `${modelName}CreateInputObjectSchema`;
+                const updateSchema = generateUnchecked
+                    ? `z.union([${modelName}UpdateInputObjectSchema, ${modelName}UncheckedUpdateInputObjectSchema])`
+                    : `${modelName}UpdateInputObjectSchema`;
+                codeBody += `upsert: z.object({ ${selectZodSchemaLineLazy} ${includeZodSchemaLineLazy} where: ${modelName}WhereUniqueInputObjectSchema, create: ${createSchema}, update: ${updateSchema} }),`;
                 operations.push(['upsert', origModelName]);
             }
 
