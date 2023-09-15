@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
 import {
+    CrudFailureReason,
     DbClientContract,
     FieldInfo,
     PrismaErrorCode,
@@ -14,7 +15,7 @@ import SuperJSON from 'superjson';
 import { Linker, Paginator, Relator, Serializer, SerializerOptions } from 'ts-japi';
 import { upperCaseFirst } from 'upper-case-first';
 import UrlPattern from 'url-pattern';
-import z from 'zod';
+import z, { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { LoggerConfig, RequestContext, Response } from '../../types';
 import { APIHandlerBase } from '../base';
@@ -694,7 +695,15 @@ class RequestHandler extends APIHandlerBase {
             if (payloadSchema) {
                 const parsed = payloadSchema.safeParse(attributes);
                 if (!parsed.success) {
-                    return { error: this.makeError('invalidPayload', fromZodError(parsed.error).message) };
+                    return {
+                        error: this.makeError(
+                            'invalidPayload',
+                            fromZodError(parsed.error).message,
+                            undefined,
+                            CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                            parsed.error
+                        ),
+                    };
                 }
             }
         }
@@ -721,7 +730,7 @@ class RequestHandler extends APIHandlerBase {
 
         const createPayload: any = { data: { ...attributes } };
 
-        // turn relashionship payload into Prisma connect objects
+        // turn relationship payload into Prisma connect objects
         if (relationships) {
             for (const [key, data] of Object.entries<any>(relationships)) {
                 if (!data?.data) {
@@ -796,7 +805,13 @@ class RequestHandler extends APIHandlerBase {
             // zod-parse payload
             const parsed = this.updateSingleRelationSchema.safeParse(requestBody);
             if (!parsed.success) {
-                return this.makeError('invalidPayload', fromZodError(parsed.error).message);
+                return this.makeError(
+                    'invalidPayload',
+                    fromZodError(parsed.error).message,
+                    undefined,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parsed.error
+                );
             }
 
             if (parsed.data.data === null) {
@@ -823,7 +838,13 @@ class RequestHandler extends APIHandlerBase {
             // zod-parse payload
             const parsed = this.updateCollectionRelationSchema.safeParse(requestBody);
             if (!parsed.success) {
-                return this.makeError('invalidPayload', fromZodError(parsed.error).message);
+                return this.makeError(
+                    'invalidPayload',
+                    fromZodError(parsed.error).message,
+                    undefined,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parsed.error
+                );
             }
 
             // create -> connect, delete -> disconnect, update -> set
@@ -1556,7 +1577,13 @@ class RequestHandler extends APIHandlerBase {
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
             if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
-                return this.makeError('forbidden', undefined, 403, err.meta?.reason as string);
+                return this.makeError(
+                    'forbidden',
+                    undefined,
+                    403,
+                    err.meta?.reason as string,
+                    err.meta?.zodErrors as ZodError
+                );
             } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');
             } else {
@@ -1581,19 +1608,35 @@ class RequestHandler extends APIHandlerBase {
         }
     }
 
-    private makeError(code: keyof typeof this.errors, detail?: string, status?: number, reason?: string) {
+    private makeError(
+        code: keyof typeof this.errors,
+        detail?: string,
+        status?: number,
+        reason?: string,
+        zodErrors?: ZodError
+    ) {
+        const error: any = {
+            status: status ?? this.errors[code].status,
+            code: paramCase(code),
+            title: this.errors[code].title,
+        };
+
+        if (detail) {
+            error.detail = detail;
+        }
+
+        if (reason) {
+            error.reason = reason;
+        }
+
+        if (zodErrors) {
+            error.zodErrors = zodErrors;
+        }
+
         return {
             status: status ?? this.errors[code].status,
             body: {
-                errors: [
-                    {
-                        status: status ?? this.errors[code].status,
-                        code: paramCase(code),
-                        title: this.errors[code].title,
-                        detail: detail || this.errors[code].detail,
-                        reason,
-                    },
-                ],
+                errors: [error],
             },
         };
     }

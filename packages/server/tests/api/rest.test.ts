@@ -18,7 +18,7 @@ describe('REST server tests - regular prisma', () => {
         myId String @id @default(cuid())
         createdAt DateTime @default (now())
         updatedAt DateTime @updatedAt
-        email String @unique
+        email String @unique @email
         posts Post[]
         profile Profile?
     }
@@ -1837,6 +1837,25 @@ describe('REST server tests - regular prisma', () => {
                 expect(r.status).toBe(404);
             });
         });
+
+        describe('validation error', () => {
+            it('creates an item without relation', async () => {
+                const r = await handler({
+                    method: 'post',
+                    path: '/user',
+                    query: {},
+                    requestBody: {
+                        data: { type: 'user', attributes: { myId: 'user1', email: 'user1.com' } },
+                    },
+                    prisma,
+                });
+
+                expect(r.status).toBe(400);
+                expect(r.body.errors[0].code).toBe('invalid-payload');
+                expect(r.body.errors[0].reason).toBe(CrudFailureReason.DATA_VALIDATION_VIOLATION);
+                expect(r.body.errors[0].zodErrors).toBeTruthy();
+            });
+        });
     });
 });
 
@@ -1896,6 +1915,8 @@ describe('REST server tests - enhanced prisma', () => {
             prisma,
         });
         expect(r.status).toBe(403);
+        expect(r.body.errors[0].code).toBe('forbidden');
+        expect(r.body.errors[0].reason).toBe(CrudFailureReason.ACCESS_POLICY_VIOLATION);
     });
 
     it('read-back policy rejection test', async () => {

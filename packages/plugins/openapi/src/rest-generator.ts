@@ -596,6 +596,15 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                         },
                         title: { type: 'string', description: 'Error title' },
                         detail: { type: 'string', description: 'Error detail' },
+                        reason: {
+                            type: 'string',
+                            description: 'Detailed error reason',
+                        },
+                        zodErrors: {
+                            type: 'object',
+                            additionalProperties: true,
+                            description: 'Zod validation errors if the error is due to data validation failure',
+                        },
                     },
                 },
             },

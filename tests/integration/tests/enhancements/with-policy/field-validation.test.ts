@@ -1,3 +1,4 @@
+import { CrudFailureReason, isPrismaClientKnownRequestError } from '@zenstackhq/runtime';
 import { FullDbClientContract, loadSchema, run } from '@zenstackhq/testtools';
 
 describe('With Policy: field validation', () => {
@@ -65,6 +66,28 @@ describe('With Policy: field validation', () => {
                 },
             })
         ).toBeRejectedByPolicy(['String must contain at least 8 character(s) at "password"', 'Invalid at "handle"']);
+
+        let err: any;
+        try {
+            await db.user.create({
+                data: {
+                    id: '1',
+                    password: 'abc123',
+                    handle: 'hello world',
+                },
+            });
+        } catch (_err) {
+            err = _err;
+        }
+
+        expect(isPrismaClientKnownRequestError(err)).toBeTruthy();
+        expect(err).toMatchObject({
+            code: 'P2004',
+            meta: {
+                reason: CrudFailureReason.DATA_VALIDATION_VIOLATION,
+            },
+        });
+        expect(err.meta.zodErrors).toBeTruthy();
 
         await expect(
             db.user.create({

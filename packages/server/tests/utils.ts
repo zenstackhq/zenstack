@@ -7,6 +7,9 @@ model User {
     updatedAt DateTime @updatedAt
     email String @unique
     posts Post[]
+
+    @@allow('all', auth() == this)
+    @@allow('read', true)
 }
 
 model Post {
@@ -18,6 +21,9 @@ model Post {
     authorId String?
     published Boolean @default(false)
     viewCount Int @default(0)
+
+    @@allow('all', author == auth())
+    @@allow('read', published)
 }
 `;
 

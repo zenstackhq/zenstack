@@ -119,12 +119,12 @@ function loadPrismaModule(prisma: any) {
     }
 }
 
-export function prismaClientValidationError(prisma: DbClientContract, ...args: unknown[]) {
+export function prismaClientValidationError(prisma: DbClientContract, message: string) {
     if (!_PrismaClientValidationError) {
         const _prisma = loadPrismaModule(prisma);
         _PrismaClientValidationError = _prisma.PrismaClientValidationError;
     }
-    throw new _PrismaClientValidationError(...args);
+    throw new _PrismaClientValidationError(message, { clientVersion: prisma._clientVersion });
 }
 
 export function prismaClientKnownRequestError(prisma: DbClientContract, ...args: unknown[]) {

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import type { ZodSchemas } from '@zenstackhq/runtime';
+import { CrudFailureReason, type ZodSchemas } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
@@ -10,11 +10,13 @@ import { schema } from '../utils';
 
 describe('RPC API Handler Tests', () => {
     let prisma: any;
+    let enhance: any;
     let zodSchemas: any;
 
     beforeAll(async () => {
         const params = await loadSchema(schema, { fullZod: true });
         prisma = params.prisma;
+        enhance = params.enhance;
         zodSchemas = params.zodSchemas;
     });
 
@@ -125,6 +127,31 @@ describe('RPC API Handler Tests', () => {
         });
         expect(r.status).toBe(200);
         expect(r.data.count).toBe(1);
+    });
+
+    it('policy violation', async () => {
+        await prisma.user.create({
+            data: {
+                id: '1',
+                email: 'user1@abc.com',
+                posts: { create: { id: '1', title: 'post1', published: true } },
+            },
+        });
+
+        const handleRequest = makeHandler();
+
+        const r = await handleRequest({
+            method: 'put',
+            path: '/post/update',
+            requestBody: {
+                where: { id: '1' },
+                data: { title: 'post2' },
+            },
+            prisma: enhance(),
+        });
+        expect(r.status).toBe(403);
+        expect(r.error.rejectedByPolicy).toBeTruthy();
+        expect(r.error.reason).toBe(CrudFailureReason.ACCESS_POLICY_VIOLATION);
     });
 
     it('validation error', async () => {

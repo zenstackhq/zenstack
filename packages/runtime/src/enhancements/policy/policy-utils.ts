@@ -3,6 +3,7 @@
 import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
+import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import {
     CrudFailureReason,
@@ -630,7 +631,12 @@ export class PolicyUtil {
     ) {
         let guard = this.getAuthGuard(db, model, operation, preValue);
         if (this.isFalse(guard)) {
-            throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
+            throw this.deniedByPolicy(
+                model,
+                operation,
+                `entity ${formatObject(uniqueFilter)} failed policy check`,
+                CrudFailureReason.ACCESS_POLICY_VIOLATION
+            );
         }
 
         if (operation === 'update' && args) {
@@ -643,7 +649,8 @@ export class PolicyUtil {
                     'update',
                     `entity ${formatObject(uniqueFilter)} failed update policy check for field "${
                         fieldUpdateGuard.rejectedByField
-                    }"`
+                    }"`,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
                 );
             } else if (fieldUpdateGuard.guard) {
                 // merge
@@ -678,7 +685,12 @@ export class PolicyUtil {
         }
         const result = await db[model].findFirst(query);
         if (!result) {
-            throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
+            throw this.deniedByPolicy(
+                model,
+                operation,
+                `entity ${formatObject(uniqueFilter)} failed policy check`,
+                CrudFailureReason.ACCESS_POLICY_VIOLATION
+            );
         }
 
         if (schema) {
@@ -693,7 +705,8 @@ export class PolicyUtil {
                     model,
                     operation,
                     `entities ${JSON.stringify(uniqueFilter)} failed validation: [${error}]`,
-                    CrudFailureReason.DATA_VALIDATION_VIOLATION
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parseResult.error
                 );
             }
         }
@@ -720,7 +733,7 @@ export class PolicyUtil {
     tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
-            throw this.deniedByPolicy(model, operation);
+            throw this.deniedByPolicy(model, operation, undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
         }
     }
 
@@ -874,11 +887,26 @@ export class PolicyUtil {
 
     //#region Errors
 
-    deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string, reason?: CrudFailureReason) {
+    deniedByPolicy(
+        model: string,
+        operation: PolicyOperationKind,
+        extra?: string,
+        reason?: CrudFailureReason,
+        zodErrors?: ZodError
+    ) {
+        const args: any = { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: {} };
+        if (reason) {
+            args.meta.reason = reason;
+        }
+
+        if (zodErrors) {
+            args.meta.zodErrors = zodErrors;
+        }
+
         return prismaClientKnownRequestError(
             this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: { reason } }
+            args
         );
     }
 
@@ -890,9 +918,7 @@ export class PolicyUtil {
     }
 
     validationError(message: string) {
-        return prismaClientValidationError(this.db, message, {
-            clientVersion: getVersion(),
-        });
+        return prismaClientValidationError(this.db, message);
     }
 
     unknownError(message: string) {

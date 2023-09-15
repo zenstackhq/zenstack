@@ -661,6 +661,11 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                             type: 'string',
                             description: 'Detailed error reason',
                         },
+                        zodErrors: {
+                            type: 'object',
+                            additionalProperties: true,
+                            description: 'Zod validation errors if the error is due to data validation failure',
+                        },
                     },
                     additionalProperties: true,
                 },
