@@ -918,9 +918,7 @@ export class PolicyUtil {
     }
 
     validationError(message: string) {
-        return prismaClientValidationError(this.db, message, {
-            clientVersion: getVersion(),
-        });
+        return prismaClientValidationError(this.db, message);
     }
 
     unknownError(message: string) {
