@@ -15,7 +15,8 @@ describe('Zod plugin tests', () => {
     });
 
     it('basic generation', async () => {
-        const model = `
+        const { zodSchemas } = await loadSchema(
+            `
         datasource db {
             provider = 'postgresql'
             url = env('DATABASE_URL')
@@ -24,16 +25,16 @@ describe('Zod plugin tests', () => {
         generator js {
             provider = 'prisma-client-js'
         }
-
+    
         plugin zod {
             provider = "@core/zod"
         }
-
+    
         enum Role {
             USER
             ADMIN 
         }
-
+    
         model User {
             id Int @id @default(autoincrement())
             createdAt DateTime @default(now())
@@ -54,9 +55,9 @@ describe('Zod plugin tests', () => {
             published Boolean @default(false)
             viewCount Int @default(0)
         }
-        `;
-
-        const { zodSchemas } = await loadSchema(model, { addPrelude: false, pushDb: false });
+        `,
+            { addPrelude: false, pushDb: false }
+        );
         const schemas = zodSchemas.models;
         expect(schemas.UserSchema).toBeTruthy();
         expect(schemas.UserCreateSchema).toBeTruthy();
@@ -74,11 +75,24 @@ describe('Zod plugin tests', () => {
             schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN', password: 'abc123' }).success
         ).toBeTruthy();
 
+        // create unchecked
+        // create unchecked
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123' },
+            }).success
+        ).toBeTruthy();
+
         // update
         expect(schemas.UserUpdateSchema.safeParse({}).success).toBeTruthy();
         expect(schemas.UserUpdateSchema.safeParse({ email: 'abc@def.com' }).success).toBeFalsy();
         expect(schemas.UserUpdateSchema.safeParse({ email: 'def@zenstack.dev' }).success).toBeTruthy();
         expect(schemas.UserUpdateSchema.safeParse({ password: 'password456' }).success).toBeTruthy();
+
+        // update unchecked
+        expect(
+            zodSchemas.input.UserInputSchema.update.safeParse({ where: { id: 1 }, data: { id: 2 } }).success
+        ).toBeTruthy();
 
         // model schema
         expect(schemas.UserSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeFalsy();
@@ -412,5 +426,65 @@ describe('Zod plugin tests', () => {
         `;
 
         await loadSchema(model, { addPrelude: false, pushDb: false });
+    });
+
+    it('no unchecked input', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+    
+        plugin zod {
+            provider = "@core/zod"
+            noUncheckedInput = true
+        }
+    
+        enum Role {
+            USER
+            ADMIN 
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique @email @endsWith('@zenstack.dev')
+            password String @omit
+            role Role @default(USER)
+            posts Post[]
+        }
+        
+        model Post {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            title String @length(5, 10)
+            author User? @relation(fields: [authorId], references: [id])
+            authorId Int?
+            published Boolean @default(false)
+            viewCount Int @default(0)
+        }
+        `,
+            { addPrelude: false, pushDb: false }
+        );
+        const schemas = zodSchemas.models;
+
+        // create unchecked
+        expect(
+            zodSchemas.input.UserInputSchema.create.safeParse({
+                data: { id: 1, email: 'abc@zenstack.dev', password: 'abc123' },
+            }).success
+        ).toBeFalsy();
+
+        // update unchecked
+        expect(
+            zodSchemas.input.UserInputSchema.update.safeParse({ where: { id: 1 }, data: { id: 2 } }).success
+        ).toBeFalsy();
     });
 });

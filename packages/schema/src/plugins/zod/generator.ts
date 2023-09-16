@@ -45,6 +45,9 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma;
     const models: DMMF.Model[] = prismaClientDmmf.datamodel.models;
 
+    // whether Prisma's Unchecked* series of input types should be generated
+    const generateUnchecked = options.noUncheckedInput !== true;
+
     const project = createProject();
 
     // common schemas
@@ -71,7 +74,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         Transformer.provider = dataSourceProvider;
         addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
         const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
-        await generateObjectSchemas(inputObjectTypes, project, output, model);
+        await generateObjectSchemas(inputObjectTypes, project, output, model, generateUnchecked);
 
         // input schemas
         const transformer = new Transformer({
@@ -82,7 +85,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             zmodel: model,
             inputObjectTypes,
         });
-        await transformer.generateInputSchemas();
+        await transformer.generateInputSchemas(generateUnchecked);
     }
 
     // create barrel file
@@ -146,14 +149,18 @@ async function generateObjectSchemas(
     inputObjectTypes: DMMF.InputType[],
     project: Project,
     output: string,
-    zmodel: Model
+    zmodel: Model,
+    generateUnchecked: boolean
 ) {
     const moduleNames: string[] = [];
     for (let i = 0; i < inputObjectTypes.length; i += 1) {
         const fields = inputObjectTypes[i]?.fields;
         const name = inputObjectTypes[i]?.name;
+        if (!generateUnchecked && name.includes('Unchecked')) {
+            continue;
+        }
         const transformer = new Transformer({ name, fields, project, zmodel, inputObjectTypes });
-        const moduleName = transformer.generateObjectSchema();
+        const moduleName = transformer.generateObjectSchema(generateUnchecked);
         moduleNames.push(moduleName);
     }
     project.createSourceFile(
@@ -236,7 +243,11 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         // compile "@@validate" to ".refine"
         const refinements = makeValidationRefinements(model);
         if (refinements.length > 0) {
-            writer.writeLine(`function refine<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join('\n')}; }`);
+            writer.writeLine(
+                `function refine<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
+                    '\n'
+                )}; }`
+            );
         }
 
         // model schema

@@ -155,7 +155,6 @@ class RequestHandler extends APIHandlerBase {
             return { status: resCode, body: response };
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
-                logError(logger, err.code, err.message);
                 const status = ERROR_STATUS_MAPPING[err.code] ?? 400;
 
                 const { error } = this.makeError(
