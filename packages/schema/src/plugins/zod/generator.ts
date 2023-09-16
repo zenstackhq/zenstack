@@ -160,7 +160,7 @@ async function generateObjectSchemas(
             continue;
         }
         const transformer = new Transformer({ name, fields, project, zmodel, inputObjectTypes });
-        const moduleName = transformer.generateObjectSchema();
+        const moduleName = transformer.generateObjectSchema(generateUnchecked);
         moduleNames.push(moduleName);
     }
     project.createSourceFile(

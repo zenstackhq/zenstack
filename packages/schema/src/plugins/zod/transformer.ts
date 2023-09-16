@@ -76,8 +76,8 @@ export default class Transformer {
         return `export const ${name}Schema = ${schema}`;
     }
 
-    generateObjectSchema() {
-        const zodObjectSchemaFields = this.generateObjectSchemaFields();
+    generateObjectSchema(generateUnchecked: boolean) {
+        const zodObjectSchemaFields = this.generateObjectSchemaFields(generateUnchecked);
         const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields);
 
         const filePath = path.join(Transformer.outputPath, `objects/${this.name}.schema.ts`);
@@ -86,9 +86,9 @@ export default class Transformer {
         return `${this.name}.schema`;
     }
 
-    generateObjectSchemaFields() {
+    generateObjectSchemaFields(generateUnchecked: boolean) {
         const zodObjectSchemaFields = this.fields
-            .map((field) => this.generateObjectSchemaField(field))
+            .map((field) => this.generateObjectSchemaField(field, generateUnchecked))
             .flatMap((item) => item)
             .map((item) => {
                 const [zodStringWithMainType, field, skipValidators] = item;
@@ -102,7 +102,10 @@ export default class Transformer {
         return zodObjectSchemaFields;
     }
 
-    generateObjectSchemaField(field: PrismaDMMF.SchemaArg): [string, PrismaDMMF.SchemaArg, boolean][] {
+    generateObjectSchemaField(
+        field: PrismaDMMF.SchemaArg,
+        generateUnchecked: boolean
+    ): [string, PrismaDMMF.SchemaArg, boolean][] {
         const lines = field.inputTypes;
 
         if (lines.length === 0) {
@@ -110,6 +113,10 @@ export default class Transformer {
         }
 
         let alternatives = lines.reduce<string[]>((result, inputType) => {
+            if (!generateUnchecked && typeof inputType.type === 'string' && inputType.type.includes('Unchecked')) {
+                return result;
+            }
+
             if (inputType.type === 'String') {
                 result.push(this.wrapWithZodValidators('z.string()', field, inputType));
             } else if (inputType.type === 'Int' || inputType.type === 'Float') {
