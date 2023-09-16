@@ -44,7 +44,7 @@ export async function init(projectPath: string, options: Options) {
             fs.copyFileSync(prismaSchema, zmodelFile);
         } else {
             // create a new model
-            const starterContent = fs.readFileSync(path.join(__dirname, '../res/starter.zmodel'), 'utf-8');
+            const starterContent = fs.readFileSync(path.join(__dirname, '../../res/starter.zmodel'), 'utf-8');
             fs.writeFileSync(zmodelFile, starterContent);
             sampleModelGenerated = true;
         }
