@@ -1,6 +1,8 @@
 import type { PolicyOperationKind } from '@zenstackhq/runtime';
+import { PluginGlobalOptions } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
+import { PluginRunnerOptions } from '../cli/plugin-runner';
 
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
@@ -24,29 +26,37 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
 /**
  * Ensure the default output folder is initialized.
  */
-export function ensureDefaultOutputFolder() {
-    const output = getDefaultOutputFolder();
+export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
+    const output = options.output ? path.resolve(options.output) : getDefaultOutputFolder();
     if (output && !fs.existsSync(output)) {
-        const pkgJson = {
-            name: '.zenstack',
-            version: '1.0.0',
-            exports: {
-                './zod': {
-                    default: './zod/index.js',
-                    types: './zod/index.d.ts',
-                },
-            },
-        };
         fs.mkdirSync(output, { recursive: true });
-        fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify(pkgJson, undefined, 4));
+        if (!options.output) {
+            const pkgJson = {
+                name: '.zenstack',
+                version: '1.0.0',
+                exports: {
+                    './zod': {
+                        default: './zod/index.js',
+                        types: './zod/index.d.ts',
+                    },
+                },
+            };
+            fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify(pkgJson, undefined, 4));
+        }
     }
+
+    return output;
 }
 
 /**
  * Gets the default node_modules/.zenstack output folder for plugins.
  * @returns
  */
-export function getDefaultOutputFolder() {
+export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
+    if (typeof globalOptions?.output === 'string') {
+        return path.resolve(globalOptions.output);
+    }
+
     // Find the real runtime module path, it might be a symlink in pnpm
     let runtimeModulePath = require.resolve('@zenstackhq/runtime');
 

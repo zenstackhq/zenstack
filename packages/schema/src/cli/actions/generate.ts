@@ -1,8 +1,6 @@
 import { PluginError } from '@zenstackhq/sdk';
 import colors from 'colors';
 import path from 'path';
-import { Context } from '../../types';
-import { PackageManagers } from '../../utils/pkg-utils';
 import { CliError } from '../cli-error';
 import {
     checkNewVersion,
@@ -11,13 +9,15 @@ import {
     loadDocument,
     requiredPrismaVersion,
 } from '../cli-util';
-import { PluginRunner } from '../plugin-runner';
+import { PluginRunner, PluginRunnerOptions } from '../plugin-runner';
 
 type Options = {
     schema: string;
-    packageManager: PackageManagers | undefined;
+    output?: string;
     dependencyCheck: boolean;
     versionCheck: boolean;
+    compile: boolean;
+    defaultPlugins: boolean;
 };
 
 /**
@@ -53,14 +53,17 @@ export async function generate(projectPath: string, options: Options) {
 
 async function runPlugins(options: Options) {
     const model = await loadDocument(options.schema);
-    const context: Context = {
+
+    const runnerOpts: PluginRunnerOptions = {
         schema: model,
         schemaPath: path.resolve(options.schema),
-        outDir: path.dirname(options.schema),
+        defaultPlugins: options.defaultPlugins,
+        output: options.output,
+        compile: options.compile,
     };
 
     try {
-        await new PluginRunner().run(context);
+        await new PluginRunner().run(runnerOpts);
     } catch (err) {
         if (err instanceof PluginError) {
             console.error(colors.red(`${err.plugin}: ${err.message}`));

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { DMMF } from '@prisma/generator-helper';
-import { isPlugin, Plugin } from '@zenstackhq/language/ast';
+import { isPlugin, Model, Plugin } from '@zenstackhq/language/ast';
 import {
     getDataModels,
     getDMMF,
@@ -19,9 +19,7 @@ import ora from 'ora';
 import path from 'path';
 import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
 import telemetry from '../telemetry';
-import type { Context } from '../types';
 import { getVersion } from '../utils/version-utils';
-import { config } from './config';
 
 type PluginInfo = {
     name: string;
@@ -32,6 +30,14 @@ type PluginInfo = {
     module: any;
 };
 
+export type PluginRunnerOptions = {
+    schema: Model;
+    schemaPath: string;
+    output?: string;
+    defaultPlugins: boolean;
+    compile: boolean;
+};
+
 /**
  * ZenStack plugin runner
  */
@@ -39,16 +45,16 @@ export class PluginRunner {
     /**
      * Runs a series of nested generators
      */
-    async run(context: Context): Promise<void> {
+    async run(options: PluginRunnerOptions): Promise<void> {
         const version = getVersion();
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
-        ensureDefaultOutputFolder();
+        ensureDefaultOutputFolder(options);
 
         const plugins: PluginInfo[] = [];
-        const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
+        const pluginDecls = options.schema.declarations.filter((d): d is Plugin => isPlugin(d));
 
-        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: context.schemaPath, name: '' });
+        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: options.schemaPath, name: '' });
 
         for (const pluginDecl of pluginDecls) {
             const pluginProvider = this.getPluginProvider(pluginDecl);
@@ -73,59 +79,35 @@ export class PluginRunner {
 
             const dependencies = this.getPluginDependencies(pluginModule);
             const pluginName = this.getPluginName(pluginModule, pluginProvider);
-            const options: PluginOptions = { schemaPath: context.schemaPath, name: pluginName };
+            const pluginOptions: PluginOptions = { schemaPath: options.schemaPath, name: pluginName };
 
             pluginDecl.fields.forEach((f) => {
                 const value = getLiteral(f.value) ?? getLiteralArray(f.value);
                 if (value === undefined) {
                     throw new PluginError(pluginName, `Invalid option value for ${f.name}`);
                 }
-                options[f.name] = value;
+                pluginOptions[f.name] = value;
             });
 
             plugins.push({
                 name: pluginName,
                 provider: pluginProvider,
                 dependencies,
-                options,
+                options: pluginOptions,
                 run: pluginModule.default as PluginFunction,
                 module: pluginModule,
             });
 
-            if (pluginProvider === '@core/prisma' && typeof options.output === 'string') {
+            if (pluginProvider === '@core/prisma' && typeof pluginOptions.output === 'string') {
                 // record custom prisma output path
-                prismaOutput = resolvePath(options.output, options);
+                prismaOutput = resolvePath(pluginOptions.output, pluginOptions);
             }
         }
 
-        // make sure prerequisites are included
-        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [
-            { provider: '@core/prisma' },
-            { provider: '@core/model-meta' },
-            { provider: '@core/access-policy' },
-        ];
+        // get core plugins that need to be enabled
+        const corePlugins = this.calculateCorePlugins(options, plugins);
 
-        if (getDataModels(context.schema).some((model) => hasValidationAttributes(model))) {
-            // '@core/zod' plugin is auto-enabled if there're validation rules
-            corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
-        }
-
-        // core plugins introduced by dependencies
-        plugins
-            .flatMap((p) => p.dependencies)
-            .forEach((dep) => {
-                if (dep.startsWith('@core/')) {
-                    const existing = corePlugins.find((p) => p.provider === dep);
-                    if (existing) {
-                        // reset options to default
-                        existing.options = undefined;
-                    } else {
-                        // add core dependency
-                        corePlugins.push({ provider: dep });
-                    }
-                }
-            });
-
+        // shift/insert core plugins to the front
         for (const corePlugin of corePlugins.reverse()) {
             const existingIdx = plugins.findIndex((p) => p.provider === corePlugin.provider);
             if (existingIdx >= 0) {
@@ -141,7 +123,7 @@ export class PluginRunner {
                     name: pluginName,
                     provider: corePlugin.provider,
                     dependencies: [],
-                    options: { schemaPath: context.schemaPath, name: pluginName, ...corePlugin.options },
+                    options: { schemaPath: options.schemaPath, name: pluginName, ...corePlugin.options },
                     run: pluginModule.default,
                     module: pluginModule,
                 });
@@ -161,12 +143,17 @@ export class PluginRunner {
             }
         }
 
+        if (plugins.length === 0) {
+            console.log(colors.yellow('No plugins configured.'));
+            return;
+        }
+
         const warnings: string[] = [];
 
         let dmmf: DMMF.Document | undefined = undefined;
-        for (const { name, provider, run, options } of plugins) {
+        for (const { name, provider, run, options: pluginOptions } of plugins) {
             // const start = Date.now();
-            await this.runPlugin(name, run, context, options, dmmf, warnings);
+            await this.runPlugin(name, run, options, pluginOptions, dmmf, warnings);
             // console.log(`✅ Plugin ${colors.bold(name)} (${provider}) completed in ${Date.now() - start}ms`);
             if (provider === '@core/prisma') {
                 // load prisma DMMF
@@ -175,12 +162,62 @@ export class PluginRunner {
                 });
             }
         }
-
         console.log(colors.green(colors.bold('\n👻 All plugins completed successfully!')));
 
         warnings.forEach((w) => console.warn(colors.yellow(w)));
 
         console.log(`Don't forget to restart your dev server to let the changes take effect.`);
+    }
+
+    private calculateCorePlugins(options: PluginRunnerOptions, plugins: PluginInfo[]) {
+        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [];
+
+        if (options.defaultPlugins) {
+            corePlugins.push(
+                { provider: '@core/prisma' },
+                { provider: '@core/model-meta' },
+                { provider: '@core/access-policy' }
+            );
+        } else if (plugins.length > 0) {
+            // "@core/prisma" plugin is always enabled if any plugin is configured
+            corePlugins.push({ provider: '@core/prisma' });
+        }
+
+        // "@core/access-policy" has implicit requirements
+        if ([...plugins, ...corePlugins].find((p) => p.provider === '@core/access-policy')) {
+            // make sure "@core/model-meta" is enabled
+            if (!corePlugins.find((p) => p.provider === '@core/model-meta')) {
+                corePlugins.push({ provider: '@core/model-meta' });
+            }
+
+            // '@core/zod' plugin is auto-enabled by "@core/access-policy"
+            // if there're validation rules
+            if (!corePlugins.find((p) => p.provider === '@core/zod') && this.hasValidation(options.schema)) {
+                corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
+            }
+        }
+
+        // core plugins introduced by dependencies
+        plugins
+            .flatMap((p) => p.dependencies)
+            .forEach((dep) => {
+                if (dep.startsWith('@core/')) {
+                    const existing = corePlugins.find((p) => p.provider === dep);
+                    if (existing) {
+                        // reset options to default
+                        existing.options = undefined;
+                    } else {
+                        // add core dependency
+                        corePlugins.push({ provider: dep });
+                    }
+                }
+            });
+
+        return corePlugins;
+    }
+
+    private hasValidation(schema: Model) {
+        return getDataModels(schema).some((model) => hasValidationAttributes(model));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -200,7 +237,7 @@ export class PluginRunner {
     private async runPlugin(
         name: string,
         run: PluginFunction,
-        context: Context,
+        runnerOptions: PluginRunnerOptions,
         options: PluginOptions,
         dmmf: DMMF.Document | undefined,
         warnings: string[]
@@ -216,7 +253,10 @@ export class PluginRunner {
                     options,
                 },
                 async () => {
-                    let result = run(context.schema, options, dmmf, config);
+                    let result = run(runnerOptions.schema, options, dmmf, {
+                        output: runnerOptions.output,
+                        compile: runnerOptions.compile,
+                    });
                     if (result instanceof Promise) {
                         result = await result;
                     }

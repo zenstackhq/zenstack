@@ -30,6 +30,7 @@ import {
 import {
     ExpressionContext,
     PluginError,
+    PluginGlobalOptions,
     PluginOptions,
     RUNTIME_PACKAGE,
     analyzePolicies,
@@ -65,8 +66,8 @@ import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
  * Generates source file that contains Prisma query guard objects used for injecting database queries
  */
 export default class PolicyGenerator {
-    async generate(model: Model, options: PluginOptions) {
-        let output = options.output ? (options.output as string) : getDefaultOutputFolder();
+    async generate(model: Model, options: PluginOptions, globalOptions?: PluginGlobalOptions) {
+        let output = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
         if (!output) {
             throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
         }
@@ -147,7 +148,14 @@ export default class PolicyGenerator {
 
         sf.addStatements('export default policy');
 
-        const shouldCompile = options.compile !== false;
+        let shouldCompile = true;
+        if (typeof options.compile === 'boolean') {
+            // explicit override
+            shouldCompile = options.compile;
+        } else if (globalOptions) {
+            shouldCompile = globalOptions.compile;
+        }
+
         if (!shouldCompile || options.preserveTsFiles === true) {
             // save ts files
             await saveProject(project);

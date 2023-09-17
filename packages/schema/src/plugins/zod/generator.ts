@@ -1,5 +1,6 @@
 import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import {
+    PluginGlobalOptions,
     PluginOptions,
     createProject,
     emitProject,
@@ -25,10 +26,15 @@ import Transformer from './transformer';
 import removeDir from './utils/removeDir';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
-export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
+export async function generate(
+    model: Model,
+    options: PluginOptions,
+    dmmf: DMMF.Document,
+    globalOptions?: PluginGlobalOptions
+) {
     let output = options.output as string;
     if (!output) {
-        const defaultOutputFolder = getDefaultOutputFolder();
+        const defaultOutputFolder = getDefaultOutputFolder(globalOptions);
         if (defaultOutputFolder) {
             output = path.join(defaultOutputFolder, 'zod');
         } else {
@@ -96,7 +102,15 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     project.createSourceFile(path.join(output, 'index.ts'), exports.join(';\n'), { overwrite: true });
 
     // emit
-    const shouldCompile = options.compile !== false;
+    let shouldCompile = true;
+    if (typeof options.compile === 'boolean') {
+        // explicit override
+        shouldCompile = options.compile;
+    } else if (globalOptions) {
+        // from CLI or config file
+        shouldCompile = globalOptions.compile;
+    }
+
     if (!shouldCompile || options.preserveTsFiles === true) {
         // save ts files
         await saveProject(project);
