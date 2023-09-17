@@ -7,8 +7,9 @@ import * as path from 'path';
 import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
 import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
+import { createNpmrc } from './share';
 
-describe('CLI Command Tests', () => {
+describe('CLI init command tests', () => {
     let origDir: string;
 
     beforeEach(() => {
@@ -21,10 +22,6 @@ describe('CLI Command Tests', () => {
     afterEach(() => {
         process.chdir(origDir);
     });
-
-    function createNpmrc() {
-        fs.writeFileSync('.npmrc', `cache=${getWorkspaceNpmCacheFolder(__dirname)}`);
-    }
 
     it('init project t3 npm std', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
@@ -95,6 +92,14 @@ describe('CLI Command Tests', () => {
         createNpmrc();
         const program = createProgram();
         await program.parseAsync(['init', '--tag', 'latest'], { from: 'user' });
+        expect(fs.readFileSync('schema.zmodel', 'utf-8')).toBeTruthy();
+    });
+
+    it('init project no version check', async () => {
+        fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
+        createNpmrc();
+        const program = createProgram();
+        await program.parseAsync(['init', '--tag', 'latest', '--no-version-check'], { from: 'user' });
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toBeTruthy();
     });
 

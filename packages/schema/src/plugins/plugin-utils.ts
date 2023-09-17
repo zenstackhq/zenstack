@@ -2,7 +2,7 @@ import type { PolicyOperationKind } from '@zenstackhq/runtime';
 import { PluginGlobalOptions } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
-import { PluginRunnerOptions } from 'src/cli/plugin-runner';
+import { PluginRunnerOptions } from '../cli/plugin-runner';
 
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
@@ -27,7 +27,7 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
  * Ensure the default output folder is initialized.
  */
 export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
-    const output = options.output ?? getDefaultOutputFolder();
+    const output = options.output ? path.resolve(options.output) : getDefaultOutputFolder();
     if (output && !fs.existsSync(output)) {
         fs.mkdirSync(output, { recursive: true });
         if (!options.output) {
@@ -54,7 +54,7 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
  */
 export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
     if (typeof globalOptions?.output === 'string') {
-        return globalOptions?.output;
+        return path.resolve(globalOptions.output);
     }
 
     // Find the real runtime module path, it might be a symlink in pnpm

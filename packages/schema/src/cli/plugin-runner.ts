@@ -104,41 +104,10 @@ export class PluginRunner {
             }
         }
 
-        // make sure prerequisites are included
-        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [];
+        // get core plugins that need to be enabled
+        const corePlugins = this.calculateCorePlugins(options, plugins);
 
-        if (options.defaultPlugins) {
-            corePlugins.push(
-                { provider: '@core/prisma' },
-                { provider: '@core/model-meta' },
-                { provider: '@core/access-policy' }
-            );
-
-            if (getDataModels(options.schema).some((model) => hasValidationAttributes(model))) {
-                // '@core/zod' plugin is auto-enabled if there're validation rules
-                corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
-            }
-        } else if (plugins.length > 0) {
-            // "@core/prisma" plugin is always enabled if any plugin is configured
-            corePlugins.push({ provider: '@core/prisma' });
-        }
-
-        // core plugins introduced by dependencies
-        plugins
-            .flatMap((p) => p.dependencies)
-            .forEach((dep) => {
-                if (dep.startsWith('@core/')) {
-                    const existing = corePlugins.find((p) => p.provider === dep);
-                    if (existing) {
-                        // reset options to default
-                        existing.options = undefined;
-                    } else {
-                        // add core dependency
-                        corePlugins.push({ provider: dep });
-                    }
-                }
-            });
-
+        // shift/insert core plugins to the front
         for (const corePlugin of corePlugins.reverse()) {
             const existingIdx = plugins.findIndex((p) => p.provider === corePlugin.provider);
             if (existingIdx >= 0) {
@@ -198,6 +167,57 @@ export class PluginRunner {
         warnings.forEach((w) => console.warn(colors.yellow(w)));
 
         console.log(`Don't forget to restart your dev server to let the changes take effect.`);
+    }
+
+    private calculateCorePlugins(options: PluginRunnerOptions, plugins: PluginInfo[]) {
+        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [];
+
+        if (options.defaultPlugins) {
+            corePlugins.push(
+                { provider: '@core/prisma' },
+                { provider: '@core/model-meta' },
+                { provider: '@core/access-policy' }
+            );
+        } else if (plugins.length > 0) {
+            // "@core/prisma" plugin is always enabled if any plugin is configured
+            corePlugins.push({ provider: '@core/prisma' });
+        }
+
+        // "@core/access-policy" has implicit requirements
+        if ([...plugins, ...corePlugins].find((p) => p.provider === '@core/access-policy')) {
+            // make sure "@core/model-meta" is enabled
+            if (!corePlugins.find((p) => p.provider === '@core/model-meta')) {
+                corePlugins.push({ provider: '@core/model-meta' });
+            }
+
+            // '@core/zod' plugin is auto-enabled by "@core/access-policy"
+            // if there're validation rules
+            if (!corePlugins.find((p) => p.provider === '@core/zod') && this.hasValidation(options.schema)) {
+                corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
+            }
+        }
+
+        // core plugins introduced by dependencies
+        plugins
+            .flatMap((p) => p.dependencies)
+            .forEach((dep) => {
+                if (dep.startsWith('@core/')) {
+                    const existing = corePlugins.find((p) => p.provider === dep);
+                    if (existing) {
+                        // reset options to default
+                        existing.options = undefined;
+                    } else {
+                        // add core dependency
+                        corePlugins.push({ provider: dep });
+                    }
+                }
+            });
+
+        return corePlugins;
+    }
+
+    private hasValidation(schema: Model) {
+        return getDataModels(schema).some((model) => hasValidationAttributes(model));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
