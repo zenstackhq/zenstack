@@ -58,7 +58,7 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, 'react', '@types/react', 'swr'],
+                extraDependencies: [`${origDir}/dist`, 'react@18.2.0', '@types/react@18.2.0', 'swr@^2'],
                 compile: true,
             }
         );
