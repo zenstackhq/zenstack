@@ -11,12 +11,14 @@ import { schema } from '../utils';
 describe('RPC API Handler Tests', () => {
     let prisma: any;
     let enhance: any;
+    let modelMeta: any;
     let zodSchemas: any;
 
     beforeAll(async () => {
         const params = await loadSchema(schema, { fullZod: true });
         prisma = params.prisma;
         enhance = params.enhance;
+        modelMeta = params.modelMeta;
         zodSchemas = params.zodSchemas;
     });
 
@@ -393,18 +395,18 @@ describe('RPC API Handler Tests', () => {
         expect(r.status).toBe(200);
         expect(r.data).toBeNull();
     });
-});
 
-function makeHandler(zodSchemas?: ZodSchemas) {
-    const _handler = RPCAPIHandler();
-    return async (args: any) => {
-        const r = await _handler({ ...args, url: new URL(`http://localhost/${args.path}`), zodSchemas });
-        return {
-            status: r.status,
-            body: r.body as any,
-            data: (r.body as any).data,
-            error: (r.body as any).error,
-            meta: (r.body as any).meta,
+    function makeHandler(zodSchemas?: ZodSchemas) {
+        const _handler = RPCAPIHandler();
+        return async (args: any) => {
+            const r = await _handler({ ...args, url: new URL(`http://localhost/${args.path}`), modelMeta, zodSchemas });
+            return {
+                status: r.status,
+                body: r.body as any,
+                data: (r.body as any).data,
+                error: (r.body as any).error,
+                meta: (r.body as any).meta,
+            };
         };
-    };
-}
+    }
+});

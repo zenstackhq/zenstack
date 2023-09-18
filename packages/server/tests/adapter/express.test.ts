@@ -85,6 +85,32 @@ describe('Express adapter tests - rpc handler', () => {
         expect(r.body.data.count).toBe(1);
     });
 
+    it('custom load path', async () => {
+        const { prisma } = await loadSchema(schema, { output: './zen' });
+
+        const app = express();
+        app.use(bodyParser.json());
+        app.use('/api', ZenStackMiddleware({ getPrisma: () => prisma, loadPath: './zen', zodSchemas: true }));
+
+        const r = await request(app)
+            .post('/api/user/create')
+            .send({
+                include: { posts: true },
+                data: {
+                    id: 'user1',
+                    email: 'user1@abc.com',
+                    posts: {
+                        create: [
+                            { title: 'post1', published: true, viewCount: 1 },
+                            { title: 'post2', published: false, viewCount: 2 },
+                        ],
+                    },
+                },
+            });
+
+        expect(r.status).toBe(201);
+    });
+
     it('invalid path or args', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 

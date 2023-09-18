@@ -1,4 +1,9 @@
 /**
+ * Default path for loading CLI-generated code
+ */
+export const DEFAULT_RUNTIME_LOAD_PATH = '.zenstack';
+
+/**
  * Default length of password hash salt (used by bcryptjs to hash password)
  */
 export const DEFAULT_PASSWORD_SALT_LENGTH = 12;

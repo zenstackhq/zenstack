@@ -10,6 +10,16 @@ import {
 } from '../constants';
 
 /**
+ * Common options for PrismaClient enhancements
+ */
+export interface CommonEnhancementOptions {
+    /**
+     * Path for loading CLI-generated code
+     */
+    loadPath?: string;
+}
+
+/**
  * Metadata for a model-level unique constraint
  * e.g.: @@unique([a, b])
  */

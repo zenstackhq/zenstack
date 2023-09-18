@@ -1,4 +1,4 @@
-import { getDefaultModelMeta } from './model-meta';
+import { getDefaultModelMeta } from '../loader';
 import { withOmit, WithOmitOptions } from './omit';
 import { withPassword, WithPasswordOptions } from './password';
 import { withPolicy, WithPolicyContext, WithPolicyOptions } from './policy';
@@ -29,7 +29,7 @@ export function enhance<DbClient extends object>(
     let result = prisma;
 
     if (hasPassword === undefined || hasOmit === undefined) {
-        const modelMeta = options?.modelMeta ?? getDefaultModelMeta();
+        const modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
         const allFields = Object.values(modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));

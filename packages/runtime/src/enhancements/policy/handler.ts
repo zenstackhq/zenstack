@@ -7,7 +7,7 @@ import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { ModelDataVisitor } from '../model-data-visitor';
 import { resolveField } from '../model-meta';
-import { NestedWriteVisitor, NestedWriteVisitorContext } from '../nested-write-vistor';
+import { NestedWriteVisitor, NestedWriteVisitorContext } from '../nested-write-visitor';
 import { PrismaProxyHandler } from '../proxy';
 import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { enumerate, formatObject, getIdFields, prismaClientValidationError } from '../utils';

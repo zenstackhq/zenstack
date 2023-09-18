@@ -17,8 +17,8 @@ import { upperCaseFirst } from 'upper-case-first';
 import UrlPattern from 'url-pattern';
 import z, { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { LoggerConfig, RequestContext, Response } from '../../types';
-import { APIHandlerBase } from '../base';
+import { LoggerConfig, Response } from '../../types';
+import { APIHandlerBase, RequestContext } from '../base';
 import { logWarning, registerCustomSerializers } from '../utils';
 
 const urlPatterns = {
@@ -225,7 +225,7 @@ class RequestHandler extends APIHandlerBase {
     }: RequestContext): Promise<Response> {
         modelMeta = modelMeta ?? this.defaultModelMeta;
         if (!modelMeta) {
-            throw new Error('Model meta is not provided or loaded from default location');
+            throw new Error('Model metadata is not provided or loaded from default location');
         }
 
         if (!this.serializers) {
