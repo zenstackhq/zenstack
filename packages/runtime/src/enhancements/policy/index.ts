@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import path from 'path';
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../../constants';
+import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
 import { AuthUser, DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
-import { getDefaultModelMeta } from '../model-meta';
 import { makeProxy } from '../proxy';
-import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
+import type { CommonEnhancementOptions, ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { getIdFields } from '../utils';
 import { PolicyProxyHandler } from './handler';
 
@@ -22,7 +21,7 @@ export type WithPolicyContext = {
 /**
  * Options for @see withPolicy
  */
-export type WithPolicyOptions = {
+export interface WithPolicyOptions extends CommonEnhancementOptions {
     /**
      * Policy definition
      */
@@ -42,7 +41,7 @@ export type WithPolicyOptions = {
      * Whether to log Prisma query
      */
     logPrismaQuery?: boolean;
-};
+}
 
 /**
  * Gets an enhanced Prisma client with access policy check.
@@ -68,9 +67,9 @@ export function withPolicy<DbClient extends object>(
         );
     }
 
-    const _policy = options?.policy ?? getDefaultPolicy();
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta();
-    const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas();
+    const _policy = options?.policy ?? getDefaultPolicy(options?.loadPath);
+    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
+    const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
 
     // validate user context
     if (context?.user) {
@@ -102,41 +101,4 @@ export function withPolicy<DbClient extends object>(
             ),
         'policy'
     );
-}
-
-function getDefaultPolicy(): PolicyDef {
-    try {
-        return require('.zenstack/policy').default;
-    } catch {
-        if (process.env.ZENSTACK_TEST === '1') {
-            try {
-                // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'policy')).default;
-            } catch {
-                throw new Error(
-                    'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
-                );
-            }
-        }
-        throw new Error(
-            'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
-        );
-    }
-}
-
-function getDefaultZodSchemas(): ZodSchemas | undefined {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        return require('.zenstack/zod');
-    } catch {
-        if (process.env.ZENSTACK_TEST === '1') {
-            try {
-                // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'zod'));
-            } catch {
-                return undefined;
-            }
-        }
-        return undefined;
-    }
 }

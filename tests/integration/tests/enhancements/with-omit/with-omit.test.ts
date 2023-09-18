@@ -1,3 +1,4 @@
+import { withOmit } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
@@ -12,26 +13,27 @@ describe('Omit test', () => {
         process.chdir(origDir);
     });
 
+    const model = `
+    model User {
+        id String @id @default(cuid())
+        password String @omit
+        profile Profile?
+    
+        @@allow('all', true)
+    }
+    
+    model Profile {
+        id String @id @default(cuid())
+        user User @relation(fields: [userId], references: [id])
+        userId String @unique
+        image String @omit
+    
+        @@allow('all', true)
+    }
+    `;
+
     it('omit tests', async () => {
-        const { withOmit } = await loadSchema(
-            `
-        model User {
-            id String @id @default(cuid())
-            password String @omit
-            profile Profile?
-        
-            @@allow('all', true)
-        }
-        
-        model Profile {
-            id String @id @default(cuid())
-            user User @relation(fields: [userId], references: [id])
-            userId String @unique
-            image String @omit
-        
-            @@allow('all', true)
-        }        `
-        );
+        const { withOmit } = await loadSchema(model);
 
         const db = withOmit();
         const r = await db.user.create({
@@ -74,5 +76,33 @@ describe('Omit test', () => {
             expect(e.password).toBeUndefined();
             expect(e.profile.image).toBeUndefined();
         });
+    });
+
+    it('customization', async () => {
+        const { prisma } = await loadSchema(model, { getPrismaOnly: true, output: './zen' });
+
+        const db = withOmit(prisma, { loadPath: './zen' });
+        const r = await db.user.create({
+            include: { profile: true },
+            data: {
+                id: '1',
+                password: 'abc123',
+                profile: { create: { image: 'an image' } },
+            },
+        });
+        expect(r.password).toBeUndefined();
+        expect(r.profile.image).toBeUndefined();
+
+        const db1 = withOmit(prisma, { modelMeta: require(path.resolve('./zen/model-meta')).default });
+        const r1 = await db1.user.create({
+            include: { profile: true },
+            data: {
+                id: '2',
+                password: 'abc123',
+                profile: { create: { image: 'an image' } },
+            },
+        });
+        expect(r1.password).toBeUndefined();
+        expect(r1.profile.image).toBeUndefined();
     });
 });

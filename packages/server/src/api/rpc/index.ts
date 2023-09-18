@@ -11,8 +11,8 @@ import SuperJSON from 'superjson';
 import { upperCaseFirst } from 'upper-case-first';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { RequestContext, Response } from '../../types';
-import { APIHandlerBase } from '../base';
+import { Response } from '../../types';
+import { APIHandlerBase, RequestContext } from '../base';
 import { logError, registerCustomSerializers } from '../utils';
 
 registerCustomSerializers();
@@ -37,7 +37,6 @@ class RequestHandler extends APIHandlerBase {
         zodSchemas,
         logger,
     }: RequestContext): Promise<Response> {
-        modelMeta = modelMeta ?? this.defaultModelMeta;
         if (!modelMeta) {
             throw new Error('Model meta is not provided or loaded from default location');
         }

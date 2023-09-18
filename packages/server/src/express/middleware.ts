@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import type { Handler, Request, Response } from 'express';
 import RPCAPIHandler from '../api/rpc';
+import { loadAssets } from '../shared';
 import { AdapterBaseOptions } from '../types';
 
 /**
@@ -30,16 +30,7 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
  * Creates an Express middleware for handling CRUD requests.
  */
 const factory = (options: MiddlewareOptions): Handler => {
-    let zodSchemas: ZodSchemas | undefined;
-    if (typeof options.zodSchemas === 'object') {
-        zodSchemas = options.zodSchemas;
-    } else if (options.zodSchemas === true) {
-        try {
-            zodSchemas = require('@zenstackhq/runtime/zod');
-        } catch {
-            throw new Error('Unable to load zod schemas from default location');
-        }
-    }
+    const { modelMeta, zodSchemas } = loadAssets(options);
 
     const requestHandler = options.handler || RPCAPIHandler();
     if (options.useSuperJson !== undefined) {
@@ -74,7 +65,7 @@ const factory = (options: MiddlewareOptions): Handler => {
                 query,
                 requestBody: request.body,
                 prisma,
-                modelMeta: options.modelMeta,
+                modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });

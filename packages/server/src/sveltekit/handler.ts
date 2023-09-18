@@ -1,8 +1,8 @@
 import type { Handle, RequestEvent } from '@sveltejs/kit';
-import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
+import { loadAssets } from '../shared';
 import { AdapterBaseOptions } from '../types';
 
 /**
@@ -26,15 +26,7 @@ export interface HandlerOptions extends AdapterBaseOptions {
 export default function createHandler(options: HandlerOptions): Handle {
     logInfo(options.logger, `ZenStackHandler installing routes at prefix: ${options.prefix}`);
 
-    let zodSchemas: ZodSchemas | undefined;
-    if (typeof options.zodSchemas === 'object') {
-        zodSchemas = options.zodSchemas;
-    } else if (options.zodSchemas === true) {
-        zodSchemas = require('@zenstackhq/runtime/zod');
-        if (!zodSchemas) {
-            throw new Error('Unable to load zod schemas from default location');
-        }
-    }
+    const { modelMeta, zodSchemas } = loadAssets(options);
 
     const requestHandler = options.handler ?? RPCApiHandler();
     if (options.useSuperJson !== undefined) {
@@ -73,8 +65,8 @@ export default function createHandler(options: HandlerOptions): Handle {
                     query,
                     requestBody,
                     prisma,
+                    modelMeta,
                     zodSchemas,
-                    modelMeta: options.modelMeta,
                 });
 
                 return new Response(JSON.stringify(r.body), {

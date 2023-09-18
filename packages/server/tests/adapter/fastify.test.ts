@@ -112,6 +112,38 @@ describe('Fastify adapter tests - rpc handler', () => {
         expect(r.json().data.count).toBe(1);
     });
 
+    it('custom load path', async () => {
+        const { prisma } = await loadSchema(schema, { output: './zen' });
+
+        const app = fastify();
+        app.register(ZenStackFastifyPlugin, {
+            prefix: '/api',
+            getPrisma: () => prisma,
+            loadPath: './zen',
+            zodSchemas: true,
+            handler: RPC(),
+        });
+
+        const r = await app.inject({
+            method: 'POST',
+            url: '/api/user/create',
+            payload: {
+                include: { posts: true },
+                data: {
+                    id: 'user1',
+                    email: 'user1@abc.com',
+                    posts: {
+                        create: [
+                            { title: 'post1', published: true, viewCount: 1 },
+                            { title: 'post2', published: false, viewCount: 2 },
+                        ],
+                    },
+                },
+            },
+        });
+        expect(r.statusCode).toBe(201);
+    });
+
     it('invalid path or args', async () => {
         const { prisma, zodSchemas } = await loadSchema(schema);
 

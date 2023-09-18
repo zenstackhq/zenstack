@@ -162,6 +162,25 @@ model M {
         expect(await prisma.m.count()).toBe(0);
     });
 
+    it('custom load path', async () => {
+        const model = `
+model M {
+    id String @id @default(cuid())
+    value Int
+}
+        `;
+
+        const { prisma } = await loadSchema(model, { output: './zen' });
+
+        await makeTestClient('/m/create', { getPrisma: () => prisma, zodSchemas: true, loadPath: './zen' })
+            .post('/')
+            .send({ data: { id: '1', value: 1 } })
+            .expect(201)
+            .expect((resp) => {
+                expect(resp.body.data.value).toBe(1);
+            });
+    });
+
     it('access policy crud', async () => {
         const model = `
 model M {

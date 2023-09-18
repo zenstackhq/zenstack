@@ -17,7 +17,7 @@ import {
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
-import { NestedWriteVisitorContext } from '../nested-write-vistor';
+import { NestedWriteVisitorContext } from '../nested-write-visitor';
 import type { InputCheckFunc, ModelMeta, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     enumerate,

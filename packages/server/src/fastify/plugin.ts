@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import { FastifyPluginCallback, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 import RPCApiHandler from '../api/rpc';
 import { logInfo } from '../api/utils';
+import { loadAssets } from '../shared';
 import { AdapterBaseOptions } from '../types';
 
 /**
@@ -29,17 +29,9 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     const prefix = options.prefix ?? '';
     logInfo(options.logger, `ZenStackPlugin installing routes at prefix: ${prefix}`);
 
-    let zodSchemas: ZodSchemas | undefined;
-    if (typeof options.zodSchemas === 'object') {
-        zodSchemas = options.zodSchemas;
-    } else if (options.zodSchemas === true) {
-        zodSchemas = require('@zenstackhq/runtime/zod');
-        if (!zodSchemas) {
-            throw new Error('Unable to load zod schemas from default location');
-        }
-    }
+    const { modelMeta, zodSchemas } = loadAssets(options);
 
-    const requestHanler = options.handler ?? RPCApiHandler();
+    const requestHandler = options.handler ?? RPCApiHandler();
     if (options.useSuperJson !== undefined) {
         console.warn(
             'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
@@ -54,13 +46,13 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
         }
 
         try {
-            const response = await requestHanler({
+            const response = await requestHandler({
                 method: request.method,
                 path: (request.params as any)['*'],
                 query: request.query as Record<string, string | string[]>,
                 requestBody: request.body,
                 prisma,
-                modelMeta: options.modelMeta,
+                modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });

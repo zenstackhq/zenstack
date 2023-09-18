@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PagesRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';
+import { loadAssets } from '../shared';
 
 /**
  * Creates a Next.js API endpoint (traditional "pages" route) request handler which encapsulates Prisma CRUD operations.
@@ -15,15 +15,7 @@ import RPCAPIHandler from '../api/rpc';
 export default function factory(
     options: PagesRouteRequestHandlerOptions
 ): (req: NextApiRequest, res: NextApiResponse) => Promise<void> {
-    let zodSchemas: ZodSchemas | undefined;
-    if (typeof options.zodSchemas === 'object') {
-        zodSchemas = options.zodSchemas;
-    } else if (options.zodSchemas === true) {
-        zodSchemas = require('@zenstackhq/runtime/zod');
-        if (!zodSchemas) {
-            throw new Error('Unable to load zod schemas from default location');
-        }
-    }
+    const { modelMeta, zodSchemas } = loadAssets(options);
 
     const requestHandler = options.handler || RPCAPIHandler();
     if (options.useSuperJson !== undefined) {
@@ -52,7 +44,7 @@ export default function factory(
                 query: req.query as Record<string, string | string[]>,
                 requestBody: req.body,
                 prisma,
-                modelMeta: options.modelMeta,
+                modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });

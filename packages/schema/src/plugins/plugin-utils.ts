@@ -1,4 +1,4 @@
-import type { PolicyOperationKind } from '@zenstackhq/runtime';
+import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind } from '@zenstackhq/runtime';
 import { PluginGlobalOptions } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
@@ -73,5 +73,5 @@ export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
         runtimeModulePath = path.join(runtimeModulePath, '..');
     }
     const modulesFolder = getNodeModulesFolder(runtimeModulePath);
-    return modulesFolder ? path.join(modulesFolder, '.zenstack') : undefined;
+    return modulesFolder ? path.join(modulesFolder, DEFAULT_RUNTIME_LOAD_PATH) : undefined;
 }
