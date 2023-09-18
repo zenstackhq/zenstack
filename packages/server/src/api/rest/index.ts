@@ -223,8 +223,9 @@ class RequestHandler extends APIHandlerBase {
         modelMeta,
         zodSchemas,
     }: RequestContext): Promise<Response> {
+        modelMeta = modelMeta ?? this.defaultModelMeta;
         if (!modelMeta) {
-            throw new Error('Model meta is not provided or loaded from default location');
+            throw new Error('Model metadata is not provided or loaded from default location');
         }
 
         if (!this.serializers) {

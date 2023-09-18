@@ -1,4 +1,4 @@
-import { DbClientContract, ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
+import { DbClientContract, ModelMeta, ZodSchemas, getDefaultModelMeta } from '@zenstackhq/runtime';
 import { LoggerConfig } from '../types';
 
 /**
@@ -52,4 +52,15 @@ export type RequestContext = {
 /**
  * Base class for API handlers
  */
-export abstract class APIHandlerBase {}
+export abstract class APIHandlerBase {
+    // model meta loaded from default location
+    protected readonly defaultModelMeta: ModelMeta | undefined;
+
+    constructor() {
+        try {
+            this.defaultModelMeta = getDefaultModelMeta(undefined);
+        } catch {
+            // noop
+        }
+    }
+}

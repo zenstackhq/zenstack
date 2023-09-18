@@ -10,15 +10,15 @@ import { ModelMeta, PolicyDef, ZodSchemas } from './enhancements';
  * will use default load path.
  */
 export function getDefaultModelMeta(loadPath: string | undefined): ModelMeta {
-    loadPath = loadPath ? path.resolve(loadPath, 'model-meta') : `${DEFAULT_RUNTIME_LOAD_PATH}/model-meta`;
+    const toLoad = loadPath ? path.resolve(loadPath, 'model-meta') : `${DEFAULT_RUNTIME_LOAD_PATH}/model-meta`;
     try {
         // normal load
-        return require(loadPath).default;
+        return require(toLoad).default;
     } catch {
-        if (process.env.ZENSTACK_TEST === '1' && !path.isAbsolute(loadPath)) {
+        if (process.env.ZENSTACK_TEST === '1' && !path.isAbsolute(toLoad)) {
             try {
                 // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', loadPath, 'model-meta')).default;
+                return require(path.join(process.cwd(), 'node_modules', toLoad)).default;
             } catch {
                 throw new Error('Model meta cannot be loaded. Please make sure "zenstack generate" has been run.');
             }
@@ -34,14 +34,14 @@ export function getDefaultModelMeta(loadPath: string | undefined): ModelMeta {
  * will use default load path.
  */
 export function getDefaultPolicy(loadPath: string | undefined): PolicyDef {
-    loadPath = loadPath ? path.resolve(loadPath, 'policy') : `${DEFAULT_RUNTIME_LOAD_PATH}/policy`;
+    const toLoad = loadPath ? path.resolve(loadPath, 'policy') : `${DEFAULT_RUNTIME_LOAD_PATH}/policy`;
     try {
-        return require(loadPath).default;
+        return require(toLoad).default;
     } catch {
-        if (process.env.ZENSTACK_TEST === '1' && !path.isAbsolute(loadPath)) {
+        if (process.env.ZENSTACK_TEST === '1' && !path.isAbsolute(toLoad)) {
             try {
                 // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', loadPath, 'policy')).default;
+                return require(path.join(process.cwd(), 'node_modules', toLoad)).default;
             } catch {
                 throw new Error(
                     'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
@@ -61,14 +61,14 @@ export function getDefaultPolicy(loadPath: string | undefined): PolicyDef {
  * will use default load path.
  */
 export function getDefaultZodSchemas(loadPath: string | undefined): ZodSchemas | undefined {
-    loadPath = loadPath ? path.resolve(loadPath, 'zod') : `${DEFAULT_RUNTIME_LOAD_PATH}/zod`;
+    const toLoad = loadPath ? path.resolve(loadPath, 'zod') : `${DEFAULT_RUNTIME_LOAD_PATH}/zod`;
     try {
-        return require(loadPath);
+        return require(toLoad);
     } catch {
-        if (process.env.ZENSTACK_TEST === '1' && !path.isAbsolute(loadPath)) {
+        if (process.env.ZENSTACK_TEST === '1' && !path.isAbsolute(toLoad)) {
             try {
                 // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', loadPath, 'zod'));
+                return require(path.join(process.cwd(), 'node_modules', toLoad));
             } catch {
                 return undefined;
             }

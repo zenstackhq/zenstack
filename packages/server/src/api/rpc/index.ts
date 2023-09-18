@@ -37,8 +37,9 @@ class RequestHandler extends APIHandlerBase {
         zodSchemas,
         logger,
     }: RequestContext): Promise<Response> {
+        modelMeta = modelMeta ?? this.defaultModelMeta;
         if (!modelMeta) {
-            throw new Error('Model meta is not provided or loaded from default location');
+            throw new Error('Model metadata is not provided or loaded from default location');
         }
 
         const parts = path.split('/').filter((p) => !!p);
