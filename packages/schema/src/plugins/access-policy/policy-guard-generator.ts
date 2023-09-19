@@ -3,6 +3,7 @@ import {
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    Enum,
     Expression,
     MemberAccessExpr,
     Model,
@@ -29,6 +30,7 @@ import {
 import {
     ExpressionContext,
     PluginError,
+    PluginGlobalOptions,
     PluginOptions,
     RUNTIME_PACKAGE,
     analyzePolicies,
@@ -39,6 +41,7 @@ import {
     getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
+    isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
     isFutureExpr,
@@ -63,8 +66,8 @@ import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
  * Generates source file that contains Prisma query guard objects used for injecting database queries
  */
 export default class PolicyGenerator {
-    async generate(model: Model, options: PluginOptions) {
-        let output = options.output ? (options.output as string) : getDefaultOutputFolder();
+    async generate(model: Model, options: PluginOptions, globalOptions?: PluginGlobalOptions) {
+        let output = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
         if (!output) {
             throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
         }
@@ -87,7 +90,7 @@ export default class PolicyGenerator {
 
         // import enums
         const prismaImport = getPrismaClientImportSpec(model, output);
-        for (const e of model.declarations.filter((d) => isEnum(d))) {
+        for (const e of model.declarations.filter((d) => isEnum(d) && this.isEnumReferenced(model, d))) {
             sf.addImportDeclaration({
                 namedImports: [{ name: e.name }],
                 moduleSpecifier: prismaImport,
@@ -145,7 +148,14 @@ export default class PolicyGenerator {
 
         sf.addStatements('export default policy');
 
-        const shouldCompile = options.compile !== false;
+        let shouldCompile = true;
+        if (typeof options.compile === 'boolean') {
+            // explicit override
+            shouldCompile = options.compile;
+        } else if (globalOptions) {
+            shouldCompile = globalOptions.compile;
+        }
+
         if (!shouldCompile || options.preserveTsFiles === true) {
             // save ts files
             await saveProject(project);
@@ -153,6 +163,20 @@ export default class PolicyGenerator {
         if (shouldCompile) {
             await emitProject(project);
         }
+    }
+
+    private isEnumReferenced(model: Model, decl: Enum): unknown {
+        return streamAllContents(model).some((node) => {
+            if (isDataModelField(node) && node.type.reference?.ref === decl) {
+                // referenced as field type
+                return true;
+            }
+            if (isEnumFieldReference(node) && node.target.ref?.$container === decl) {
+                // enum field is referenced
+                return true;
+            }
+            return false;
+        });
     }
 
     private getPolicyExpressions(target: DataModel | DataModelField, kind: PolicyKind, operation: PolicyOperationKind) {

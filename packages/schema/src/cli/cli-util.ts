@@ -1,85 +1,21 @@
 import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
-import { getLiteral, PluginError } from '@zenstackhq/sdk';
+import { getLiteral } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import getLatestVersion from 'get-latest-version';
 import { AstNode, getDocument, LangiumDocument, LangiumDocuments, Mutable } from 'langium';
 import { NodeFileSystem } from 'langium/node';
-import ora from 'ora';
 import path from 'path';
 import semver from 'semver';
 import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
-import { Context } from '../types';
 import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
-import { ensurePackage, installPackage, PackageManagers } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
-import { PluginRunner } from './plugin-runner';
 
-/**
- * Initializes an existing project for ZenStack
- */
-export async function initProject(
-    projectPath: string,
-    prismaSchema: string | undefined,
-    packageManager: PackageManagers | undefined,
-    tag?: string
-) {
-    if (!fs.existsSync(projectPath)) {
-        console.error(`Path does not exist: ${projectPath}`);
-        throw new CliError('project path does not exist');
-    }
-
-    const defaultPrismaSchemaLocation = './prisma/schema.prisma';
-    if (prismaSchema) {
-        if (!fs.existsSync(prismaSchema)) {
-            console.error(`Prisma schema file does not exist: ${prismaSchema}`);
-            throw new CliError('prisma schema does not exist');
-        }
-    } else if (fs.existsSync(defaultPrismaSchemaLocation)) {
-        prismaSchema = defaultPrismaSchemaLocation;
-    }
-
-    const zmodelFile = path.join(projectPath, './schema.zmodel');
-    let sampleModelGenerated = false;
-
-    if (fs.existsSync(zmodelFile)) {
-        console.warn(`ZenStack model already exists at ${zmodelFile}, not generating a new one.`);
-    } else {
-        if (prismaSchema) {
-            // copy over schema.prisma
-            fs.copyFileSync(prismaSchema, zmodelFile);
-        } else {
-            // create a new model
-            const starterContent = fs.readFileSync(path.join(__dirname, '../res/starter.zmodel'), 'utf-8');
-            fs.writeFileSync(zmodelFile, starterContent);
-            sampleModelGenerated = true;
-        }
-    }
-
-    ensurePackage('prisma', true, packageManager, 'latest', projectPath);
-    ensurePackage('@prisma/client', false, packageManager, 'latest', projectPath);
-
-    tag = tag ?? getVersion();
-    installPackage('zenstack', true, packageManager, tag, projectPath);
-    installPackage('@zenstackhq/runtime', false, packageManager, tag, projectPath);
-
-    if (sampleModelGenerated) {
-        console.log(`Sample model generated at: ${colors.blue(zmodelFile)}
-
-Please check the following guide on how to model your app:
-    https://zenstack.dev/#/modeling-your-app.`);
-    } else if (prismaSchema) {
-        console.log(
-            `Your current Prisma schema "${prismaSchema}" has been copied to "${zmodelFile}".
-Moving forward please edit this file and run "zenstack generate" to regenerate Prisma schema.`
-        );
-    }
-
-    console.log(colors.green('\nProject initialized successfully!'));
-}
+// required minimal version of Prisma
+export const requiredPrismaVersion = '4.8.0';
 
 /**
  * Loads a zmodel document from a file.
@@ -239,74 +175,59 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
     return result;
 }
 
-export async function runPlugins(options: { schema: string; packageManager: PackageManagers | undefined }) {
-    const model = await loadDocument(options.schema);
-
-    const context: Context = {
-        schema: model,
-        schemaPath: path.resolve(options.schema),
-        outDir: path.dirname(options.schema),
-    };
-
-    try {
-        await new PluginRunner().run(context);
-    } catch (err) {
-        if (err instanceof PluginError) {
-            console.error(colors.red(`${err.plugin}: ${err.message}`));
-            throw new CliError(err.message);
-        } else {
-            throw err;
-        }
-    }
-}
-
-export async function dumpInfo(projectPath: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let pkgJson: any;
+export function getZenStackPackages(projectPath: string) {
+    let pkgJson: { dependencies: Record<string, unknown>; devDependencies: Record<string, unknown> };
     const resolvedPath = path.resolve(projectPath);
     try {
         pkgJson = require(path.join(resolvedPath, 'package.json'));
     } catch {
-        console.error('Unable to locate package.json. Are you in a valid project directory?');
-        return;
+        return undefined;
     }
+
     const packages = [
-        'zenstack',
         ...Object.keys(pkgJson.dependencies ?? {}).filter((p) => p.startsWith('@zenstackhq/')),
         ...Object.keys(pkgJson.devDependencies ?? {}).filter((p) => p.startsWith('@zenstackhq/')),
     ];
 
-    const versions = new Set<string>();
-    for (const pkg of packages) {
+    const result = packages.map((pkg) => {
         try {
             const resolved = require.resolve(`${pkg}/package.json`, { paths: [resolvedPath] });
             // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const version = require(resolved).version;
-            versions.add(version);
-            console.log(`    ${colors.green(pkg.padEnd(20))}\t${version}`);
+            return { pkg, version: require(resolved).version };
         } catch {
-            // noop
+            return { pkg, version: undefined };
         }
+    });
+
+    result.splice(0, 0, { pkg: 'zenstack', version: getVersion() });
+
+    return result;
+}
+
+export function checkRequiredPackage(packageName: string, minVersion?: string) {
+    let packageVersion: string;
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        packageVersion = require(`${packageName}/package.json`).version;
+    } catch (error) {
+        console.error(colors.red(`${packageName} not found, please install it`));
+        throw new CliError(`${packageName} not found`);
     }
 
-    if (versions.size > 1) {
-        console.warn(colors.yellow('WARNING: Multiple versions of Zenstack packages detected. This may cause issues.'));
-    } else if (versions.size > 0) {
-        const spinner = ora('Checking npm registry').start();
-        const latest = await getLatestVersion('zenstack');
+    if (minVersion && semver.lt(packageVersion, minVersion)) {
+        console.error(
+            colors.red(
+                `${packageName} needs to be above ${minVersion}, the installed version is ${packageVersion}, please upgrade it`
+            )
+        );
+        throw new CliError(`${packageName} version is too low`);
+    }
+}
 
-        if (!latest) {
-            spinner.fail('unable to check for latest version');
-        } else {
-            spinner.succeed();
-            const version = [...versions][0];
-            if (semver.gt(latest, version)) {
-                console.log(`A newer version of Zenstack is available: ${latest}.`);
-            } else if (semver.gt(version, latest)) {
-                console.log('You are using a pre-release version of Zenstack.');
-            } else {
-                console.log('You are using the latest version of Zenstack.');
-            }
-        }
+export async function checkNewVersion() {
+    const currVersion = getVersion();
+    const latestVersion = await getLatestVersion('zenstack');
+    if (latestVersion && semver.gt(latestVersion, currVersion)) {
+        console.log(`A newer version ${colors.cyan(latestVersion)} is available.`);
     }
 }

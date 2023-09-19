@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/tanstack-query",
     "displayName": "ZenStack plugin for generating tanstack-query hooks",
-    "version": "1.0.0-beta.21",
+    "version": "1.0.0-beta.22",
     "description": "ZenStack plugin for generating tanstack-query hooks",
     "main": "index.js",
     "exports": {
@@ -10,6 +10,12 @@
         },
         "./package.json": {
             "default": "./package.json"
+        },
+        "./runtime": {
+            "import": "./runtime/index.mjs",
+            "require": "./runtime/index.js",
+            "default": "./runtime/index.js",
+            "types": "./runtime/index.d.ts"
         },
         "./runtime/react": {
             "import": "./runtime/react.mjs",

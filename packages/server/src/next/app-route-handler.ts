@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import type { ZodSchemas } from '@zenstackhq/runtime';
 import { DbClientContract } from '@zenstackhq/runtime';
 import { NextRequest, NextResponse } from 'next/server';
 import { AppRouteRequestHandlerOptions } from '.';
 import RPCAPIHandler from '../api/rpc';
+import { loadAssets } from '../shared';
 
 type Context = { params: { path: string[] } };
 
@@ -17,15 +17,7 @@ type Context = { params: { path: string[] } };
 export default function factory(
     options: AppRouteRequestHandlerOptions
 ): (req: NextRequest, context: Context) => Promise<NextResponse> {
-    let zodSchemas: ZodSchemas | undefined;
-    if (typeof options.zodSchemas === 'object') {
-        zodSchemas = options.zodSchemas;
-    } else if (options.zodSchemas === true) {
-        zodSchemas = require('@zenstackhq/runtime/zod');
-        if (!zodSchemas) {
-            throw new Error('Unable to load zod schemas from default location');
-        }
-    }
+    const { modelMeta, zodSchemas } = loadAssets(options);
 
     const requestHandler = options.handler || RPCAPIHandler();
     if (options.useSuperJson !== undefined) {
@@ -69,7 +61,7 @@ export default function factory(
                 query,
                 requestBody,
                 prisma,
-                modelMeta: options.modelMeta,
+                modelMeta,
                 zodSchemas,
                 logger: options.logger,
             });

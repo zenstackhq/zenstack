@@ -19,16 +19,16 @@ components:
                 - decimal
                 - boolean
                 - bytes
-        QueryMode:
-            type: string
-            enum:
-                - default
-                - insensitive
         SortOrder:
             type: string
             enum:
                 - asc
                 - desc
+        QueryMode:
+            type: string
+            enum:
+                - default
+                - insensitive
         Foo:
             type: object
             properties:
@@ -368,13 +368,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -401,13 +405,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -426,13 +434,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -452,15 +464,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -484,13 +502,17 @@ components:
                 equals:
                     type: number
                 in:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 notIn:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 lt:
                     type: number
                 lte:
@@ -511,17 +533,25 @@ components:
                         - type: string
                         - type: number
                 in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 lt:
                     oneOf:
                         - type: string
@@ -560,15 +590,21 @@ components:
                     type: string
                     format: byte
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 not:
                     oneOf:
                         - type: string
@@ -580,13 +616,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -619,13 +659,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -654,13 +698,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -690,15 +738,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -728,13 +782,17 @@ components:
                 equals:
                     type: number
                 in:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 notIn:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 lt:
                     type: number
                 lte:
@@ -765,17 +823,25 @@ components:
                         - type: string
                         - type: number
                 in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 lt:
                     oneOf:
                         - type: string
@@ -830,15 +896,21 @@ components:
                     type: string
                     format: byte
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 not:
                     oneOf:
                         - type: string
@@ -940,13 +1012,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -971,13 +1047,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -996,13 +1076,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1022,15 +1106,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -1054,13 +1144,17 @@ components:
                 equals:
                     type: number
                 in:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 notIn:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 lt:
                     type: number
                 lte:
@@ -1081,17 +1175,25 @@ components:
                         - type: string
                         - type: number
                 in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 lt:
                     oneOf:
                         - type: string
@@ -1130,15 +1232,21 @@ components:
                     type: string
                     format: byte
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 not:
                     oneOf:
                         - type: string
@@ -1150,13 +1258,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -1187,13 +1299,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1222,13 +1338,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1258,15 +1378,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -1296,13 +1422,17 @@ components:
                 equals:
                     type: number
                 in:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 notIn:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 lt:
                     type: number
                 lte:
@@ -1333,17 +1463,25 @@ components:
                         - type: string
                         - type: number
                 in:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 notIn:
-                    type: array
-                    items:
-                        oneOf:
-                            - type: string
-                            - type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              oneOf:
+                                  - type: string
+                                  - type: number
+                        - oneOf:
+                              - type: string
+                              - type: number
                 lt:
                     oneOf:
                         - type: string
@@ -1398,15 +1536,21 @@ components:
                     type: string
                     format: byte
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: byte
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: byte
+                        - type: string
+                          format: byte
                 not:
                     oneOf:
                         - type: string
@@ -1729,6 +1873,11 @@ components:
                         reason:
                             type: string
                             description: Detailed error reason
+                        zodErrors:
+                            type: object
+                            additionalProperties: true
+                            description: Zod validation errors if the error is due to data validation
+                                failure
                     additionalProperties: true
         BatchPayload:
             type: object

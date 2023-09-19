@@ -1,5 +1,5 @@
 export * from './model-meta';
-export * from './nested-write-vistor';
+export * from './nested-write-visitor';
 export * from './omit';
 export * from './password';
 export * from './policy';

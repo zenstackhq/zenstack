@@ -8,7 +8,6 @@ import {
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
-    Model,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
@@ -22,7 +21,7 @@ import {
     hasAttribute,
     isIdField,
     PluginError,
-    PluginOptions,
+    PluginFunction,
     resolved,
     resolvePath,
     saveProject,
@@ -34,8 +33,8 @@ import { getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
 
-export default async function run(model: Model, options: PluginOptions) {
-    let output = options.output ? (options.output as string) : getDefaultOutputFolder();
+const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
+    let output = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
     if (!output) {
         throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
     }
@@ -53,7 +52,15 @@ export default async function run(model: Model, options: PluginOptions) {
     });
     sf.addStatements('export default metadata;');
 
-    const shouldCompile = options.compile !== false;
+    let shouldCompile = true;
+    if (typeof options.compile === 'boolean') {
+        // explicit override
+        shouldCompile = options.compile;
+    } else if (globalOptions) {
+        // from CLI or config file
+        shouldCompile = globalOptions.compile;
+    }
+
     if (!shouldCompile || options.preserveTsFiles === true) {
         // save ts files
         await saveProject(project);
@@ -61,7 +68,7 @@ export default async function run(model: Model, options: PluginOptions) {
     if (shouldCompile) {
         await emitProject(project);
     }
-}
+};
 
 function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter) {
     writer.block(() => {
@@ -256,3 +263,5 @@ function generateForeignKeyMapping(field: DataModelField) {
     });
     return result;
 }
+
+export default run;

@@ -19,7 +19,7 @@ import { name } from '.';
 import {
     generateHelperImport,
     generateProcedure,
-    generateRouterSchemaImports,
+    generateRouterSchemaImport,
     generateRouterTyping,
     generateRouterTypingImports,
     getInputSchemaByOpName,
@@ -89,20 +89,21 @@ function createAppRouter(
     const prismaImport = getPrismaClientImportSpec(zmodel, path.dirname(indexFile));
     appRouter.addImportDeclarations([
         {
-            namedImports: ['type AnyRootConfig', 'type Procedure', 'type ProcedureParams', 'type ProcedureType'],
+            namedImports: [
+                'type AnyRouter',
+                'type AnyRootConfig',
+                'type CreateRouterInner',
+                'type Procedure',
+                'type ProcedureBuilder',
+                'type ProcedureParams',
+                'type ProcedureRouterRecord',
+                'type ProcedureType',
+            ],
             moduleSpecifier: '@trpc/server',
         },
         {
             namedImports: ['type PrismaClient', 'type Prisma'],
             moduleSpecifier: prismaImport,
-        },
-        {
-            namedImports: ['type createRouterFactory', 'AnyRouter'],
-            moduleSpecifier: '@trpc/server/dist/core/router',
-        },
-        {
-            namedImports: ['type ProcedureBuilder'],
-            moduleSpecifier: '@trpc/server/dist/core/internals/procedureBuilder',
         },
         { defaultImport: 'z', moduleSpecifier: 'zod', isTypeOnly: true },
     ]);
@@ -113,10 +114,12 @@ function createAppRouter(
 
         export type BaseConfig = AnyRootConfig;
 
-        export type RouterFactory<Config extends BaseConfig> = ReturnType<
-            typeof createRouterFactory<Config>
-        >;
-        
+        export type RouterFactory<Config extends BaseConfig> = <
+            ProcRouterRecord extends ProcedureRouterRecord
+        >(
+            procedures: ProcRouterRecord
+        ) => CreateRouterInner<Config, ProcRouterRecord>;
+            
         ${
             /** this is needed in order to prevent type errors between a procedure and a middleware-extended procedure */ ''
         }
@@ -299,7 +302,7 @@ function generateModelCreateRouter(
         },
     ]);
 
-    generateRouterSchemaImports(modelRouter, upperCaseFirst(model), zodSchemasImport);
+    generateRouterSchemaImport(modelRouter, zodSchemasImport);
     generateHelperImport(modelRouter);
     if (generateClientHelpers) {
         generateRouterTypingImports(modelRouter, zmodel);

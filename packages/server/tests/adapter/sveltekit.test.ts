@@ -78,6 +78,34 @@ describe('SvelteKit adapter tests - rpc handler', () => {
         expect(r.status).toBe(200);
         expect((await unmarshal(r)).data.count).toBe(1);
     });
+
+    it('custom load path', async () => {
+        const { prisma } = await loadSchema(schema, { output: './zen' });
+
+        const handler = SvelteKitHandler({
+            prefix: '/api',
+            getPrisma: () => prisma,
+            zodSchemas: true,
+            loadPath: './zen',
+        });
+
+        const r = await handler(
+            makeRequest('POST', '/api/user/create', {
+                include: { posts: true },
+                data: {
+                    id: 'user1',
+                    email: 'user1@abc.com',
+                    posts: {
+                        create: [
+                            { title: 'post1', published: true, viewCount: 1 },
+                            { title: 'post2', published: false, viewCount: 2 },
+                        ],
+                    },
+                },
+            })
+        );
+        expect(r.status).toBe(201);
+    });
 });
 
 describe('SvelteKit adapter tests - rest handler', () => {

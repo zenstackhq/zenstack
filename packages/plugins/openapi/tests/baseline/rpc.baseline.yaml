@@ -14,6 +14,14 @@ components:
             enum:
                 - USER
                 - ADMIN
+        UserScalarFieldEnum:
+            type: string
+            enum:
+                - id
+                - createdAt
+                - updatedAt
+                - email
+                - role
         Post_ItemScalarFieldEnum:
             type: string
             enum:
@@ -24,24 +32,21 @@ components:
                 - authorId
                 - published
                 - viewCount
-        QueryMode:
-            type: string
-            enum:
-                - default
-                - insensitive
         SortOrder:
             type: string
             enum:
                 - asc
                 - desc
-        UserScalarFieldEnum:
+        QueryMode:
             type: string
             enum:
-                - id
-                - createdAt
-                - updatedAt
-                - email
-                - role
+                - default
+                - insensitive
+        NullsOrder:
+            type: string
+            enum:
+                - first
+                - last
         User:
             type: object
             properties:
@@ -238,10 +243,6 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/StringFilter'
                         - type: string
-                author:
-                    oneOf:
-                        - $ref: '#/components/schemas/UserRelationFilter'
-                        - $ref: '#/components/schemas/UserWhereInput'
                 authorId:
                     oneOf:
                         - $ref: '#/components/schemas/StringNullableFilter'
@@ -254,6 +255,10 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/IntFilter'
                         - type: integer
+                author:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserWhereInput'
         Post_ItemOrderByWithRelationInput:
             type: object
             properties:
@@ -265,14 +270,16 @@ components:
                     $ref: '#/components/schemas/SortOrder'
                 title:
                     $ref: '#/components/schemas/SortOrder'
-                author:
-                    $ref: '#/components/schemas/UserOrderByWithRelationInput'
                 authorId:
-                    $ref: '#/components/schemas/SortOrder'
+                    oneOf:
+                        - $ref: '#/components/schemas/SortOrder'
+                        - $ref: '#/components/schemas/SortOrderInput'
                 published:
                     $ref: '#/components/schemas/SortOrder'
                 viewCount:
                     $ref: '#/components/schemas/SortOrder'
+                author:
+                    $ref: '#/components/schemas/UserOrderByWithRelationInput'
         Post_ItemWhereUniqueInput:
             type: object
             properties:
@@ -430,12 +437,12 @@ components:
                     format: date-time
                 title:
                     type: string
-                author:
-                    $ref: '#/components/schemas/UserCreateNestedOneWithoutPostsInput'
                 published:
                     type: boolean
                 viewCount:
                     type: integer
+                author:
+                    $ref: '#/components/schemas/UserCreateNestedOneWithoutPostsInput'
             required:
                 - id
                 - title
@@ -460,8 +467,6 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
-                author:
-                    $ref: '#/components/schemas/UserUpdateOneWithoutPostsNestedInput'
                 published:
                     oneOf:
                         - type: boolean
@@ -470,6 +475,8 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                author:
+                    $ref: '#/components/schemas/UserUpdateOneWithoutPostsNestedInput'
         Post_ItemCreateManyInput:
             type: object
             properties:
@@ -527,13 +534,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -561,15 +572,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -593,13 +610,17 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 notIn:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -624,13 +645,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -664,15 +689,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -702,13 +733,17 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 notIn:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -719,26 +754,23 @@ components:
                     $ref: '#/components/schemas/NestedEnumroleFilter'
                 _max:
                     $ref: '#/components/schemas/NestedEnumroleFilter'
-        UserRelationFilter:
-            type: object
-            properties:
-                is:
-                    $ref: '#/components/schemas/UserWhereInput'
-                isNot:
-                    $ref: '#/components/schemas/UserWhereInput'
         StringNullableFilter:
             type: object
             properties:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -774,13 +806,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -793,19 +829,39 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntFilter'
+        UserRelationFilter:
+            type: object
+            properties:
+                is:
+                    $ref: '#/components/schemas/UserWhereInput'
+                isNot:
+                    $ref: '#/components/schemas/UserWhereInput'
+        SortOrderInput:
+            type: object
+            properties:
+                sort:
+                    $ref: '#/components/schemas/SortOrder'
+                nulls:
+                    $ref: '#/components/schemas/NullsOrder'
+            required:
+                - sort
         StringNullableWithAggregatesFilter:
             type: object
             properties:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -853,13 +909,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1005,6 +1065,24 @@ components:
                     $ref: '#/components/schemas/UserCreateOrConnectWithoutPostsInput'
                 connect:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
+        BoolFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: boolean
+        IntFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: integer
+                increment:
+                    type: integer
+                decrement:
+                    type: integer
+                multiply:
+                    type: integer
+                divide:
+                    type: integer
         UserUpdateOneWithoutPostsNestedInput:
             type: object
             properties:
@@ -1026,37 +1104,23 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
                         - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
-        BoolFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: boolean
-        IntFieldUpdateOperationsInput:
-            type: object
-            properties:
-                set:
-                    type: integer
-                increment:
-                    type: integer
-                decrement:
-                    type: integer
-                multiply:
-                    type: integer
-                divide:
-                    type: integer
         NestedStringFilter:
             type: object
             properties:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -1082,15 +1146,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -1114,13 +1184,17 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 notIn:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -1131,13 +1205,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -1168,13 +1246,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1194,15 +1276,21 @@ components:
                     type: string
                     format: date-time
                 in:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 notIn:
-                    type: array
-                    items:
-                        type: string
-                        format: date-time
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                              format: date-time
+                        - type: string
+                          format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -1232,13 +1320,17 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 notIn:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Role'
+                    oneOf:
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -1255,13 +1347,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -1295,13 +1391,17 @@ components:
                 equals:
                     type: string
                 in:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 notIn:
-                    type: array
-                    items:
-                        type: string
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
                 lt:
                     type: string
                 lte:
@@ -1332,13 +1432,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1372,13 +1476,17 @@ components:
                 equals:
                     type: integer
                 in:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 notIn:
-                    type: array
-                    items:
-                        type: integer
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
                 lt:
                     type: integer
                 lte:
@@ -1407,13 +1515,17 @@ components:
                 equals:
                     type: number
                 in:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 notIn:
-                    type: array
-                    items:
-                        type: number
+                    oneOf:
+                        - type: array
+                          items:
+                              type: number
+                        - type: number
                 lt:
                     type: number
                 lte:
@@ -1482,9 +1594,11 @@ components:
             type: object
             properties:
                 data:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/Post_ItemCreateManyAuthorInput'
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemCreateManyAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemCreateManyAuthorInput'
                 skipDuplicates:
                     type: boolean
             required:
@@ -2164,6 +2278,11 @@ components:
                         reason:
                             type: string
                             description: Detailed error reason
+                        zodErrors:
+                            type: object
+                            additionalProperties: true
+                            description: Zod validation errors if the error is due to data validation
+                                failure
                     additionalProperties: true
         BatchPayload:
             type: object

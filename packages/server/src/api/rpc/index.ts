@@ -1,4 +1,5 @@
 import {
+    CrudFailureReason,
     DbOperations,
     PrismaErrorCode,
     ZodSchemas,
@@ -8,9 +9,10 @@ import {
 } from '@zenstackhq/runtime';
 import SuperJSON from 'superjson';
 import { upperCaseFirst } from 'upper-case-first';
+import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import { RequestContext, Response } from '../../types';
-import { APIHandlerBase } from '../base';
+import { Response } from '../../types';
+import { APIHandlerBase, RequestContext } from '../base';
 import { logError, registerCustomSerializers } from '../utils';
 
 registerCustomSerializers();
@@ -37,7 +39,7 @@ class RequestHandler extends APIHandlerBase {
     }: RequestContext): Promise<Response> {
         modelMeta = modelMeta ?? this.defaultModelMeta;
         if (!modelMeta) {
-            throw new Error('Model meta is not provided or loaded from default location');
+            throw new Error('Model metadata is not provided or loaded from default location');
         }
 
         const parts = path.split('/').filter((p) => !!p);
@@ -126,9 +128,9 @@ class RequestHandler extends APIHandlerBase {
                 return { status: 400, body: this.makeError('invalid operation: ' + op) };
         }
 
-        const { error, data: parsedArgs } = await this.processRequestPayload(args, model, dbOp, zodSchemas);
+        const { error, zodErrors, data: parsedArgs } = await this.processRequestPayload(args, model, dbOp, zodSchemas);
         if (error) {
-            return { status: 400, body: this.makeError(error) };
+            return { status: 400, body: this.makeError(error, CrudFailureReason.DATA_VALIDATION_VIOLATION, zodErrors) };
         }
 
         try {
@@ -153,18 +155,20 @@ class RequestHandler extends APIHandlerBase {
             return { status: resCode, body: response };
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
-                logError(logger, err.code, err.message);
                 const status = ERROR_STATUS_MAPPING[err.code] ?? 400;
-                const rejectedByPolicy = err.code === PrismaErrorCode.CONSTRAINED_FAILED ? true : undefined;
+
+                const { error } = this.makeError(
+                    err.message,
+                    err.meta?.reason as string,
+                    err.meta?.zodErrors as ZodError
+                );
                 return {
                     status,
                     body: {
                         error: {
+                            ...error,
                             prisma: true,
-                            rejectedByPolicy,
                             code: err.code,
-                            message: err.message,
-                            reason: err.meta?.reason,
                         },
                     },
                 };
@@ -190,8 +194,19 @@ class RequestHandler extends APIHandlerBase {
         }
     }
 
-    private makeError(message: string) {
-        return { error: { message: message } };
+    private makeError(message: string, reason?: string, zodErrors?: ZodError) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const error: any = { message, reason };
+        if (reason === CrudFailureReason.ACCESS_POLICY_VIOLATION || reason === CrudFailureReason.RESULT_NOT_READABLE) {
+            error.rejectedByPolicy = true;
+        }
+        if (reason === CrudFailureReason.DATA_VALIDATION_VIOLATION) {
+            error.rejectedByValidation = true;
+        }
+        if (zodErrors) {
+            error.zodErrors = zodErrors;
+        }
+        return { error };
     }
 
     private async processRequestPayload(
@@ -224,12 +239,16 @@ class RequestHandler extends APIHandlerBase {
         if (zodSchema) {
             const parseResult = zodSchema.safeParse(args);
             if (parseResult.success) {
-                return { data: args, error: undefined };
+                return { data: args, error: undefined, zodErrors: undefined };
             } else {
-                return { data: undefined, error: fromZodError(parseResult.error).message };
+                return {
+                    data: undefined,
+                    error: fromZodError(parseResult.error).message,
+                    zodErrors: parseResult.error,
+                };
             }
         } else {
-            return { data: args, error: undefined };
+            return { data: args, error: undefined, zodErrors: undefined };
         }
     }
 

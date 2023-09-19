@@ -7,7 +7,7 @@ import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { ModelDataVisitor } from '../model-data-visitor';
 import { resolveField } from '../model-meta';
-import { NestedWriteVisitor, NestedWriteVisitorContext } from '../nested-write-vistor';
+import { NestedWriteVisitor, NestedWriteVisitorContext } from '../nested-write-visitor';
 import { PrismaProxyHandler } from '../proxy';
 import type { ModelMeta, PolicyDef, ZodSchemas } from '../types';
 import { enumerate, formatObject, getIdFields, prismaClientValidationError } from '../utils';
@@ -221,7 +221,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // static input policy check for top-level create data
         const inputCheck = this.utils.checkInputGuard(this.model, args.data, 'create');
         if (inputCheck === false) {
-            throw this.utils.deniedByPolicy(this.model, 'create');
+            throw this.utils.deniedByPolicy(this.model, 'create', undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
         }
 
         const hasNestedCreateOrConnect = await this.hasNestedCreateOrConnect(args);
@@ -451,7 +451,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     model,
                     'create',
                     `input failed validation: ${fromZodError(parseResult.error)}`,
-                    CrudFailureReason.DATA_VALIDATION_VIOLATION
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parseResult.error
                 );
             }
         }
@@ -474,7 +475,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         for (const item of enumerate(args.data)) {
             const inputCheck = this.utils.checkInputGuard(this.model, item, 'create');
             if (inputCheck === false) {
-                throw this.utils.deniedByPolicy(this.model, 'create');
+                throw this.utils.deniedByPolicy(
+                    this.model,
+                    'create',
+                    undefined,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
+                );
             } else if (inputCheck === true) {
                 this.validateCreateInputSchema(this.model, item);
             } else if (inputCheck === undefined) {

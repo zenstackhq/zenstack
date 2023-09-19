@@ -98,10 +98,12 @@ export type SchemaLoadOptions = {
     extraDependencies?: string[];
     compile?: boolean;
     customSchemaFilePath?: string;
+    output?: string;
     logPrismaQuery?: boolean;
     provider?: 'sqlite' | 'postgresql';
     dbUrl?: string;
     pulseApiKey?: string;
+    getPrismaOnly?: boolean;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -177,12 +179,14 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     run('npm install');
 
+    const outputArg = opt.output ? ` --output ${opt.output}` : '';
+
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check`, {
+        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
             NODE_PATH: './node_modules',
         });
     } else {
-        run('npx zenstack generate --no-dependency-check', { NODE_PATH: './node_modules' });
+        run(`npx zenstack generate --no-dependency-check${outputArg}`, { NODE_PATH: './node_modules' });
     }
 
     if (opt.pushDb) {
@@ -218,6 +222,17 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         };
         fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
+    }
+
+    if (options?.getPrismaOnly) {
+        return {
+            prisma,
+            projectDir: projectRoot,
+            withPolicy: undefined as any,
+            withOmit: undefined as any,
+            withPassword: undefined as any,
+            enhance: undefined as any,
+        };
     }
 
     let policy: any;

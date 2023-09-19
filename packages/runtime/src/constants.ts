@@ -1,4 +1,9 @@
 /**
+ * Default path for loading CLI-generated code
+ */
+export const DEFAULT_RUNTIME_LOAD_PATH = '.zenstack';
+
+/**
  * Default length of password hash salt (used by bcryptjs to hash password)
  */
 export const DEFAULT_PASSWORD_SALT_LENGTH = 12;
@@ -8,7 +13,12 @@ export const DEFAULT_PASSWORD_SALT_LENGTH = 12;
  */
 export enum CrudFailureReason {
     /**
-     * CRUD suceeded but the result was not readable.
+     * CRUD failed because of access policy violation.
+     */
+    ACCESS_POLICY_VIOLATION = 'ACCESS_POLICY_VIOLATION',
+
+    /**
+     * CRUD succeeded but the result was not readable.
      */
     RESULT_NOT_READABLE = 'RESULT_NOT_READABLE',
 

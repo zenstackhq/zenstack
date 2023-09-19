@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import type { ZodSchemas } from '@zenstackhq/runtime';
+import { CrudFailureReason, type ZodSchemas } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
@@ -10,11 +10,15 @@ import { schema } from '../utils';
 
 describe('RPC API Handler Tests', () => {
     let prisma: any;
+    let enhance: any;
+    let modelMeta: any;
     let zodSchemas: any;
 
     beforeAll(async () => {
         const params = await loadSchema(schema, { fullZod: true });
         prisma = params.prisma;
+        enhance = params.enhance;
+        modelMeta = params.modelMeta;
         zodSchemas = params.zodSchemas;
     });
 
@@ -125,6 +129,31 @@ describe('RPC API Handler Tests', () => {
         });
         expect(r.status).toBe(200);
         expect(r.data.count).toBe(1);
+    });
+
+    it('policy violation', async () => {
+        await prisma.user.create({
+            data: {
+                id: '1',
+                email: 'user1@abc.com',
+                posts: { create: { id: '1', title: 'post1', published: true } },
+            },
+        });
+
+        const handleRequest = makeHandler();
+
+        const r = await handleRequest({
+            method: 'put',
+            path: '/post/update',
+            requestBody: {
+                where: { id: '1' },
+                data: { title: 'post2' },
+            },
+            prisma: enhance(),
+        });
+        expect(r.status).toBe(403);
+        expect(r.error.rejectedByPolicy).toBeTruthy();
+        expect(r.error.reason).toBe(CrudFailureReason.ACCESS_POLICY_VIOLATION);
     });
 
     it('validation error', async () => {
@@ -366,18 +395,18 @@ describe('RPC API Handler Tests', () => {
         expect(r.status).toBe(200);
         expect(r.data).toBeNull();
     });
-});
 
-function makeHandler(zodSchemas?: ZodSchemas) {
-    const _handler = RPCAPIHandler();
-    return async (args: any) => {
-        const r = await _handler({ ...args, url: new URL(`http://localhost/${args.path}`), zodSchemas });
-        return {
-            status: r.status,
-            body: r.body as any,
-            data: (r.body as any).data,
-            error: (r.body as any).error,
-            meta: (r.body as any).meta,
+    function makeHandler(zodSchemas?: ZodSchemas) {
+        const _handler = RPCAPIHandler();
+        return async (args: any) => {
+            const r = await _handler({ ...args, url: new URL(`http://localhost/${args.path}`), modelMeta, zodSchemas });
+            return {
+                status: r.status,
+                body: r.body as any,
+                data: (r.body as any).data,
+                error: (r.body as any).error,
+                meta: (r.body as any).meta,
+            };
         };
-    };
-}
+    }
+});

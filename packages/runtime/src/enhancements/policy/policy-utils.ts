@@ -3,6 +3,7 @@
 import deepcopy from 'deepcopy';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
+import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import {
     CrudFailureReason,
@@ -16,9 +17,10 @@ import {
 import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import { getFields, resolveField } from '../model-meta';
-import { NestedWriteVisitorContext } from '../nested-write-vistor';
+import { NestedWriteVisitorContext } from '../nested-write-visitor';
 import type { InputCheckFunc, ModelMeta, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
+    enumerate,
     formatObject,
     getIdFields,
     getModelFields,
@@ -54,14 +56,28 @@ export class PolicyUtil {
      * Creates a conjunction of a list of query conditions.
      */
     and(...conditions: (boolean | object | undefined)[]): object {
-        return this.reduce({ AND: conditions });
+        const filtered = conditions.filter((c) => c !== undefined);
+        if (filtered.length === 0) {
+            return this.makeTrue();
+        } else if (filtered.length === 1) {
+            return this.reduce(filtered[0]);
+        } else {
+            return this.reduce({ AND: filtered });
+        }
     }
 
     /**
      * Creates a disjunction of a list of query conditions.
      */
     or(...conditions: (boolean | object | undefined)[]): object {
-        return this.reduce({ OR: conditions });
+        const filtered = conditions.filter((c) => c !== undefined);
+        if (filtered.length === 0) {
+            return this.makeFalse();
+        } else if (filtered.length === 1) {
+            return this.reduce(filtered[0]);
+        } else {
+            return this.reduce({ OR: filtered });
+        }
     }
 
     /**
@@ -116,48 +132,75 @@ export class PolicyUtil {
             return this.makeFalse();
         }
 
-        if ('AND' in condition && Array.isArray(condition.AND)) {
-            const children = condition.AND.map((c: any) => this.reduce(c)).filter(
-                (c) => c !== undefined && !this.isTrue(c)
-            );
-            if (children.length === 0) {
-                return this.makeTrue();
-            } else if (children.some((c) => this.isFalse(c))) {
-                return this.makeFalse();
-            } else if (children.length === 1) {
-                return children[0];
-            } else {
-                return { AND: children };
+        if (condition === null) {
+            return condition;
+        }
+
+        const result: any = {};
+        for (const [key, value] of Object.entries<any>(condition)) {
+            if (value === null || value === undefined) {
+                result[key] = value;
+                continue;
+            }
+
+            switch (key) {
+                case 'AND': {
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isTrue(c));
+                    if (children.length === 0) {
+                        result[key] = []; // true
+                    } else if (children.some((c) => this.isFalse(c))) {
+                        result['OR'] = []; // false
+                    } else {
+                        if (!this.isTrue({ AND: result[key] })) {
+                            // use AND only if it's not already true
+                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
+                        }
+                    }
+                    break;
+                }
+
+                case 'OR': {
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isFalse(c));
+                    if (children.length === 0) {
+                        result[key] = []; // false
+                    } else if (children.some((c) => this.isTrue(c))) {
+                        result['AND'] = []; // true
+                    } else {
+                        if (!this.isFalse({ OR: result[key] })) {
+                            // use OR only if it's not already false
+                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
+                        }
+                    }
+                    break;
+                }
+
+                case 'NOT': {
+                    result[key] = this.reduce(value);
+                    break;
+                }
+
+                default: {
+                    const booleanKeys = ['AND', 'OR', 'NOT', 'is', 'isNot', 'none', 'every', 'some'];
+                    if (
+                        typeof value === 'object' &&
+                        value &&
+                        // recurse only if the value has at least one boolean key
+                        Object.keys(value).some((k) => booleanKeys.includes(k))
+                    ) {
+                        result[key] = this.reduce(value);
+                    } else {
+                        result[key] = value;
+                    }
+                    break;
+                }
             }
         }
 
-        if ('OR' in condition && Array.isArray(condition.OR)) {
-            const children = condition.OR.map((c: any) => this.reduce(c)).filter(
-                (c) => c !== undefined && !this.isFalse(c)
-            );
-            if (children.length === 0) {
-                return this.makeFalse();
-            } else if (children.some((c) => this.isTrue(c))) {
-                return this.makeTrue();
-            } else if (children.length === 1) {
-                return children[0];
-            } else {
-                return { OR: children };
-            }
-        }
-
-        if ('NOT' in condition && condition.NOT !== null && typeof condition.NOT === 'object') {
-            const child = this.reduce(condition.NOT);
-            if (this.isTrue(child)) {
-                return this.makeFalse();
-            } else if (this.isFalse(child)) {
-                return this.makeTrue();
-            } else {
-                return { NOT: child };
-            }
-        }
-
-        return condition;
+        return result;
     }
 
     //#endregion
@@ -349,18 +392,18 @@ export class PolicyUtil {
         operation: PolicyOperationKind
     ) {
         const guard = this.getAuthGuard(db, fieldInfo.type, operation);
+
+        // is|isNot and flat fields conditions are mutually exclusive
+
         if (payload.is || payload.isNot) {
             if (payload.is) {
                 this.injectGuardForRelationFields(db, fieldInfo.type, payload.is, operation);
-                // turn "is" into: { is: { AND: [ originalIs, guard ] }
-                payload.is = this.and(payload.is, guard);
             }
             if (payload.isNot) {
                 this.injectGuardForRelationFields(db, fieldInfo.type, payload.isNot, operation);
-                // turn "isNot" into: { isNot: { AND: [ originalIsNot, { NOT: guard } ] } }
-                payload.isNot = this.and(payload.isNot, this.not(guard));
-                delete payload.isNot;
             }
+            // merge guard with existing "is": { is: [originalIs, guard] }
+            payload.is = this.and(payload.is, guard);
         } else {
             this.injectGuardForRelationFields(db, fieldInfo.type, payload, operation);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
@@ -588,7 +631,12 @@ export class PolicyUtil {
     ) {
         let guard = this.getAuthGuard(db, model, operation, preValue);
         if (this.isFalse(guard)) {
-            throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
+            throw this.deniedByPolicy(
+                model,
+                operation,
+                `entity ${formatObject(uniqueFilter)} failed policy check`,
+                CrudFailureReason.ACCESS_POLICY_VIOLATION
+            );
         }
 
         if (operation === 'update' && args) {
@@ -601,7 +649,8 @@ export class PolicyUtil {
                     'update',
                     `entity ${formatObject(uniqueFilter)} failed update policy check for field "${
                         fieldUpdateGuard.rejectedByField
-                    }"`
+                    }"`,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
                 );
             } else if (fieldUpdateGuard.guard) {
                 // merge
@@ -636,7 +685,12 @@ export class PolicyUtil {
         }
         const result = await db[model].findFirst(query);
         if (!result) {
-            throw this.deniedByPolicy(model, operation, `entity ${formatObject(uniqueFilter)} failed policy check`);
+            throw this.deniedByPolicy(
+                model,
+                operation,
+                `entity ${formatObject(uniqueFilter)} failed policy check`,
+                CrudFailureReason.ACCESS_POLICY_VIOLATION
+            );
         }
 
         if (schema) {
@@ -651,7 +705,8 @@ export class PolicyUtil {
                     model,
                     operation,
                     `entities ${JSON.stringify(uniqueFilter)} failed validation: [${error}]`,
-                    CrudFailureReason.DATA_VALIDATION_VIOLATION
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parseResult.error
                 );
             }
         }
@@ -678,7 +733,7 @@ export class PolicyUtil {
     tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
-            throw this.deniedByPolicy(model, operation);
+            throw this.deniedByPolicy(model, operation, undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
         }
     }
 
@@ -832,11 +887,26 @@ export class PolicyUtil {
 
     //#region Errors
 
-    deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string, reason?: CrudFailureReason) {
+    deniedByPolicy(
+        model: string,
+        operation: PolicyOperationKind,
+        extra?: string,
+        reason?: CrudFailureReason,
+        zodErrors?: ZodError
+    ) {
+        const args: any = { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: {} };
+        if (reason) {
+            args.meta.reason = reason;
+        }
+
+        if (zodErrors) {
+            args.meta.zodErrors = zodErrors;
+        }
+
         return prismaClientKnownRequestError(
             this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: { reason } }
+            args
         );
     }
 
@@ -848,9 +918,7 @@ export class PolicyUtil {
     }
 
     validationError(message: string) {
-        return prismaClientValidationError(this.db, message, {
-            clientVersion: getVersion(),
-        });
+        return prismaClientValidationError(this.db, message);
     }
 
     unknownError(message: string) {
@@ -1062,7 +1130,6 @@ export class PolicyUtil {
             throw new Error('invalid where clause');
         }
 
-        extra = this.reduce(extra);
         if (this.isTrue(extra)) {
             return;
         }

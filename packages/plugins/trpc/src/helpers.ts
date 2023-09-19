@@ -24,7 +24,7 @@ export function generateProcedure(
         )}.${prismaMethod}(input as any))) as ProcReturns<
             "query",
             Proc,
-            (typeof ${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
+            (typeof $Schema.${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
             ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
         >,
     `);
@@ -36,7 +36,7 @@ export function generateProcedure(
         )}.${prismaMethod}(input as any))) as ProcReturns<
                 "mutation",
                 Proc,
-                (typeof ${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
+                (typeof $Schema.${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
                 ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
             >,
     `);
@@ -247,8 +247,8 @@ export function generateRouterTypingImports(sourceFile: SourceFile, model: Model
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function generateRouterSchemaImports(sourceFile: SourceFile, name: string, zodSchemasImport: string) {
-    sourceFile.addStatements(`import { ${name}InputSchema } from '${zodSchemasImport}/input';`);
+export function generateRouterSchemaImport(sourceFile: SourceFile, zodSchemasImport: string) {
+    sourceFile.addStatements(`import $Schema from '${zodSchemasImport}/input';`);
 }
 
 export function generateHelperImport(sourceFile: SourceFile) {
@@ -257,54 +257,55 @@ export function generateHelperImport(sourceFile: SourceFile) {
 
 export const getInputSchemaByOpName = (opName: string, modelName: string) => {
     let inputType;
+    const capModelName = upperCaseFirst(modelName);
     switch (opName) {
         case 'findUnique':
-            inputType = `${modelName}InputSchema.findUnique`;
+            inputType = `$Schema.${capModelName}InputSchema.findUnique`;
             break;
         case 'findFirst':
-            inputType = `${modelName}InputSchema.findFirst`;
+            inputType = `$Schema.${capModelName}InputSchema.findFirst`;
             break;
         case 'findMany':
-            inputType = `${modelName}InputSchema.findMany`;
+            inputType = `$Schema.${capModelName}InputSchema.findMany`;
             break;
         case 'findRaw':
-            inputType = `${modelName}InputSchema.findRawObject`;
+            inputType = `$Schema.${capModelName}InputSchema.findRawObject`;
             break;
         case 'createOne':
-            inputType = `${modelName}InputSchema.create`;
+            inputType = `$Schema.${capModelName}InputSchema.create`;
             break;
         case 'createMany':
-            inputType = `${modelName}InputSchema.createMany`;
+            inputType = `$Schema.${capModelName}InputSchema.createMany`;
             break;
         case 'deleteOne':
-            inputType = `${modelName}InputSchema.delete`;
+            inputType = `$Schema.${capModelName}InputSchema.delete`;
             break;
         case 'updateOne':
-            inputType = `${modelName}InputSchema.update`;
+            inputType = `$Schema.${capModelName}InputSchema.update`;
             break;
         case 'deleteMany':
-            inputType = `${modelName}InputSchema.deleteMany`;
+            inputType = `$Schema.${capModelName}InputSchema.deleteMany`;
             break;
         case 'updateMany':
-            inputType = `${modelName}InputSchema.updateMany`;
+            inputType = `$Schema.${capModelName}InputSchema.updateMany`;
             break;
         case 'upsertOne':
-            inputType = `${modelName}InputSchema.upsert`;
+            inputType = `$Schema.${capModelName}InputSchema.upsert`;
             break;
         case 'aggregate':
-            inputType = `${modelName}InputSchema.aggregate`;
+            inputType = `$Schema.${capModelName}InputSchema.aggregate`;
             break;
         case 'aggregateRaw':
-            inputType = `${modelName}InputSchema.aggregateRawObject`;
+            inputType = `$Schema.${capModelName}InputSchema.aggregateRawObject`;
             break;
         case 'groupBy':
-            inputType = `${modelName}InputSchema.groupBy`;
+            inputType = `$Schema.${capModelName}InputSchema.groupBy`;
             break;
         case 'count':
-            inputType = `${modelName}InputSchema.count`;
+            inputType = `$Schema.${capModelName}InputSchema.count`;
             break;
         default:
-            console.log('getInputTypeByOpName: ', { opName, modelName });
+            break;
     }
     return inputType;
 };

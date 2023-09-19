@@ -81,7 +81,7 @@ export default class PrismaSchemaGenerator {
 
 `;
 
-    async generate(model: Model, options: PluginOptions, _config?: Record<string, string>) {
+    async generate(model: Model, options: PluginOptions) {
         const warnings: string[] = [];
 
         const prismaVersion = getPrismaVersion();
