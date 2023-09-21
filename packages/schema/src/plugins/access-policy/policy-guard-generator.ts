@@ -5,7 +5,6 @@ import {
     DataModelFieldAttribute,
     Enum,
     Expression,
-    MemberAccessExpr,
     Model,
     isBinaryExpr,
     isDataModel,
@@ -49,12 +48,12 @@ import {
     resolved,
     saveProject,
 } from '@zenstackhq/sdk';
-import { streamAllContents } from 'langium';
+import { streamAllContents, streamAst, streamContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { FunctionDeclaration, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { name } from '.';
-import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
+import { getIdFields, isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
 import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
@@ -237,7 +236,7 @@ export default class PolicyGenerator {
     }
 
     private hasFutureReference(expr: Expression) {
-        for (const node of this.allNodes(expr)) {
+        for (const node of streamAst(expr)) {
             if (isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref)) {
                 return true;
             }
@@ -434,7 +433,7 @@ export default class PolicyGenerator {
 
     private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
         return [...allows, ...denies].every((rule) => {
-            return [...this.allNodes(rule)].every((expr) => {
+            return streamAst(rule).every((expr) => {
                 if (isThisExpr(expr)) {
                     return false;
                 }
@@ -487,6 +486,8 @@ export default class PolicyGenerator {
             });
         };
 
+        // visit a reference or member access expression to build a
+        // selection path
         const visit = (node: Expression): string[] | undefined => {
             if (isReferenceExpr(node)) {
                 const target = resolved(node.target);
@@ -509,35 +510,50 @@ export default class PolicyGenerator {
             return undefined;
         };
 
-        for (const rule of [...allows, ...denies]) {
-            for (const expr of [...this.allNodes(rule)].filter((node): node is Expression => isExpression(node))) {
-                if (isThisExpr(expr) && !isMemberAccessExpr(expr.$container)) {
-                    // a standalone `this` expression, include all id fields
-                    const model = expr.$resolvedType?.decl as DataModel;
-                    const idFields = getIdFields(model);
-                    idFields.forEach((field) => addPath([field.name]));
-                    continue;
-                }
+        // collect selection paths from the given expression
+        const collectReferencePaths = (expr: Expression): string[][] => {
+            if (isThisExpr(expr) && !isMemberAccessExpr(expr.$container)) {
+                // a standalone `this` expression, include all id fields
+                const model = expr.$resolvedType?.decl as DataModel;
+                const idFields = getIdFields(model);
+                return idFields.map((field) => [field.name]);
+            }
 
-                // only care about member access and reference expressions
-                if (!isMemberAccessExpr(expr) && !isReferenceExpr(expr)) {
-                    continue;
-                }
-
-                if (expr.$container.$type === MemberAccessExpr) {
-                    // only visit top-level member access
-                    continue;
-                }
-
+            if (isMemberAccessExpr(expr) || isReferenceExpr(expr)) {
                 const path = visit(expr);
                 if (path) {
                     if (isDataModel(expr.$resolvedType?.decl)) {
-                        // member selection ended at a data model field, include its 'id'
-                        path.push('id');
+                        // member selection ended at a data model field, include its id fields
+                        const idFields = getIdFields(expr.$resolvedType?.decl as DataModel);
+                        return idFields.map((field) => [...path, field.name]);
+                    } else {
+                        return [path];
                     }
-                    addPath(path);
+                } else {
+                    return [];
                 }
+            } else if (isCollectionPredicate(expr)) {
+                const path = visit(expr.left);
+                if (path) {
+                    // recurse into RHS
+                    const rhs = collectReferencePaths(expr.right);
+                    // combine path of LHS and RHS
+                    return rhs.map((r) => [...path, ...r]);
+                } else {
+                    return [];
+                }
+            } else {
+                // recurse
+                const children = streamContents(expr)
+                    .filter((child): child is Expression => isExpression(child))
+                    .toArray();
+                return children.flatMap((child) => collectReferencePaths(child));
             }
+        };
+
+        for (const rule of [...allows, ...denies]) {
+            const paths = collectReferencePaths(rule);
+            paths.forEach((p) => addPath(p));
         }
 
         return Object.keys(result).length === 0 ? undefined : result;
@@ -556,7 +572,7 @@ export default class PolicyGenerator {
         this.generateNormalizedAuthRef(model, allows, denies, statements);
 
         const hasFieldAccess = [...denies, ...allows].some((rule) =>
-            [...this.allNodes(rule)].some(
+            streamAst(rule).some(
                 (child) =>
                     // this.???
                     isThisExpr(child) ||
@@ -724,7 +740,7 @@ export default class PolicyGenerator {
     ) {
         // check if any allow or deny rule contains 'auth()' invocation
         const hasAuthRef = [...allows, ...denies].some((rule) =>
-            [...this.allNodes(rule)].some((child) => isAuthInvocation(child))
+            streamAst(rule).some((child) => isAuthInvocation(child))
         );
 
         if (hasAuthRef) {
@@ -746,10 +762,5 @@ export default class PolicyGenerator {
                     .join(', ')}]) ? context.user as any : null;`
             );
         }
-    }
-
-    private *allNodes(expr: Expression) {
-        yield expr;
-        yield* streamAllContents(expr);
     }
 }

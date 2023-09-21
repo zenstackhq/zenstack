@@ -17,6 +17,7 @@ import {
     UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { ExpressionContext, getLiteral, isFromStdlib, isFutureExpr } from '@zenstackhq/sdk';
+import { match, P } from 'ts-pattern';
 import { getIdFields } from './ast-utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
@@ -53,7 +54,7 @@ export class TypeScriptExpressionTransformer {
      *
      * @param isPostGuard indicates if we're writing for post-update conditions
      */
-    constructor(private readonly options?: Options) {}
+    constructor(private readonly options: Options) {}
 
     /**
      * Transforms the given expression to a TypeScript expression.
@@ -302,33 +303,57 @@ export class TypeScriptExpressionTransformer {
     }
 
     private binary(expr: BinaryExpr, normalizeUndefined: boolean): string {
-        if (expr.operator === 'in') {
-            return `(${this.transform(expr.right, false)}?.includes(${this.transform(
-                expr.left,
-                normalizeUndefined
-            )}) ?? false)`;
-        } else if (
-            (expr.operator === '==' || expr.operator === '!=') &&
-            (isThisExpr(expr.left) || isThisExpr(expr.right))
-        ) {
-            // map equality comparison with `this` to id comparison
-            const _this = isThisExpr(expr.left) ? expr.left : expr.right;
-            const model = _this.$resolvedType?.decl as DataModel;
-            const idFields = getIdFields(model);
-            if (!idFields || idFields.length === 0) {
-                throw new TypeScriptExpressionTransformerError(`model "${model.name}" does not have an id field`);
-            }
-            let result = `allFieldsEqual(${this.transform(expr.left, false)}, 
+        const _default = `(${this.transform(expr.left, normalizeUndefined)} ${expr.operator} ${this.transform(
+            expr.right,
+            normalizeUndefined
+        )})`;
+
+        return match(expr.operator)
+            .with(
+                'in',
+                () =>
+                    `(${this.transform(expr.right, false)}?.includes(${this.transform(
+                        expr.left,
+                        normalizeUndefined
+                    )}) ?? false)`
+            )
+            .with(P.union('==', '!='), () => {
+                if (isThisExpr(expr.left) || isThisExpr(expr.right)) {
+                    // map equality comparison with `this` to id comparison
+                    const _this = isThisExpr(expr.left) ? expr.left : expr.right;
+                    const model = _this.$resolvedType?.decl as DataModel;
+                    const idFields = getIdFields(model);
+                    if (!idFields || idFields.length === 0) {
+                        throw new TypeScriptExpressionTransformerError(
+                            `model "${model.name}" does not have an id field`
+                        );
+                    }
+                    let result = `allFieldsEqual(${this.transform(expr.left, false)}, 
                 ${this.transform(expr.right, false)}, [${idFields.map((f) => "'" + f.name + "'").join(', ')}])`;
-            if (expr.operator === '!=') {
-                result = `!${result}`;
-            }
-            return result;
-        } else {
-            return `(${this.transform(expr.left, normalizeUndefined)} ${expr.operator} ${this.transform(
-                expr.right,
-                normalizeUndefined
-            )})`;
-        }
+                    if (expr.operator === '!=') {
+                        result = `!${result}`;
+                    }
+                    return result;
+                } else {
+                    return _default;
+                }
+            })
+            .with(P.union('?', '!', '^'), (op) => this.collectionPredicate(expr, op, normalizeUndefined))
+            .otherwise(() => _default);
+    }
+
+    private collectionPredicate(expr: BinaryExpr, operator: '?' | '!' | '^', normalizeUndefined: boolean) {
+        const operand = this.transform(expr.left, normalizeUndefined);
+        const innerTransformer = new TypeScriptExpressionTransformer({
+            ...this.options,
+            fieldReferenceContext: '_item',
+        });
+        const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
+
+        return match(operator)
+            .with('?', () => `!!((${operand})?.some((_item: any) => ${predicate}))`)
+            .with('!', () => `!!((${operand})?.every((_item: any) => ${predicate}))`)
+            .with('^', () => `!((${operand})?.some((_item: any) => ${predicate}))`)
+            .exhaustive();
     }
 }

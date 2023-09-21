@@ -1,8 +1,10 @@
 import {
+    BinaryExpr,
     DataModel,
     DataModelField,
     Expression,
     isArrayExpr,
+    isBinaryExpr,
     isDataModel,
     isDataModelField,
     isInvocationExpr,
@@ -149,4 +151,8 @@ export function resolveImport(documents: LangiumDocuments, imp: ModelImport): Mo
 export function getAllDeclarationsFromImports(documents: LangiumDocuments, model: Model) {
     const imports = resolveTransitiveImports(documents, model);
     return model.declarations.concat(...imports.map((imp) => imp.declarations));
+}
+
+export function isCollectionPredicate(expr: Expression): expr is BinaryExpr {
+    return isBinaryExpr(expr) && ['?', '!', '^'].includes(expr.operator);
 }
