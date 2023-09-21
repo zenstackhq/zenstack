@@ -2,7 +2,6 @@ import {
     BinaryExpr,
     Expression,
     ExpressionType,
-    isBinaryExpr,
     isDataModel,
     isEnum,
     isNullExpr,
@@ -10,7 +9,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { isDataModelFieldReference } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
-import { isAuthInvocation } from '../../utils/ast-utils';
+import { isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 
 /**
@@ -23,7 +22,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             if (isAuthInvocation(expr)) {
                 // check was done at link time
                 accept('error', 'auth() cannot be resolved because no "User" model is defined', { node: expr });
-            } else if (this.isCollectionPredicate(expr)) {
+            } else if (isCollectionPredicate(expr)) {
                 accept('error', 'collection predicate can only be used on an array of model type', { node: expr });
             } else {
                 accept('error', 'expression cannot be resolved', {
@@ -141,9 +140,5 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 break;
             }
         }
-    }
-
-    private isCollectionPredicate(expr: Expression) {
-        return isBinaryExpr(expr) && ['?', '!', '^'].includes(expr.operator);
     }
 }

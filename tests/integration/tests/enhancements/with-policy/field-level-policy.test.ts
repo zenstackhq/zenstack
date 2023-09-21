@@ -746,4 +746,99 @@ describe('With Policy: field-level policy', () => {
         r = await withPolicy({ id: 2 }).user.findFirst();
         expect(r.username).toBeUndefined();
     });
+
+    it('collection predicate', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            foos Foo[]
+            a Int @allow('read', foos?[x > 0 && bars![y > 0]])
+            b Int @allow('read', foos^[x == 1])
+
+            @@allow('all', true)
+        }
+
+        model Foo {
+            id Int @id @default(autoincrement())
+            x Int
+            owner User @relation(fields: [ownerId], references: [id])
+            ownerId Int
+            bars Bar[]
+
+            @@allow('all', true)
+        }
+
+        model Bar {
+            id Int @id @default(autoincrement())
+            y Int
+            foo Foo @relation(fields: [fooId], references: [id])
+            fooId Int
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                a: 1,
+                b: 2,
+                foos: {
+                    create: [
+                        { x: 0, bars: { create: [{ y: 1 }] } },
+                        { x: 1, bars: { create: [{ y: 0 }, { y: 1 }] } },
+                    ],
+                },
+            },
+        });
+
+        let r = await db.user.findUnique({ where: { id: 1 } });
+        expect(r.a).toBeUndefined();
+        expect(r.b).toBeUndefined();
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                a: 1,
+                b: 2,
+                foos: {
+                    create: [{ x: 2, bars: { create: [{ y: 0 }, { y: 1 }] } }],
+                },
+            },
+        });
+        r = await db.user.findUnique({ where: { id: 2 } });
+        expect(r.a).toBeUndefined();
+        expect(r.b).toBe(2);
+
+        await prisma.user.create({
+            data: {
+                id: 3,
+                a: 1,
+                b: 2,
+                foos: {
+                    create: [{ x: 2 }],
+                },
+            },
+        });
+        r = await db.user.findUnique({ where: { id: 3 } });
+        expect(r.a).toBe(1);
+
+        await prisma.user.create({
+            data: {
+                id: 4,
+                a: 1,
+                b: 2,
+                foos: {
+                    create: [{ x: 2, bars: { create: [{ y: 1 }, { y: 2 }] } }],
+                },
+            },
+        });
+        r = await db.user.findUnique({ where: { id: 4 } });
+        expect(r.a).toBe(1);
+        expect(r.b).toBe(2);
+    });
 });
