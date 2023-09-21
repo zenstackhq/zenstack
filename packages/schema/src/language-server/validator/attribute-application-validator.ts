@@ -16,7 +16,7 @@ import {
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { isFutureExpr, resolved } from '@zenstackhq/sdk';
-import { ValidationAcceptor, streamAllContents } from 'langium';
+import { ValidationAcceptor, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
 import { getStringLiteral, mapBuiltinTypeToExpressionType, typeAssignable } from './utils';
@@ -134,7 +134,7 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
         this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
 
         const expr = attr.args[1].value;
-        if ([expr, ...streamAllContents(expr)].some((node) => isFutureExpr(node))) {
+        if (streamAst(expr).some((node) => isFutureExpr(node))) {
             accept('error', `"future()" is not allowed in field-level policy rules`, { node: expr });
         }
     }
