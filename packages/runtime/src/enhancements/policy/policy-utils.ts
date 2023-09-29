@@ -484,7 +484,7 @@ export class PolicyUtil {
     /**
      * Builds a reversed query for the given nested path.
      */
-    buildReversedQuery(context: NestedWriteVisitorContext) {
+    buildReversedQuery(context: NestedWriteVisitorContext, mutating = false, unsafeOperation = false) {
         let result, currQuery: any;
         let currField: FieldInfo | undefined;
 
@@ -509,19 +509,41 @@ export class PolicyUtil {
                 if (!currField.backLink) {
                     throw this.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
                 }
+
                 const backLinkField = this.getModelField(currField.type, currField.backLink);
-                if (backLinkField?.isArray) {
+                if (!backLinkField) {
+                    throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
+                }
+
+                if (backLinkField.isArray) {
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
                 } else {
-                    if (where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping) {
-                        for (const [r, fk] of Object.entries<string>(backLinkField.foreignKeyMapping)) {
+                    const fkMapping = where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping;
+
+                    // calculate if we should preserve the relation condition (e.g., { user: { id: 1 } })
+                    const shouldPreserveRelationCondition =
+                        // doing a mutation
+                        mutating &&
+                        // and it's a safe mutate
+                        !unsafeOperation &&
+                        // and the current segment is the direct parent (the last one is the mutate itself),
+                        // the relation condition should be preserved and will be converted to a "connect" later
+                        i === context.nestingPath.length - 2;
+
+                    if (fkMapping && !shouldPreserveRelationCondition) {
+                        // turn relation condition into foreign key condition, e.g.:
+                        //     { user: { id: 1 } } => { userId: 1 }
+                        for (const [r, fk] of Object.entries<string>(fkMapping)) {
                             currQuery[fk] = visitWhere[r];
                         }
+
                         if (i > 0) {
+                            // prepare for the next segment
                             currQuery[currField.backLink] = {};
                         }
                     } else {
+                        // preserve the original structure
                         currQuery[currField.backLink] = { ...visitWhere };
                     }
                 }

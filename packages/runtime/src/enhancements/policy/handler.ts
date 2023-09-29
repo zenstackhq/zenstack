@@ -622,8 +622,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const _create = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             let createData = args;
             if (context.field?.backLink) {
+                // Check if the create payload contains any "unsafe" assignment:
+                // assign id or foreign key fields.
+                //
+                // The reason why we need to do that is Prisma's mutations payload
+                // structure has two mutually exclusive forms for safe and unsafe
+                // operations. E.g.:
+                //     - safe: { data: { user: { connect: { id: 1 }} } }
+                //     - unsafe: { data: { userId: 1 } }
+                const unsafe = this.isUnsafeMutate(model, args);
+
                 // handles the connection to upstream entity
-                const reversedQuery = this.utils.buildReversedQuery(context);
+                const reversedQuery = this.utils.buildReversedQuery(context, true, unsafe);
                 if (reversedQuery[context.field.backLink]) {
                     // the built reverse query contains a condition for the backlink field, build a "connect" with it
                     createData = {
@@ -879,6 +889,19 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         });
 
         return { result, postWriteChecks };
+    }
+
+    private isUnsafeMutate(model: string, args: any) {
+        if (!args) {
+            return false;
+        }
+        for (const k of Object.keys(args)) {
+            const field = resolveField(this.modelMeta, model, k);
+            if (field?.isId || field?.isForeignKey) {
+                return true;
+            }
+        }
+        return false;
     }
 
     async updateMany(args: any) {
