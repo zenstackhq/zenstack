@@ -111,6 +111,11 @@ export type FieldInfo = {
     isRelationOwner: boolean;
 
     /**
+     * If the field is a foreign key field
+     */
+    isForeignKey: boolean;
+
+    /**
      * Mapping from foreign key field names to relation field names
      */
     foreignKeyMapping?: Record<string, string>;
