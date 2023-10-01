@@ -3,7 +3,7 @@ import indentString from './indent-string';
 /**
  * Field used by datasource and generator declarations.
  */
-export type SimpleField = { name: string; value: string | string[] };
+export type SimpleField = { name: string; text: string };
 
 /**
  * Prisma schema builder
@@ -14,15 +14,8 @@ export class PrismaModel {
     private models: Model[] = [];
     private enums: Enum[] = [];
 
-    addDataSource(
-        name: string,
-        provider: string,
-        url: DataSourceUrl,
-        directUrl?: DataSourceUrl,
-        shadowDatabaseUrl?: DataSourceUrl,
-        restFields: SimpleField[] = []
-    ): DataSource {
-        const ds = new DataSource(name, provider, url, directUrl, shadowDatabaseUrl, restFields);
+    addDataSource(name: string, fields: SimpleField[] = []): DataSource {
+        const ds = new DataSource(name, fields);
         this.datasources.push(ds);
         return ds;
     }
@@ -59,37 +52,14 @@ export class PrismaModel {
 }
 
 export class DataSource {
-    constructor(
-        public name: string,
-        public provider: string,
-        public url: DataSourceUrl,
-        public directUrl?: DataSourceUrl,
-        public shadowDatabaseUrl?: DataSourceUrl,
-        public restFields: SimpleField[] = []
-    ) {}
+    constructor(public name: string, public fields: SimpleField[] = []) {}
 
     toString(): string {
-        const restFields =
-            this.restFields.length > 0
-                ? this.restFields.map((f) => indentString(`${f.name} = ${JSON.stringify(f.value)}`)).join('\n')
-                : '';
         return (
             `datasource ${this.name} {\n` +
-            indentString(`provider="${this.provider}"\n`) +
-            indentString(`url=${this.url}\n`) +
-            (this.directUrl ? indentString(`directUrl=${this.directUrl}\n`) : '') +
-            (this.shadowDatabaseUrl ? indentString(`shadowDatabaseUrl=${this.shadowDatabaseUrl}\n`) : '') +
-            (restFields ? restFields + '\n' : '') +
-            `}`
+            this.fields.map((f) => indentString(`${f.name} = ${f.text}`)).join('\n') +
+            `\n}`
         );
-    }
-}
-
-export class DataSourceUrl {
-    constructor(public value: string, public isEnv: boolean) {}
-
-    toString(): string {
-        return this.isEnv ? `env("${this.value}")` : `"${this.value}"`;
     }
 }
 
@@ -99,7 +69,7 @@ export class Generator {
     toString(): string {
         return (
             `generator ${this.name} {\n` +
-            this.fields.map((f) => indentString(`${f.name} = ${JSON.stringify(f.value)}`)).join('\n') +
+            this.fields.map((f) => indentString(`${f.name} = ${f.text}`)).join('\n') +
             `\n}`
         );
     }

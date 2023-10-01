@@ -1,5 +1,6 @@
 import {
     AstNode,
+    ConfigExpr,
     DataModel,
     DataModelAttribute,
     DataModelField,
@@ -11,9 +12,11 @@ import {
     GeneratorDecl,
     InternalAttribute,
     isArrayExpr,
+    isConfigArrayExpr,
     isDataModel,
     isDataModelField,
     isEnumField,
+    isExpression,
     isGeneratorDecl,
     isInvocationExpr,
     isLiteralExpr,
@@ -44,7 +47,7 @@ export function resolved<T extends AstNode>(ref: Reference<T>): T {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getLiteral<T extends string | number | boolean | any = any>(
-    expr: Expression | undefined
+    expr: Expression | ConfigExpr | undefined
 ): T | undefined {
     if (!isLiteralExpr(expr)) {
         return getObjectLiteral<T>(expr);
@@ -52,22 +55,22 @@ export function getLiteral<T extends string | number | boolean | any = any>(
     return expr.value as T;
 }
 
-export function getArray(expr: Expression | undefined): Expression[] | undefined {
-    return isArrayExpr(expr) ? expr.items : undefined;
+export function getArray(expr: Expression | ConfigExpr | undefined) {
+    return isArrayExpr(expr) || isConfigArrayExpr(expr) ? expr.items : undefined;
 }
 
 export function getLiteralArray<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     T extends string | number | boolean | any = any
->(expr: Expression | undefined): T[] | undefined {
+>(expr: Expression | ConfigExpr | undefined): T[] | undefined {
     const arr = getArray(expr);
     if (!arr) {
         return undefined;
     }
-    return arr.map((item) => getLiteral<T>(item)).filter((v): v is T => v !== undefined);
+    return arr.map((item) => isExpression(item) && getLiteral<T>(item)).filter((v): v is T => v !== undefined);
 }
 
-export function getObjectLiteral<T>(expr: Expression | undefined): T | undefined {
+export function getObjectLiteral<T>(expr: Expression | ConfigExpr | undefined): T | undefined {
     if (!expr || !isObjectExpr(expr)) {
         return undefined;
     }

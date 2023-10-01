@@ -5,17 +5,20 @@ import {
     ArrayExpr,
     AttributeArg,
     BinaryExpr,
+    BooleanLiteral,
+    ConfigArrayExpr,
+    ConfigInvocationArg,
+    ConfigInvocationExpr,
     DataModel,
     DataSource,
     Enum,
     FunctionDecl,
     InvocationExpr,
-    ReferenceExpr,
-    UnaryExpr,
     MemberAccessExpr,
-    StringLiteral,
-    BooleanLiteral,
     NumberLiteral,
+    ReferenceExpr,
+    StringLiteral,
+    UnaryExpr,
 } from '@zenstackhq/language/ast';
 import { loadModel } from '../utils';
 
@@ -25,6 +28,9 @@ describe('Parsing Tests', () => {
             datasource db {
                 provider = 'postgresql'
                 url = env('DATABASE_URL')
+                directUrl = env('DATABASE_URL')
+                extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+                schemas    = ["auth", "public"]
             }
         `;
         const doc = await loadModel(content, false);
@@ -32,7 +38,7 @@ describe('Parsing Tests', () => {
         const ds = doc.declarations[0] as DataSource;
 
         expect(ds.name).toBe('db');
-        expect(ds.fields).toHaveLength(2);
+        expect(ds.fields).toHaveLength(5);
 
         expect(ds.fields[0]).toEqual(
             expect.objectContaining({
@@ -43,6 +49,18 @@ describe('Parsing Tests', () => {
         expect(ds.fields[1].name).toBe('url');
         expect((ds.fields[1].value as InvocationExpr).function.ref?.name).toBe('env');
         expect((ds.fields[1].value as InvocationExpr).args[0].value.$type).toBe(StringLiteral);
+
+        expect((ds.fields[3].value as ConfigArrayExpr).items[0].$type).toBe(ConfigInvocationExpr);
+        expect(
+            (((ds.fields[3].value as ConfigArrayExpr).items[1] as ConfigInvocationExpr).args[0] as ConfigInvocationArg)
+                .name
+        ).toBe('version');
+        expect(
+            (((ds.fields[3].value as ConfigArrayExpr).items[1] as ConfigInvocationExpr).args[0] as ConfigInvocationArg)
+                .value.$type
+        ).toBe(StringLiteral);
+
+        expect((ds.fields[4].value as ConfigArrayExpr).items[0].$type).toBe(StringLiteral);
     });
 
     it('enum simple', async () => {
