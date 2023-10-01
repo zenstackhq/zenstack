@@ -64,6 +64,16 @@ export default class ExpressionValidator implements AstValidator<Expression> {
             case '<=':
             case '&&':
             case '||': {
+                if (expr.left.$resolvedType?.array) {
+                    accept('error', 'operand cannot be an array', { node: expr.left });
+                    break;
+                }
+
+                if (expr.right.$resolvedType?.array) {
+                    accept('error', 'operand cannot be an array', { node: expr.right });
+                    break;
+                }
+
                 let supportedShapes: ExpressionType[];
                 if (['>', '>=', '<', '<='].includes(expr.operator)) {
                     supportedShapes = ['Int', 'Float', 'DateTime', 'Any'];
@@ -105,6 +115,11 @@ export default class ExpressionValidator implements AstValidator<Expression> {
 
             case '==':
             case '!=': {
+                if (!!expr.left.$resolvedType?.array !== !!expr.right.$resolvedType?.array) {
+                    accept('error', 'incompatible operand types', { node: expr });
+                    break;
+                }
+
                 // disallow comparing model type with scalar type or comparison between
                 // incompatible model types
                 const leftType = expr.left.$resolvedType?.decl;

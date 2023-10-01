@@ -559,6 +559,50 @@ describe('Attribute tests', () => {
             model A {
                 id String @id
                 x Int
+                y Int[]
+
+                @@allow(true, x == y)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                y Int[]
+
+                @@allow(true, x > y)
+            }
+        `)
+        ).toContain('operand cannot be an array');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model User {
+                id Int @id
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int
+            }
+
+            model Foo {
+                id Int @id
+                users User[]
+
+                @@allow('all', users == auth())
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
                 other A? @relation('other', fields: [otherId], references: [id])
                 otherId String? @unique
                 holder A? @relation('other')
