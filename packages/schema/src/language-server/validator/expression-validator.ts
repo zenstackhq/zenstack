@@ -115,7 +115,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
 
             case '==':
             case '!=': {
-                if (expr.left.$resolvedType?.array !== expr.right.$resolvedType?.array) {
+                if (!!expr.left.$resolvedType?.array !== !!expr.right.$resolvedType?.array) {
                     accept('error', 'incompatible operand types', { node: expr });
                     break;
                 }
