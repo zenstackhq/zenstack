@@ -1,7 +1,9 @@
 import {
-    ArrayExpr,
     AttributeArg,
     BooleanLiteral,
+    ConfigArrayExpr,
+    ConfigExpr,
+    ConfigInvocationArg,
     DataModel,
     DataModelAttribute,
     DataModelField,
@@ -17,7 +19,6 @@ import {
     isInvocationExpr,
     isLiteralExpr,
     isReferenceExpr,
-    isStringLiteral,
     LiteralExpr,
     Model,
     NumberLiteral,
@@ -29,7 +30,6 @@ import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getDMMF,
     getLiteral,
-    getLiteralArray,
     getPrismaVersion,
     PluginError,
     PluginOptions,
@@ -51,7 +51,6 @@ import {
     AttributeArgValue as PrismaAttributeArgValue,
     ContainerDeclaration as PrismaContainerDeclaration,
     Model as PrismaDataModel,
-    DataSourceUrl as PrismaDataSourceUrl,
     Enum as PrismaEnum,
     FieldAttribute as PrismaFieldAttribute,
     FieldReference as PrismaFieldReference,
@@ -163,106 +162,67 @@ export default class PrismaSchemaGenerator {
     }
 
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
-        let provider: string | undefined = undefined;
-        let url: PrismaDataSourceUrl | undefined = undefined;
-        let directUrl: PrismaDataSourceUrl | undefined = undefined;
-        let shadowDatabaseUrl: PrismaDataSourceUrl | undefined = undefined;
-        const restFields: SimpleField[] = [];
-
-        for (const f of dataSource.fields) {
-            switch (f.name) {
-                case 'provider': {
-                    if (isStringLiteral(f.value)) {
-                        provider = f.value.value;
-                    } else {
-                        throw new PluginError(name, 'Datasource provider must be set to a string');
-                    }
-                    break;
-                }
-
-                case 'url': {
-                    const r = this.extractDataSourceUrl(f.value);
-                    if (!r) {
-                        throw new PluginError(name, 'Invalid value for datasource url');
-                    }
-                    url = r;
-                    break;
-                }
-
-                case 'directUrl': {
-                    const r = this.extractDataSourceUrl(f.value);
-                    if (!r) {
-                        throw new PluginError(name, 'Invalid value for directUrl');
-                    }
-                    directUrl = r;
-                    break;
-                }
-
-                case 'shadowDatabaseUrl': {
-                    const r = this.extractDataSourceUrl(f.value);
-                    if (!r) {
-                        throw new PluginError(name, 'Invalid value for shadowDatabaseUrl');
-                    }
-                    shadowDatabaseUrl = r;
-                    break;
-                }
-
-                default: {
-                    // rest fields
-                    const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
-                    if (value === undefined) {
-                        throw new PluginError(
-                            name,
-                            `Invalid value for datasource field ${f.name}: value must be a string or an array of strings`
-                        );
-                    } else {
-                        restFields.push({ name: f.name, value });
-                    }
-                    break;
-                }
-            }
-        }
-
-        if (!provider) {
-            throw new PluginError(name, 'Datasource is missing "provider" field');
-        }
-        if (!url) {
-            throw new PluginError(name, 'Datasource is missing "url" field');
-        }
-
-        prisma.addDataSource(dataSource.name, provider, url, directUrl, shadowDatabaseUrl, restFields);
+        const fields: SimpleField[] = dataSource.fields.map((f) => ({
+            name: f.name,
+            text: this.configExprToText(f.value),
+        }));
+        prisma.addDataSource(dataSource.name, fields);
     }
 
-    private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr | ArrayExpr) {
-        if (isStringLiteral(fieldValue)) {
-            return new PrismaDataSourceUrl(fieldValue.value, false);
-        } else if (
-            isInvocationExpr(fieldValue) &&
-            fieldValue.function.ref?.name === 'env' &&
-            fieldValue.args.length === 1 &&
-            isStringLiteral(fieldValue.args[0].value)
-        ) {
-            return new PrismaDataSourceUrl(fieldValue.args[0].value.value as string, true);
+    private configExprToText(expr: ConfigExpr) {
+        if (isLiteralExpr(expr)) {
+            return this.literalToText(expr);
+        } else if (isInvocationExpr(expr)) {
+            const fc = this.makeFunctionCall(expr);
+            return fc.toString();
         } else {
-            return null;
+            return this.configArrayToText(expr);
         }
+    }
+
+    private configArrayToText(expr: ConfigArrayExpr) {
+        return (
+            '[' +
+            expr.items
+                .map((item) => {
+                    if (isLiteralExpr(item)) {
+                        return this.literalToText(item);
+                    } else {
+                        return (
+                            item.name +
+                            (item.args.length > 0
+                                ? '(' + item.args.map((arg) => this.configInvocationArgToText(arg)).join(', ') + ')'
+                                : '')
+                        );
+                    }
+                })
+                .join(', ') +
+            ']'
+        );
+    }
+
+    private configInvocationArgToText(arg: ConfigInvocationArg) {
+        return `${arg.name}: ${this.literalToText(arg.value)}`;
+    }
+
+    private literalToText(expr: LiteralExpr) {
+        return JSON.stringify(expr.value);
     }
 
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
         const generator = prisma.addGenerator(
             decl.name,
-            decl.fields.map((f) => {
-                const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
-                return { name: f.name, value };
-            })
+            decl.fields.map((f) => ({ name: f.name, text: this.configExprToText(f.value) }))
         );
 
         // deal with configuring PrismaClient preview features
         const provider = generator.fields.find((f) => f.name === 'provider');
-        if (provider?.value === 'prisma-client-js') {
+        if (provider?.text === JSON.stringify('prisma-client-js')) {
             const prismaVersion = getPrismaVersion();
             if (prismaVersion) {
-                const previewFeatures = generator.fields.find((f) => f.name === 'previewFeatures')?.value ?? [];
+                const previewFeatures = JSON.parse(
+                    generator.fields.find((f) => f.name === 'previewFeatures')?.text ?? '[]'
+                );
 
                 if (!Array.isArray(previewFeatures)) {
                     throw new PluginError(name, 'option "previewFeatures" must be an array');
@@ -285,7 +245,9 @@ export default class PrismaSchemaGenerator {
                 if (previewFeatures.length > 0) {
                     const curr = generator.fields.find((f) => f.name === 'previewFeatures');
                     if (!curr) {
-                        generator.fields.push({ name: 'previewFeatures', value: previewFeatures });
+                        generator.fields.push({ name: 'previewFeatures', text: JSON.stringify(previewFeatures) });
+                    } else {
+                        curr.text = JSON.stringify(previewFeatures);
                     }
                 }
             }

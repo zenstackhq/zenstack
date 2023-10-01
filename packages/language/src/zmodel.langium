@@ -15,17 +15,14 @@ AbstractDeclaration:
 
 // datasource
 DataSource:
-    TRIPLE_SLASH_COMMENT* 'datasource' name=RegularID '{' (fields+=DataSourceField)* '}';
-
-DataSourceField:
-    TRIPLE_SLASH_COMMENT* name=RegularID '=' value=(LiteralExpr | InvocationExpr | ArrayExpr);
+    TRIPLE_SLASH_COMMENT* 'datasource' name=RegularID '{' (fields+=ConfigField)* '}';
 
 // generator
 GeneratorDecl:
-    TRIPLE_SLASH_COMMENT* 'generator' name=RegularID '{' (fields+=GeneratorField)* '}';
+    TRIPLE_SLASH_COMMENT* 'generator' name=RegularID '{' (fields+=ConfigField)* '}';
 
-GeneratorField:
-    TRIPLE_SLASH_COMMENT* name=RegularID '=' value=(LiteralExpr | ArrayExpr);
+ConfigField:
+    TRIPLE_SLASH_COMMENT* name=RegularID '=' value=ConfigExpr;
 
 // plugin
 Plugin:
@@ -52,6 +49,22 @@ LiteralExpr:
 
 ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
+
+ConfigInvocationExpr:
+    name=ID ('(' ConfigInvocationArgList ')')?;
+
+fragment ConfigInvocationArgList:
+    args+=ConfigInvocationArg (',' args+=ConfigInvocationArg)*;
+
+ConfigInvocationArg:
+    name=ID ':' value=LiteralExpr;
+
+ConfigArrayExpr:
+    '[' (items+=(LiteralExpr|ConfigInvocationExpr) (',' items+=(LiteralExpr|ConfigInvocationExpr))*)? ']';
+
+// expressions used in configuration fields (e.g. datasource, generator, plugin)
+ConfigExpr:
+    LiteralExpr | InvocationExpr | ConfigArrayExpr;
 
 type ReferenceTarget = FunctionParam | DataModelField | EnumField;
 
