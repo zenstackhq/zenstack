@@ -2,8 +2,8 @@ import * as fs from 'fs';
 import path from 'path';
 import { loadModel } from '../utils';
 
-describe('Basic Tests', () => {
-    it('sample todo schema', async () => {
+describe('Sample Todo Schema Tests', () => {
+    it('model loading', async () => {
         const content = fs.readFileSync(path.join(__dirname, './todo.zmodel'), {
             encoding: 'utf-8',
         });

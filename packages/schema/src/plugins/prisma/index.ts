@@ -1,9 +1,10 @@
-import { Model } from '@zenstackhq/language/ast';
-import { PluginOptions } from '@zenstackhq/sdk';
+import { PluginFunction } from '@zenstackhq/sdk';
 import PrismaSchemaGenerator from './schema-generator';
 
 export const name = 'Prisma';
 
-export default async function run(model: Model, options: PluginOptions) {
+const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
     return new PrismaSchemaGenerator().generate(model, options);
-}
+};
+
+export default run;

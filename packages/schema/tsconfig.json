@@ -6,7 +6,7 @@
         "sourceMap": true,
         "outDir": "dist",
         "strict": true,
-        "noUnusedLocals": true,
+        "noUnusedLocals": false,
         "noImplicitReturns": true,
         "moduleResolution": "node",
         "esModuleInterop": true,
@@ -14,7 +14,8 @@
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
         "resolveJsonModule": true,
-        "declaration": true
+        "declaration": true,
+        "experimentalDecorators": true
     },
     "include": ["src/**/*.ts"],
     "exclude": ["dist", "bundle", "node_modules", "src/extension.ts"]

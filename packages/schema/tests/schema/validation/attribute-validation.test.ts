@@ -1,3 +1,5 @@
+/// <reference types="@types/jest" />
+
 import { loadModel, loadModelWithError } from '../../utils';
 
 describe('Attribute tests', () => {
@@ -81,6 +83,34 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain(`Attribute "@default" doesn't have a parameter named "foo"`);
+
+        expect(
+            await loadModelWithError(`
+        ${prelude}
+        model M {
+            id String @id()
+            dt DateTime @default('2020abc')
+        }
+        `)
+        ).toContain('Value is not assignable to parameter');
+
+        // auto-convert of string to date time
+        await loadModel(`
+            ${prelude}
+            model M {
+                id String @id()
+                dt DateTime @default('2000-01-01T00:00:00Z')
+            }
+        `);
+
+        // auto-convert of string to bytes
+        await loadModel(`
+            ${prelude}
+            model M {
+                id String @id()
+                dt Bytes @default('abc123')
+            }
+        `);
     });
 
     it('field attribute coverage', async () => {
@@ -127,12 +157,25 @@ describe('Attribute tests', () => {
 
     it('model attribute coverage', async () => {
         await loadModel(`
+        ${prelude}
+            model A {
+                x Int
+                y String
+                @@id([x, y], name: 'x_y', map: '_x_y', length: 10, sort: 'Asc', clustered: true)
+            }
+
+            model B {
+                id String @id(map: '_id', length: 10, sort: 'Asc', clustered: true)
+            }
+        `);
+
+        await loadModel(`
             ${prelude}
             model A {
                 id String @id
                 x Int
                 y String
-                @@unique([x, y])
+                @@unique([x, y], name: 'x_y', map: '_x_y', length: 10, sort: 'Asc', clustered: true)
             }
         `);
 
@@ -143,6 +186,14 @@ describe('Attribute tests', () => {
                 x Int
                 y String
                 @@unique(fields: [x, y])
+            }
+        `);
+
+        await loadModel(`
+        ${prelude}
+            model A {
+                id String @id
+                x Int @unique(map: '_x', length: 10, sort: 'Asc', clustered: true)
             }
         `);
 
@@ -166,6 +217,13 @@ describe('Attribute tests', () => {
                 y String
                 @@index([x, y])
             }
+
+            model B {
+                id String @id
+                x Int
+                y String
+                @@index([x(sort: Asc), y(sort: Desc)], name: 'myindex', map: '_myindex', length: 10, sort: 'asc', clustered: true, type: BTree)
+            }
         `);
 
         await loadModel(`
@@ -184,6 +242,112 @@ describe('Attribute tests', () => {
                 ADMIN @map("admin")
                 CUSTOMER @map("customer")
                 @@map("_Role")
+            }
+        `);
+    });
+
+    it('type modifier attribute coverage', async () => {
+        await loadModel(`
+            ${prelude}
+
+            model _String {
+                _string String @db.String
+                _string1 String @db.String(1)
+                _text String @db.Text
+                _ntext String @db.NText
+                _char String @db.Char(10)
+                _nchar String @db.NChar(10)
+                _varchar String @db.VarChar(10)
+                _nvarChar String @db.NVarChar(10)
+                _catalogSingleChar String @db.CatalogSingleChar
+                _tinyText String @db.TinyText
+                _mediumText String @db.MediumText
+                _longText String @db.LongText
+                _bit String @db.Bit
+                _bit1 String @db.Bit(1)
+                _varbit String @db.VarBit
+                _varbit1 String @db.VarBit(1)
+                _uuid String @db.Uuid
+                _uniqueIdentifier String @db.UniqueIdentifier
+                _xml String @db.Xml
+                _inet String @db.Inet
+                _citext String @db.Citext
+            }
+
+            model _Boolean {
+                _boolean Boolean @db.Boolean
+                _bit Boolean @db.Bit
+                _bit1 Boolean @db.Bit(1)
+                _tinyInt Boolean @db.TinyInt
+                _tinyInt1 Boolean @db.TinyInt(1)
+            }
+
+            model _Int {
+                _int Int @db.Int
+                _integer Int @db.Integer
+                _smallInt Int @db.SmallInt
+                _oid Int @db.Oid
+                _unsignedInt Int @db.UnsignedInt
+                _unsignedSmallInt Int @db.UnsignedSmallInt
+                _mediumInt Int @db.MediumInt
+                _unsignedMediumInt Int @db.UnsignedMediumInt
+                _unsignedTinyInt Int @db.UnsignedTinyInt
+                _year Int @db.Year
+                _int4 Int @db.Int4
+                _int2 Int @db.Int2
+            }
+
+            model _BigInt {
+                _bigInt BigInt @db.BigInt
+                _unsignedBigInt BigInt @db.UnsignedBigInt
+                _int8 BigInt @db.Int8
+            }
+
+            model _FloatDecimal {
+                _float Float @db.Float
+                _decimal Decimal @db.Decimal
+                _decimal1 Decimal @db.Decimal(10, 2)
+                _doublePrecision Float @db.DoublePrecision
+                _real Float @db.Real
+                _double Float @db.Double
+                _money Float @db.Money
+                _money1 Decimal @db.Money
+                _smallMoney Float @db.SmallMoney
+                _float8 Float @db.Float8
+                _float4 Float @db.Float4
+            }
+
+            model _DateTime {
+                _dateTime DateTime @db.DateTime
+                _dateTime2 DateTime @db.DateTime2
+                _smallDateTime DateTime @db.SmallDateTime
+                _dateTimeOffset DateTime @db.DateTimeOffset
+                _timestamp DateTime @db.Timestamp
+                _timestamp1 DateTime @db.Timestamp(1)
+                _timestamptz DateTime @db.Timestamptz
+                _timestamptz1 DateTime @db.Timestamptz(1)
+                _date DateTime @db.Date
+                _time DateTime @db.Time
+                _time1 DateTime @db.Time(1)
+                _timetz DateTime @db.Timetz
+                _timetz1 DateTime @db.Timetz(1)
+            }
+
+            model _Json {
+                _json Json @db.Json
+                _jsonb Json @db.JsonB
+            }
+
+            model _Bytes {
+                _bytes Bytes @db.Bytes
+                _byteA Bytes @db.ByteA
+                _longBlob Bytes @db.LongBlob
+                _binary Bytes @db.Binary
+                _varBinary Bytes @db.VarBinary
+                _tinyBlob Bytes @db.TinyBlob
+                _blob Bytes @db.Blob
+                _mediumBlob Bytes @db.MediumBlob
+                _image Bytes @db.Image
             }
         `);
     });
@@ -222,6 +386,595 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain(`Value is not assignable to parameter`);
+    });
+
+    it('policy expressions', async () => {
+        await loadModel(`
+           ${prelude}
+           model A {
+               id String @id
+               x Int
+               x1 Int
+               y DateTime
+               y1 DateTime
+               z Float
+               z1 Decimal
+               foo Boolean
+               bar Boolean
+
+               @@allow('all', x > 0)
+               @@allow('all', x > x1)
+               @@allow('all', y >= y1)
+               @@allow('all', z < z1)
+               @@allow('all', z1 < z)
+               @@allow('all', x < z)
+               @@allow('all', x < z1)
+               @@allow('all', foo && bar)
+               @@allow('all', foo || bar)
+               @@allow('all', !foo)
+           }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                @@allow('all', x > 0)
+            }
+        `)
+        ).toContain('invalid operand type for ">" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                @@allow('all', x < 0)
+            }
+        `)
+        ).toContain('invalid operand type for "<" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x < y)
+            }
+        `)
+        ).toContain('invalid operand type for "<" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x <= y)
+            }
+        `)
+        ).toContain('invalid operand type for "<=" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                y DateTime
+                @@allow('all', x <= y)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x && y)
+            }
+        `)
+        ).toContain('invalid operand type for "&&" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x String
+                y String
+                @@allow('all', x || y)
+            }
+        `)
+        ).toContain('invalid operand type for "||" operator');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                @@allow('all', x == this)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                @@allow('all', this != x)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                @@allow('all', b == this)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                @@allow('all', this != b)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                y Int[]
+
+                @@allow(true, x == y)
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                y Int[]
+
+                @@allow(true, x > y)
+            }
+        `)
+        ).toContain('operand cannot be an array');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model User {
+                id Int @id
+                foo Foo @relation(fields: [fooId], references: [id])
+                fooId Int
+            }
+
+            model Foo {
+                id Int @id
+                users User[]
+
+                @@allow('all', users == auth())
+            }
+        `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                other A? @relation('other', fields: [otherId], references: [id])
+                otherId String? @unique
+                holder A? @relation('other')
+                @@allow('all', other == this)
+            }
+        `)
+        ).toContain('comparison between model-typed fields are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                other A? @relation('other', fields: [otherId], references: [id])
+                otherId String? @unique
+                holder A? @relation('other')
+                @@allow('all', this != other)
+            }
+        `)
+        ).toContain('comparison between model-typed fields are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                other A? @relation('other', fields: [otherId], references: [id])
+                otherId String? @unique
+                holder A? @relation('other')
+                other1 A? @relation('other1', fields: [otherId1], references: [id])
+                other1Id String? @unique
+                holder1 A? @relation('other1')
+                @@allow('all', other == other1)
+            }
+        `)
+        ).toContain('comparison between model-typed fields are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                c C?
+                @@allow('all', b == c)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            model C {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            `)
+        ).toContain('incompatible operand types');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model A {
+                id String @id
+                x Int
+                b B?
+                c C?
+                @@allow('all', b != c)
+            }
+            model B {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            model C {
+                id String @id
+                a A? @relation(fields: [aId], references: [id])
+                aId String
+            }
+            `)
+        ).toContain('incompatible operand types');
+    });
+
+    it('policy filter function check', async () => {
+        await loadModel(`
+            ${prelude}
+            enum E {
+                E1
+                E2
+            }
+
+            model N {
+                id String @id
+                e E
+                es E[]
+                s String
+                i Int
+                m M @relation(fields: [mId], references: [id])
+                mId String @unique
+            }
+
+            model M {
+                id String @id
+                s String
+                e E
+                es E[]
+                n N?
+
+                @@allow('all', e in [E1, E2])
+                @@allow('all', contains(s, 'a'))
+                @@allow('all', contains(s, 'a', true))
+                @@allow('all', search(s, 'a'))
+                @@allow('all', startsWith(s, 'a'))
+                @@allow('all', endsWith(s, 'a'))
+                @@allow('all', has(es, E1))
+                @@allow('all', hasSome(es, [E1]))
+                @@allow('all', hasEvery(es, [E1]))
+                @@allow('all', isEmpty(es))
+
+                @@allow('all', n.e in [E1, E2])
+                @@allow('all', n.i in [1, 2])
+                @@allow('all', contains(n.s, 'a'))
+                @@allow('all', contains(n.s, 'a', true))
+                @@allow('all', search(n.s, 'a'))
+                @@allow('all', startsWith(n.s, 'a'))
+                @@allow('all', endsWith(n.s, 'a'))
+                @@allow('all', has(n.es, E1))
+                @@allow('all', hasSome(n.es, [E1]))
+                @@allow('all', hasEvery(n.es, [E1]))
+                @@allow('all', isEmpty(n.es))
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@allow('all', contains(s))
+            }
+        `)
+        ).toContain('missing argument for parameter "search"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@allow('all', contains('a', s))
+            }
+        `)
+        ).toContain('first argument must be a field reference');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                s1 String
+                @@allow('all', contains(s, s1))
+            }
+        `)
+        ).toContain('second argument must be a literal, an enum, or an array of them');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@allow('all', contains(i, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@allow('all', i in 1)
+            }
+        `)
+        ).toContain('right operand of "in" must be an array');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model N { 
+                id String @id 
+                m M @relation(fields: [mId], references: [id])
+                mId String
+            }
+            model M {
+                id String @id
+                n N?
+                @@allow('all', n in [1])
+            }
+        `)
+        ).toContain('left operand of "in" must be of scalar type');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@allow('all', has(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int[]
+                @@allow('all', hasSome(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+    });
+
+    it('validator filter function check', async () => {
+        await loadModel(`
+            ${prelude}
+            enum E {
+                E1
+                E2
+            }
+
+            model N {
+                id String @id
+                e E
+                es E[]
+                s String
+                i Int
+                m M @relation(fields: [mId], references: [id])
+                mId String @unique
+            }
+
+            model M {
+                id String @id
+                s String
+                e E
+                es E[]
+                n N?
+
+                @@validate(e in [E1, E2])
+                @@validate(contains(s, 'a'))
+                @@validate(contains(s, 'a', true))
+                @@validate(startsWith(s, 'a'))
+                @@validate(endsWith(s, 'a'))
+                @@validate(has(es, E1))
+                @@validate(hasSome(es, [E1]))
+                @@validate(hasEvery(es, [E1]))
+                @@validate(isEmpty(es))
+
+                @@validate(n.e in [E1, E2])
+                @@validate(n.i in [1, 2])
+                @@validate(contains(n.s, 'a'))
+                @@validate(contains(n.s, 'a', true))
+                @@validate(startsWith(n.s, 'a'))
+                @@validate(endsWith(n.s, 'a'))
+                @@validate(has(n.es, E1))
+                @@validate(hasSome(n.es, [E1]))
+                @@validate(hasEvery(n.es, [E1]))
+                @@validate(isEmpty(n.es))
+            }
+        `);
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@validate(contains(s))
+            }
+        `)
+        ).toContain('missing argument for parameter "search"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                @@validate(contains('a', s))
+            }
+        `)
+        ).toContain('first argument must be a field reference');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                s String
+                s1 String
+                @@validate(contains(s, s1))
+            }
+        `)
+        ).toContain('second argument must be a literal, an enum, or an array of them');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@validate(contains(i, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                i Int
+                @@validate(i in 1)
+            }
+        `)
+        ).toContain('right operand of "in" must be an array');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model N { 
+                id String @id 
+                m M @relation(fields: [mId], references: [id])
+                mId String
+            }
+            model M {
+                id String @id
+                n N?
+                @@validate(n in [1])
+            }
+        `)
+        ).toContain('left operand of "in" must be of scalar type');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@validate(has(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int[]
+                @@validate(hasSome(x, 1))
+            }
+        `)
+        ).toContain('argument is not assignable to parameter');
     });
 
     it('auth function check', async () => {
@@ -337,5 +1090,101 @@ describe('Attribute tests', () => {
                 e E @default(E1)
             }
         `);
+    });
+
+    it('incorrect function expression context', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id @default(auth())
+            }
+        `)
+        ).toContain('function "auth" is not allowed in the current context: DefaultValue');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                @@allow('all', autoincrement() > 0)
+            }
+        `)
+        ).toContain('function "autoincrement" is not allowed in the current context: AccessPolicy');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                @@deny('all', uuid() == null)
+            }
+        `)
+        ).toContain('function "uuid" is not allowed in the current context: AccessPolicy');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x String
+                @@validate(search(x, 'abc'))
+            }
+        `)
+        ).toContain('function "search" is not allowed in the current context: ValidationRule');
+    });
+
+    it('invalid policy rule kind', async () => {
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@allow('read,foo', x > 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "create", "read", "update", "delete", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int
+                @@deny('update,foo', x > 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "create", "read", "update", "delete", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int @allow('foo', x > 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "read", "update", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int @deny('foo', x < 0)
+            }
+        `)
+        ).toContain('Invalid policy rule kind: "foo", allowed: "read", "update", "all"');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                x Int @allow('update', future().x > 0)
+            }
+        `)
+        ).toContain('"future()" is not allowed in field-level policy rules');
     });
 });

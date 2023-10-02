@@ -14,6 +14,7 @@ export type ResolvedShape = ExpressionType | AbstractDeclaration;
 export type ResolvedType = {
     decl?: ResolvedShape;
     array?: boolean;
+    nullable?: boolean;
 };
 
 export const BinaryExprOperatorPriority: Record<BinaryExpr['operator'], number> = {
@@ -28,10 +29,11 @@ export const BinaryExprOperatorPriority: Record<BinaryExpr['operator'], number> 
     '<': 3,
     '>=': 3,
     '<=': 3,
+    in: 4,
     //CollectionPredicateExpr
-    '^': 4,
-    '?': 4,
-    '!': 4,
+    '^': 5,
+    '?': 5,
+    '!': 5,
 };
 
 declare module './generated/ast' {
@@ -40,6 +42,17 @@ declare module './generated/ast' {
          * Resolved attribute param declaration
          */
         $resolvedParam?: AttributeParam;
+    }
+
+    interface DataModel {
+        /**
+         * Resolved fields, include inherited fields
+         */
+        $resolvedFields: Array<DataModelField>;
+    }
+
+    interface DataModelField {
+        $isInherited?: boolean;
     }
 }
 

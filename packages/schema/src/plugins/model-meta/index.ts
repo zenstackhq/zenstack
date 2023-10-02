@@ -2,57 +2,85 @@ import {
     ArrayExpr,
     DataModel,
     DataModelField,
+    isArrayExpr,
+    isBooleanLiteral,
     isDataModel,
-    isLiteralExpr,
-    Model,
+    isNumberLiteral,
+    isReferenceExpr,
+    isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { RuntimeAttribute } from '@zenstackhq/runtime';
-import { getAttributeArgs, getLiteral, PluginOptions, resolved } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
+import type { RuntimeAttribute } from '@zenstackhq/runtime';
+import {
+    createProject,
+    emitProject,
+    getAttributeArg,
+    getAttributeArgs,
+    getDataModels,
+    getLiteral,
+    hasAttribute,
+    isForeignKeyField,
+    isIdField,
+    PluginError,
+    PluginFunction,
+    resolved,
+    resolvePath,
+    saveProject,
+} from '@zenstackhq/sdk';
+import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
-import { ensureNodeModuleFolder, getDefaultOutputFolder } from '../plugin-utils';
+import { CodeBlockWriter, VariableDeclarationKind } from 'ts-morph';
+import { getDefaultOutputFolder } from '../plugin-utils';
 
 export const name = 'Model Metadata';
 
-export default async function run(model: Model, options: PluginOptions) {
-    const output = options.output ? (options.output as string) : getDefaultOutputFolder();
+const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
+    let output = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
     if (!output) {
-        console.error(`Unable to determine output path, not running plugin ${name}`);
-        return;
+        throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
     }
+    output = resolvePath(output, options);
 
-    const dataModels = model.declarations.filter((d): d is DataModel => isDataModel(d));
+    const dataModels = getDataModels(model);
 
-    const project = new Project();
-
-    if (!options.output) {
-        ensureNodeModuleFolder(output);
-    }
+    const project = createProject();
 
     const sf = project.createSourceFile(path.join(output, 'model-meta.ts'), undefined, { overwrite: true });
+    sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
         declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(dataModels, writer) }],
     });
     sf.addStatements('export default metadata;');
 
-    sf.formatText();
+    let shouldCompile = true;
+    if (typeof options.compile === 'boolean') {
+        // explicit override
+        shouldCompile = options.compile;
+    } else if (globalOptions) {
+        // from CLI or config file
+        shouldCompile = globalOptions.compile;
+    }
 
-    await project.save();
-    await project.emit();
-}
+    if (!shouldCompile || options.preserveTsFiles === true) {
+        // save ts files
+        await saveProject(project);
+    }
+    if (shouldCompile) {
+        await emitProject(project);
+    }
+};
 
 function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter) {
     writer.block(() => {
         writer.write('fields:');
         writer.block(() => {
             for (const model of dataModels) {
-                writer.write(`${camelCase(model.name)}:`);
+                writer.write(`${lowerCaseFirst(model.name)}:`);
                 writer.block(() => {
                     for (const f of model.fields) {
                         const backlink = getBackLink(f);
+                        const fkMapping = generateForeignKeyMapping(f);
                         writer.write(`${f.name}: {
                     name: "${f.name}",
                     type: "${
@@ -66,7 +94,10 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     isArray: ${f.type.array},
                     isOptional: ${f.type.optional},
                     attributes: ${JSON.stringify(getFieldAttributes(f))},
-                    backLink: ${backlink ? "'" + backlink + "'" : 'undefined'}   
+                    backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
+                    isRelationOwner: ${isRelationOwner(f, backlink)},
+                    isForeignKey: ${isForeignKeyField(f)},
+                    foreignKeyMapping: ${fkMapping ? JSON.stringify(fkMapping) : 'undefined'}
                 },`);
                     }
                 });
@@ -78,7 +109,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
         writer.write('uniqueConstraints:');
         writer.block(() => {
             for (const model of dataModels) {
-                writer.write(`${camelCase(model.name)}:`);
+                writer.write(`${lowerCaseFirst(model.name)}:`);
                 writer.block(() => {
                     for (const constraint of getUniqueConstraints(model)) {
                         writer.write(`${constraint.name}: {
@@ -109,10 +140,10 @@ function getBackLink(field: DataModelField) {
             if (relName) {
                 const otherRelName = getRelationName(otherField);
                 if (relName === otherRelName) {
-                    return otherField.name;
+                    return otherField;
                 }
             } else {
-                return otherField.name;
+                return otherField;
             }
         }
     }
@@ -130,24 +161,34 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
         .map((attr) => {
             const args: Array<{ name?: string; value: unknown }> = [];
             for (const arg of attr.args) {
-                if (!isLiteralExpr(arg.value)) {
+                if (isNumberLiteral(arg.value)) {
+                    let v = parseInt(arg.value.value);
+                    if (isNaN(v)) {
+                        v = parseFloat(arg.value.value);
+                    }
+                    if (isNaN(v)) {
+                        throw new Error(`Invalid number literal: ${arg.value.value}`);
+                    }
+                    args.push({ name: arg.name, value: v });
+                } else if (isStringLiteral(arg.value) || isBooleanLiteral(arg.value)) {
+                    args.push({ name: arg.name, value: arg.value.value });
+                } else {
                     // attributes with non-literal args are skipped
                     return undefined;
                 }
-                args.push({ name: arg.name, value: arg.value.value });
             }
             return { name: resolved(attr.decl).name, args };
         })
         .filter((d): d is RuntimeAttribute => !!d);
 }
 
-function isIdField(field: DataModelField) {
-    return field.attributes.some((attr) => attr.decl.ref?.name === '@id');
-}
-
 function getUniqueConstraints(model: DataModel) {
     const constraints: Array<{ name: string; fields: string[] }> = [];
-    for (const attr of model.attributes.filter((attr) => attr.decl.ref?.name === '@@unique')) {
+
+    // model-level constraints
+    for (const attr of model.attributes.filter(
+        (attr) => attr.decl.ref?.name === '@@unique' || attr.decl.ref?.name === '@@id'
+    )) {
         const argsMap = getAttributeArgs(attr);
         if (argsMap.fields) {
             const fieldNames = (argsMap.fields as ArrayExpr).items.map(
@@ -161,5 +202,68 @@ function getUniqueConstraints(model: DataModel) {
             constraints.push({ name: constraintName, fields: fieldNames });
         }
     }
+
+    // field-level constraints
+    for (const field of model.fields) {
+        if (hasAttribute(field, '@id') || hasAttribute(field, '@unique')) {
+            constraints.push({ name: field.name, fields: [field.name] });
+        }
+    }
+
     return constraints;
 }
+
+function isRelationOwner(field: DataModelField, backLink: DataModelField | undefined) {
+    if (!isDataModel(field.type.reference?.ref)) {
+        return false;
+    }
+
+    if (!backLink) {
+        // CHECKME: can this really happen?
+        return true;
+    }
+
+    if (!hasAttribute(field, '@relation') && !hasAttribute(backLink, '@relation')) {
+        // if neither side has `@relation` attribute, it's an implicit many-to-many relation,
+        // both sides are owners
+        return true;
+    }
+
+    return holdsForeignKey(field);
+}
+
+function holdsForeignKey(field: DataModelField) {
+    const relation = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (!relation) {
+        return false;
+    }
+    const fields = getAttributeArg(relation, 'fields');
+    return !!fields;
+}
+
+function generateForeignKeyMapping(field: DataModelField) {
+    const relation = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (!relation) {
+        return undefined;
+    }
+    const fields = getAttributeArg(relation, 'fields');
+    const references = getAttributeArg(relation, 'references');
+    if (!isArrayExpr(fields) || !isArrayExpr(references) || fields.items.length !== references.items.length) {
+        return undefined;
+    }
+
+    const fieldNames = fields.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
+    const referenceNames = references.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: Record<string, string> = {};
+    referenceNames.forEach((name, i) => {
+        if (name) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[name] = fieldNames[i]!;
+        }
+    });
+    return result;
+}
+
+export default run;

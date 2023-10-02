@@ -1,19 +1,22 @@
 {
     "name": "zenstack-monorepo",
-    "version": "1.0.0-alpha.53",
+    "version": "1.0.0",
     "description": "",
     "scripts": {
         "build": "pnpm -r build",
-        "test": "pnpm -r run test --silent",
+        "test": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
+        "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
-        "publish-dev": "pnpm --filter \"./packages/**\" -r publish --access public --tag dev",
-        "publish-canary": "pnpm --filter \"./packages/**\" -r publish --access public --tag canary"
+        "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://dolphin-app-nyvr5.ondigitalocean.app/"
     },
     "keywords": [],
     "author": "",
     "license": "MIT",
     "devDependencies": {
-        "@changesets/cli": "^2.26.0"
+        "@changesets/cli": "^2.26.0",
+        "concurrently": "^7.4.0",
+        "replace-in-file": "^7.0.1",
+        "tsup": "^7.1.0"
     }
 }

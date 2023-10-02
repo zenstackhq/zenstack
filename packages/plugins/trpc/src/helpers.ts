@@ -1,21 +1,10 @@
-import { DMMF } from '@prisma/generator-helper';
-import { CrudFailureReason } from '@zenstackhq/sdk';
+import type { DMMF } from '@prisma/generator-helper';
+import { PluginError, getPrismaClientImportSpec } from '@zenstackhq/sdk';
+import { Model } from '@zenstackhq/sdk/ast';
+import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
-import { uncapitalizeFirstLetter } from './utils/uncapitalizeFirstLetter';
-
-export const generatetRPCImport = (sourceFile: SourceFile) => {
-    sourceFile.addImportDeclaration({
-        moduleSpecifier: '@trpc/server',
-        namespaceImport: 'trpc',
-    });
-};
-
-export const generateRouterImport = (sourceFile: SourceFile, modelNamePlural: string, modelNameCamelCase: string) => {
-    sourceFile.addImportDeclaration({
-        moduleSpecifier: `./${modelNameCamelCase}.router`,
-        namedImports: [`${modelNamePlural}Router`],
-    });
-};
+import { upperCaseFirst } from 'upper-case-first';
+import { name } from '.';
 
 export function generateProcedure(
     writer: CodeBlockWriter,
@@ -28,80 +17,295 @@ export function generateProcedure(
     const prismaMethod = opType.replace('One', '');
 
     if (procType === 'query') {
+        // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
-        ${opType}: procedure.input(${typeName}).query(({ctx, input}) => db(ctx).${uncapitalizeFirstLetter(
+        ${opType}: procedure.input(${typeName}).query(({ctx, input}) => checkRead(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input)),
+        )}.${prismaMethod}(input as any))) as ProcReturns<
+            "query",
+            Proc,
+            (typeof $Schema.${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
+            ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
+        >,
     `);
     } else if (procType === 'mutation') {
+        // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
-        ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => {
-            try {
-                return await db(ctx).${uncapitalizeFirstLetter(modelName)}.${prismaMethod}(input);
-            } catch (err: any) {
-                if (err.code === 'P2004' && err.meta?.reason === '${CrudFailureReason.RESULT_NOT_READABLE}') {
-                    // unable to readback data
-                    return undefined;
-                } else {
-                    throw err;
-                }
-            }
-        }),
+        ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => checkMutate(db(ctx).${lowerCaseFirst(
+            modelName
+        )}.${prismaMethod}(input as any))) as ProcReturns<
+                "mutation",
+                Proc,
+                (typeof $Schema.${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
+                ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
+            >,
     `);
     }
 }
 
-export function generateRouterSchemaImports(sourceFile: SourceFile, name: string) {
-    sourceFile.addStatements(`import { ${name}Schema } from '../schemas/${name}.schema';`);
+/**
+ * Given a model and Prisma operation, returns related TS types.
+ */
+function getPrismaOperationTypes(model: string, operation: string) {
+    // TODO: find a way to derive from Prisma Client API's generic types
+    // instead of duplicating them
+
+    const capModel = upperCaseFirst(model);
+    const capOperation = upperCaseFirst(operation);
+
+    let genericBase = `Prisma.${capModel}${capOperation}Args`;
+    const getPayload = `Prisma.${capModel}GetPayload<T>`;
+    const selectSubset = `Prisma.SelectSubset<T, ${genericBase}>`;
+
+    let argsType: string;
+    let resultType: string;
+
+    switch (operation) {
+        case 'findUnique':
+        case 'findUniqueOrThrow':
+        case 'findFirst':
+        case 'findFirstOrThrow':
+            argsType = selectSubset;
+            resultType = getPayload;
+            break;
+
+        case 'findMany':
+            argsType = selectSubset;
+            resultType = `Array<${getPayload}>`;
+            break;
+
+        case 'create':
+            argsType = selectSubset;
+            resultType = getPayload;
+            break;
+
+        case 'createMany':
+            argsType = selectSubset;
+            resultType = `Prisma.BatchPayload`;
+            break;
+
+        case 'update':
+            argsType = selectSubset;
+            resultType = getPayload;
+            break;
+
+        case 'updateMany':
+            argsType = selectSubset;
+            resultType = `Prisma.BatchPayload`;
+            break;
+
+        case 'upsert':
+            argsType = selectSubset;
+            resultType = getPayload;
+            break;
+
+        case 'delete':
+            argsType = selectSubset;
+            resultType = getPayload;
+            break;
+
+        case 'deleteMany':
+            argsType = selectSubset;
+            resultType = `Prisma.BatchPayload`;
+            break;
+
+        case 'count':
+            argsType = `Prisma.Subset<T, ${genericBase}>`;
+            resultType = `'select' extends keyof T
+            ? T['select'] extends true
+              ? number
+              : Prisma.GetScalarType<T['select'], Prisma.${capModel}CountAggregateOutputType>
+            : number`;
+            break;
+
+        case 'aggregate':
+            argsType = `Prisma.Subset<T, ${genericBase}>`;
+            resultType = `Prisma.Get${capModel}AggregateType<T>`;
+            break;
+
+        case 'groupBy':
+            genericBase = `Prisma.${capModel}GroupByArgs,
+            HasSelectOrTake extends Prisma.Or<
+              Prisma.Extends<'skip', Prisma.Keys<T>>,
+              Prisma.Extends<'take', Prisma.Keys<T>>
+            >,
+            OrderByArg extends Prisma.True extends HasSelectOrTake
+              ? { orderBy: Prisma.${capModel}GroupByArgs['orderBy'] }
+              : { orderBy?: Prisma.${capModel}GroupByArgs['orderBy'] },
+            OrderFields extends Prisma.ExcludeUnderscoreKeys<Prisma.Keys<Prisma.MaybeTupleToUnion<T['orderBy']>>>,
+            ByFields extends Prisma.MaybeTupleToUnion<T['by']>,
+            ByValid extends Prisma.Has<ByFields, OrderFields>,
+            HavingFields extends Prisma.GetHavingFields<T['having']>,
+            HavingValid extends Prisma.Has<ByFields, HavingFields>,
+            ByEmpty extends T['by'] extends never[] ? Prisma.True : Prisma.False,
+            InputErrors extends ByEmpty extends Prisma.True
+            ? \`Error: "by" must not be empty.\`
+            : HavingValid extends Prisma.False
+            ? {
+                [P in HavingFields]: P extends ByFields
+                  ? never
+                  : P extends string
+                  ? \`Error: Field "\${P}" used in "having" needs to be provided in "by".\`
+                  : [
+                      Error,
+                      'Field ',
+                      P,
+                      \` in "having" needs to be provided in "by"\`,
+                    ]
+              }[HavingFields]
+            : 'take' extends Prisma.Keys<T>
+            ? 'orderBy' extends Prisma.Keys<T>
+              ? ByValid extends Prisma.True
+                ? {}
+                : {
+                    [P in OrderFields]: P extends ByFields
+                      ? never
+                      : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                  }[OrderFields]
+              : 'Error: If you provide "take", you also need to provide "orderBy"'
+            : 'skip' extends Prisma.Keys<T>
+            ? 'orderBy' extends Prisma.Keys<T>
+              ? ByValid extends Prisma.True
+                ? {}
+                : {
+                    [P in OrderFields]: P extends ByFields
+                      ? never
+                      : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+                  }[OrderFields]
+              : 'Error: If you provide "skip", you also need to provide "orderBy"'
+            : ByValid extends Prisma.True
+            ? {}
+            : {
+                [P in OrderFields]: P extends ByFields
+                  ? never
+                  : \`Error: Field "\${P}" in "orderBy" needs to be provided in "by"\`
+              }[OrderFields]
+          `;
+            argsType = `Prisma.SubsetIntersection<T, Prisma.${capModel}GroupByArgs, OrderByArg> & InputErrors`;
+            resultType = `{} extends InputErrors ? Prisma.Get${capModel}GroupByPayload<T> : InputErrors`;
+            break;
+
+        default:
+            throw new PluginError(name, `Unsupported operation: "${operation}"`);
+    }
+
+    return { genericBase, argsType, resultType };
 }
 
-export const getInputTypeByOpName = (opName: string, modelName: string) => {
+/**
+ * Generate precise Prisma-like typing for router procedures.
+ */
+export function generateRouterTyping(writer: CodeBlockWriter, opType: string, modelName: string, baseOpType: string) {
+    const procType = getProcedureTypeByOpName(baseOpType);
+    const { genericBase, argsType, resultType } = getPrismaOperationTypes(modelName, opType);
+    const errorType = `TRPCClientErrorLike<AppRouter>`;
+
+    writer.block(() => {
+        if (procType === 'query') {
+            writer.writeLine(`
+                useQuery: <T extends ${genericBase}>(
+                    input: ${argsType},
+                    opts?: UseTRPCQueryOptions<string, T, ${resultType}, ${resultType}, Error>
+                    ) => UseTRPCQueryResult<
+                    ${resultType},
+                        ${errorType}
+                    >;
+                useInfiniteQuery: <T extends ${genericBase}>(
+                    input: Omit<${argsType}, 'cursor'>,
+                    opts?: UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>
+                    ) => UseTRPCInfiniteQueryResult<
+                    ${resultType},
+                        ${errorType}
+                    >;
+                    `);
+        } else if (procType === 'mutation') {
+            writer.writeLine(`
+                useMutation: <T extends ${genericBase}>(opts?: UseTRPCMutationOptions<
+                    ${genericBase},
+                    ${errorType},
+                    Prisma.${upperCaseFirst(modelName)}GetPayload<null>,
+                    Context
+                >,) =>
+                Omit<UseTRPCMutationResult<${resultType}, ${errorType}, ${argsType}, Context>, 'mutateAsync'> & {
+                    mutateAsync:
+                        <T extends ${genericBase}>(variables: T, opts?: UseTRPCMutationOptions<T, ${errorType}, ${resultType}, Context>) => Promise<${resultType}>
+                };
+                `);
+        }
+    });
+}
+
+export function generateRouterTypingImports(sourceFile: SourceFile, model: Model) {
+    const importingDir = sourceFile.getDirectoryPath();
+    const prismaImport = getPrismaClientImportSpec(model, importingDir);
+    sourceFile.addStatements([
+        `import type { Prisma } from '${prismaImport}';`,
+        `import type { UseTRPCMutationOptions, UseTRPCMutationResult, UseTRPCQueryOptions, UseTRPCQueryResult, UseTRPCInfiniteQueryOptions, UseTRPCInfiniteQueryResult } from '@trpc/react-query/shared';`,
+        `import type { TRPCClientErrorLike } from '@trpc/client';`,
+        `import type { AnyRouter } from '@trpc/server';`,
+    ]);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function generateRouterSchemaImport(sourceFile: SourceFile, zodSchemasImport: string) {
+    sourceFile.addStatements(`import $Schema from '${zodSchemasImport}/input';`);
+}
+
+export function generateHelperImport(sourceFile: SourceFile) {
+    sourceFile.addStatements(`import { checkRead, checkMutate } from '../helper';`);
+}
+
+export const getInputSchemaByOpName = (opName: string, modelName: string) => {
     let inputType;
+    const capModelName = upperCaseFirst(modelName);
     switch (opName) {
         case 'findUnique':
-            inputType = `${modelName}Schema.findUnique`;
+            inputType = `$Schema.${capModelName}InputSchema.findUnique`;
             break;
         case 'findFirst':
-            inputType = `${modelName}Schema.findFirst`;
+            inputType = `$Schema.${capModelName}InputSchema.findFirst`;
             break;
         case 'findMany':
-            inputType = `${modelName}Schema.findMany`;
+            inputType = `$Schema.${capModelName}InputSchema.findMany`;
             break;
         case 'findRaw':
-            inputType = `${modelName}Schema.findRawObject`;
+            inputType = `$Schema.${capModelName}InputSchema.findRawObject`;
             break;
         case 'createOne':
-            inputType = `${modelName}Schema.create`;
+            inputType = `$Schema.${capModelName}InputSchema.create`;
             break;
         case 'createMany':
-            inputType = `${modelName}Schema.createMany`;
+            inputType = `$Schema.${capModelName}InputSchema.createMany`;
             break;
         case 'deleteOne':
-            inputType = `${modelName}Schema.delete`;
+            inputType = `$Schema.${capModelName}InputSchema.delete`;
             break;
         case 'updateOne':
-            inputType = `${modelName}Schema.update`;
+            inputType = `$Schema.${capModelName}InputSchema.update`;
             break;
         case 'deleteMany':
-            inputType = `${modelName}Schema.deleteMany`;
+            inputType = `$Schema.${capModelName}InputSchema.deleteMany`;
             break;
         case 'updateMany':
-            inputType = `${modelName}Schema.updateMany`;
+            inputType = `$Schema.${capModelName}InputSchema.updateMany`;
             break;
         case 'upsertOne':
-            inputType = `${modelName}Schema.upsert`;
+            inputType = `$Schema.${capModelName}InputSchema.upsert`;
             break;
         case 'aggregate':
-            inputType = `${modelName}Schema.aggregate`;
+            inputType = `$Schema.${capModelName}InputSchema.aggregate`;
             break;
         case 'aggregateRaw':
-            inputType = `${modelName}Schema.aggregateRawObject`;
+            inputType = `$Schema.${capModelName}InputSchema.aggregateRawObject`;
             break;
         case 'groupBy':
-            inputType = `${modelName}Schema.groupBy`;
+            inputType = `$Schema.${capModelName}InputSchema.groupBy`;
+            break;
+        case 'count':
+            inputType = `$Schema.${capModelName}InputSchema.count`;
             break;
         default:
-            console.log('getInputTypeByOpName: ', { opName, modelName });
+            break;
     }
     return inputType;
 };
@@ -116,6 +320,7 @@ export const getProcedureTypeByOpName = (opName: string) => {
         case 'aggregate':
         case 'aggregateRaw':
         case 'groupBy':
+        case 'count':
             procType = 'query';
             break;
         case 'createOne':

@@ -1,6 +1,7 @@
+import { createId } from '@paralleldrive/cuid2';
+import { getPrismaVersion } from '@zenstackhq/sdk';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
-import cuid from 'cuid';
 import { init, Mixpanel } from 'mixpanel';
 import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
@@ -16,12 +17,14 @@ export type TelemetryEvents =
     | 'cli:start'
     | 'cli:complete'
     | 'cli:error'
+    | 'cli:crash'
     | 'cli:command:start'
     | 'cli:command:complete'
     | 'cli:command:error'
     | 'cli:plugin:start'
     | 'cli:plugin:complete'
-    | 'cli:plugin:error';
+    | 'cli:plugin:error'
+    | 'prisma:error';
 
 /**
  * Utility class for sending telemetry
@@ -29,9 +32,10 @@ export type TelemetryEvents =
 export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
     private readonly hostId = machineIdSync();
-    private readonly sessionid = cuid();
+    private readonly sessionid = createId();
     private readonly _os = os.platform();
     private readonly version = getVersion();
+    private readonly prismaVersion = getPrismaVersion();
     private exitWait = 200;
 
     constructor() {
@@ -50,19 +54,26 @@ export class Telemetry {
         });
 
         const errorHandler = async (err: Error) => {
-            this.track('cli:error', {
-                message: err.message,
-                stack: err.stack,
-            });
-            if (this.mixpanel) {
-                // a small delay to ensure telemetry is sent
-                await sleep(this.exitWait);
-            }
-
             if (err instanceof CliError || err instanceof CommanderError) {
+                this.track('cli:error', {
+                    message: err.message,
+                    stack: err.stack,
+                });
+                if (this.mixpanel) {
+                    // a small delay to ensure telemetry is sent
+                    await sleep(this.exitWait);
+                }
                 // error already logged
             } else {
                 console.error('\nAn unexpected error occurred:\n', err);
+                this.track('cli:crash', {
+                    message: err.message,
+                    stack: err.stack,
+                });
+                if (this.mixpanel) {
+                    // a small delay to ensure telemetry is sent
+                    await sleep(this.exitWait);
+                }
             }
 
             process.exit(1);
@@ -81,6 +92,7 @@ export class Telemetry {
                 $os: this._os,
                 nodeVersion: process.version,
                 version: this.version,
+                prismaVersion: this.prismaVersion,
                 ...properties,
             };
             this.mixpanel.track(event, payload);

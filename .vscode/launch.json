@@ -6,20 +6,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Generate for Todo Sample",
-            "program": "${workspaceFolder}/packages/schema/dist/bin/cli",
-            "cwd": "${workspaceFolder}/samples/todo/",
-            "args": [
-                "generate"
-            ],
-            "request": "launch",
-            "skipFiles": ["<node_internals>/**"],
-            "type": "node",
-            "env": {
-                "NODE_PATH": "${workspaceFolder}/samples/todo/node_modules"
-            }
-        },
-        {
             "name": "Attach",
             "port": 9229,
             "request": "attach",
@@ -41,14 +27,7 @@
             "request": "attach",
             "skipFiles": ["<node_internals>/**"],
             "sourceMaps": true,
-            "outFiles": ["${workspaceFolder}/bundle/**/*.js"]
-        },
-        {
-            "name": "Todo sample: debug server-side",
-            "type": "node-terminal",
-            "request": "launch",
-            "command": "pnpm dev",
-            "cwd": "${workspaceFolder}/samples/todo/"
+            "outFiles": ["${workspaceFolder}/packages/schema/bundle/**/*.js"]
         }
     ]
 }

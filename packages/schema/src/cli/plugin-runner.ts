@@ -1,114 +1,232 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { DMMF } from '@prisma/generator-helper';
-import { getDMMF } from '@prisma/internals';
-import { Plugin, isPlugin } from '@zenstackhq/language/ast';
-import { PluginFunction, PluginOptions, getLiteral, getLiteralArray } from '@zenstackhq/sdk';
+import type { DMMF } from '@prisma/generator-helper';
+import { isPlugin, Model, Plugin } from '@zenstackhq/language/ast';
+import {
+    getDataModels,
+    getDMMF,
+    getLiteral,
+    getLiteralArray,
+    hasValidationAttributes,
+    PluginError,
+    PluginFunction,
+    PluginOptions,
+    resolvePath,
+} from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
+import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
 import telemetry from '../telemetry';
-import { Context } from '../types';
-import { CliError } from './cli-error';
+import { getVersion } from '../utils/version-utils';
+
+type PluginInfo = {
+    name: string;
+    provider: string;
+    options: PluginOptions;
+    run: PluginFunction;
+    dependencies: string[];
+    module: any;
+};
+
+export type PluginRunnerOptions = {
+    schema: Model;
+    schemaPath: string;
+    output?: string;
+    defaultPlugins: boolean;
+    compile: boolean;
+};
 
 /**
- * ZenStack code generator
+ * ZenStack plugin runner
  */
 export class PluginRunner {
     /**
      * Runs a series of nested generators
      */
-    async run(context: Context): Promise<void> {
-        const version = require('../package.json').version;
+    async run(options: PluginRunnerOptions): Promise<void> {
+        const version = getVersion();
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
-        const plugins: Array<{
-            provider: string;
-            name: string;
-            run: PluginFunction;
-            options: PluginOptions;
-        }> = [];
+        ensureDefaultOutputFolder(options);
 
-        const pluginDecls = context.schema.declarations.filter((d): d is Plugin => isPlugin(d));
-        const prereqPlugins = ['@zenstack/prisma', '@zenstack/model-meta', '@zenstack/access-policy'];
-        const allPluginProviders = prereqPlugins.concat(
-            pluginDecls
-                .map((p) => this.getPluginProvider(p))
-                .filter((p): p is string => !!p && !prereqPlugins.includes(p))
-        );
-        let prismaOutput = './prisma/schema.prisma';
+        const plugins: PluginInfo[] = [];
+        const pluginDecls = options.schema.declarations.filter((d): d is Plugin => isPlugin(d));
 
-        for (const pluginProvider of allPluginProviders) {
-            const plugin = pluginDecls.find((p) => this.getPluginProvider(p) === pluginProvider);
-            if (plugin) {
-                const options: PluginOptions = { schemaPath: context.schemaPath };
+        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: options.schemaPath, name: '' });
 
-                plugin.fields.forEach((f) => {
-                    const value = getLiteral(f.value) || getLiteralArray(f.value);
-                    if (!value) {
-                        throw new CliError(`Invalid plugin value for ${f.name}`);
-                    }
-                    options[f.name] = value;
-                });
+        for (const pluginDecl of pluginDecls) {
+            const pluginProvider = this.getPluginProvider(pluginDecl);
+            if (!pluginProvider) {
+                console.error(`Plugin ${pluginDecl.name} has invalid provider option`);
+                throw new PluginError('', `Plugin ${pluginDecl.name} has invalid provider option`);
+            }
+            const pluginModulePath = this.getPluginModulePath(pluginProvider);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let pluginModule: any;
+            try {
+                pluginModule = require(pluginModulePath);
+            } catch (err) {
+                console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
+                throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
+            }
 
-                const pluginModulePath = this.getPluginModulePath(pluginProvider);
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                let pluginModule: any;
-                try {
-                    pluginModule = require(pluginModulePath);
-                } catch (err) {
-                    console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
-                    throw new CliError(`Unable to load plugin module ${pluginProvider}`);
+            if (!pluginModule.default || typeof pluginModule.default !== 'function') {
+                console.error(`Plugin provider ${pluginProvider} is missing a default function export`);
+                throw new PluginError('', `Plugin provider ${pluginProvider} is missing a default function export`);
+            }
+
+            const dependencies = this.getPluginDependencies(pluginModule);
+            const pluginName = this.getPluginName(pluginModule, pluginProvider);
+            const pluginOptions: PluginOptions = { schemaPath: options.schemaPath, name: pluginName };
+
+            pluginDecl.fields.forEach((f) => {
+                const value = getLiteral(f.value) ?? getLiteralArray(f.value);
+                if (value === undefined) {
+                    throw new PluginError(pluginName, `Invalid option value for ${f.name}`);
                 }
+                pluginOptions[f.name] = value;
+            });
 
-                if (!pluginModule.default || typeof pluginModule.default !== 'function') {
-                    console.error(`Plugin provider ${pluginProvider} is missing a default function export`);
-                    throw new CliError(`Plugin provider ${pluginProvider} is missing a default function export`);
-                }
-                plugins.push({
-                    name: this.getPluginName(pluginModule, pluginProvider),
-                    provider: pluginProvider,
-                    run: pluginModule.default as PluginFunction,
-                    options,
-                });
+            plugins.push({
+                name: pluginName,
+                provider: pluginProvider,
+                dependencies,
+                options: pluginOptions,
+                run: pluginModule.default as PluginFunction,
+                module: pluginModule,
+            });
 
-                if (pluginProvider === '@zenstack/prisma' && options.output) {
-                    // record custom prisma output path
-                    prismaOutput = options.output as string;
-                }
+            if (pluginProvider === '@core/prisma' && typeof pluginOptions.output === 'string') {
+                // record custom prisma output path
+                prismaOutput = resolvePath(pluginOptions.output, pluginOptions);
+            }
+        }
+
+        // get core plugins that need to be enabled
+        const corePlugins = this.calculateCorePlugins(options, plugins);
+
+        // shift/insert core plugins to the front
+        for (const corePlugin of corePlugins.reverse()) {
+            const existingIdx = plugins.findIndex((p) => p.provider === corePlugin.provider);
+            if (existingIdx >= 0) {
+                // shift the plugin to the front
+                const existing = plugins[existingIdx];
+                plugins.splice(existingIdx, 1);
+                plugins.unshift(existing);
             } else {
-                // synthesize a plugin
-                const pluginModule = require(this.getPluginModulePath(pluginProvider));
-                plugins.push({
-                    name: this.getPluginName(pluginModule, pluginProvider),
-                    provider: pluginProvider,
+                // synthesize a plugin and insert front
+                const pluginModule = require(this.getPluginModulePath(corePlugin.provider));
+                const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
+                plugins.unshift({
+                    name: pluginName,
+                    provider: corePlugin.provider,
+                    dependencies: [],
+                    options: { schemaPath: options.schemaPath, name: pluginName, ...corePlugin.options },
                     run: pluginModule.default,
-                    options: { schemaPath: context.schemaPath },
+                    module: pluginModule,
                 });
             }
+        }
+
+        // check dependencies
+        for (const plugin of plugins) {
+            for (const dep of plugin.dependencies) {
+                if (!plugins.find((p) => p.provider === dep)) {
+                    console.error(`Plugin ${plugin.provider} depends on "${dep}" but it's not declared`);
+                    throw new PluginError(
+                        plugin.name,
+                        `Plugin ${plugin.provider} depends on "${dep}" but it's not declared`
+                    );
+                }
+            }
+        }
+
+        if (plugins.length === 0) {
+            console.log(colors.yellow('No plugins configured.'));
+            return;
         }
 
         const warnings: string[] = [];
 
         let dmmf: DMMF.Document | undefined = undefined;
-        for (const { name, provider, run, options } of plugins) {
-            await this.runPlugin(name, run, context, options, dmmf, warnings);
-            if (provider === '@zenstack/prisma') {
+        for (const { name, provider, run, options: pluginOptions } of plugins) {
+            // const start = Date.now();
+            await this.runPlugin(name, run, options, pluginOptions, dmmf, warnings);
+            // console.log(`✅ Plugin ${colors.bold(name)} (${provider}) completed in ${Date.now() - start}ms`);
+            if (provider === '@core/prisma') {
                 // load prisma DMMF
                 dmmf = await getDMMF({
                     datamodel: fs.readFileSync(prismaOutput, { encoding: 'utf-8' }),
                 });
             }
         }
-
         console.log(colors.green(colors.bold('\n👻 All plugins completed successfully!')));
 
         warnings.forEach((w) => console.warn(colors.yellow(w)));
+
+        console.log(`Don't forget to restart your dev server to let the changes take effect.`);
+    }
+
+    private calculateCorePlugins(options: PluginRunnerOptions, plugins: PluginInfo[]) {
+        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [];
+
+        if (options.defaultPlugins) {
+            corePlugins.push(
+                { provider: '@core/prisma' },
+                { provider: '@core/model-meta' },
+                { provider: '@core/access-policy' }
+            );
+        } else if (plugins.length > 0) {
+            // "@core/prisma" plugin is always enabled if any plugin is configured
+            corePlugins.push({ provider: '@core/prisma' });
+        }
+
+        // "@core/access-policy" has implicit requirements
+        if ([...plugins, ...corePlugins].find((p) => p.provider === '@core/access-policy')) {
+            // make sure "@core/model-meta" is enabled
+            if (!corePlugins.find((p) => p.provider === '@core/model-meta')) {
+                corePlugins.push({ provider: '@core/model-meta' });
+            }
+
+            // '@core/zod' plugin is auto-enabled by "@core/access-policy"
+            // if there're validation rules
+            if (!corePlugins.find((p) => p.provider === '@core/zod') && this.hasValidation(options.schema)) {
+                corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
+            }
+        }
+
+        // core plugins introduced by dependencies
+        plugins
+            .flatMap((p) => p.dependencies)
+            .forEach((dep) => {
+                if (dep.startsWith('@core/')) {
+                    const existing = corePlugins.find((p) => p.provider === dep);
+                    if (existing) {
+                        // reset options to default
+                        existing.options = undefined;
+                    } else {
+                        // add core dependency
+                        corePlugins.push({ provider: dep });
+                    }
+                }
+            });
+
+        return corePlugins;
+    }
+
+    private hasValidation(schema: Model) {
+        return getDataModels(schema).some((model) => hasValidationAttributes(model));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private getPluginName(pluginModule: any, pluginProvider: string): string {
         return typeof pluginModule.name === 'string' ? (pluginModule.name as string) : pluginProvider;
+    }
+
+    private getPluginDependencies(pluginModule: any) {
+        return Array.isArray(pluginModule.dependencies) ? (pluginModule.dependencies as string[]) : [];
     }
 
     private getPluginProvider(plugin: Plugin) {
@@ -119,7 +237,7 @@ export class PluginRunner {
     private async runPlugin(
         name: string,
         run: PluginFunction,
-        context: Context,
+        runnerOptions: PluginRunnerOptions,
         options: PluginOptions,
         dmmf: DMMF.Document | undefined,
         warnings: string[]
@@ -132,9 +250,13 @@ export class PluginRunner {
                 'cli:plugin:error',
                 {
                     plugin: name,
+                    options,
                 },
                 async () => {
-                    let result = run(context.schema, options, dmmf);
+                    let result = run(runnerOptions.schema, options, dmmf, {
+                        output: runnerOptions.output,
+                        compile: runnerOptions.compile,
+                    });
                     if (result instanceof Promise) {
                         result = await result;
                     }
@@ -152,8 +274,8 @@ export class PluginRunner {
 
     private getPluginModulePath(provider: string) {
         let pluginModulePath = provider;
-        if (pluginModulePath.startsWith('@zenstack/')) {
-            pluginModulePath = pluginModulePath.replace(/^@zenstack/, path.join(__dirname, '../plugins'));
+        if (pluginModulePath.startsWith('@core/')) {
+            pluginModulePath = pluginModulePath.replace(/^@core/, path.join(__dirname, '../plugins'));
         }
         return pluginModulePath;
     }

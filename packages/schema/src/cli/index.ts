@@ -2,69 +2,42 @@
 import { ZModelLanguageMetaData } from '@zenstackhq/language/module';
 import colors from 'colors';
 import { Command, Option } from 'commander';
-import * as semver from 'semver';
+import fs from 'fs';
 import telemetry from '../telemetry';
-import { PackageManagers } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
-import { CliError } from './cli-error';
-import { initProject, runPlugins } from './cli-util';
+import * as actions from './actions';
+import { loadConfig } from './config';
 
-// required minimal version of Prisma
-export const requiredPrismaVersion = '4.0.0';
+const DEFAULT_CONFIG_FILE = 'zenstack.config.json';
 
-export const initAction = async (
-    projectPath: string,
-    options: {
-        prisma: string | undefined;
-        packageManager: PackageManagers | undefined;
-        tag: string;
-    }
-): Promise<void> => {
+export const initAction = async (projectPath: string, options: Parameters<typeof actions.init>[1]): Promise<void> => {
     await telemetry.trackSpan(
         'cli:command:start',
         'cli:command:complete',
         'cli:command:error',
         { command: 'init' },
-        () => initProject(projectPath, options.prisma, options.packageManager, options.tag)
+        () => actions.init(projectPath, options)
     );
 };
 
-export const generateAction = async (options: {
-    schema: string;
-    packageManager: PackageManagers | undefined;
-    dependencyCheck: boolean;
-}): Promise<void> => {
-    if (options.dependencyCheck) {
-        checkRequiredPackage('prisma', requiredPrismaVersion);
-        checkRequiredPackage('@prisma/client', requiredPrismaVersion);
-    }
+export const infoAction = async (projectPath: string): Promise<void> => {
+    await telemetry.trackSpan(
+        'cli:command:start',
+        'cli:command:complete',
+        'cli:command:error',
+        { command: 'info' },
+        () => actions.info(projectPath)
+    );
+};
+
+export const generateAction = async (options: Parameters<typeof actions.generate>[1]): Promise<void> => {
     await telemetry.trackSpan(
         'cli:command:start',
         'cli:command:complete',
         'cli:command:error',
         { command: 'generate' },
-        () => runPlugins(options)
+        () => actions.generate(process.cwd(), options)
     );
-};
-
-const checkRequiredPackage = (packageName: string, minVersion?: string) => {
-    let packageVersion: string;
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        packageVersion = require(`${packageName}/package.json`).version;
-    } catch (error) {
-        console.error(colors.red(`${packageName} not found, please install it`));
-        throw new CliError(`${packageName} not found`);
-    }
-
-    if (minVersion && semver.lt(packageVersion, minVersion)) {
-        console.error(
-            colors.red(
-                `${packageName} needs to be above ${minVersion}, the installed version is ${packageVersion}, please upgrade it`
-            )
-        );
-        throw new CliError(`${packageName} version is too low`);
-    }
 };
 
 export function createProgram() {
@@ -87,24 +60,29 @@ export function createProgram() {
         './schema.zmodel'
     );
 
+    const configOption = new Option('-c, --config [file]', 'config file');
     const pmOption = new Option('-p, --package-manager <pm>', 'package manager to use').choices([
         'npm',
         'yarn',
         'pnpm',
     ]);
-
+    const noVersionCheckOption = new Option('--no-version-check', 'do not check for new version');
     const noDependencyCheck = new Option('--no-dependency-check', 'do not check if dependencies are installed');
+
+    program
+        .command('info')
+        .description('Get information of installed ZenStack and related packages.')
+        .argument('[path]', 'project path', '.')
+        .action(infoAction);
 
     program
         .command('init')
         .description('Initialize an existing project for ZenStack.')
+        .addOption(configOption)
         .addOption(pmOption)
         .addOption(new Option('--prisma <file>', 'location of Prisma schema file to bootstrap from'))
-        .addOption(
-            new Option('--tag <tag>', 'the NPM package tag to use when installing dependencies').default(
-                '<DEFAULT_NPM_TAG>'
-            )
-        )
+        .addOption(new Option('--tag <tag>', 'the NPM package tag to use when installing dependencies'))
+        .addOption(noVersionCheckOption)
         .argument('[path]', 'project path', '.')
         .action(initAction);
 
@@ -112,9 +90,27 @@ export function createProgram() {
         .command('generate')
         .description('Run code generation.')
         .addOption(schemaOption)
-        .addOption(pmOption)
+        .addOption(new Option('-o, --output <path>', 'default output directory for built-in plugins'))
+        .addOption(configOption)
+        .addOption(new Option('--no-default-plugins', 'do not run default plugins'))
+        .addOption(new Option('--no-compile', 'do not compile the output of built-in plugins'))
+        .addOption(noVersionCheckOption)
         .addOption(noDependencyCheck)
         .action(generateAction);
+
+    // make sure config is loaded before actions run
+    program.hook('preAction', async (_, actionCommand) => {
+        let configFile: string | undefined = actionCommand.opts().config;
+
+        if (!configFile && fs.existsSync(DEFAULT_CONFIG_FILE)) {
+            configFile = DEFAULT_CONFIG_FILE;
+        }
+
+        if (configFile) {
+            loadConfig(configFile);
+        }
+    });
+
     return program;
 }
 

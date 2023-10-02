@@ -1,6 +1,11 @@
 import indentString from './indent-string';
 
 /**
+ * Field used by datasource and generator declarations.
+ */
+export type SimpleField = { name: string; text: string };
+
+/**
  * Prisma schema builder
  */
 export class PrismaModel {
@@ -9,20 +14,26 @@ export class PrismaModel {
     private models: Model[] = [];
     private enums: Enum[] = [];
 
-    addDataSource(name: string, provider: string, url: DataSourceUrl, shadowDatabaseUrl?: DataSourceUrl): DataSource {
-        const ds = new DataSource(name, provider, url, shadowDatabaseUrl);
+    addDataSource(name: string, fields: SimpleField[] = []): DataSource {
+        const ds = new DataSource(name, fields);
         this.datasources.push(ds);
         return ds;
     }
 
-    addGenerator(name: string, fields: Array<{ name: string; value: string | string[] }>): Generator {
+    addGenerator(name: string, fields: SimpleField[]): Generator {
         const generator = new Generator(name, fields);
         this.generators.push(generator);
         return generator;
     }
 
     addModel(name: string): Model {
-        const model = new Model(name);
+        const model = new Model(name, false);
+        this.models.push(model);
+        return model;
+    }
+
+    addView(name: string): Model {
+        const model = new Model(name, true);
         this.models.push(model);
         return model;
     }
@@ -41,46 +52,31 @@ export class PrismaModel {
 }
 
 export class DataSource {
-    constructor(
-        public name: string,
-        public provider: string,
-        public url: DataSourceUrl,
-        public shadowDatabaseUrl?: DataSourceUrl
-    ) {}
+    constructor(public name: string, public fields: SimpleField[] = []) {}
 
     toString(): string {
         return (
             `datasource ${this.name} {\n` +
-            indentString(`provider="${this.provider}"\n`) +
-            indentString(`url=${this.url}\n`) +
-            (this.shadowDatabaseUrl ? indentString(`shadowDatabaseurl=${this.shadowDatabaseUrl}\n`) : '') +
-            `}`
+            this.fields.map((f) => indentString(`${f.name} = ${f.text}`)).join('\n') +
+            `\n}`
         );
     }
 }
 
-export class DataSourceUrl {
-    constructor(public value: string, public isEnv: boolean) {}
-
-    toString(): string {
-        return this.isEnv ? `env("${this.value}")` : `"${this.value}"`;
-    }
-}
-
 export class Generator {
-    constructor(public name: string, public fields: Array<{ name: string; value: string | string[] }>) {}
+    constructor(public name: string, public fields: SimpleField[]) {}
 
     toString(): string {
         return (
             `generator ${this.name} {\n` +
-            this.fields.map((f) => indentString(`${f.name} = ${JSON.stringify(f.value)}`)).join('\n') +
+            this.fields.map((f) => indentString(`${f.name} = ${f.text}`)).join('\n') +
             `\n}`
         );
     }
 }
 
 export class DeclarationBase {
-    public documentations: string[] = [];
+    constructor(public documentations: string[] = []) {}
 
     addComment(name: string): string {
         this.documentations.push(name);
@@ -91,17 +87,29 @@ export class DeclarationBase {
         return this.documentations.map((x) => `${x}\n`).join('');
     }
 }
-export class Model extends DeclarationBase {
+
+export class ContainerDeclaration extends DeclarationBase {
+    constructor(documentations: string[] = [], public attributes: (ContainerAttribute | PassThroughAttribute)[] = []) {
+        super(documentations);
+    }
+}
+
+export class FieldDeclaration extends DeclarationBase {
+    constructor(documentations: string[] = [], public attributes: (FieldAttribute | PassThroughAttribute)[] = []) {
+        super(documentations);
+    }
+}
+
+export class Model extends ContainerDeclaration {
     public fields: ModelField[] = [];
-    public attributes: ModelAttribute[] = [];
-    constructor(public name: string, public documentations: string[] = []) {
-        super();
+    constructor(public name: string, public isView: boolean, documentations: string[] = []) {
+        super(documentations);
     }
 
     addField(
         name: string,
         type: ModelFieldType | string,
-        attributes: FieldAttribute[] = [],
+        attributes: (FieldAttribute | PassThroughAttribute)[] = [],
         documentations: string[] = []
     ): ModelField {
         const field = new ModelField(name, type, attributes, documentations);
@@ -109,17 +117,27 @@ export class Model extends DeclarationBase {
         return field;
     }
 
-    addAttribute(name: string, args: AttributeArg[] = []): ModelAttribute {
-        const attr = new ModelAttribute(name, args);
+    addAttribute(name: string, args: AttributeArg[] = []) {
+        const attr = new ContainerAttribute(name, args);
         this.attributes.push(attr);
         return attr;
     }
 
     toString(): string {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result: any[] = [...this.fields];
+
+        if (this.attributes.length > 0) {
+            // Add a blank line before the attributes
+            result.push('');
+        }
+
+        result.push(...this.attributes);
+
         return (
             super.toString() +
-            `model ${this.name} {\n` +
-            indentString([...this.fields, ...this.attributes].map((d) => d.toString()).join('\n')) +
+            `${this.isView ? 'view' : 'model'} ${this.name} {\n` +
+            indentString(result.map((d) => d.toString()).join('\n')) +
             `\n}`
         );
     }
@@ -145,14 +163,14 @@ export class ModelFieldType {
     }
 }
 
-export class ModelField extends DeclarationBase {
+export class ModelField extends FieldDeclaration {
     constructor(
         public name: string,
         public type: ModelFieldType | string,
-        public attributes: FieldAttribute[] = [],
-        public documentations: string[] = []
+        attributes: (FieldAttribute | PassThroughAttribute)[] = [],
+        documentations: string[] = []
     ) {
-        super();
+        super(documentations, attributes);
     }
 
     addAttribute(name: string, args: AttributeArg[] = []): FieldAttribute {
@@ -178,11 +196,22 @@ export class FieldAttribute {
     }
 }
 
-export class ModelAttribute {
+export class ContainerAttribute {
     constructor(public name: string, public args: AttributeArg[] = []) {}
 
     toString(): string {
         return `${this.name}(` + this.args.map((a) => a.toString()).join(', ') + `)`;
+    }
+}
+
+/**
+ * Represents @@prisma.passthrough and @prisma.passthrough
+ */
+export class PassThroughAttribute {
+    constructor(public text: string) {}
+
+    toString(): string {
+        return this.text;
     }
 }
 
@@ -204,7 +233,8 @@ export class AttributeArgValue {
                 if (typeof value !== 'string') throw new Error('Value must be string');
                 break;
             case 'Number':
-                if (typeof value !== 'number') throw new Error('Value must be number');
+                if (typeof value !== 'number' && typeof value !== 'string')
+                    throw new Error('Value must be number or string');
                 break;
             case 'Boolean':
                 if (typeof value !== 'boolean') throw new Error('Value must be boolean');
@@ -225,7 +255,8 @@ export class AttributeArgValue {
     toString(): string {
         switch (this.type) {
             case 'String':
-                return `"${this.value}"`;
+                // use JSON.stringify to escape quotes
+                return JSON.stringify(this.value);
             case 'Number':
                 return this.value.toString();
             case 'FieldReference': {
@@ -277,26 +308,35 @@ export class FunctionCallArg {
     constructor(public name: string | undefined, public value: any) {}
 
     toString(): string {
-        return this.name ? `${this.name}: ${this.value}` : this.value;
+        const val =
+            this.value === null || this.value === undefined
+                ? 'null'
+                : typeof this.value === 'string'
+                ? `"${this.value}"`
+                : this.value.toString();
+        return this.name ? `${this.name}: ${val}` : val;
     }
 }
 
-export class Enum extends DeclarationBase {
+export class Enum extends ContainerDeclaration {
     public fields: EnumField[] = [];
-    public attributes: ModelAttribute[] = [];
 
     constructor(public name: string, public documentations: string[] = []) {
-        super();
+        super(documentations);
     }
 
-    addField(name: string, attributes: FieldAttribute[] = [], documentations: string[] = []): EnumField {
+    addField(
+        name: string,
+        attributes: (FieldAttribute | PassThroughAttribute)[] = [],
+        documentations: string[] = []
+    ): EnumField {
         const field = new EnumField(name, attributes, documentations);
         this.fields.push(field);
         return field;
     }
 
-    addAttribute(name: string, args: AttributeArg[] = []): ModelAttribute {
-        const attr = new ModelAttribute(name, args);
+    addAttribute(name: string, args: AttributeArg[] = []) {
+        const attr = new ContainerAttribute(name, args);
         this.attributes.push(attr);
         return attr;
     }
@@ -317,7 +357,11 @@ export class Enum extends DeclarationBase {
 }
 
 export class EnumField extends DeclarationBase {
-    constructor(public name: string, public attributes: FieldAttribute[] = [], public documentations: string[] = []) {
+    constructor(
+        public name: string,
+        public attributes: (FieldAttribute | PassThroughAttribute)[] = [],
+        public documentations: string[] = []
+    ) {
         super();
     }
 

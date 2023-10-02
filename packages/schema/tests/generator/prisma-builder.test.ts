@@ -1,12 +1,12 @@
-import { getDMMF } from '@prisma/internals';
+import { getDMMF } from '@zenstackhq/sdk';
 import {
     AttributeArg,
     AttributeArgValue,
-    DataSourceUrl,
     FieldAttribute,
     FieldReference,
     FieldReferenceArg,
     FunctionCall,
+    FunctionCallArg,
     ModelFieldType,
     PrismaModel,
 } from '../../src/plugins/prisma/prisma-builder';
@@ -24,15 +24,17 @@ async function validate(model: PrismaModel) {
 describe('Prisma Builder Tests', () => {
     it('datasource', async () => {
         let model = new PrismaModel();
-        model.addDataSource('db', 'postgresql', new DataSourceUrl('DATABASE_URL', true));
+        model.addDataSource('db', [
+            { name: 'provider', text: '"postgresql"' },
+            { name: 'url', text: 'env("DATABASE_URL")' },
+        ]);
         await validate(model);
 
         model = new PrismaModel();
-        model.addDataSource(
-            'db',
-            'postgresql',
-            new DataSourceUrl('postgresql://postgres:abc123@localhost:5432/sample?schema=public', false)
-        );
+        model.addDataSource('db', [
+            { name: 'provider', text: '"postgresql"' },
+            { name: 'url', text: '"postgresql://postgres:abc123@localhost:5432/sample?schema=public"' },
+        ]);
         await validate(model);
     });
 
@@ -46,7 +48,7 @@ describe('Prisma Builder Tests', () => {
 
     it('generator', async () => {
         const model = new PrismaModel();
-        model.addGenerator('client', [{ name: 'provider', value: 'prisma-client-js' }]);
+        model.addGenerator('client', [{ name: 'provider', text: '"prisma-client-js"' }]);
         await validate(model);
     });
 
@@ -94,6 +96,17 @@ describe('Prisma Builder Tests', () => {
         post.addField('id', 'String', [new FieldAttribute('@id')]);
         post.addField('slug', 'String');
         post.addField('space', 'String');
+        post.addField('tsid', 'String', [
+            new FieldAttribute('@default', [
+                new AttributeArg(
+                    undefined,
+                    new AttributeArgValue(
+                        'FunctionCall',
+                        new FunctionCall('dbgenerated', [new FunctionCallArg(undefined, 'timestamp_id()')])
+                    )
+                ),
+            ]),
+        ]);
         post.addAttribute('@@unique', [
             new AttributeArg(
                 'fields',

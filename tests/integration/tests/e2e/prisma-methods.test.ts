@@ -1,12 +1,12 @@
 import { AuthUser } from '@zenstackhq/runtime';
-import { loadSchema, run, WeakDbClientContract } from '@zenstackhq/testtools';
+import { FullDbClientContract, loadSchema, run } from '@zenstackhq/testtools';
 
 describe('Prisma Methods Tests', () => {
-    let getDb: (user?: AuthUser) => WeakDbClientContract;
-    let prisma: WeakDbClientContract;
+    let getDb: (user?: AuthUser) => FullDbClientContract;
+    let prisma: FullDbClientContract;
 
     beforeAll(async () => {
-        const { withPresets, prisma: _prisma } = await loadSchema(
+        const { enhance, prisma: _prisma } = await loadSchema(
             `
             model Model {
                 id String @id @default(cuid())
@@ -16,7 +16,7 @@ describe('Prisma Methods Tests', () => {
             }
             `
         );
-        getDb = withPresets;
+        getDb = enhance;
         prisma = _prisma;
     });
 

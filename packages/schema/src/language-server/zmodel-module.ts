@@ -23,8 +23,9 @@ import { ZModelValidationRegistry, ZModelValidator } from './validator/zmodel-va
 import { ZModelCodeActionProvider } from './zmodel-code-action';
 import { ZModelFormatter } from './zmodel-formatter';
 import { ZModelLinker } from './zmodel-linker';
-import { ZModelScopeComputation } from './zmodel-scope';
+import { ZModelScopeComputation, ZModelScopeProvider } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
+import { ZModelDefinitionProvider } from './zmodel-definition';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -50,14 +51,16 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
     references: {
         ScopeComputation: (services) => new ZModelScopeComputation(services),
         Linker: (services) => new ZModelLinker(services),
+        ScopeProvider: (services) => new ZModelScopeProvider(services),
     },
     validation: {
         ValidationRegistry: (services) => new ZModelValidationRegistry(services),
-        ZModelValidator: () => new ZModelValidator(),
+        ZModelValidator: (services) => new ZModelValidator(services),
     },
     lsp: {
         Formatter: () => new ZModelFormatter(),
         CodeActionProvider: (services) => new ZModelCodeActionProvider(services),
+        DefinitionProvider: (services) => new ZModelDefinitionProvider(services),
     },
 };
 

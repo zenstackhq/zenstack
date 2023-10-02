@@ -1,22 +1,28 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+export type PrismaPromise<T> = Promise<T> & Record<string, (args?: any) => PrismaPromise<any>>;
+
 /**
  * Weakly-typed database access methods
  */
 export interface DbOperations {
-    findMany(args?: unknown): Promise<unknown[]>;
-    findFirst(args: unknown): Promise<unknown>;
-    findFirstOrThrow(args: unknown): Promise<unknown>;
-    findUnique(args: unknown): Promise<unknown>;
-    findUniqueOrThrow(args: unknown): Promise<unknown>;
-    create(args: unknown): Promise<unknown>;
+    findMany(args?: unknown): Promise<any[]>;
+    findFirst(args?: unknown): PrismaPromise<any>;
+    findFirstOrThrow(args?: unknown): PrismaPromise<any>;
+    findUnique(args: unknown): PrismaPromise<any>;
+    findUniqueOrThrow(args: unknown): PrismaPromise<any>;
+    create(args: unknown): Promise<any>;
     createMany(args: unknown, skipDuplicates?: boolean): Promise<{ count: number }>;
-    update(args: unknown): Promise<unknown>;
+    update(args: unknown): Promise<any>;
     updateMany(args: unknown): Promise<{ count: number }>;
-    upsert(args: unknown): Promise<unknown>;
-    delete(args: unknown): Promise<unknown>;
+    upsert(args: unknown): Promise<any>;
+    delete(args: unknown): Promise<any>;
     deleteMany(args?: unknown): Promise<{ count: number }>;
-    aggregate(args: unknown): Promise<unknown>;
-    groupBy(args: unknown): Promise<unknown>;
-    count(args?: unknown): Promise<unknown>;
+    aggregate(args: unknown): Promise<any>;
+    groupBy(args: unknown): Promise<any>;
+    count(args?: unknown): Promise<any>;
+    subscribe(args?: unknown): Promise<any>;
+    fields: Record<string, any>;
 }
 
 /**
@@ -43,6 +49,9 @@ export type QueryContext = {
      */
     user?: AuthUser;
 
+    /**
+     * Pre-update value of the entity
+     */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     preValue?: any;
 };
@@ -56,18 +65,64 @@ export type RuntimeAttribute = {
  * Runtime information of a data model field
  */
 export type FieldInfo = {
+    /**
+     * Field name
+     */
     name: string;
+
+    /**
+     * Field type name
+     */
     type: string;
+
+    /**
+     * If the field is an ID field or part of a multi-field ID
+     */
     isId: boolean;
+
+    /**
+     * If the field type is a data model (or an optional/array of data model)
+     */
     isDataModel: boolean;
+
+    /**
+     * If the field is an array
+     */
     isArray: boolean;
+
+    /**
+     * If the field is optional
+     */
     isOptional: boolean;
+
+    /**
+     * Attributes on the field
+     */
     attributes: RuntimeAttribute[];
+
+    /**
+     * If the field is a relation field, the field name of the reverse side of the relation
+     */
     backLink?: string;
+
+    /**
+     * If the field is the owner side of a relation
+     */
+    isRelationOwner: boolean;
+
+    /**
+     * If the field is a foreign key field
+     */
+    isForeignKey: boolean;
+
+    /**
+     * Mapping from foreign key field names to relation field names
+     */
+    foreignKeyMapping?: Record<string, string>;
 };
 
 export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>) => Promise<T>;
+    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>, options?: unknown) => Promise<T>;
 };
 
 export const PrismaWriteActions = [
@@ -77,8 +132,11 @@ export const PrismaWriteActions = [
     'update',
     'updateMany',
     'upsert',
+    'connect',
+    'disconnect',
+    'set',
     'delete',
     'deleteMany',
 ] as const;
 
-export type PrismaWriteActionType = typeof PrismaWriteActions[number];
+export type PrismaWriteActionType = (typeof PrismaWriteActions)[number];

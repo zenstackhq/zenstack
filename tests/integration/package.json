@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "lint": "eslint . --ext .ts",
-        "test": "jest"
+        "test": "ZENSTACK_TEST=1 jest"
     },
     "keywords": [],
     "author": "",
@@ -13,21 +13,21 @@
     "devDependencies": {
         "@types/bcryptjs": "^2.4.2",
         "@types/fs-extra": "^11.0.1",
-        "@types/jest": "^29.0.3",
+        "@types/jest": "^29.5.0",
+        "@types/pg": "^8.10.2",
         "@types/supertest": "^2.0.12",
         "@types/tmp": "^0.2.3",
         "@types/uuid": "^8.3.4",
         "@zenstackhq/runtime": "workspace:*",
-        "@zenstackhq/next": "workspace:*",
-        "@zenstackhq/react": "workspace:*",
+        "@zenstackhq/server": "workspace:*",
+        "@zenstackhq/swr": "workspace:*",
         "@zenstackhq/trpc": "workspace:*",
         "eslint": "^8.30.0",
         "eslint-plugin-jest": "^27.1.7",
         "fs-extra": "^11.1.0",
-        "jest": "^29.0.3",
+        "jest": "^29.5.0",
         "jest-fetch-mock": "^3.0.3",
         "next": "^12.3.1",
-        "prisma": "~4.7.0",
         "tmp": "^0.2.1",
         "ts-jest": "^29.0.1",
         "ts-node": "^10.9.1",
@@ -36,12 +36,13 @@
         "zenstack": "workspace: *"
     },
     "dependencies": {
-        "@prisma/client": "^4.7.0",
-        "@types/node": "^14.18.29",
+        "@types/node": "^18.0.0",
+        "@zenstackhq/sdk": "workspace:*",
+        "@zenstackhq/testtools": "workspace:*",
         "bcryptjs": "^2.4.3",
         "decimal.js": "^10.4.2",
+        "pg": "^8.11.1",
         "sleep-promise": "^9.1.0",
-        "superjson": "^1.11.0",
-        "@zenstackhq/testtools": "workspace:*"
+        "superjson": "^1.11.0"
     }
 }

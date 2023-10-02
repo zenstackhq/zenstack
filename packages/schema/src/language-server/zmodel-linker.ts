@@ -3,11 +3,14 @@ import {
     AttributeArg,
     AttributeParam,
     BinaryExpr,
+    BooleanLiteral,
     DataModel,
     DataModelField,
     DataModelFieldType,
+    Enum,
     EnumField,
     Expression,
+    ExpressionType,
     FunctionDecl,
     FunctionParam,
     FunctionParamType,
@@ -15,16 +18,25 @@ import {
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
+    NumberLiteral,
+    ObjectExpr,
     ReferenceExpr,
     ReferenceTarget,
     ResolvedShape,
+    StringLiteral,
     ThisExpr,
     UnaryExpr,
     isArrayExpr,
+    isBooleanLiteral,
     isDataModel,
     isDataModelField,
+    isDataModelFieldType,
+    isEnum,
+    isNumberLiteral,
     isReferenceExpr,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
+import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -39,8 +51,9 @@ import {
     isReference,
     streamContents,
 } from 'langium';
+import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getContainingModel, isFromStdlib } from './utils';
+import { getAllDeclarationsFromImports } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -48,7 +61,7 @@ interface DefaultReference extends Reference {
     _nodeDescription?: AstNodeDescription;
 }
 
-type ScopeProvider = (name: string) => ReferenceTarget | undefined;
+type ScopeProvider = (name: string) => ReferenceTarget | DataModel | undefined;
 
 /**
  * Langium linker implementation which links references and resolves expression types
@@ -113,7 +126,9 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolve(node: AstNode, document: LangiumDocument, extraScopes: ScopeProvider[] = []) {
         switch (node.$type) {
-            case LiteralExpr:
+            case StringLiteral:
+            case NumberLiteral:
+            case BooleanLiteral:
                 this.resolveLiteral(node as LiteralExpr);
                 break;
 
@@ -141,6 +156,10 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveBinary(node as BinaryExpr, document, extraScopes);
                 break;
 
+            case ObjectExpr:
+                this.resolveObject(node as ObjectExpr, document, extraScopes);
+                break;
+
             case ThisExpr:
                 this.resolveThis(node as ThisExpr, document, extraScopes);
                 break;
@@ -151,6 +170,14 @@ export class ZModelLinker extends DefaultLinker {
 
             case AttributeArg:
                 this.resolveAttributeArg(node as AttributeArg, document, extraScopes);
+                break;
+
+            case DataModel:
+                this.resolveDataModel(node as DataModel, document, extraScopes);
+                break;
+
+            case DataModelField:
+                this.resolveDataModelField(node as DataModelField, document, extraScopes);
                 break;
 
             default:
@@ -179,6 +206,7 @@ export class ZModelLinker extends DefaultLinker {
             case '!=':
             case '&&':
             case '||':
+            case 'in':
                 this.resolve(node.left, document, extraScopes);
                 this.resolve(node.right, document, extraScopes);
                 this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
@@ -197,7 +225,18 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolveUnary(node: UnaryExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         this.resolve(node.operand, document, extraScopes);
-        node.$resolvedType = node.operand.$resolvedType;
+        switch (node.operator) {
+            case '!':
+                this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
+                break;
+            default:
+                throw Error(`Unsupported unary operator: ${node.operator}`);
+        }
+    }
+
+    private resolveObject(node: ObjectExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        node.fields.forEach((field) => this.resolve(field.value, document, extraScopes));
+        this.resolveToBuiltinTypeOrDecl(node, 'Object');
     }
 
     private resolveReference(node: ReferenceExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
@@ -236,9 +275,14 @@ export class ZModelLinker extends DefaultLinker {
             if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
-                const userModel = model?.declarations.find((d) => isDataModel(d) && d.name === 'User');
-                if (userModel) {
-                    node.$resolvedType = { decl: userModel };
+
+                if (model) {
+                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find(
+                        (d) => isDataModel(d) && d.name === 'User'
+                    );
+                    if (userModel) {
+                        node.$resolvedType = { decl: userModel, nullable: true };
+                    }
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
                 // future() function is resolved to current model
@@ -261,14 +305,11 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveLiteral(node: LiteralExpr) {
-        const type =
-            typeof node.value === 'string'
-                ? 'String'
-                : typeof node.value === 'boolean'
-                ? 'Boolean'
-                : typeof node.value === 'number'
-                ? 'Int'
-                : undefined;
+        const type = match<LiteralExpr, ExpressionType>(node)
+            .when(isStringLiteral, () => 'String')
+            .when(isBooleanLiteral, () => 'Boolean')
+            .when(isNumberLiteral, () => 'Int')
+            .exhaustive();
 
         if (type) {
             this.resolveToBuiltinTypeOrDecl(node, type);
@@ -285,7 +326,7 @@ export class ZModelLinker extends DefaultLinker {
 
         if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
             const modelDecl = operandResolved.decl as DataModel;
-            const provider = (name: string) => modelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => modelDecl.$resolvedFields.find((f) => f.name === name);
             extraScopes = [provider, ...extraScopes];
         }
 
@@ -301,7 +342,13 @@ export class ZModelLinker extends DefaultLinker {
         const resolvedType = node.left.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
             const dataModelDecl = resolvedType.decl;
-            const provider = (name: string) => dataModelDecl.fields.find((f) => f.name === name);
+            const provider = (name: string) => {
+                if (name === 'this') {
+                    return dataModelDecl;
+                } else {
+                    return dataModelDecl.$resolvedFields.find((f) => f.name === name);
+                }
+            };
             extraScopes = [provider, ...extraScopes];
             this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
@@ -310,13 +357,16 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    private resolveThis(
-        node: ThisExpr,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        document: LangiumDocument<AstNode>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        extraScopes: ScopeProvider[]
-    ) {
+    private resolveThis(node: ThisExpr, _document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        // resolve from scopes first
+        for (const scope of extraScopes) {
+            const r = scope('this');
+            if (isDataModel(r)) {
+                this.resolveToBuiltinTypeOrDecl(node, r);
+                return;
+            }
+        }
+
         let decl: AstNode | undefined = node.$container;
 
         while (decl && !isDataModel(decl)) {
@@ -328,13 +378,7 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
-    private resolveNull(
-        node: NullExpr,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        document: LangiumDocument<AstNode>,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        extraScopes: ScopeProvider[]
-    ) {
+    private resolveNull(node: NullExpr, _document: LangiumDocument<AstNode>, _extraScopes: ScopeProvider[]) {
         // TODO: how to really resolve null?
         this.resolveToBuiltinTypeOrDecl(node, 'Null');
     }
@@ -363,7 +407,7 @@ export class ZModelLinker extends DefaultLinker {
             const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
             if (transtiveDataModel) {
                 // resolve references in the context of the transitive data model
-                const scopeProvider = (name: string) => transtiveDataModel.fields.find((f) => f.name === name);
+                const scopeProvider = (name: string) => transtiveDataModel.$resolvedFields.find((f) => f.name === name);
                 if (isArrayExpr(node.value)) {
                     node.value.items.forEach((item) => {
                         if (isReferenceExpr(item)) {
@@ -418,6 +462,60 @@ export class ZModelLinker extends DefaultLinker {
         }
     }
 
+    private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
+        if (node.superTypes.length > 0) {
+            const providers = node.superTypes.map(
+                (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
+            );
+            extraScopes = [...providers, ...extraScopes];
+        }
+
+        return this.resolveDefault(node, document, extraScopes);
+    }
+
+    private resolveDataModelField(
+        node: DataModelField,
+        document: LangiumDocument<AstNode>,
+        extraScopes: ScopeProvider[]
+    ) {
+        // Field declaration may contain enum references, and enum fields are pushed to the global
+        // scope, so if there're enums with fields with the same name, an arbitrary one will be
+        // used as resolution target. The correct behavior is to resolve to the enum that's used
+        // as the declaration type of the field:
+        //
+        // enum FirstEnum {
+        //     E1
+        //     E2
+        // }
+
+        // enum SecondEnum  {
+        //     E1
+        //     E3
+        //     E4
+        // }
+
+        // model M {
+        //     id Int @id
+        //     first  SecondEnum @default(E1) <- should resolve to SecondEnum
+        //     second FirstEnum @default(E1) <- should resolve to FirstEnum
+        // }
+        //
+
+        // make sure type is resolved first
+        this.resolve(node.type, document, extraScopes);
+
+        let scopes = extraScopes;
+
+        // if the field has enum declaration type, resolve the rest with that enum's fields on top of the scopes
+        if (node.type.reference?.ref && isEnum(node.type.reference.ref)) {
+            const contextEnum = node.type.reference.ref as Enum;
+            const enumScope: ScopeProvider = (name) => contextEnum.fields.find((f) => f.name === name);
+            scopes = [enumScope, ...scopes];
+        }
+
+        this.resolveDefault(node, document, scopes);
+    }
+
     private resolveDefault(node: AstNode, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         for (const [property, value] of Object.entries(node)) {
             if (!property.startsWith('$')) {
@@ -436,19 +534,31 @@ export class ZModelLinker extends DefaultLinker {
     //#region Utils
 
     private resolveToDeclaredType(node: AstNode, type: FunctionParamType | DataModelFieldType) {
+        let nullable = false;
+        if (isDataModelFieldType(type)) {
+            nullable = type.optional;
+
+            // referencing a field of 'Unsupported' type
+            if (type.unsupported) {
+                node.$resolvedType = { decl: 'Unsupported', array: type.array, nullable };
+                return;
+            }
+        }
+
         if (type.type) {
             const mappedType = mapBuiltinTypeToExpressionType(type.type);
-            node.$resolvedType = { decl: mappedType, array: type.array };
+            node.$resolvedType = { decl: mappedType, array: type.array, nullable: nullable };
         } else if (type.reference) {
             node.$resolvedType = {
                 decl: type.reference.ref,
                 array: type.array,
+                nullable: nullable,
             };
         }
     }
 
-    private resolveToBuiltinTypeOrDecl(node: AstNode, type: ResolvedShape, array = false) {
-        node.$resolvedType = { decl: type, array };
+    private resolveToBuiltinTypeOrDecl(node: AstNode, type: ResolvedShape, array = false, nullable = false) {
+        node.$resolvedType = { decl: type, array, nullable };
     }
 
     //#endregion

@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.0.0-alpha.53",
+    "version": "1.0.0",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,11 +9,36 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist",
-        "watch": "tsc --watch",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
+    },
+    "main": "index.js",
+    "types": "index.d.ts",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./package.json": {
+            "default": "./package.json"
+        },
+        "./zod": {
+            "default": "./zod/index.js"
+        },
+        "./zod/input": {
+            "default": "./zod/input.js"
+        },
+        "./zod/models": {
+            "default": "./zod/models.js"
+        },
+        "./browser": {
+            "import": "./browser/index.mjs",
+            "require": "./browser/index.js",
+            "default": "./browser/index.js",
+            "types": "./browser/index.d.ts"
+        }
     },
     "publishConfig": {
         "directory": "dist",
@@ -21,21 +46,20 @@
     },
     "dependencies": {
         "@types/bcryptjs": "^2.4.2",
-        "@zenstackhq/sdk": "workspace:*",
         "bcryptjs": "^2.4.3",
+        "buffer": "^6.0.3",
         "change-case": "^4.1.2",
         "colors": "1.4.0",
-        "cuid": "^2.1.8",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
+        "lower-case-first": "^2.0.2",
+        "pluralize": "^8.0.0",
+        "semver": "^7.3.8",
         "superjson": "^1.11.0",
-        "swr": "^1.3.0",
         "tslib": "^2.4.1",
-        "zod": "^3.19.1",
+        "upper-case-first": "^2.0.2",
+        "zod": "3.21.1",
         "zod-validation-error": "^0.2.1"
-    },
-    "peerDependencies": {
-        "@prisma/client": "^4.0.0"
     },
     "author": {
         "name": "ZenStack Team"
@@ -44,8 +68,10 @@
     "license": "MIT",
     "devDependencies": {
         "@types/bcryptjs": "^2.4.2",
-        "@types/jest": "^29.0.3",
-        "@types/node": "^14.18.29",
+        "@types/jest": "^29.5.0",
+        "@types/node": "^18.0.0",
+        "@types/pluralize": "^0.0.29",
+        "@types/semver": "^7.3.13",
         "copyfiles": "^2.4.1",
         "rimraf": "^3.0.2",
         "typescript": "^4.9.3"

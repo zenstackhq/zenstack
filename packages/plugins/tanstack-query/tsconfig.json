@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "ES6",
+        "module": "CommonJS",
+        "lib": ["ESNext", "DOM"],
+        "sourceMap": true,
+        "outDir": "dist",
+        "strict": true,
+        "noUnusedLocals": true,
+        "noImplicitReturns": true,
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "declaration": true,
+        "resolveJsonModule": true,
+        "strictPropertyInitialization": false,
+        "paths": {}
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["src/runtime"]
+}

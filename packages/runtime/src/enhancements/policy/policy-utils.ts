@@ -1,92 +1,211 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from '@prisma/client/runtime';
-import { AUXILIARY_FIELDS, CrudFailureReason, TRANSACTION_FIELD_NAME } from '@zenstackhq/sdk';
-import { camelCase } from 'change-case';
-import cuid from 'cuid';
 import deepcopy from 'deepcopy';
+import { lowerCaseFirst } from 'lower-case-first';
+import { upperCaseFirst } from 'upper-case-first';
+import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import {
-    AuthUser,
-    DbClientContract,
-    DbOperations,
-    FieldInfo,
-    PolicyOperationKind,
-    PrismaWriteActionType,
-} from '../../types';
+    CrudFailureReason,
+    FIELD_LEVEL_READ_CHECKER_PREFIX,
+    FIELD_LEVEL_READ_CHECKER_SELECTOR,
+    FIELD_LEVEL_UPDATE_GUARD_PREFIX,
+    HAS_FIELD_LEVEL_POLICY_FLAG,
+    PRE_UPDATE_VALUE_SELECTOR,
+    PrismaErrorCode,
+} from '../../constants';
+import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
-import { resolveField } from '../model-meta';
-import { NestedWriteVisitor, VisitorContext } from '../nested-write-vistor';
-import { ModelMeta, PolicyDef, PolicyFunc } from '../types';
-import { enumerate, formatObject, getModelFields } from '../utils';
+import { getFields, resolveField } from '../model-meta';
+import { NestedWriteVisitorContext } from '../nested-write-visitor';
+import type { InputCheckFunc, ModelMeta, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import {
+    enumerate,
+    formatObject,
+    getIdFields,
+    getModelFields,
+    prismaClientKnownRequestError,
+    prismaClientUnknownRequestError,
+    prismaClientValidationError,
+    zip,
+} from '../utils';
 import { Logger } from './logger';
 
 /**
  * Access policy enforcement utilities
  */
 export class PolicyUtil {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     private readonly logger: Logger;
 
     constructor(
         private readonly db: DbClientContract,
         private readonly modelMeta: ModelMeta,
         private readonly policy: PolicyDef,
-        private readonly user?: AuthUser
+        private readonly zodSchemas: ZodSchemas | undefined,
+        private readonly user?: AuthUser,
+        private readonly shouldLogQuery = false
     ) {
         this.logger = new Logger(db);
     }
 
+    //#region Logical operators
+
     /**
      * Creates a conjunction of a list of query conditions.
      */
-    and(...conditions: (boolean | object)[]): any {
-        if (conditions.includes(false)) {
-            // always false
-            // TODO: custom id field
-            return { id: { in: [] } };
-        }
-
-        const filtered = conditions.filter(
-            (c): c is object => typeof c === 'object' && !!c && Object.keys(c).length > 0
-        );
+    and(...conditions: (boolean | object | undefined)[]): object {
+        const filtered = conditions.filter((c) => c !== undefined);
         if (filtered.length === 0) {
-            return undefined;
+            return this.makeTrue();
         } else if (filtered.length === 1) {
-            return filtered[0];
+            return this.reduce(filtered[0]);
         } else {
-            return { AND: filtered };
+            return this.reduce({ AND: filtered });
         }
     }
 
     /**
      * Creates a disjunction of a list of query conditions.
      */
-    or(...conditions: (boolean | object)[]): any {
-        if (conditions.includes(true)) {
-            // always true
-            return { id: { notIn: [] } };
-        }
-
-        const filtered = conditions.filter((c): c is object => typeof c === 'object' && !!c);
+    or(...conditions: (boolean | object | undefined)[]): object {
+        const filtered = conditions.filter((c) => c !== undefined);
         if (filtered.length === 0) {
-            return undefined;
+            return this.makeFalse();
         } else if (filtered.length === 1) {
-            return filtered[0];
+            return this.reduce(filtered[0]);
         } else {
-            return { OR: filtered };
+            return this.reduce({ OR: filtered });
         }
     }
 
     /**
      * Creates a negation of a query condition.
      */
-    not(condition: object | boolean): any {
-        if (typeof condition === 'boolean') {
-            return !condition;
+    not(condition: object | boolean | undefined): object {
+        if (condition === undefined) {
+            return this.makeTrue();
+        } else if (typeof condition === 'boolean') {
+            return this.reduce(!condition);
         } else {
-            return { NOT: condition };
+            return this.reduce({ NOT: condition });
         }
     }
+
+    // Static True/False conditions
+    // https://www.prisma.io/docs/concepts/components/prisma-client/null-and-undefined#the-effect-of-null-and-undefined-on-conditionals
+
+    public isTrue(condition: object) {
+        if (condition === null || condition === undefined) {
+            return false;
+        } else {
+            return (
+                (typeof condition === 'object' && Object.keys(condition).length === 0) ||
+                ('AND' in condition && Array.isArray(condition.AND) && condition.AND.length === 0)
+            );
+        }
+    }
+
+    public isFalse(condition: object) {
+        if (condition === null || condition === undefined) {
+            return false;
+        } else {
+            return 'OR' in condition && Array.isArray(condition.OR) && condition.OR.length === 0;
+        }
+    }
+
+    private makeTrue() {
+        return { AND: [] };
+    }
+
+    private makeFalse() {
+        return { OR: [] };
+    }
+
+    private reduce(condition: object | boolean | undefined): object {
+        if (condition === true || condition === undefined) {
+            return this.makeTrue();
+        }
+
+        if (condition === false) {
+            return this.makeFalse();
+        }
+
+        if (condition === null) {
+            return condition;
+        }
+
+        const result: any = {};
+        for (const [key, value] of Object.entries<any>(condition)) {
+            if (value === null || value === undefined) {
+                result[key] = value;
+                continue;
+            }
+
+            switch (key) {
+                case 'AND': {
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isTrue(c));
+                    if (children.length === 0) {
+                        result[key] = []; // true
+                    } else if (children.some((c) => this.isFalse(c))) {
+                        result['OR'] = []; // false
+                    } else {
+                        if (!this.isTrue({ AND: result[key] })) {
+                            // use AND only if it's not already true
+                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
+                        }
+                    }
+                    break;
+                }
+
+                case 'OR': {
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isFalse(c));
+                    if (children.length === 0) {
+                        result[key] = []; // false
+                    } else if (children.some((c) => this.isTrue(c))) {
+                        result['AND'] = []; // true
+                    } else {
+                        if (!this.isFalse({ OR: result[key] })) {
+                            // use OR only if it's not already false
+                            result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
+                        }
+                    }
+                    break;
+                }
+
+                case 'NOT': {
+                    result[key] = this.reduce(value);
+                    break;
+                }
+
+                default: {
+                    const booleanKeys = ['AND', 'OR', 'NOT', 'is', 'isNot', 'none', 'every', 'some'];
+                    if (
+                        typeof value === 'object' &&
+                        value &&
+                        // recurse only if the value has at least one boolean key
+                        Object.keys(value).some((k) => booleanKeys.includes(k))
+                    ) {
+                        result[key] = this.reduce(value);
+                    } else {
+                        result[key] = value;
+                    }
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    //#endregion
+
+    //# Auth guard
 
     /**
      * Gets pregenerated authorization guard object for a given model and operation.
@@ -94,82 +213,158 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    async getAuthGuard(model: string, operation: PolicyOperationKind, preValue?: any): Promise<boolean | object> {
-        const guard = this.policy.guard[camelCase(model)];
+    getAuthGuard(
+        db: Record<string, DbOperations>,
+        model: string,
+        operation: PolicyOperationKind,
+        preValue?: any
+    ): object {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
 
-        const provider: PolicyFunc | boolean | undefined = guard[operation];
+        const provider = guard[operation];
         if (typeof provider === 'boolean') {
-            return provider;
+            return this.reduce(provider);
         }
 
         if (!provider) {
             throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
         }
-        return provider({ user: this.user, preValue });
+        const r = provider({ user: this.user, preValue }, db);
+        return this.reduce(r);
     }
 
-    private async getPreValueSelect(model: string): Promise<object | undefined> {
-        const guard = this.policy.guard[camelCase(model)];
+    /**
+     * Get field-level auth guard
+     */
+    getFieldUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string): object {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
-        return guard.preValueSelect;
+
+        const provider = guard[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field}`];
+        if (typeof provider === 'boolean') {
+            return this.reduce(provider);
+        }
+
+        if (!provider) {
+            return this.makeTrue();
+        }
+        const r = provider({ user: this.user }, db);
+        return this.reduce(r);
     }
 
-    private async getModelSchema(model: string) {
-        return this.policy.schema[camelCase(model)];
+    /**
+     * Checks if the given model has a policy guard for the given operation.
+     */
+    hasAuthGuard(model: string, operation: PolicyOperationKind): boolean {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            return false;
+        }
+        const provider = guard[operation];
+        return typeof provider !== 'boolean' || provider !== true;
+    }
+
+    /**
+     * Checks model creation policy based on static analysis to the input args.
+     *
+     * @returns boolean if static analysis is enough to determine the result, undefined if not
+     */
+    checkInputGuard(model: string, args: any, operation: 'create'): boolean | undefined {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            return undefined;
+        }
+
+        const provider: InputCheckFunc | boolean | undefined = guard[`${operation}_input` as const];
+
+        if (typeof provider === 'boolean') {
+            return provider;
+        }
+
+        if (!provider) {
+            return undefined;
+        }
+
+        return provider(args, { user: this.user });
     }
 
     /**
      * Injects model auth guard as where clause.
      */
-    async injectAuthGuard(args: any, model: string, operation: PolicyOperationKind) {
+    injectAuthGuard(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
+        let guard = this.getAuthGuard(db, model, operation);
+        if (this.isFalse(guard)) {
+            args.where = this.makeFalse();
+            return false;
+        }
+
+        if (operation === 'update' && args) {
+            // merge field-level policy guards
+            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
+            if (fieldUpdateGuard.rejectedByField) {
+                // rejected
+                args.where = this.makeFalse();
+                return false;
+            } else if (fieldUpdateGuard.guard) {
+                // merge
+                guard = this.and(guard, fieldUpdateGuard.guard);
+            }
+        }
+
         if (args.where) {
             // inject into relation fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            await this.injectGuardForFields(model, args.where, operation);
+            this.injectGuardForRelationFields(db, model, args.where, operation);
         }
 
-        const guard = await this.getAuthGuard(model, operation);
         args.where = this.and(args.where, guard);
+        return true;
     }
 
-    async injectGuardForFields(model: string, payload: any, operation: PolicyOperationKind) {
+    private injectGuardForRelationFields(
+        db: Record<string, DbOperations>,
+        model: string,
+        payload: any,
+        operation: PolicyOperationKind
+    ) {
         for (const [field, subPayload] of Object.entries<any>(payload)) {
             if (!subPayload) {
                 continue;
             }
 
-            const fieldInfo = await resolveField(this.modelMeta, model, field);
+            const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel) {
                 continue;
             }
 
             if (fieldInfo.isArray) {
-                await this.injectGuardForToManyField(fieldInfo, subPayload, operation);
+                this.injectGuardForToManyField(db, fieldInfo, subPayload, operation);
             } else {
-                await this.injectGuardForToOneField(fieldInfo, subPayload, operation);
+                this.injectGuardForToOneField(db, fieldInfo, subPayload, operation);
             }
         }
     }
 
-    async injectGuardForToManyField(
+    private injectGuardForToManyField(
+        db: Record<string, DbOperations>,
         fieldInfo: FieldInfo,
         payload: { some?: any; every?: any; none?: any },
         operation: PolicyOperationKind
     ) {
-        const guard = await this.getAuthGuard(fieldInfo.type, operation);
+        const guard = this.getAuthGuard(db, fieldInfo.type, operation);
         if (payload.some) {
-            await this.injectGuardForFields(fieldInfo.type, payload.some, operation);
+            this.injectGuardForRelationFields(db, fieldInfo.type, payload.some, operation);
             // turn "some" into: { some: { AND: [guard, payload.some] } }
             payload.some = this.and(payload.some, guard);
         }
         if (payload.none) {
-            await this.injectGuardForFields(fieldInfo.type, payload.none, operation);
+            this.injectGuardForRelationFields(db, fieldInfo.type, payload.none, operation);
             // turn none into: { none: { AND: [guard, payload.none] } }
             payload.none = this.and(payload.none, guard);
         }
@@ -179,7 +374,7 @@ export class PolicyUtil {
             // ignore empty every clause
             Object.keys(payload.every).length > 0
         ) {
-            await this.injectGuardForFields(fieldInfo.type, payload.every, operation);
+            this.injectGuardForRelationFields(db, fieldInfo.type, payload.every, operation);
 
             // turn "every" into: { none: { AND: [guard, { NOT: payload.every }] } }
             if (!payload.none) {
@@ -190,26 +385,27 @@ export class PolicyUtil {
         }
     }
 
-    async injectGuardForToOneField(
+    private injectGuardForToOneField(
+        db: Record<string, DbOperations>,
         fieldInfo: FieldInfo,
         payload: { is?: any; isNot?: any } & Record<string, any>,
         operation: PolicyOperationKind
     ) {
-        const guard = await this.getAuthGuard(fieldInfo.type, operation);
+        const guard = this.getAuthGuard(db, fieldInfo.type, operation);
+
+        // is|isNot and flat fields conditions are mutually exclusive
+
         if (payload.is || payload.isNot) {
             if (payload.is) {
-                await this.injectGuardForFields(fieldInfo.type, payload.is, operation);
-                // turn "is" into: { is: { AND: [ originalIs, guard ] }
-                payload.is = this.and(payload.is, guard);
+                this.injectGuardForRelationFields(db, fieldInfo.type, payload.is, operation);
             }
             if (payload.isNot) {
-                await this.injectGuardForFields(fieldInfo.type, payload.isNot, operation);
-                // turn "isNot" into: { isNot: { AND: [ originalIsNot, { NOT: guard } ] } }
-                payload.isNot = this.and(payload.isNot, this.not(guard));
-                delete payload.isNot;
+                this.injectGuardForRelationFields(db, fieldInfo.type, payload.isNot, operation);
             }
+            // merge guard with existing "is": { is: [originalIs, guard] }
+            payload.is = this.and(payload.is, guard);
         } else {
-            await this.injectGuardForFields(fieldInfo.type, payload, operation);
+            this.injectGuardForRelationFields(db, fieldInfo.type, payload, operation);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
             const combined = this.and(deepcopy(payload), guard);
             Object.keys(payload).forEach((key) => delete payload[key]);
@@ -218,65 +414,186 @@ export class PolicyUtil {
     }
 
     /**
-     * Read model entities w.r.t the given query args. The result list
-     * are guaranteed to fully satisfy 'read' policy rules recursively.
-     *
-     * For to-many relations involved, items not satisfying policy are
-     * silently trimmed. For to-one relation, if relation data fails policy
-     * an error is thrown.
+     * Injects auth guard for read operations.
      */
-    async readWithCheck(model: string, args: any): Promise<unknown[]> {
-        args = this.clone(args);
-
-        if (args.where) {
-            // query args will be used with findMany, so we need to
-            // translate unique constraint filters into a flat filter
-            // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-            await this.flattenGeneratedUniqueField(model, args.where);
+    injectForRead(db: Record<string, DbOperations>, model: string, args: any) {
+        const injected: any = {};
+        if (!this.injectAuthGuard(db, injected, model, 'read')) {
+            return false;
         }
 
-        await this.injectAuthGuard(args, model, 'read');
+        if (args.where) {
+            // inject into relation fields:
+            //   to-many: some/none/every
+            //   to-one: direct-conditions/is/isNot
+            this.injectGuardForRelationFields(db, model, args.where, 'read');
+        }
 
-        // recursively inject read guard conditions into the query args
-        await this.injectNestedReadConditions(model, args);
-
-        this.logger.info(`Reading with validation for ${model}: ${formatObject(args)}`);
-        const result: any[] = await this.db[model].findMany(args);
-
-        await Promise.all(result.map((item) => this.postProcessForRead(item, model, args, 'read')));
-
-        return result;
-    }
-
-    // flatten unique constraint filters
-    async flattenGeneratedUniqueField(model: string, args: any) {
-        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[camelCase(model)];
-        let flattened = false;
-        if (uniqueConstraints) {
-            for (const [field, value] of Object.entries<any>(args)) {
-                if (uniqueConstraints[field] && typeof value === 'object') {
-                    for (const [f, v] of Object.entries(value)) {
-                        args[f] = v;
-                    }
-                    delete args[field];
-                    flattened = true;
-                }
+        if (injected.where && Object.keys(injected.where).length > 0 && !this.isTrue(injected.where)) {
+            if (!args.where) {
+                args.where = injected.where;
+            } else {
+                this.mergeWhereClause(args.where, injected.where);
             }
         }
 
-        if (flattened) {
-            this.logger.info(`Filter flattened: ${JSON.stringify(args)}`);
+        // recursively inject read guard conditions into nested select, include, and _count
+        const hoistedConditions = this.injectNestedReadConditions(db, model, args);
+
+        // the injection process may generate conditions that need to be hoisted to the toplevel,
+        // if so, merge it with the existing where
+        if (hoistedConditions.length > 0) {
+            if (!args.where) {
+                args.where = this.and(...hoistedConditions);
+            } else {
+                this.mergeWhereClause(args.where, this.and(...hoistedConditions));
+            }
+        }
+
+        return true;
+    }
+
+    // flatten unique constraint filters
+    private flattenGeneratedUniqueField(model: string, args: any) {
+        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
+        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
+        if (uniqueConstraints && Object.keys(uniqueConstraints).length > 0) {
+            for (const [field, value] of Object.entries<any>(args)) {
+                if (
+                    uniqueConstraints[field] &&
+                    uniqueConstraints[field].fields.length > 1 &&
+                    typeof value === 'object'
+                ) {
+                    // multi-field unique constraint, flatten it
+                    delete args[field];
+                    for (const [f, v] of Object.entries(value)) {
+                        args[f] = v;
+                    }
+                }
+            }
         }
     }
 
-    private async injectNestedReadConditions(model: string, args: any) {
+    /**
+     * Gets unique constraints for the given model.
+     */
+    getUniqueConstraints(model: string) {
+        return this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)] ?? {};
+    }
+
+    /**
+     * Builds a reversed query for the given nested path.
+     */
+    buildReversedQuery(context: NestedWriteVisitorContext, mutating = false, unsafeOperation = false) {
+        let result, currQuery: any;
+        let currField: FieldInfo | undefined;
+
+        for (let i = context.nestingPath.length - 1; i >= 0; i--) {
+            const { field, model, where } = context.nestingPath[i];
+
+            // never modify the original where because it's shared in the structure
+            const visitWhere = { ...where };
+            if (model && where) {
+                // make sure composite unique condition is flattened
+                this.flattenGeneratedUniqueField(model, visitWhere);
+            }
+
+            if (!result) {
+                // first segment (bottom), just use its where clause
+                result = currQuery = { ...visitWhere };
+                currField = field;
+            } else {
+                if (!currField) {
+                    throw this.unknownError(`missing field in nested path`);
+                }
+                if (!currField.backLink) {
+                    throw this.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
+                }
+
+                const backLinkField = this.getModelField(currField.type, currField.backLink);
+                if (!backLinkField) {
+                    throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
+                }
+
+                if (backLinkField.isArray) {
+                    // many-side of relationship, wrap with "some" query
+                    currQuery[currField.backLink] = { some: { ...visitWhere } };
+                } else {
+                    const fkMapping = where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping;
+
+                    // calculate if we should preserve the relation condition (e.g., { user: { id: 1 } })
+                    const shouldPreserveRelationCondition =
+                        // doing a mutation
+                        mutating &&
+                        // and it's a safe mutate
+                        !unsafeOperation &&
+                        // and the current segment is the direct parent (the last one is the mutate itself),
+                        // the relation condition should be preserved and will be converted to a "connect" later
+                        i === context.nestingPath.length - 2;
+
+                    if (fkMapping && !shouldPreserveRelationCondition) {
+                        // turn relation condition into foreign key condition, e.g.:
+                        //     { user: { id: 1 } } => { userId: 1 }
+                        for (const [r, fk] of Object.entries<string>(fkMapping)) {
+                            currQuery[fk] = visitWhere[r];
+                        }
+
+                        if (i > 0) {
+                            // prepare for the next segment
+                            currQuery[currField.backLink] = {};
+                        }
+                    } else {
+                        // preserve the original structure
+                        currQuery[currField.backLink] = { ...visitWhere };
+                    }
+                }
+                currQuery = currQuery[currField.backLink];
+                currField = field;
+            }
+        }
+        return result;
+    }
+
+    private injectNestedReadConditions(db: Record<string, DbOperations>, model: string, args: any): any[] {
         const injectTarget = args.select ?? args.include;
         if (!injectTarget) {
-            return;
+            return [];
         }
 
-        const idField = this.getIdField(model);
+        if (injectTarget._count !== undefined) {
+            // _count needs to respect read policies of related models
+            if (injectTarget._count === true) {
+                // include count for all relations, expand to all fields
+                // so that we can inject guard conditions for each of them
+                injectTarget._count = { select: {} };
+                const modelFields = getFields(this.modelMeta, model);
+                if (modelFields) {
+                    for (const [k, v] of Object.entries(modelFields)) {
+                        if (v.isDataModel && v.isArray) {
+                            // create an entry for to-many relation
+                            injectTarget._count.select[k] = {};
+                        }
+                    }
+                }
+            }
+
+            // inject conditions for each relation
+            for (const field of Object.keys(injectTarget._count.select)) {
+                if (typeof injectTarget._count.select[field] !== 'object') {
+                    injectTarget._count.select[field] = {};
+                }
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (!fieldInfo) {
+                    continue;
+                }
+                // inject into the "where" clause inside select
+                this.injectAuthGuard(db, injectTarget._count.select[field], fieldInfo.type, 'read');
+            }
+        }
+
+        // collect filter conditions that should be hoisted to the toplevel
+        const hoistedConditions: any[] = [];
+
         for (const field of getModelFields(injectTarget)) {
             const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel) {
@@ -284,499 +601,577 @@ export class PolicyUtil {
                 continue;
             }
 
-            if (fieldInfo.isArray) {
+            let hoisted: any;
+
+            if (
+                fieldInfo.isArray ||
+                // Injecting where at include/select level for nullable to-one relation is supported since Prisma 4.8.0
+                // https://github.com/prisma/prisma/discussions/20350
+                fieldInfo.isOptional
+            ) {
                 if (typeof injectTarget[field] !== 'object') {
                     injectTarget[field] = {};
                 }
-                // inject extra condition for to-many relation
+                // inject extra condition for to-many or nullable to-one relation
+                this.injectAuthGuard(db, injectTarget[field], fieldInfo.type, 'read');
 
-                await this.injectAuthGuard(injectTarget[field], fieldInfo.type, 'read');
+                // recurse
+                const subHoisted = this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);
+                if (subHoisted.length > 0) {
+                    // we can convert it to a where at this level
+                    injectTarget[field].where = this.and(injectTarget[field].where, ...subHoisted);
+                }
             } else {
-                // there's no way of injecting condition for to-one relation, so we
-                // make sure 'id' field is selected and check them against query result
-                if (injectTarget[field]?.select && injectTarget[field]?.select?.[idField.name] !== true) {
-                    injectTarget[field].select[idField.name] = true;
+                // hoist non-nullable to-one filter to the parent level
+                hoisted = this.getAuthGuard(db, fieldInfo.type, 'read');
+                // recurse
+                const subHoisted = this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);
+                if (subHoisted.length > 0) {
+                    hoisted = this.and(hoisted, ...subHoisted);
                 }
             }
 
-            // recurse
-            await this.injectNestedReadConditions(fieldInfo.type, injectTarget[field]);
+            if (hoisted && !this.isTrue(hoisted)) {
+                hoistedConditions.push({ [field]: hoisted });
+            }
         }
+
+        return hoistedConditions;
     }
 
     /**
-     * Post processing checks for read model entities. Validates to-one relations
-     * (which can't be trimmed at query time) and removes fields that should be
-     * omitted.
+     * Given a model and a unique filter, checks the operation is allowed by policies and field validations.
+     * Rejects with an error if not allowed.
      */
-    async postProcessForRead(entityData: any, model: string, args: any, operation: PolicyOperationKind) {
-        if (!this.getEntityId(model, entityData)) {
-            return;
-        }
-
-        // strip auxiliary fields
-        for (const auxField of AUXILIARY_FIELDS) {
-            if (auxField in entityData) {
-                delete entityData[auxField];
-            }
-        }
-
-        const injectTarget = args.select ?? args.include;
-        if (!injectTarget) {
-            return;
-        }
-
-        // to-one relation data cannot be trimmed by injected guards, we have to
-        // post-check them
-
-        for (const field of getModelFields(injectTarget)) {
-            const fieldInfo = resolveField(this.modelMeta, model, field);
-            if (!fieldInfo || !fieldInfo.isDataModel || fieldInfo.isArray) {
-                continue;
-            }
-
-            const idField = this.getIdField(fieldInfo.type);
-            const relatedEntityId = entityData?.[field]?.[idField.name];
-
-            if (!relatedEntityId) {
-                continue;
-            }
-
-            this.logger.info(`Validating read of to-one relation: ${fieldInfo.type}#${relatedEntityId}`);
-
-            await this.checkPolicyForFilter(fieldInfo.type, { [idField.name]: relatedEntityId }, operation, this.db);
-
-            // recurse
-            await this.postProcessForRead(entityData[field], fieldInfo.type, injectTarget[field], operation);
-        }
-    }
-
-    /**
-     * Process Prisma write actions.
-     */
-    async processWrite(
+    async checkPolicyForUnique(
         model: string,
-        action: PrismaWriteActionType,
+        uniqueFilter: any,
+        operation: PolicyOperationKind,
+        db: Record<string, DbOperations>,
         args: any,
-        writeAction: (dbOps: DbOperations, writeArgs: any) => Promise<unknown>
+        preValue?: any
     ) {
-        // record model types for which new entities are created
-        // so we can post-check if they satisfy 'create' policies
-        const createdModels = new Set<string>();
-
-        // record model entities that are updated, together with their
-        // values before update, so we can post-check if they satisfy
-        //     model => id => entity value
-        const updatedModels = new Map<string, Map<string, any>>();
-
-        const idField = this.getIdField(model);
-        if (args.select && !args.select[idField.name]) {
-            // make sure 'id' field is selected, we need it to
-            // read back the updated entity
-            args.select[idField.name] = true;
+        let guard = this.getAuthGuard(db, model, operation, preValue);
+        if (this.isFalse(guard)) {
+            throw this.deniedByPolicy(
+                model,
+                operation,
+                `entity ${formatObject(uniqueFilter)} failed policy check`,
+                CrudFailureReason.ACCESS_POLICY_VIOLATION
+            );
         }
 
-        // use a transaction to conduct write, so in case any create or nested create
-        // fails access policies, we can roll back the entire operation
-        const transactionId = cuid();
-
-        // args processor for create
-        const processCreate = async (model: string, args: any) => {
-            const guard = await this.getAuthGuard(model, 'create');
-            const schema = await this.getModelSchema(model);
-            if (guard === false) {
-                throw this.deniedByPolicy(model, 'create');
-            } else if (guard !== true || schema) {
-                // mark the create with a transaction tag so we can check them later
-                args[TRANSACTION_FIELD_NAME] = `${transactionId}:create`;
-                createdModels.add(model);
+        if (operation === 'update' && args) {
+            // merge field-level policy guards
+            const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
+            if (fieldUpdateGuard.rejectedByField) {
+                // rejected
+                throw this.deniedByPolicy(
+                    model,
+                    'update',
+                    `entity ${formatObject(uniqueFilter)} failed update policy check for field "${
+                        fieldUpdateGuard.rejectedByField
+                    }"`,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
+                );
+            } else if (fieldUpdateGuard.guard) {
+                // merge
+                guard = this.and(guard, fieldUpdateGuard.guard);
             }
-        };
+        }
 
-        // build a reversed query for fetching entities affected by nested updates
-        const buildReversedQuery = async (context: VisitorContext) => {
-            let result, currQuery: any;
-            let currField: FieldInfo | undefined;
+        // Zod schema is to be checked for "create" and "postUpdate"
+        const schema = ['create', 'postUpdate'].includes(operation) ? this.getZodSchema(model) : undefined;
 
-            for (let i = context.nestingPath.length - 1; i >= 0; i--) {
-                const { field, where } = context.nestingPath[i];
+        if (this.isTrue(guard) && !schema) {
+            // unconditionally allowed
+            return;
+        }
 
-                if (!result) {
-                    // first segment (bottom), just use its where clause
-                    result = currQuery = { ...where };
-                    currField = field;
-                } else {
-                    if (!currField) {
-                        throw this.unknownError(`missing field in nested path`);
-                    }
-                    if (!currField.backLink) {
-                        throw this.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
-                    }
-                    currQuery[currField.backLink] = { ...where };
-                    currQuery = currQuery[currField.backLink];
-                    currField = field;
+        const select = schema
+            ? // need to validate against schema, need to fetch all fields
+              undefined
+            : // only fetch id fields
+              this.makeIdSelection(model);
+
+        let where = this.clone(uniqueFilter);
+        // query args may have be of combined-id form, need to flatten it to call findFirst
+        this.flattenGeneratedUniqueField(model, where);
+
+        // query with policy guard
+        where = this.and(where, guard);
+        const query = { select, where };
+
+        if (this.shouldLogQuery) {
+            this.logger.info(`[policy] checking ${model} for ${operation}, \`findFirst\`:\n${formatObject(query)}`);
+        }
+        const result = await db[model].findFirst(query);
+        if (!result) {
+            throw this.deniedByPolicy(
+                model,
+                operation,
+                `entity ${formatObject(uniqueFilter)} failed policy check`,
+                CrudFailureReason.ACCESS_POLICY_VIOLATION
+            );
+        }
+
+        if (schema) {
+            // TODO: push down schema check to the database
+            const parseResult = schema.safeParse(result);
+            if (!parseResult.success) {
+                const error = fromZodError(parseResult.error);
+                if (this.logger.enabled('info')) {
+                    this.logger.info(`entity ${model} failed validation for operation ${operation}: ${error}`);
                 }
+                throw this.deniedByPolicy(
+                    model,
+                    operation,
+                    `entities ${JSON.stringify(uniqueFilter)} failed validation: [${error}]`,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parseResult.error
+                );
             }
-            return result;
-        };
+        }
+    }
 
-        // args processor for update/upsert
-        const processUpdate = async (model: string, args: any, context: VisitorContext) => {
-            const preGuard = await this.getAuthGuard(model, 'update');
-            if (preGuard === false) {
-                throw this.deniedByPolicy(model, 'update');
-            } else if (preGuard !== true) {
-                if (this.isToOneRelation(context.field)) {
-                    // To-one relation field is complicated because there's no way to
-                    // filter it during update (args doesn't carry a 'where' clause).
-                    //
-                    // We need to recursively walk up its hierarcy in the query args
-                    // to construct a reversed query to identify the nested entity
-                    // under update, and then check if it satisfies policy.
-                    //
-                    // E.g.:
-                    // A - B - C
-                    //
-                    // update A with:
-                    // {
-                    //   where: { id: 'aId' },
-                    //   data: {
-                    //     b: {
-                    //       c: { value: 1 }
-                    //     }
-                    //   }
-                    // }
-                    //
-                    // To check if the update to 'c' field is permitted, we
-                    // reverse the query stack into a filter for C model, like:
-                    // {
-                    //   where: {
-                    //     b: { a: { id: 'aId' } }
-                    //   }
-                    // }
-                    // , and with this we can filter out the C entity that's going
-                    // to be nestedly updated, and check if it's allowed.
-                    //
-                    // The same logic applies to nested delete.
-
-                    const subQuery = await buildReversedQuery(context);
-                    await this.checkPolicyForFilter(model, subQuery, 'update', this.db);
-                } else {
-                    // non-nested update, check policies directly
-                    if (!args.where) {
-                        throw this.unknownError(`Missing 'where' in update args`);
-                    }
-                    await this.checkPolicyForFilter(model, args.where, 'update', this.db);
-                }
+    private getFieldUpdateGuards(db: Record<string, DbOperations>, model: string, args: any) {
+        const allFieldGuards = [];
+        for (const [k, v] of Object.entries<any>(args.data ?? args)) {
+            if (typeof v === 'undefined') {
+                continue;
             }
-
-            await preparePostUpdateCheck(model, context);
-        };
-
-        // args processor for updateMany
-        const processUpdateMany = async (model: string, args: any, context: VisitorContext) => {
-            const guard = await this.getAuthGuard(model, 'update');
-            if (guard === false) {
-                throw this.deniedByPolicy(model, 'update');
-            } else if (guard !== true) {
-                // inject policy filter
-                await this.injectAuthGuard(args, model, 'update');
+            const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
+            if (this.isFalse(fieldGuard)) {
+                return { guard: allFieldGuards, rejectedByField: k };
             }
+            allFieldGuards.push(fieldGuard);
+        }
+        return { guard: this.and(...allFieldGuards), rejectedByField: undefined };
+    }
 
-            await preparePostUpdateCheck(model, context);
-        };
+    /**
+     * Tries rejecting a request based on static "false" policy.
+     */
+    tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
+        const guard = this.getAuthGuard(db, model, operation);
+        if (this.isFalse(guard)) {
+            throw this.deniedByPolicy(model, operation, undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
+        }
+    }
 
-        // for models with post-update rules, we need to read and store
-        // entity values before the update for post-update check
-        const preparePostUpdateCheck = async (model: string, context: VisitorContext) => {
-            const postGuard = await this.getAuthGuard(model, 'postUpdate');
-            const schema = await this.getModelSchema(model);
+    /**
+     * Checks if a model exists given a unique filter.
+     */
+    async checkExistence(
+        db: Record<string, DbOperations>,
+        model: string,
+        uniqueFilter: any,
+        throwIfNotFound = false
+    ): Promise<any> {
+        uniqueFilter = this.clone(uniqueFilter);
+        this.flattenGeneratedUniqueField(model, uniqueFilter);
 
-            // post-update check is needed if there's post-update rule or validation schema
-            if (postGuard !== true || schema) {
-                let modelEntities = updatedModels.get(model);
-                if (!modelEntities) {
-                    modelEntities = new Map<string, any>();
-                    updatedModels.set(model, modelEntities);
-                }
-
-                // fetch preValue selection (analyzed from the post-update rules)
-                const preValueSelect = await this.getPreValueSelect(model);
-                const filter = await buildReversedQuery(context);
-
-                // query args will be used with findMany, so we need to
-                // translate unique constraint filters into a flat filter
-                // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-                await this.flattenGeneratedUniqueField(model, filter);
-
-                const idField = this.getIdField(model);
-                const query = { where: filter, select: { ...preValueSelect, [idField.name]: true } };
-                this.logger.info(`fetching pre-update entities for ${model}: ${formatObject(query)})}`);
-                const entities = await this.db[model].findMany(query);
-                entities.forEach((entity) => modelEntities?.set(this.getEntityId(model, entity), entity));
-            }
-        };
-
-        // args processor for delete
-        const processDelete = async (model: string, args: any, context: VisitorContext) => {
-            const guard = await this.getAuthGuard(model, 'delete');
-            if (guard === false) {
-                throw this.deniedByPolicy(model, 'delete');
-            } else if (guard !== true) {
-                if (this.isToOneRelation(context.field)) {
-                    // see comments in processUpdate
-                    const subQuery = await buildReversedQuery(context);
-                    await this.checkPolicyForFilter(model, subQuery, 'delete', this.db);
-                } else {
-                    await this.checkPolicyForFilter(model, args, 'delete', this.db);
-                }
-            }
-        };
-
-        // use a visitor to process args before conducting the write action
-        const visitor = new NestedWriteVisitor(this.modelMeta, {
-            create: async (model, args) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processCreate(model, oneArgs);
-                }
-            },
-
-            connectOrCreate: async (model, args) => {
-                for (const oneArgs of enumerate(args)) {
-                    if (oneArgs.create) {
-                        await processCreate(model, oneArgs.create);
-                    }
-                }
-            },
-
-            update: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processUpdate(model, oneArgs, context);
-                }
-            },
-
-            updateMany: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processUpdateMany(model, oneArgs, context);
-                }
-            },
-
-            upsert: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    if (oneArgs.create) {
-                        await processCreate(model, oneArgs.create);
-                    }
-
-                    if (oneArgs.update) {
-                        await processUpdate(model, { where: oneArgs.where, data: oneArgs.update }, context);
-                    }
-                }
-            },
-
-            delete: async (model, args, context) => {
-                for (const oneArgs of enumerate(args)) {
-                    await processDelete(model, oneArgs, context);
-                }
-            },
-
-            deleteMany: async (model, args, context) => {
-                const guard = await this.getAuthGuard(model, 'delete');
-                if (guard === false) {
-                    throw this.deniedByPolicy(model, 'delete');
-                } else if (guard !== true) {
-                    if (Array.isArray(args)) {
-                        context.parent.deleteMany = args.map((oneArgs) => this.and(oneArgs, guard));
-                    } else {
-                        context.parent.deleteMany = this.and(args, guard);
-                    }
-                }
-            },
+        if (this.shouldLogQuery) {
+            this.logger.info(`[policy] checking ${model} existence, \`findFirst\`:\n${formatObject(uniqueFilter)}`);
+        }
+        const existing = await db[model].findFirst({
+            where: uniqueFilter,
+            select: this.makeIdSelection(model),
         });
+        if (!existing && throwIfNotFound) {
+            throw this.notFound(model);
+        }
+        return existing;
+    }
 
-        await visitor.visit(model, action, args);
+    /**
+     * Returns an entity given a unique filter with read policy checked. Reject if not readable.
+     */
+    async readBack(
+        db: Record<string, DbOperations>,
+        model: string,
+        operation: PolicyOperationKind,
+        selectInclude: { select?: any; include?: any },
+        uniqueFilter: any
+    ): Promise<{ result: unknown; error?: Error }> {
+        uniqueFilter = this.clone(uniqueFilter);
+        this.flattenGeneratedUniqueField(model, uniqueFilter);
+        const readArgs = { select: selectInclude.select, include: selectInclude.include, where: uniqueFilter };
 
-        if (createdModels.size === 0 && updatedModels.size === 0) {
-            // no post-check needed, we can proceed with the write without transaction
-            return await writeAction(this.db[model], args);
+        const error = this.deniedByPolicy(
+            model,
+            operation,
+            'result is not allowed to be read back',
+            CrudFailureReason.RESULT_NOT_READABLE
+        );
+
+        const injectResult = this.injectForRead(db, model, readArgs);
+        if (!injectResult) {
+            return { error, result: undefined };
+        }
+
+        // inject select needed for field-level read checks
+        this.injectReadCheckSelect(model, readArgs);
+
+        if (this.shouldLogQuery) {
+            this.logger.info(`[policy] checking read-back, \`findFirst\` ${model}:\n${formatObject(readArgs)}`);
+        }
+        const result = await db[model].findFirst(readArgs);
+        if (!result) {
+            return { error, result: undefined };
+        }
+
+        this.postProcessForRead(result, model, selectInclude);
+        return { result, error: undefined };
+    }
+
+    /**
+     * Injects field selection needed for checking field-level read policy into query args.
+     * @returns
+     */
+    injectReadCheckSelect(model: string, args: any) {
+        if (!this.hasFieldLevelPolicy(model)) {
+            return;
+        }
+
+        const readFieldSelect = this.getReadFieldSelect(model);
+        if (!readFieldSelect) {
+            return;
+        }
+
+        this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
+    }
+
+    private doInjectReadCheckSelect(model: string, args: any, input: any) {
+        if (!input?.select) {
+            return;
+        }
+
+        let target: any; // injection target
+        let isInclude = false; // if the target is include or select
+
+        if (args.select) {
+            target = args.select;
+            isInclude = false;
+        } else if (args.include) {
+            target = args.include;
+            isInclude = true;
         } else {
-            return await this.transaction(this.db, async (tx) => {
-                // proceed with the update (with args processed)
-                const result = await writeAction(tx[model], args);
+            target = args.select = this.makeAllScalarFieldSelect(model);
+            isInclude = false;
+        }
 
-                if (createdModels.size > 0) {
-                    // do post-check on created entities
-                    await Promise.all(
-                        [...createdModels].map((model) =>
-                            this.checkPolicyForFilter(
-                                model,
-                                { [TRANSACTION_FIELD_NAME]: `${transactionId}:create` },
-                                'create',
-                                tx
-                            )
-                        )
-                    );
+        if (!isInclude) {
+            // merge selects
+            for (const [k, v] of Object.entries(input.select)) {
+                if (v === true) {
+                    if (!target[k]) {
+                        target[k] = true;
+                    }
                 }
+            }
+        }
 
-                if (updatedModels.size > 0) {
-                    // do post-check on updated entities
-                    await Promise.all(
-                        [...updatedModels.entries()]
-                            .map(([model, modelEntities]) =>
-                                [...modelEntities.entries()].map(async ([id, preValue]) =>
-                                    this.checkPostUpdate(model, id, tx, preValue)
-                                )
-                            )
-                            .flat()
-                    );
+        // recurse into nested selects (relation fields)
+        for (const [k, v] of Object.entries<any>(input.select)) {
+            if (typeof v === 'object' && v?.select) {
+                const field = resolveField(this.modelMeta, model, k);
+                if (field?.isDataModel) {
+                    // recurse into relation
+                    if (isInclude && target[k] === true) {
+                        // select all fields for the relation
+                        target[k] = { select: this.makeAllScalarFieldSelect(field.type) };
+                    } else if (!target[k]) {
+                        // ensure an empty select clause
+                        target[k] = { select: {} };
+                    }
+                    // recurse
+                    this.doInjectReadCheckSelect(field.type, target[k], v);
                 }
+            }
+        }
+    }
 
-                return result;
+    private makeAllScalarFieldSelect(model: string): any {
+        const fields = this.modelMeta.fields[lowerCaseFirst(model)];
+        const result: any = {};
+        if (fields) {
+            Object.entries(fields).forEach(([k, v]) => {
+                if (!v.isDataModel) {
+                    result[k] = true;
+                }
             });
         }
+        return result;
     }
 
-    private transaction(db: DbClientContract, action: (tx: Record<string, DbOperations>) => Promise<any>) {
-        if (db.__zenstack_tx) {
-            // already in transaction, don't nest
-            return action(db);
-        } else {
-            return db.$transaction((tx) => action(tx));
+    //#endregion
+
+    //#region Errors
+
+    deniedByPolicy(
+        model: string,
+        operation: PolicyOperationKind,
+        extra?: string,
+        reason?: CrudFailureReason,
+        zodErrors?: ZodError
+    ) {
+        const args: any = { clientVersion: getVersion(), code: PrismaErrorCode.CONSTRAINED_FAILED, meta: {} };
+        if (reason) {
+            args.meta.reason = reason;
         }
-    }
 
-    deniedByPolicy(model: string, operation: PolicyOperationKind, extra?: string) {
-        return new PrismaClientKnownRequestError(
+        if (zodErrors) {
+            args.meta.zodErrors = zodErrors;
+        }
+
+        return prismaClientKnownRequestError(
+            this.db,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
-            { clientVersion: getVersion(), code: 'P2004', meta: { reason: CrudFailureReason.RESULT_NOT_READABLE } }
+            args
         );
     }
 
     notFound(model: string) {
-        return new PrismaClientKnownRequestError(`entity not found for model ${model}`, {
+        return prismaClientKnownRequestError(this.db, `entity not found for model ${model}`, {
             clientVersion: getVersion(),
             code: 'P2025',
         });
     }
 
+    validationError(message: string) {
+        return prismaClientValidationError(this.db, message);
+    }
+
     unknownError(message: string) {
-        return new PrismaClientUnknownRequestError(message, {
+        return prismaClientUnknownRequestError(this.db, message, {
             clientVersion: getVersion(),
         });
     }
 
+    //#endregion
+
+    //#region Misc
+
     /**
-     * Given a filter, check if applying access policy filtering will result
-     * in data being trimmed, and if so, throw an error.
+     * Gets field selection for fetching pre-update entity values for the given model.
      */
-    async checkPolicyForFilter(
-        model: string,
-        filter: any,
-        operation: PolicyOperationKind,
-        db: Record<string, DbOperations>
-    ) {
-        this.logger.info(`Checking policy for ${model}#${JSON.stringify(filter)} for ${operation}`);
+    getPreValueSelect(model: string): object | undefined {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return guard[PRE_UPDATE_VALUE_SELECTOR];
+    }
 
-        const queryFilter = deepcopy(filter);
+    private getReadFieldSelect(model: string): object | undefined {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return guard[FIELD_LEVEL_READ_CHECKER_SELECTOR];
+    }
 
-        // query args will be used with findMany, so we need to
-        // translate unique constraint filters into a flat filter
-        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-        await this.flattenGeneratedUniqueField(model, queryFilter);
-
-        const count = (await db[model].count({ where: queryFilter })) as number;
-        const guard = await this.getAuthGuard(model, operation);
-
-        // build a query condition with policy injected
-        const guardedQuery = { where: this.and(queryFilter, guard) };
-
-        const schema = (operation === 'create' || operation === 'update') && (await this.getModelSchema(model));
-
-        if (schema) {
-            // we've got schemas, so have to fetch entities and validate them
-            const entities = await db[model].findMany(guardedQuery);
-            if (entities.length < count) {
-                this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
-                throw this.deniedByPolicy(model, operation, `${count - entities.length} entities failed policy check`);
-            }
-
-            // TODO: push down schema check to the database
-            const schemaCheckErrors = entities.map((entity) => schema.safeParse(entity)).filter((r) => !r.success);
-            if (schemaCheckErrors.length > 0) {
-                const error = schemaCheckErrors.map((r) => !r.success && fromZodError(r.error).message).join(', ');
-                this.logger.info(`entity ${model} failed schema check for operation ${operation}: ${error}`);
-                throw this.deniedByPolicy(model, operation, `entities failed schema check: [${error}]`);
-            }
+    private checkReadField(model: string, field: string, entity: any) {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        const func = guard[`${FIELD_LEVEL_READ_CHECKER_PREFIX}${field}`] as ReadFieldCheckFunc | undefined;
+        if (!func) {
+            return true;
         } else {
-            // count entities with policy injected and see if any of them are filtered out
-            const guardedCount = (await db[model].count(guardedQuery)) as number;
-            if (guardedCount < count) {
-                this.logger.info(`entity ${model} failed policy check for operation ${operation}`);
-                throw this.deniedByPolicy(model, operation, `${count - guardedCount} entities failed policy check`);
+            return func(entity, { user: this.user });
+        }
+    }
+
+    private hasFieldValidation(model: string): boolean {
+        return this.policy.validation?.[lowerCaseFirst(model)]?.hasValidation === true;
+    }
+
+    private hasFieldLevelPolicy(model: string) {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return !!guard[HAS_FIELD_LEVEL_POLICY_FLAG];
+    }
+
+    /**
+     * Gets Zod schema for the given model and access kind.
+     *
+     * @param kind If undefined, returns the full schema.
+     */
+    getZodSchema(model: string, kind: 'create' | 'update' | undefined = undefined) {
+        if (!this.hasFieldValidation(model)) {
+            return undefined;
+        }
+        const schemaKey = `${upperCaseFirst(model)}${kind ? upperCaseFirst(kind) : ''}Schema`;
+        return this.zodSchemas?.models?.[schemaKey];
+    }
+
+    /**
+     * Post processing checks and clean-up for read model entities.
+     */
+    postProcessForRead(data: any, model: string, queryArgs: any) {
+        // preserve the original data as it may be needed for checking field-level readability,
+        // while the "data" will be manipulated during traversal (deleting unreadable fields)
+        const origData = this.clone(data);
+        this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
+    }
+
+    private doPostProcessForRead(
+        data: any,
+        model: string,
+        fullData: any,
+        queryArgs: any,
+        hasFieldLevelPolicy: boolean,
+        path = ''
+    ) {
+        if (data === null || data === undefined) {
+            return;
+        }
+
+        for (const [entityData, entityFullData] of zip(data, fullData)) {
+            if (typeof entityData !== 'object' || !entityData) {
+                return;
+            }
+
+            for (const [field, fieldData] of Object.entries(entityData)) {
+                if (fieldData === undefined) {
+                    continue;
+                }
+
+                const fieldInfo = resolveField(this.modelMeta, model, field);
+                if (!fieldInfo) {
+                    // could be _count, etc.
+                    continue;
+                }
+
+                if (hasFieldLevelPolicy) {
+                    // 1. remove fields selected for checking field-level policies but not selected by the original query args
+                    // 2. evaluate field-level policies and remove fields that are not readable
+
+                    if (!fieldInfo.isDataModel) {
+                        // scalar field, delete unselected ones
+                        const select = queryArgs?.select;
+                        if (select && typeof select === 'object' && select[field] !== true) {
+                            // there's a select clause but this field is not included
+                            delete entityData[field];
+                            continue;
+                        }
+                    } else {
+                        // relation field, delete if not selected or included
+                        const include = queryArgs?.include;
+                        const select = queryArgs?.select;
+                        if (!include?.[field] && !select?.[field]) {
+                            // relation field not included or selected
+                            delete entityData[field];
+                            continue;
+                        }
+                    }
+
+                    // delete unreadable fields
+                    if (!this.checkReadField(model, field, entityFullData)) {
+                        if (this.shouldLogQuery) {
+                            this.logger.info(`[policy] dropping unreadable field ${path ? path + '.' : ''}${field}`);
+                        }
+                        delete entityData[field];
+                        continue;
+                    }
+                }
+
+                if (fieldInfo.isDataModel) {
+                    // recurse into nested fields
+                    const nextArgs = (queryArgs?.select ?? queryArgs?.include)?.[field];
+                    this.doPostProcessForRead(
+                        fieldData,
+                        fieldInfo.type,
+                        entityFullData[field],
+                        nextArgs,
+                        hasFieldLevelPolicy,
+                        path ? path + '.' + field : field
+                    );
+                }
             }
         }
     }
 
-    private async checkPostUpdate(model: string, id: any, db: Record<string, DbOperations>, preValue: any) {
-        this.logger.info(`Checking post-update policy for ${model}#${id}, preValue: ${formatObject(preValue)}`);
-
-        const guard = await this.getAuthGuard(model, 'postUpdate', preValue);
-
-        // build a query condition with policy injected
-        const idField = this.getIdField(model);
-        const guardedQuery = { where: this.and({ [idField.name]: id }, guard) };
-
-        // query with policy injected
-        const entity = await db[model].findFirst(guardedQuery);
-
-        // see if we get fewer items with policy, if so, reject with an throw
-        if (!entity) {
-            this.logger.info(`entity ${model} failed policy check for operation postUpdate`);
-            throw this.deniedByPolicy(model, 'postUpdate');
-        }
-
-        // TODO: push down schema check to the database
-        const schema = await this.getModelSchema(model);
-        if (schema) {
-            const schemaCheckResult = schema.safeParse(entity);
-            if (!schemaCheckResult.success) {
-                const error = fromZodError(schemaCheckResult.error).message;
-                this.logger.info(`entity ${model} failed schema check for operation postUpdate: ${error}`);
-                throw this.deniedByPolicy(model, 'postUpdate', `entity failed schema check: ${error}`);
-            }
-        }
+    /**
+     * Gets information for all fields of a model.
+     */
+    getModelFields(model: string) {
+        model = lowerCaseFirst(model);
+        return this.modelMeta.fields[model];
     }
 
-    private isToOneRelation(field: FieldInfo | undefined) {
-        return !!field && field.isDataModel && !field.isArray;
+    /**
+     * Gets information for a specific model field.
+     */
+    getModelField(model: string, field: string) {
+        model = lowerCaseFirst(model);
+        return this.modelMeta.fields[model]?.[field];
     }
 
     /**
      * Clones an object and makes sure it's not empty.
      */
-    clone(value: unknown) {
+    clone(value: unknown): any {
         return value ? deepcopy(value) : {};
     }
 
     /**
-     * Gets "id" field for a given model.
+     * Gets "id" fields for a given model.
      */
-    getIdField(model: string) {
-        const fields = this.modelMeta.fields[camelCase(model)];
-        if (!fields) {
-            throw this.unknownError(`Unable to load fields for ${model}`);
-        }
-        const result = Object.values(fields).find((f) => f.isId);
-        if (!result) {
-            throw this.unknownError(`model ${model} does not have an id field`);
+    getIdFields(model: string) {
+        return getIdFields(this.modelMeta, model, true);
+    }
+
+    /**
+     * Gets id field values from an entity.
+     */
+    getEntityIds(model: string, entityData: any) {
+        const idFields = this.getIdFields(model);
+        const result: Record<string, unknown> = {};
+        for (const idField of idFields) {
+            result[idField.name] = entityData[idField.name];
         }
         return result;
     }
 
     /**
-     * Gets id field value from an entity.
+     * Creates a selection object for id fields for the given model.
      */
-    getEntityId(model: string, entityData: any) {
-        const idField = this.getIdField(model);
-        return entityData[idField.name];
+    makeIdSelection(model: string) {
+        const idFields = this.getIdFields(model);
+        return Object.assign({}, ...idFields.map((f) => ({ [f.name]: true })));
     }
+
+    private mergeWhereClause(where: any, extra: any) {
+        if (!where) {
+            throw new Error('invalid where clause');
+        }
+
+        if (this.isTrue(extra)) {
+            return;
+        }
+
+        // instead of simply wrapping with AND, we preserve the structure
+        // of the original where clause and merge `extra` into it so that
+        // unique query can continue working
+        if (where.AND) {
+            // merge into existing AND clause
+            const conditions = Array.isArray(where.AND) ? [...where.AND] : [where.AND];
+            conditions.push(extra);
+            const combined: any = this.and(...conditions);
+
+            // make sure the merging always goes under AND
+            where.AND = combined.AND ?? combined;
+        } else {
+            // insert an AND clause
+            where.AND = [extra];
+        }
+    }
+
+    //#endregion
 }

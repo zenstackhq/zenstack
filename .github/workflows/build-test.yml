@@ -8,44 +8,82 @@ env:
     DO_NOT_TRACK: '1'
 
 on:
-    push:
-        branches: ['dev', 'main', 'canary']
     pull_request:
-        branches: ['dev', 'main', 'canary']
+        branches: ['dev', 'main']
 
 jobs:
     build-test:
-        runs-on: ubuntu-latest
+        runs-on: buildjet-8vcpu-ubuntu-2204
+
+        services:
+            postgres:
+                image: postgres
+                env:
+                    POSTGRES_PASSWORD: abc123
+                # Set health checks to wait until postgres has started
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
 
         strategy:
             matrix:
-                node-version: [16.x]
-                # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+                node-version: [18.x]
+                prisma-version: [v4, v5]
 
         steps:
-            - uses: actions/checkout@v3
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Set Prisma Version
+              if: ${{ matrix.prisma-version == 'v5' }}
+              shell: bash
+              run: |
+                  bash ./script/test-prisma-v5.sh
+
             - name: Install pnpm
               uses: pnpm/action-setup@v2
               with:
                   version: ^7.15.0
+
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v3
+              uses: buildjet/setup-node@v3
               with:
                   node-version: ${{ matrix.node-version }}
                   cache: 'pnpm'
-            - run: pnpm install --frozen-lockfile
-            - run: |
-                  if [[ $GITHUB_REF == 'refs/heads/canary' ]]; then
-                      DEFAULT_NPM_TAG=canary pnpm run build
-                  else
-                      DEFAULT_NPM_TAG=latest pnpm run build
-                  fi
 
-            - run: pnpm lint
+            - name: Get pnpm store directory
+              id: pnpm-cache
+              shell: bash
+              run: |
+                  echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: Setup pnpm cache
+              uses: buildjet/cache@v3
+              with:
+                  path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Build
+              run: DEFAULT_NPM_TAG=latest pnpm run build
+
+            - name: Lint
+              run: pnpm lint
 
             # install again for internal dependencies
-            - run: pnpm install --frozen-lockfile
-            - run: pnpm run test
+            - name: Install internal dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Test
+              run: pnpm run test-ci
 
             - name: Upload coverage reports to Codecov
               uses: codecov/codecov-action@v3

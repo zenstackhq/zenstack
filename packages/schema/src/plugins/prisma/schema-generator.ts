@@ -1,11 +1,14 @@
 import {
-    AstNode,
-    Attribute,
     AttributeArg,
+    BooleanLiteral,
+    ConfigArrayExpr,
+    ConfigExpr,
+    ConfigInvocationArg,
     DataModel,
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    DataModelFieldType,
     DataSource,
     Enum,
     EnumField,
@@ -18,37 +21,51 @@ import {
     isReferenceExpr,
     LiteralExpr,
     Model,
+    NumberLiteral,
+    StringLiteral,
 } from '@zenstackhq/language/ast';
+import { match } from 'ts-pattern';
+
+import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
+    getDMMF,
     getLiteral,
-    getLiteralArray,
-    GUARD_FIELD_NAME,
+    getPrismaVersion,
     PluginError,
     PluginOptions,
     resolved,
-    TRANSACTION_FIELD_NAME,
+    resolvePath,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import path from 'path';
-import { analyzePolicies } from '../../utils/ast-utils';
+import semver from 'semver';
+import stripColor from 'strip-color';
+import { name } from '.';
+import { getStringLiteral } from '../../language-server/validator/utils';
+import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
 import {
+    ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
-    DataSourceUrl as PrismaDataSourceUrl,
+    ContainerDeclaration as PrismaContainerDeclaration,
+    Model as PrismaDataModel,
     Enum as PrismaEnum,
     FieldAttribute as PrismaFieldAttribute,
     FieldReference as PrismaFieldReference,
     FieldReferenceArg as PrismaFieldReferenceArg,
     FunctionCall as PrismaFunctionCall,
     FunctionCallArg as PrismaFunctionCallArg,
-    Model as PrismaDataModel,
-    ModelAttribute as PrismaModelAttribute,
-    ModelFieldType,
     PrismaModel,
+    ContainerAttribute as PrismaModelAttribute,
+    PassThroughAttribute as PrismaPassThroughAttribute,
+    SimpleField,
 } from './prisma-builder';
 import ZModelCodeGenerator from './zmodel-code-generator';
+
+const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
+const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
 
 /**
  * Generates Prisma schema file
@@ -64,6 +81,15 @@ export default class PrismaSchemaGenerator {
 `;
 
     async generate(model: Model, options: PluginOptions) {
+        const warnings: string[] = [];
+
+        const prismaVersion = getPrismaVersion();
+        if (prismaVersion && semver.lt(prismaVersion, PRISMA_MINIMUM_VERSION)) {
+            warnings.push(
+                `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVersion}".`
+            );
+        }
+
         const prisma = new PrismaModel();
 
         for (const decl of model.declarations) {
@@ -86,150 +112,206 @@ export default class PrismaSchemaGenerator {
             }
         }
 
-        const outFile = (options.output as string) ?? './prisma/schema.prisma';
+        let outFile = (options.output as string) ?? './prisma/schema.prisma';
+        outFile = resolvePath(outFile, options);
+
         if (!fs.existsSync(path.dirname(outFile))) {
             fs.mkdirSync(path.dirname(outFile), { recursive: true });
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
-        // run 'prisma generate'
-        await execSync(`npx prisma generate --schema ${outFile}`);
-    }
-
-    private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
-        let provider: string | undefined = undefined;
-        let url: PrismaDataSourceUrl | undefined = undefined;
-        let shadowDatabaseUrl: PrismaDataSourceUrl | undefined = undefined;
-
-        for (const f of dataSource.fields) {
-            switch (f.name) {
-                case 'provider': {
-                    if (this.isStringLiteral(f.value)) {
-                        provider = f.value.value as string;
-                    } else {
-                        throw new PluginError('Datasource provider must be set to a string');
-                    }
-                    break;
-                }
-
-                case 'url': {
-                    const r = this.extractDataSourceUrl(f.value);
-                    if (!r) {
-                        throw new PluginError('Invalid value for datasource url');
-                    }
-                    url = r;
-                    break;
-                }
-
-                case 'shadowDatabaseUrl': {
-                    const r = this.extractDataSourceUrl(f.value);
-                    if (!r) {
-                        throw new PluginError('Invalid value for datasource url');
-                    }
-                    shadowDatabaseUrl = r;
-                    break;
-                }
+        if (options.format === true) {
+            try {
+                // run 'prisma format'
+                await execSync(`npx prisma format --schema ${outFile}`);
+            } catch {
+                warnings.push(`Failed to format Prisma schema file`);
             }
         }
 
-        if (!provider) {
-            throw new PluginError('Datasource is missing "provider" field');
-        }
-        if (!url) {
-            throw new PluginError('Datasource is missing "url" field');
+        const generateClient = options.generateClient !== false;
+
+        if (generateClient) {
+            try {
+                // run 'prisma generate'
+                await execSync(`npx prisma generate --schema ${outFile}`, 'ignore');
+            } catch {
+                await this.trackPrismaSchemaError(outFile);
+                try {
+                    // run 'prisma generate' again with output to the console
+                    await execSync(`npx prisma generate --schema ${outFile}`);
+                } catch {
+                    // noop
+                }
+                throw new PluginError(name, `Failed to run "prisma generate"`);
+            }
         }
 
-        prisma.addDataSource(dataSource.name, provider, url, shadowDatabaseUrl);
+        return warnings;
     }
 
-    private extractDataSourceUrl(fieldValue: LiteralExpr | InvocationExpr) {
-        if (this.isStringLiteral(fieldValue)) {
-            return new PrismaDataSourceUrl(fieldValue.value as string, false);
-        } else if (
-            isInvocationExpr(fieldValue) &&
-            fieldValue.function.ref?.name === 'env' &&
-            fieldValue.args.length === 1 &&
-            this.isStringLiteral(fieldValue.args[0].value)
-        ) {
-            return new PrismaDataSourceUrl(fieldValue.args[0].value.value as string, true);
+    private async trackPrismaSchemaError(schema: string) {
+        try {
+            await getDMMF({ datamodel: fs.readFileSync(schema, 'utf-8') });
+        } catch (err) {
+            if (err instanceof Error) {
+                // eslint-disable-next-line @typescript-eslint/no-var-requires
+                telemetry.track('prisma:error', { command: 'generate', message: stripColor(err.message) });
+            }
+        }
+    }
+
+    private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
+        const fields: SimpleField[] = dataSource.fields.map((f) => ({
+            name: f.name,
+            text: this.configExprToText(f.value),
+        }));
+        prisma.addDataSource(dataSource.name, fields);
+    }
+
+    private configExprToText(expr: ConfigExpr) {
+        if (isLiteralExpr(expr)) {
+            return this.literalToText(expr);
+        } else if (isInvocationExpr(expr)) {
+            const fc = this.makeFunctionCall(expr);
+            return fc.toString();
         } else {
-            return null;
+            return this.configArrayToText(expr);
         }
     }
 
-    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
-        prisma.addGenerator(
-            decl.name,
-            decl.fields.map((f) => {
-                const value = isArrayExpr(f.value) ? getLiteralArray(f.value) : getLiteral(f.value);
-                return { name: f.name, value };
-            })
+    private configArrayToText(expr: ConfigArrayExpr) {
+        return (
+            '[' +
+            expr.items
+                .map((item) => {
+                    if (isLiteralExpr(item)) {
+                        return this.literalToText(item);
+                    } else {
+                        return (
+                            item.name +
+                            (item.args.length > 0
+                                ? '(' + item.args.map((arg) => this.configInvocationArgToText(arg)).join(', ') + ')'
+                                : '')
+                        );
+                    }
+                })
+                .join(', ') +
+            ']'
         );
     }
 
+    private configInvocationArgToText(arg: ConfigInvocationArg) {
+        return `${arg.name}: ${this.literalToText(arg.value)}`;
+    }
+
+    private literalToText(expr: LiteralExpr) {
+        return JSON.stringify(expr.value);
+    }
+
+    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
+        const generator = prisma.addGenerator(
+            decl.name,
+            decl.fields.map((f) => ({ name: f.name, text: this.configExprToText(f.value) }))
+        );
+
+        // deal with configuring PrismaClient preview features
+        const provider = generator.fields.find((f) => f.name === 'provider');
+        if (provider?.text === JSON.stringify('prisma-client-js')) {
+            const prismaVersion = getPrismaVersion();
+            if (prismaVersion) {
+                const previewFeatures = JSON.parse(
+                    generator.fields.find((f) => f.name === 'previewFeatures')?.text ?? '[]'
+                );
+
+                if (!Array.isArray(previewFeatures)) {
+                    throw new PluginError(name, 'option "previewFeatures" must be an array');
+                }
+
+                if (semver.lt(prismaVersion, '5.0.0')) {
+                    // extendedWhereUnique feature is opt-in pre V5
+                    if (!previewFeatures.includes('extendedWhereUnique')) {
+                        previewFeatures.push('extendedWhereUnique');
+                    }
+                }
+
+                if (semver.lt(prismaVersion, '5.0.0')) {
+                    // fieldReference feature is opt-in pre V5
+                    if (!previewFeatures.includes('fieldReference')) {
+                        previewFeatures.push('fieldReference');
+                    }
+                }
+
+                if (previewFeatures.length > 0) {
+                    const curr = generator.fields.find((f) => f.name === 'previewFeatures');
+                    if (!curr) {
+                        generator.fields.push({ name: 'previewFeatures', text: JSON.stringify(previewFeatures) });
+                    } else {
+                        curr.text = JSON.stringify(previewFeatures);
+                    }
+                }
+            }
+        }
+    }
+
     private generateModel(prisma: PrismaModel, decl: DataModel) {
-        const model = prisma.addModel(decl.name);
+        const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             this.generateModelField(model, field);
         }
 
-        const { allowAll, denyAll, hasFieldValidation } = analyzePolicies(decl);
-
-        if ((!allowAll && !denyAll) || hasFieldValidation) {
-            // generate auxiliary fields for policy check
-
-            // add an "zenstack_guard" field for dealing with pure auth() related conditions
-            model.addField(GUARD_FIELD_NAME, 'Boolean', [
-                new PrismaFieldAttribute('@default', [
-                    new PrismaAttributeArg(undefined, new PrismaAttributeArgValue('Boolean', true)),
-                ]),
-            ]);
-
-            // add an "zenstack_transaction" field for tracking records created/updated with nested writes
-            model.addField(TRANSACTION_FIELD_NAME, 'String?');
-
-            // create an index for "zenstack_transaction" field
-            model.addAttribute('@@index', [
-                new PrismaAttributeArg(
-                    undefined,
-                    new PrismaAttributeArgValue('Array', [
-                        new PrismaAttributeArgValue('FieldReference', TRANSACTION_FIELD_NAME),
-                    ])
-                ),
-            ]);
-        }
-
-        for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
-            this.generateModelAttribute(model, attr);
+        for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
+            this.generateContainerAttribute(model, attr);
         }
 
         decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
             .forEach((attr) => model.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
     }
 
-    private isPrismaAttribute(attr: Attribute) {
-        return !!attr.attributes.find((a) => a.decl.ref?.name === '@@@prisma');
+    private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
+        if (!attr.decl.ref) {
+            return false;
+        }
+        const attrDecl = resolved(attr.decl);
+        return (
+            !!attrDecl.attributes.find((a) => a.decl.ref?.name === '@@@prisma') ||
+            // the special pass-through attribute
+            attrDecl.name === MODEL_PASSTHROUGH_ATTR ||
+            attrDecl.name === FIELD_PASSTHROUGH_ATTR
+        );
+    }
+
+    private getUnsupportedFieldType(fieldType: DataModelFieldType) {
+        if (fieldType.unsupported) {
+            const value = getStringLiteral(fieldType.unsupported.value);
+            if (value) {
+                return `Unsupported("${value}")`;
+            } else {
+                return undefined;
+            }
+        } else {
+            return undefined;
+        }
     }
 
     private generateModelField(model: PrismaDataModel, field: DataModelField) {
-        const fieldType = field.type.type || field.type.reference?.ref?.name;
+        const fieldType =
+            field.type.type || field.type.reference?.ref?.name || this.getUnsupportedFieldType(field.type);
         if (!fieldType) {
-            throw new PluginError(`Field type is not resolved: ${field.$container.name}.${field.name}`);
+            throw new PluginError(name, `Field type is not resolved: ${field.$container.name}.${field.name}`);
         }
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
         const attributes = field.attributes
-            .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter(
-            (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
-        );
+        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
 
@@ -240,10 +322,20 @@ export default class PrismaSchemaGenerator {
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
-        return new PrismaFieldAttribute(
-            resolved(attr.decl).name,
-            attr.args.map((arg) => this.makeAttributeArg(arg))
-        );
+        const attrName = resolved(attr.decl).name;
+        if (attrName === FIELD_PASSTHROUGH_ATTR) {
+            const text = getLiteral<string>(attr.args[0].value);
+            if (text) {
+                return new PrismaPassThroughAttribute(text);
+            } else {
+                throw new PluginError(name, `Invalid arguments for ${FIELD_PASSTHROUGH_ATTR} attribute`);
+            }
+        } else {
+            return new PrismaFieldAttribute(
+                attrName,
+                attr.args.map((arg) => this.makeAttributeArg(arg))
+            );
+        }
     }
 
     private makeAttributeArg(arg: AttributeArg): PrismaAttributeArg {
@@ -252,16 +344,12 @@ export default class PrismaSchemaGenerator {
 
     private makeAttributeArgValue(node: Expression): PrismaAttributeArgValue {
         if (isLiteralExpr(node)) {
-            switch (typeof node.value) {
-                case 'string':
-                    return new PrismaAttributeArgValue('String', node.value);
-                case 'number':
-                    return new PrismaAttributeArgValue('Number', node.value);
-                case 'boolean':
-                    return new PrismaAttributeArgValue('Boolean', node.value);
-                default:
-                    throw new PluginError(`Unexpected literal type: ${typeof node.value}`);
-            }
+            const argType = match(node.$type)
+                .with(StringLiteral, () => 'String' as const)
+                .with(NumberLiteral, () => 'Number' as const)
+                .with(BooleanLiteral, () => 'Boolean' as const)
+                .exhaustive();
+            return new PrismaAttributeArgValue(argType, node.value);
         } else if (isArrayExpr(node)) {
             return new PrismaAttributeArgValue(
                 'Array',
@@ -279,7 +367,7 @@ export default class PrismaSchemaGenerator {
             // invocation
             return new PrismaAttributeArgValue('FunctionCall', this.makeFunctionCall(node));
         } else {
-            throw new PluginError(`Unsupported attribute argument expression type: ${node.$type}`);
+            throw new PluginError(name, `Unsupported attribute argument expression type: ${node.$type}`);
         }
     }
 
@@ -288,20 +376,28 @@ export default class PrismaSchemaGenerator {
             resolved(node.function).name,
             node.args.map((arg) => {
                 if (!isLiteralExpr(arg.value)) {
-                    throw new PluginError('Function call argument must be literal');
+                    throw new PluginError(name, 'Function call argument must be literal');
                 }
                 return new PrismaFunctionCallArg(arg.name, arg.value.value);
             })
         );
     }
 
-    private generateModelAttribute(model: PrismaDataModel | PrismaEnum, attr: DataModelAttribute) {
-        model.attributes.push(
-            new PrismaModelAttribute(
-                resolved(attr.decl).name,
-                attr.args.map((arg) => this.makeAttributeArg(arg))
-            )
-        );
+    private generateContainerAttribute(container: PrismaContainerDeclaration, attr: DataModelAttribute) {
+        const attrName = resolved(attr.decl).name;
+        if (attrName === MODEL_PASSTHROUGH_ATTR) {
+            const text = getLiteral<string>(attr.args[0].value);
+            if (text) {
+                container.attributes.push(new PrismaPassThroughAttribute(text));
+            }
+        } else {
+            container.attributes.push(
+                new PrismaModelAttribute(
+                    attrName,
+                    attr.args.map((arg) => this.makeAttributeArg(arg))
+                )
+            );
+        }
     }
 
     private generateEnum(prisma: PrismaModel, decl: Enum) {
@@ -311,12 +407,12 @@ export default class PrismaSchemaGenerator {
             this.generateEnumField(_enum, field);
         }
 
-        for (const attr of decl.attributes.filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))) {
-            this.generateModelAttribute(_enum, attr);
+        for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
+            this.generateContainerAttribute(_enum, attr);
         }
 
         decl.attributes
-            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
             .forEach((attr) => _enum.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
 
         // user defined comments pass-through
@@ -325,18 +421,12 @@ export default class PrismaSchemaGenerator {
 
     private generateEnumField(_enum: PrismaEnum, field: EnumField) {
         const attributes = field.attributes
-            .filter((attr) => attr.decl.ref && this.isPrismaAttribute(attr.decl.ref))
+            .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
 
-        const nonPrismaAttributes = field.attributes.filter(
-            (attr) => !attr.decl.ref || !this.isPrismaAttribute(attr.decl.ref)
-        );
+        const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
         _enum.addField(field.name, attributes, documentations);
-    }
-
-    private isStringLiteral(node: AstNode): node is LiteralExpr {
-        return isLiteralExpr(node) && typeof node.value === 'string';
     }
 }

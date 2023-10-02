@@ -1,0 +1,810 @@
+openapi: 3.1.0
+info:
+    title: ZenStack Generated API
+    version: 1.0.0
+tags:
+    - name: foo
+      description: Foo operations
+paths:
+    /foo:
+        get:
+            operationId: list-Foo
+            description: List "Foo" resources
+            tags:
+                - foo
+            parameters:
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[string]
+                  required: false
+                  description: Equality filter for "string"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[string$contains]
+                  required: false
+                  description: String contains filter for "string"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[string$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "string"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[string$search]
+                  required: false
+                  description: String full-text search filter for "string"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[string$startsWith]
+                  required: false
+                  description: String startsWith filter for "string"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[string$endsWith]
+                  required: false
+                  description: String endsWith filter for "string"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[int]
+                  required: false
+                  description: Equality filter for "int"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[int$lt]
+                  required: false
+                  description: Less-than filter for "int"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[int$lte]
+                  required: false
+                  description: Less-than or equal filter for "int"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[int$gt]
+                  required: false
+                  description: Greater-than filter for "int"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[int$gte]
+                  required: false
+                  description: Greater-than or equal filter for "int"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[bigInt]
+                  required: false
+                  description: Equality filter for "bigInt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[bigInt$lt]
+                  required: false
+                  description: Less-than filter for "bigInt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[bigInt$lte]
+                  required: false
+                  description: Less-than or equal filter for "bigInt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[bigInt$gt]
+                  required: false
+                  description: Greater-than filter for "bigInt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[bigInt$gte]
+                  required: false
+                  description: Greater-than or equal filter for "bigInt"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: integer
+                - name: filter[date]
+                  required: false
+                  description: Equality filter for "date"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[date$lt]
+                  required: false
+                  description: Less-than filter for "date"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[date$lte]
+                  required: false
+                  description: Less-than or equal filter for "date"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[date$gt]
+                  required: false
+                  description: Greater-than filter for "date"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[date$gte]
+                  required: false
+                  description: Greater-than or equal filter for "date"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: date-time
+                - name: filter[float]
+                  required: false
+                  description: Equality filter for "float"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: number
+                - name: filter[float$lt]
+                  required: false
+                  description: Less-than filter for "float"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: number
+                - name: filter[float$lte]
+                  required: false
+                  description: Less-than or equal filter for "float"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: number
+                - name: filter[float$gt]
+                  required: false
+                  description: Greater-than filter for "float"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: number
+                - name: filter[float$gte]
+                  required: false
+                  description: Greater-than or equal filter for "float"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: number
+                - name: filter[decimal]
+                  required: false
+                  description: Equality filter for "decimal"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      oneOf:
+                          - type: number
+                          - type: string
+                - name: filter[decimal$lt]
+                  required: false
+                  description: Less-than filter for "decimal"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      oneOf:
+                          - type: number
+                          - type: string
+                - name: filter[decimal$lte]
+                  required: false
+                  description: Less-than or equal filter for "decimal"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      oneOf:
+                          - type: number
+                          - type: string
+                - name: filter[decimal$gt]
+                  required: false
+                  description: Greater-than filter for "decimal"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      oneOf:
+                          - type: number
+                          - type: string
+                - name: filter[decimal$gte]
+                  required: false
+                  description: Greater-than or equal filter for "decimal"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      oneOf:
+                          - type: number
+                          - type: string
+                - name: filter[boolean]
+                  required: false
+                  description: Equality filter for "boolean"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: boolean
+                - name: filter[bytes]
+                  required: false
+                  description: Equality filter for "bytes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                      format: byte
+                      description: Base64 encoded byte array
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/FooListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+            security: []
+        post:
+            operationId: create-Foo
+            description: Create a "Foo" resource
+            tags:
+                - foo
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/FooCreateRequest'
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/FooResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+            security: []
+    '/foo/{id}':
+        get:
+            operationId: fetch-Foo
+            description: Fetch a "Foo" resource
+            tags:
+                - foo
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/FooResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+            security: []
+        put:
+            operationId: update-Foo-put
+            description: Update a "Foo" resource
+            tags:
+                - foo
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/FooUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/FooResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+            security: []
+        patch:
+            operationId: update-Foo-patch
+            description: Update a "Foo" resource
+            tags:
+                - foo
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/FooUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/FooResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+            security: []
+        delete:
+            operationId: delete-Foo
+            description: Delete a "Foo" resource
+            tags:
+                - foo
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+            security: []
+components:
+    schemas:
+        _jsonapi:
+            type: object
+            description: An object describing the server’s implementation
+            required:
+                - version
+            properties:
+                version:
+                    type: string
+        _meta:
+            type: object
+            description: Meta information about the request or response
+            properties:
+                serialization:
+                    description: Superjson serialization metadata
+            additionalProperties: true
+        _resourceIdentifier:
+            type: object
+            description: Identifier for a resource
+            required:
+                - type
+                - id
+            properties:
+                type:
+                    type: string
+                    description: Resource type
+                id:
+                    type: string
+                    description: Resource id
+        _resource:
+            allOf:
+                - $ref: '#/components/schemas/_resourceIdentifier'
+                - type: object
+                  description: A resource with attributes and relationships
+                  properties:
+                      attributes:
+                          type: object
+                          description: Resource attributes
+                      relationships:
+                          type: object
+                          description: Resource relationships
+        _links:
+            type: object
+            required:
+                - self
+            description: Links related to the resource
+            properties:
+                self:
+                    type: string
+                    description: Link for refetching the curent results
+        _pagination:
+            type: object
+            description: Pagination information
+            required:
+                - first
+                - last
+                - prev
+                - next
+            properties:
+                first:
+                    oneOf:
+                        - type: string
+                          description: Link to the first page
+                        - type: 'null'
+                last:
+                    oneOf:
+                        - type: string
+                          description: Link to the last page
+                        - type: 'null'
+                prev:
+                    oneOf:
+                        - type: string
+                          description: Link to the previous page
+                        - type: 'null'
+                next:
+                    oneOf:
+                        - type: string
+                          description: Link to the next page
+                        - type: 'null'
+        _errors:
+            type: array
+            description: An array of error objects
+            items:
+                type: object
+                required:
+                    - status
+                    - code
+                properties:
+                    status:
+                        type: string
+                        description: HTTP status
+                    code:
+                        type: string
+                        description: Error code
+                    prismaCode:
+                        type: string
+                        description: Prisma error code if the error is thrown by Prisma
+                    title:
+                        type: string
+                        description: Error title
+                    detail:
+                        type: string
+                        description: Error detail
+                    reason:
+                        type: string
+                        description: Detailed error reason
+                    zodErrors:
+                        type: object
+                        additionalProperties: true
+                        description: Zod validation errors if the error is due to data validation
+                            failure
+        _errorResponse:
+            type: object
+            required:
+                - errors
+            description: An error response
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                errors:
+                    $ref: '#/components/schemas/_errors'
+        Foo:
+            type: object
+            description: The "Foo" model
+            required:
+                - id
+                - type
+                - attributes
+            properties:
+                type:
+                    type: string
+                id:
+                    type: string
+                attributes:
+                    type: object
+                    properties:
+                        string:
+                            type: string
+                        int:
+                            type: integer
+                        bigInt:
+                            type: integer
+                        date:
+                            type: string
+                            format: date-time
+                        float:
+                            type: number
+                        decimal:
+                            oneOf:
+                                - type: number
+                                - type: string
+                        boolean:
+                            type: boolean
+                        bytes:
+                            type: string
+                            format: byte
+                            description: Base64 encoded byte array
+        FooCreateRequest:
+            type: object
+            description: Input for creating a "Foo"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "Foo" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            required:
+                                - string
+                                - int
+                                - bigInt
+                                - date
+                                - float
+                                - decimal
+                                - boolean
+                                - bytes
+                            properties:
+                                string:
+                                    type: string
+                                int:
+                                    type: integer
+                                bigInt:
+                                    type: integer
+                                date:
+                                    type: string
+                                    format: date-time
+                                float:
+                                    type: number
+                                decimal:
+                                    oneOf:
+                                        - type: number
+                                        - type: string
+                                boolean:
+                                    type: boolean
+                                bytes:
+                                    type: string
+                                    format: byte
+                                    description: Base64 encoded byte array
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        FooUpdateRequest:
+            type: object
+            description: Input for updating a "Foo"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "Foo" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        id:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                string:
+                                    type: string
+                                int:
+                                    type: integer
+                                bigInt:
+                                    type: integer
+                                date:
+                                    type: string
+                                    format: date-time
+                                float:
+                                    type: number
+                                decimal:
+                                    oneOf:
+                                        - type: number
+                                        - type: string
+                                boolean:
+                                    type: boolean
+                                bytes:
+                                    type: string
+                                    format: byte
+                                    description: Base64 encoded byte array
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        FooResponse:
+            type: object
+            description: Response for a "Foo"
+            required:
+                - data
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    allOf:
+                        - $ref: '#/components/schemas/Foo'
+                        - type: object
+                          properties:
+                              relationships:
+                                  type: object
+                                  properties: &a1 {}
+                meta:
+                    $ref: '#/components/schemas/_meta'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    $ref: '#/components/schemas/_links'
+        FooListResponse:
+            type: object
+            description: Response for a list of "Foo"
+            required:
+                - data
+                - links
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: '#/components/schemas/Foo'
+                            - type: object
+                              properties:
+                                  relationships:
+                                      type: object
+                                      properties: *a1
+                meta:
+                    $ref: '#/components/schemas/_meta'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    allOf:
+                        - $ref: '#/components/schemas/_links'
+                        - $ref: '#/components/schemas/_pagination'
+    parameters:
+        id:
+            name: id
+            in: path
+            description: The resource id
+            required: true
+            schema:
+                type: string
+        include:
+            name: include
+            in: query
+            description: Relationships to include
+            required: false
+            style: form
+            schema:
+                type: string
+        sort:
+            name: sort
+            in: query
+            description: Fields to sort by
+            required: false
+            style: form
+            schema:
+                type: string
+        page-offset:
+            name: page[offset]
+            in: query
+            description: Offset for pagination
+            required: false
+            style: form
+            schema:
+                type: integer
+        page-limit:
+            name: page[limit]
+            in: query
+            description: Limit for pagination
+            required: false
+            style: form
+            schema:
+                type: integer

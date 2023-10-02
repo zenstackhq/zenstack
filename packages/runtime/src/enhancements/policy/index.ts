@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import semver from 'semver';
+import { PRISMA_MINIMUM_VERSION } from '../../constants';
+import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
 import { AuthUser, DbClientContract } from '../../types';
-import { getDefaultModelMeta } from '../model-meta';
+import { hasAllFields } from '../../validation';
 import { makeProxy } from '../proxy';
-import { ModelMeta, PolicyDef } from '../types';
+import type { CommonEnhancementOptions, ModelMeta, PolicyDef, ZodSchemas } from '../types';
+import { getIdFields } from '../utils';
 import { PolicyProxyHandler } from './handler';
 
 /**
@@ -12,6 +17,31 @@ import { PolicyProxyHandler } from './handler';
 export type WithPolicyContext = {
     user?: AuthUser;
 };
+
+/**
+ * Options for @see withPolicy
+ */
+export interface WithPolicyOptions extends CommonEnhancementOptions {
+    /**
+     * Policy definition
+     */
+    policy?: PolicyDef;
+
+    /**
+     * Model metadata
+     */
+    modelMeta?: ModelMeta;
+
+    /**
+     * Zod schemas for validation
+     */
+    zodSchemas?: ZodSchemas;
+
+    /**
+     * Whether to log Prisma query
+     */
+    logPrismaQuery?: boolean;
+}
 
 /**
  * Gets an enhanced Prisma client with access policy check.
@@ -24,25 +54,51 @@ export type WithPolicyContext = {
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,
     context?: WithPolicyContext,
-    policy?: PolicyDef,
-    modelMeta?: ModelMeta
+    options?: WithPolicyOptions
 ): DbClient {
-    const _policy = policy ?? getDefaultPolicy();
-    const _modelMeta = modelMeta ?? getDefaultModelMeta();
+    if (!prisma) {
+        throw new Error('Invalid prisma instance');
+    }
+
+    const prismaVer = (prisma as any)._clientVersion;
+    if (prismaVer && semver.lt(prismaVer, PRISMA_MINIMUM_VERSION)) {
+        console.warn(
+            `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVer}".`
+        );
+    }
+
+    const _policy = options?.policy ?? getDefaultPolicy(options?.loadPath);
+    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
+    const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
+
+    // validate user context
+    if (context?.user) {
+        const idFields = getIdFields(_modelMeta, 'User');
+        if (
+            !hasAllFields(
+                context.user,
+                idFields.map((f) => f.name)
+            )
+        ) {
+            throw new Error(
+                `Invalid user context: must have valid ID field ${idFields.map((f) => `"${f.name}"`).join(', ')}`
+            );
+        }
+    }
+
     return makeProxy(
         prisma,
         _modelMeta,
         (_prisma, model) =>
-            new PolicyProxyHandler(_prisma as DbClientContract, _policy, _modelMeta, model, context?.user),
+            new PolicyProxyHandler(
+                _prisma as DbClientContract,
+                _policy,
+                _modelMeta,
+                _zodSchemas,
+                model,
+                context?.user,
+                options?.logPrismaQuery
+            ),
         'policy'
     );
-}
-
-function getDefaultPolicy(): PolicyDef {
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        return require('.zenstack/policy').default;
-    } catch {
-        throw new Error('Policy definition cannot be loaded from default location');
-    }
 }

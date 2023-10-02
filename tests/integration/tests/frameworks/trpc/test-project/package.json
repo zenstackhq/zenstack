@@ -1,0 +1,34 @@
+{
+  "name": "test-project",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@prisma/client": "^4.8.0",
+    "@tanstack/react-query": "^4.22.4",
+    "@trpc/client": "^10.34.0",
+    "@trpc/next": "^10.34.0",
+    "@trpc/react-query": "^10.34.0",
+    "@trpc/server": "^10.34.0",
+    "@types/node": "18.11.18",
+    "@types/react": "18.0.27",
+    "@types/react-dom": "18.0.10",
+    "next": "13.1.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "superjson": "^1.12.2",
+    "typescript": "4.9.4",
+    "zod": "3.21.1",
+    "@zenstackhq/runtime": "../../../../../../../packages/runtime/dist"
+  },
+  "devDependencies": {
+    "prisma": "^4.8.0",
+    "zenstack": "../../../../../../../packages/schema/dist",
+    "@zenstackhq/trpc": "../../../../../../../packages/plugins/trpc/dist"
+  }
+}
