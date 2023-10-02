@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "ZenStack Test Tools",
   "main": "index.js",
+  "private": true,
   "publishConfig": {
     "directory": "dist",
     "linkDirectory": true
