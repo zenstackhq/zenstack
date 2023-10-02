@@ -33,6 +33,9 @@
         "./zod/models": {
             "default": "./zod/models.js"
         },
+        "./zod/objects": {
+            "default": "./zod/objects.js"
+        },
         "./browser": {
             "import": "./browser/index.mjs",
             "require": "./browser/index.js",
