@@ -19,6 +19,7 @@ import {
     getDataModels,
     getLiteral,
     hasAttribute,
+    isForeignKeyField,
     isIdField,
     PluginError,
     PluginFunction,
@@ -95,6 +96,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     attributes: ${JSON.stringify(getFieldAttributes(f))},
                     backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
                     isRelationOwner: ${isRelationOwner(f, backlink)},
+                    isForeignKey: ${isForeignKeyField(f)},
                     foreignKeyMapping: ${fkMapping ? JSON.stringify(fkMapping) : 'undefined'}
                 },`);
                     }

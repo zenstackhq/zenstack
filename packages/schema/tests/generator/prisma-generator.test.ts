@@ -14,11 +14,21 @@ describe('Prisma generator test', () => {
             datasource db {
                 provider = 'postgresql'
                 url = env("DATABASE_URL")
+                directUrl = env("DATABASE_URL")
                 shadowDatabaseUrl = env("DATABASE_URL")
+                extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+                schemas    = ["auth", "public"]
+            }
+
+            generator client {
+                provider        = "prisma-client-js"
+                previewFeatures = ["multiSchema", "postgresqlExtensions"]
             }
 
             model User {
                 id String @id
+
+                @@schema("auth")
             }
         `);
 
@@ -31,6 +41,14 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
+        expect(content).toContain('provider = "postgresql"');
+        expect(content).toContain('url = env("DATABASE_URL")');
+        expect(content).toContain('directUrl = env("DATABASE_URL")');
+        expect(content).toContain('shadowDatabaseUrl = env("DATABASE_URL")');
+        expect(content).toContain(
+            'extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]'
+        );
+        expect(content).toContain('schemas = ["auth", "public"]');
         await getDMMF({ datamodel: content });
     });
 
@@ -265,7 +283,7 @@ describe('Prisma generator test', () => {
         await getDMMF({ datamodel: content });
         expect(content).toContain('@@schema("base")');
         expect(content).toContain('@@schema("base")');
-        expect(content).toContain('schemas = ["base","transactional"]');
+        expect(content).toContain('schemas = ["base", "transactional"]');
     });
 
     it('abstract model', async () => {

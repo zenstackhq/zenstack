@@ -1,22 +1,8 @@
 {
+    "extends": "../../tsconfig.base.json",
     "compilerOptions": {
-        "target": "ES6",
-        "module": "commonjs",
-        "lib": ["ESNext"],
-        "sourceMap": true,
-        "outDir": "dist",
-        "strict": true,
-        "noUnusedLocals": false,
-        "noImplicitReturns": true,
-        "moduleResolution": "node",
-        "esModuleInterop": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true,
-        "baseUrl": ".",
-        "resolveJsonModule": true,
-        "declaration": true,
-        "experimentalDecorators": true
+        "outDir": "dist"
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["dist", "bundle", "node_modules", "src/extension.ts"]
+    "exclude": ["src/extension.ts"]
 }
