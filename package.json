@@ -8,7 +8,7 @@
         "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
         "lint": "pnpm -r lint",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
-        "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://dolphin-app-nyvr5.ondigitalocean.app/"
+        "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/"
     },
     "keywords": [],
     "author": "",
