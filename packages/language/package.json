@@ -28,5 +28,20 @@
     },
     "dependencies": {
         "langium": "1.2.0"
+    },
+    "contributes": {
+      "languages": [
+        { 
+          "id": "zmodel",
+          "extensions": [".zmodel"]
+        }
+      ],
+      "grammars": [
+        {
+          "language": "zmodel",
+          "scopeName": "source.zmodel",
+          "path": "./syntaxes/zmodel.tmLanguage.json"
+        }
+      ]
     }
 }
