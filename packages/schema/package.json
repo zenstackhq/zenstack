@@ -108,8 +108,8 @@
         "vscode-languageserver": "^8.0.2",
         "vscode-languageserver-textdocument": "^1.0.7",
         "vscode-uri": "^3.0.6",
-        "zod": "3.21.1",
-        "zod-validation-error": "^0.2.1"
+        "zod": "^3.22.4",
+        "zod-validation-error": "^1.5.0"
     },
     "devDependencies": {
         "@prisma/client": "^4.8.0",
