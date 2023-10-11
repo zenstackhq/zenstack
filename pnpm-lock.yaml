@@ -567,6 +567,9 @@ importers:
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../runtime/dist
+      '@zenstackhq/testtools':
+        specifier: workspace:*
+        version: link:../testtools/dist
       concurrently:
         specifier: ^7.4.0
         version: 7.4.0
@@ -779,12 +782,18 @@ importers:
       json5:
         specifier: ^2.2.3
         version: 2.2.3
+      langium:
+        specifier: 1.2.0
+        version: 1.2.0
       pg:
         specifier: ^8.11.1
         version: 8.11.1
       tmp:
         specifier: ^0.2.1
         version: 0.2.1
+      vscode-uri:
+        specifier: ^3.0.6
+        version: 3.0.7
       zenstack:
         specifier: workspace:*
         version: link:../schema/dist

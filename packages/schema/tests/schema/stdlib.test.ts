@@ -1,8 +1,8 @@
+import { SchemaLoadingError } from '@zenstackhq/testtools';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import { URI } from 'vscode-uri';
 import { createZModelServices } from '../../src/language-server/zmodel-module';
-import { SchemaLoadingError } from '../utils';
 
 describe('Stdlib Tests', () => {
     it('stdlib', async () => {

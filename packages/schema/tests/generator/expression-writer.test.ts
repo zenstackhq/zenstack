@@ -4,7 +4,7 @@ import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/la
 import * as tmp from 'tmp';
 import { Project, VariableDeclarationKind } from 'ts-morph';
 import { ExpressionWriter } from '../../src/plugins/access-policy/expression-writer';
-import { loadModel } from '../utils';
+import { loadModel } from '@zenstackhq/testtools';
 
 describe('Expression Writer Tests', () => {
     it('boolean literal', async () => {

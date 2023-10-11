@@ -20,7 +20,7 @@ import {
     StringLiteral,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { loadModel } from '../utils';
+import { loadModel } from '@zenstackhq/testtools';
 
 describe('Parsing Tests', () => {
     it('data source', async () => {

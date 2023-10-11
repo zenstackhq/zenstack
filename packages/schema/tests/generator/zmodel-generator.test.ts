@@ -1,4 +1,4 @@
-import { loadModel } from '../utils';
+import { loadModel } from '@zenstackhq/testtools';
 import ZModelCodeGenerator from '../../src/plugins/prisma/zmodel-code-generator';
 import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/language/ast';
 

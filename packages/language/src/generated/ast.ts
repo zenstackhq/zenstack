@@ -386,7 +386,7 @@ export function isEnumField(item: unknown): item is EnumField {
 export interface FieldInitializer extends AstNode {
     readonly $container: ObjectExpr;
     readonly $type: 'FieldInitializer';
-    name: RegularID
+    name: RegularID | string
     value: Expression
 }
 

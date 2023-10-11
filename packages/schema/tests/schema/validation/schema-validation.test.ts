@@ -1,4 +1,4 @@
-import { loadModelWithError } from '../../utils';
+import { loadModelWithError } from '@zenstackhq/testtools';
 
 describe('Toplevel Schema Validation Tests', () => {
     it('too many datasources', async () => {

@@ -90,7 +90,7 @@ ObjectExpr:
     '}';
 
 FieldInitializer:
-    name=RegularID ':' value=(Expression);
+    name=(RegularID | STRING) ':' value=(Expression);
 
 InvocationExpr:
     function=[FunctionDecl] '(' ArgumentList? ')';

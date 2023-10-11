@@ -49,10 +49,17 @@ export function resolved<T extends AstNode>(ref: Reference<T>): T {
 export function getLiteral<T extends string | number | boolean | any = any>(
     expr: Expression | ConfigExpr | undefined
 ): T | undefined {
-    if (!isLiteralExpr(expr)) {
-        return getObjectLiteral<T>(expr);
+    switch (expr?.$type) {
+        case 'ObjectExpr':
+            return getObjectLiteral<T>(expr);
+        case 'StringLiteral':
+        case 'BooleanLiteral':
+            return expr.value as T;
+        case 'NumberLiteral':
+            return parseFloat(expr.value) as T;
+        default:
+            return undefined;
     }
-    return expr.value as T;
 }
 
 export function getArray(expr: Expression | ConfigExpr | undefined) {

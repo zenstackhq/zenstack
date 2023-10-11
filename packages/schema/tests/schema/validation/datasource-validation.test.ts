@@ -1,4 +1,4 @@
-import { loadModel, loadModelWithError } from '../../utils';
+import { loadModel, loadModelWithError } from '@zenstackhq/testtools';
 
 describe('Datasource Validation Tests', () => {
     it('missing fields', async () => {
