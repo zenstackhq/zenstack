@@ -184,6 +184,7 @@ export class PluginRunner {
         }
 
         // "@core/access-policy" has implicit requirements
+        let zodImplicitlyAdded = false;
         if ([...plugins, ...corePlugins].find((p) => p.provider === '@core/access-policy')) {
             // make sure "@core/model-meta" is enabled
             if (!corePlugins.find((p) => p.provider === '@core/model-meta')) {
@@ -193,25 +194,52 @@ export class PluginRunner {
             // '@core/zod' plugin is auto-enabled by "@core/access-policy"
             // if there're validation rules
             if (!corePlugins.find((p) => p.provider === '@core/zod') && this.hasValidation(options.schema)) {
+                zodImplicitlyAdded = true;
                 corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
             }
         }
 
         // core plugins introduced by dependencies
-        plugins
-            .flatMap((p) => p.dependencies)
-            .forEach((dep) => {
+        plugins.forEach((plugin) => {
+            // TODO: generalize this
+            const isTrpcPlugin =
+                plugin.provider === '@zenstackhq/trpc' ||
+                // for testing
+                (process.env.ZENSTACK_TEST && plugin.provider.includes('trpc'));
+
+            for (const dep of plugin.dependencies) {
                 if (dep.startsWith('@core/')) {
                     const existing = corePlugins.find((p) => p.provider === dep);
                     if (existing) {
-                        // reset options to default
-                        existing.options = undefined;
+                        // TODO: generalize this
+                        if (existing.provider === '@core/zod') {
+                            // Zod plugin can be automatically enabled in `modelOnly` mode, however
+                            // other plugin (tRPC) for now requires it to run in full mode
+                            existing.options = {};
+
+                            if (
+                                isTrpcPlugin &&
+                                zodImplicitlyAdded // don't do it for user defined zod plugin
+                            ) {
+                                // pass trpc plugin's `generateModels` option down to zod plugin
+                                existing.options.generateModels = plugin.options.generateModels;
+                            }
+                        }
                     } else {
                         // add core dependency
-                        corePlugins.push({ provider: dep });
+                        const toAdd = { provider: dep, options: {} as Record<string, unknown> };
+
+                        // TODO: generalize this
+                        if (dep === '@core/zod' && isTrpcPlugin) {
+                            // pass trpc plugin's `generateModels` option down to zod plugin
+                            toAdd.options.generateModels = plugin.options.generateModels;
+                        }
+
+                        corePlugins.push(toAdd);
                     }
                 }
-            });
+            }
+        });
 
         return corePlugins;
     }

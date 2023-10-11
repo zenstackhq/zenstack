@@ -29,7 +29,7 @@ import {
 } from '@zenstackhq/language/ast';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
-import { PluginOptions } from './types';
+import { PluginError, PluginOptions } from './types';
 
 /**
  * Gets data models that are not ignored
@@ -270,6 +270,27 @@ export function requireOption<T>(options: PluginOptions, name: string): T {
         throw new Error(`Plugin "${options.name}" is missing required option: ${name}`);
     }
     return value as T;
+}
+
+export function parseOptionAsStrings(options: PluginOptions, optionaName: string, pluginName: string) {
+    const value = options[optionaName];
+    if (value === undefined) {
+        return undefined;
+    } else if (typeof value === 'string') {
+        // comma separated string
+        return value
+            .split(',')
+            .filter((i) => !!i)
+            .map((i) => i.trim());
+    } else if (Array.isArray(value) && value.every((i) => typeof i === 'string')) {
+        // string array
+        return value as string[];
+    } else {
+        throw new PluginError(
+            pluginName,
+            `Invalid "${optionaName}" option: must be a comma-separated string or an array of strings`
+        );
+    }
 }
 
 export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
