@@ -94,10 +94,10 @@ export function isReferenceTarget(item: unknown): item is ReferenceTarget {
     return reflection.isInstance(item, ReferenceTarget);
 }
 
-export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'in' | 'model' | 'plugin' | 'sort' | string;
+export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'sort' | 'view' | string;
 
 export function isRegularID(item: unknown): item is RegularID {
-    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'sort' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
+    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'sort' || item === 'view' || item === 'import' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
 }
 
 export type TypeDeclaration = DataModel | Enum;
