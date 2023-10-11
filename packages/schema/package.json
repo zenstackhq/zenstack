@@ -126,7 +126,6 @@
         "@typescript-eslint/parser": "^5.42.0",
         "@vscode/vsce": "^2.19.0",
         "@zenstackhq/runtime": "workspace:*",
-        "@zenstackhq/testtools": "workspace:*",
         "concurrently": "^7.4.0",
         "copyfiles": "^2.4.1",
         "dotenv": "^16.0.3",

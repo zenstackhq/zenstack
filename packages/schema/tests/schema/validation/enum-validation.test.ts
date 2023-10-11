@@ -1,4 +1,4 @@
-import { loadModelWithError } from '@zenstackhq/testtools';
+import { loadModelWithError } from '../../utils';
 
 describe('Enum Validation Tests', () => {
     const prelude = `

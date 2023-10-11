@@ -6,7 +6,7 @@ import path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
-import { loadModel } from '@zenstackhq/testtools';
+import { loadModel } from '../utils';
 
 describe('Prisma generator test', () => {
     it('datasource coverage', async () => {

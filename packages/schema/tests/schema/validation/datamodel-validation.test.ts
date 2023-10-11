@@ -1,4 +1,4 @@
-import { loadModel, loadModelWithError } from '@zenstackhq/testtools';
+import { loadModel, loadModelWithError } from '../../utils';
 
 describe('Data Model Validation Tests', () => {
     const prelude = `

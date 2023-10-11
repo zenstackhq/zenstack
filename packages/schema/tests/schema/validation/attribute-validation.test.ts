@@ -1,6 +1,6 @@
 /// <reference types="@types/jest" />
 
-import { loadModel, loadModelWithError } from '@zenstackhq/testtools';
+import { loadModel, loadModelWithError } from '../../utils';
 
 describe('Attribute tests', () => {
     const prelude = `

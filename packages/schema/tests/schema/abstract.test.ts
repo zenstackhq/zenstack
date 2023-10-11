@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import path from 'path';
-import { loadModel } from '@zenstackhq/testtools';
+import { loadModel } from '../utils';
 
 describe('Abstract Schema Tests', () => {
     it('model loading', async () => {

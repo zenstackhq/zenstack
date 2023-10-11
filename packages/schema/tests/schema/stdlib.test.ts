@@ -1,4 +1,4 @@
-import { SchemaLoadingError } from '@zenstackhq/testtools';
+import { SchemaLoadingError } from '../utils';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import { URI } from 'vscode-uri';
