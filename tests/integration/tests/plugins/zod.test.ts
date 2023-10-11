@@ -2,6 +2,8 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
+import fs from 'fs';
+import path from 'path';
 
 describe('Zod plugin tests', () => {
     let origDir: string;
@@ -486,5 +488,128 @@ describe('Zod plugin tests', () => {
         expect(
             zodSchemas.input.UserInputSchema.update.safeParse({ where: { id: 1 }, data: { id: 2 } }).success
         ).toBeFalsy();
+    });
+
+    it('generate for selected models full', async () => {
+        const { projectDir } = await loadSchema(
+            `
+    datasource db {
+        provider = 'postgresql'
+        url = env('DATABASE_URL')
+    }
+    
+    generator js {
+        provider = 'prisma-client-js'
+    }
+
+    plugin zod {
+        provider = "@core/zod"
+        output = '$projectRoot/zod'
+        generateModels = ['post']
+    }
+
+    model User {
+        id String @id
+        email String @unique
+        posts post[]
+        foos foo[]
+    }
+
+    model post {
+        id String @id
+        title String
+        author User? @relation(fields: [authorId], references: [id])
+        authorId String?
+    }
+
+    model foo {
+        id String @id
+        name String
+        owner User? @relation(fields: [ownerId], references: [id])
+        ownerId String?
+    }
+
+    model bar {
+        id String @id
+        name String
+    }
+    `,
+            {
+                addPrelude: false,
+                pushDb: false,
+                compile: true,
+            }
+        );
+
+        expect(fs.existsSync(path.join(projectDir, 'zod/objects/UserWhereInput.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/objects/PostWhereInput.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/objects/FooWhereInput.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/objects/BarWhereInput.schema.js'))).toBeFalsy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/input/UserInput.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/input/PostInput.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/input/FooInput.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/input/BarInput.schema.js'))).toBeFalsy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/User.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/Post.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/Foo.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/Bar.schema.js'))).toBeFalsy();
+    });
+
+    it('generate for selected models model only', async () => {
+        const { projectDir } = await loadSchema(
+            `
+    datasource db {
+        provider = 'postgresql'
+        url = env('DATABASE_URL')
+    }
+    
+    generator js {
+        provider = 'prisma-client-js'
+    }
+
+    plugin zod {
+        provider = "@core/zod"
+        output = '$projectRoot/zod'
+        modelOnly = true
+        generateModels = ['post']
+    }
+
+    model User {
+        id String @id
+        email String @unique
+        posts post[]
+        foos foo[]
+    }
+
+    model post {
+        id String @id
+        title String
+        author User? @relation(fields: [authorId], references: [id])
+        authorId String?
+    }
+
+    model foo {
+        id String @id
+        name String
+        owner User? @relation(fields: [ownerId], references: [id])
+        ownerId String?
+    }
+
+    model bar {
+        id String @id
+        name String
+    }
+    `,
+            {
+                addPrelude: false,
+                pushDb: false,
+                compile: true,
+            }
+        );
+
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/Post.schema.js'))).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/User.schema.js'))).toBeFalsy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/Foo.schema.js'))).toBeFalsy();
+        expect(fs.existsSync(path.join(projectDir, 'zod/models/Bar.schema.js'))).toBeFalsy();
     });
 });

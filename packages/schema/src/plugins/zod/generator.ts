@@ -11,6 +11,7 @@ import {
     isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
+    parseOptionAsStrings,
     resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
@@ -21,6 +22,7 @@ import { streamAllContents } from 'langium';
 import path from 'path';
 import { Project } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
+import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
@@ -44,12 +46,26 @@ export async function generate(
     output = resolvePath(output, options);
     await handleGeneratorOutputValue(output);
 
+    // calculate the models to be excluded
+    const excludeModels = getExcludedModels(model, options);
+
     const prismaClientDmmf = dmmf;
 
-    const modelOperations = prismaClientDmmf.mappings.modelOperations;
-    const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma;
-    const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma;
-    const models: DMMF.Model[] = prismaClientDmmf.datamodel.models;
+    const modelOperations = prismaClientDmmf.mappings.modelOperations.filter(
+        (o) => !excludeModels.find((e) => e === o.model)
+    );
+
+    // TODO: better way of filtering than string startsWith?
+    const inputObjectTypes = prismaClientDmmf.schema.inputObjectTypes.prisma.filter(
+        (type) => !excludeModels.find((e) => type.name.toLowerCase().startsWith(e.toLocaleLowerCase()))
+    );
+    const outputObjectTypes = prismaClientDmmf.schema.outputObjectTypes.prisma.filter(
+        (type) => !excludeModels.find((e) => type.name.toLowerCase().startsWith(e.toLowerCase()))
+    );
+
+    const models: DMMF.Model[] = prismaClientDmmf.datamodel.models.filter(
+        (m) => !excludeModels.find((e) => e === m.name)
+    );
 
     // whether Prisma's Unchecked* series of input types should be generated
     const generateUnchecked = options.noUncheckedInput !== true;
@@ -73,7 +89,7 @@ export async function generate(
         dataSource?.fields.find((f) => f.name === 'provider')?.value
     ) as ConnectorType;
 
-    await generateModelSchemas(project, model, output);
+    await generateModelSchemas(project, model, output, excludeModels);
 
     if (options.modelOnly !== true) {
         // detailed object schemas referenced from input schemas
@@ -117,6 +133,45 @@ export async function generate(
     }
     if (shouldCompile) {
         await emitProject(project);
+    }
+}
+
+function getExcludedModels(model: Model, options: PluginOptions) {
+    // resolve "generateModels" option
+    const generateModels = parseOptionAsStrings(options, 'generateModels', name);
+    if (generateModels) {
+        if (options.modelOnly === true) {
+            // no model reference needs to be considered, directly exclude any model not included
+            return model.declarations
+                .filter((d) => isDataModel(d) && !generateModels.includes(d.name))
+                .map((m) => m.name);
+        } else {
+            // calculate a transitive closure of models to be included
+            const todo = getDataModels(model).filter((dm) => generateModels.includes(dm.name));
+            const included = new Set<DataModel>();
+            while (todo.length > 0) {
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const dm = todo.pop()!;
+                included.add(dm);
+
+                // add referenced models to the todo list
+                dm.fields
+                    .map((f) => f.type.reference?.ref)
+                    .filter((type): type is DataModel => isDataModel(type))
+                    .forEach((type) => {
+                        if (!included.has(type)) {
+                            todo.push(type);
+                        }
+                    });
+            }
+
+            // finally find the models to be excluded
+            return getDataModels(model)
+                .filter((dm) => !included.has(dm))
+                .map((m) => m.name);
+        }
+    } else {
+        return [];
     }
 }
 
@@ -184,10 +239,12 @@ async function generateObjectSchemas(
     );
 }
 
-async function generateModelSchemas(project: Project, zmodel: Model, output: string) {
+async function generateModelSchemas(project: Project, zmodel: Model, output: string, excludedModels: string[]) {
     const schemaNames: string[] = [];
     for (const dm of getDataModels(zmodel)) {
-        schemaNames.push(await generateModelSchema(dm, project, output));
+        if (!excludedModels.includes(dm.name)) {
+            schemaNames.push(await generateModelSchema(dm, project, output));
+        }
     }
 
     project.createSourceFile(

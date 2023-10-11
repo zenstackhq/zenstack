@@ -285,4 +285,133 @@ model post_item {
             }
         );
     });
+
+    it('generate for selected models and actions', async () => {
+        const { projectDir } = await loadSchema(
+            `
+datasource db {
+    provider = 'postgresql'
+    url = env('DATABASE_URL')
+}
+
+generator js {
+    provider = 'prisma-client-js'
+}
+        
+plugin trpc {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/trpc'
+    generateModels = ['Post']
+    generateModelActions = ['findMany', 'update']
+}
+
+model User {
+    id String @id
+    email String @unique
+    posts Post[]
+}
+
+model Post {
+    id String @id
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+}
+
+model Foo {
+    id String @id
+    value Int
+}
+        `,
+            {
+                addPrelude: false,
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+            }
+        );
+
+        expect(fs.existsSync(path.join(projectDir, 'trpc/routers/User.router.ts'))).toBeFalsy();
+        expect(fs.existsSync(path.join(projectDir, 'trpc/routers/Foo.router.ts'))).toBeFalsy();
+        expect(fs.existsSync(path.join(projectDir, 'trpc/routers/Post.router.ts'))).toBeTruthy();
+
+        const postRouterContent = fs.readFileSync(path.join(projectDir, 'trpc/routers/Post.router.ts'), 'utf8');
+        expect(postRouterContent).toContain('findMany:');
+        expect(postRouterContent).toContain('update:');
+        expect(postRouterContent).not.toContain('findUnique:');
+        expect(postRouterContent).not.toContain('create:');
+
+        // trpc plugin passes "generateModels" option down to implicitly enabled zod plugin
+
+        expect(
+            fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/PostInput.schema.js'))
+        ).toBeTruthy();
+        // zod for User is generated due to transitive dependency
+        expect(
+            fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/UserInput.schema.js'))
+        ).toBeTruthy();
+        expect(fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/FooInput.schema.js'))).toBeFalsy();
+    });
+
+    it('generate for selected models with zod plugin declared', async () => {
+        const { projectDir } = await loadSchema(
+            `
+datasource db {
+    provider = 'postgresql'
+    url = env('DATABASE_URL')
+}
+
+generator js {
+    provider = 'prisma-client-js'
+}
+
+plugin zod {
+    provider = '@core/zod'
+}
+                    
+plugin trpc {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/trpc'
+    generateModels = ['Post']
+    generateModelActions = ['findMany', 'update']
+}
+
+model User {
+    id String @id
+    email String @unique
+    posts Post[]
+}
+
+model Post {
+    id String @id
+    title String
+    author User? @relation(fields: [authorId], references: [id])
+    authorId String?
+}
+
+model Foo {
+    id String @id
+    value Int
+} 
+        `,
+            {
+                addPrelude: false,
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                compile: true,
+            }
+        );
+
+        // trpc plugin's "generateModels" shouldn't interfere in this case
+
+        expect(
+            fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/PostInput.schema.js'))
+        ).toBeTruthy();
+        expect(
+            fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/UserInput.schema.js'))
+        ).toBeTruthy();
+        expect(
+            fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/FooInput.schema.js'))
+        ).toBeTruthy();
+    });
 });
