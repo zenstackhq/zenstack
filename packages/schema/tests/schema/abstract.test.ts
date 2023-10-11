@@ -9,4 +9,23 @@ describe('Abstract Schema Tests', () => {
         });
         await loadModel(content);
     });
+
+    it('empty inheritance', async () => {
+        await loadModel(`
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+        
+        abstract model Base {
+            id Int @id @default(autoincrement())
+        }
+
+        model Foo extends Base {}
+        `);
+    });
 });

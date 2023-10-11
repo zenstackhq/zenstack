@@ -186,7 +186,7 @@ DataModel:
     '{' (
         fields+=DataModelField
             | attributes+=DataModelAttribute
-        )+
+        )*
     '}';
 
 DataModelField:

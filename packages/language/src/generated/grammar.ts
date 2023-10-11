@@ -2060,7 +2060,7 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 }
               }
             ],
-            "cardinality": "+"
+            "cardinality": "*"
           },
           {
             "$type": "Keyword",
