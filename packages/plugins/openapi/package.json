@@ -20,7 +20,9 @@
     "test": "ZENSTACK_TEST=1 jest",
     "prepublishOnly": "pnpm build"
   },
-  "keywords": ["openapi"],
+  "keywords": [
+    "openapi"
+  ],
   "author": "ZenStack Team",
   "license": "MIT",
   "dependencies": {
@@ -33,8 +35,8 @@
     "tiny-invariant": "^1.3.1",
     "upper-case-first": "^2.0.2",
     "yaml": "^2.2.1",
-    "zod": "3.21.1",
-    "zod-validation-error": "^0.2.1"
+    "zod": "^3.22.4",
+    "zod-validation-error": "^1.5.0"
   },
   "devDependencies": {
     "@readme/openapi-parser": "^2.4.0",
