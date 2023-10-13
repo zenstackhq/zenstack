@@ -70,9 +70,9 @@
         "upper-case-first": "^2.0.2"
     },
     "devDependencies": {
-        "@tanstack/react-query": "4.29.7",
-        "@tanstack/svelte-query": "4.29.7",
-        "@tanstack/vue-query": "^4.37.0",
+        "@tanstack/react-query": "4.37.7",
+        "@tanstack/svelte-query": "4.37.7",
+        "@tanstack/vue-query": "4.37.0",
         "@types/jest": "^29.5.0",
         "@types/node": "^18.0.0",
         "@types/react": "18.2.0",
