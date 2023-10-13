@@ -23,6 +23,12 @@
             "default": "./runtime/react.js",
             "types": "./runtime/react.d.ts"
         },
+        "./runtime/vue": {
+            "import": "./runtime/vue.mjs",
+            "require": "./runtime/vue.js",
+            "default": "./runtime/vue.js",
+            "types": "./runtime/vue.d.ts"
+        },
         "./runtime/svelte": {
             "import": "./runtime/svelte.mjs",
             "require": "./runtime/svelte.js",
@@ -55,6 +61,7 @@
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
+        "cross-fetch": "^4.0.0",
         "decimal.js": "^10.4.2",
         "lower-case-first": "^2.0.2",
         "semver": "^7.3.8",
@@ -65,6 +72,7 @@
     "devDependencies": {
         "@tanstack/react-query": "4.29.7",
         "@tanstack/svelte-query": "4.29.7",
+        "@tanstack/vue-query": "^4.37.0",
         "@types/jest": "^29.5.0",
         "@types/node": "^18.0.0",
         "@types/react": "18.2.0",
@@ -77,6 +85,7 @@
         "rimraf": "^3.0.2",
         "swr": "^2.0.3",
         "ts-jest": "^29.0.5",
-        "typescript": "^4.9.4"
+        "typescript": "^4.9.4",
+        "vue": "^3.3.4"
     }
 }
