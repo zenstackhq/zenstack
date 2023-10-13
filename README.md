@@ -158,10 +158,10 @@ The following diagram gives a high-level architecture overview of ZenStack.
 ### Framework adapters
 
 -   [Next.js](https://zenstack.dev/docs/reference/server-adapters/next) (including support for the new "app directory" in Next.js 13)
+-   [Nuxt](https://zenstack.dev/docs/reference/server-adapters/nuxt)
 -   [SvelteKit](https://zenstack.dev/docs/reference/server-adapters/sveltekit)
 -   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
 -   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
--   Nuxt.js (Future)
 -   🙋🏻 [Request for an adapter](https://go.zenstack.dev/chat)
 
 ### Prisma schema extensions
@@ -179,6 +179,7 @@ Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a 
 -   [Next.js + SWR hooks](https://github.com/zenstackhq/sample-todo-nextjs)
 -   [Next.js + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
 -   [Next.js + tRPC](https://github.com/zenstackhq/sample-todo-trpc)
+-   [Nuxt + TanStack Query](https://github.com/zenstackhq/sample-todo-nuxt)
 -   [SvelteKit + TanStack Query](https://github.com/zenstackhq/sample-todo-sveltekit)
 
 ## Community
