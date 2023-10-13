@@ -1,9 +1,7 @@
 // This is a sample model to get you started.
-// Learn how to model you app: https://zenstack.dev/#/modeling-your-app.
 
 /**
  * A sample data source using local sqlite db.
- * See how to use a different db: https://zenstack.dev/#/zmodel-data-source.
  */
 datasource db {
     provider = 'sqlite'
@@ -40,8 +38,8 @@ model Post {
     title String @length(1, 256)
     content String
     published Boolean @default(false)
-    author User? @relation(fields: [authorId], references: [id])
-    authorId String?
+    author User @relation(fields: [authorId], references: [id])
+    authorId String
 
     // allow read for all signin users
     @@allow('read', auth() != null && published)
