@@ -244,10 +244,10 @@ importers:
         version: 2.0.2
     devDependencies:
       '@tanstack/react-query':
-        specifier: 4.29.7
+        specifier: ^4.29.7
         version: 4.29.7(react-dom@18.2.0)(react@18.2.0)
       '@tanstack/svelte-query':
-        specifier: 4.29.7
+        specifier: ^4.29.7
         version: 4.29.7(svelte@3.59.2)
       '@tanstack/vue-query':
         specifier: ^4.37.0
