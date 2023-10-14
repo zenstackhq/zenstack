@@ -23,7 +23,7 @@ enum role {
 }
 
 model User {
-    id String @id
+    id String @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique
