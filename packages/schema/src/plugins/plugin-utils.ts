@@ -35,6 +35,14 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                 name: '.zenstack',
                 version: '1.0.0',
                 exports: {
+                    './model-meta': {
+                        default: './model-meta.js',
+                        types: './model-meta.ts',
+                    },
+                    './policy': {
+                        default: './policy.js',
+                        types: './policy.d.ts',
+                    },
                     './zod': {
                         default: './zod/index.js',
                         types: './zod/index.d.ts',
