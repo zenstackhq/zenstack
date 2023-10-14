@@ -382,6 +382,7 @@ function createHelper(outDir: string) {
         overwrite: true,
     });
 
+    sf.addStatements('/* eslint-disable */');
     sf.addStatements(`import { TRPCError } from '@trpc/server';`);
     sf.addStatements(`import { isPrismaClientKnownRequestError } from '${RUNTIME_PACKAGE}';`);
 
