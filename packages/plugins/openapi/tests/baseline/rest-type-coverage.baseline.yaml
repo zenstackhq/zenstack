@@ -590,9 +590,9 @@ components:
                 - type
                 - attributes
             properties:
-                type:
-                    type: string
                 id:
+                    type: string
+                type:
                     type: string
                 attributes:
                     type: object
@@ -628,13 +628,10 @@ components:
                     type: object
                     description: The "Foo" model
                     required:
-                        - id
                         - type
                         - attributes
                     properties:
                         type:
-                            type: string
-                        id:
                             type: string
                         attributes:
                             type: object
@@ -685,9 +682,9 @@ components:
                         - type
                         - attributes
                     properties:
-                        type:
-                            type: string
                         id:
+                            type: string
+                        type:
                             type: string
                         attributes:
                             type: object

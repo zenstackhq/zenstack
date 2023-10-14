@@ -867,20 +867,36 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             }
         }
 
+        const toplevelRequired = ['type', 'attributes'];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let properties: any = {
+            type: { type: 'string' },
+            attributes: {
+                type: 'object',
+                required: required.length > 0 ? required : undefined,
+                properties: attributes,
+            },
+        };
+
+        if (mode === 'create') {
+            // 'id' is required if there's no default value
+            const idField = model.fields.find((f) => isIdField(f));
+            if (idField && !hasAttribute(idField, '@default')) {
+                properties = { id: { type: 'string' }, ...properties };
+                toplevelRequired.unshift('id');
+            }
+        } else {
+            // 'id' always required for read and update
+            properties = { id: { type: 'string' }, ...properties };
+            toplevelRequired.unshift('id');
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = {
             type: 'object',
             description: `The "${model.name}" model`,
-            required: ['id', 'type', 'attributes'],
-            properties: {
-                type: { type: 'string' },
-                id: { type: 'string' },
-                attributes: {
-                    type: 'object',
-                    required: required.length > 0 ? required : undefined,
-                    properties: attributes,
-                },
-            },
+            required: toplevelRequired,
+            properties,
         } satisfies OAPI.SchemaObject;
 
         if (Object.keys(relationships).length > 0) {
