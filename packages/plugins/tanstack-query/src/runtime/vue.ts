@@ -11,16 +11,22 @@ import {
     type UseMutationOptions,
     type UseQueryOptions,
 } from '@tanstack/vue-query';
-import { inject } from 'vue';
-import { DEFAULT_QUERY_ENDPOINT, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
-import { RequestHandlerContext } from './svelte';
+import { inject, provide } from 'vue';
+import { APIContext, DEFAULT_QUERY_ENDPOINT, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
 
 export const VueQueryContextKey = 'zenstack-vue-query-context';
 
+/**
+ * Provide context for the generated TanStack Query hooks.
+ */
+export function provideHooksContext(context: APIContext) {
+    provide<APIContext>(VueQueryContextKey, context);
+}
+
 export function getContext() {
-    return inject<RequestHandlerContext>(VueQueryContextKey, {
+    return inject<APIContext>(VueQueryContextKey, {
         endpoint: DEFAULT_QUERY_ENDPOINT,
         fetch: undefined,
     });

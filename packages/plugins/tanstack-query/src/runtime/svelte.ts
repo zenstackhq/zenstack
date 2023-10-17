@@ -10,7 +10,8 @@ import {
     type QueryClient,
     type QueryOptions,
 } from '@tanstack/svelte-query';
-import { FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
+import { setContext } from 'svelte';
+import { APIContext, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
 
@@ -18,6 +19,13 @@ export { APIContext as RequestHandlerContext } from './common';
  * Key for setting and getting the global query context.
  */
 export const SvelteQueryContextKey = 'zenstack-svelte-query-context';
+
+/**
+ * Set context for the generated TanStack Query hooks.
+ */
+export function setHooksContext(context: APIContext) {
+    setContext(SvelteQueryContextKey, context);
+}
 
 /**
  * Creates a svelte-query query.
