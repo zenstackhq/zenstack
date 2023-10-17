@@ -92,9 +92,10 @@ export class ZModelLinker extends DefaultLinker {
         container: AstNode,
         property: string,
         document: LangiumDocument,
-        extraScopes: ScopeProvider[]
+        extraScopes: ScopeProvider[],
+        onlyFromExtraScopes = false
     ) {
-        if (!this.resolveFromScopeProviders(container, property, document, extraScopes)) {
+        if (!this.resolveFromScopeProviders(container, property, document, extraScopes) && !onlyFromExtraScopes) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const reference: Reference<AstNode> = (container as any)[property];
             this.doLink({ reference, container, property }, document);
@@ -327,12 +328,11 @@ export class ZModelLinker extends DefaultLinker {
         if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
             const modelDecl = operandResolved.decl as DataModel;
             const provider = (name: string) => modelDecl.$resolvedFields.find((f) => f.name === name);
-            extraScopes = [provider, ...extraScopes];
-        }
-
-        this.linkReference(node, 'member', document, extraScopes);
-        if (node.member.ref) {
-            this.resolveToDeclaredType(node, node.member.ref.type);
+            // member access is resolved only in the context of the operand type
+            this.linkReference(node, 'member', document, [provider], true);
+            if (node.member.ref) {
+                this.resolveToDeclaredType(node, node.member.ref.type);
+            }
         }
     }
 

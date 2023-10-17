@@ -19,7 +19,7 @@ import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 
-const supportedTargets = ['react', 'svelte'];
+const supportedTargets = ['react', 'vue', 'svelte'];
 type TargetFramework = (typeof supportedTargets)[number];
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
@@ -158,6 +158,7 @@ function generateMutationHook(
 
     switch (target) {
         case 'react':
+        case 'vue':
             // override the mutateAsync function to return the correct type
             func.addVariableStatement({
                 declarationKind: VariableDeclarationKind.Const,
@@ -416,8 +417,15 @@ function generateIndex(project: Project, outDir: string, models: DataModel[], ta
         case 'react':
             sf.addStatements(`export { Provider } from '@zenstackhq/tanstack-query/runtime/react';`);
             break;
+        case 'vue':
+            sf.addStatements(
+                `export { VueQueryContextKey, provideHooksContext } from '@zenstackhq/tanstack-query/runtime/vue';`
+            );
+            break;
         case 'svelte':
-            sf.addStatements(`export { SvelteQueryContextKey } from '@zenstackhq/tanstack-query/runtime/svelte';`);
+            sf.addStatements(
+                `export { SvelteQueryContextKey, setHooksContext } from '@zenstackhq/tanstack-query/runtime/svelte';`
+            );
             break;
     }
 }
@@ -426,6 +434,8 @@ function makeGetContext(target: TargetFramework) {
     switch (target) {
         case 'react':
             return 'const { endpoint, fetch } = useContext(RequestHandlerContext);';
+        case 'vue':
+            return 'const { endpoint, fetch } = getContext();';
         case 'svelte':
             return `const { endpoint, fetch } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
         default:
@@ -446,6 +456,12 @@ function makeBaseImports(target: TargetFramework) {
                 `import { RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
                 ...shared,
             ];
+        case 'vue':
+            return [
+                `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/vue-query';`,
+                `import { getContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+                ...shared,
+            ];
         case 'svelte':
             return [
                 `import { getContext } from 'svelte';`,
@@ -462,6 +478,7 @@ function makeBaseImports(target: TargetFramework) {
 function makeQueryOptions(target: string, returnType: string, infinite: boolean) {
     switch (target) {
         case 'react':
+        case 'vue':
             return `Use${infinite ? 'Infinite' : ''}QueryOptions<${returnType}>`;
         case 'svelte':
             return `${infinite ? 'CreateInfinite' : ''}QueryOptions<${returnType}>`;
@@ -474,6 +491,8 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
     switch (target) {
         case 'react':
             return `UseMutationOptions<${returnType}, unknown, ${argsType}>`;
+        case 'vue':
+            return `UseMutationOptions<${returnType}, unknown, ${argsType}, unknown>`;
         case 'svelte':
             return `MutationOptions<${returnType}, unknown, ${argsType}>`;
         default:

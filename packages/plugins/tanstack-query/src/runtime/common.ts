@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { serialize, deserialize } from '@zenstackhq/runtime/browser';
+import { deserialize, serialize } from '@zenstackhq/runtime/browser';
+import * as crossFetch from 'cross-fetch';
 
 /**
  * The default query endpoint.
@@ -23,7 +24,7 @@ export type APIContext = {
     /**
      * The endpoint to use for the queries.
      */
-    endpoint: string;
+    endpoint?: string;
 
     /**
      * A custom fetch function for sending the HTTP requests.
@@ -37,7 +38,7 @@ export async function fetcher<R, C extends boolean>(
     fetch?: FetchFn,
     checkReadBack?: C
 ): Promise<C extends true ? R | undefined : R> {
-    const _fetch = fetch ?? window.fetch;
+    const _fetch = fetch ?? crossFetch.fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
         const errData = unmarshal(await res.text());

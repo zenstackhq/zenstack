@@ -70,6 +70,26 @@ ${sharedModel}
         );
     });
 
+    it('vue-query run plugin', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    target = 'vue'
+}
+
+${sharedModel}
+        `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                extraDependencies: [`${origDir}/dist`, 'vue@^3.3.4', '@tanstack/vue-query@4.37.0'],
+                compile: true,
+            }
+        );
+    });
+
     it('svelte-query run plugin', async () => {
         await loadSchema(
             `

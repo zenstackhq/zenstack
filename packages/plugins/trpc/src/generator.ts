@@ -5,6 +5,7 @@ import {
     PluginOptions,
     RUNTIME_PACKAGE,
     getPrismaClientImportSpec,
+    parseOptionAsStrings,
     requireOption,
     resolvePath,
     saveProject,
@@ -32,11 +33,14 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     let outDir = requireOption<string>(options, 'output');
     outDir = resolvePath(outDir, options);
 
+    // resolve "generateModels" option
+    const generateModels = parseOptionAsStrings(options, 'generateModels', name);
+
     // resolve "generateModelActions" option
-    const generateModelActions = parseOptionAsStrings(options, 'generateModelActions');
+    const generateModelActions = parseOptionAsStrings(options, 'generateModelActions', name);
 
     // resolve "generateClientHelpers" option
-    const generateClientHelpers = parseOptionAsStrings(options, 'generateClientHelpers');
+    const generateClientHelpers = parseOptionAsStrings(options, 'generateClientHelpers', name);
     if (generateClientHelpers && !generateClientHelpers.every((v) => ['react', 'next'].includes(v))) {
         throw new PluginError(name, `Option "generateClientHelpers" only support values "react" and "next"`);
     }
@@ -50,10 +54,15 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const prismaClientDmmf = dmmf;
 
-    const modelOperations = prismaClientDmmf.mappings.modelOperations;
-    const models = prismaClientDmmf.datamodel.models;
+    let modelOperations = prismaClientDmmf.mappings.modelOperations;
+    if (generateModels) {
+        modelOperations = modelOperations.filter((mo) => generateModels.includes(mo.model));
+    }
+
+    // TODO: remove this legacy code that deals with "@Gen.hide" comment syntax inherited
+    // from original code
     const hiddenModels: string[] = [];
-    resolveModelsComments(models, hiddenModels);
+    resolveModelsComments(prismaClientDmmf.datamodel.models, hiddenModels);
 
     const zodSchemasImport = (options.zodSchemasImport as string) ?? '@zenstackhq/runtime/zod';
     createAppRouter(
@@ -373,6 +382,7 @@ function createHelper(outDir: string) {
         overwrite: true,
     });
 
+    sf.addStatements('/* eslint-disable */');
     sf.addStatements(`import { TRPCError } from '@trpc/server';`);
     sf.addStatements(`import { isPrismaClientKnownRequestError } from '${RUNTIME_PACKAGE}';`);
 
@@ -471,25 +481,4 @@ function createHelper(outDir: string) {
     `
     );
     checkRead.formatText();
-}
-
-function parseOptionAsStrings(options: PluginOptions, optionaName: string) {
-    const value = options[optionaName];
-    if (value === undefined) {
-        return undefined;
-    } else if (typeof value === 'string') {
-        // comma separated string
-        return value
-            .split(',')
-            .filter((i) => !!i)
-            .map((i) => i.trim());
-    } else if (Array.isArray(value) && value.every((i) => typeof i === 'string')) {
-        // string array
-        return value as string[];
-    } else {
-        throw new PluginError(
-            name,
-            `Invalid "${optionaName}" option: must be a comma-separated string or an array of strings`
-        );
-    }
 }

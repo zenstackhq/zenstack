@@ -189,7 +189,7 @@ attribute @id(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@
 /**
  * Defines a default value for a field.
  */
-attribute @default(_ value: ContextType) @@@prisma
+attribute @default(_ value: ContextType, map: String?) @@@prisma
 
 /**
  * Defines a unique constraint for this field.
@@ -261,13 +261,17 @@ attribute @@fulltext(_ fields: FieldReference[]) @@@prisma
 
 // String type modifiers
 
+enum MSSQLServerTypes {
+    Max
+}
+
 attribute @db.String(_ x: Int?) @@@targetField([StringField]) @@@prisma
 attribute @db.Text() @@@targetField([StringField]) @@@prisma
 attribute @db.NText() @@@targetField([StringField]) @@@prisma
 attribute @db.Char(_ x: Int) @@@targetField([StringField]) @@@prisma
 attribute @db.NChar(_ x: Int) @@@targetField([StringField]) @@@prisma
-attribute @db.VarChar(_ x: Int) @@@targetField([StringField]) @@@prisma
-attribute @db.NVarChar(_ x: Int) @@@targetField([StringField]) @@@prisma
+attribute @db.VarChar(_ x: Any) @@@targetField([StringField]) @@@prisma
+attribute @db.NVarChar(_ x: Any) @@@targetField([StringField]) @@@prisma
 attribute @db.CatalogSingleChar() @@@targetField([StringField]) @@@prisma
 attribute @db.TinyText() @@@targetField([StringField]) @@@prisma
 attribute @db.MediumText() @@@targetField([StringField]) @@@prisma

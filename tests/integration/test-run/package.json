@@ -17,6 +17,6 @@
         "swr": "^1.3.0",
         "typescript": "^4.9.3",
         "zenstack": "file:../../../packages/schema/dist",
-        "zod": "3.21.1"
+        "zod": "^3.22.4"
     }
 }

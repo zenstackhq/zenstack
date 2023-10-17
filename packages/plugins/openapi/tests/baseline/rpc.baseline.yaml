@@ -352,7 +352,6 @@ components:
                 posts:
                     $ref: '#/components/schemas/Post_ItemCreateNestedManyWithoutAuthorInput'
             required:
-                - id
                 - email
         UserUpdateInput:
             type: object
@@ -397,7 +396,6 @@ components:
                 role:
                     $ref: '#/components/schemas/Role'
             required:
-                - id
                 - email
         UserUpdateManyMutationInput:
             type: object
@@ -1709,7 +1707,6 @@ components:
                 role:
                     $ref: '#/components/schemas/Role'
             required:
-                - id
                 - email
         UserUncheckedCreateWithoutPostsInput:
             type: object
@@ -1727,7 +1724,6 @@ components:
                 role:
                     $ref: '#/components/schemas/Role'
             required:
-                - id
                 - email
         UserCreateOrConnectWithoutPostsInput:
             type: object
