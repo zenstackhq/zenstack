@@ -21,9 +21,6 @@
     </a>
 </div>
 
-## We are live on Product Hunt
-<a href="https://www.producthunt.com/posts/zenstack?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-zenstack" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=419017&theme=light" alt="ZenStack - Build&#0032;scalable&#0032;web&#0032;apps&#0032;with&#0032;minimal&#0032;code | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
-
 ## What it is
 
 ZenStack is a Node.js/TypeScript toolkit that simplifies the development of a web app's backend. It supercharges [Prisma ORM](https://prisma.io) with a powerful access control layer and unleashes its full potential for full-stack development.
