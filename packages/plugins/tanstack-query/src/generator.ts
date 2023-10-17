@@ -418,10 +418,14 @@ function generateIndex(project: Project, outDir: string, models: DataModel[], ta
             sf.addStatements(`export { Provider } from '@zenstackhq/tanstack-query/runtime/react';`);
             break;
         case 'vue':
-            sf.addStatements(`export { VueQueryContextKey } from '@zenstackhq/tanstack-query/runtime/vue';`);
+            sf.addStatements(
+                `export { VueQueryContextKey, provideHooksContext } from '@zenstackhq/tanstack-query/runtime/vue';`
+            );
             break;
         case 'svelte':
-            sf.addStatements(`export { SvelteQueryContextKey } from '@zenstackhq/tanstack-query/runtime/svelte';`);
+            sf.addStatements(
+                `export { SvelteQueryContextKey, setHooksContext } from '@zenstackhq/tanstack-query/runtime/svelte';`
+            );
             break;
     }
 }

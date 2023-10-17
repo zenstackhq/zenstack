@@ -24,7 +24,7 @@ export type APIContext = {
     /**
      * The endpoint to use for the queries.
      */
-    endpoint: string;
+    endpoint?: string;
 
     /**
      * A custom fetch function for sending the HTTP requests.
