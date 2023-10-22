@@ -466,8 +466,10 @@ export class PolicyUtil {
                 ) {
                     // multi-field unique constraint, flatten it
                     delete args[field];
-                    for (const [f, v] of Object.entries(value)) {
-                        args[f] = v;
+                    if (value) {
+                        for (const [f, v] of Object.entries(value)) {
+                            args[f] = v;
+                        }
                     }
                 }
             }
