@@ -515,7 +515,7 @@ export class PolicyUtil {
                     throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
                 }
 
-                if (backLinkField.isArray) {
+                if (backLinkField.isArray && !mutating) {
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
                 } else {
