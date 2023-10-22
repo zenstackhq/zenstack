@@ -323,12 +323,14 @@ export class NestedWriteVisitor {
             }
 
             if (fieldInfo.isDataModel) {
-                // recurse into nested payloads
-                for (const [subAction, subData] of Object.entries<any>(payload[field])) {
-                    if (this.isPrismaWriteAction(subAction) && subData) {
-                        await this.doVisit(fieldInfo.type, subAction, subData, payload[field], fieldInfo, [
-                            ...nestingPath,
-                        ]);
+                if (payload[field]) {
+                    // recurse into nested payloads
+                    for (const [subAction, subData] of Object.entries<any>(payload[field])) {
+                        if (this.isPrismaWriteAction(subAction) && subData) {
+                            await this.doVisit(fieldInfo.type, subAction, subData, payload[field], fieldInfo, [
+                                ...nestingPath,
+                            ]);
+                        }
                     }
                 }
             } else {
