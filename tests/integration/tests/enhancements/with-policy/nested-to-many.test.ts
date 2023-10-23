@@ -284,7 +284,7 @@ describe('With Policy:nested to-many', () => {
         expect(r.m2).toEqual(expect.arrayContaining([expect.objectContaining({ id: '2', value: 3 })]));
     });
 
-    it('update with create', async () => {
+    it('update with create from one to many', async () => {
         const { withPolicy } = await loadSchema(
             `
         model M1 {
@@ -339,6 +339,56 @@ describe('With Policy:nested to-many', () => {
             },
         });
         expect(r.m2).toHaveLength(3);
+    });
+
+    it('update with create from many to one', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            value Int
+            m2 M2[]
+        
+            @@allow('read', true)
+            @@allow('create', value > 0)
+            @@allow('update', value > 1)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            m1 M1? @relation(fields: [m1Id], references:[id])
+            m1Id String?
+        
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.m2.create({ data: { id: '1' } });
+
+        await expect(
+            db.m2.update({
+                where: { id: '1' },
+                data: {
+                    m1: {
+                        create: { value: 0 },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.m2.update({
+                where: { id: '1' },
+                data: {
+                    m1: {
+                        create: { value: 1 },
+                    },
+                },
+            })
+        ).toResolveTruthy();
     });
 
     it('update with delete', async () => {

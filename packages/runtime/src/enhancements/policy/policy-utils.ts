@@ -466,8 +466,10 @@ export class PolicyUtil {
                 ) {
                     // multi-field unique constraint, flatten it
                     delete args[field];
-                    for (const [f, v] of Object.entries(value)) {
-                        args[f] = v;
+                    if (value) {
+                        for (const [f, v] of Object.entries(value)) {
+                            args[f] = v;
+                        }
                     }
                 }
             }
@@ -515,7 +517,7 @@ export class PolicyUtil {
                     throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
                 }
 
-                if (backLinkField.isArray) {
+                if (backLinkField.isArray && !mutating) {
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
                 } else {
