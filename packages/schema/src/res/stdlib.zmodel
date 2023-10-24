@@ -377,6 +377,11 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
 attribute @deny(_ operation: String, _ condition: Boolean)
 
 /**
+ * Defines the model to use when when checking access policies.
+ */
+attribute @@auth(_ modelName: String)
+
+/**
  * Indicates that the field is a password field and needs to be hashed before persistence.
  * 
  * ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter

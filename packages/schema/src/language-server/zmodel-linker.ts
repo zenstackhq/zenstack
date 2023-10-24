@@ -53,7 +53,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllDeclarationsFromImports } from '../utils/ast-utils';
+import { getAllDeclarationsFromImports, getModelAttributeValue } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -278,9 +278,12 @@ export class ZModelLinker extends DefaultLinker {
                 const model = getContainingModel(node);
 
                 if (model) {
-                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find(
-                        (d) => isDataModel(d) && d.name === 'User'
-                    );
+                    ('User');
+                    const dataModel = this.getContainingDataModel(node);
+                    const customAuthModel = dataModel && getModelAttributeValue('@@auth', dataModel);
+                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
+                        return isDataModel(d) && d.name === (customAuthModel ?? 'User');
+                    });
                     if (userModel) {
                         node.$resolvedType = { decl: userModel, nullable: true };
                     }
