@@ -278,7 +278,6 @@ export class ZModelLinker extends DefaultLinker {
                 const model = getContainingModel(node);
 
                 if (model) {
-                    ('User');
                     const dataModel = this.getContainingDataModel(node);
                     const customAuthModel = dataModel && getModelAttributeValue('@@auth', dataModel);
                     const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
