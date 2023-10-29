@@ -5,15 +5,18 @@ import {
     createQuery,
     useQueryClient,
     type CreateInfiniteQueryOptions,
+    type InfiniteData,
     type MutateFunction,
     type MutationOptions,
     type QueryClient,
-    type QueryOptions,
-} from '@tanstack/svelte-query';
+    type StoreOrVal,
+} from '@tanstack/svelte-query-v5';
+import { QueryOptions } from '@tanstack/vue-query';
 import { setContext } from 'svelte';
-import { APIContext, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
+import { Readable, derived } from 'svelte/store';
+import { APIContext, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from '../runtime/common';
 
-export { APIContext as RequestHandlerContext } from './common';
+export { APIContext as RequestHandlerContext } from '../runtime/common';
 
 /**
  * Key for setting and getting the global query context.
@@ -40,15 +43,32 @@ export function query<R>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<QueryOptions<R>, 'queryKey'>,
+    options?: StoreOrVal<Omit<QueryOptions<R>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
-    return createQuery<R>({
-        queryKey: [QUERY_KEY_PREFIX + model, url, args],
-        queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
-        ...options,
-    });
+    const queryKey = [QUERY_KEY_PREFIX + model, url, args];
+    const queryFn = () => fetcher<R, false>(reqUrl, undefined, fetch, false);
+
+    let mergedOpt: any;
+    if (isStore(options)) {
+        // options is store
+        mergedOpt = derived([options], ([$opt]) => {
+            return {
+                queryKey,
+                queryFn,
+                ...($opt as object),
+            };
+        });
+    } else {
+        // options is value
+        mergedOpt = {
+            queryKey,
+            queryFn,
+            ...options,
+        };
+    }
+    return createQuery(mergedOpt);
 }
 
 /**
@@ -63,15 +83,37 @@ export function query<R>(
 export function infiniteQuery<R>(
     model: string,
     url: string,
-    args?: unknown,
-    options?: Omit<CreateInfiniteQueryOptions<R>, 'queryKey'>,
+    args: unknown,
+    options: StoreOrVal<Omit<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
-    return createInfiniteQuery<R>({
-        queryKey: [QUERY_KEY_PREFIX + model, url, args],
-        queryFn: ({ pageParam }) => fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
-        ...options,
-    });
+    const queryKey = [QUERY_KEY_PREFIX + model, url, args];
+    const queryFn = ({ pageParam }: { pageParam: unknown }) =>
+        fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+
+    let mergedOpt: StoreOrVal<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>>;
+    if (isStore<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>>(options)) {
+        // options is store
+        mergedOpt = derived([options], ([$opt]) => {
+            return {
+                queryKey,
+                queryFn,
+                ...$opt,
+            };
+        });
+    } else {
+        // options is value
+        mergedOpt = {
+            queryKey,
+            queryFn,
+            ...options,
+        };
+    }
+    return createInfiniteQuery<R, unknown, InfiniteData<R>>(mergedOpt);
+}
+
+function isStore<T>(opt: unknown): opt is Readable<T> {
+    return typeof (opt as any)?.subscribe === 'function';
 }
 
 /**
@@ -192,7 +234,7 @@ function mergeOptions<T, R = any>(
     if (options?.onSuccess || invalidateQueries) {
         result.onSuccess = (...args) => {
             if (invalidateQueries) {
-                queryClient.invalidateQueries([QUERY_KEY_PREFIX + model]);
+                queryClient.invalidateQueries({ queryKey: [QUERY_KEY_PREFIX + model] });
             }
             return options?.onSuccess?.(...args);
         };

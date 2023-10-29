@@ -45,7 +45,7 @@ model Foo {
 }
     `;
 
-    it('react-query run plugin', async () => {
+    it('react-query run plugin v4', async () => {
         await loadSchema(
             `
 plugin tanstack {
@@ -59,18 +59,36 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [
-                    `${origDir}/dist`,
-                    'react@18.2.0',
-                    '@types/react@18.2.0',
-                    '@tanstack/react-query@4.29.7',
-                ],
+                extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@4.29.7'],
+                copyDependencies: [`${origDir}/dist`],
                 compile: true,
             }
         );
     });
 
-    it('vue-query run plugin', async () => {
+    it('react-query run plugin v5', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    target = 'react'
+    version = 'v5'
+}
+
+${sharedModel}
+        `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@^5.0.0'],
+                copyDependencies: [`${origDir}/dist`],
+                compile: true,
+            }
+        );
+    });
+
+    it('vue-query run plugin v4', async () => {
         await loadSchema(
             `
 plugin tanstack {
@@ -84,13 +102,36 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, 'vue@^3.3.4', '@tanstack/vue-query@4.37.0'],
+                extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@4.37.0'],
+                copyDependencies: [`${origDir}/dist`],
                 compile: true,
             }
         );
     });
 
-    it('svelte-query run plugin', async () => {
+    it('vue-query run plugin v5', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    target = 'vue'
+    version = 'v5'
+}
+
+${sharedModel}
+        `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@latest'],
+                copyDependencies: [`${origDir}/dist`],
+                compile: true,
+            }
+        );
+    });
+
+    it('svelte-query run plugin v4', async () => {
         await loadSchema(
             `
 plugin tanstack {
@@ -104,7 +145,30 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, 'svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
+                extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
+                copyDependencies: [`${origDir}/dist`],
+                compile: true,
+            }
+        );
+    });
+
+    it('svelte-query run plugin v5', async () => {
+        await loadSchema(
+            `
+plugin tanstack {
+    provider = '${process.cwd()}/dist'
+    output = '$projectRoot/hooks'
+    target = 'svelte'
+    version = 'v5'
+}
+
+${sharedModel}
+        `,
+            {
+                provider: 'postgresql',
+                pushDb: false,
+                extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@^5.0.0'],
+                copyDependencies: [`${origDir}/dist`],
                 compile: true,
             }
         );
