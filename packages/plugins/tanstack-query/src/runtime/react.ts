@@ -43,7 +43,13 @@ export const Provider = RequestHandlerContext.Provider;
  * @param options The react-query options object
  * @returns useQuery hook
  */
-export function query<R>(model: string, url: string, args?: unknown, options?: UseQueryOptions<R>, fetch?: FetchFn) {
+export function query<R>(
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: Omit<UseQueryOptions<R>, 'queryKey'>,
+    fetch?: FetchFn
+) {
     const reqUrl = makeUrl(url, args);
     return useQuery<R>({
         queryKey: [QUERY_KEY_PREFIX + model, url, args],
@@ -65,7 +71,7 @@ export function infiniteQuery<R>(
     model: string,
     url: string,
     args?: unknown,
-    options?: UseInfiniteQueryOptions<R>,
+    options?: Omit<UseInfiniteQueryOptions<R>, 'queryKey'>,
     fetch?: FetchFn
 ) {
     return useInfiniteQuery<R>({
@@ -109,8 +115,8 @@ export function postMutation<T, R = any, C extends boolean = boolean, Result = C
             checkReadBack
         ) as Promise<Result>;
 
-    const finalOptions = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = useMutation<Result, unknown, T>(finalOptions);
+    const finalOptions = mergeOptions(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = useMutation(finalOptions);
     return mutation;
 }
 
@@ -146,8 +152,8 @@ export function putMutation<T, R = any, C extends boolean = boolean, Result = C 
             checkReadBack
         ) as Promise<Result>;
 
-    const finalOptions = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = useMutation<Result, unknown, T>(finalOptions);
+    const finalOptions = mergeOptions(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = useMutation(finalOptions);
     return mutation;
 }
 
@@ -179,8 +185,8 @@ export function deleteMutation<T, R = any, C extends boolean = boolean, Result =
             checkReadBack
         ) as Promise<Result>;
 
-    const finalOptions = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = useMutation<Result, unknown, T>(finalOptions);
+    const finalOptions = mergeOptions(model, options, invalidateQueries, mutationFn, queryClient);
+    const mutation = useMutation(finalOptions);
     return mutation;
 }
 

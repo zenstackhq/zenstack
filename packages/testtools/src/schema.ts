@@ -96,6 +96,7 @@ export type SchemaLoadOptions = {
     pushDb?: boolean;
     fullZod?: boolean;
     extraDependencies?: string[];
+    copyDependencies?: string[];
     compile?: boolean;
     customSchemaFilePath?: string;
     output?: string;
@@ -200,6 +201,11 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     opt.extraDependencies?.forEach((dep) => {
         console.log(`Installing dependency ${dep}`);
         run(`npm install ${dep}`);
+    });
+
+    opt.copyDependencies?.forEach((dep) => {
+        const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
+        fs.cpSync(dep, path.join(projectRoot, 'node_modules', pkgJson.name), { recursive: true, force: true });
     });
 
     const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
