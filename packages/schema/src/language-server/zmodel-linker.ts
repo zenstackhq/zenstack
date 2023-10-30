@@ -287,7 +287,6 @@ export class ZModelLinker extends DefaultLinker {
                             return isDataModel(d) && d.name === 'User';
                         });
                     }
-                    console.log(userModel?.name);
                     if (userModel) {
                         node.$resolvedType = { decl: userModel, nullable: true };
                     }
