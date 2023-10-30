@@ -379,7 +379,7 @@ attribute @deny(_ operation: String, _ condition: Boolean)
 /**
  * Defines the model to use when when checking access policies.
  */
-attribute @@auth(_ modelName: String)
+attribute @@auth()
 
 /**
  * Indicates that the field is a password field and needs to be hashed before persistence.

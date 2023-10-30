@@ -889,6 +889,7 @@ describe('Expression Writer Tests', () => {
             model Membership {
                 id String @id
                 t Test?
+                @@auth()
             }
 
             model Test {
@@ -897,7 +898,7 @@ describe('Expression Writer Tests', () => {
                 ownerId String @unique @allow('all', auth().id == owner.id)
                 value Int
                 @@allow('all', auth().id == owner.id)
-                @@auth('Membership')
+               
             }
                 `,
             (model) => {

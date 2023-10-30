@@ -156,18 +156,3 @@ export function getAllDeclarationsFromImports(documents: LangiumDocuments, model
 export function isCollectionPredicate(expr: Expression): expr is BinaryExpr {
     return isBinaryExpr(expr) && ['?', '!', '^'].includes(expr.operator);
 }
-
-export function findModelAttributeByName(name: string, dataModel: DataModel) {
-    return dataModel.attributes.find((attr) => attr.decl.$refNode?.text == name);
-}
-
-export function getModelAttributeValue(name: string, dataModel: DataModel) {
-    const attr = findModelAttributeByName(name, dataModel);
-    if (attr) {
-        const arg = attr.args.find((arg) => arg.value);
-        if (arg && arg.value && arg.value.$type == 'StringLiteral') {
-            return arg.value.value;
-        }
-    }
-    return undefined;
-}
