@@ -1,5 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { deserialize, serialize } from '@zenstackhq/runtime/browser';
+import {
+    NestedReadVisitor,
+    NestedWriteVisitor,
+    type ModelMeta,
+    type PrismaWriteActionType,
+} from '@zenstackhq/runtime/cross';
 import * as crossFetch from 'cross-fetch';
 
 /**
@@ -10,7 +17,7 @@ export const DEFAULT_QUERY_ENDPOINT = '/api/model';
 /**
  * Prefix for react-query keys.
  */
-export const QUERY_KEY_PREFIX = 'zenstack:';
+export const QUERY_KEY_PREFIX = 'zenstack';
 
 /**
  * Function signature for `fetch`.
@@ -30,6 +37,11 @@ export type APIContext = {
      * A custom fetch function for sending the HTTP requests.
      */
     fetch?: FetchFn;
+
+    /**
+     * If logging is enabled.
+     */
+    logging?: boolean;
 };
 
 export async function fetcher<R, C extends boolean>(
@@ -68,6 +80,24 @@ export async function fetcher<R, C extends boolean>(
     }
 }
 
+type QueryKey = [string /* prefix */, string /* model */, string /* operation */, unknown /* args */];
+
+/**
+ * Computes query key for the given model, operation and query args.
+ * @param model Model name.
+ * @param urlOrOperation Prisma operation (e.g, `findMany`) or request URL. If it's a URL, the last path segment will be used as the operation name.
+ * @param args Prisma query arguments.
+ * @returns Query key
+ */
+export function getQueryKey(model: string, urlOrOperation: string, args: unknown): QueryKey {
+    if (!urlOrOperation) {
+        throw new Error('Invalid urlOrOperation');
+    }
+    const operation = urlOrOperation.split('/').pop();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return [QUERY_KEY_PREFIX, model, operation!, args];
+}
+
 export function marshal(value: unknown) {
     const { data, meta } = serialize(value);
     if (meta) {
@@ -98,4 +128,114 @@ export function makeUrl(url: string, args: unknown) {
         result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
     }
     return result;
+}
+
+type InvalidationPredicate = ({ queryKey }: { queryKey: readonly unknown[] }) => boolean;
+
+// sets up invalidation hook for a mutation
+export function setupInvalidation(
+    model: string,
+    operation: string,
+    modelMeta: ModelMeta,
+    options: { onSuccess?: (...args: any[]) => any },
+    invalidate: (predicate: InvalidationPredicate) => Promise<void>,
+    logging = false
+) {
+    const origOnSuccess = options?.onSuccess;
+    options.onSuccess = async (...args: unknown[]) => {
+        const [_, variables] = args;
+        const predicate = await getInvalidationPredicate(
+            model,
+            operation as PrismaWriteActionType,
+            variables,
+            modelMeta,
+            logging
+        );
+        await invalidate(predicate);
+        return origOnSuccess?.(...args);
+    };
+}
+
+// gets a predicate for evaluating whether a query should be invalidated
+async function getInvalidationPredicate(
+    model: string,
+    operation: PrismaWriteActionType,
+    mutationArgs: any,
+    modelMeta: ModelMeta,
+    logging = false
+) {
+    const mutatedModels = await collectMutatedModels(model, operation, mutationArgs, modelMeta);
+
+    return ({ queryKey }: { queryKey: readonly unknown[] }) => {
+        const [_model, queryModel, queryOp, args] = queryKey as QueryKey;
+
+        if (mutatedModels.includes(queryModel)) {
+            // direct match
+            if (logging) {
+                console.log(`Invalidating query [${queryKey}] due to mutation "${model}.${operation}"`);
+            }
+            return true;
+        }
+
+        if (args) {
+            // traverse query args to find nested reads that match the model under mutation
+            if (queryOp.startsWith('find') && findNestedRead(queryModel, mutatedModels, modelMeta, args)) {
+                if (logging) {
+                    console.log(`Invalidating query [${queryKey}] due to mutation "${model}.${operation}"`);
+                }
+                return true;
+            }
+        }
+
+        return false;
+    };
+}
+
+// find nested reads that match the given models
+function findNestedRead(visitingModel: string, targetModels: string[], modelMeta: ModelMeta, args: any) {
+    let found = false;
+    const visitor = new NestedReadVisitor(modelMeta, {
+        field: (model) => {
+            if (targetModels.includes(model)) {
+                // found a match
+                found = true;
+                // stop visiting
+                return false;
+            } else {
+                return true;
+            }
+        },
+    });
+
+    visitor.visit(visitingModel, args);
+
+    return found;
+}
+
+// collect the models being mutated in the given mutation args
+async function collectMutatedModels(
+    model: string,
+    operation: PrismaWriteActionType,
+    mutationArgs: any,
+    modelMeta: ModelMeta
+) {
+    const result = new Set<string>();
+    const addModel = (model: string) => void result.add(model);
+
+    const visitor = new NestedWriteVisitor(modelMeta, {
+        create: addModel,
+        createMany: addModel,
+        connectOrCreate: addModel,
+        connect: addModel,
+        disconnect: addModel,
+        set: addModel,
+        update: addModel,
+        updateMany: addModel,
+        upsert: addModel,
+        delete: addModel,
+        deleteMany: addModel,
+    });
+
+    await visitor.visit(model, operation, mutationArgs);
+    return [...result];
 }

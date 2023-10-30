@@ -2,6 +2,7 @@ import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginError,
     PluginOptions,
+    generateModelMeta as _generateModelMeta,
     createProject,
     getDataModels,
     getPrismaClientImportSpec,
@@ -43,6 +44,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     if (version !== 'v4' && version !== 'v5') {
         throw new PluginError(options.name, `Unsupported version "${version}": use "v4" or "v5"`);
     }
+
+    await generateModelMeta(project, outDir, models);
 
     generateIndex(project, outDir, models, target, version);
 
@@ -158,11 +161,11 @@ function generateMutationHook(
             {
                 name: `_mutation`,
                 initializer: `
-                    ${httpVerb}Mutation<${argsType}, ${
+                    mutate<${argsType}, ${
                     overrideReturnType ?? model
-                }, ${checkReadBack}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, options, fetch, invalidateQueries, ${checkReadBack})
+                )}/${operation}\`, metadata, options, fetch, invalidateQueries, ${checkReadBack})
                 `,
             },
         ],
@@ -438,6 +441,10 @@ function generateModelHooks(
     }
 }
 
+async function generateModelMeta(project: Project, outDir: string, models: DataModel[]) {
+    await _generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
+}
+
 function generateIndex(
     project: Project,
     outDir: string,
@@ -445,9 +452,10 @@ function generateIndex(
     target: string,
     version: TanStackVersion
 ) {
+    const runtimeImportBase = makeRuntimeImportBase(version);
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    const runtimeImportBase = makeRuntimeImportBase(version);
+    sf.addStatements(`export { getQueryKey } from '${runtimeImportBase}';`);
     switch (target) {
         case 'react':
             sf.addStatements(`export { Provider } from '${runtimeImportBase}/react';`);
@@ -477,8 +485,9 @@ function makeGetContext(target: TargetFramework) {
 function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
-        `import { query, infiniteQuery, postMutation, putMutation, deleteMutation } from '${runtimeImportBase}/${target}';`,
+        `import { query, infiniteQuery, mutate } from '${runtimeImportBase}/${target}';`,
         `import type { PickEnumerable, CheckSelect } from '${runtimeImportBase}';`,
+        `import metadata from './__model_meta';`,
     ];
     switch (target) {
         case 'react':

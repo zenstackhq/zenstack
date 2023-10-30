@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { PRISMA_PROXY_ENHANCER, PRISMA_TX_FLAG } from '../constants';
-import { DbClientContract } from '../types';
+import type { ModelMeta } from '../cross';
+import type { DbClientContract } from '../types';
 import { createDeferredPromise } from './policy/promise';
-import { ModelMeta } from './types';
 
 /**
  * Prisma batch write operation result

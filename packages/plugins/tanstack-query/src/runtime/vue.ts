@@ -5,14 +5,22 @@ import {
     useMutation,
     useQuery,
     useQueryClient,
-    type MutateFunction,
-    type QueryClient,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
 } from '@tanstack/vue-query';
+import type { ModelMeta } from '@zenstackhq/runtime/cross';
 import { inject, provide } from 'vue';
-import { APIContext, DEFAULT_QUERY_ENDPOINT, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
+import {
+    APIContext,
+    DEFAULT_QUERY_ENDPOINT,
+    FetchFn,
+    fetcher,
+    getQueryKey,
+    makeUrl,
+    marshal,
+    setupInvalidation,
+} from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
 
@@ -29,6 +37,7 @@ export function getContext() {
     return inject<APIContext>(VueQueryContextKey, {
         endpoint: DEFAULT_QUERY_ENDPOINT,
         fetch: undefined,
+        logging: false,
     });
 }
 
@@ -44,7 +53,7 @@ export function getContext() {
 export function query<R>(model: string, url: string, args?: unknown, options?: UseQueryOptions<R>, fetch?: FetchFn) {
     const reqUrl = makeUrl(url, args);
     return useQuery<R>({
-        queryKey: [QUERY_KEY_PREFIX + model, url, args],
+        queryKey: getQueryKey(model, url, args),
         queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
@@ -67,7 +76,7 @@ export function infiniteQuery<R>(
     fetch?: FetchFn
 ) {
     return useInfiniteQuery<R>({
-        queryKey: [QUERY_KEY_PREFIX + model, url, args],
+        queryKey: getQueryKey(model, url, args),
         queryFn: ({ pageParam }) => {
             return fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
@@ -76,130 +85,56 @@ export function infiniteQuery<R>(
 }
 
 /**
- * Creates a POST mutation with vue-query.
+ * Creates a mutation with vue-query.
  *
  * @param model The name of the model under mutation.
+ * @param method The HTTP method.
+ * @param modelMeta The model metadata.
  * @param url The request URL.
  * @param options The vue-query options.
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function postMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function mutate<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
+    method: 'POST' | 'PUT' | 'DELETE',
     url: string,
+    modelMeta: ModelMeta,
     options?: Omit<UseMutationOptions<Result, unknown, T, unknown>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
-    const mutationFn = (data: any) =>
-        fetcher<R, C>(
-            url,
-            {
-                method: 'POST',
+    const mutationFn = (data: any) => {
+        const reqUrl = method === 'DELETE' ? makeUrl(url, data) : url;
+        const fetchInit: RequestInit = {
+            method,
+            ...(method !== 'DELETE' && {
                 headers: {
                     'content-type': 'application/json',
                 },
                 body: marshal(data),
-            },
-            fetch,
-            checkReadBack
-        ) as Promise<Result>;
-
-    // TODO: figure out the typing problem
-    const finalOptions: any = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = useMutation<Result, unknown, T>(finalOptions);
-    return mutation;
-}
-
-/**
- * Creates a PUT mutation with vue-query.
- *
- * @param model The name of the model under mutation.
- * @param url The request URL.
- * @param options The vue-query options.
- * @param invalidateQueries Whether to invalidate queries after mutation.
- * @returns useMutation hooks
- */
-export function putMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
-    model: string,
-    url: string,
-    options?: Omit<UseMutationOptions<Result, unknown, T, unknown>, 'mutationFn'>,
-    fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C
-) {
-    const queryClient = useQueryClient();
-    const mutationFn = (data: any) =>
-        fetcher<R, C>(
-            url,
-            {
-                method: 'PUT',
-                headers: {
-                    'content-type': 'application/json',
-                },
-                body: marshal(data),
-            },
-            fetch,
-            checkReadBack
-        ) as Promise<Result>;
-
-    // TODO: figure out the typing problem
-    const finalOptions: any = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = useMutation<Result, unknown, T>(finalOptions);
-    return mutation;
-}
-
-/**
- * Creates a DELETE mutation with vue-query.
- *
- * @param model The name of the model under mutation.
- * @param url The request URL.
- * @param options The vue-query options.
- * @param invalidateQueries Whether to invalidate queries after mutation.
- * @returns useMutation hooks
- */
-export function deleteMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
-    model: string,
-    url: string,
-    options?: Omit<UseMutationOptions<Result, unknown, T, unknown>, 'mutationFn'>,
-    fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C
-) {
-    const queryClient = useQueryClient();
-    const mutationFn = (data: any) =>
-        fetcher<R, C>(
-            makeUrl(url, data),
-            {
-                method: 'DELETE',
-            },
-            fetch,
-            checkReadBack
-        ) as Promise<Result>;
-
-    // TODO: figure out the typing problem
-    const finalOptions: any = mergeOptions<T, Result>(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = useMutation<Result, unknown, T>(finalOptions);
-    return mutation;
-}
-
-function mergeOptions<T, R = any>(
-    model: string,
-    options: Omit<UseMutationOptions<R, unknown, T, unknown>, 'mutationFn'> | undefined,
-    invalidateQueries: boolean,
-    mutationFn: MutateFunction<R, unknown, T>,
-    queryClient: QueryClient
-): UseMutationOptions<R, unknown, T, unknown> {
-    const result = { ...options, mutationFn };
-    if (options?.onSuccess || invalidateQueries) {
-        result.onSuccess = (...args) => {
-            if (invalidateQueries) {
-                queryClient.invalidateQueries([QUERY_KEY_PREFIX + model]);
-            }
-            return options?.onSuccess?.(...args);
+            }),
         };
+        return fetcher<R, C>(reqUrl, fetchInit, fetch, checkReadBack) as Promise<Result>;
+    };
+
+    // TODO: figure out the typing problem
+    const finalOptions: any = { ...options, mutationFn };
+    if (invalidateQueries) {
+        const { logging } = getContext();
+        const operation = url.split('/').pop();
+        if (operation) {
+            setupInvalidation(
+                model,
+                operation,
+                modelMeta,
+                finalOptions,
+                (predicate) => queryClient.invalidateQueries({ predicate }),
+                logging
+            );
+        }
     }
-    return result;
+    return useMutation<Result, unknown, T>(finalOptions);
 }

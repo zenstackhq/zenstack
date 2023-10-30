@@ -10,8 +10,9 @@ import {
     type QueryClient,
     type QueryOptions,
 } from '@tanstack/svelte-query';
-import { setContext } from 'svelte';
-import { APIContext, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal } from './common';
+import { ModelMeta } from '@zenstackhq/runtime/cross';
+import { getContext, setContext } from 'svelte';
+import { APIContext, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal, setupInvalidation } from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
 
@@ -78,37 +79,55 @@ export function infiniteQuery<R>(
  * Creates a POST mutation with svelte-query.
  *
  * @param model The name of the model under mutation.
+ * @param method The HTTP method.
+ * @param modelMeta The model metadata.
  * @param url The request URL.
  * @param options The svelte-query options.
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function postMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function mutate<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
+    method: 'POST' | 'PUT' | 'DELETE',
     url: string,
+    modelMeta: ModelMeta,
     options?: Omit<MutationOptions<Result, unknown, T>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
-    const mutationFn = (data: any) =>
-        fetcher<R, C>(
-            url,
-            {
-                method: 'POST',
+    const mutationFn = (data: any) => {
+        const reqUrl = method === 'DELETE' ? makeUrl(url, data) : url;
+        const fetchInit: RequestInit = {
+            method,
+            ...(method !== 'DELETE' && {
                 headers: {
                     'content-type': 'application/json',
                 },
                 body: marshal(data),
-            },
-            fetch,
-            checkReadBack
-        ) as Promise<Result>;
+            }),
+        };
+        return fetcher<R, C>(reqUrl, fetchInit, fetch, checkReadBack) as Promise<Result>;
+    };
 
-    const finalOptions = mergeOptions(model, options, invalidateQueries, mutationFn, queryClient);
-    const mutation = createMutation(finalOptions);
-    return mutation;
+    const finalOptions = { ...options, mutationFn };
+    if (invalidateQueries) {
+        const { logging } = getContext<APIContext>(SvelteQueryContextKey);
+        const operation = url.split('/').pop();
+        if (operation) {
+            setupInvalidation(
+                model,
+                operation,
+                modelMeta,
+                finalOptions,
+                (predicate) => queryClient.invalidateQueries({ predicate }),
+                logging
+            );
+        }
+    }
+
+    return createMutation(finalOptions);
 }
 
 /**

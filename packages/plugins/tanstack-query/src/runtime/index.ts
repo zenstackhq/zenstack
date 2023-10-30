@@ -1,2 +1,2 @@
 export * from './prisma-types';
-export type { FetchFn } from './common';
+export { type FetchFn, getQueryKey } from './common';

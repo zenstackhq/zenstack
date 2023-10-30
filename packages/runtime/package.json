@@ -9,8 +9,8 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && tsup-node && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
-        "watch": "concurrently \"tsc --watch\" \"tsup-node --watch\"",
+        "build": "pnpm lint && pnpm clean && tsc && tsup-node --config ./tsup-browser.config.ts && tsup-node --config ./tsup-cross.config.ts && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup-browser.config.ts --watch\" \"tsup-node --config ./tsup-cross.config.ts --watch\"",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build",
         "publish-dev": "pnpm publish --tag dev"
@@ -41,6 +41,12 @@
             "require": "./browser/index.js",
             "default": "./browser/index.js",
             "types": "./browser/index.d.ts"
+        },
+        "./cross": {
+            "import": "./cross/index.mjs",
+            "require": "./cross/index.js",
+            "default": "./cross/index.js",
+            "types": "./cross/index.d.ts"
         }
     },
     "publishConfig": {

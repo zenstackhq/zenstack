@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { resolveField } from './model-meta';
-import { ModelMeta } from './types';
+import { resolveField, type ModelMeta } from '../cross';
 
 /**
  * Callback for @see ModelDataVisitor.

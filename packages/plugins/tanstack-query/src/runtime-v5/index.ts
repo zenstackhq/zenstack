@@ -1,2 +1,2 @@
 export * from '../runtime/prisma-types';
-export type { FetchFn } from '../runtime/common';
+export { type FetchFn, getQueryKey } from '../runtime/common';
