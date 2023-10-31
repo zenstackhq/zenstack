@@ -75,7 +75,10 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     const useMutation = sf.addFunction({
         name: `useMutate${model.name}`,
         isExported: true,
-        statements: ['const { endpoint, fetch, logging } = useContext(RequestHandlerContext);'],
+        statements: [
+            'const { endpoint, fetch, logging } = useContext(RequestHandlerContext);',
+            `const mutate = request.useMutate('${model.name}', metadata, logging);`,
+        ],
     });
     const mutationFuncs: string[] = [];
 
@@ -357,7 +360,6 @@ function generateMutation(
     })
         .addBody()
         .addStatements([
-            `const mutate = request.useMutate('${model.name}', '${operation}', metadata, logging);`,
             `return await request.${fetcherFunc}<${returnType}, ${checkReadBack}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch, ${checkReadBack});`,
         ]);
     return funcName;

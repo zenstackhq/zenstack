@@ -203,7 +203,7 @@ export async function post<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    mutate(data);
+    mutate(getOperationFromUrl(url), data);
     return r;
 }
 
@@ -233,7 +233,7 @@ export async function put<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    mutate(data);
+    mutate(getOperationFromUrl(url), data);
     return r;
 }
 
@@ -260,21 +260,20 @@ export async function del<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    const path = url.split('/');
-    path.pop();
-    mutate(args);
+    mutate(getOperationFromUrl(url), args);
     return r;
 }
 
 type Mutator = (
+    operation: string,
     data?: unknown | Promise<unknown> | MutatorCallback,
     opts?: boolean | MutatorOptions
 ) => Promise<unknown[]>;
 
-export function useMutate(model: string, operation: string, modelMeta: ModelMeta, logging?: boolean): Mutator {
+export function useMutate(model: string, modelMeta: ModelMeta, logging?: boolean): Mutator {
     // https://swr.vercel.app/docs/advanced/cache#mutate-multiple-keys-from-regex
     const { cache, mutate } = useSWRConfig();
-    return async (args: unknown, opts?: boolean | MutatorOptions) => {
+    return async (operation: string, args: unknown, opts?: boolean | MutatorOptions) => {
         if (!(cache instanceof Map)) {
             throw new Error('mutate requires the cache provider to be a Map instance');
         }
@@ -367,4 +366,14 @@ function makeUrl(url: string, args: unknown) {
         result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
     }
     return result;
+}
+
+function getOperationFromUrl(url: string) {
+    const parts = url.split('/');
+    const r = parts.pop();
+    if (!r) {
+        throw new Error(`Invalid URL: ${url}`);
+    } else {
+        return r;
+    }
 }
