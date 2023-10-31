@@ -78,7 +78,7 @@ describe('SWR React Hooks Test', () => {
                 return { data: data[0] };
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', 'create', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
@@ -118,7 +118,7 @@ describe('SWR React Hooks Test', () => {
                 return data;
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', 'update', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
@@ -158,7 +158,7 @@ describe('SWR React Hooks Test', () => {
                 return data;
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('Post', 'update', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useMutate('Post', modelMeta, true));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
@@ -201,7 +201,7 @@ describe('SWR React Hooks Test', () => {
                 return data;
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', 'update', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
@@ -252,7 +252,7 @@ describe('SWR React Hooks Test separate due to potential nock issue', () => {
                 return { data: { id: '1', title: 'post1' } };
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('Post', 'create', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useMutate('Post', modelMeta, true));
         await waitFor(async () => {
             const mutate = useMutateResult.current;
             const r = await post(makeUrl('Post', 'create', undefined), { data: { title: 'post1' } }, mutate);
