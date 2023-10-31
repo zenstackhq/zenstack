@@ -2,6 +2,7 @@ import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginOptions,
     createProject,
+    generateModelMeta,
     getDataModels,
     getPrismaClientImportSpec,
     getPrismaVersion,
@@ -31,6 +32,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     }
 
     const models = getDataModels(model);
+
+    await generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
 
     generateIndex(project, outDir, models);
 
@@ -62,23 +65,17 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     sf.addStatements([
         `import { useContext } from 'react';`,
         `import { RequestHandlerContext, type GetNextArgs, type RequestOptions, type InfiniteRequestOptions, type PickEnumerable, type CheckSelect } from '@zenstackhq/swr/runtime';`,
+        `import metadata from './__model_meta';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
 
     const modelNameCap = upperCaseFirst(model.name);
     const prismaVersion = getPrismaVersion();
 
-    const prefixesToMutate = ['find', 'aggregate', 'count', 'groupBy'];
     const useMutation = sf.addFunction({
         name: `useMutate${model.name}`,
         isExported: true,
-        statements: [
-            'const { endpoint, fetch } = useContext(RequestHandlerContext);',
-            `const prefixesToMutate = [${prefixesToMutate
-                .map((prefix) => '`${endpoint}/' + lowerCaseFirst(model.name) + '/' + prefix + '`')
-                .join(', ')}];`,
-            'const mutate = request.getMutate(prefixesToMutate);',
-        ],
+        statements: ['const { endpoint, fetch, logging } = useContext(RequestHandlerContext);'],
     });
     const mutationFuncs: string[] = [];
 
@@ -297,8 +294,6 @@ function generateQueryHook(
     typeParameters?: string[],
     infinite = false
 ) {
-    const modelRouteName = lowerCaseFirst(model.name);
-
     const typeParams = typeParameters ? [...typeParameters] : [`T extends ${argsType}`];
     if (infinite) {
         typeParams.push(`R extends ${returnType}`);
@@ -331,8 +326,8 @@ function generateQueryHook(
         .addStatements([
             'const { endpoint, fetch } = useContext(RequestHandlerContext);',
             !infinite
-                ? `return request.get<${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, options, fetch);`
-                : `return request.infiniteGet<${inputType} | undefined, ${returnType}>(\`\${endpoint}/${modelRouteName}/${operation}\`, getNextArgs, options, fetch);`,
+                ? `return request.useGet<${returnType}>('${model.name}', '${operation}', endpoint, args, options, fetch);`
+                : `return request.useInfiniteGet<${inputType} | undefined, ${returnType}>('${model.name}', '${operation}', endpoint, getNextArgs, options, fetch);`,
         ]);
 }
 
@@ -362,6 +357,7 @@ function generateMutation(
     })
         .addBody()
         .addStatements([
+            `const mutate = request.useMutate('${model.name}', '${operation}', metadata, logging);`,
             `return await request.${fetcherFunc}<${returnType}, ${checkReadBack}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch, ${checkReadBack});`,
         ]);
     return funcName;

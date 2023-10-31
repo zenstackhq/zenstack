@@ -1,12 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { deserialize, serialize } from '@zenstackhq/runtime/browser';
-import {
-    NestedReadVisitor,
-    NestedWriteVisitor,
-    type ModelMeta,
-    type PrismaWriteActionType,
-} from '@zenstackhq/runtime/cross';
+import { getMutatedModels, getReadModels, type ModelMeta, type PrismaWriteActionType } from '@zenstackhq/runtime/cross';
 import * as crossFetch from 'cross-fetch';
 
 /**
@@ -164,7 +159,7 @@ async function getInvalidationPredicate(
     modelMeta: ModelMeta,
     logging = false
 ) {
-    const mutatedModels = await collectMutatedModels(model, operation, mutationArgs, modelMeta);
+    const mutatedModels = await getMutatedModels(model, operation, mutationArgs, modelMeta);
 
     return ({ queryKey }: { queryKey: readonly unknown[] }) => {
         const [_model, queryModel, queryOp, args] = queryKey as QueryKey;
@@ -179,7 +174,7 @@ async function getInvalidationPredicate(
 
         if (args) {
             // traverse query args to find nested reads that match the model under mutation
-            if (queryOp.startsWith('find') && findNestedRead(queryModel, mutatedModels, modelMeta, args)) {
+            if (findNestedRead(queryModel, mutatedModels, modelMeta, args)) {
                 if (logging) {
                     console.log(`Invalidating query [${queryKey}] due to mutation "${model}.${operation}"`);
                 }
@@ -193,49 +188,6 @@ async function getInvalidationPredicate(
 
 // find nested reads that match the given models
 function findNestedRead(visitingModel: string, targetModels: string[], modelMeta: ModelMeta, args: any) {
-    let found = false;
-    const visitor = new NestedReadVisitor(modelMeta, {
-        field: (model) => {
-            if (targetModels.includes(model)) {
-                // found a match
-                found = true;
-                // stop visiting
-                return false;
-            } else {
-                return true;
-            }
-        },
-    });
-
-    visitor.visit(visitingModel, args);
-
-    return found;
-}
-
-// collect the models being mutated in the given mutation args
-async function collectMutatedModels(
-    model: string,
-    operation: PrismaWriteActionType,
-    mutationArgs: any,
-    modelMeta: ModelMeta
-) {
-    const result = new Set<string>();
-    const addModel = (model: string) => void result.add(model);
-
-    const visitor = new NestedWriteVisitor(modelMeta, {
-        create: addModel,
-        createMany: addModel,
-        connectOrCreate: addModel,
-        connect: addModel,
-        disconnect: addModel,
-        set: addModel,
-        update: addModel,
-        updateMany: addModel,
-        upsert: addModel,
-        delete: addModel,
-        deleteMany: addModel,
-    });
-
-    await visitor.visit(model, operation, mutationArgs);
-    return [...result];
+    const modelsRead = getReadModels(visitingModel, modelMeta, args);
+    return targetModels.some((m) => modelsRead.includes(m));
 }

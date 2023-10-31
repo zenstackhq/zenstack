@@ -50,7 +50,13 @@ export function getContext() {
  * @param options The vue-query options object
  * @returns useQuery hook
  */
-export function query<R>(model: string, url: string, args?: unknown, options?: UseQueryOptions<R>, fetch?: FetchFn) {
+export function useModelQuery<R>(
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: UseQueryOptions<R>,
+    fetch?: FetchFn
+) {
     const reqUrl = makeUrl(url, args);
     return useQuery<R>({
         queryKey: getQueryKey(model, url, args),
@@ -68,7 +74,7 @@ export function query<R>(model: string, url: string, args?: unknown, options?: U
  * @param options The vue-query infinite query options object
  * @returns useInfiniteQuery hook
  */
-export function infiniteQuery<R>(
+export function useInfiniteModelQuery<R>(
     model: string,
     url: string,
     args?: unknown,
@@ -95,7 +101,7 @@ export function infiniteQuery<R>(
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function mutate<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function useModelMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,

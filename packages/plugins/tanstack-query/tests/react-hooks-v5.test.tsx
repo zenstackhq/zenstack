@@ -11,7 +11,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import nock from 'nock';
 import React from 'react';
 import { QUERY_KEY_PREFIX } from '../src/runtime/common';
-import { RequestHandlerContext, mutate, query } from '../src/runtime-v5/react';
+import { RequestHandlerContext, useModelMutation, useModelQuery } from '../src/runtime-v5/react';
 import { modelMeta } from './test-model-meta';
 
 describe('Tanstack Query React Hooks V5 Test', () => {
@@ -49,7 +49,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             data,
         });
 
-        const { result } = renderHook(() => query('User', makeUrl('User', 'findUnique'), queryArgs), {
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs), {
             wrapper,
         });
         await waitFor(() => {
@@ -76,7 +76,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => query('User', makeUrl('User', 'findUnique'), queryArgs), {
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs), {
             wrapper,
         });
         await waitFor(() => {
@@ -91,7 +91,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             });
 
         const { result: mutationResult } = renderHook(
-            () => mutate('Post', 'POST', makeUrl('Post', 'create'), modelMeta),
+            () => useModelMutation('Post', 'POST', makeUrl('Post', 'create'), modelMeta),
             {
                 wrapper,
             }
@@ -118,7 +118,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => query('User', makeUrl('User', 'findMany')), {
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findMany')), {
             wrapper,
         });
         await waitFor(() => {
@@ -134,7 +134,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             });
 
         const { result: mutationResult } = renderHook(
-            () => mutate('User', 'POST', makeUrl('User', 'create'), modelMeta),
+            () => useModelMutation('User', 'POST', makeUrl('User', 'create'), modelMeta),
             {
                 wrapper,
             }
@@ -162,7 +162,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => query('User', makeUrl('User', 'findUnique'), queryArgs), {
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs), {
             wrapper,
         });
         await waitFor(() => {
@@ -178,7 +178,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             });
 
         const { result: mutationResult } = renderHook(
-            () => mutate('User', 'PUT', makeUrl('User', 'update'), modelMeta),
+            () => useModelMutation('User', 'PUT', makeUrl('User', 'update'), modelMeta),
             {
                 wrapper,
             }
@@ -206,7 +206,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => query('User', makeUrl('User', 'findUnique'), queryArgs), {
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs), {
             wrapper,
         });
         await waitFor(() => {
@@ -222,7 +222,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             });
 
         const { result: mutationResult } = renderHook(
-            () => mutate('Post', 'PUT', makeUrl('Post', 'update'), modelMeta),
+            () => useModelMutation('Post', 'PUT', makeUrl('Post', 'update'), modelMeta),
             {
                 wrapper,
             }
@@ -249,7 +249,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => query('Post', makeUrl('Post', 'findMany')), {
+        const { result } = renderHook(() => useModelQuery('Post', makeUrl('Post', 'findMany')), {
             wrapper,
         });
         await waitFor(() => {
@@ -265,7 +265,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             });
 
         const { result: mutationResult } = renderHook(
-            () => mutate('User', 'PUT', makeUrl('User', 'update'), modelMeta),
+            () => useModelMutation('User', 'PUT', makeUrl('User', 'update'), modelMeta),
             {
                 wrapper,
             }

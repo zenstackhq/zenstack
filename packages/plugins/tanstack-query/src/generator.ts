@@ -2,7 +2,7 @@ import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginError,
     PluginOptions,
-    generateModelMeta as _generateModelMeta,
+    generateModelMeta,
     createProject,
     getDataModels,
     getPrismaClientImportSpec,
@@ -45,7 +45,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         throw new PluginError(options.name, `Unsupported version "${version}": use "v4" or "v5"`);
     }
 
-    await generateModelMeta(project, outDir, models);
+    await generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
 
     generateIndex(project, outDir, models, target, version);
 
@@ -106,7 +106,7 @@ function generateQueryHook(
 
     func.addStatements([
         makeGetContext(target),
-        `return ${infinite ? 'infiniteQuery' : 'query'}('${model}', \`\${endpoint}/${lowerCaseFirst(
+        `return ${infinite ? 'useInfiniteModelQuery' : 'useModelQuery'}('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
         )}/${operation}\`, args, options, fetch);`,
     ]);
@@ -161,7 +161,7 @@ function generateMutationHook(
             {
                 name: `_mutation`,
                 initializer: `
-                    mutate<${argsType}, ${
+                    useModelMutation<${argsType}, ${
                     overrideReturnType ?? model
                 }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
@@ -441,10 +441,6 @@ function generateModelHooks(
     }
 }
 
-async function generateModelMeta(project: Project, outDir: string, models: DataModel[]) {
-    await _generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
-}
-
 function generateIndex(
     project: Project,
     outDir: string,
@@ -485,7 +481,7 @@ function makeGetContext(target: TargetFramework) {
 function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
-        `import { query, infiniteQuery, mutate } from '${runtimeImportBase}/${target}';`,
+        `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
         `import type { PickEnumerable, CheckSelect } from '${runtimeImportBase}';`,
         `import metadata from './__model_meta';`,
     ];

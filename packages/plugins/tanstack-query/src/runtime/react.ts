@@ -44,7 +44,7 @@ export const Provider = RequestHandlerContext.Provider;
  * @param options The react-query options object
  * @returns useQuery hook
  */
-export function query<R>(
+export function useModelQuery<R>(
     model: string,
     url: string,
     args?: unknown,
@@ -68,7 +68,7 @@ export function query<R>(
  * @param options The react-query infinite query options object
  * @returns useInfiniteQuery hook
  */
-export function infiniteQuery<R>(
+export function useInfiniteModelQuery<R>(
     model: string,
     url: string,
     args?: unknown,
@@ -95,7 +95,7 @@ export function infiniteQuery<R>(
  * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
-export function mutate<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function useModelMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
     model: string,
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
