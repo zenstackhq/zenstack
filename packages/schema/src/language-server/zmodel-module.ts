@@ -26,6 +26,7 @@ import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation, ZModelScopeProvider } from './zmodel-scope';
 import ZModelWorkspaceManager from './zmodel-workspace-manager';
 import { ZModelDefinitionProvider } from './zmodel-definition';
+import { ZModelSemanticTokenProvider } from './zmodel-semantic';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -61,6 +62,7 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
         Formatter: () => new ZModelFormatter(),
         CodeActionProvider: (services) => new ZModelCodeActionProvider(services),
         DefinitionProvider: (services) => new ZModelDefinitionProvider(services),
+        SemanticTokenProvider: (services) => new ZModelSemanticTokenProvider(services),
     },
 };
 
