@@ -64,8 +64,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         moduleSpecifier: prismaImport,
     });
     sf.addStatements([
-        `import { useContext } from 'react';`,
-        `import { RequestHandlerContext, type GetNextArgs, type RequestOptions, type InfiniteRequestOptions, type PickEnumerable, type CheckSelect } from '@zenstackhq/swr/runtime';`,
+        `import { RequestHandlerContext, type GetNextArgs, type RequestOptions, type InfiniteRequestOptions, type PickEnumerable, type CheckSelect, useHooksContext } from '@zenstackhq/swr/runtime';`,
         `import metadata from './__model_meta';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
@@ -77,7 +76,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         name: `useMutate${model.name}`,
         isExported: true,
         statements: [
-            'const { endpoint, fetch, logging } = useContext(RequestHandlerContext);',
+            'const { endpoint, fetch, logging } = useHooksContext();',
             `const mutate = request.useMutate('${model.name}', metadata, logging);`,
         ],
     });
@@ -328,7 +327,7 @@ function generateQueryHook(
     })
         .addBody()
         .addStatements([
-            'const { endpoint, fetch } = useContext(RequestHandlerContext);',
+            'const { endpoint, fetch } = useHooksContext();',
             !infinite
                 ? `return request.useGet<${returnType}>('${model.name}', '${operation}', endpoint, args, options, fetch);`
                 : `return request.useInfiniteGet<${inputType} | undefined, ${returnType}>('${model.name}', '${operation}', endpoint, getNextArgs, options, fetch);`,

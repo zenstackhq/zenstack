@@ -3,7 +3,7 @@ import { deserialize, serialize } from '@zenstackhq/runtime/browser';
 import { getMutatedModels, getReadModels, type ModelMeta, type PrismaWriteActionType } from '@zenstackhq/runtime/cross';
 import * as crossFetch from 'cross-fetch';
 import { lowerCaseFirst } from 'lower-case-first';
-import { createContext } from 'react';
+import { createContext, useContext } from 'react';
 import type { Fetcher, MutatorCallback, MutatorOptions, SWRConfiguration, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite, { SWRInfiniteConfiguration, SWRInfiniteFetcher, SWRInfiniteResponse } from 'swr/infinite';
@@ -21,7 +21,7 @@ export type RequestHandlerContext = {
     /**
      * The endpoint to use for the queries.
      */
-    endpoint: string;
+    endpoint?: string;
 
     /**
      * A custom fetch function for sending the HTTP requests.
@@ -34,11 +34,13 @@ export type RequestHandlerContext = {
     logging?: boolean;
 };
 
+const DEFAULT_QUERY_ENDPOINT = '/api/model';
+
 /**
  * Context for configuring react hooks.
  */
 export const RequestHandlerContext = createContext<RequestHandlerContext>({
-    endpoint: '/api/model',
+    endpoint: DEFAULT_QUERY_ENDPOINT,
     fetch: undefined,
 });
 
@@ -46,6 +48,14 @@ export const RequestHandlerContext = createContext<RequestHandlerContext>({
  * Context provider.
  */
 export const Provider = RequestHandlerContext.Provider;
+
+/**
+ * Hooks context.
+ */
+export function useHooksContext() {
+    const { endpoint, ...rest } = useContext(RequestHandlerContext);
+    return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
+}
 
 /**
  * Client request options for regular query.
