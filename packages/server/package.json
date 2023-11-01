@@ -10,8 +10,7 @@
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
-        "prepublishOnly": "pnpm build",
-        "publish-dev": "pnpm publish --tag dev"
+        "prepublishOnly": "pnpm build"
     },
     "publishConfig": {
         "directory": "dist",
