@@ -352,3 +352,11 @@ export function getPreviewFeatures(model: Model) {
 
     return [] as string[];
 }
+
+export function getAuthModel(dataModels: DataModel[]) {
+    let authModel = dataModels.find((m) => hasAttribute(m, '@@auth'));
+    if (!authModel) {
+        authModel = dataModels.find((m) => m.name === 'User');
+    }
+    return authModel;
+}

@@ -73,8 +73,8 @@ export function withPolicy<DbClient extends object>(
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
 
     // validate user context
-    if (context?.user) {
-        const idFields = getIdFields(_modelMeta, 'User');
+    if (context?.user && _modelMeta.authModel) {
+        const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
         if (
             !hasAllFields(
                 context.user,

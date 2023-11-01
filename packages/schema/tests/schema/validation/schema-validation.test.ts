@@ -38,4 +38,25 @@ describe('Toplevel Schema Validation Tests', () => {
         `)
         ).toContain('Cannot find model file models/abc.zmodel');
     });
+
+    it('multiple auth models', async () => {
+        expect(
+            await loadModelWithError(`
+                datasource db1 {
+                    provider = 'postgresql'
+                    url = env('DATABASE_URL')
+                }
+
+                model X {
+                    id String @id 
+                    @@auth
+                }
+
+                model Y {
+                    id String @id 
+                    @@auth
+                }
+                `)
+        ).toContain('Multiple `@@auth` models are not allowed');
+    });
 });

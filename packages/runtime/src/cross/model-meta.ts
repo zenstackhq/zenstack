@@ -78,9 +78,25 @@ export type UniqueConstraint = { name: string; fields: string[] };
  * ZModel data model metadata
  */
 export type ModelMeta = {
+    /**
+     * Model fields
+     */
     fields: Record<string, Record<string, FieldInfo>>;
+
+    /**
+     * Model unique constraints
+     */
     uniqueConstraints: Record<string, Record<string, UniqueConstraint>>;
+
+    /**
+     * Information for cascading delete
+     */
     deleteCascade: Record<string, string[]>;
+
+    /**
+     * Name of model that backs the `auth()` function
+     */
+    authModel?: string;
 };
 
 /**
