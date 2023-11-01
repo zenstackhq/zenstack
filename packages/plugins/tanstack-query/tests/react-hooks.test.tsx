@@ -236,6 +236,50 @@ describe('Tanstack Query React Hooks Test', () => {
         });
     });
 
+    it('top-level mutation and nested-count invalidation', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const queryArgs = { where: { id: '1' }, include: { _count: { select: { posts: true } } } };
+        const data = { _count: { posts: 1 } };
+
+        nock(makeUrl('User', 'findUnique', queryArgs))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs), {
+            wrapper,
+        });
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject(data);
+        });
+
+        nock(makeUrl('Post', 'create'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Mutating data');
+                data._count.posts = 2;
+                return data;
+            });
+
+        const { result: mutationResult } = renderHook(
+            () => useModelMutation('Post', 'POST', makeUrl('Post', 'create'), modelMeta),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ data: { name: 'post2' } }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData([QUERY_KEY_PREFIX, 'User', 'findUnique', queryArgs]);
+            expect(cacheData._count.posts).toBe(2);
+        });
+    });
+
     it('nested mutation and top-level-read invalidation', async () => {
         const { queryClient, wrapper } = createWrapper();
 
@@ -278,6 +322,49 @@ describe('Tanstack Query React Hooks Test', () => {
         await waitFor(() => {
             const cacheData: any = queryClient.getQueryData([QUERY_KEY_PREFIX, 'Post', 'findMany', undefined]);
             expect(cacheData).toHaveLength(2);
+        });
+    });
+
+    it('cascaded delete', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [{ id: '1', title: 'post1', ownerId: '1' }];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(() => useModelQuery('Post', makeUrl('Post', 'findMany')), {
+            wrapper,
+        });
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('User', 'delete'))
+            .delete(/.*/)
+            .reply(200, () => {
+                console.log('Mutating data');
+                data.pop();
+                return { data: { id: '1' } };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () => useModelMutation('User', 'DELETE', makeUrl('User', 'delete'), modelMeta),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: '1' } }));
+
+        await waitFor(() => {
+            const cacheData = queryClient.getQueryData([QUERY_KEY_PREFIX, 'Post', 'findMany', undefined]);
+            expect(cacheData).toHaveLength(0);
         });
     });
 });

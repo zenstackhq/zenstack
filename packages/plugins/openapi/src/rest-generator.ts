@@ -19,6 +19,7 @@ import * as path from 'path';
 import pluralize from 'pluralize';
 import invariant from 'tiny-invariant';
 import YAML from 'yaml';
+import { name } from '.';
 import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
 
@@ -31,7 +32,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private warnings: string[] = [];
 
     generate() {
-        let output = requireOption<string>(this.options, 'output');
+        let output = requireOption<string>(this.options, 'output', name);
         output = resolvePath(output, this.options);
 
         const components = this.generateComponents();

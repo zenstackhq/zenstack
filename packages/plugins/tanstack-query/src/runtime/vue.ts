@@ -33,12 +33,16 @@ export function provideHooksContext(context: APIContext) {
     provide<APIContext>(VueQueryContextKey, context);
 }
 
-export function getContext() {
-    return inject<APIContext>(VueQueryContextKey, {
+/**
+ * Hooks context.
+ */
+export function getHooksContext() {
+    const { endpoint, ...rest } = inject<APIContext>(VueQueryContextKey, {
         endpoint: DEFAULT_QUERY_ENDPOINT,
         fetch: undefined,
         logging: false,
     });
+    return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
 }
 
 /**
@@ -129,7 +133,7 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
     // TODO: figure out the typing problem
     const finalOptions: any = { ...options, mutationFn };
     if (invalidateQueries) {
-        const { logging } = getContext();
+        const { logging } = getHooksContext();
         const operation = url.split('/').pop();
         if (operation) {
             setupInvalidation(

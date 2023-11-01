@@ -17,9 +17,10 @@ import path from 'path';
 import semver from 'semver';
 import { FunctionDeclaration, OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
+import { name } from '.';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output');
+    let outDir = requireOption<string>(options, 'output', name);
     outDir = resolvePath(outDir, options);
 
     const project = createProject();

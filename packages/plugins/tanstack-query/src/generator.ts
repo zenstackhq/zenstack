@@ -2,8 +2,8 @@ import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginError,
     PluginOptions,
-    generateModelMeta,
     createProject,
+    generateModelMeta,
     getDataModels,
     getPrismaClientImportSpec,
     getPrismaVersion,
@@ -25,14 +25,14 @@ type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output');
+    let outDir = requireOption<string>(options, 'output', name);
     outDir = resolvePath(outDir, options);
 
     const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
-    const target = requireOption<string>(options, 'target');
+    const target = requireOption<string>(options, 'target', name);
     if (!supportedTargets.includes(target)) {
         throw new PluginError(
             options.name,
@@ -468,11 +468,11 @@ function generateIndex(
 function makeGetContext(target: TargetFramework) {
     switch (target) {
         case 'react':
-            return 'const { endpoint, fetch } = useContext(RequestHandlerContext);';
+            return 'const { endpoint, fetch } = getHooksContext();';
         case 'vue':
-            return 'const { endpoint, fetch } = getContext();';
+            return 'const { endpoint, fetch } = getHooksContext();';
         case 'svelte':
-            return `const { endpoint, fetch } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
+            return `const { endpoint, fetch } = getHooksContext();`;
         default:
             throw new PluginError(name, `Unsupported target "${target}"`);
     }
@@ -488,26 +488,24 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     switch (target) {
         case 'react':
             return [
-                `import { useContext } from 'react';`,
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';`,
-                `import { RequestHandlerContext } from '${runtimeImportBase}/${target}';`,
+                `import { RequestHandlerContext, getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         case 'vue':
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
-                `import { getContext } from '${runtimeImportBase}/${target}';`,
+                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         case 'svelte':
             return [
-                `import { getContext } from 'svelte';`,
                 `import { derived } from 'svelte/store';`,
                 `import type { MutationOptions, QueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
                 ...(version === 'v5'
                     ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
                     : []),
-                `import { SvelteQueryContextKey, type RequestHandlerContext } from '${runtimeImportBase}/${target}';`,
+                `import { SvelteQueryContextKey, type RequestHandlerContext, getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         default:

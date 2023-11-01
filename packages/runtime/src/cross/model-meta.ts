@@ -80,6 +80,7 @@ export type UniqueConstraint = { name: string; fields: string[] };
 export type ModelMeta = {
     fields: Record<string, Record<string, FieldInfo>>;
     uniqueConstraints: Record<string, Record<string, UniqueConstraint>>;
+    deleteCascade: Record<string, string[]>;
 };
 
 /**

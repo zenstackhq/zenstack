@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { lowerCaseFirst } from 'lower-case-first';
 import type { ModelMeta } from './model-meta';
 import { NestedReadVisitor } from './nested-read-visitor';
 import { NestedWriteVisitor } from './nested-write-visitor';
 import type { PrismaWriteActionType } from './types';
 
-// find nested reads that match the given models
 /**
  * Gets models read (including nested ones) given a query args.
  * @param model
@@ -40,6 +40,15 @@ export async function getMutatedModels(
 
     if (mutationArgs) {
         const addModel = (model: string) => void result.add(model);
+
+        // add models that are cascaded deleted recursively
+        const addCascades = (model: string) => {
+            const cascades = new Set<string>();
+            const visited = new Set<string>();
+            collectDeleteCascades(model, modelMeta, cascades, visited);
+            cascades.forEach((m) => addModel(m));
+        };
+
         const visitor = new NestedWriteVisitor(modelMeta, {
             create: addModel,
             createMany: addModel,
@@ -50,11 +59,36 @@ export async function getMutatedModels(
             update: addModel,
             updateMany: addModel,
             upsert: addModel,
-            delete: addModel,
-            deleteMany: addModel,
+            delete: (model) => {
+                addModel(model);
+                addCascades(model);
+            },
+            deleteMany: (model) => {
+                addModel(model);
+                addCascades(model);
+            },
         });
         await visitor.visit(model, operation, mutationArgs);
     }
 
     return [...result];
+}
+
+function collectDeleteCascades(model: string, modelMeta: ModelMeta, result: Set<string>, visited: Set<string>) {
+    if (visited.has(model)) {
+        // break circle
+        return;
+    }
+    visited.add(model);
+
+    const cascades = modelMeta.deleteCascade[lowerCaseFirst(model)];
+
+    if (!cascades) {
+        return;
+    }
+
+    cascades.forEach((m) => {
+        result.add(m);
+        collectDeleteCascades(m, modelMeta, result, visited);
+    });
 }

@@ -30,7 +30,7 @@ import { project } from './project';
 import removeDir from './utils/removeDir';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output');
+    let outDir = requireOption<string>(options, 'output', name);
     outDir = resolvePath(outDir, options);
 
     // resolve "generateModels" option

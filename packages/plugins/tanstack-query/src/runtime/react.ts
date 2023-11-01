@@ -36,6 +36,14 @@ export const RequestHandlerContext = createContext<APIContext>({
 export const Provider = RequestHandlerContext.Provider;
 
 /**
+ * Hooks context.
+ */
+export function getHooksContext() {
+    const { endpoint, ...rest } = useContext(RequestHandlerContext);
+    return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
+}
+
+/**
  * Creates a react-query query.
  *
  * @param model The name of the model under query.

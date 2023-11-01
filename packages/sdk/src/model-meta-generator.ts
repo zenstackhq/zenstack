@@ -17,12 +17,15 @@ import {
     emitProject,
     getAttributeArg,
     getAttributeArgs,
+    getDataModels,
     getLiteral,
     hasAttribute,
     isForeignKeyField,
     isIdField,
     resolved,
     saveProject,
+    getAttribute,
+    isEnumFieldReference,
 } from '.';
 
 export async function generate(
@@ -100,6 +103,16 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
             }
         });
         writer.write(',');
+
+        writer.write('deleteCascade:');
+        writer.block(() => {
+            for (const model of dataModels) {
+                const cascades = getDeleteCascades(model);
+                if (cascades.length > 0) {
+                    writer.write(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}]`);
+                }
+            }
+        });
     });
 }
 
@@ -242,4 +255,29 @@ function generateForeignKeyMapping(field: DataModelField) {
         }
     });
     return result;
+}
+
+function getDeleteCascades(model: DataModel): string[] {
+    const allModels = getDataModels(model.$container);
+    return allModels
+        .filter((m) => {
+            if (m === model) {
+                return false;
+            }
+            const relationFields = m.fields.filter((f) => {
+                if (f.type.reference?.ref !== model) {
+                    return false;
+                }
+                const relationAttr = getAttribute(f, '@relation');
+                if (relationAttr) {
+                    const onDelete = getAttributeArg(relationAttr, 'onDelete');
+                    if (onDelete && isEnumFieldReference(onDelete) && onDelete.target.ref?.name === 'Cascade') {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            return relationFields.length > 0;
+        })
+        .map((m) => m.name);
 }

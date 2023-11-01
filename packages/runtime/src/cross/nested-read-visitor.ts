@@ -41,9 +41,14 @@ export class NestedReadVisitor {
 
         if (selectInclude && typeof selectInclude === 'object') {
             for (const [k, v] of Object.entries(selectInclude)) {
-                const field = resolveField(this.modelMeta, model, k);
-                if (field) {
-                    this.doVisit(field.type, field, nextKind, v);
+                if (k === '_count' && typeof v === 'object' && v) {
+                    // recurse into { _count: { ... } }
+                    this.doVisit(model, field, kind, v);
+                } else {
+                    const field = resolveField(this.modelMeta, model, k);
+                    if (field) {
+                        this.doVisit(field.type, field, nextKind, v);
+                    }
                 }
             }
         }

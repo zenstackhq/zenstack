@@ -10,7 +10,16 @@ import {
 } from '@tanstack/svelte-query';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
-import { APIContext, FetchFn, QUERY_KEY_PREFIX, fetcher, makeUrl, marshal, setupInvalidation } from './common';
+import {
+    APIContext,
+    DEFAULT_QUERY_ENDPOINT,
+    FetchFn,
+    QUERY_KEY_PREFIX,
+    fetcher,
+    makeUrl,
+    marshal,
+    setupInvalidation,
+} from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
 
@@ -24,6 +33,14 @@ export const SvelteQueryContextKey = 'zenstack-svelte-query-context';
  */
 export function setHooksContext(context: APIContext) {
     setContext(SvelteQueryContextKey, context);
+}
+
+/**
+ * Hooks context.
+ */
+export function getHooksContext() {
+    const { endpoint, ...rest } = getContext<APIContext>(SvelteQueryContextKey);
+    return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
 }
 
 /**

@@ -10,7 +10,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { lowerCaseFirst } from 'lower-case-first';
 import nock from 'nock';
 import { useSWRConfig } from 'swr';
-import { useGet, getQueryKey, post, useMutate, put } from '../src/runtime';
+import { useGet, getQueryKey, post, useMutate, put, del } from '../src/runtime';
 import { modelMeta } from './test-model-meta';
 
 const ENDPOINT = 'http://localhost/api/model';
@@ -259,6 +259,44 @@ describe('SWR React Hooks Test separate due to potential nock issue', () => {
             console.log('Mutate result:', r);
             // no refetch caused by invalidation
             expect(queryCount).toBe(1);
+        });
+    });
+
+    it('cascaded delete', async () => {
+        const data: any[] = [{ id: '1', title: 'post1', ownerId: '1' }];
+
+        nock(makeUrl('Post', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(() => useGet('Post', 'findMany', ENDPOINT));
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('User', 'delete'))
+            .delete(/.*/)
+            .reply(200, () => {
+                console.log('Mutating data');
+                data.pop();
+                return { data: { id: '1' } };
+            });
+
+        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
+
+        await waitFor(async () => {
+            const mutate = useMutateResult.current;
+            await del(makeUrl('User', 'delete', undefined), { where: { id: '1' } }, mutate);
+        });
+
+        const { result: cacheResult } = renderHook(() => useSWRConfig());
+        await waitFor(() => {
+            const cacheData = cacheResult.current.cache.get(getQueryKey('Post', 'findMany'));
+            expect(cacheData?.data).toHaveLength(0);
         });
     });
 });

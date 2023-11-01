@@ -44,4 +44,7 @@ export const modelMeta: ModelMeta = {
         },
     },
     uniqueConstraints: {},
+    deleteCascade: {
+        user: ['Post'],
+    },
 };

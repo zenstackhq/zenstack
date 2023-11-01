@@ -31,6 +31,14 @@ export const RequestHandlerContext = createContext<APIContext>({
 });
 
 /**
+ * Hooks context.
+ */
+export function getHooksContext() {
+    const { endpoint, ...rest } = useContext(RequestHandlerContext);
+    return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
+}
+
+/**
  * Context provider.
  */
 export const Provider = RequestHandlerContext.Provider;
