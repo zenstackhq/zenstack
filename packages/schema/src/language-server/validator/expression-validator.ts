@@ -21,7 +21,11 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         if (!expr.$resolvedType) {
             if (isAuthInvocation(expr)) {
                 // check was done at link time
-                accept('error', 'auth() cannot be resolved because no "User" model is defined', { node: expr });
+                accept(
+                    'error',
+                    'auth() cannot be resolved because no model marked wth "@@auth()" or named "User" is found',
+                    { node: expr }
+                );
             } else if (isCollectionPredicate(expr)) {
                 accept('error', 'collection predicate can only be used on an array of model type', { node: expr });
             } else {
