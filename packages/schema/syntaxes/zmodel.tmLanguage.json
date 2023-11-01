@@ -7,18 +7,28 @@
             "include": "#comments"
         },
         {
-            "name": "keyword.control.zmodel",
-            "match": "\\b(Any|Asc|attribute|BigInt|Boolean|Bytes|ContextType|datasource|DateTime|Decimal|Desc|enum|FieldReference|Float|function|generator|Int|Json|model|Null|plugin|sort|String)\\b"
+            "name": "keyword.storage.zmodel",
+            "match": "\\b(Any|Asc|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|Desc|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|Unsupported|abstract|attribute|datasource|enum|extends|false|function|generator|import|in|model|plugin|sort|true|view)\\b"
         },
         {
             "name": "string.quoted.double.zmodel",
             "begin": "\"",
-            "end": "\""
+            "end": "\"",
+            "patterns": [
+                {
+                    "include": "#string-character-escape"
+                }
+            ]
         },
         {
             "name": "string.quoted.single.zmodel",
             "begin": "'",
-            "end": "'"
+            "end": "'",
+            "patterns": [
+                {
+                    "include": "#string-character-escape"
+                }
+            ]
         }
     ],
     "repository": {
@@ -50,6 +60,10 @@
                     "name": "comment.line.zmodel"
                 }
             ]
+        },
+        "string-character-escape": {
+            "name": "constant.character.escape.zmodel",
+            "match": "\\\\(x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|u\\{[0-9A-Fa-f]+\\}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.|$)"
         }
     }
 }

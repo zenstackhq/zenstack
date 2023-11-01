@@ -3,11 +3,12 @@
 
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../../constants';
+import { ModelMeta } from '../../cross';
 import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
 import { AuthUser, DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
 import { makeProxy } from '../proxy';
-import type { CommonEnhancementOptions, ModelMeta, PolicyDef, ZodSchemas } from '../types';
+import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
 import { getIdFields } from '../utils';
 import { PolicyProxyHandler } from './handler';
 
@@ -72,8 +73,8 @@ export function withPolicy<DbClient extends object>(
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
 
     // validate user context
-    if (context?.user) {
-        const idFields = getIdFields(_modelMeta, 'User');
+    if (context?.user && _modelMeta.authModel) {
+        const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
         if (
             !hasAllFields(
                 context.user,

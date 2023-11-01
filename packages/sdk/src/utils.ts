@@ -106,8 +106,12 @@ export function indentString(string: string, count = 4): string {
 }
 
 export function hasAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
-    return !!(decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
-        (attr) => resolved(attr.decl).name === name
+    return !!getAttribute(decl, name);
+}
+
+export function getAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
+    return (decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
+        (attr) => attr.decl.$refText === name
     );
 }
 
@@ -271,10 +275,10 @@ export function resolvePath(_path: string, options: PluginOptions) {
     }
 }
 
-export function requireOption<T>(options: PluginOptions, name: string): T {
+export function requireOption<T>(options: PluginOptions, name: string, pluginName: string): T {
     const value = options[name];
     if (value === undefined) {
-        throw new Error(`Plugin "${options.name}" is missing required option: ${name}`);
+        throw new PluginError(pluginName, `Plugin "${options.name}" is missing required option: ${name}`);
     }
     return value as T;
 }
@@ -347,4 +351,12 @@ export function getPreviewFeatures(model: Model) {
     }
 
     return [] as string[];
+}
+
+export function getAuthModel(dataModels: DataModel[]) {
+    let authModel = dataModels.find((m) => hasAttribute(m, '@@auth'));
+    if (!authModel) {
+        authModel = dataModels.find((m) => m.name === 'User');
+    }
+    return authModel;
 }

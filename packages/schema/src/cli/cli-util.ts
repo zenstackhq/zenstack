@@ -1,5 +1,5 @@
 import { isDataSource, isPlugin, Model } from '@zenstackhq/language/ast';
-import { getLiteral } from '@zenstackhq/sdk';
+import { getDataModels, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import getLatestVersion from 'get-latest-version';
@@ -95,10 +95,18 @@ export async function loadDocument(fileName: string): Promise<Model> {
 function validationAfterMerge(model: Model) {
     const dataSources = model.declarations.filter((d) => isDataSource(d));
     if (dataSources.length == 0) {
-        console.error(colors.red('Validation errors: Model must define a datasource'));
+        console.error(colors.red('Validation error: Model must define a datasource'));
         throw new CliError('schema validation errors');
     } else if (dataSources.length > 1) {
-        console.error(colors.red('Validation errors: Multiple datasource declarations are not allowed'));
+        console.error(colors.red('Validation error: Multiple datasource declarations are not allowed'));
+        throw new CliError('schema validation errors');
+    }
+
+    // at most one `@@auth` model
+    const dataModels = getDataModels(model);
+    const authModels = dataModels.filter((d) => hasAttribute(d, '@@auth'));
+    if (authModels.length > 1) {
+        console.error(colors.red('Validation error: Multiple `@@auth` models are not allowed'));
         throw new CliError('schema validation errors');
     }
 }

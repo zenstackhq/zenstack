@@ -185,4 +185,31 @@ describe('With Policy: auth() test', () => {
         const authDb1 = withPolicy({ id: 'user2', role: 'ADMIN' });
         await expect(authDb1.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();
     });
+
+    it('non User auth model', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model Foo {
+            id String @id @default(uuid())
+            role String
+
+            @@auth()
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+
+            @@allow('read', true)
+            @@allow('create', auth().role == 'ADMIN')
+        }
+        `
+        );
+
+        const userDb = withPolicy({ id: 'user1', role: 'USER' });
+        await expect(userDb.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
+
+        const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
+        await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
+    });
 });

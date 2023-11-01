@@ -3,11 +3,11 @@
 
 import { hash } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
+import { NestedWriteVisitor, type ModelMeta, type PrismaWriteActionType } from '../cross';
 import { getDefaultModelMeta } from '../loader';
-import { DbClientContract, PrismaWriteActionType } from '../types';
-import { NestedWriteVisitor } from './nested-write-visitor';
+import { DbClientContract } from '../types';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
-import { CommonEnhancementOptions, ModelMeta } from './types';
+import { CommonEnhancementOptions } from './types';
 
 /**
  * Options for @see withPassword

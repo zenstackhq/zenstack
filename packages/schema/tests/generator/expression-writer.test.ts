@@ -883,6 +883,40 @@ describe('Expression Writer Tests', () => {
         );
     });
 
+    it('auth using different model check', async () => {
+        await check(
+            `
+            model Membership {
+                id String @id
+                t Test?
+                @@auth()
+            }
+
+            model Test {
+                id String @id
+                owner Membership @relation(fields: [ownerId], references: [id])
+                ownerId String @unique @allow('all', auth().id == owner.id)
+                value Int
+                @@allow('all', auth().id == owner.id)
+               
+            }
+                `,
+            (model) => {
+                const args = model.attributes[0].args[1];
+                return args.value;
+            },
+            `((user?.id??null)==null)?{
+                OR:[]
+            }:{
+                owner:{
+                     id:{
+                         equals:(user?.id??null)
+                    }
+                }
+            }`
+        );
+    });
+
     it('relation field null check', async () => {
         await check(
             `
@@ -903,8 +937,7 @@ describe('Expression Writer Tests', () => {
             `
             {
                 OR: [{ m: { is: null } }, { m: { s: { equals: null } } }]
-            }
-            `
+            }`
         );
 
         await check(

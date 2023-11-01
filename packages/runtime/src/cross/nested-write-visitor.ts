@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { FieldInfo, PrismaWriteActionType, PrismaWriteActions } from '../types';
+import type { FieldInfo, ModelMeta } from './model-meta';
 import { resolveField } from './model-meta';
-import { ModelMeta } from './types';
+import { MaybePromise, PrismaWriteActionType, PrismaWriteActions } from './types';
 import { enumerate, getModelFields } from './utils';
 
 type NestingPathItem = { field?: FieldInfo; model: string; where: any; unique: boolean };
@@ -34,58 +34,66 @@ export type NestedWriteVisitorContext = {
  * to let the visitor traverse it instead of its original children.
  */
 export type NestedWriterVisitorCallback = {
-    create?: (model: string, args: any[], context: NestedWriteVisitorContext) => Promise<boolean | void>;
+    create?: (model: string, args: any[], context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
 
     createMany?: (
         model: string,
         args: { data: any; skipDuplicates?: boolean },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | object | void>;
+    ) => MaybePromise<boolean | object | void>;
 
     connectOrCreate?: (
         model: string,
         args: { where: object; create: any },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | object | void>;
+    ) => MaybePromise<boolean | object | void>;
 
-    connect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
+    connect?: (
+        model: string,
+        args: object,
+        context: NestedWriteVisitorContext
+    ) => MaybePromise<boolean | object | void>;
 
-    disconnect?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
+    disconnect?: (
+        model: string,
+        args: object,
+        context: NestedWriteVisitorContext
+    ) => MaybePromise<boolean | object | void>;
 
-    set?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
+    set?: (model: string, args: object, context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
 
-    update?: (model: string, args: object, context: NestedWriteVisitorContext) => Promise<boolean | object | void>;
+    update?: (model: string, args: object, context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
 
     updateMany?: (
         model: string,
         args: { where?: object; data: any },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | object | void>;
+    ) => MaybePromise<boolean | object | void>;
 
     upsert?: (
         model: string,
         args: { where: object; create: any; update: any },
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | object | void>;
+    ) => MaybePromise<boolean | object | void>;
 
     delete?: (
         model: string,
         args: object | boolean,
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | object | void>;
+    ) => MaybePromise<boolean | object | void>;
 
     deleteMany?: (
         model: string,
         args: any | object,
         context: NestedWriteVisitorContext
-    ) => Promise<boolean | object | void>;
+    ) => MaybePromise<boolean | object | void>;
 
     field?: (
         field: FieldInfo,
         action: PrismaWriteActionType,
         data: any,
         context: NestedWriteVisitorContext
-    ) => Promise<void>;
+    ) => MaybePromise<void>;
 };
 
 /**

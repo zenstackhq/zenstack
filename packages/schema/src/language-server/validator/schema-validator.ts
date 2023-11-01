@@ -1,9 +1,10 @@
-import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../constants';
-import { isDataSource, Model } from '@zenstackhq/language/ast';
-import { AstValidator } from '../types';
+import { Model, isDataModel, isDataSource } from '@zenstackhq/language/ast';
+import { hasAttribute } from '@zenstackhq/sdk';
 import { LangiumDocuments, ValidationAcceptor } from 'langium';
-import { validateDuplicatedDeclarations } from './utils';
 import { getAllDeclarationsFromImports, resolveImport, resolveTransitiveImports } from '../../utils/ast-utils';
+import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../constants';
+import { AstValidator } from '../types';
+import { validateDuplicatedDeclarations } from './utils';
 
 /**
  * Validates toplevel schema.
@@ -32,6 +33,12 @@ export default class SchemaValidator implements AstValidator<Model> {
             !model.$document?.uri.path.endsWith(PLUGIN_MODULE_NAME)
         ) {
             this.validateDataSources(model, accept);
+        }
+
+        // at most one `@@auth` model
+        const authModels = model.declarations.filter((d) => isDataModel(d) && hasAttribute(d, '@@auth'));
+        if (authModels.length > 1) {
+            accept('error', 'Multiple `@@auth` models are not allowed', { node: authModels[1] });
         }
     }
 

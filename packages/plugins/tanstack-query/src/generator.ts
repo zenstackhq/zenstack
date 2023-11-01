@@ -3,6 +3,7 @@ import {
     PluginError,
     PluginOptions,
     createProject,
+    generateModelMeta,
     getDataModels,
     getPrismaClientImportSpec,
     getPrismaVersion,
@@ -21,16 +22,17 @@ import { name } from '.';
 
 const supportedTargets = ['react', 'vue', 'svelte'];
 type TargetFramework = (typeof supportedTargets)[number];
+type TanStackVersion = 'v4' | 'v5';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output');
+    let outDir = requireOption<string>(options, 'output', name);
     outDir = resolvePath(outDir, options);
 
     const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
-    const target = requireOption<string>(options, 'target');
+    const target = requireOption<string>(options, 'target', name);
     if (!supportedTargets.includes(target)) {
         throw new PluginError(
             options.name,
@@ -38,7 +40,14 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         );
     }
 
-    generateIndex(project, outDir, models, target);
+    const version = typeof options.version === 'string' ? options.version : 'v4';
+    if (version !== 'v4' && version !== 'v5') {
+        throw new PluginError(options.name, `Unsupported version "${version}": use "v4" or "v5"`);
+    }
+
+    await generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
+
+    generateIndex(project, outDir, models, target, version);
 
     models.forEach((dataModel) => {
         const mapping = dmmf.mappings.modelOperations.find((op) => op.model === dataModel.name);
@@ -46,7 +55,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
             return;
         }
-        generateModelHooks(target, project, outDir, dataModel, mapping);
+        generateModelHooks(target, version, project, outDir, dataModel, mapping);
     });
 
     await saveProject(project);
@@ -55,6 +64,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
 function generateQueryHook(
     target: TargetFramework,
+    version: TanStackVersion,
     sf: SourceFile,
     model: string,
     operation: string,
@@ -71,7 +81,7 @@ function generateQueryHook(
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
     const returnType =
         overrideReturnType ?? (returnArray ? `Array<Prisma.${model}GetPayload<T>>` : `Prisma.${model}GetPayload<T>`);
-    const optionsType = makeQueryOptions(target, returnType, infinite);
+    const optionsType = makeQueryOptions(target, returnType, infinite, version);
 
     const func = sf.addFunction({
         name: `use${infinite ? 'Infinite' : ''}${capOperation}${model}`,
@@ -89,9 +99,14 @@ function generateQueryHook(
         isExported: true,
     });
 
+    if (version === 'v5' && infinite && ['react', 'svelte'].includes(target)) {
+        // initialPageParam and getNextPageParam options are required in v5
+        func.addStatements([`options = options ?? { initialPageParam: undefined, getNextPageParam: () => null };`]);
+    }
+
     func.addStatements([
         makeGetContext(target),
-        `return ${infinite ? 'infiniteQuery' : 'query'}<${returnType}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+        `return ${infinite ? 'useInfiniteModelQuery' : 'useModelQuery'}('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
         )}/${operation}\`, args, options, fetch);`,
     ]);
@@ -146,11 +161,11 @@ function generateMutationHook(
             {
                 name: `_mutation`,
                 initializer: `
-                    ${httpVerb}Mutation<${argsType}, ${
+                    useModelMutation<${argsType}, ${
                     overrideReturnType ?? model
-                }, ${checkReadBack}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, options, fetch, invalidateQueries, ${checkReadBack})
+                )}/${operation}\`, metadata, options, fetch, invalidateQueries, ${checkReadBack})
                 `,
             },
         ],
@@ -217,6 +232,7 @@ function generateMutationHook(
 
 function generateModelHooks(
     target: TargetFramework,
+    version: TanStackVersion,
     project: Project,
     outDir: string,
     model: DataModel,
@@ -235,7 +251,7 @@ function generateModelHooks(
         isTypeOnly: true,
         moduleSpecifier: prismaImport,
     });
-    sf.addStatements(makeBaseImports(target));
+    sf.addStatements(makeBaseImports(target, version));
 
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,19 +267,31 @@ function generateModelHooks(
     // findMany
     if (mapping.findMany) {
         // regular findMany
-        generateQueryHook(target, sf, model.name, 'findMany', true, true);
+        generateQueryHook(target, version, sf, model.name, 'findMany', true, true);
         // infinite findMany
-        generateQueryHook(target, sf, model.name, 'findMany', true, true, undefined, undefined, undefined, true);
+        generateQueryHook(
+            target,
+            version,
+            sf,
+            model.name,
+            'findMany',
+            true,
+            true,
+            undefined,
+            undefined,
+            undefined,
+            true
+        );
     }
 
     // findUnique
     if (mapping.findUnique) {
-        generateQueryHook(target, sf, model.name, 'findUnique', false, false);
+        generateQueryHook(target, version, sf, model.name, 'findUnique', false, false);
     }
 
     // findFirst
     if (mapping.findFirst) {
-        generateQueryHook(target, sf, model.name, 'findFirst', false, true);
+        generateQueryHook(target, version, sf, model.name, 'findFirst', false, true);
     }
 
     // update
@@ -301,6 +329,7 @@ function generateModelHooks(
     if (mapping.aggregate) {
         generateQueryHook(
             target,
+            version,
             sf,
             modelNameCap,
             'aggregate',
@@ -385,6 +414,7 @@ function generateModelHooks(
 
         generateQueryHook(
             target,
+            version,
             sf,
             model.name,
             'groupBy',
@@ -400,6 +430,7 @@ function generateModelHooks(
     {
         generateQueryHook(
             target,
+            version,
             sf,
             model.name,
             'count',
@@ -410,22 +441,26 @@ function generateModelHooks(
     }
 }
 
-function generateIndex(project: Project, outDir: string, models: DataModel[], target: string) {
+function generateIndex(
+    project: Project,
+    outDir: string,
+    models: DataModel[],
+    target: string,
+    version: TanStackVersion
+) {
+    const runtimeImportBase = makeRuntimeImportBase(version);
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
+    sf.addStatements(`export { getQueryKey } from '${runtimeImportBase}';`);
     switch (target) {
         case 'react':
-            sf.addStatements(`export { Provider } from '@zenstackhq/tanstack-query/runtime/react';`);
+            sf.addStatements(`export { Provider } from '${runtimeImportBase}/react';`);
             break;
         case 'vue':
-            sf.addStatements(
-                `export { VueQueryContextKey, provideHooksContext } from '@zenstackhq/tanstack-query/runtime/vue';`
-            );
+            sf.addStatements(`export { VueQueryContextKey, provideHooksContext } from '${runtimeImportBase}/vue';`);
             break;
         case 'svelte':
-            sf.addStatements(
-                `export { SvelteQueryContextKey, setHooksContext } from '@zenstackhq/tanstack-query/runtime/svelte';`
-            );
+            sf.addStatements(`export { SvelteQueryContextKey, setHooksContext } from '${runtimeImportBase}/svelte';`);
             break;
     }
 }
@@ -433,41 +468,44 @@ function generateIndex(project: Project, outDir: string, models: DataModel[], ta
 function makeGetContext(target: TargetFramework) {
     switch (target) {
         case 'react':
-            return 'const { endpoint, fetch } = useContext(RequestHandlerContext);';
+            return 'const { endpoint, fetch } = getHooksContext();';
         case 'vue':
-            return 'const { endpoint, fetch } = getContext();';
+            return 'const { endpoint, fetch } = getHooksContext();';
         case 'svelte':
-            return `const { endpoint, fetch } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
+            return `const { endpoint, fetch } = getHooksContext();`;
         default:
             throw new PluginError(name, `Unsupported target "${target}"`);
     }
 }
 
-function makeBaseImports(target: TargetFramework) {
+function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
+    const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
-        `import { query, infiniteQuery, postMutation, putMutation, deleteMutation } from '@zenstackhq/tanstack-query/runtime/${target}';`,
-        `import type { PickEnumerable, CheckSelect } from '@zenstackhq/tanstack-query/runtime';`,
+        `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
+        `import type { PickEnumerable, CheckSelect } from '${runtimeImportBase}';`,
+        `import metadata from './__model_meta';`,
     ];
     switch (target) {
         case 'react':
             return [
-                `import { useContext } from 'react';`,
-                `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';`,
-                `import { RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+                `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';`,
+                `import { RequestHandlerContext, getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         case 'vue':
             return [
-                `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/vue-query';`,
-                `import { getContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+                `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
+                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         case 'svelte':
             return [
-                `import { getContext } from 'svelte';`,
                 `import { derived } from 'svelte/store';`,
                 `import type { MutationOptions, QueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
-                `import { SvelteQueryContextKey, type RequestHandlerContext } from '@zenstackhq/tanstack-query/runtime/${target}';`,
+                ...(version === 'v5'
+                    ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
+                    : []),
+                `import { SvelteQueryContextKey, type RequestHandlerContext, getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         default:
@@ -475,13 +513,24 @@ function makeBaseImports(target: TargetFramework) {
     }
 }
 
-function makeQueryOptions(target: string, returnType: string, infinite: boolean) {
+function makeQueryOptions(target: string, returnType: string, infinite: boolean, version: TanStackVersion) {
     switch (target) {
         case 'react':
+            return infinite
+                ? version === 'v4'
+                    ? `Omit<UseInfiniteQueryOptions<${returnType}>, 'queryKey'>`
+                    : `Omit<UseInfiniteQueryOptions<${returnType}, unknown, InfiniteData<${returnType}>>, 'queryKey'>`
+                : `Omit<UseQueryOptions<${returnType}>, 'queryKey'>`;
         case 'vue':
-            return `Use${infinite ? 'Infinite' : ''}QueryOptions<${returnType}>`;
+            return `Omit<Use${infinite ? 'Infinite' : ''}QueryOptions<${returnType}>, 'queryKey'>`;
         case 'svelte':
-            return `${infinite ? 'CreateInfinite' : ''}QueryOptions<${returnType}>`;
+            return infinite
+                ? version === 'v4'
+                    ? `Omit<CreateInfiniteQueryOptions<${returnType}>, 'queryKey'>`
+                    : `StoreOrVal<Omit<CreateInfiniteQueryOptions<${returnType}, unknown, InfiniteData<${returnType}>>, 'queryKey'>>`
+                : version === 'v4'
+                ? `Omit<QueryOptions<${returnType}>, 'queryKey'>`
+                : `StoreOrVal<Omit<QueryOptions<${returnType}>, 'queryKey'>>`;
         default:
             throw new PluginError(name, `Unsupported target: ${target}`);
     }
@@ -498,4 +547,8 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
         default:
             throw new PluginError(name, `Unsupported target: ${target}`);
     }
+}
+
+function makeRuntimeImportBase(version: TanStackVersion) {
+    return `@zenstackhq/tanstack-query/runtime${version === 'v5' ? '-v5' : ''}`;
 }

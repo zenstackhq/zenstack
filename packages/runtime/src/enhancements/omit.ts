@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { enumerate, getModelFields, resolveField, type ModelMeta } from '../cross';
 import { getDefaultModelMeta } from '../loader';
 import { DbClientContract } from '../types';
-import { resolveField } from './model-meta';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
-import { CommonEnhancementOptions, ModelMeta } from './types';
-import { enumerate, getModelFields } from './utils';
+import { CommonEnhancementOptions } from './types';
 
 /**
  * Options for @see withOmit

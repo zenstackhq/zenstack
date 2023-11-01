@@ -377,6 +377,12 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
 attribute @deny(_ operation: String, _ condition: Boolean)
 
 /**
+ * Used to specify the model for resolving `auth()` function call in access policies. A Zmodel
+ * can have at most one model with this attribute. By default, the model named "User" is used.
+ */
+attribute @@auth()
+
+/**
  * Indicates that the field is a password field and needs to be hashed before persistence.
  * 
  * ZenStack uses `bcryptjs` library to hash password. You can use the `saltLength` parameter

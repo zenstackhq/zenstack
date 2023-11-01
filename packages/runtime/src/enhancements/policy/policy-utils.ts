@@ -14,20 +14,25 @@ import {
     PRE_UPDATE_VALUE_SELECTOR,
     PrismaErrorCode,
 } from '../../constants';
-import { AuthUser, DbClientContract, DbOperations, FieldInfo, PolicyOperationKind } from '../../types';
-import { getVersion } from '../../version';
-import { getFields, resolveField } from '../model-meta';
-import { NestedWriteVisitorContext } from '../nested-write-visitor';
-import type { InputCheckFunc, ModelMeta, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     enumerate,
+    getFields,
+    getModelFields,
+    resolveField,
+    zip,
+    type FieldInfo,
+    type ModelMeta,
+    type NestedWriteVisitorContext,
+} from '../../cross';
+import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { getVersion } from '../../version';
+import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import {
     formatObject,
     getIdFields,
-    getModelFields,
     prismaClientKnownRequestError,
     prismaClientUnknownRequestError,
     prismaClientValidationError,
-    zip,
 } from '../utils';
 import { Logger } from './logger';
 

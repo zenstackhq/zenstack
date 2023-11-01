@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { deserialize, serialize } from '@zenstackhq/runtime/browser';
-import { createContext } from 'react';
+import { getMutatedModels, getReadModels, type ModelMeta, type PrismaWriteActionType } from '@zenstackhq/runtime/cross';
+import * as crossFetch from 'cross-fetch';
+import { lowerCaseFirst } from 'lower-case-first';
+import { createContext, useContext } from 'react';
 import type { Fetcher, MutatorCallback, MutatorOptions, SWRConfiguration, SWRResponse } from 'swr';
 import useSWR, { useSWRConfig } from 'swr';
 import useSWRInfinite, { SWRInfiniteConfiguration, SWRInfiniteFetcher, SWRInfiniteResponse } from 'swr/infinite';
@@ -18,19 +21,26 @@ export type RequestHandlerContext = {
     /**
      * The endpoint to use for the queries.
      */
-    endpoint: string;
+    endpoint?: string;
 
     /**
      * A custom fetch function for sending the HTTP requests.
      */
     fetch?: FetchFn;
+
+    /**
+     * If logging is enabled.
+     */
+    logging?: boolean;
 };
+
+const DEFAULT_QUERY_ENDPOINT = '/api/model';
 
 /**
  * Context for configuring react hooks.
  */
 export const RequestHandlerContext = createContext<RequestHandlerContext>({
-    endpoint: '/api/model',
+    endpoint: DEFAULT_QUERY_ENDPOINT,
     fetch: undefined,
 });
 
@@ -38,6 +48,14 @@ export const RequestHandlerContext = createContext<RequestHandlerContext>({
  * Context provider.
  */
 export const Provider = RequestHandlerContext.Provider;
+
+/**
+ * Hooks context.
+ */
+export function useHooksContext() {
+    const { endpoint, ...rest } = useContext(RequestHandlerContext);
+    return { endpoint: endpoint ?? DEFAULT_QUERY_ENDPOINT, ...rest };
+}
 
 /**
  * Client request options for regular query.
@@ -69,6 +87,29 @@ export type InfiniteRequestOptions<Result, Error = any> = {
     initialData?: Result[];
 } & SWRInfiniteConfiguration<Result, Error, SWRInfiniteFetcher<Result>>;
 
+export const QUERY_KEY_PREFIX = 'zenstack';
+
+type QueryKey = { prefix: typeof QUERY_KEY_PREFIX; model: string; operation: string; args: unknown };
+
+export function getQueryKey(model: string, operation: string, args?: unknown) {
+    return JSON.stringify({ prefix: QUERY_KEY_PREFIX, model, operation, args });
+}
+
+export function parseQueryKey(key: unknown) {
+    if (typeof key !== 'string') {
+        return undefined;
+    }
+    try {
+        const parsed = JSON.parse(key);
+        if (!parsed || parsed.prefix !== QUERY_KEY_PREFIX) {
+            return undefined;
+        }
+        return parsed as QueryKey;
+    } catch {
+        return undefined;
+    }
+}
+
 /**
  * Makes a GET request with SWR.
  *
@@ -79,14 +120,17 @@ export type InfiniteRequestOptions<Result, Error = any> = {
  * @returns SWR response
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function get<Result, Error = any>(
-    url: string | null,
+export function useGet<Result, Error = any>(
+    model: string,
+    operation: string,
+    endpoint: string,
     args?: unknown,
     options?: RequestOptions<Result, Error>,
     fetch?: FetchFn
 ): SWRResponse<Result, Error> {
-    const reqUrl = options?.disabled ? null : url ? makeUrl(url, args) : null;
-    return useSWR<Result, Error>(reqUrl, (url) => fetcher<Result, false>(url, undefined, fetch, false), {
+    const key = options?.disabled ? null : getQueryKey(model, operation, args);
+    const url = makeUrl(`${endpoint}/${lowerCaseFirst(model)}/${operation}`, args);
+    return useSWR<Result, Error>(key, () => fetcher<Result, false>(url, undefined, fetch, false), {
         ...options,
         fallbackData: options?.initialData ?? options?.fallbackData,
     });
@@ -107,26 +151,40 @@ export type GetNextArgs<Args, Result> = (pageIndex: number, previousPageData: Re
  * @returns SWR infinite query response
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function infiniteGet<Args, Result, Error = any>(
-    url: string | null,
+export function useInfiniteGet<Args, Result, Error = any>(
+    model: string,
+    operation: string,
+    endpoint: string,
     getNextArgs: GetNextArgs<Args, any>,
     options?: InfiniteRequestOptions<Result, Error>,
     fetch?: FetchFn
 ): SWRInfiniteResponse<Result, Error> {
     const getKey = (pageIndex: number, previousPageData: Result | null) => {
-        if (options?.disabled || !url) {
+        if (options?.disabled) {
             return null;
         }
         const nextArgs = getNextArgs(pageIndex, previousPageData);
         return nextArgs !== null // null means reached the end
-            ? makeUrl(url, nextArgs)
+            ? getQueryKey(model, operation, nextArgs)
             : null;
     };
 
-    return useSWRInfinite<Result, Error>(getKey, (url) => fetcher<Result, false>(url, undefined, fetch, false), {
-        ...options,
-        fallbackData: options?.initialData ?? options?.fallbackData,
-    });
+    return useSWRInfinite<Result, Error>(
+        getKey,
+        (key) => {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const parsedKey = parseQueryKey(key)!;
+            const url = makeUrl(
+                `${endpoint}/${lowerCaseFirst(parsedKey.model)}/${parsedKey.operation}`,
+                parsedKey.args
+            );
+            return fetcher<Result, false>(url, undefined, fetch, false);
+        },
+        {
+            ...options,
+            fallbackData: options?.initialData ?? options?.fallbackData,
+        }
+    );
 }
 
 /**
@@ -155,7 +213,7 @@ export async function post<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    mutate();
+    mutate(getOperationFromUrl(url), data);
     return r;
 }
 
@@ -185,7 +243,7 @@ export async function put<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    mutate();
+    mutate(getOperationFromUrl(url), data);
     return r;
 }
 
@@ -212,29 +270,42 @@ export async function del<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    const path = url.split('/');
-    path.pop();
-    mutate();
+    mutate(getOperationFromUrl(url), args);
     return r;
 }
 
 type Mutator = (
+    operation: string,
     data?: unknown | Promise<unknown> | MutatorCallback,
     opts?: boolean | MutatorOptions
 ) => Promise<unknown[]>;
 
-export function getMutate(prefixes: string[]): Mutator {
+export function useMutate(model: string, modelMeta: ModelMeta, logging?: boolean): Mutator {
     // https://swr.vercel.app/docs/advanced/cache#mutate-multiple-keys-from-regex
     const { cache, mutate } = useSWRConfig();
-    return (data?: unknown | Promise<unknown> | MutatorCallback, opts?: boolean | MutatorOptions) => {
+    return async (operation: string, args: unknown, opts?: boolean | MutatorOptions) => {
         if (!(cache instanceof Map)) {
             throw new Error('mutate requires the cache provider to be a Map instance');
         }
 
-        const keys = Array.from(cache.keys()).filter(
-            (k) => typeof k === 'string' && prefixes.some((prefix) => k.startsWith(prefix))
-        ) as string[];
-        const mutations = keys.map((key) => mutate(key, data, opts));
+        const mutatedModels = await getMutatedModels(model, operation as PrismaWriteActionType, args, modelMeta);
+
+        const keys = Array.from(cache.keys()).filter((key) => {
+            const parsedKey = parseQueryKey(key);
+            if (!parsedKey) {
+                return false;
+            }
+            const modelsRead = getReadModels(parsedKey.model, modelMeta, parsedKey.args);
+            return modelsRead.some((m) => mutatedModels.includes(m));
+        });
+
+        if (logging) {
+            keys.forEach((key) => {
+                console.log(`Invalidating query ${key} due to mutation "${model}.${operation}"`);
+            });
+        }
+
+        const mutations = keys.map((key) => mutate(key, undefined, opts));
         return Promise.all(mutations);
     };
 }
@@ -245,7 +316,7 @@ export async function fetcher<R, C extends boolean>(
     fetch?: FetchFn,
     checkReadBack?: C
 ): Promise<C extends true ? R | undefined : R> {
-    const _fetch = fetch ?? window.fetch;
+    const _fetch = fetch ?? crossFetch.fetch;
     const res = await _fetch(url, options);
     if (!res.ok) {
         const errData = unmarshal(await res.text());
@@ -305,4 +376,14 @@ function makeUrl(url: string, args: unknown) {
         result += `&meta=${encodeURIComponent(JSON.stringify({ serialization: meta }))}`;
     }
     return result;
+}
+
+function getOperationFromUrl(url: string) {
+    const parts = url.split('/');
+    const r = parts.pop();
+    if (!r) {
+        throw new Error(`Invalid URL: ${url}`);
+    } else {
+        return r;
+    }
 }
