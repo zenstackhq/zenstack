@@ -70,8 +70,7 @@
         "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup.config.ts --watch\" \"tsup-node --config ./tsup-v5.config.ts --watch\"",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
-        "prepublishOnly": "pnpm build",
-        "publish-dev": "pnpm publish --tag dev"
+        "prepublishOnly": "pnpm build"
     },
     "publishConfig": {
         "directory": "dist",

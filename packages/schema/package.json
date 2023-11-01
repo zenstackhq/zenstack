@@ -75,7 +75,6 @@
         "lint": "eslint src tests --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build",
-        "publish-dev": "pnpm publish --registry http://localhost:4873",
         "postinstall": "node bin/post-install.js"
     },
     "dependencies": {
