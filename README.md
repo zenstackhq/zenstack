@@ -174,13 +174,26 @@ The following diagram gives a high-level architecture overview of ZenStack.
 
 ## Examples
 
+### Todo SaaS App
+
 Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find different implementations below:
 
--   [Next.js + SWR hooks](https://github.com/zenstackhq/sample-todo-nextjs)
--   [Next.js + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
--   [Next.js + tRPC](https://github.com/zenstackhq/sample-todo-trpc)
--   [Nuxt + TanStack Query](https://github.com/zenstackhq/sample-todo-nuxt)
+-   [Next.js 13 + NextAuth + SWR](https://github.com/zenstackhq/sample-todo-nextjs)
+-   [Next.js 13 + NextAuth + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
+-   [Next.js 13 + NextAuth + tRPC](https://github.com/zenstackhq/sample-todo-trpc)
+-   [Nuxt V3 + TanStack Query](https://github.com/zenstackhq/sample-todo-nuxt)
 -   [SvelteKit + TanStack Query](https://github.com/zenstackhq/sample-todo-sveltekit)
+
+### Blog App
+
+-   [Next.js 13 + Pages Route + SWR](https://github.com/zenstackhq/docs-tutorial-nextjs)
+-   [Next.js 13 + App Route + SWR](https://github.com/zenstackhq/docs-tutorial-nextjs-app-dir)
+-   [Next.js 13 + App Route + tRPC](https://github.com/zenstackhq/sample-blog-nextjs-app-trpc)
+-   [Nuxt V3 + TanStack Query](https://github.com/zenstackhq/docs-tutorial-nuxt)
+-   [SvelteKit](https://github.com/zenstackhq/docs-tutorial-sveltekit)
+-   [Remix](https://github.com/zenstackhq/docs-tutorial-remix)
+-   [Express Backend API](https://github.com/zenstackhq/docs-tutorial-express)
+-   [Clerk Integration](https://github.com/zenstackhq/docs-tutorial-clerk)
 
 ## Community
 
