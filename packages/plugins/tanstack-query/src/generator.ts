@@ -3,6 +3,7 @@ import {
     PluginError,
     PluginOptions,
     createProject,
+    generateModelMeta,
     getDataModels,
     getPrismaClientImportSpec,
     getPrismaVersion,
@@ -24,14 +25,14 @@ type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output');
+    let outDir = requireOption<string>(options, 'output', name);
     outDir = resolvePath(outDir, options);
 
     const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
-    const target = requireOption<string>(options, 'target');
+    const target = requireOption<string>(options, 'target', name);
     if (!supportedTargets.includes(target)) {
         throw new PluginError(
             options.name,
@@ -43,6 +44,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     if (version !== 'v4' && version !== 'v5') {
         throw new PluginError(options.name, `Unsupported version "${version}": use "v4" or "v5"`);
     }
+
+    await generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
 
     generateIndex(project, outDir, models, target, version);
 
@@ -103,7 +106,7 @@ function generateQueryHook(
 
     func.addStatements([
         makeGetContext(target),
-        `return ${infinite ? 'infiniteQuery' : 'query'}('${model}', \`\${endpoint}/${lowerCaseFirst(
+        `return ${infinite ? 'useInfiniteModelQuery' : 'useModelQuery'}('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
         )}/${operation}\`, args, options, fetch);`,
     ]);
@@ -158,11 +161,11 @@ function generateMutationHook(
             {
                 name: `_mutation`,
                 initializer: `
-                    ${httpVerb}Mutation<${argsType}, ${
+                    useModelMutation<${argsType}, ${
                     overrideReturnType ?? model
-                }, ${checkReadBack}>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, options, fetch, invalidateQueries, ${checkReadBack})
+                )}/${operation}\`, metadata, options, fetch, invalidateQueries, ${checkReadBack})
                 `,
             },
         ],
@@ -445,9 +448,10 @@ function generateIndex(
     target: string,
     version: TanStackVersion
 ) {
+    const runtimeImportBase = makeRuntimeImportBase(version);
     const sf = project.createSourceFile(path.join(outDir, 'index.ts'), undefined, { overwrite: true });
     sf.addStatements(models.map((d) => `export * from './${paramCase(d.name)}';`));
-    const runtimeImportBase = makeRuntimeImportBase(version);
+    sf.addStatements(`export { getQueryKey } from '${runtimeImportBase}';`);
     switch (target) {
         case 'react':
             sf.addStatements(`export { Provider } from '${runtimeImportBase}/react';`);
@@ -464,11 +468,11 @@ function generateIndex(
 function makeGetContext(target: TargetFramework) {
     switch (target) {
         case 'react':
-            return 'const { endpoint, fetch } = useContext(RequestHandlerContext);';
+            return 'const { endpoint, fetch } = getHooksContext();';
         case 'vue':
-            return 'const { endpoint, fetch } = getContext();';
+            return 'const { endpoint, fetch } = getHooksContext();';
         case 'svelte':
-            return `const { endpoint, fetch } = getContext<RequestHandlerContext>(SvelteQueryContextKey);`;
+            return `const { endpoint, fetch } = getHooksContext();`;
         default:
             throw new PluginError(name, `Unsupported target "${target}"`);
     }
@@ -477,32 +481,31 @@ function makeGetContext(target: TargetFramework) {
 function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
-        `import { query, infiniteQuery, postMutation, putMutation, deleteMutation } from '${runtimeImportBase}/${target}';`,
+        `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
         `import type { PickEnumerable, CheckSelect } from '${runtimeImportBase}';`,
+        `import metadata from './__model_meta';`,
     ];
     switch (target) {
         case 'react':
             return [
-                `import { useContext } from 'react';`,
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';`,
-                `import { RequestHandlerContext } from '${runtimeImportBase}/${target}';`,
+                `import { RequestHandlerContext, getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         case 'vue':
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
-                `import { getContext } from '${runtimeImportBase}/${target}';`,
+                `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         case 'svelte':
             return [
-                `import { getContext } from 'svelte';`,
                 `import { derived } from 'svelte/store';`,
                 `import type { MutationOptions, QueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
                 ...(version === 'v5'
                     ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
                     : []),
-                `import { SvelteQueryContextKey, type RequestHandlerContext } from '${runtimeImportBase}/${target}';`,
+                `import { SvelteQueryContextKey, type RequestHandlerContext, getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
         default:

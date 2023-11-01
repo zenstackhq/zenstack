@@ -33,7 +33,7 @@ model post_Item {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     title String
-    author User? @relation(fields: [authorId], references: [id])
+    author User? @relation(fields: [authorId], references: [id], onDelete: Cascade)
     authorId String?
     published Boolean @default(false)
     viewCount Int @default(0)
