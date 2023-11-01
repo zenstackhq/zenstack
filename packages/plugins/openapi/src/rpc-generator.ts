@@ -18,6 +18,7 @@ import * as path from 'path';
 import invariant from 'tiny-invariant';
 import { upperCaseFirst } from 'upper-case-first';
 import YAML from 'yaml';
+import { name } from '.';
 import { OpenAPIGeneratorBase } from './generator-base';
 import { getModelResourceMeta } from './meta';
 
@@ -32,7 +33,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private warnings: string[] = [];
 
     generate() {
-        let output = requireOption<string>(this.options, 'output');
+        let output = requireOption<string>(this.options, 'output', name);
         output = resolvePath(output, this.options);
 
         // input types
