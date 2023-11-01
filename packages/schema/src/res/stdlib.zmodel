@@ -377,7 +377,8 @@ attribute @@deny(_ operation: String, _ condition: Boolean)
 attribute @deny(_ operation: String, _ condition: Boolean)
 
 /**
- * Defines the model to use when when checking access policies.
+ * Used to specify the model for resolving `auth()` function call in access policies. A Zmodel
+ * can have at most one model with this attribute. By default, the model named "User" is used.
  */
 attribute @@auth()
 
