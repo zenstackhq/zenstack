@@ -278,17 +278,16 @@ export class ZModelLinker extends DefaultLinker {
                 const model = getContainingModel(node);
 
                 if (model) {
-                    let userModel;
-                    userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
+                    let authModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
                         return isDataModel(d) && hasAttribute(d, '@@auth');
                     });
-                    if (!userModel) {
-                        userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
+                    if (!authModel) {
+                        authModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
                             return isDataModel(d) && d.name === 'User';
                         });
                     }
-                    if (userModel) {
-                        node.$resolvedType = { decl: userModel, nullable: true };
+                    if (authModel) {
+                        node.$resolvedType = { decl: authModel, nullable: true };
                     }
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {

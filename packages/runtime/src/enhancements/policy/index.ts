@@ -74,7 +74,10 @@ export function withPolicy<DbClient extends object>(
 
     // validate user context
     if (context?.user) {
-        const idFields = getIdFields(_modelMeta, 'User');
+        if (!_modelMeta.authModel) {
+            throw new Error('Invalid model meta: missing auth model');
+        }
+        const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
         if (
             !hasAllFields(
                 context.user,

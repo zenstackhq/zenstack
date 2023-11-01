@@ -15,17 +15,18 @@ import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
 import {
     emitProject,
+    getAttribute,
     getAttributeArg,
     getAttributeArgs,
+    getAuthModel,
     getDataModels,
     getLiteral,
     hasAttribute,
+    isEnumFieldReference,
     isForeignKeyField,
     isIdField,
     resolved,
     saveProject,
-    getAttribute,
-    isEnumFieldReference,
 } from '.';
 
 export async function generate(
@@ -113,6 +114,12 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                 }
             }
         });
+        writer.write(',');
+
+        const authModel = getAuthModel(dataModels);
+        if (authModel) {
+            writer.writeLine(`authModel: '${authModel.name}'`);
+        }
     });
 }
 

@@ -35,6 +35,7 @@ import {
     analyzePolicies,
     createProject,
     emitProject,
+    getAuthModel,
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
@@ -744,13 +745,11 @@ export default class PolicyGenerator {
         );
 
         if (hasAuthRef) {
-            const userModel = model.$container.declarations.find(
-                (decl): decl is DataModel => isDataModel(decl) && decl.name === 'User'
-            );
-            if (!userModel) {
-                throw new PluginError(name, 'User model not found');
+            const authModel = getAuthModel(getDataModels(model.$container));
+            if (!authModel) {
+                throw new PluginError(name, 'Auth model not found');
             }
-            const userIdFields = getIdFields(userModel);
+            const userIdFields = getIdFields(authModel);
             if (!userIdFields || userIdFields.length === 0) {
                 throw new PluginError(name, 'User model does not have an id field');
             }
