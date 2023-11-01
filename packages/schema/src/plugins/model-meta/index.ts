@@ -31,7 +31,12 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
         shouldCompile = globalOptions.compile;
     }
 
-    await generateModelMeta(project, dataModels, outFile, shouldCompile, options.preserveTsFiles === true);
+    await generateModelMeta(project, dataModels, {
+        output: outFile,
+        compile: shouldCompile,
+        preserveTsFiles: options.preserveTsFiles === true,
+        generateAttributes: true,
+    });
 };
 
 export default run;

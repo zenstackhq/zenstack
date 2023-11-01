@@ -29,31 +29,32 @@ import {
     saveProject,
 } from '.';
 
-export async function generate(
-    project: Project,
-    models: DataModel[],
-    output: string,
-    compile: boolean,
-    preserveTsFiles: boolean
-) {
-    const sf = project.createSourceFile(output, undefined, { overwrite: true });
+export type ModelMetaGeneratorOptions = {
+    output: string;
+    compile: boolean;
+    preserveTsFiles: boolean;
+    generateAttributes: boolean;
+};
+
+export async function generate(project: Project, models: DataModel[], options: ModelMetaGeneratorOptions) {
+    const sf = project.createSourceFile(options.output, undefined, { overwrite: true });
     sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(models, writer) }],
+        declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(models, writer, options) }],
     });
     sf.addStatements('export default metadata;');
 
-    if (!compile || preserveTsFiles) {
+    if (!options.compile || options.preserveTsFiles) {
         // save ts files
         await saveProject(project);
     }
-    if (compile) {
+    if (options.compile) {
         await emitProject(project);
     }
 }
 
-function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter) {
+function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter, options: ModelMetaGeneratorOptions) {
     writer.block(() => {
         writer.write('fields:');
         writer.block(() => {
@@ -75,7 +76,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
                     isDataModel: ${isDataModel(f.type.reference?.ref)},
                     isArray: ${f.type.array},
                     isOptional: ${f.type.optional},
-                    attributes: ${JSON.stringify(getFieldAttributes(f))},
+                    attributes: ${options.generateAttributes ? JSON.stringify(getFieldAttributes(f)) : '[]'},
                     backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
                     isRelationOwner: ${isRelationOwner(f, backlink)},
                     isForeignKey: ${isForeignKeyField(f)},

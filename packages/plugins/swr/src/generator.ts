@@ -34,7 +34,12 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const models = getDataModels(model);
 
-    await generateModelMeta(project, models, path.join(outDir, '__model_meta.ts'), false, true);
+    await generateModelMeta(project, models, {
+        output: path.join(outDir, '__model_meta.ts'),
+        compile: false,
+        preserveTsFiles: true,
+        generateAttributes: false,
+    });
 
     generateIndex(project, outDir, models);
 
