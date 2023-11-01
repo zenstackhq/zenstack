@@ -111,7 +111,7 @@ export function hasAttribute(decl: DataModel | DataModelField | Enum | EnumField
 
 export function getAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
     return (decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
-        (attr) => resolved(attr.decl).name === name
+        (attr) => attr.decl.$refText === name
     );
 }
 
