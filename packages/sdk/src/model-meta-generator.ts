@@ -109,7 +109,7 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter)
             for (const model of dataModels) {
                 const cascades = getDeleteCascades(model);
                 if (cascades.length > 0) {
-                    writer.write(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}]`);
+                    writer.writeLine(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}],`);
                 }
             }
         });
