@@ -105,7 +105,7 @@ function validationAfterMerge(model: Model) {
     // at most one `@@auth` model
     const dataModels = getDataModels(model);
     const authModels = dataModels.filter((d) => hasAttribute(d, '@@auth'));
-    if (authModels.length > 0) {
+    if (authModels.length > 1) {
         console.error(colors.red('Validation error: Multiple `@@auth` models are not allowed'));
         throw new CliError('schema validation errors');
     }

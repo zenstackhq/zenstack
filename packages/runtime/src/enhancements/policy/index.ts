@@ -73,10 +73,7 @@ export function withPolicy<DbClient extends object>(
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
 
     // validate user context
-    if (context?.user) {
-        if (!_modelMeta.authModel) {
-            throw new Error('Invalid model meta: missing auth model');
-        }
+    if (context?.user && _modelMeta.authModel) {
         const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
         if (
             !hasAllFields(
