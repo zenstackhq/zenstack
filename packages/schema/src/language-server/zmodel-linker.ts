@@ -36,7 +36,7 @@ import {
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getContainingModel, isFromStdlib } from '@zenstackhq/sdk';
+import { getContainingModel, hasAttribute, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -278,9 +278,15 @@ export class ZModelLinker extends DefaultLinker {
                 const model = getContainingModel(node);
 
                 if (model) {
-                    const userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find(
-                        (d) => isDataModel(d) && d.name === 'User'
-                    );
+                    let userModel;
+                    userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
+                        return isDataModel(d) && hasAttribute(d, '@@auth');
+                    });
+                    if (!userModel) {
+                        userModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
+                            return isDataModel(d) && d.name === 'User';
+                        });
+                    }
                     if (userModel) {
                         node.$resolvedType = { decl: userModel, nullable: true };
                     }
