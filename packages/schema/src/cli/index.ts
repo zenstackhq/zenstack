@@ -111,7 +111,6 @@ export function createProgram() {
     program
         .command('repl')
         .description('Start a REPL session.')
-        .option('-d, --debug', 'enable debugging output')
         .option('--prisma-client <module>', 'path to Prisma client module')
         .action(replAction);
 

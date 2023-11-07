@@ -10,7 +10,7 @@ import { inspect } from 'util';
 /**
  * CLI action for starting a REPL session
  */
-export async function repl(projectPath: string, options: { debug?: boolean; prismaClient?: string }) {
+export async function repl(projectPath: string, options: { prismaClient?: string }) {
     console.log('Welcome to ZenStack REPL. See help with the ".help" command.');
     console.log('Global variables:');
     console.log(`    ${colors.cyan('db')} to access enhanced PrismaClient`);
@@ -21,34 +21,19 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
     console.log();
     console.log(`Running as anonymous user. Use ${colors.magenta('.auth')} to set current user.`);
 
-    if (options.debug) {
-        console.log('Debug mode:', options.debug);
-    }
-
     const prismaClientModule = options.prismaClient ?? path.join(projectPath, './node_modules/.prisma/client');
     const { PrismaClient } = require(prismaClientModule);
-    const prisma = new PrismaClient(options.debug ? { log: ['info'] } : undefined);
-    // workaround for https://github.com/prisma/prisma/issues/18292
-    prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
-
     const { enhance } = require('@zenstackhq/runtime');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    let db = enhance(prisma, undefined, { logPrismaQuery: options.debug });
 
-    const auth = (user: unknown) => {
-        // recreate enhanced PrismaClient
-        db = replServer.context.db = enhance(prisma, { user }, { logPrismaQuery: options.debug });
-        if (user) {
-            replServer.setPrompt(`${inspect(user)} > `);
-        } else {
-            replServer.setPrompt('anonymous > ');
-        }
-    };
-
+    let debug = false;
     let table = false;
+    let prisma: any;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let db: any;
+    let user: any;
 
     const replServer = prettyRepl.start({
-        prompt: 'anonymous > ',
+        prompt: '[anonymous] > ',
         eval: async (cmd, _context, _filename, callback) => {
             try {
                 let r: any = undefined;
@@ -77,12 +62,22 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
                 } else {
                     callback(null, r);
                 }
-            } catch (err) {
-                callback(err as Error, undefined);
+            } catch (err: any) {
+                if (err.code) {
+                    console.error(colors.red(err.message));
+                    console.error('Code:', err.code);
+                    if (err.meta) {
+                        console.error('Meta:', err.meta);
+                    }
+                    callback(null, undefined);
+                } else {
+                    callback(err as Error, undefined);
+                }
             }
         },
     });
 
+    // .table command
     replServer.defineCommand('table', {
         help: 'Toggle table output',
         action(value: string) {
@@ -98,6 +93,25 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
         },
     });
 
+    // .debug command
+    replServer.defineCommand('debug', {
+        help: 'Toggle debug output',
+        async action(value: string) {
+            if (value && value !== 'on' && value !== 'off' && value !== 'true' && value !== 'false') {
+                console.error('Invalid argument. Usage: .debug [on|off|true|false]');
+                this.displayPrompt();
+                return;
+            }
+            this.clearBufferedCommand();
+            debug = value ? value === 'on' || value === 'true' : !debug;
+            console.log('Debug mode:', debug);
+            await createClient();
+            setPrompt();
+            this.displayPrompt();
+        },
+    });
+
+    // .auth command
     replServer.defineCommand('auth', {
         help: 'Set current user. Run without argument to switch to anonymous. Pass an user object to set current user.',
         action(value: string) {
@@ -105,7 +119,7 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
             try {
                 if (!value?.trim()) {
                     // set anonymous
-                    auth(undefined);
+                    setAuth(undefined);
                     console.log(`Auth user: anonymous. Use ".auth { id: ... }" to change.`);
                 } else {
                     // set current user
@@ -116,7 +130,7 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
                         this.displayPrompt();
                         return;
                     }
-                    auth(user);
+                    setAuth(user);
                     console.log(`Auth user: ${inspect(user)}. Use ".auth" to switch to anonymous.`);
                 }
             } catch (err: any) {
@@ -132,9 +146,31 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
         }
     });
 
-    replServer.context.prisma = prisma;
-    replServer.context.db = enhance(prisma, undefined, { logPrismaQuery: options.debug });
-    replServer.context.auth = auth;
+    setPrompt();
+    await createClient();
+
+    async function createClient() {
+        if (prisma) {
+            prisma.$disconnect();
+        }
+        prisma = new PrismaClient(debug ? { log: ['info'] } : undefined);
+        prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
+        db = enhance(prisma, { user }, { logPrismaQuery: debug });
+
+        replServer.context.prisma = prisma;
+        replServer.context.db = db;
+    }
+
+    function setPrompt() {
+        replServer.setPrompt(`[${debug ? colors.yellow('D ') : ''}${user ? inspect(user) : 'anonymous'}] > `);
+    }
+
+    function setAuth(_user: unknown) {
+        user = _user;
+        // recreate enhanced PrismaClient
+        db = replServer.context.db = enhance(prisma, { user }, { logPrismaQuery: debug });
+        setPrompt();
+    }
 }
 
 function isPrismaPromise(r: any) {
