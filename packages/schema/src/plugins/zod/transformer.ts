@@ -146,7 +146,7 @@ export default class Transformer {
                 if (
                     // fieldRefTypes refer to other fields in the model and don't need to be generated as part of schema
                     !isFieldRef &&
-                    ('prisma' || isEnum)
+                    (inputType.namespace === 'prisma' || isEnum)
                 ) {
                     if (inputType.type !== this.originalName && typeof inputType.type === 'string') {
                         this.addSchemaImport(inputType.type);
