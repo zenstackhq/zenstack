@@ -11,7 +11,7 @@ import { inspect } from 'util';
  * CLI action for starting a REPL session
  */
 export async function repl(projectPath: string, options: { debug?: boolean; prismaClient?: string }) {
-    console.log('Welcome to ZenStack REPL.');
+    console.log('Welcome to ZenStack REPL. See help with the ".help" command.');
     console.log('Global variables:');
     console.log(`    ${colors.cyan('db')} to access enhanced PrismaClient`);
     console.log(`    ${colors.cyan('prisma')} to access raw PrismaClient`);
@@ -19,6 +19,7 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
     console.log(`    ${colors.magenta('.auth { id: ... }')} - set current user`);
     console.log(`    ${colors.magenta('.table')}            - toggle table output`);
     console.log();
+    console.log(`Running as anonymous user. Use ${colors.magenta('.auth')} to set current user.`);
 
     if (options.debug) {
         console.log('Debug mode:', options.debug);
@@ -98,13 +99,26 @@ export async function repl(projectPath: string, options: { debug?: boolean; pris
     });
 
     replServer.defineCommand('auth', {
-        help: 'Set current user',
+        help: 'Set current user. Run without argument to switch to anonymous. Pass an user object to set current user.',
         action(value: string) {
             this.clearBufferedCommand();
             try {
-                const user = !value ? undefined : eval(`(${value})`);
-                auth(user);
-                console.log('Auth user:', user ?? 'anonymous');
+                if (!value?.trim()) {
+                    // set anonymous
+                    auth(undefined);
+                    console.log(`Auth user: anonymous. Use ".auth { id: ... }" to change.`);
+                } else {
+                    // set current user
+                    const user = eval(`(${value})`);
+                    console.log(user);
+                    if (!user || typeof user !== 'object') {
+                        console.error(`Invalid argument. Pass a user object like { id: ... }`);
+                        this.displayPrompt();
+                        return;
+                    }
+                    auth(user);
+                    console.log(`Auth user: ${inspect(user)}. Use ".auth" to switch to anonymous.`);
+                }
             } catch (err: any) {
                 console.error('Unable to set auth user:', err.message);
             }
