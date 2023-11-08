@@ -525,6 +525,7 @@ export class PolicyUtil {
                 if (backLinkField.isArray && !mutating) {
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
+                    currQuery = currQuery[currField.backLink].some;
                 } else {
                     const fkMapping = where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping;
 
@@ -553,8 +554,8 @@ export class PolicyUtil {
                         // preserve the original structure
                         currQuery[currField.backLink] = { ...visitWhere };
                     }
+                    currQuery = currQuery[currField.backLink];
                 }
-                currQuery = currQuery[currField.backLink];
                 currField = field;
             }
         }
