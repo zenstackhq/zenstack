@@ -1096,7 +1096,7 @@ export class PolicyUtil {
                         fieldInfo.type,
                         entityFullData[field],
                         nextArgs,
-                        hasFieldLevelPolicy,
+                        this.hasFieldLevelPolicy(fieldInfo.type),
                         path ? path + '.' + field : field
                     );
                 }
