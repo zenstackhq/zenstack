@@ -841,4 +841,80 @@ describe('With Policy: field-level policy', () => {
         expect(r.a).toBe(1);
         expect(r.b).toBe(2);
     });
+
+    it('deny only without field access', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            role String @deny('update', auth().role != 'ADMIN')
+
+            @@allow('all', true)
+        }
+        `,
+            { logPrismaQuery: true }
+        );
+
+        const user = await prisma.user.create({
+            data: { role: 'USER' },
+        });
+
+        await expect(
+            withPolicy({ id: 1, role: 'ADMIN' }).user.update({
+                where: { id: user.id },
+                data: { role: 'ADMIN' },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            withPolicy({ id: 1, role: 'USER' }).user.update({
+                where: { id: user.id },
+                data: { role: 'ADMIN' },
+            })
+        ).toBeRejectedByPolicy();
+    });
+
+    it('deny only with field access', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            locked Boolean @default(false)
+            role String @deny('update', auth().role != 'ADMIN' || locked)
+
+            @@allow('all', true)
+        }
+        `,
+            { logPrismaQuery: true }
+        );
+
+        const user1 = await prisma.user.create({
+            data: { role: 'USER' },
+        });
+
+        await expect(
+            withPolicy({ id: 1, role: 'ADMIN' }).user.update({
+                where: { id: user1.id },
+                data: { role: 'ADMIN' },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            withPolicy({ id: 1, role: 'USER' }).user.update({
+                where: { id: user1.id },
+                data: { role: 'ADMIN' },
+            })
+        ).toBeRejectedByPolicy();
+
+        const user2 = await prisma.user.create({
+            data: { role: 'USER', locked: true },
+        });
+
+        await expect(
+            withPolicy({ id: 1, role: 'ADMIN' }).user.update({
+                where: { id: user2.id },
+                data: { role: 'ADMIN' },
+            })
+        ).toBeRejectedByPolicy();
+    });
 });
