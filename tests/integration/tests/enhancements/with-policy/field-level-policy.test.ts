@@ -132,8 +132,7 @@ describe('With Policy: field-level policy', () => {
 
             @@allow('all', true)
         }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         await prisma.user.create({ data: { id: 1, admin: true } });
@@ -851,8 +850,7 @@ describe('With Policy: field-level policy', () => {
 
             @@allow('all', true)
         }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         const user = await prisma.user.create({
@@ -884,8 +882,7 @@ describe('With Policy: field-level policy', () => {
 
             @@allow('all', true)
         }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         const user1 = await prisma.user.create({
