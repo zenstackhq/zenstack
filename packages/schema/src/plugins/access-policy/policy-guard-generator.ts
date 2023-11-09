@@ -606,7 +606,19 @@ export default class PolicyGenerator {
                         throw err;
                     }
                 }
-                writer.write(`return ${FALSE};`);
+
+                if (forField) {
+                    if (allows.length === 0) {
+                        // if there's no allow rule, for field-level rules, by default we allow
+                        writer.write(`return ${TRUE};`);
+                    } else {
+                        // if there's any allow rule, we deny unless any allow rule evaluates to true
+                        writer.write(`return ${FALSE};`);
+                    }
+                } else {
+                    // for model-level rules, the default is always deny
+                    writer.write(`return ${FALSE};`);
+                }
             });
         } else {
             statements.push((writer) => {
@@ -634,14 +646,17 @@ export default class PolicyGenerator {
                 };
 
                 if (allows.length > 0 && denies.length > 0) {
+                    // include both allow and deny rules
                     writer.write('{ AND: [');
                     writeDenies();
                     writer.write(',');
                     writeAllows();
                     writer.write(']}');
                 } else if (denies.length > 0) {
+                    // only deny rules
                     writeDenies();
                 } else if (allows.length > 0) {
+                    // only allow rules
                     writeAllows();
                 } else {
                     // disallow any operation
