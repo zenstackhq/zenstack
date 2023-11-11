@@ -287,7 +287,7 @@ attribute @db.Citext() @@@targetField([StringField]) @@@prisma
 // Boolean type modifiers
 
 attribute @db.Boolean() @@@targetField([BooleanField]) @@@prisma
-attribute @db.TinyInt(_ x: Int?) @@@targetField([BooleanField]) @@@prisma
+attribute @db.TinyInt(_ x: Int?) @@@targetField([BooleanField, IntField]) @@@prisma
 attribute @db.Bool() @@@targetField([BooleanField]) @@@prisma
 
 // Int type modifiers
