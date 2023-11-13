@@ -5,6 +5,7 @@ import {
     DataModel,
     Expression,
     InvocationExpr,
+    isDataModel,
     isEnumField,
     isThisExpr,
     LiteralExpr,
@@ -29,6 +30,7 @@ export class TypeScriptExpressionTransformerError extends Error {
 type Options = {
     isPostGuard?: boolean;
     fieldReferenceContext?: string;
+    thisExprContext?: string;
     context: ExpressionContext;
 };
 
@@ -99,7 +101,7 @@ export class TypeScriptExpressionTransformer {
 
     private this(_expr: ThisExpr) {
         // "this" is mapped to the input argument
-        return 'input';
+        return this.options.thisExprContext ?? 'input';
     }
 
     private memberAccess(expr: MemberAccessExpr, normalizeUndefined: boolean) {
@@ -302,11 +304,19 @@ export class TypeScriptExpressionTransformer {
         return `(${expr.operator} ${this.transform(expr.operand, normalizeUndefined)})`;
     }
 
+    private isModelType(expr: Expression) {
+        return isDataModel(expr.$resolvedType?.decl);
+    }
+
     private binary(expr: BinaryExpr, normalizeUndefined: boolean): string {
-        const _default = `(${this.transform(expr.left, normalizeUndefined)} ${expr.operator} ${this.transform(
-            expr.right,
-            normalizeUndefined
-        )})`;
+        let left = this.transform(expr.left, normalizeUndefined);
+        let right = this.transform(expr.right, normalizeUndefined);
+        if (this.isModelType(expr.left) && this.isModelType(expr.right)) {
+            // comparison between model type values, map to id comparison
+            left = `(${left}?.id ?? null)`;
+            right = `(${right}?.id ?? null)`;
+        }
+        const _default = `(${left} ${expr.operator} ${right})`;
 
         return match(expr.operator)
             .with(
@@ -346,7 +356,9 @@ export class TypeScriptExpressionTransformer {
         const operand = this.transform(expr.left, normalizeUndefined);
         const innerTransformer = new TypeScriptExpressionTransformer({
             ...this.options,
+            isPostGuard: false,
             fieldReferenceContext: '_item',
+            thisExprContext: '_item',
         });
         const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
 

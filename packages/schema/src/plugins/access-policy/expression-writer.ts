@@ -223,15 +223,26 @@ export class ExpressionWriter {
     }
 
     private writeCollectionPredicate(expr: BinaryExpr, operator: string) {
-        this.block(() => {
-            this.writeFieldCondition(
-                expr.left,
-                () => {
-                    this.write(expr.right);
-                },
-                operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
-            );
-        });
+        // check if the operand should be compiled to a relation query
+        // or a plain expression
+        const compileToRelationQuery =
+            (this.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
+            (!this.isPostGuard && !this.isFutureMemberAccess(expr.left));
+
+        if (compileToRelationQuery) {
+            this.block(() => {
+                this.writeFieldCondition(
+                    expr.left,
+                    () => {
+                        this.write(expr.right);
+                    },
+                    operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
+                );
+            });
+        } else {
+            const plain = this.plainExprBuilder.transform(expr);
+            this.writer.write(`${plain} ? ${TRUE} : ${FALSE}`);
+        }
     }
 
     private isFieldAccess(expr: Expression): boolean {
@@ -275,6 +286,19 @@ export class ExpressionWriter {
         }
     }
 
+    private writeIdFieldsCheck(model: DataModel, value: Expression) {
+        const idFields = this.requireIdFields(model);
+        idFields.forEach((idField, idx) => {
+            // eg: id: user.id
+            this.writer.write(`${idField.name}:`);
+            this.plain(value);
+            this.writer.write(`.${idField.name}`);
+            if (idx !== idFields.length - 1) {
+                this.writer.write(',');
+            }
+        });
+    }
+
     private writeComparison(expr: BinaryExpr, operator: ComparisonOperator) {
         const leftIsFieldAccess = this.isFieldAccess(expr.left);
         const rightIsFieldAccess = this.isFieldAccess(expr.right);
@@ -298,7 +322,7 @@ export class ExpressionWriter {
             operator = this.negateOperator(operator);
         }
 
-        if (isMemberAccessExpr(fieldAccess) && isFutureExpr(fieldAccess.operand)) {
+        if (this.isFutureMemberAccess(fieldAccess)) {
             // future().field should be treated as the "field" directly, so we
             // strip 'future().' and synthesize a reference expr
             fieldAccess = {
@@ -338,8 +362,6 @@ export class ExpressionWriter {
                             // right now this branch only serves comparison with `auth`, like
                             //     @@allow('all', owner == auth())
 
-                            const idFields = this.requireIdFields(dataModel);
-
                             if (operator !== '==' && operator !== '!=') {
                                 throw new PluginError(name, 'Only == and != operators are allowed');
                             }
@@ -354,25 +376,13 @@ export class ExpressionWriter {
                             }
 
                             this.block(() => {
-                                idFields.forEach((idField, idx) => {
-                                    const writeIdsCheck = () => {
-                                        // id: user.id
-                                        this.writer.write(`${idField.name}:`);
-                                        this.plain(operand);
-                                        this.writer.write(`.${idField.name}`);
-                                        if (idx !== idFields.length - 1) {
-                                            this.writer.write(',');
-                                        }
-                                    };
-
-                                    if (isThisExpr(fieldAccess) && operator === '!=') {
-                                        // wrap a not
-                                        this.writer.writeLine('NOT:');
-                                        this.block(() => writeIdsCheck());
-                                    } else {
-                                        writeIdsCheck();
-                                    }
-                                });
+                                if (isThisExpr(fieldAccess) && operator === '!=') {
+                                    // negate
+                                    this.writer.writeLine('isNot:');
+                                    this.block(() => this.writeIdFieldsCheck(dataModel, operand));
+                                } else {
+                                    this.writeIdFieldsCheck(dataModel, operand);
+                                }
                             });
                         } else {
                             if (this.equivalentRefs(fieldAccess, operand)) {
@@ -386,7 +396,13 @@ export class ExpressionWriter {
                                         // we should generate a field reference (comparing fields in the same model)
                                         this.writeFieldReference(operand);
                                     } else {
-                                        this.plain(operand);
+                                        if (dataModel) {
+                                            // the comparison is between model types, generate id fields comparison block
+                                            this.block(() => this.writeIdFieldsCheck(dataModel, operand));
+                                        } else {
+                                            // scalar value, just generate the plain expression
+                                            this.plain(operand);
+                                        }
                                     }
                                 });
                             }
@@ -398,6 +414,10 @@ export class ExpressionWriter {
             // avoid generating a new layer
             !isThisExpr(fieldAccess)
         );
+    }
+
+    private isFutureMemberAccess(expr: Expression): expr is MemberAccessExpr {
+        return isMemberAccessExpr(expr) && isFutureExpr(expr.operand);
     }
 
     private requireIdFields(dataModel: DataModel) {
