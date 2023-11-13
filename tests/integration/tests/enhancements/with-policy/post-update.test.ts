@@ -75,6 +75,120 @@ describe('With Policy: post update', () => {
         await expect(db.model.update({ where: { id: '2' }, data: { value: 4 } })).toResolveTruthy();
     });
 
+    it('collection predicate pre-update', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            value Int
+            m2 M2[]
+            @@allow('read', true)
+            @@allow('update', m2?[value > 0] && future().value > 0)
+        }
+
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await prisma.m1.create({
+            data: {
+                id: '1',
+                value: 0,
+                m2: {
+                    create: [{ id: '1', value: 0 }],
+                },
+            },
+        });
+
+        expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: { value: 1 },
+            })
+        ).toBeRejectedByPolicy();
+
+        await prisma.m2.create({
+            data: {
+                id: '2',
+                m1: { connect: { id: '1' } },
+                value: 1,
+            },
+        });
+
+        expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: { value: 1 },
+            })
+        ).toResolveTruthy();
+    });
+
+    it('collection predicate post-update', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            value Int
+            m2 M2[]
+            @@allow('read', true)
+            @@allow('update', value > 0 && future().m2?[value > 0])
+        }
+
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await prisma.m1.create({
+            data: {
+                id: '1',
+                value: 0,
+                m2: {
+                    create: [{ id: '1', value: 1 }],
+                },
+            },
+        });
+
+        expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: { value: 2 },
+            })
+        ).toBeRejectedByPolicy();
+
+        await prisma.m2.create({
+            data: {
+                id: '2',
+                m1: { connect: { id: '1' } },
+                value: 1,
+            },
+        });
+
+        expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: { value: 2 },
+            })
+        ).toResolveTruthy();
+    });
+
     it('nested to-many', async () => {
         const { withPolicy } = await loadSchema(
             `
