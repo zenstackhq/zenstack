@@ -396,7 +396,7 @@ export class ExpressionWriter {
                                         // we should generate a field reference (comparing fields in the same model)
                                         this.writeFieldReference(operand);
                                     } else {
-                                        if (dataModel) {
+                                        if (dataModel && this.isModelTyped(operand)) {
                                             // the comparison is between model types, generate id fields comparison block
                                             this.block(() => this.writeIdFieldsCheck(dataModel, operand));
                                         } else {
