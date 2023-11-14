@@ -10,7 +10,7 @@ import { inspect } from 'util';
 /**
  * CLI action for starting a REPL session
  */
-export async function repl(projectPath: string, options: { prismaClient?: string }) {
+export async function repl(projectPath: string, options: { prismaClient?: string; debug?: boolean; table?: boolean }) {
     console.log('Welcome to ZenStack REPL. See help with the ".help" command.');
     console.log('Global variables:');
     console.log(`    ${colors.cyan('db')} to access enhanced PrismaClient`);
@@ -19,14 +19,14 @@ export async function repl(projectPath: string, options: { prismaClient?: string
     console.log(`    ${colors.magenta('.auth { id: ... }')} - set current user`);
     console.log(`    ${colors.magenta('.table')}            - toggle table output`);
     console.log();
-    console.log(`Running as anonymous user. Use ${colors.magenta('.auth')} to set current user.`);
+    console.log(`Running as anonymous user. Use ".auth" to set current user.`);
 
     const prismaClientModule = options.prismaClient ?? path.join(projectPath, './node_modules/.prisma/client');
     const { PrismaClient } = require(prismaClientModule);
     const { enhance } = require('@zenstackhq/runtime');
 
-    let debug = false;
-    let table = false;
+    let debug = !!options.debug;
+    let table = !!options.table;
     let prisma: any;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let db: any;
@@ -124,7 +124,6 @@ export async function repl(projectPath: string, options: { prismaClient?: string
                 } else {
                     // set current user
                     const user = eval(`(${value})`);
-                    console.log(user);
                     if (!user || typeof user !== 'object') {
                         console.error(`Invalid argument. Pass a user object like { id: ... }`);
                         this.displayPrompt();
