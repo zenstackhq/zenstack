@@ -207,9 +207,16 @@ export default class PolicyGenerator {
     }
 
     private processUpdatePolicies(expressions: Expression[], postUpdate: boolean) {
-        return expressions
-            .map((expr) => this.visitPolicyExpression(expr, postUpdate))
-            .filter((e): e is Expression => !!e);
+        const hasFutureReference = expressions.some((expr) => this.hasFutureReference(expr));
+        if (postUpdate) {
+            // when compiling post-update rules, if any rule contains `future()` reference,
+            // we include all as post-update rules
+            return hasFutureReference ? expressions : [];
+        } else {
+            // when compiling pre-update rules, if any rule contains `future()` reference,
+            // we completely skip pre-update check and defer them to post-update
+            return hasFutureReference ? [] : expressions;
+        }
     }
 
     private visitPolicyExpression(expr: Expression, postUpdate: boolean): Expression | undefined {
@@ -543,6 +550,9 @@ export default class PolicyGenerator {
                 } else {
                     return [];
                 }
+            } else if (isInvocationExpr(expr)) {
+                // recurse into function arguments
+                return expr.args.flatMap((arg) => collectReferencePaths(arg.value));
             } else {
                 // recurse
                 const children = streamContents(expr)

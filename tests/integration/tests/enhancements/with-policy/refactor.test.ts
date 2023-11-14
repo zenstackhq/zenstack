@@ -575,7 +575,7 @@ describe('With Policy: refactor tests', () => {
                             where: { id: 2 },
                             data: {
                                 comments: {
-                                    update: { where: { content: 'Comment 2' }, data: { content: 'Comment 2 updated' } },
+                                    update: { where: { id: 2 }, data: { content: 'Comment 2 updated' } },
                                 },
                             },
                         },
