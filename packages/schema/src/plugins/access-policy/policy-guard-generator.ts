@@ -550,6 +550,9 @@ export default class PolicyGenerator {
                 } else {
                     return [];
                 }
+            } else if (isInvocationExpr(expr)) {
+                // recurse into function arguments
+                return expr.args.flatMap((arg) => collectReferencePaths(arg.value));
             } else {
                 // recurse
                 const children = streamContents(expr)

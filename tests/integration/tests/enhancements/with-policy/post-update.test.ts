@@ -75,6 +75,54 @@ describe('With Policy: post update', () => {
         await expect(db.model.update({ where: { id: '2' }, data: { value: 4 } })).toResolveTruthy();
     });
 
+    it('functions pre-update', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model Model {
+            id String @id @default(uuid())
+            value String
+            x Int
+
+            @@allow('create,read', true)
+            @@allow('update', startsWith(value, 'hello') && future().x > 0)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await prisma.model.create({ data: { id: '1', value: 'good', x: 1 } });
+        await expect(db.model.update({ where: { id: '1' }, data: { value: 'hello' } })).toBeRejectedByPolicy();
+
+        await prisma.model.update({ where: { id: '1' }, data: { value: 'hello world' } });
+        const r = await db.model.update({ where: { id: '1' }, data: { value: 'hello new world' } });
+        expect(r.value).toBe('hello new world');
+    });
+
+    it('functions post-update', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model Model {
+            id String @id @default(uuid())
+            value String
+            x Int
+
+            @@allow('create,read', true)
+            @@allow('update', x > 0 && startsWith(future().value, 'hello'))
+        }
+        `,
+            { logPrismaQuery: true }
+        );
+
+        const db = withPolicy();
+
+        await prisma.model.create({ data: { id: '1', value: 'good', x: 1 } });
+        await expect(db.model.update({ where: { id: '1' }, data: { value: 'nice' } })).toBeRejectedByPolicy();
+
+        const r = await db.model.update({ where: { id: '1' }, data: { x: 0, value: 'hello world' } });
+        expect(r.value).toBe('hello world');
+    });
+
     it('collection predicate pre-update', async () => {
         const { prisma, withPolicy } = await loadSchema(
             `
@@ -109,7 +157,7 @@ describe('With Policy: post update', () => {
             },
         });
 
-        expect(
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: { value: 1 },
@@ -124,7 +172,7 @@ describe('With Policy: post update', () => {
             },
         });
 
-        expect(
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: { value: 1 },
@@ -159,14 +207,14 @@ describe('With Policy: post update', () => {
         await prisma.m1.create({
             data: {
                 id: '1',
-                value: 0,
+                value: 1,
                 m2: {
-                    create: [{ id: '1', value: 1 }],
+                    create: [{ id: '1', value: 0 }],
                 },
             },
         });
 
-        expect(
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: { value: 2 },
@@ -181,7 +229,7 @@ describe('With Policy: post update', () => {
             },
         });
 
-        expect(
+        await expect(
             db.m1.update({
                 where: { id: '1' },
                 data: { value: 2 },

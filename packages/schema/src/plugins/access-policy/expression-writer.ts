@@ -234,7 +234,9 @@ export class ExpressionWriter {
                 this.writeFieldCondition(
                     expr.left,
                     () => {
-                        this.write(expr.right);
+                        // inner scope of collection expression is always compiled as non-post-guard
+                        const innerWriter = new ExpressionWriter(this.writer, false);
+                        innerWriter.write(expr.right);
                     },
                     operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
                 );
