@@ -84,8 +84,19 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
+plugin meta {
+    provider = '@core/model-meta'
+    preserveTsFiles = true
+}
+
+plugin policy {
+    provider = '@core/access-policy'
+    preserveTsFiles = true
+}
+
 plugin zod {
     provider = '@core/zod'
+    preserveTsFiles = true
     modelOnly = ${!options.fullZod}
 }
 `;
