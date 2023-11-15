@@ -78,14 +78,23 @@ function generateQueryHook(
     overrideReturnType?: string,
     overrideInputType?: string,
     overrideTypeParameters?: string[],
-    infinite = false
+    infinite = false,
+    optimisticUpdate = false
 ) {
     const capOperation = upperCaseFirst(operation);
 
     const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
     const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-    const returnType =
-        overrideReturnType ?? (returnArray ? `Array<Prisma.${model}GetPayload<T>>` : `Prisma.${model}GetPayload<T>`);
+
+    let defaultReturnType = `Prisma.${model}GetPayload<T>`;
+    if (optimisticUpdate) {
+        defaultReturnType += '& { $optimistic?: boolean }';
+    }
+    if (returnArray) {
+        defaultReturnType = `Array<${defaultReturnType}>`;
+    }
+
+    const returnType = overrideReturnType ?? defaultReturnType;
     const optionsType = makeQueryOptions(target, returnType, infinite, version);
 
     const func = sf.addFunction({
@@ -100,6 +109,15 @@ function generateQueryHook(
                 name: 'options?',
                 type: optionsType,
             },
+            ...(optimisticUpdate
+                ? [
+                      {
+                          name: 'optimisticUpdate',
+                          type: 'boolean',
+                          initializer: 'true',
+                      },
+                  ]
+                : []),
         ],
         isExported: true,
     });
@@ -113,7 +131,7 @@ function generateQueryHook(
         makeGetContext(target),
         `return ${infinite ? 'useInfiniteModelQuery' : 'useModelQuery'}('${model}', \`\${endpoint}/${lowerCaseFirst(
             model
-        )}/${operation}\`, args, options, fetch);`,
+        )}/${operation}\`, args, options, fetch${optimisticUpdate ? ', optimisticUpdate' : ''});`,
     ]);
 }
 
@@ -154,6 +172,11 @@ function generateMutationHook(
                 type: 'boolean',
                 initializer: 'true',
             },
+            {
+                name: 'optimisticUpdate',
+                type: 'boolean',
+                initializer: 'false',
+            },
         ],
     });
 
@@ -170,7 +193,7 @@ function generateMutationHook(
                     overrideReturnType ?? model
                 }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, metadata, options, fetch, invalidateQueries, ${checkReadBack})
+                )}/${operation}\`, metadata, options, fetch, invalidateQueries, ${checkReadBack}, optimisticUpdate)
                 `,
             },
         ],
@@ -272,7 +295,20 @@ function generateModelHooks(
     // findMany
     if (mapping.findMany) {
         // regular findMany
-        generateQueryHook(target, version, sf, model.name, 'findMany', true, true);
+        generateQueryHook(
+            target,
+            version,
+            sf,
+            model.name,
+            'findMany',
+            true,
+            true,
+            undefined,
+            undefined,
+            undefined,
+            false,
+            true
+        );
         // infinite findMany
         generateQueryHook(
             target,
@@ -285,18 +321,45 @@ function generateModelHooks(
             undefined,
             undefined,
             undefined,
-            true
+            true,
+            false
         );
     }
 
     // findUnique
     if (mapping.findUnique) {
-        generateQueryHook(target, version, sf, model.name, 'findUnique', false, false);
+        generateQueryHook(
+            target,
+            version,
+            sf,
+            model.name,
+            'findUnique',
+            false,
+            false,
+            undefined,
+            undefined,
+            undefined,
+            false,
+            true
+        );
     }
 
     // findFirst
     if (mapping.findFirst) {
-        generateQueryHook(target, version, sf, model.name, 'findFirst', false, true);
+        generateQueryHook(
+            target,
+            version,
+            sf,
+            model.name,
+            'findFirst',
+            false,
+            true,
+            undefined,
+            undefined,
+            undefined,
+            false,
+            true
+        );
     }
 
     // update

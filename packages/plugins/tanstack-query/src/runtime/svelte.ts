@@ -14,11 +14,12 @@ import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
     FetchFn,
-    QUERY_KEY_PREFIX,
     fetcher,
+    getQueryKey,
     makeUrl,
     marshal,
     setupInvalidation,
+    setupOptimisticUpdate,
 } from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
@@ -50,6 +51,8 @@ export function getHooksContext() {
  * @param url The request URL.
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<R>(
@@ -57,11 +60,12 @@ export function useModelQuery<R>(
     url: string,
     args?: unknown,
     options?: Omit<QueryOptions<R>, 'queryKey'>,
-    fetch?: FetchFn
+    fetch?: FetchFn,
+    optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);
     return createQuery<R>({
-        queryKey: [QUERY_KEY_PREFIX + model, url, args],
+        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
         queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
@@ -74,6 +78,7 @@ export function useModelQuery<R>(
  * @param url The request URL.
  * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
  * @returns useQuery hook
  */
 export function useInfiniteModelQuery<R>(
@@ -84,7 +89,7 @@ export function useInfiniteModelQuery<R>(
     fetch?: FetchFn
 ) {
     return createInfiniteQuery<R>({
-        queryKey: [QUERY_KEY_PREFIX + model, url, args],
+        queryKey: getQueryKey(model, url, args, true),
         queryFn: ({ pageParam }) => fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
         ...options,
     });
@@ -99,6 +104,8 @@ export function useInfiniteModelQuery<R>(
  * @param url The request URL.
  * @param options The svelte-query options.
  * @param invalidateQueries Whether to invalidate queries after mutation.
+ * @param checkReadBack Whether to check for read back errors and return undefined if found.
+ * @param optimisticUpdate Whether to enable automatic optimistic update.
  * @returns useMutation hooks
  */
 export function useModelMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
@@ -109,7 +116,8 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
     options?: Omit<MutationOptions<Result, unknown, T>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
-    checkReadBack?: C
+    checkReadBack?: C,
+    optimisticUpdate = false
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -127,16 +135,30 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
     };
 
     const finalOptions = { ...options, mutationFn };
-    if (invalidateQueries) {
+    const operation = url.split('/').pop();
+    if (operation) {
         const { logging } = getContext<APIContext>(SvelteQueryContextKey);
-        const operation = url.split('/').pop();
-        if (operation) {
+
+        if (invalidateQueries) {
             setupInvalidation(
                 model,
                 operation,
                 modelMeta,
                 finalOptions,
                 (predicate) => queryClient.invalidateQueries({ predicate }),
+                logging
+            );
+        }
+
+        if (optimisticUpdate) {
+            setupOptimisticUpdate(
+                model,
+                operation,
+                modelMeta,
+                finalOptions,
+                queryClient.getQueryCache().getAll(),
+                (queryKey, data) => queryClient.setQueryData<unknown>(queryKey, data),
+                invalidateQueries ? (predicate) => queryClient.invalidateQueries({ predicate }) : undefined,
                 logging
             );
         }

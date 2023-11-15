@@ -22,6 +22,7 @@ import {
     makeUrl,
     marshal,
     setupInvalidation,
+    setupOptimisticUpdate,
 } from '../runtime/common';
 
 export { APIContext as RequestHandlerContext } from '../runtime/common';
@@ -53,6 +54,8 @@ export function getHooksContext() {
  * @param url The request URL.
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<R>(
@@ -60,10 +63,11 @@ export function useModelQuery<R>(
     url: string,
     args?: unknown,
     options?: StoreOrVal<Omit<QueryOptions<R>, 'queryKey'>>,
-    fetch?: FetchFn
+    fetch?: FetchFn,
+    optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);
-    const queryKey = getQueryKey(model, url, args);
+    const queryKey = getQueryKey(model, url, args, false, optimisticUpdate);
     const queryFn = () => fetcher<R, false>(reqUrl, undefined, fetch, false);
 
     let mergedOpt: any;
@@ -103,7 +107,7 @@ export function useInfiniteModelQuery<R>(
     options: StoreOrVal<Omit<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
-    const queryKey = getQueryKey(model, url, args);
+    const queryKey = getQueryKey(model, url, args, true);
     const queryFn = ({ pageParam }: { pageParam: unknown }) =>
         fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
 
@@ -151,7 +155,8 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
     options?: Omit<MutationOptions<Result, unknown, T>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
-    checkReadBack?: C
+    checkReadBack?: C,
+    optimisticUpdate = false
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -169,16 +174,30 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
     };
 
     const finalOptions = { ...options, mutationFn };
-    if (invalidateQueries) {
+    const operation = url.split('/').pop();
+
+    if (operation) {
         const { logging } = getContext<APIContext>(SvelteQueryContextKey);
-        const operation = url.split('/').pop();
-        if (operation) {
+        if (invalidateQueries) {
             setupInvalidation(
                 model,
                 operation,
                 modelMeta,
                 finalOptions,
                 (predicate) => queryClient.invalidateQueries({ predicate }),
+                logging
+            );
+        }
+
+        if (optimisticUpdate) {
+            setupOptimisticUpdate(
+                model,
+                operation,
+                modelMeta,
+                finalOptions,
+                queryClient.getQueryCache().getAll(),
+                (queryKey, data) => queryClient.setQueryData<unknown>(queryKey, data),
+                invalidateQueries ? (predicate) => queryClient.invalidateQueries({ predicate }) : undefined,
                 logging
             );
         }

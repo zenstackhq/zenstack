@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { deserialize, serialize } from '@zenstackhq/runtime/browser';
-import { getMutatedModels, getReadModels, type ModelMeta, type PrismaWriteActionType } from '@zenstackhq/runtime/cross';
+import {
+    applyMutation,
+    getMutatedModels,
+    getReadModels,
+    type ModelMeta,
+    type PrismaWriteActionType,
+} from '@zenstackhq/runtime/cross';
 import * as crossFetch from 'cross-fetch';
 
 /**
@@ -75,22 +81,39 @@ export async function fetcher<R, C extends boolean>(
     }
 }
 
-type QueryKey = [string /* prefix */, string /* model */, string /* operation */, unknown /* args */];
+type QueryKey = [
+    string /* prefix */,
+    string /* model */,
+    string /* operation */,
+    unknown /* args */,
+    {
+        infinite: boolean;
+        optimisticUpdate: boolean;
+    } /* flags */
+];
 
 /**
  * Computes query key for the given model, operation and query args.
  * @param model Model name.
  * @param urlOrOperation Prisma operation (e.g, `findMany`) or request URL. If it's a URL, the last path segment will be used as the operation name.
  * @param args Prisma query arguments.
+ * @param infinite Whether the query is infinite.
+ * @param optimisticUpdate Whether the query is optimistically updated.
  * @returns Query key
  */
-export function getQueryKey(model: string, urlOrOperation: string, args: unknown): QueryKey {
+export function getQueryKey(
+    model: string,
+    urlOrOperation: string,
+    args: unknown,
+    infinite = false,
+    optimisticUpdate = false
+): QueryKey {
     if (!urlOrOperation) {
         throw new Error('Invalid urlOrOperation');
     }
     const operation = urlOrOperation.split('/').pop();
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return [QUERY_KEY_PREFIX, model, operation!, args];
+    return [QUERY_KEY_PREFIX, model, operation!, args, { infinite, optimisticUpdate }];
 }
 
 export function marshal(value: unknown) {
@@ -126,14 +149,20 @@ export function makeUrl(url: string, args: unknown) {
 }
 
 type InvalidationPredicate = ({ queryKey }: { queryKey: readonly unknown[] }) => boolean;
+type InvalidateFunc = (predicate: InvalidationPredicate) => Promise<void>;
+type MutationOptions = {
+    onMutate?: (...args: any[]) => any;
+    onSuccess?: (...args: any[]) => any;
+    onSettled?: (...args: any[]) => any;
+};
 
 // sets up invalidation hook for a mutation
 export function setupInvalidation(
     model: string,
     operation: string,
     modelMeta: ModelMeta,
-    options: { onSuccess?: (...args: any[]) => any },
-    invalidate: (predicate: InvalidationPredicate) => Promise<void>,
+    options: MutationOptions,
+    invalidate: InvalidateFunc,
     logging = false
 ) {
     const origOnSuccess = options?.onSuccess;
@@ -162,12 +191,12 @@ async function getInvalidationPredicate(
     const mutatedModels = await getMutatedModels(model, operation, mutationArgs, modelMeta);
 
     return ({ queryKey }: { queryKey: readonly unknown[] }) => {
-        const [_model, queryModel, queryOp, args] = queryKey as QueryKey;
+        const [_, queryModel, , args] = queryKey as QueryKey;
 
         if (mutatedModels.includes(queryModel)) {
             // direct match
             if (logging) {
-                console.log(`Invalidating query [${queryKey}] due to mutation "${model}.${operation}"`);
+                console.log(`Invalidating query ${JSON.stringify(queryKey)} due to mutation "${model}.${operation}"`);
             }
             return true;
         }
@@ -176,7 +205,9 @@ async function getInvalidationPredicate(
             // traverse query args to find nested reads that match the model under mutation
             if (findNestedRead(queryModel, mutatedModels, modelMeta, args)) {
                 if (logging) {
-                    console.log(`Invalidating query [${queryKey}] due to mutation "${model}.${operation}"`);
+                    console.log(
+                        `Invalidating query ${JSON.stringify(queryKey)} due to mutation "${model}.${operation}"`
+                    );
                 }
                 return true;
             }
@@ -190,4 +221,107 @@ async function getInvalidationPredicate(
 function findNestedRead(visitingModel: string, targetModels: string[], modelMeta: ModelMeta, args: any) {
     const modelsRead = getReadModels(visitingModel, modelMeta, args);
     return targetModels.some((m) => modelsRead.includes(m));
+}
+
+type QueryCache = {
+    queryKey: readonly unknown[];
+    state: {
+        data: unknown;
+        error: unknown;
+    };
+}[];
+
+type SetCacheFunc = (queryKey: readonly unknown[], data: unknown) => void;
+
+export function setupOptimisticUpdate(
+    model: string,
+    operation: string,
+    modelMeta: ModelMeta,
+    options: MutationOptions,
+    queryCache: QueryCache,
+    setCache: SetCacheFunc,
+    invalidate?: InvalidateFunc,
+    logging = false
+) {
+    const origOnMutate = options?.onMutate;
+    const origOnSettled = options?.onSettled;
+
+    options.onMutate = async (...args: unknown[]) => {
+        const [variables] = args;
+        await optimisticUpdate(
+            model,
+            operation as PrismaWriteActionType,
+            variables,
+            modelMeta,
+            queryCache,
+            setCache,
+            logging
+        );
+        return origOnMutate?.(...args);
+    };
+
+    options.onSettled = async (...args: unknown[]) => {
+        if (invalidate) {
+            const [, , variables] = args;
+            const predicate = await getInvalidationPredicate(
+                model,
+                operation as PrismaWriteActionType,
+                variables,
+                modelMeta,
+                logging
+            );
+            await invalidate(predicate);
+        }
+        return origOnSettled?.(...args);
+    };
+}
+
+// optimistically updates query cache
+async function optimisticUpdate(
+    mutationModel: string,
+    mutationOp: string,
+    mutationArgs: any,
+    modelMeta: ModelMeta,
+    queryCache: QueryCache,
+    setCache: SetCacheFunc,
+    logging = false
+) {
+    for (const cacheItem of queryCache) {
+        const {
+            queryKey,
+            state: { data, error },
+        } = cacheItem;
+
+        if (error) {
+            continue;
+        }
+
+        const [_, queryModel, queryOp, _queryArgs, { optimisticUpdate }] = queryKey as QueryKey;
+        if (!optimisticUpdate) {
+            continue;
+        }
+
+        const mutatedData = await applyMutation(
+            queryModel,
+            queryOp,
+            data,
+            mutationModel,
+            mutationOp as PrismaWriteActionType,
+            mutationArgs,
+            modelMeta,
+            logging
+        );
+
+        if (mutatedData !== undefined) {
+            // mutation applicable to this query, update cache
+            if (logging) {
+                console.log(
+                    `Optimistically updating query ${JSON.stringify(
+                        queryKey
+                    )} due to mutation "${mutationModel}.${mutationOp}"`
+                );
+            }
+            setCache(queryKey, mutatedData);
+        }
+    }
 }
