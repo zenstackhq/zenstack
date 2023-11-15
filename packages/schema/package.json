@@ -2,7 +2,7 @@
     "name": "zenstack",
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
-    "description": "A toolkit for building secure CRUD apps with Next.js + Typescript",
+    "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
     "version": "1.3.0",
     "author": {
         "name": "ZenStack Team"
@@ -69,8 +69,8 @@
         "vscode:prepublish": "pnpm bundle",
         "vscode:package": "vsce package --no-dependencies",
         "clean": "rimraf bundle dist",
-        "build": "pnpm clean && pnpm lint && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination '../../../.build'",
-        "bundle": "pnpm clean && pnpm lint && node build/bundle.js --minify",
+        "build": "pnpm clean && pnpm lint --max-warnings=0 && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination '../../../.build'",
+        "bundle": "pnpm clean && pnpm lint --max-warnings=0 && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
