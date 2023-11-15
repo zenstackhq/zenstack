@@ -148,7 +148,7 @@ describe('Tanstack Query React Hooks Test', () => {
         });
     });
 
-    it('optimistic create', async () => {
+    it('optimistic create single', async () => {
         const { queryClient, wrapper } = createWrapper();
 
         const data: any[] = [];
@@ -204,6 +204,62 @@ describe('Tanstack Query React Hooks Test', () => {
             expect(cacheData[0].$optimistic).toBe(true);
             expect(cacheData[0].id).toBeTruthy();
             expect(cacheData[0].name).toBe('foo');
+        });
+    });
+
+    it('optimistic create many', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, undefined, undefined, true),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(0);
+        });
+
+        nock(makeUrl('User', 'createMany'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation(
+                    'User',
+                    'POST',
+                    makeUrl('User', 'createMany'),
+                    modelMeta,
+                    undefined,
+                    undefined,
+                    false,
+                    undefined,
+                    true
+                ),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ data: [{ name: 'foo' }, { name: 'bar' }] }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined, false, true));
+            expect(cacheData).toHaveLength(2);
         });
     });
 
