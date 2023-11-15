@@ -52,7 +52,7 @@ class OmitHandler extends DefaultPrismaProxyHandler {
                 continue;
             }
 
-            if (fieldInfo.attributes.find((attr) => attr.name === '@omit')) {
+            if (fieldInfo.attributes?.find((attr) => attr.name === '@omit')) {
                 delete entityData[field];
             } else if (fieldInfo.isDataModel) {
                 // recurse

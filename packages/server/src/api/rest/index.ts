@@ -998,8 +998,8 @@ class RequestHandler extends APIHandlerBase {
                     type: fieldInfo.type,
                     idField: fieldTypeIdFields[0].name,
                     idFieldType: fieldTypeIdFields[0].type,
-                    isCollection: fieldInfo.isArray,
-                    isOptional: fieldInfo.isOptional,
+                    isCollection: !!fieldInfo.isArray,
+                    isOptional: !!fieldInfo.isOptional,
                 };
             }
         }

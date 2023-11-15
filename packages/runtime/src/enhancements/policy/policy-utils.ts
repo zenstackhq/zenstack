@@ -17,6 +17,7 @@ import {
 import {
     enumerate,
     getFields,
+    getIdFields,
     getModelFields,
     resolveField,
     zip,
@@ -29,7 +30,6 @@ import { getVersion } from '../../version';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,
-    getIdFields,
     prismaClientKnownRequestError,
     prismaClientUnknownRequestError,
     prismaClientValidationError,

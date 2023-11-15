@@ -7,11 +7,11 @@
 /// <reference types="@types/jest" />
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query-v5';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import nock from 'nock';
 import React from 'react';
-import { QUERY_KEY_PREFIX } from '../src/runtime/common';
 import { RequestHandlerContext, useModelMutation, useModelQuery } from '../src/runtime-v5/react';
+import { getQueryKey } from '../src/runtime/common';
 import { modelMeta } from './test-model-meta';
 
 describe('Tanstack Query React Hooks V5 Test', () => {
@@ -55,7 +55,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         await waitFor(() => {
             expect(result.current.isSuccess).toBe(true);
             expect(result.current.data).toMatchObject(data);
-            const cacheData = queryClient.getQueryData([QUERY_KEY_PREFIX, 'User', 'findUnique', queryArgs]);
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs));
             expect(cacheData).toMatchObject(data);
         });
     });
@@ -143,8 +143,67 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         act(() => mutationResult.current.mutate({ data: { name: 'foo' } }));
 
         await waitFor(() => {
-            const cacheData = queryClient.getQueryData([QUERY_KEY_PREFIX, 'User', 'findMany', undefined]);
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
             expect(cacheData).toHaveLength(1);
+        });
+    });
+
+    it('optimistic create', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, undefined, undefined, true),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(0);
+        });
+
+        nock(makeUrl('User', 'create'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation(
+                    'User',
+                    'POST',
+                    makeUrl('User', 'create'),
+                    modelMeta,
+                    undefined,
+                    undefined,
+                    false,
+                    undefined,
+                    true
+                ),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ data: { name: 'foo' } }));
+
+        await waitFor(() => {
+            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined, false, true));
+            expect(cacheData).toHaveLength(1);
+            expect(cacheData[0].$optimistic).toBe(true);
+            expect(cacheData[0].id).toBeTruthy();
+            expect(cacheData[0].name).toBe('foo');
         });
     });
 
@@ -187,8 +246,164 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         act(() => mutationResult.current.mutate({ ...queryArgs, data: { name: 'bar' } }));
 
         await waitFor(() => {
-            const cacheData = queryClient.getQueryData([QUERY_KEY_PREFIX, 'User', 'findUnique', queryArgs]);
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs));
             expect(cacheData).toMatchObject({ name: 'bar' });
+        });
+    });
+
+    it('optimistic update', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const queryArgs = { where: { id: '1' } };
+        const data = { id: '1', name: 'foo' };
+
+        nock(makeUrl('User', 'findUnique', queryArgs))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs, undefined, undefined, true),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toMatchObject({ name: 'foo' });
+        });
+
+        nock(makeUrl('User', 'update'))
+            .put(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return data;
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation(
+                    'User',
+                    'PUT',
+                    makeUrl('User', 'update'),
+                    modelMeta,
+                    undefined,
+                    undefined,
+                    false,
+                    undefined,
+                    true
+                ),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ ...queryArgs, data: { name: 'bar' } }));
+
+        await waitFor(() => {
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs, false, true));
+            expect(cacheData).toMatchObject({ name: 'bar', $optimistic: true });
+        });
+    });
+
+    it('delete and invalidation', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [{ id: '1', name: 'foo' }];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(() => useModelQuery('User', makeUrl('User', 'findMany')), {
+            wrapper,
+        });
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('User', 'delete'))
+            .delete(/.*/)
+            .reply(200, () => {
+                console.log('Mutating data');
+                data.splice(0, 1);
+                return { data: [] };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () => useModelMutation('User', 'DELETE', makeUrl('User', 'delete'), modelMeta),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: '1' } }));
+
+        await waitFor(() => {
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
+            expect(cacheData).toHaveLength(0);
+        });
+    });
+
+    it('optimistic delete', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const data: any[] = [{ id: '1', name: 'foo' }];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, undefined, undefined, true),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(1);
+        });
+
+        nock(makeUrl('User', 'delete'))
+            .delete(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data };
+            });
+
+        const { result: mutationResult } = renderHook(
+            () =>
+                useModelMutation(
+                    'User',
+                    'DELETE',
+                    makeUrl('User', 'delete'),
+                    modelMeta,
+                    undefined,
+                    undefined,
+                    false,
+                    undefined,
+                    true
+                ),
+            {
+                wrapper,
+            }
+        );
+
+        act(() => mutationResult.current.mutate({ where: { id: '1' } }));
+
+        await waitFor(() => {
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined, false, true));
+            expect(cacheData).toHaveLength(0);
         });
     });
 
@@ -231,7 +446,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         act(() => mutationResult.current.mutate({ where: { id: '1' }, data: { name: 'post2' } }));
 
         await waitFor(() => {
-            const cacheData: any = queryClient.getQueryData([QUERY_KEY_PREFIX, 'User', 'findUnique', queryArgs]);
+            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs));
             expect(cacheData.posts[0].title).toBe('post2');
         });
     });
@@ -276,7 +491,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
         );
 
         await waitFor(() => {
-            const cacheData: any = queryClient.getQueryData([QUERY_KEY_PREFIX, 'Post', 'findMany', undefined]);
+            const cacheData: any = queryClient.getQueryData(getQueryKey('Post', 'findMany', undefined));
             expect(cacheData).toHaveLength(2);
         });
     });

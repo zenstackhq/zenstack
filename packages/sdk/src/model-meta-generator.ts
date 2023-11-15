@@ -71,16 +71,66 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter,
                             ? f.type.reference.$refText
                             : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                               f.type.type!
-                    }",
-                    isId: ${isIdField(f)},
-                    isDataModel: ${isDataModel(f.type.reference?.ref)},
-                    isArray: ${f.type.array},
-                    isOptional: ${f.type.optional},
-                    attributes: ${options.generateAttributes ? JSON.stringify(getFieldAttributes(f)) : '[]'},
-                    backLink: ${backlink ? "'" + backlink.name + "'" : 'undefined'},
-                    isRelationOwner: ${isRelationOwner(f, backlink)},
-                    isForeignKey: ${isForeignKeyField(f)},
-                    foreignKeyMapping: ${fkMapping ? JSON.stringify(fkMapping) : 'undefined'}
+                    }",`);
+
+                        if (isIdField(f)) {
+                            writer.write(`
+                    isId: true,`);
+                        }
+
+                        if (isDataModel(f.type.reference?.ref)) {
+                            writer.write(`
+                    isDataModel: true,`);
+                        }
+
+                        if (f.type.array) {
+                            writer.write(`
+                    isArray: true,`);
+                        }
+
+                        if (f.type.optional) {
+                            writer.write(`
+                    isOptional: true,`);
+                        }
+
+                        if (options.generateAttributes) {
+                            const attrs = getFieldAttributes(f);
+                            if (attrs.length > 0) {
+                                writer.write(`
+                    attributes: ${JSON.stringify(attrs)},`);
+                            }
+                        } else {
+                            // only include essential attributes
+                            const attrs = getFieldAttributes(f).filter((attr) =>
+                                ['@default', '@updatedAt'].includes(attr.name)
+                            );
+                            if (attrs.length > 0) {
+                                writer.write(`
+                    attributes: ${JSON.stringify(attrs)},`);
+                            }
+                        }
+
+                        if (backlink) {
+                            writer.write(`
+                    backLink: '${backlink.name}',`);
+                        }
+
+                        if (isRelationOwner(f, backlink)) {
+                            writer.write(`
+                    isRelationOwner: true,`);
+                        }
+
+                        if (isForeignKeyField(f)) {
+                            writer.write(`
+                    isForeignKey: true,`);
+                        }
+
+                        if (fkMapping && Object.keys(fkMapping).length > 0) {
+                            writer.write(`
+                    foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
+                        }
+
+                        writer.write(`
                 },`);
                     }
                 });
@@ -172,8 +222,7 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
                 } else if (isStringLiteral(arg.value) || isBooleanLiteral(arg.value)) {
                     args.push({ name: arg.name, value: arg.value.value });
                 } else {
-                    // attributes with non-literal args are skipped
-                    return undefined;
+                    // non-literal args are ignored
                 }
             }
             return { name: resolved(attr.decl).name, args };

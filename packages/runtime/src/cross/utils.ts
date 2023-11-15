@@ -1,3 +1,6 @@
+import { lowerCaseFirst } from 'lower-case-first';
+import { ModelMeta } from '.';
+
 /**
  * Gets field names in a data model entity, filtering out internal fields.
  */
@@ -41,4 +44,20 @@ export function zip<T1, T2>(x: Enumerable<T1>, y: Enumerable<T2>): Array<[T1, T2
         }
         return [[x, y]];
     }
+}
+
+export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
+    let fields = modelMeta.fields[lowerCaseFirst(model)];
+    if (!fields) {
+        if (throwIfNotFound) {
+            throw new Error(`Unable to load fields for ${model}`);
+        } else {
+            fields = {};
+        }
+    }
+    const result = Object.values(fields).filter((f) => f.isId);
+    if (result.length === 0 && throwIfNotFound) {
+        throw new Error(`model ${model} does not have an id field`);
+    }
+    return result;
 }
