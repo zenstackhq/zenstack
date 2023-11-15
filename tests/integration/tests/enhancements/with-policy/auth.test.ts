@@ -212,4 +212,100 @@ describe('With Policy: auth() test', () => {
         const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
         await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
+
+    it('collection predicate', async () => {
+        const { enhance, prisma } = await loadSchema(
+            `
+        model User {
+            id String @id @default(uuid())
+            posts Post[]
+
+            @@allow('all', true)
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            published Boolean @default(false)
+            author User @relation(fields: [authorId], references: [id])
+            authorId String
+            comments Comment[]
+
+            @@allow('read', true)
+            @@allow('create', auth().posts?[published && comments![published]])
+        }
+
+        model Comment {
+            id String @id @default(uuid())
+            published Boolean @default(false)
+            post Post @relation(fields: [postId], references: [id])
+            postId String
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const user = await prisma.user.create({ data: {} });
+
+        const createPayload = {
+            data: { title: 'Post 1', author: { connect: { id: user.id } } },
+        };
+
+        // no post
+        await expect(enhance({ id: '1' }).post.create(createPayload)).toBeRejectedByPolicy();
+
+        // post not published
+        await expect(
+            enhance({ id: '1', posts: [{ id: '1', published: false }] }).post.create(createPayload)
+        ).toBeRejectedByPolicy();
+
+        // no comments
+        await expect(
+            enhance({ id: '1', posts: [{ id: '1', published: true }] }).post.create(createPayload)
+        ).toBeRejectedByPolicy();
+
+        // not all comments published
+        await expect(
+            enhance({
+                id: '1',
+                posts: [
+                    {
+                        id: '1',
+                        published: true,
+                        comments: [
+                            { id: '1', published: true },
+                            { id: '2', published: false },
+                        ],
+                    },
+                ],
+            }).post.create(createPayload)
+        ).toBeRejectedByPolicy();
+
+        // comments published but parent post is not
+        await expect(
+            enhance({
+                id: '1',
+                posts: [
+                    { id: '1', published: false, comments: [{ id: '1', published: true }] },
+                    { id: '2', published: true },
+                ],
+            }).post.create(createPayload)
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            enhance({
+                id: '1',
+                posts: [
+                    { id: '1', published: true, comments: [{ id: '1', published: true }] },
+                    { id: '2', published: false },
+                ],
+            }).post.create(createPayload)
+        ).toResolveTruthy();
+
+        // no comments ("every" evaluates to tru in this case)
+        await expect(
+            enhance({ id: '1', posts: [{ id: '1', published: true, comments: [] }] }).post.create(createPayload)
+        ).toResolveTruthy();
+    });
 });

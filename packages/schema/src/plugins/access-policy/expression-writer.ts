@@ -226,8 +226,12 @@ export class ExpressionWriter {
         // check if the operand should be compiled to a relation query
         // or a plain expression
         const compileToRelationQuery =
-            (this.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
-            (!this.isPostGuard && !this.isFutureMemberAccess(expr.left));
+            // expression rooted to `auth()` is always compiled to plain expression
+            !this.isAuthOrAuthMemberAccess(expr.left) &&
+            // `future()` in post-update context
+            ((this.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
+                // non-`future()` in pre-update context
+                (!this.isPostGuard && !this.isFutureMemberAccess(expr.left)));
 
         if (compileToRelationQuery) {
             this.block(() => {
