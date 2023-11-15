@@ -60,6 +60,7 @@ export function useModelQuery<R>(
     url: string,
     args?: unknown,
     options?: Omit<QueryOptions<R>, 'queryKey'>,
+    fetch?: FetchFn,
     optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);

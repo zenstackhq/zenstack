@@ -54,6 +54,8 @@ export function getHooksContext() {
  * @param url The request URL.
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<R>(
@@ -61,10 +63,11 @@ export function useModelQuery<R>(
     url: string,
     args?: unknown,
     options?: StoreOrVal<Omit<QueryOptions<R>, 'queryKey'>>,
-    fetch?: FetchFn
+    fetch?: FetchFn,
+    optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);
-    const queryKey = getQueryKey(model, url, args, false);
+    const queryKey = getQueryKey(model, url, args, false, optimisticUpdate);
     const queryFn = () => fetcher<R, false>(reqUrl, undefined, fetch, false);
 
     let mergedOpt: any;
