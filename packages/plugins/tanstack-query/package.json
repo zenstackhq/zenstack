@@ -66,7 +66,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint && pnpm clean && tsc && tsup-node --config ./tsup.config.ts && tsup-node --config ./tsup-v5.config.ts && node scripts/postbuild && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup.config.ts && tsup-node --config ./tsup-v5.config.ts && node scripts/postbuild && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
         "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup.config.ts --watch\" \"tsup-node --config ./tsup-v5.config.ts --watch\"",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",

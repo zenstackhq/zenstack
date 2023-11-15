@@ -10,7 +10,6 @@ import { hasAllFields } from '../../validation';
 import { makeProxy } from '../proxy';
 import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
 import { PolicyProxyHandler } from './handler';
-import { Logger } from './logger';
 
 /**
  * Context for evaluating access policies
