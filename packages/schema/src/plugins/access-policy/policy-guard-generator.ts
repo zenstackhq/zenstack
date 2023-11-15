@@ -81,7 +81,6 @@ export default class PolicyGenerator {
             namedImports: [
                 { name: 'type QueryContext' },
                 { name: 'type DbOperations' },
-                { name: 'hasAllFields' },
                 { name: 'allFieldsEqual' },
                 { name: 'type PolicyDef' },
             ],
@@ -103,6 +102,8 @@ export default class PolicyGenerator {
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
+
+        const authSelector = this.generateAuthSelector(models);
 
         sf.addVariableStatement({
             declarationKind: VariableDeclarationKind.Const,
@@ -140,6 +141,11 @@ export default class PolicyGenerator {
                                     writer.writeLine(',');
                                 }
                             });
+
+                            if (authSelector) {
+                                writer.writeLine(',');
+                                writer.write(`authSelector: ${JSON.stringify(authSelector)}`);
+                            }
                         });
                     },
                 },
@@ -162,6 +168,43 @@ export default class PolicyGenerator {
         }
         if (shouldCompile) {
             await emitProject(project);
+        }
+    }
+
+    // Generates a { select: ... } object to select `auth()` fields used in policy rules
+    private generateAuthSelector(models: DataModel[]) {
+        const authRules: Expression[] = [];
+
+        models.forEach((model) => {
+            // model-level rules
+            const modelPolicyAttrs = model.attributes.filter((attr) =>
+                ['@@allow', '@@deny'].includes(attr.decl.$refText)
+            );
+
+            // field-level rules
+            const fieldPolicyAttrs = model.fields
+                .flatMap((f) => f.attributes)
+                .filter((attr) => ['@allow', '@deny'].includes(attr.decl.$refText));
+
+            // all rule expression
+            const allExpressions = [...modelPolicyAttrs, ...fieldPolicyAttrs]
+                .filter((attr) => attr.args.length > 1)
+                .map((attr) => attr.args[1].value);
+
+            // collect `auth()` member access
+            allExpressions.forEach((rule) => {
+                streamAst(rule).forEach((node) => {
+                    if (isMemberAccessExpr(node) && isAuthInvocation(node.operand)) {
+                        authRules.push(node);
+                    }
+                });
+            });
+        });
+
+        if (authRules.length > 0) {
+            return this.generateSelectForRules(authRules, true);
+        } else {
+            return undefined;
         }
     }
 
@@ -293,7 +336,7 @@ export default class PolicyGenerator {
             result[kind] = guardFunc.getName()!;
 
             if (kind === 'postUpdate') {
-                const preValueSelect = this.generateSelectForRules(allows, denies);
+                const preValueSelect = this.generateSelectForRules([...allows, ...denies]);
                 if (preValueSelect) {
                     result[PRE_UPDATE_VALUE_SELECTOR] = preValueSelect;
                 }
@@ -340,7 +383,7 @@ export default class PolicyGenerator {
 
         if (allFieldsAllows.length > 0 || allFieldsDenies.length > 0) {
             result[HAS_FIELD_LEVEL_POLICY_FLAG] = true;
-            const readFieldCheckSelect = this.generateSelectForRules(allFieldsAllows, allFieldsDenies);
+            const readFieldCheckSelect = this.generateSelectForRules([...allFieldsAllows, ...allFieldsDenies]);
             if (readFieldCheckSelect) {
                 result[FIELD_LEVEL_READ_CHECKER_SELECTOR] = readFieldCheckSelect;
             }
@@ -477,7 +520,7 @@ export default class PolicyGenerator {
 
     // generates a "select" object that contains (recursively) fields referenced by the
     // given policy rules
-    private generateSelectForRules(allows: Expression[], denies: Expression[]): object {
+    private generateSelectForRules(rules: Expression[], forAuthContext = false): object {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any = {};
         const addPath = (path: string[]) => {
@@ -504,6 +547,10 @@ export default class PolicyGenerator {
                     return [target.name];
                 }
             } else if (isMemberAccessExpr(node)) {
+                if (forAuthContext && isAuthInvocation(node.operand)) {
+                    return [node.member.$refText];
+                }
+
                 if (isFutureExpr(node.operand)) {
                     // future().field is not subject to pre-update select
                     return undefined;
@@ -562,7 +609,7 @@ export default class PolicyGenerator {
             }
         };
 
-        for (const rule of [...allows, ...denies]) {
+        for (const rule of rules) {
             const paths = collectReferencePaths(rule);
             paths.forEach((p) => addPath(p));
         }
@@ -780,11 +827,7 @@ export default class PolicyGenerator {
             }
 
             // normalize user to null to avoid accidentally use undefined in filter
-            statements.push(
-                `const user = hasAllFields(context.user, [${userIdFields
-                    .map((f) => "'" + f.name + "'")
-                    .join(', ')}]) ? context.user as any : null;`
-            );
+            statements.push(`const user: any = context.user ?? null;`);
         }
     }
 }

@@ -10,6 +10,7 @@ import { hasAllFields } from '../../validation';
 import { makeProxy } from '../proxy';
 import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
 import { PolicyProxyHandler } from './handler';
+import { Logger } from './logger';
 
 /**
  * Context for evaluating access policies
@@ -72,7 +73,8 @@ export function withPolicy<DbClient extends object>(
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
 
     // validate user context
-    if (context?.user && _modelMeta.authModel) {
+    const userContext = context?.user;
+    if (userContext && _modelMeta.authModel) {
         const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
         if (
             !hasAllFields(
@@ -83,6 +85,16 @@ export function withPolicy<DbClient extends object>(
             throw new Error(
                 `Invalid user context: must have valid ID field ${idFields.map((f) => `"${f.name}"`).join(', ')}`
             );
+        }
+
+        // validate user context for fields used in policy expressions
+        const authSelector = _policy.authSelector;
+        if (authSelector) {
+            Object.keys(authSelector).forEach((f) => {
+                if (!(f in userContext)) {
+                    console.warn(`User context does not have field "${f}" used in policy rules`);
+                }
+            });
         }
     }
 

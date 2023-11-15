@@ -56,7 +56,12 @@ export type PolicyDef = {
                 [HAS_FIELD_LEVEL_POLICY_FLAG]?: boolean;
             }
     >;
+
+    // tracks which models have data validation rules
     validation: Record<string, { hasValidation: boolean }>;
+
+    // a { select: ... } object for fetching `auth()` fields needed for policy evaluation
+    authSelector?: object;
 };
 
 /**
