@@ -25,27 +25,27 @@ export type FieldInfo = {
     /**
      * If the field is an ID field or part of a multi-field ID
      */
-    isId: boolean;
+    isId?: boolean;
 
     /**
      * If the field type is a data model (or an optional/array of data model)
      */
-    isDataModel: boolean;
+    isDataModel?: boolean;
 
     /**
      * If the field is an array
      */
-    isArray: boolean;
+    isArray?: boolean;
 
     /**
      * If the field is optional
      */
-    isOptional: boolean;
+    isOptional?: boolean;
 
     /**
      * Attributes on the field
      */
-    attributes: RuntimeAttribute[];
+    attributes?: RuntimeAttribute[];
 
     /**
      * If the field is a relation field, the field name of the reverse side of the relation
@@ -55,12 +55,12 @@ export type FieldInfo = {
     /**
      * If the field is the owner side of a relation
      */
-    isRelationOwner: boolean;
+    isRelationOwner?: boolean;
 
     /**
      * If the field is a foreign key field
      */
-    isForeignKey: boolean;
+    isForeignKey?: boolean;
 
     /**
      * Mapping from foreign key field names to relation field names

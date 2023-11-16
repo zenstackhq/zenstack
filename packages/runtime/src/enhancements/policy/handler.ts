@@ -5,18 +5,19 @@ import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
 import {
+    ModelDataVisitor,
     NestedWriteVisitor,
     NestedWriteVisitorContext,
     enumerate,
+    getIdFields,
     resolveField,
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
 import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
-import { ModelDataVisitor } from '../model-data-visitor';
 import { PrismaProxyHandler } from '../proxy';
 import type { PolicyDef, ZodSchemas } from '../types';
-import { formatObject, getIdFields, prismaClientValidationError } from '../utils';
+import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
 import { createDeferredPromise } from './promise';

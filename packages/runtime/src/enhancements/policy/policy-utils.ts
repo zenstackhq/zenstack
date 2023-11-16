@@ -17,6 +17,7 @@ import {
 import {
     enumerate,
     getFields,
+    getIdFields,
     getModelFields,
     resolveField,
     zip,
@@ -29,7 +30,6 @@ import { getVersion } from '../../version';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,
-    getIdFields,
     prismaClientKnownRequestError,
     prismaClientUnknownRequestError,
     prismaClientValidationError,
@@ -143,6 +143,11 @@ export class PolicyUtil {
 
         const result: any = {};
         for (const [key, value] of Object.entries<any>(condition)) {
+            if (this.isFalse(result)) {
+                // already false, no need to continue
+                break;
+            }
+
             if (value === null || value === undefined) {
                 result[key] = value;
                 continue;
@@ -184,7 +189,16 @@ export class PolicyUtil {
                 }
 
                 case 'NOT': {
-                    result[key] = this.reduce(value);
+                    const r = this.reduce(value);
+                    if (this.isFalse(r)) {
+                        // NOT false => true, thus eliminated (not adding into result)
+                    } else if (this.isTrue(r)) {
+                        // NOT true => false, eliminate all other keys and set entire condition to false
+                        Object.keys(result).forEach((k) => delete result[k]);
+                        result['OR'] = []; // this will cause the outer loop to exit too
+                    } else {
+                        result[key] = r;
+                    }
                     break;
                 }
 
@@ -256,6 +270,7 @@ export class PolicyUtil {
         }
 
         if (!provider) {
+            // field access is allowed by default
             return this.makeTrue();
         }
         const r = provider({ user: this.user }, db);
@@ -1097,7 +1112,7 @@ export class PolicyUtil {
                         fieldInfo.type,
                         entityFullData[field],
                         nextArgs,
-                        hasFieldLevelPolicy,
+                        this.hasFieldLevelPolicy(fieldInfo.type),
                         path ? path + '.' + field : field
                     );
                 }

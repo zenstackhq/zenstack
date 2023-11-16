@@ -3,13 +3,12 @@
 
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../../constants';
-import { ModelMeta } from '../../cross';
+import { getIdFields, type ModelMeta } from '../../cross';
 import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
 import { AuthUser, DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
 import { makeProxy } from '../proxy';
 import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
-import { getIdFields } from '../utils';
 import { PolicyProxyHandler } from './handler';
 
 /**
@@ -73,7 +72,8 @@ export function withPolicy<DbClient extends object>(
     const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
 
     // validate user context
-    if (context?.user && _modelMeta.authModel) {
+    const userContext = context?.user;
+    if (userContext && _modelMeta.authModel) {
         const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
         if (
             !hasAllFields(
@@ -84,6 +84,16 @@ export function withPolicy<DbClient extends object>(
             throw new Error(
                 `Invalid user context: must have valid ID field ${idFields.map((f) => `"${f.name}"`).join(', ')}`
             );
+        }
+
+        // validate user context for fields used in policy expressions
+        const authSelector = _policy.authSelector;
+        if (authSelector) {
+            Object.keys(authSelector).forEach((f) => {
+                if (!(f in userContext)) {
+                    console.warn(`User context does not have field "${f}" used in policy rules`);
+                }
+            });
         }
     }
 

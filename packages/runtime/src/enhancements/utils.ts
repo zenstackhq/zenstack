@@ -1,29 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
-import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import * as util from 'util';
-import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
-
-/**
- * Gets id fields for the given model.
- */
-export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
-    let fields = modelMeta.fields[lowerCaseFirst(model)];
-    if (!fields) {
-        if (throwIfNotFound) {
-            throw new Error(`Unable to load fields for ${model}`);
-        } else {
-            fields = {};
-        }
-    }
-    const result = Object.values(fields).filter((f) => f.isId);
-    if (result.length === 0 && throwIfNotFound) {
-        throw new Error(`model ${model} does not have an id field`);
-    }
-    return result;
-}
 
 /**
  * Formats an object for pretty printing.

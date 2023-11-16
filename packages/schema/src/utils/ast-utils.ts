@@ -153,6 +153,6 @@ export function getAllDeclarationsFromImports(documents: LangiumDocuments, model
     return model.declarations.concat(...imports.map((imp) => imp.declarations));
 }
 
-export function isCollectionPredicate(expr: Expression): expr is BinaryExpr {
-    return isBinaryExpr(expr) && ['?', '!', '^'].includes(expr.operator);
+export function isCollectionPredicate(node: AstNode): node is BinaryExpr {
+    return isBinaryExpr(node) && ['?', '!', '^'].includes(node.operator);
 }

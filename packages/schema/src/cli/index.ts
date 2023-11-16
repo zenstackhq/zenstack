@@ -40,6 +40,16 @@ export const generateAction = async (options: Parameters<typeof actions.generate
     );
 };
 
+export const replAction = async (options: Parameters<typeof actions.repl>[1]): Promise<void> => {
+    await telemetry.trackSpan(
+        'cli:command:start',
+        'cli:command:complete',
+        'cli:command:error',
+        { command: 'repl' },
+        () => actions.repl(process.cwd(), options)
+    );
+};
+
 export function createProgram() {
     const program = new Command('zenstack');
 
@@ -97,6 +107,14 @@ export function createProgram() {
         .addOption(noVersionCheckOption)
         .addOption(noDependencyCheck)
         .action(generateAction);
+
+    program
+        .command('repl')
+        .description('Start a REPL session.')
+        .option('--prisma-client <module>', 'path to Prisma client module')
+        .option('--debug', 'enable debug output')
+        .option('--table', 'enable table format output')
+        .action(replAction);
 
     // make sure config is loaded before actions run
     program.hook('preAction', async (_, actionCommand) => {

@@ -1,7 +1,7 @@
 {
   "name": "@zenstackhq/openapi",
   "displayName": "ZenStack Plugin and Runtime for OpenAPI",
-  "version": "1.2.2",
+  "version": "1.3.0",
   "description": "ZenStack plugin and runtime supporting OpenAPI",
   "main": "index.js",
   "repository": {
@@ -14,7 +14,7 @@
   },
   "scripts": {
     "clean": "rimraf dist",
-    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && copyfiles -u 1 ./src/plugin.zmodel dist && pnpm pack dist --pack-destination '../../../../.build'",
+    "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && copyfiles -u 1 ./src/plugin.zmodel dist && pnpm pack dist --pack-destination '../../../../.build'",
     "watch": "tsc --watch",
     "lint": "eslint src --ext ts",
     "test": "ZENSTACK_TEST=1 jest",
