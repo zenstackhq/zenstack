@@ -665,7 +665,8 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 "rule": {
                   "$ref": "#/rules@15"
                 },
-                "arguments": []
+                "arguments": [],
+                "cardinality": "?"
               },
               {
                 "$type": "Keyword",

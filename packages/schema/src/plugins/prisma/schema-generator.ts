@@ -62,7 +62,7 @@ import {
     PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
-import ZModelCodeGenerator from './zmodel-code-generator';
+import { ZModelCodeGenerator } from '@zenstackhq/sdk';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';

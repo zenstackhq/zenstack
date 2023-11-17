@@ -13,7 +13,10 @@ import {
     DataModelAttribute,
     DataModelField,
     DataModelFieldAttribute,
+    DataModelFieldType,
     DataSource,
+    Enum,
+    EnumField,
     FieldInitializer,
     GeneratorDecl,
     InvocationExpr,
@@ -30,8 +33,8 @@ import {
     StringLiteral,
     ThisExpr,
     UnaryExpr,
-} from '@zenstackhq/language/ast';
-import { resolved } from '@zenstackhq/sdk';
+} from './ast';
+import { resolved } from './utils';
 
 /**
  * Options for the generator.
@@ -55,7 +58,10 @@ function gen(name: string) {
     };
 }
 
-export default class ZModelCodeGenerator {
+/**
+ * Generates ZModel source code from AST.
+ */
+export class ZModelCodeGenerator {
     private readonly options: ZModelCodeOptions;
 
     constructor(options?: Partial<ZModelCodeOptions>) {
@@ -66,6 +72,9 @@ export default class ZModelCodeGenerator {
         };
     }
 
+    /**
+     * Generates ZModel source code from AST.
+     */
     generate(ast: AstNode): string {
         const handler = generationHandlers.get(ast.$type);
         if (!handler) {
@@ -84,6 +93,20 @@ export default class ZModelCodeGenerator {
         return `datasource ${ast.name} {
 ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
 }`;
+    }
+
+    @gen(Enum)
+    private _generateEnum(ast: Enum) {
+        return `enum ${ast.name} {
+${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
+}`;
+    }
+
+    @gen(EnumField)
+    private _generateEnumField(ast: EnumField) {
+        return `${ast.name}${
+            ast.attributes.length > 0 ? ' ' + ast.attributes.map((x) => this.generate(x)).join(' ') : ''
+        }`;
     }
 
     @gen(GeneratorDecl)
@@ -105,7 +128,13 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
 
     @gen(ConfigInvocationExpr)
     private _generateConfigInvocationExpr(ast: ConfigInvocationExpr) {
-        return `${ast.name}(${ast.args.map((x) => x.name + ': ' + this.generate(x.value)).join(', ')})`;
+        if (ast.args.length === 0) {
+            return ast.name;
+        } else {
+            return `${ast.name}(${ast.args
+                .map((x) => (x.name ? x.name + ': ' : '') + this.generate(x.value))
+                .join(', ')})`;
+        }
     }
 
     @gen(Plugin)
@@ -124,17 +153,29 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
     private _generateDataModel(ast: DataModel) {
         return `${ast.isAbstract ? 'abstract ' : ''}${ast.isView ? 'view' : 'model'} ${ast.name}${
             ast.superTypes.length > 0 ? ' extends ' + ast.superTypes.map((x) => x.ref?.name).join(', ') : ''
-        }} {
-${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}
-${ast.attributes.map((x) => this.indent + this.generate(x)).join('\n')}
+        } {
+${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
+            ast.attributes.length > 0
+                ? '\n\n' + ast.attributes.map((x) => this.indent + this.generate(x)).join('\n')
+                : ''
+        }
 }`;
     }
 
     @gen(DataModelField)
     private _generateDataModelField(ast: DataModelField) {
-        return `${ast.name} ${ast.type.type ?? ast.type.reference?.$refText}${ast.type.array ? '[]' : ''}${
-            ast.type.optional ? '?' : ''
-        } ${ast.attributes.length ? ' ' + ast.attributes.map((x) => this.generate(x)).join(' ') : ''}`;
+        return `${ast.name} ${this.fieldType(ast.type)}${
+            ast.attributes.length > 0 ? ' ' + ast.attributes.map((x) => this.generate(x)).join(' ') : ''
+        }`;
+    }
+
+    private fieldType(type: DataModelFieldType) {
+        const baseType = type.type
+            ? type.type
+            : type.unsupported
+            ? 'Unsupported(' + this.generate(type.unsupported.value) + ')'
+            : type.reference?.$refText;
+        return `${baseType}${type.array ? '[]' : ''}${type.optional ? '?' : ''}`;
     }
 
     @gen(DataModelAttribute)
@@ -177,7 +218,7 @@ ${ast.attributes.map((x) => this.indent + this.generate(x)).join('\n')}
 
     @gen(StringLiteral)
     private _generateLiteralExpr(ast: LiteralExpr) {
-        return `'${ast.value}`;
+        return `'${ast.value}'`;
     }
 
     @gen(NumberLiteral)
@@ -242,7 +283,7 @@ ${ast.attributes.map((x) => this.indent + this.generate(x)).join('\n')}
     }
 
     argument(ast: Argument) {
-        return `${ast.name && ':'} ${this.generate(ast.value)}`;
+        return `${ast.name ? ast.name + ': ' : ''}${this.generate(ast.value)}`;
     }
 
     private get binaryExprSpace() {
