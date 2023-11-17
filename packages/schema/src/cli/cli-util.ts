@@ -161,9 +161,13 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
         if (isPlugin(decl)) {
             const providerField = decl.fields.find((f) => f.name === 'provider');
             if (providerField) {
-                const provider = getLiteral<string>(providerField.value);
+                let provider = getLiteral<string>(providerField.value);
                 if (provider) {
                     try {
+                        if (provider.startsWith('.')) {
+                            // resolve relative path against the schema file
+                            provider = path.resolve(path.dirname(fileName), provider);
+                        }
                         const pluginEntrance = require.resolve(`${provider}`);
                         const pluginModelFile = path.join(path.dirname(pluginEntrance), PLUGIN_MODULE_NAME);
                         if (fs.existsSync(pluginModelFile)) {
