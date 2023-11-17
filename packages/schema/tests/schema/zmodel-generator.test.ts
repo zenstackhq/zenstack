@@ -107,11 +107,11 @@ describe('ZModel Generator Tests', () => {
             'User'
         );
 
-        checkAttribute(model.attributes[0], `@@allow('read', posts ? [author == auth()])`);
+        checkAttribute(model.attributes[0], `@@allow('read', posts?[author == auth()])`);
         checkAttribute(model.attributes[1], `@@deny('read', name == '123' && (role == USER || name == '456'))`);
         checkAttribute(
             model.attributes[2],
-            `@@allow('delete', posts ? [author == auth() && (level < 10 || author.role == USER) && !author.deleted])`
+            `@@allow('delete', posts?[author == auth() && (level < 10 || author.role == USER) && !author.deleted])`
         );
     });
 });
