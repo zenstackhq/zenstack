@@ -1,12 +1,24 @@
+/// <reference types="@types/jest" />
+
+import { ZModelCodeGenerator } from '@zenstackhq/sdk';
+import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/sdk/ast';
+import fs from 'fs';
+import path from 'path';
 import { loadModel } from '../utils';
-import ZModelCodeGenerator from '../../src/plugins/prisma/zmodel-code-generator';
-import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/language/ast';
 
 describe('ZModel Generator Tests', () => {
     const generator = new ZModelCodeGenerator();
 
+    it('run generator', async () => {
+        const content = fs.readFileSync(path.join(__dirname, './all-features.zmodel'), 'utf-8');
+        const model = await loadModel(content, true, false, false);
+        const generated = generator.generate(model);
+        // fs.writeFileSync(path.join(__dirname, './all-features-baseline.zmodel'), generated, 'utf-8');
+        await loadModel(generated);
+    });
+
     function checkAttribute(ast: DataModelAttribute | DataModelFieldAttribute, expected: string) {
-        const result = generator.generateAttribute(ast);
+        const result = generator.generate(ast);
         expect(result).toBe(expected);
     }
 
@@ -95,11 +107,11 @@ describe('ZModel Generator Tests', () => {
             'User'
         );
 
-        checkAttribute(model.attributes[0], `@@allow('read', posts ? [author == auth()])`);
+        checkAttribute(model.attributes[0], `@@allow('read', posts?[author == auth()])`);
         checkAttribute(model.attributes[1], `@@deny('read', name == '123' && (role == USER || name == '456'))`);
         checkAttribute(
             model.attributes[2],
-            `@@allow('delete', posts ? [author == auth() && (level < 10 || author.role == USER) && !author.deleted])`
+            `@@allow('delete', posts?[author == auth() && (level < 10 || author.role == USER) && !author.deleted])`
         );
     });
 });

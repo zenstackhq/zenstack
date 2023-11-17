@@ -13,7 +13,7 @@ export class SchemaLoadingError extends Error {
     }
 }
 
-export async function loadModel(content: string, validate = true, verbose = true) {
+export async function loadModel(content: string, validate = true, verbose = true, mergeBase = true) {
     const { name: docPath } = tmp.fileSync({ postfix: '.zmodel' });
     fs.writeFileSync(docPath, content);
     const { shared } = createZModelServices(NodeFileSystem);
@@ -51,7 +51,9 @@ export async function loadModel(content: string, validate = true, verbose = true
 
     const model = (await doc.parseResult.value) as Model;
 
-    mergeBaseModel(model);
+    if (mergeBase) {
+        mergeBaseModel(model);
+    }
 
     return model;
 }
