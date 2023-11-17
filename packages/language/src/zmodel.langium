@@ -51,7 +51,7 @@ ArrayExpr:
     '[' (items+=Expression (',' items+=Expression)*)? ']';
 
 ConfigInvocationExpr:
-    name=ID ('(' ConfigInvocationArgList ')')?;
+    name=ID ('(' ConfigInvocationArgList? ')')?;
 
 fragment ConfigInvocationArgList:
     args+=ConfigInvocationArg (',' args+=ConfigInvocationArg)*;
@@ -67,7 +67,6 @@ ConfigExpr:
     LiteralExpr | InvocationExpr | ConfigArrayExpr;
 
 type ReferenceTarget = FunctionParam | DataModelField | EnumField;
-
 ThisExpr:
     value=THIS;
 
@@ -259,7 +258,6 @@ AttributeParamType:
     (type=(ExpressionType | 'FieldReference' | 'TransitiveFieldReference' | 'ContextType') | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
 
 type TypeDeclaration = DataModel | Enum;
-
 DataModelFieldAttribute:
     decl=[Attribute:DataModelFieldAttributeName] ('(' AttributeArgList? ')')?;
 

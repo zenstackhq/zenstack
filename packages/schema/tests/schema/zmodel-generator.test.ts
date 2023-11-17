@@ -1,12 +1,24 @@
+/// <reference types="@types/jest" />
+
+import { ZModelCodeGenerator } from '@zenstackhq/sdk';
+import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/sdk/ast';
+import fs from 'fs';
+import path from 'path';
 import { loadModel } from '../utils';
-import ZModelCodeGenerator from '../../src/plugins/prisma/zmodel-code-generator';
-import { DataModel, DataModelAttribute, DataModelFieldAttribute } from '@zenstackhq/language/ast';
 
 describe('ZModel Generator Tests', () => {
     const generator = new ZModelCodeGenerator();
 
+    it('run generator', async () => {
+        const content = fs.readFileSync(path.join(__dirname, './all-features.zmodel'), 'utf-8');
+        const model = await loadModel(content, true, false, false);
+        const generated = generator.generate(model);
+        // fs.writeFileSync(path.join(__dirname, './all-features-baseline.zmodel'), generated, 'utf-8');
+        await loadModel(generated);
+    });
+
     function checkAttribute(ast: DataModelAttribute | DataModelFieldAttribute, expected: string) {
-        const result = generator.generateAttribute(ast);
+        const result = generator.generate(ast);
         expect(result).toBe(expected);
     }
 

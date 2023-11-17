@@ -62,7 +62,7 @@ import {
     PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
-import ZModelCodeGenerator from './zmodel-code-generator';
+import { ZModelCodeGenerator } from '@zenstackhq/sdk';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
@@ -266,7 +266,7 @@ export default class PrismaSchemaGenerator {
 
         decl.attributes
             .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
-            .forEach((attr) => model.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
+            .forEach((attr) => model.addComment('/// ' + this.zModelGenerator.generate(attr)));
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
@@ -313,7 +313,7 @@ export default class PrismaSchemaGenerator {
 
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
-        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
+        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
 
         const result = model.addField(field.name, type, attributes, documentations);
 
@@ -413,7 +413,7 @@ export default class PrismaSchemaGenerator {
 
         decl.attributes
             .filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr))
-            .forEach((attr) => _enum.addComment('/// ' + this.zModelGenerator.generateAttribute(attr)));
+            .forEach((attr) => _enum.addComment('/// ' + this.zModelGenerator.generate(attr)));
 
         // user defined comments pass-through
         decl.comments.forEach((c) => _enum.addComment(c));
@@ -426,7 +426,7 @@ export default class PrismaSchemaGenerator {
 
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
-        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generateAttribute(attr));
+        const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
         _enum.addField(field.name, attributes, documentations);
     }
 }

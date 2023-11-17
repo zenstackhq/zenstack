@@ -1,0 +1,177 @@
+datasource db {
+    provider = 'postgresql'
+    url = env('DATABASE_URL')
+    extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
+}
+
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["multiSchema", "postgresqlExtensions"]
+}
+
+plugin openapi {
+    provider = '@zenstackhq/openapi'
+    output   = 'openapi.json'
+    securitySchemes = {
+        basic: { type: 'http', scheme: 'basic' },
+        bearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        apiKey: { type: 'apiKey', in: 'header', name: 'X-API-KEY' }
+    }
+}
+
+/*
+* Sample model for a collaborative Todo app
+*/
+
+enum UserRole {
+    ADMIN
+    USER
+}
+
+abstract model Base {
+    tag String
+}
+
+/*
+ * Model for a space in which users can collaborate on Lists and Todos
+ */
+model Space extends Base {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    name String @length(4, 50)
+    slug String @unique @length(4, 16)
+    owner User? @relation(fields: [ownerId], references: [id])
+    ownerId String?
+    members SpaceUser[]
+    lists List[]
+    unsupported Unsupported('foo')
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // everyone can create a space
+    @@allow('create', true)
+
+    // any user in the space can read the space
+    @@allow('read', members?[user == auth()])
+
+    // space admin can update and delete
+    @@allow('update,delete', members?[user == auth() && role == ADMIN])
+}
+
+/*
+ * Model representing membership of a user in a space
+ */
+model SpaceUser {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+    spaceId String
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId String
+    role UserRole
+    @@unique([userId, spaceId])
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // space admin can create/update/delete
+    @@allow('create,update,delete', space.members?[user == auth() && role == ADMIN])
+
+    // user can read entries for spaces which he's a member of
+    @@allow('read', space.members?[user == auth()])
+
+    @@allow('read', role in [ADMIN, USER])
+}
+
+/*
+ * Model for a user
+ */
+model User {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    email String @unique @email
+    password String? @password @omit
+    emailVerified DateTime?
+    name String?
+    ownedSpaces Space[]
+    spaces SpaceUser[]
+    image String? @url
+    lists List[]
+    todos Todo[]
+
+    // can be created by anyone, even not logged in
+    @@allow('create', true)
+
+    // can be read by users sharing any space
+    @@allow('read', spaces?[space.members?[user == auth()]])
+
+    // full access by oneself
+    @@allow('all', auth() == this)
+}
+
+/*
+ * Model for a Todo list
+ */
+model List {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+    spaceId String
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    ownerId String
+    title String @length(1, 100)
+    private Boolean @default(false)
+    todos Todo[]
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // can be read by owner or space members (only if not private) 
+    @@allow('read', owner == auth() || (space.members?[user == auth()] && !private))
+
+    // when create, owner must be set to current user, and user must be in the space
+    @@allow('create', owner == auth() && space.members?[user == auth()])
+
+    // when create, owner must be set to current user, and user must be in the space
+    // update is not allowed to change owner
+    @@allow('update', owner == auth()&& space.members?[user == auth()] && future().owner == owner)
+
+    // can be deleted by owner
+    @@allow('delete', owner == auth())
+}
+
+/*
+ * Model for a single Todo
+ */
+model Todo {
+    id String @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    ownerId String
+    list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+    listId String
+    title String @length(1, 100)
+    completedAt DateTime?
+
+    // require login
+    @@deny('all', auth() == null)
+
+    // owner has full access, also space members have full access (if the parent List is not private)
+    @@allow('all', list.owner == auth())
+    @@allow('all', list.space.members?[user == auth()] && !list.private)
+
+    // update is not allowed to change owner
+    @@deny('update', future().owner != owner)
+}
+
+view SpaceWithMembers {
+    id String @unique
+    name String
+    slug String
+}
