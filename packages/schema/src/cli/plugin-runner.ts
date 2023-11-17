@@ -54,7 +54,7 @@ export class PluginRunner {
         const plugins: PluginInfo[] = [];
         const pluginDecls = options.schema.declarations.filter((d): d is Plugin => isPlugin(d));
 
-        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: options.schemaPath, name: '' });
+        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: options.schemaPath });
 
         for (const pluginDecl of pluginDecls) {
             const pluginProvider = this.getPluginProvider(pluginDecl);
@@ -62,7 +62,7 @@ export class PluginRunner {
                 console.error(`Plugin ${pluginDecl.name} has invalid provider option`);
                 throw new PluginError('', `Plugin ${pluginDecl.name} has invalid provider option`);
             }
-            const pluginModulePath = this.getPluginModulePath(pluginProvider);
+            const pluginModulePath = this.getPluginModulePath(pluginProvider, options);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let pluginModule: any;
             try {
@@ -117,7 +117,7 @@ export class PluginRunner {
                 plugins.unshift(existing);
             } else {
                 // synthesize a plugin and insert front
-                const pluginModule = require(this.getPluginModulePath(corePlugin.provider));
+                const pluginModule = require(this.getPluginModulePath(corePlugin.provider, options));
                 const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
                 plugins.unshift({
                     name: pluginName,
@@ -300,7 +300,10 @@ export class PluginRunner {
         }
     }
 
-    private getPluginModulePath(provider: string) {
+    private getPluginModulePath(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
+        if (path.isAbsolute(provider) || provider.startsWith('.')) {
+            return resolvePath(provider, options);
+        }
         let pluginModulePath = provider;
         if (pluginModulePath.startsWith('@core/')) {
             pluginModulePath = pluginModulePath.replace(/^@core/, path.join(__dirname, '../plugins'));

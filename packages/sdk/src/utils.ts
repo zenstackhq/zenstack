@@ -267,7 +267,7 @@ export function isForeignKeyField(field: DataModelField) {
     });
 }
 
-export function resolvePath(_path: string, options: PluginOptions) {
+export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;
     } else {
