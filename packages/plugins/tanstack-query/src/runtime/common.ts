@@ -246,6 +246,7 @@ export function setupOptimisticUpdate(
     const origOnMutate = options?.onMutate;
     const origOnSettled = options?.onSettled;
 
+    // optimistic update on mutate
     options.onMutate = async (...args: unknown[]) => {
         const [variables] = args;
         await optimisticUpdate(
@@ -260,6 +261,7 @@ export function setupOptimisticUpdate(
         return origOnMutate?.(...args);
     };
 
+    // invalidate on settled
     options.onSettled = async (...args: unknown[]) => {
         if (invalidate) {
             const [, , variables] = args;
@@ -293,11 +295,17 @@ async function optimisticUpdate(
         } = cacheItem;
 
         if (error) {
+            if (logging) {
+                console.warn(`Skipping optimistic update for ${JSON.stringify(queryKey)} due to error:`, error);
+            }
             continue;
         }
 
         const [_, queryModel, queryOp, _queryArgs, { optimisticUpdate }] = queryKey as QueryKey;
         if (!optimisticUpdate) {
+            if (logging) {
+                console.log(`Skipping optimistic update for ${JSON.stringify(queryKey)} due to opt-out`);
+            }
             continue;
         }
 
