@@ -159,7 +159,13 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
                 modelMeta,
                 finalOptions,
                 queryClient.getQueryCache().getAll(),
-                (queryKey, data) => queryClient.setQueryData<unknown>(queryKey, data),
+                (queryKey, data) => {
+                    // update query cache
+                    queryClient.setQueryData<unknown>(queryKey, data);
+                    // cancel on-flight queries to avoid redundant cache updates,
+                    // the settlement of the current mutation will trigger a new revalidation
+                    queryClient.cancelQueries({ queryKey }, { revert: false, silent: true });
+                },
                 invalidateQueries ? (predicate) => queryClient.invalidateQueries({ predicate }) : undefined,
                 logging
             );

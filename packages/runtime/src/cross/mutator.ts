@@ -66,18 +66,22 @@ export async function applyMutation(
         },
 
         update: (model, args) => {
-            const r = updateMutate(queryModel, resultData, model, args, modelMeta, logging);
-            if (r) {
-                resultData = r;
-                updated = true;
+            if (model === queryModel) {
+                const r = updateMutate(queryModel, resultData, model, args, modelMeta, logging);
+                if (r) {
+                    resultData = r;
+                    updated = true;
+                }
             }
         },
 
         delete: (model, args) => {
-            const r = deleteMutate(queryModel, resultData, model, args, modelMeta, logging);
-            if (r) {
-                resultData = r;
-                updated = true;
+            if (model === queryModel) {
+                const r = deleteMutate(queryModel, resultData, model, args, modelMeta, logging);
+                if (r) {
+                    resultData = r;
+                    updated = true;
+                }
             }
         },
     });
