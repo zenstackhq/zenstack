@@ -15,7 +15,7 @@ import {
     isEnum,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isFutureExpr, resolved } from '@zenstackhq/sdk';
+import { isFutureExpr, isRelationshipField, resolved } from '@zenstackhq/sdk';
 import { ValidationAcceptor, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
@@ -131,11 +131,23 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
             accept('error', `expects a string literal`, { node: attr.args[0] });
             return;
         }
-        this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
+        const kindItems = this.validatePolicyKinds(kind, ['read', 'update', 'all'], attr, accept);
 
         const expr = attr.args[1].value;
         if (streamAst(expr).some((node) => isFutureExpr(node))) {
             accept('error', `"future()" is not allowed in field-level policy rules`, { node: expr });
+        }
+
+        // 'update' rules are not allowed for relation fields
+        if (kindItems.includes('update') || kindItems.includes('all')) {
+            const field = attr.$container as DataModelField;
+            if (isRelationshipField(field)) {
+                accept(
+                    'error',
+                    `Field-level policy rules with "update" or "all" kind are not allowed for relation fields. Put rules on foreign-key fields instead.`,
+                    { node: attr }
+                );
+            }
         }
     }
 
@@ -155,6 +167,7 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                 );
             }
         });
+        return items;
     }
 }
 

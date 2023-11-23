@@ -763,11 +763,29 @@ export class PolicyUtil {
             if (typeof v === 'undefined') {
                 continue;
             }
-            const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
-            if (this.isFalse(fieldGuard)) {
-                return { guard: allFieldGuards, rejectedByField: k };
+
+            const field = resolveField(this.modelMeta, model, k);
+
+            if (field?.isDataModel) {
+                // relation field update should be treated as foreign key update,
+                // fetch and merge all foreign key guards
+                if (field.isRelationOwner && field.foreignKeyMapping) {
+                    const foreignKeys = Object.values<string>(field.foreignKeyMapping);
+                    for (const fk of foreignKeys) {
+                        const fieldGuard = this.getFieldUpdateAuthGuard(db, model, fk);
+                        if (this.isFalse(fieldGuard)) {
+                            return { guard: allFieldGuards, rejectedByField: fk };
+                        }
+                        allFieldGuards.push(fieldGuard);
+                    }
+                }
+            } else {
+                const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
+                if (this.isFalse(fieldGuard)) {
+                    return { guard: allFieldGuards, rejectedByField: k };
+                }
+                allFieldGuards.push(fieldGuard);
             }
-            allFieldGuards.push(fieldGuard);
         }
         return { guard: this.and(...allFieldGuards), rejectedByField: undefined };
     }
