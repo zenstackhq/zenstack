@@ -34,8 +34,13 @@ import { PluginError, PluginOptions } from './types';
 /**
  * Gets data models that are not ignored
  */
-export function getDataModels(model: Model) {
-    return model.declarations.filter((d): d is DataModel => isDataModel(d) && !hasAttribute(d, '@@ignore'));
+export function getDataModels(model: Model, includeIgnored = false) {
+    const r = model.declarations.filter((d): d is DataModel => isDataModel(d));
+    if (includeIgnored) {
+        return r;
+    } else {
+        return r.filter((model) => !hasAttribute(model, '@@ignore'));
+    }
 }
 
 export function resolved<T extends AstNode>(ref: Reference<T>): T {

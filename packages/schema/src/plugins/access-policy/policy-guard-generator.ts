@@ -817,7 +817,7 @@ export default class PolicyGenerator {
         );
 
         if (hasAuthRef) {
-            const authModel = getAuthModel(getDataModels(model.$container));
+            const authModel = getAuthModel(getDataModels(model.$container, true));
             if (!authModel) {
                 throw new PluginError(name, 'Auth model not found');
             }
