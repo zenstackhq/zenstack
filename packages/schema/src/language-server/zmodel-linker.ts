@@ -36,7 +36,7 @@ import {
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getContainingModel, hasAttribute, isFromStdlib, isIdField } from '@zenstackhq/sdk';
+import { getContainingModel, hasAttribute, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -338,8 +338,8 @@ export class ZModelLinker extends DefaultLinker {
             if (node.member.ref) {
                 this.resolveToDeclaredType(node, node.member.ref.type);
 
-                if (node.$resolvedType && isAuthInvocation(node.operand) && !isIdField(node.member.ref)) {
-                    // member access on auth() function is nullable (except for id field)
+                if (node.$resolvedType && isAuthInvocation(node.operand)) {
+                    // member access on auth() function is nullable
                     // because user may not have provided all fields
                     node.$resolvedType.nullable = true;
                 }
