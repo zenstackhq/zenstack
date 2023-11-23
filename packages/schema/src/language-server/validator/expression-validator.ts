@@ -126,6 +126,14 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 }
 
                 if (
+                    (expr.left.$resolvedType?.nullable && isNullExpr(expr.right)) ||
+                    (expr.right.$resolvedType?.nullable && isNullExpr(expr.left))
+                ) {
+                    // comparing nullable field with null
+                    return;
+                }
+
+                if (
                     typeof expr.left.$resolvedType?.decl === 'string' &&
                     typeof expr.right.$resolvedType?.decl === 'string'
                 ) {
