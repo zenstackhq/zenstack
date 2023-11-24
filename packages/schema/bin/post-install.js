@@ -6,6 +6,7 @@ try {
     const Mixpanel = require('mixpanel');
     const machineId = require('node-machine-id');
     const os = require('os');
+    const isDocker = require('../utils/is-docker').default;
 
     const mixpanel = Mixpanel.init('<TELEMETRY_TRACKING_TOKEN>', {
         geolocate: true,
@@ -16,7 +17,13 @@ try {
         distinct_id: machineId.machineIdSync(),
         nodeVersion: process.version,
         time: new Date(),
-        $os: os.platform(),
+        $os: os.type(),
+        osType: os.type(),
+        osRelease: os.release(),
+        osPlatform: os.platform(),
+        osArch: os.arch(),
+        osVersion: os.version(),
+        isDocker: isDocker(),
         version,
     };
 
