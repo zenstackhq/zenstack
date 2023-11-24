@@ -19,6 +19,15 @@ export function getVersion() {
  * "prisma".
  */
 export function getPrismaVersion(): string | undefined {
+    if (process.env.ZENSTACK_TEST === '1') {
+        // test environment
+        try {
+            return require(path.resolve('./node_modules/@prisma/client/package.json')).version;
+        } catch {
+            return undefined;
+        }
+    }
+
     try {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         return require('@prisma/client/package.json').version;
@@ -27,15 +36,6 @@ export function getPrismaVersion(): string | undefined {
             // eslint-disable-next-line @typescript-eslint/no-var-requires
             return require('prisma/package.json').version;
         } catch {
-            if (process.env.ZENSTACK_TEST === '1') {
-                // test environment
-                try {
-                    return require(path.resolve('./node_modules/@prisma/client/package.json')).version;
-                } catch {
-                    return undefined;
-                }
-            }
-
             return undefined;
         }
     }

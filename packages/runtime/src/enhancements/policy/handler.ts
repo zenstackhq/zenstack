@@ -680,8 +680,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             if (context.field?.backLink) {
                 const backLinkField = this.utils.getModelField(model, context.field.backLink);
                 if (backLinkField.isRelationOwner) {
-                    // update happens on the related model, require updatable
-                    await this.utils.checkPolicyForUnique(model, args, 'update', db, args);
+                    // update happens on the related model, require updatable,
+                    // translate args to foreign keys so field-level policies can be checked
+                    const checkArgs: any = {};
+                    if (args && typeof args === 'object' && backLinkField.foreignKeyMapping) {
+                        for (const key of Object.keys(args)) {
+                            const fk = backLinkField.foreignKeyMapping[key];
+                            if (fk) {
+                                checkArgs[fk] = args[key];
+                            }
+                        }
+                    }
+                    await this.utils.checkPolicyForUnique(model, args, 'update', db, checkArgs);
 
                     // register post-update check
                     await _registerPostUpdateCheck(model, args);

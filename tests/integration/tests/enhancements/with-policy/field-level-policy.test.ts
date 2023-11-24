@@ -313,7 +313,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read coverage', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { withPolicy } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -359,6 +359,74 @@ describe('With Policy: field-level policy', () => {
         r = await db.model.findMany({ where: { x: { gte: 0 } } });
         expect(r[0].y).toBeUndefined();
         expect(r[1].y).toEqual(0);
+    });
+
+    it('read relation', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            admin Boolean @default(false)
+            posts Post[] @allow('read', admin)
+
+            @@allow('all', true)
+        }
+
+        model Post {
+            id Int @id @default(autoincrement())
+            author User? @relation(fields: [authorId], references: [id]) @allow('read', author.admin)
+            authorId Int @allow('read', author.admin)
+            title String
+            published Boolean @default(false)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                admin: false,
+                posts: {
+                    create: [{ id: 1, title: 'post1' }],
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                admin: true,
+                posts: {
+                    create: [{ id: 2, title: 'post2' }],
+                },
+            },
+        });
+
+        const db = withPolicy();
+
+        // read to-many relation
+        let r = await db.user.findUnique({
+            where: { id: 1 },
+            include: { posts: true },
+        });
+        expect(r.posts).toBeUndefined();
+        r = await db.user.findUnique({
+            where: { id: 2 },
+            include: { posts: true },
+        });
+        expect(r.posts).toHaveLength(1);
+
+        // read to-one relation
+        r = await db.post.findUnique({ where: { id: 1 }, include: { author: true } });
+        expect(r.author).toBeUndefined();
+        expect(r.authorId).toBeUndefined();
+        r = await db.post.findUnique({ where: { id: 1 }, select: { author: { select: { admin: true } } } });
+        expect(r.author).toBeUndefined();
+        r = await db.post.findUnique({ where: { id: 2 }, include: { author: true } });
+        expect(r.author).toBeTruthy();
+        expect(r.authorId).toBeTruthy();
     });
 
     it('update simple', async () => {
@@ -490,7 +558,7 @@ describe('With Policy: field-level policy', () => {
         ).toResolveTruthy();
     });
 
-    it('update to-many relation', async () => {
+    it('update with nested to-many relation', async () => {
         const { prisma, withPolicy } = await loadSchema(
             `
         model User {
@@ -542,7 +610,7 @@ describe('With Policy: field-level policy', () => {
         ).toResolveTruthy();
     });
 
-    it('update to-one relation', async () => {
+    it('update with nested to-one relation', async () => {
         const { prisma, withPolicy } = await loadSchema(
             `
         model User {
@@ -608,6 +676,188 @@ describe('With Policy: field-level policy', () => {
             db.user.update({
                 where: { id: 2 },
                 data: { model: { update: { y: 2 } } },
+            })
+        ).toResolveTruthy();
+    });
+
+    it('update with connect to-many relation', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            models Model[]
+            admin Boolean @default(false)
+
+            @@allow('all', true)
+        }
+        
+        model Model {
+            id Int @id @default(autoincrement())
+            value Int
+            owner User? @relation(fields: [ownerId], references: [id])
+            ownerId Int? @allow('update', value > 0)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        await prisma.user.create({ data: { id: 1, admin: false } });
+        await prisma.user.create({ data: { id: 2, admin: true } });
+        await prisma.model.create({ data: { id: 1, value: 0 } });
+        await prisma.model.create({ data: { id: 2, value: 1 } });
+
+        const db = withPolicy();
+
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { owner: { connect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { owner: { disconnect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { owner: { connect: { id: 1 } } },
+            })
+        ).toResolveTruthy();
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { owner: { disconnect: { id: 1 } } },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { models: { connect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { models: { disconnect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { models: { set: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { models: { connect: { id: 2 } } },
+            })
+        ).toResolveTruthy();
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { models: { disconnect: { id: 2 } } },
+            })
+        ).toResolveTruthy();
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { models: { set: { id: 2 } } },
+            })
+        ).toResolveTruthy();
+    });
+
+    it('update with connect to-one relation', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            model Model?
+            admin Boolean @default(false)
+
+            @@allow('all', true)
+        }
+        
+        model Model {
+            id Int @id @default(autoincrement())
+            value Int
+            owner User? @relation(fields: [ownerId], references: [id])
+            ownerId Int? @unique @allow('update', value > 0)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        await prisma.user.create({ data: { id: 1, admin: false } });
+        await prisma.user.create({ data: { id: 2, admin: true } });
+        await prisma.model.create({ data: { id: 1, value: 0 } });
+        await prisma.model.create({ data: { id: 2, value: 1 } });
+
+        const db = withPolicy();
+
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { owner: { connect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { owner: { disconnect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { owner: { set: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { owner: { connect: { id: 1 } } },
+            })
+        ).toResolveTruthy();
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { owner: { disconnect: { id: 1 } } },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { model: { connect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { model: { disconnect: { id: 1 } } },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { model: { connect: { id: 2 } } },
+            })
+        ).toResolveTruthy();
+        await expect(
+            db.user.update({
+                where: { id: 1 },
+                data: { model: { disconnect: { id: 2 } } },
             })
         ).toResolveTruthy();
     });
