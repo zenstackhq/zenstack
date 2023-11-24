@@ -2,13 +2,13 @@ import { createId } from '@paralleldrive/cuid2';
 import { getPrismaVersion } from '@zenstackhq/sdk';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
-import isDocker from 'is-docker';
 import { init, Mixpanel } from 'mixpanel';
 import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
 import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
+import isDocker from './utils/is-docker';
 import { getVersion } from './utils/version-utils';
 
 /**
