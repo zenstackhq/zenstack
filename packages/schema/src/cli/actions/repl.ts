@@ -13,11 +13,13 @@ import { inspect } from 'util';
 export async function repl(projectPath: string, options: { prismaClient?: string; debug?: boolean; table?: boolean }) {
     console.log('Welcome to ZenStack REPL. See help with the ".help" command.');
     console.log('Global variables:');
-    console.log(`    ${colors.cyan('db')} to access enhanced PrismaClient`);
-    console.log(`    ${colors.cyan('prisma')} to access raw PrismaClient`);
+    console.log(`    ${colors.blue('db')} to access enhanced PrismaClient`);
+    console.log(`    ${colors.blue('prisma')} to access raw PrismaClient`);
+    console.log(`    ${colors.blue('user')} to inspect the current user`);
     console.log('Commands:');
     console.log(`    ${colors.magenta('.auth { id: ... }')} - set current user`);
     console.log(`    ${colors.magenta('.table')}            - toggle table output`);
+    console.log(`    ${colors.magenta('.debug')}            - toggle debug output`);
     console.log();
     console.log(`Running as anonymous user. Use ".auth" to set current user.`);
 
@@ -33,7 +35,7 @@ export async function repl(projectPath: string, options: { prismaClient?: string
     let user: any;
 
     const replServer = prettyRepl.start({
-        prompt: '[anonymous] > ',
+        prompt: `[${colors.cyan('anonymous')}] > `,
         eval: async (cmd, _context, _filename, callback) => {
             try {
                 let r: any = undefined;
@@ -161,7 +163,8 @@ export async function repl(projectPath: string, options: { prismaClient?: string
     }
 
     function setPrompt() {
-        replServer.setPrompt(`[${debug ? colors.yellow('D ') : ''}${user ? inspect(user) : 'anonymous'}] > `);
+        const userInfo = user ? (user.id ? `user#${user.id.toString().slice(-8)}` : inspect(user)) : 'anonymous';
+        replServer.setPrompt(`[${debug ? colors.yellow('D ') : ''}${colors.cyan(userInfo)}] > `);
     }
 
     function setAuth(_user: unknown) {
