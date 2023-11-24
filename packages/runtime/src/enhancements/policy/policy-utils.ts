@@ -189,15 +189,19 @@ export class PolicyUtil {
                 }
 
                 case 'NOT': {
-                    const r = this.reduce(value);
-                    if (this.isFalse(r)) {
-                        // NOT false => true, thus eliminated (not adding into result)
-                    } else if (this.isTrue(r)) {
-                        // NOT true => false, eliminate all other keys and set entire condition to false
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isFalse(c));
+                    if (children.length === 0) {
+                        // all clauses are false, result is a constant true,
+                        // thus eliminated (not adding into result)
+                    } else if (children.some((c) => this.isTrue(c))) {
+                        // some clauses are true, result is a constant false,
+                        // eliminate all other keys and set entire condition to false
                         Object.keys(result).forEach((k) => delete result[k]);
                         result['OR'] = []; // this will cause the outer loop to exit too
                     } else {
-                        result[key] = r;
+                        result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
                     }
                     break;
                 }
