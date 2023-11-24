@@ -87,6 +87,7 @@
         "colors": "1.4.0",
         "commander": "^8.3.0",
         "get-latest-version": "^5.0.1",
+        "is-docker": "^3.0.0",
         "langium": "1.2.0",
         "lower-case-first": "^2.0.2",
         "mixpanel": "^0.17.0",

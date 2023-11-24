@@ -512,6 +512,9 @@ importers:
       get-latest-version:
         specifier: ^5.0.1
         version: 5.0.1
+      is-docker:
+        specifier: ^3.0.0
+        version: 3.0.0
       langium:
         specifier: 1.2.0
         version: 1.2.0
@@ -9860,7 +9863,6 @@ packages:
     resolution: {integrity: sha512-eljcgEDlEns/7AXFosB5K/2nCM4P7FQPkGc/DWLy5rmFEWvZayGrik1d9/QIY5nJ4f9YsVvBkA6kJpHn9rISdQ==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
     hasBin: true
-    dev: true
 
   /is-extglob@2.1.1:
     resolution: {integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==}

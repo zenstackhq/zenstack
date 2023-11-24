@@ -2,6 +2,7 @@ import { createId } from '@paralleldrive/cuid2';
 import { getPrismaVersion } from '@zenstackhq/sdk';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
+import isDocker from 'is-docker';
 import { init, Mixpanel } from 'mixpanel';
 import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
@@ -33,9 +34,14 @@ export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
     private readonly hostId = machineIdSync();
     private readonly sessionid = createId();
-    private readonly _os = os.platform();
+    private readonly _os_type = os.type();
+    private readonly _os_release = os.release();
+    private readonly _os_arch = os.arch();
+    private readonly _os_version = os.version();
+    private readonly _os_platform = os.platform();
     private readonly version = getVersion();
     private readonly prismaVersion = getPrismaVersion();
+    private readonly isDocker = isDocker();
     private exitWait = 200;
 
     constructor() {
@@ -89,10 +95,16 @@ export class Telemetry {
                 distinct_id: this.hostId,
                 session: this.sessionid,
                 time: new Date(),
-                $os: this._os,
+                $os: this._os_type,
+                osType: this._os_type,
+                osRelease: this._os_release,
+                osPlatform: this._os_platform,
+                osArch: this._os_arch,
+                osVersion: this._os_version,
                 nodeVersion: process.version,
                 version: this.version,
                 prismaVersion: this.prismaVersion,
+                isDocker: this.isDocker,
                 ...properties,
             };
             this.mixpanel.track(event, payload);
