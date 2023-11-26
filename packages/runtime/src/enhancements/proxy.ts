@@ -227,7 +227,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 return propVal;
             }
 
-            return createHandlerProxy(makeHandler(target, prop));
+            return createHandlerProxy(makeHandler(target, prop), propVal);
         },
     });
 
@@ -235,12 +235,14 @@ export function makeProxy<T extends PrismaProxyHandler>(
 }
 
 // A proxy for capturing errors and processing stack trace
-function createHandlerProxy<T extends PrismaProxyHandler>(handler: T): T {
+function createHandlerProxy<T extends PrismaProxyHandler>(handler: T, origTarget: any): T {
     return new Proxy(handler, {
         get(target, propKey) {
             const prop = target[propKey as keyof T];
             if (typeof prop !== 'function') {
-                return prop;
+                // the proxy handler doesn't have this method, fall back to the original target
+                // this can happen for new methods added by Prisma Client Extensions
+                return origTarget[propKey];
             }
 
             // eslint-disable-next-line @typescript-eslint/ban-types
