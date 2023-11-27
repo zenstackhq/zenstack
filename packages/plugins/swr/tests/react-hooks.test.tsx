@@ -10,8 +10,9 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { lowerCaseFirst } from 'lower-case-first';
 import nock from 'nock';
 import { useSWRConfig } from 'swr';
-import { useGet, getQueryKey, post, useMutate, put, del } from '../src/runtime';
+import { RequestHandlerContext, getQueryKey, mutationRequest, useModelQuery, useInvalidation } from '../src/runtime';
 import { modelMeta } from './test-model-meta';
+import React from 'react';
 
 const ENDPOINT = 'http://localhost/api/model';
 
@@ -22,6 +23,10 @@ function makeUrl(model: string, operation: string, args?: unknown) {
     }
     return r;
 }
+
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <RequestHandlerContext.Provider value={{ endpoint: ENDPOINT }}>{children}</RequestHandlerContext.Provider>
+);
 
 describe('SWR React Hooks Test', () => {
     beforeEach(() => {
@@ -41,7 +46,7 @@ describe('SWR React Hooks Test', () => {
                 };
             });
 
-        const { result } = renderHook(() => useGet('User', 'findUnique', ENDPOINT, queryArgs));
+        const { result } = renderHook(() => useModelQuery('User', 'findUnique', queryArgs), { wrapper });
 
         await waitFor(() => {
             expect(result.current.data).toMatchObject(data);
@@ -65,7 +70,7 @@ describe('SWR React Hooks Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => useGet('User', 'findMany', ENDPOINT));
+        const { result } = renderHook(() => useModelQuery('User', 'findMany'), { wrapper });
         await waitFor(() => {
             expect(result.current.data).toHaveLength(0);
         });
@@ -78,11 +83,16 @@ describe('SWR React Hooks Test', () => {
                 return { data: data[0] };
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useInvalidation('User', modelMeta));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
-            const r = await post(makeUrl('User', 'create', undefined), { data: { name: 'foo' } }, mutate);
+            const r = await mutationRequest(
+                'POST',
+                makeUrl('User', 'create', undefined),
+                { data: { name: 'foo' } },
+                mutate
+            );
             console.log('Mutate result:', r);
         });
 
@@ -105,7 +115,7 @@ describe('SWR React Hooks Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => useGet('User', 'findUnique', ENDPOINT, queryArgs));
+        const { result } = renderHook(() => useModelQuery('User', 'findUnique', queryArgs), { wrapper });
         await waitFor(() => {
             expect(result.current.data).toMatchObject({ name: 'foo' });
         });
@@ -118,11 +128,16 @@ describe('SWR React Hooks Test', () => {
                 return data;
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useInvalidation('User', modelMeta));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
-            const r = await put(makeUrl('User', 'update', undefined), { ...queryArgs, data: { name: 'bar' } }, mutate);
+            const r = await mutationRequest(
+                'PUT',
+                makeUrl('User', 'update', undefined),
+                { ...queryArgs, data: { name: 'bar' } },
+                mutate
+            );
             console.log('Mutate result:', r);
         });
 
@@ -145,7 +160,7 @@ describe('SWR React Hooks Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => useGet('User', 'findUnique', ENDPOINT, queryArgs));
+        const { result } = renderHook(() => useModelQuery('User', 'findUnique', queryArgs), { wrapper });
         await waitFor(() => {
             expect(result.current.data).toMatchObject(data);
         });
@@ -158,11 +173,12 @@ describe('SWR React Hooks Test', () => {
                 return data;
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('Post', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useInvalidation('Post', modelMeta));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
-            const r = await put(
+            const r = await mutationRequest(
+                'PUT',
                 makeUrl('Post', 'update', undefined),
                 { where: { id: '1' }, data: { name: 'post2' } },
                 mutate
@@ -188,7 +204,7 @@ describe('SWR React Hooks Test', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => useGet('Post', 'findMany', ENDPOINT));
+        const { result } = renderHook(() => useModelQuery('Post', 'findMany'), { wrapper });
         await waitFor(() => {
             expect(result.current.data).toMatchObject(data);
         });
@@ -201,11 +217,12 @@ describe('SWR React Hooks Test', () => {
                 return data;
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useInvalidation('User', modelMeta));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
-            const r = await put(
+            const r = await mutationRequest(
+                'PUT',
                 makeUrl('User', 'update', undefined),
                 { where: { id: '1' }, data: { posts: { create: { title: 'post2' } } } },
                 mutate
@@ -240,7 +257,7 @@ describe('SWR React Hooks Test separate due to potential nock issue', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => useGet('User', 'findUnique', ENDPOINT, queryArgs));
+        const { result } = renderHook(() => useModelQuery('User', 'findUnique', queryArgs), { wrapper });
         await waitFor(() => {
             expect(result.current.data).toMatchObject({ name: 'foo' });
         });
@@ -252,10 +269,15 @@ describe('SWR React Hooks Test separate due to potential nock issue', () => {
                 return { data: { id: '1', title: 'post1' } };
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('Post', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useInvalidation('Post', modelMeta));
         await waitFor(async () => {
             const mutate = useMutateResult.current;
-            const r = await post(makeUrl('Post', 'create', undefined), { data: { title: 'post1' } }, mutate);
+            const r = await mutationRequest(
+                'POST',
+                makeUrl('Post', 'create', undefined),
+                { data: { title: 'post1' } },
+                mutate
+            );
             console.log('Mutate result:', r);
             // no refetch caused by invalidation
             expect(queryCount).toBe(1);
@@ -273,7 +295,7 @@ describe('SWR React Hooks Test separate due to potential nock issue', () => {
             })
             .persist();
 
-        const { result } = renderHook(() => useGet('Post', 'findMany', ENDPOINT));
+        const { result } = renderHook(() => useModelQuery('Post', 'findMany'), { wrapper });
         await waitFor(() => {
             expect(result.current.data).toHaveLength(1);
         });
@@ -286,11 +308,11 @@ describe('SWR React Hooks Test separate due to potential nock issue', () => {
                 return { data: { id: '1' } };
             });
 
-        const { result: useMutateResult } = renderHook(() => useMutate('User', modelMeta, true));
+        const { result: useMutateResult } = renderHook(() => useInvalidation('User', modelMeta));
 
         await waitFor(async () => {
             const mutate = useMutateResult.current;
-            await del(makeUrl('User', 'delete', undefined), { where: { id: '1' } }, mutate);
+            await mutationRequest('DELETE', makeUrl('User', 'delete', undefined), { where: { id: '1' } }, mutate);
         });
 
         const { result: cacheResult } = renderHook(() => useSWRConfig());
