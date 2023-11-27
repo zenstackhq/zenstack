@@ -32,6 +32,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         );
     }
 
+    const legacyMutations = options.legacyMutations !== false;
+
     const models = getDataModels(model);
 
     await generateModelMeta(project, models, {
@@ -49,14 +51,20 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
             return;
         }
-        generateModelHooks(project, outDir, dataModel, mapping);
+        generateModelHooks(project, outDir, dataModel, mapping, legacyMutations);
     });
 
     await saveProject(project);
     return warnings;
 }
 
-function generateModelHooks(project: Project, outDir: string, model: DataModel, mapping: DMMF.ModelMapping) {
+function generateModelHooks(
+    project: Project,
+    outDir: string,
+    model: DataModel,
+    mapping: DMMF.ModelMapping,
+    legacyMutations: boolean
+) {
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
@@ -64,12 +72,12 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
 
     const prismaImport = getPrismaClientImportSpec(model.$container, outDir);
     sf.addImportDeclaration({
-        namedImports: ['Prisma', model.name],
+        namedImports: ['Prisma'],
         isTypeOnly: true,
         moduleSpecifier: prismaImport,
     });
     sf.addStatements([
-        `import { RequestHandlerContext, type GetNextArgs, type RequestOptions, type InfiniteRequestOptions, type PickEnumerable, type CheckSelect, useHooksContext } from '@zenstackhq/swr/runtime';`,
+        `import { type GetNextArgs, type QueryOptions, type InfiniteQueryOptions, type MutationOptions, type PickEnumerable, useHooksContext } from '@zenstackhq/swr/runtime';`,
         `import metadata from './__model_meta';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
@@ -77,45 +85,42 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     const modelNameCap = upperCaseFirst(model.name);
     const prismaVersion = getPrismaVersion();
 
-    const useMutation = sf.addFunction({
-        name: `useMutate${model.name}`,
-        isExported: true,
-        statements: [
-            'const { endpoint, fetch, logging } = useHooksContext();',
-            `const mutate = request.useMutate('${model.name}', metadata, logging);`,
-        ],
-    });
+    const useMutation = legacyMutations
+        ? sf.addFunction({
+              name: `useMutate${model.name}`,
+              isExported: true,
+              statements: [
+                  'const { endpoint, fetch } = useHooksContext();',
+                  `const invalidate = request.useInvalidation('${model.name}', metadata);`,
+              ],
+          })
+        : undefined;
+
     const mutationFuncs: string[] = [];
 
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.create || (mapping as any).createOne) {
         const argsType = `Prisma.${model.name}CreateArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `CheckSelect<T, ${model.name}, Prisma.${model.name}GetPayload<T>>`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'post', 'create', argsType, inputType, returnType, true)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'POST', 'create', argsType, false));
     }
 
     // createMany
     if (mapping.createMany) {
         const argsType = `Prisma.${model.name}CreateManyArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'post', 'createMany', argsType, inputType, returnType, false)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'POST', 'createMany', argsType, true));
     }
 
     // findMany
     if (mapping.findMany) {
         const argsType = `Prisma.${model.name}FindManyArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Array<Prisma.${model.name}GetPayload<T>>`;
+        const returnElement = `Prisma.${model.name}GetPayload<T>`;
+        const returnType = `Array<${returnElement}>`;
+        const optimisticReturn = `Array<${makeOptimistic(returnElement)}>`;
 
         // regular findMany
-        generateQueryHook(sf, model, 'findMany', argsType, inputType, returnType);
+        generateQueryHook(sf, model, 'findMany', argsType, inputType, optimisticReturn, undefined, false);
 
         // infinite findMany
         generateQueryHook(sf, model, 'findMany', argsType, inputType, returnType, undefined, true);
@@ -125,16 +130,16 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     if (mapping.findUnique) {
         const argsType = `Prisma.${model.name}FindUniqueArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.${model.name}GetPayload<T>`;
-        generateQueryHook(sf, model, 'findUnique', argsType, inputType, returnType);
+        const returnType = makeOptimistic(`Prisma.${model.name}GetPayload<T>`);
+        generateQueryHook(sf, model, 'findUnique', argsType, inputType, returnType, undefined, false);
     }
 
     // findFirst
     if (mapping.findFirst) {
         const argsType = `Prisma.${model.name}FindFirstArgs`;
         const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.${model.name}GetPayload<T>`;
-        generateQueryHook(sf, model, 'findFirst', argsType, inputType, returnType);
+        const returnType = makeOptimistic(`Prisma.${model.name}GetPayload<T>`);
+        generateQueryHook(sf, model, 'findFirst', argsType, inputType, returnType, undefined, false);
     }
 
     // update
@@ -142,21 +147,13 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.update || (mapping as any).updateOne) {
         const argsType = `Prisma.${model.name}UpdateArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'put', 'update', argsType, inputType, returnType, true)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'PUT', 'update', argsType, false));
     }
 
     // updateMany
     if (mapping.updateMany) {
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'put', 'updateMany', argsType, inputType, returnType, false)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'PUT', 'updateMany', argsType, true));
     }
 
     // upsert
@@ -164,11 +161,7 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.upsert || (mapping as any).upsertOne) {
         const argsType = `Prisma.${model.name}UpsertArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'post', 'upsert', argsType, inputType, returnType, true)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'POST', 'upsert', argsType, false));
     }
 
     // del
@@ -176,21 +169,13 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.delete || (mapping as any).deleteOne) {
         const argsType = `Prisma.${model.name}DeleteArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.${model.name}GetPayload<T>`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'delete', 'delete', argsType, inputType, returnType, true)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'DELETE', 'delete', argsType, false));
     }
 
     // deleteMany
     if (mapping.deleteMany) {
         const argsType = `Prisma.${model.name}DeleteManyArgs`;
-        const inputType = `Prisma.SelectSubset<T, ${argsType}>`;
-        const returnType = `Prisma.BatchPayload`;
-        mutationFuncs.push(
-            generateMutation(useMutation, model, 'delete', 'deleteMany', argsType, inputType, returnType, false)
-        );
+        mutationFuncs.push(generateMutation(sf, useMutation, model, 'DELETE', 'deleteMany', argsType, true));
     }
 
     // aggregate
@@ -283,7 +268,11 @@ function generateModelHooks(project: Project, outDir: string, model: DataModel, 
         generateQueryHook(sf, model, 'count', argsType, inputType, returnType);
     }
 
-    useMutation.addStatements(`return { ${mutationFuncs.join(', ')} };`);
+    useMutation?.addStatements(`return { ${mutationFuncs.join(', ')} };`);
+}
+
+function makeOptimistic(returnType: string) {
+    return `${returnType} & { $optimistic?: boolean }`;
 }
 
 function generateIndex(project: Project, outDir: string, models: DataModel[]) {
@@ -321,7 +310,7 @@ function generateQueryHook(
     }
     parameters.push({
         name: 'options?',
-        type: infinite ? `InfiniteRequestOptions<${returnType}>` : `RequestOptions<${returnType}>`,
+        type: infinite ? `InfiniteQueryOptions<${returnType}>` : `QueryOptions<${returnType}>`,
     });
 
     sf.addFunction({
@@ -332,40 +321,72 @@ function generateQueryHook(
     })
         .addBody()
         .addStatements([
-            'const { endpoint, fetch } = useHooksContext();',
             !infinite
-                ? `return request.useGet<${returnType}>('${model.name}', '${operation}', endpoint, args, options, fetch);`
-                : `return request.useInfiniteGet<${inputType} | undefined, ${returnType}>('${model.name}', '${operation}', endpoint, getNextArgs, options, fetch);`,
+                ? `return request.useModelQuery('${model.name}', '${operation}', args, options);`
+                : `return request.useInfiniteModelQuery('${model.name}', '${operation}', getNextArgs, options);`,
         ]);
 }
 
 function generateMutation(
-    func: FunctionDeclaration,
+    sf: SourceFile,
+    useMutateModelFunc: FunctionDeclaration | undefined,
     model: DataModel,
-    method: 'post' | 'put' | 'patch' | 'delete',
+    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     operation: string,
     argsType: string,
-    inputType: string,
-    returnType: string,
-    checkReadBack: boolean
+    batchResult: boolean
 ) {
+    // non-batch mutations are subject to read-back check
+    const checkReadBack = !batchResult;
+    const genericReturnType = batchResult ? 'Prisma.BatchPayload' : `Prisma.${model.name}GetPayload<T> | undefined`;
+    const returnType = batchResult ? 'Prisma.BatchPayload' : `Prisma.${model.name}GetPayload<${argsType}> | undefined`;
+    const genericInputType = `Prisma.SelectSubset<T, ${argsType}>`;
+
     const modelRouteName = lowerCaseFirst(model.name);
     const funcName = `${operation}${model.name}`;
-    const fetcherFunc = method === 'delete' ? 'del' : method;
-    func.addFunction({
-        name: funcName,
-        isAsync: true,
-        typeParameters: [`T extends ${argsType}`],
+
+    if (useMutateModelFunc) {
+        // generate async mutation function (legacy)
+        const mutationFunc = useMutateModelFunc.addFunction({
+            name: funcName,
+            isAsync: true,
+            typeParameters: [`T extends ${argsType}`],
+            parameters: [
+                {
+                    name: 'args',
+                    type: genericInputType,
+                },
+            ],
+        });
+        mutationFunc.addJsDoc(`@deprecated Use \`use${upperCaseFirst(operation)}${model.name}\` hook instead.`);
+        mutationFunc
+            .addBody()
+            .addStatements([
+                `return await request.mutationRequest<${returnType}, ${checkReadBack}>('${method}', \`\${endpoint}/${modelRouteName}/${operation}\`, args, invalidate, fetch, ${checkReadBack});`,
+            ]);
+    }
+
+    // generate mutation hook
+    sf.addFunction({
+        name: `use${upperCaseFirst(operation)}${model.name}`,
+        isExported: true,
         parameters: [
             {
-                name: 'args',
-                type: inputType,
+                name: 'options?',
+                type: `MutationOptions<${returnType}, unknown, ${argsType}>`,
             },
         ],
     })
         .addBody()
         .addStatements([
-            `return await request.${fetcherFunc}<${returnType}, ${checkReadBack}>(\`\${endpoint}/${modelRouteName}/${operation}\`, args, mutate, fetch, ${checkReadBack});`,
+            `const mutation = request.useModelMutation('${model.name}', '${method}', '${operation}', metadata, options, ${checkReadBack});`,
+            `return {
+                ...mutation,
+                trigger<T extends ${argsType}>(args: ${genericInputType}) {
+                    return mutation.trigger(args, options as any) as Promise<${genericReturnType}>;
+                }
+            };`,
         ]);
+
     return funcName;
 }

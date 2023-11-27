@@ -141,12 +141,14 @@ function createMutate(
     idFields.forEach((f) => {
         if (insert[f.name] === undefined) {
             if (f.type === 'Int' || f.type === 'BigInt') {
-                const currMax = Math.max(
-                    ...[...currentData].map((item) => {
-                        const idv = parseInt(item[f.name]);
-                        return isNaN(idv) ? 0 : idv;
-                    })
-                );
+                const currMax = Array.isArray(currentData)
+                    ? Math.max(
+                          ...[...currentData].map((item) => {
+                              const idv = parseInt(item[f.name]);
+                              return isNaN(idv) ? 0 : idv;
+                          })
+                      )
+                    : 0;
                 insert[f.name] = currMax + 1;
             } else {
                 insert[f.name] = uuid();
@@ -159,7 +161,7 @@ function createMutate(
     if (logging) {
         console.log(`Optimistic create for ${queryModel}:`, insert);
     }
-    return [insert, ...currentData];
+    return [insert, ...(Array.isArray(currentData) ? currentData : [])];
 }
 
 function updateMutate(
