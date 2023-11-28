@@ -20,6 +20,7 @@ import path from 'path';
 import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
 import telemetry from '../telemetry';
 import { getVersion } from '../utils/version-utils';
+import { execSync } from '../utils/exec-utils';
 
 type PluginInfo = {
     name: string;
@@ -36,6 +37,8 @@ export type PluginRunnerOptions = {
     output?: string;
     defaultPlugins: boolean;
     compile: boolean;
+    // used by @core/prisma plugin
+    format?: boolean;
 };
 
 /**
@@ -160,6 +163,15 @@ export class PluginRunner {
                 dmmf = await getDMMF({
                     datamodel: fs.readFileSync(prismaOutput, { encoding: 'utf-8' }),
                 });
+
+                if (options.format) {
+                    try {
+                        // run 'prisma format'
+                        await execSync(`npx prisma format --schema ${prismaOutput}`);
+                    } catch {
+                        warnings.push(`Failed to format Prisma schema file`);
+                    }
+                }
             }
         }
         console.log(colors.green(colors.bold('\n👻 All plugins completed successfully!')));

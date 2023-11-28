@@ -18,6 +18,7 @@ type Options = {
     versionCheck: boolean;
     compile: boolean;
     defaultPlugins: boolean;
+    format?: boolean;
 };
 
 /**
@@ -60,6 +61,7 @@ async function runPlugins(options: Options) {
         defaultPlugins: options.defaultPlugins,
         output: options.output,
         compile: options.compile,
+        format: options.format,
     };
 
     try {

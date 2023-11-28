@@ -106,6 +106,7 @@ export function createProgram() {
         .addOption(new Option('--no-compile', 'do not compile the output of built-in plugins'))
         .addOption(noVersionCheckOption)
         .addOption(noDependencyCheck)
+        .addOption(new Option('--format', `run 'prisma format' after generation`))
         .action(generateAction);
 
     program

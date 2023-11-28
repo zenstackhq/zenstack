@@ -7,6 +7,7 @@ import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
 import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
 import { createNpmrc } from './share';
+import { copySync } from 'fs-extra';
 
 describe('CLI generate command tests', () => {
     let origDir: string;
@@ -179,5 +180,34 @@ model Post {
         expect(fs.existsSync('./node_modules/.zenstack/model-meta.ts')).toBeTruthy();
         expect(fs.existsSync('./node_modules/.zenstack/zod/index.js')).toBeFalsy();
         expect(fs.existsSync('./node_modules/.zenstack/zod/index.ts')).toBeTruthy();
+    });
+
+    it('generate with format', async () => {
+        fs.appendFileSync(
+            'schema.zmodel',
+            `
+        plugin prisma {
+            provider = '@core/prisma'
+        }
+        `
+        );
+        const program = createProgram();
+        await program.parseAsync(['generate', '--no-dependency-check', '--no-default-plugins', '--format'], {
+            from: 'user',
+        });
+        const prisma = fs.readFileSync('./prisma/schema.prisma');
+
+        expect(prisma.toString()).toContain(
+            `
+model User {
+  id    Int    @id() @default(autoincrement())
+  /// @email
+  email String @unique()
+  posts Post[]
+}
+`
+        );
+
+        console.log('prisma:', prisma.toString());
     });
 });
