@@ -207,7 +207,5 @@ model User {
 }
 `
         );
-
-        console.log('prisma:', prisma.toString());
     });
 });
