@@ -9,7 +9,6 @@ import {
     getPrismaClientImportSpec,
     hasAttribute,
     isEnumFieldReference,
-    isForeignKeyField,
     isFromStdlib,
     parseOptionAsStrings,
     resolvePath,
@@ -263,7 +262,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         const fields = model.fields.filter(
             (field) =>
                 // scalar fields only
-                !isDataModel(field.type.reference?.ref) && !isForeignKeyField(field)
+                !isDataModel(field.type.reference?.ref)
         );
 
         writer.writeLine('/* eslint-disable */');
