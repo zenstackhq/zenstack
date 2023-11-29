@@ -1,6 +1,6 @@
 {
   "name": "@zenstackhq/testtools",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "ZenStack Test Tools",
   "main": "index.js",
   "private": true,
