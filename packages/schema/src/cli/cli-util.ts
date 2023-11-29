@@ -161,14 +161,24 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
         if (isPlugin(decl)) {
             const providerField = decl.fields.find((f) => f.name === 'provider');
             if (providerField) {
-                let provider = getLiteral<string>(providerField.value);
+                const provider = getLiteral<string>(providerField.value);
                 if (provider) {
+                    let pluginEntrance: string | undefined;
                     try {
-                        if (provider.startsWith('.')) {
-                            // resolve relative path against the schema file
-                            provider = path.resolve(path.dirname(fileName), provider);
+                        // direct require
+                        pluginEntrance = require.resolve(provider);
+                    } catch {
+                        if (!path.isAbsolute(provider)) {
+                            // relative path
+                            try {
+                                pluginEntrance = require.resolve(path.join(path.dirname(fileName), provider));
+                            } catch {
+                                // noop
+                            }
                         }
-                        const pluginEntrance = require.resolve(`${provider}`);
+                    }
+
+                    if (pluginEntrance) {
                         const pluginModelFile = path.join(path.dirname(pluginEntrance), PLUGIN_MODULE_NAME);
                         if (fs.existsSync(pluginModelFile)) {
                             result.push(
@@ -177,8 +187,6 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
                                 )
                             );
                         }
-                    } catch {
-                        // noop
                     }
                 }
             }

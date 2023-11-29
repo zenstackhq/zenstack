@@ -23,8 +23,24 @@ export async function repl(projectPath: string, options: { prismaClient?: string
     console.log();
     console.log(`Running as anonymous user. Use ".auth" to set current user.`);
 
-    const prismaClientModule = options.prismaClient ?? path.join(projectPath, './node_modules/.prisma/client');
-    const { PrismaClient } = require(prismaClientModule);
+    let PrismaClient: any;
+
+    const prismaClientModule = options.prismaClient ?? '@prisma/client';
+
+    try {
+        // try direct require
+        const module = require(prismaClientModule);
+        PrismaClient = module.PrismaClient;
+    } catch (err) {
+        if (!path.isAbsolute(prismaClientModule)) {
+            // try relative require
+            const module = require(path.join(projectPath, prismaClientModule));
+            PrismaClient = module.PrismaClient;
+        } else {
+            throw err;
+        }
+    }
+
     const { enhance } = require('@zenstackhq/runtime');
 
     let debug = !!options.debug;
