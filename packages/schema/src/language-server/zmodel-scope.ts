@@ -73,21 +73,30 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
             if (decl.$type === 'DataModel') {
                 const dataModel = decl as DataModel;
                 dataModel.$resolvedFields = [...dataModel.fields];
-                dataModel.superTypes.forEach((superType) => {
-                    const superTypeDecl = superType.ref;
-                    if (superTypeDecl) {
-                        superTypeDecl.fields.forEach((field) => {
-                            const cloneField = Object.assign({}, field);
-                            cloneField.$isInherited = true;
-                            const mutable = cloneField as Mutable<AstNode>;
-                            // update container
-                            mutable.$container = dataModel;
-                            dataModel.$resolvedFields.push(cloneField);
-                        });
-                    }
+                this.getRecursiveSuperTypes(dataModel).forEach((superType) => {
+                    superType.fields.forEach((field) => {
+                        const cloneField = Object.assign({}, field);
+                        cloneField.$isInherited = true;
+                        const mutable = cloneField as Mutable<AstNode>;
+                        // update container
+                        mutable.$container = dataModel;
+                        dataModel.$resolvedFields.push(cloneField);
+                    });
                 });
             }
         });
+    }
+
+    private getRecursiveSuperTypes(dataModel: DataModel): DataModel[] {
+        const result: DataModel[] = [];
+        dataModel.superTypes.forEach((superType) => {
+            const superTypeDecl = superType.ref;
+            if (superTypeDecl) {
+                result.push(superTypeDecl);
+                result.push(...this.getRecursiveSuperTypes(superTypeDecl));
+            }
+        });
+        return result;
     }
 }
 
