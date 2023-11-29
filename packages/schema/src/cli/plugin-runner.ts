@@ -118,7 +118,7 @@ export class PluginRunner {
                 plugins.unshift(existing);
             } else {
                 // synthesize a plugin and insert front
-                const pluginModule = require(this.getCorePluginPath(corePlugin.provider));
+                const pluginModule = require(this.getPluginModulePath(corePlugin.provider, options));
                 const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
                 plugins.unshift({
                     name: pluginName,
@@ -301,25 +301,24 @@ export class PluginRunner {
         }
     }
 
-    private getCorePluginPath(provider: string) {
+    private getPluginModulePath(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
         let pluginModulePath = provider;
-        if (pluginModulePath.startsWith('@core/')) {
-            pluginModulePath = pluginModulePath.replace(/^@core/, path.join(__dirname, '../plugins'));
+        if (provider.startsWith('@core/')) {
+            pluginModulePath = provider.replace(/^@core/, path.join(__dirname, '../plugins'));
+        } else {
+            try {
+                // direct require
+                require.resolve(pluginModulePath);
+            } catch {
+                // relative
+                pluginModulePath = resolvePath(provider, options);
+            }
         }
         return pluginModulePath;
     }
 
     private loadPluginModule(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
-        try {
-            // direct require
-            return require(provider);
-        } catch (err) {
-            if (!path.isAbsolute(provider)) {
-                // relative path
-                return require(resolvePath(provider, options));
-            } else {
-                throw err;
-            }
-        }
+        const pluginModulePath = this.getPluginModulePath(provider, options);
+        return require(pluginModulePath);
     }
 }
