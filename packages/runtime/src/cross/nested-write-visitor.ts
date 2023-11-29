@@ -145,49 +145,53 @@ export class NestedWriteVisitor {
             return;
         }
 
-        const context = { parent, field, nestingPath: [...nestingPath] };
         const toplevel = field == undefined;
+
+        const context = { parent, field, nestingPath: [...nestingPath] };
+        const pushNewContext = (field: FieldInfo | undefined, model: string, where: any, unique = false) => {
+            return { ...context, nestingPath: [...context.nestingPath, { field, model, where, unique }] };
+        };
 
         // visit payload
         switch (action) {
             case 'create':
-                context.nestingPath.push({ field, model, where: {}, unique: false });
                 for (const item of enumerate(data)) {
+                    const newContext = pushNewContext(field, model, {});
                     let callbackResult: any;
                     if (this.callback.create) {
-                        callbackResult = await this.callback.create(model, item, context);
+                        callbackResult = await this.callback.create(model, item, newContext);
                     }
                     if (callbackResult !== false) {
                         const subPayload = typeof callbackResult === 'object' ? callbackResult : item;
-                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
+                        await this.visitSubPayload(model, action, subPayload, newContext.nestingPath);
                     }
                 }
                 break;
 
             case 'createMany':
                 if (data) {
-                    context.nestingPath.push({ field, model, where: {}, unique: false });
+                    const newContext = pushNewContext(field, model, {});
                     let callbackResult: any;
                     if (this.callback.createMany) {
-                        callbackResult = await this.callback.createMany(model, data, context);
+                        callbackResult = await this.callback.createMany(model, data, newContext);
                     }
                     if (callbackResult !== false) {
                         const subPayload = typeof callbackResult === 'object' ? callbackResult : data.data;
-                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
+                        await this.visitSubPayload(model, action, subPayload, newContext.nestingPath);
                     }
                 }
                 break;
 
             case 'connectOrCreate':
-                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
+                    const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.connectOrCreate) {
-                        callbackResult = await this.callback.connectOrCreate(model, item, context);
+                        callbackResult = await this.callback.connectOrCreate(model, item, newContext);
                     }
                     if (callbackResult !== false) {
                         const subPayload = typeof callbackResult === 'object' ? callbackResult : item.create;
-                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
+                        await this.visitSubPayload(model, action, subPayload, newContext.nestingPath);
                     }
                 }
                 break;
@@ -195,10 +199,7 @@ export class NestedWriteVisitor {
             case 'connect':
                 if (this.callback.connect) {
                     for (const item of enumerate(data)) {
-                        const newContext = {
-                            ...context,
-                            nestingPath: [...context.nestingPath, { field, model, where: item, unique: true }],
-                        };
+                        const newContext = pushNewContext(field, model, item, true);
                         await this.callback.connect(model, item, newContext);
                     }
                 }
@@ -210,13 +211,7 @@ export class NestedWriteVisitor {
                 //   if relation is to-one, the payload can only be boolean `true`
                 if (this.callback.disconnect) {
                     for (const item of enumerate(data)) {
-                        const newContext = {
-                            ...context,
-                            nestingPath: [
-                                ...context.nestingPath,
-                                { field, model, where: item, unique: typeof item === 'object' },
-                            ],
-                        };
+                        const newContext = pushNewContext(field, model, item, typeof item === 'object');
                         await this.callback.disconnect(model, item, newContext);
                     }
                 }
@@ -224,17 +219,17 @@ export class NestedWriteVisitor {
 
             case 'set':
                 if (this.callback.set) {
-                    context.nestingPath.push({ field, model, where: {}, unique: false });
-                    await this.callback.set(model, data, context);
+                    const newContext = pushNewContext(field, model, {});
+                    await this.callback.set(model, data, newContext);
                 }
                 break;
 
             case 'update':
-                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
+                    const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.update) {
-                        callbackResult = await this.callback.update(model, item, context);
+                        callbackResult = await this.callback.update(model, item, newContext);
                     }
                     if (callbackResult !== false) {
                         const subPayload =
@@ -243,38 +238,38 @@ export class NestedWriteVisitor {
                                 : typeof item.data === 'object'
                                 ? item.data
                                 : item;
-                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
+                        await this.visitSubPayload(model, action, subPayload, newContext.nestingPath);
                     }
                 }
                 break;
 
             case 'updateMany':
-                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
+                    const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.updateMany) {
-                        callbackResult = await this.callback.updateMany(model, item, context);
+                        callbackResult = await this.callback.updateMany(model, item, newContext);
                     }
                     if (callbackResult !== false) {
                         const subPayload = typeof callbackResult === 'object' ? callbackResult : item;
-                        await this.visitSubPayload(model, action, subPayload, context.nestingPath);
+                        await this.visitSubPayload(model, action, subPayload, newContext.nestingPath);
                     }
                 }
                 break;
 
             case 'upsert': {
-                context.nestingPath.push({ field, model, where: data.where, unique: false });
                 for (const item of enumerate(data)) {
+                    const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.upsert) {
-                        callbackResult = await this.callback.upsert(model, item, context);
+                        callbackResult = await this.callback.upsert(model, item, newContext);
                     }
                     if (callbackResult !== false) {
                         if (typeof callbackResult === 'object') {
-                            await this.visitSubPayload(model, action, callbackResult, context.nestingPath);
+                            await this.visitSubPayload(model, action, callbackResult, newContext.nestingPath);
                         } else {
-                            await this.visitSubPayload(model, action, item.create, context.nestingPath);
-                            await this.visitSubPayload(model, action, item.update, context.nestingPath);
+                            await this.visitSubPayload(model, action, item.create, newContext.nestingPath);
+                            await this.visitSubPayload(model, action, item.update, newContext.nestingPath);
                         }
                     }
                 }
@@ -284,13 +279,7 @@ export class NestedWriteVisitor {
             case 'delete': {
                 if (this.callback.delete) {
                     for (const item of enumerate(data)) {
-                        const newContext = {
-                            ...context,
-                            nestingPath: [
-                                ...context.nestingPath,
-                                { field, model, where: toplevel ? item.where : item, unique: false },
-                            ],
-                        };
+                        const newContext = pushNewContext(field, model, toplevel ? item.where : item);
                         await this.callback.delete(model, item, newContext);
                     }
                 }
@@ -300,13 +289,7 @@ export class NestedWriteVisitor {
             case 'deleteMany':
                 if (this.callback.deleteMany) {
                     for (const item of enumerate(data)) {
-                        const newContext = {
-                            ...context,
-                            nestingPath: [
-                                ...context.nestingPath,
-                                { field, model, where: toplevel ? item.where : item, unique: false },
-                            ],
-                        };
+                        const newContext = pushNewContext(field, model, toplevel ? item.where : item);
                         await this.callback.deleteMany(model, item, newContext);
                     }
                 }
