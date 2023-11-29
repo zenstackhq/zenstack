@@ -434,13 +434,21 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
             if (safeRelationSchema && unsafeRelationSchema) {
                 // build a union of with relation object fields and with fk fields (mutually exclusive)
+
+                // TODO: we make all relation fields partial for now because in case of
+                // nested create, not all relation/fk fields are inside payload, need a
+                // better solution
                 createSchema = makeUnion(
-                    makeMerge(createSchema, safeRelationSchema),
-                    makeMerge(createSchema, unsafeRelationSchema)
+                    makeMerge(createSchema, makePartial(safeRelationSchema)),
+                    makeMerge(createSchema, makePartial(unsafeRelationSchema))
                 );
             } else if (safeRelationSchema) {
                 // just relation
-                createSchema = makeMerge(createSchema, safeRelationSchema);
+
+                // TODO: we make all relation fields partial for now because in case of
+                // nested create, not all relation/fk fields are inside payload, need a
+                // better solution
+                createSchema = makeMerge(createSchema, makePartial(safeRelationSchema));
             }
         }
 
