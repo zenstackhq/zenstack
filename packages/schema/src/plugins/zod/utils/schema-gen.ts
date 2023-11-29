@@ -1,5 +1,5 @@
 import { ExpressionContext, PluginError, getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
-import { DataModel, DataModelField, DataModelFieldAttribute, isEnum } from '@zenstackhq/sdk/ast';
+import { DataModel, DataModelField, DataModelFieldAttribute, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import {
@@ -7,7 +7,23 @@ import {
     TypeScriptExpressionTransformerError,
 } from '../../../utils/typescript-expression-transformer';
 
-export function makeFieldSchema(field: DataModelField) {
+export function makeFieldSchema(field: DataModelField, forMutation = false) {
+    if (isDataModel(field.type.reference?.ref)) {
+        if (!forMutation) {
+            // read schema, always optional
+            if (field.type.array) {
+                return `z.array(z.unknown()).optional()`;
+            } else {
+                return `z.record(z.unknown()).optional()`;
+            }
+        } else {
+            // write schema
+            return `${
+                field.type.optional || field.type.array ? 'z.record(z.unknown()).optional()' : 'z.record(z.unknown())'
+            }`;
+        }
+    }
+
     let schema = makeZodSchema(field);
     const isDecimal = field.type.type === 'Decimal';
 
