@@ -62,13 +62,14 @@ export class PluginRunner {
                 console.error(`Plugin ${pluginDecl.name} has invalid provider option`);
                 throw new PluginError('', `Plugin ${pluginDecl.name} has invalid provider option`);
             }
-            const pluginModulePath = this.getPluginModulePath(pluginProvider, options);
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let pluginModule: any;
+
             try {
-                pluginModule = require(pluginModulePath);
+                pluginModule = this.loadPluginModule(pluginProvider, options);
             } catch (err) {
-                console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
+                console.error(`Unable to load plugin module ${pluginProvider}: ${err}`);
                 throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
             }
 
@@ -117,7 +118,7 @@ export class PluginRunner {
                 plugins.unshift(existing);
             } else {
                 // synthesize a plugin and insert front
-                const pluginModule = require(this.getPluginModulePath(corePlugin.provider, options));
+                const pluginModule = require(this.getCorePluginPath(corePlugin.provider));
                 const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
                 plugins.unshift({
                     name: pluginName,
@@ -300,14 +301,25 @@ export class PluginRunner {
         }
     }
 
-    private getPluginModulePath(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
-        if (path.isAbsolute(provider) || provider.startsWith('.')) {
-            return resolvePath(provider, options);
-        }
+    private getCorePluginPath(provider: string) {
         let pluginModulePath = provider;
         if (pluginModulePath.startsWith('@core/')) {
             pluginModulePath = pluginModulePath.replace(/^@core/, path.join(__dirname, '../plugins'));
         }
         return pluginModulePath;
+    }
+
+    private loadPluginModule(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
+        try {
+            // direct require
+            return require(provider);
+        } catch (err) {
+            if (!path.isAbsolute(provider)) {
+                // relative path
+                return require(resolvePath(provider, options));
+            } else {
+                throw err;
+            }
+        }
     }
 }
