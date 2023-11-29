@@ -13,6 +13,8 @@ import { createZModelServices, ZModelServices } from '../language-server/zmodel-
 import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
+import { ZModelFormatter } from '../language-server/zmodel-formatter';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.8.0';
@@ -250,4 +252,27 @@ export async function checkNewVersion() {
     if (latestVersion && semver.gt(latestVersion, currVersion)) {
         console.log(`A newer version ${colors.cyan(latestVersion)} is available.`);
     }
+}
+
+export async function formatDocument(fileName: string) {
+    const services = createZModelServices(NodeFileSystem).ZModel;
+    const extensions = services.LanguageMetaData.fileExtensions;
+    if (!extensions.includes(path.extname(fileName))) {
+        console.error(colors.yellow(`Please choose a file with extension: ${extensions}.`));
+        throw new CliError('invalid schema file');
+    }
+
+    const langiumDocuments = services.shared.workspace.LangiumDocuments;
+    const document = langiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+
+    const formatter = services.lsp.Formatter as ZModelFormatter;
+
+    const identifier = { uri: document.uri.toString() };
+    const options = formatter.getFormatOptions() ?? {
+        insertSpaces: true,
+        tabSize: 4,
+    };
+
+    const edits = await formatter.formatDocument(document, { options, textDocument: identifier });
+    return TextDocument.applyEdits(document.textDocument, edits);
 }
