@@ -34,7 +34,7 @@
         "typescript": "^4.6.2",
         "uuid": "^9.0.0",
         "zenstack": "workspace: *",
-        "prisma-client-internal": "npm:@prisma/client@^5.0.0"
+        "prisma-client-test-internal": "npm:@prisma/client@^5.0.0"
     },
     "dependencies": {
         "@types/node": "^18.0.0",
