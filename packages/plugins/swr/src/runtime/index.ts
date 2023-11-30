@@ -255,7 +255,7 @@ export function useModelMutation<Args, Result, CheckReadBack extends boolean = b
     checkReadBack?: CheckReadBack
 ) {
     const { endpoint, fetch, logging } = useHooksContext();
-    const invalidate = useInvalidation(model, modelMeta);
+    const invalidate = options?.revalidate !== false ? useInvalidation(model, modelMeta) : undefined;
     const { cache, mutate } = useSWRConfig();
 
     return useSWRMutation(
@@ -282,7 +282,7 @@ export async function mutationRequest<Result, C extends boolean = boolean>(
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     data: unknown,
-    invalidate: Invalidator,
+    invalidate?: Invalidator,
     fetch?: FetchFn,
     checkReadBack?: C
 ): Promise<C extends true ? Result | undefined : Result> {
@@ -299,7 +299,10 @@ export async function mutationRequest<Result, C extends boolean = boolean>(
         fetch,
         checkReadBack
     );
-    await invalidate(getOperationFromUrl(url), data);
+
+    if (invalidate) {
+        await invalidate(getOperationFromUrl(url), data);
+    }
     return r;
 }
 
