@@ -221,6 +221,10 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
     let prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
+    // https://github.com/prisma/prisma/issues/18292
+    prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
+
+    const Prisma = require(path.join(projectRoot, 'node_modules/@prisma/client')).Prisma;
 
     if (opt.pulseApiKey) {
         const withPulse = require(path.join(projectRoot, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
@@ -244,6 +248,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     if (options?.getPrismaOnly) {
         return {
             prisma,
+            Prisma,
             projectDir: projectRoot,
             withPolicy: undefined as any,
             withOmit: undefined as any,
@@ -277,6 +282,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     return {
         projectDir: projectRoot,
         prisma,
+        Prisma,
         withPolicy: (user?: AuthUser) =>
             withPolicy<FullDbClientContract>(
                 prisma,

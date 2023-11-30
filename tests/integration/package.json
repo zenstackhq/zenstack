@@ -29,12 +29,11 @@
         "jest-fetch-mock": "^3.0.3",
         "next": "^12.3.1",
         "tmp": "^0.2.1",
-        "ts-jest": "^29.0.1",
+        "ts-jest": "^29.1.1",
         "ts-node": "^10.9.1",
         "typescript": "^4.6.2",
         "uuid": "^9.0.0",
-        "zenstack": "workspace: *",
-        "prisma-client-test-internal": "npm:@prisma/client@^5.0.0"
+        "zenstack": "workspace: *"
     },
     "dependencies": {
         "@types/node": "^18.0.0",
