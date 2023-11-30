@@ -1,4 +1,4 @@
-import { Prisma } from 'prisma-client-internal';
+import { Prisma } from 'prisma-client-test-internal';
 import { enhance } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';

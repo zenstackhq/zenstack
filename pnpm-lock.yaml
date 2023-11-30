@@ -962,7 +962,7 @@ importers:
       next:
         specifier: ^12.3.1
         version: 12.3.1(@babel/core@7.23.2)(react-dom@18.2.0)(react@18.2.0)
-      prisma-client-internal:
+      prisma-client-test-internal:
         specifier: npm:@prisma/client@^5.0.0
         version: /@prisma/client@5.6.0
       tmp:
