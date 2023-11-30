@@ -171,6 +171,7 @@ export async function repl(projectPath: string, options: { prismaClient?: string
             prisma.$disconnect();
         }
         prisma = new PrismaClient(debug ? { log: ['info'] } : undefined);
+        // https://github.com/prisma/prisma/issues/18292
         prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
         db = enhance(prisma, { user }, { logPrismaQuery: debug });
 
