@@ -53,7 +53,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllDeclarationsFromImports } from '../utils/ast-utils';
+import { getAllDeclarationsFromImports, isAuthInvocation } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -337,6 +337,12 @@ export class ZModelLinker extends DefaultLinker {
             this.linkReference(node, 'member', document, [provider], true);
             if (node.member.ref) {
                 this.resolveToDeclaredType(node, node.member.ref.type);
+
+                if (node.$resolvedType && isAuthInvocation(node.operand)) {
+                    // member access on auth() function is nullable
+                    // because user may not have provided all fields
+                    node.$resolvedType.nullable = true;
+                }
             }
         }
     }

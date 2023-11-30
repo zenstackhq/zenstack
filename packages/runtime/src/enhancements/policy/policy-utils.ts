@@ -189,15 +189,19 @@ export class PolicyUtil {
                 }
 
                 case 'NOT': {
-                    const r = this.reduce(value);
-                    if (this.isFalse(r)) {
-                        // NOT false => true, thus eliminated (not adding into result)
-                    } else if (this.isTrue(r)) {
-                        // NOT true => false, eliminate all other keys and set entire condition to false
+                    const children = enumerate(value)
+                        .map((c: any) => this.reduce(c))
+                        .filter((c) => c !== undefined && !this.isFalse(c));
+                    if (children.length === 0) {
+                        // all clauses are false, result is a constant true,
+                        // thus eliminated (not adding into result)
+                    } else if (children.some((c) => this.isTrue(c))) {
+                        // some clauses are true, result is a constant false,
+                        // eliminate all other keys and set entire condition to false
                         Object.keys(result).forEach((k) => delete result[k]);
                         result['OR'] = []; // this will cause the outer loop to exit too
                     } else {
-                        result[key] = r;
+                        result[key] = !Array.isArray(value) && children.length === 1 ? children[0] : children;
                     }
                     break;
                 }
@@ -763,11 +767,29 @@ export class PolicyUtil {
             if (typeof v === 'undefined') {
                 continue;
             }
-            const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
-            if (this.isFalse(fieldGuard)) {
-                return { guard: allFieldGuards, rejectedByField: k };
+
+            const field = resolveField(this.modelMeta, model, k);
+
+            if (field?.isDataModel) {
+                // relation field update should be treated as foreign key update,
+                // fetch and merge all foreign key guards
+                if (field.isRelationOwner && field.foreignKeyMapping) {
+                    const foreignKeys = Object.values<string>(field.foreignKeyMapping);
+                    for (const fk of foreignKeys) {
+                        const fieldGuard = this.getFieldUpdateAuthGuard(db, model, fk);
+                        if (this.isFalse(fieldGuard)) {
+                            return { guard: allFieldGuards, rejectedByField: fk };
+                        }
+                        allFieldGuards.push(fieldGuard);
+                    }
+                }
+            } else {
+                const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
+                if (this.isFalse(fieldGuard)) {
+                    return { guard: allFieldGuards, rejectedByField: k };
+                }
+                allFieldGuards.push(fieldGuard);
             }
-            allFieldGuards.push(fieldGuard);
         }
         return { guard: this.and(...allFieldGuards), rejectedByField: undefined };
     }

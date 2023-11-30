@@ -11,6 +11,7 @@ import { isDataModelFieldReference } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
+import { typeAssignable } from './utils';
 
 /**
  * Validates expressions.
@@ -122,6 +123,28 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 if (!!expr.left.$resolvedType?.array !== !!expr.right.$resolvedType?.array) {
                     accept('error', 'incompatible operand types', { node: expr });
                     break;
+                }
+
+                if (
+                    (expr.left.$resolvedType?.nullable && isNullExpr(expr.right)) ||
+                    (expr.right.$resolvedType?.nullable && isNullExpr(expr.left))
+                ) {
+                    // comparing nullable field with null
+                    return;
+                }
+
+                if (
+                    typeof expr.left.$resolvedType?.decl === 'string' &&
+                    typeof expr.right.$resolvedType?.decl === 'string'
+                ) {
+                    // scalar types assignability
+                    if (
+                        !typeAssignable(expr.left.$resolvedType.decl, expr.right.$resolvedType.decl) &&
+                        !typeAssignable(expr.right.$resolvedType.decl, expr.left.$resolvedType.decl)
+                    ) {
+                        accept('error', 'incompatible operand types', { node: expr });
+                    }
+                    return;
                 }
 
                 // disallow comparing model type with scalar type or comparison between

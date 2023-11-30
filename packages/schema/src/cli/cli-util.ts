@@ -13,6 +13,8 @@ import { createZModelServices, ZModelServices } from '../language-server/zmodel-
 import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
+import { ZModelFormatter } from '../language-server/zmodel-formatter';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.8.0';
@@ -103,7 +105,7 @@ function validationAfterMerge(model: Model) {
     }
 
     // at most one `@@auth` model
-    const dataModels = getDataModels(model);
+    const dataModels = getDataModels(model, true);
     const authModels = dataModels.filter((d) => hasAttribute(d, '@@auth'));
     if (authModels.length > 1) {
         console.error(colors.red('Validation error: Multiple `@@auth` models are not allowed'));
@@ -161,14 +163,24 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
         if (isPlugin(decl)) {
             const providerField = decl.fields.find((f) => f.name === 'provider');
             if (providerField) {
-                let provider = getLiteral<string>(providerField.value);
+                const provider = getLiteral<string>(providerField.value);
                 if (provider) {
+                    let pluginEntrance: string | undefined;
                     try {
-                        if (provider.startsWith('.')) {
-                            // resolve relative path against the schema file
-                            provider = path.resolve(path.dirname(fileName), provider);
+                        // direct require
+                        pluginEntrance = require.resolve(provider);
+                    } catch {
+                        if (!path.isAbsolute(provider)) {
+                            // relative path
+                            try {
+                                pluginEntrance = require.resolve(path.join(path.dirname(fileName), provider));
+                            } catch {
+                                // noop
+                            }
                         }
-                        const pluginEntrance = require.resolve(`${provider}`);
+                    }
+
+                    if (pluginEntrance) {
                         const pluginModelFile = path.join(path.dirname(pluginEntrance), PLUGIN_MODULE_NAME);
                         if (fs.existsSync(pluginModelFile)) {
                             result.push(
@@ -177,8 +189,6 @@ export async function getPluginDocuments(services: ZModelServices, fileName: str
                                 )
                             );
                         }
-                    } catch {
-                        // noop
                     }
                 }
             }
@@ -242,4 +252,27 @@ export async function checkNewVersion() {
     if (latestVersion && semver.gt(latestVersion, currVersion)) {
         console.log(`A newer version ${colors.cyan(latestVersion)} is available.`);
     }
+}
+
+export async function formatDocument(fileName: string) {
+    const services = createZModelServices(NodeFileSystem).ZModel;
+    const extensions = services.LanguageMetaData.fileExtensions;
+    if (!extensions.includes(path.extname(fileName))) {
+        console.error(colors.yellow(`Please choose a file with extension: ${extensions}.`));
+        throw new CliError('invalid schema file');
+    }
+
+    const langiumDocuments = services.shared.workspace.LangiumDocuments;
+    const document = langiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+
+    const formatter = services.lsp.Formatter as ZModelFormatter;
+
+    const identifier = { uri: document.uri.toString() };
+    const options = formatter.getFormatOptions() ?? {
+        insertSpaces: true,
+        tabSize: 4,
+    };
+
+    const edits = await formatter.formatDocument(document, { options, textDocument: identifier });
+    return TextDocument.applyEdits(document.textDocument, edits);
 }

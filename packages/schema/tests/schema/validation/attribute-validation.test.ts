@@ -1186,5 +1186,43 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain('"future()" is not allowed in field-level policy rules');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                n N @allow('update', n.x > 0)
+            }
+
+            model N {
+                id String @id
+                x Int
+                m M? @relation(fields: [mId], references: [id])
+                mId String
+            }
+        `)
+        ).toContain(
+            'Field-level policy rules with "update" or "all" kind are not allowed for relation fields. Put rules on foreign-key fields instead.'
+        );
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                n N[] @allow('update', n.x > 0)
+            }
+
+            model N {
+                id String @id
+                x Int
+                m M? @relation(fields: [mId], references: [id])
+                mId String
+            }
+        `)
+        ).toContain(
+            'Field-level policy rules with "update" or "all" kind are not allowed for relation fields. Put rules on foreign-key fields instead.'
+        );
     });
 });

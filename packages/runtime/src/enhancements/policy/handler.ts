@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { lowerCaseFirst } from 'lower-case-first';
+import invariant from 'tiny-invariant';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
@@ -10,6 +11,7 @@ import {
     NestedWriteVisitorContext,
     enumerate,
     getIdFields,
+    requireField,
     resolveField,
     type FieldInfo,
     type ModelMeta,
@@ -641,8 +643,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
                 // handles the connection to upstream entity
                 const reversedQuery = this.utils.buildReversedQuery(context, true, unsafe);
-                if (reversedQuery[context.field.backLink]) {
-                    // the built reverse query contains a condition for the backlink field, build a "connect" with it
+                if ((!unsafe || context.field.isRelationOwner) && reversedQuery[context.field.backLink]) {
+                    // if mutation is safe, or current field owns the relation (so the other side has no fk),
+                    // and the reverse query contains the back link, then we can build a "connect" with it
                     createData = {
                         ...createData,
                         [context.field.backLink]: {
@@ -650,11 +653,52 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                         },
                     };
                 } else {
-                    // otherwise, the reverse query is translated to foreign key setting, merge it to the create data
-                    createData = {
-                        ...createData,
-                        ...reversedQuery,
-                    };
+                    // otherwise, the reverse query should be translated to foreign key setting
+                    // and merged to the create data
+
+                    const backLinkField = this.requireBackLink(context.field);
+                    invariant(backLinkField.foreignKeyMapping);
+
+                    // try to extract foreign key values from the reverse query
+                    let fkValues = Object.values(backLinkField.foreignKeyMapping).reduce<any>((obj, fk) => {
+                        obj[fk] = reversedQuery[fk];
+                        return obj;
+                    }, {});
+
+                    if (Object.values(fkValues).every((v) => v !== undefined)) {
+                        // all foreign key values are available, merge them to the create data
+                        createData = {
+                            ...createData,
+                            ...fkValues,
+                        };
+                    } else {
+                        // some foreign key values are missing, need to look up the upstream entity,
+                        // this can happen when the upstream entity doesn't have a unique where clause,
+                        // for example when it's nested inside a one-to-one update
+                        const upstreamQuery = {
+                            where: reversedQuery[backLinkField.name],
+                            select: this.utils.makeIdSelection(backLinkField.type),
+                        };
+
+                        // fetch the upstream entity
+                        if (this.logger.enabled('info')) {
+                            this.logger.info(
+                                `[policy] \`findUniqueOrThrow\` ${model}: looking up upstream entity of ${
+                                    backLinkField.type
+                                }, ${formatObject(upstreamQuery)}`
+                            );
+                        }
+                        const upstreamEntity = await this.prisma[backLinkField.type].findUniqueOrThrow(upstreamQuery);
+
+                        // map ids to foreign keys
+                        fkValues = Object.entries(backLinkField.foreignKeyMapping).reduce<any>((obj, [id, fk]) => {
+                            obj[fk] = upstreamEntity[id];
+                            return obj;
+                        }, {});
+
+                        // merge them to the create data
+                        createData = { ...createData, ...fkValues };
+                    }
                 }
             }
 
@@ -680,8 +724,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             if (context.field?.backLink) {
                 const backLinkField = this.utils.getModelField(model, context.field.backLink);
                 if (backLinkField.isRelationOwner) {
-                    // update happens on the related model, require updatable
-                    await this.utils.checkPolicyForUnique(model, args, 'update', db, args);
+                    // update happens on the related model, require updatable,
+                    // translate args to foreign keys so field-level policies can be checked
+                    const checkArgs: any = {};
+                    if (args && typeof args === 'object' && backLinkField.foreignKeyMapping) {
+                        for (const key of Object.keys(args)) {
+                            const fk = backLinkField.foreignKeyMapping[key];
+                            if (fk) {
+                                checkArgs[fk] = args[key];
+                            }
+                        }
+                    }
+                    await this.utils.checkPolicyForUnique(model, args, 'update', db, checkArgs);
 
                     // register post-update check
                     await _registerPostUpdateCheck(model, args);
@@ -1182,7 +1236,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             // already in transaction, don't nest
             return action(this.prisma);
         } else {
-            return this.prisma.$transaction((tx) => action(tx));
+            return this.prisma.$transaction((tx) => action(tx), { maxWait: 100000, timeout: 100000 });
         }
     }
 
@@ -1207,11 +1261,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     private requireBackLink(fieldInfo: FieldInfo) {
-        const backLinkField = fieldInfo.backLink && resolveField(this.modelMeta, fieldInfo.type, fieldInfo.backLink);
-        if (!backLinkField) {
-            throw new Error('Missing back link for field: ' + fieldInfo.name);
-        }
-        return backLinkField;
+        invariant(fieldInfo.backLink, `back link not found for field ${fieldInfo.name}`);
+        return requireField(this.modelMeta, fieldInfo.type, fieldInfo.backLink);
     }
 
     //#endregion

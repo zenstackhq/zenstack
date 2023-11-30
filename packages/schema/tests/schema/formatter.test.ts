@@ -7,12 +7,11 @@ const services = createZModelServices({ ...EmptyFileSystem }).ZModel;
 const formatting = expectFormatting(services);
 
 describe('ZModelFormatter', () => {
-    // eslint-disable-next-line jest/no-disabled-tests
-    test.skip('declaration formatting', async () => {
+    it('declaration formatting', async () => {
         await formatting({
             before: `datasource db { provider = 'postgresql' url = env('DATABASE_URL')} generator js {provider = 'prisma-client-js'}
              plugin swrHooks {provider = '@zenstackhq/swr'output = 'lib/hooks'}             
-             model User {id:id String @id name String? }
+             model User {id String @id name String? }
              enum Role {ADMIN USER}`,
             after: `datasource db {
     provider = 'postgresql'
@@ -26,7 +25,6 @@ plugin swrHooks {
     output = 'lib/hooks'
 }
 model User {
-    id
     id String @id
     name String?
 }

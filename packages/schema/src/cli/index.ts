@@ -50,6 +50,16 @@ export const replAction = async (options: Parameters<typeof actions.repl>[1]): P
     );
 };
 
+export const formatAction = async (options: Parameters<typeof actions.format>[1]): Promise<void> => {
+    await telemetry.trackSpan(
+        'cli:command:start',
+        'cli:command:complete',
+        'cli:command:error',
+        { command: 'format' },
+        () => actions.format(process.cwd(), options)
+    );
+};
+
 export function createProgram() {
     const program = new Command('zenstack');
 
@@ -115,6 +125,12 @@ export function createProgram() {
         .option('--debug', 'enable debug output')
         .option('--table', 'enable table format output')
         .action(replAction);
+
+    program
+        .command('format')
+        .description('Format a ZenStack schema file.')
+        .addOption(schemaOption)
+        .action(formatAction);
 
     // make sure config is loaded before actions run
     program.hook('preAction', async (_, actionCommand) => {

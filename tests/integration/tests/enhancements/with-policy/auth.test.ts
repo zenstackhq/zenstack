@@ -213,6 +213,61 @@ describe('With Policy: auth() test', () => {
         await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 
+    it('User model ignored', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model User {
+            id String @id @default(uuid())
+            role String
+
+            @@ignore
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+
+            @@allow('read', true)
+            @@allow('create', auth().role == 'ADMIN')
+        }
+        `
+        );
+
+        const userDb = withPolicy({ id: 'user1', role: 'USER' });
+        await expect(userDb.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
+
+        const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
+        await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
+    });
+
+    it('Auth model ignored', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model Foo {
+            id String @id @default(uuid())
+            role String
+
+            @@auth()
+            @@ignore
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+
+            @@allow('read', true)
+            @@allow('create', auth().role == 'ADMIN')
+        }
+        `
+        );
+
+        const userDb = withPolicy({ id: 'user1', role: 'USER' });
+        await expect(userDb.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
+
+        const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
+        await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
+    });
+
     it('collection predicate', async () => {
         const { enhance, prisma } = await loadSchema(
             `

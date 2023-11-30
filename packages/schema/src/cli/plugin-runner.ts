@@ -62,13 +62,14 @@ export class PluginRunner {
                 console.error(`Plugin ${pluginDecl.name} has invalid provider option`);
                 throw new PluginError('', `Plugin ${pluginDecl.name} has invalid provider option`);
             }
-            const pluginModulePath = this.getPluginModulePath(pluginProvider, options);
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let pluginModule: any;
+
             try {
-                pluginModule = require(pluginModulePath);
+                pluginModule = this.loadPluginModule(pluginProvider, options);
             } catch (err) {
-                console.error(`Unable to load plugin module ${pluginProvider}: ${pluginModulePath}, ${err}`);
+                console.error(`Unable to load plugin module ${pluginProvider}: ${err}`);
                 throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
             }
 
@@ -301,13 +302,23 @@ export class PluginRunner {
     }
 
     private getPluginModulePath(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
-        if (path.isAbsolute(provider) || provider.startsWith('.')) {
-            return resolvePath(provider, options);
-        }
         let pluginModulePath = provider;
-        if (pluginModulePath.startsWith('@core/')) {
-            pluginModulePath = pluginModulePath.replace(/^@core/, path.join(__dirname, '../plugins'));
+        if (provider.startsWith('@core/')) {
+            pluginModulePath = provider.replace(/^@core/, path.join(__dirname, '../plugins'));
+        } else {
+            try {
+                // direct require
+                require.resolve(pluginModulePath);
+            } catch {
+                // relative
+                pluginModulePath = resolvePath(provider, options);
+            }
         }
         return pluginModulePath;
+    }
+
+    private loadPluginModule(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
+        const pluginModulePath = this.getPluginModulePath(provider, options);
+        return require(pluginModulePath);
     }
 }

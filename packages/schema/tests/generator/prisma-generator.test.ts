@@ -355,6 +355,46 @@ describe('Prisma generator test', () => {
         expect(todo?.documentation?.replace(/\s/g, '')).toBe(`@@allow('read', owner == auth())`.replace(/\s/g, ''));
     });
 
+    it('multiple level inheritance', async () => {
+        const model = await loadModel(`
+        datasource db {
+            provider = 'postgresql'
+            url = env('URL')
+        }
+
+        abstract model Base {
+            id String @id @default(cuid())
+        
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+        }
+        
+        abstract model BaseDeletable extends Base {
+            deleted Boolean @default(false) @omit
+        
+            @@deny('read', deleted)
+        }
+        
+        model Test1 extends BaseDeletable {
+            @@allow('all', true)
+        }
+    `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            format: true,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        const expected = fs.readFileSync(path.join(__dirname, './prisma/multi-level-inheritance.prisma'), 'utf-8');
+
+        expect(content).toBe(expected);
+    });
+
     it('format prisma', async () => {
         const model = await loadModel(`
             datasource db {

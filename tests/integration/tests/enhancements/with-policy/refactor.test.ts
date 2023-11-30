@@ -26,6 +26,7 @@ describe('With Policy: refactor tests', () => {
             {
                 provider: 'postgresql',
                 dbUrl,
+                logPrismaQuery: true,
             }
         );
         getDb = withPolicy;
@@ -455,7 +456,7 @@ describe('With Policy: refactor tests', () => {
         await expect(user1Db.post.findFirst({ where: { id: { in: [4, 5] } } })).toResolveNull();
     });
 
-    it('update', async () => {
+    it('update single', async () => {
         await prisma.user.create({
             data: {
                 id: 2,
@@ -643,7 +644,7 @@ describe('With Policy: refactor tests', () => {
                 },
             })
         ).toResolveTruthy();
-        expect(
+        await expect(
             user1Db.user.update({
                 include: { posts: true },
                 where: { id: 1 },
@@ -799,7 +800,7 @@ describe('With Policy: refactor tests', () => {
                         upsert: {
                             where: { id: 1 },
                             update: { title: 'Post 1-1' }, // update
-                            create: { id: 1, title: 'Post 1' },
+                            create: { id: 7, title: 'Post 1' },
                         },
                     },
                 },
@@ -814,7 +815,7 @@ describe('With Policy: refactor tests', () => {
                         upsert: {
                             where: { id: 7 },
                             update: { title: 'Post 7-1' },
-                            create: { id: 1, title: 'Post 7' }, // create
+                            create: { id: 7, title: 'Post 7' }, // create
                         },
                     },
                 },
@@ -843,7 +844,7 @@ describe('With Policy: refactor tests', () => {
                         upsert: {
                             where: { id: 7 },
                             update: { title: 'Post 7 very long' },
-                            create: { id: 1, title: 'Post 7' },
+                            create: { title: 'Post 7' },
                         },
                     },
                 },
@@ -1098,7 +1099,7 @@ describe('With Policy: refactor tests', () => {
         ).resolves.toMatchObject({ count: 2 });
     });
 
-    it('delete', async () => {
+    it('delete single', async () => {
         await prisma.user.create({
             data: {
                 id: 1,
