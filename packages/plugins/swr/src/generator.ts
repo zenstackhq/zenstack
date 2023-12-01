@@ -93,6 +93,7 @@ function generateModelHooks(
                   'const { endpoint, fetch } = useHooksContext();',
                   `const invalidate = request.useInvalidation('${model.name}', metadata);`,
               ],
+              docs: ['@deprecated Use mutation hooks (useCreateXXX, useUpdateXXX, etc.) instead.'],
           })
         : undefined;
 
