@@ -76,8 +76,9 @@ export function createProgram() {
         .showHelpAfterError()
         .showSuggestionAfterError();
 
-    const schemaOption = new Option('--schema <file>', `schema file (with extension ${schemaExtensions})`).default(
-        './schema.zmodel'
+    const schemaOption = new Option(
+        '--schema <file>',
+        `schema file (with extension ${schemaExtensions}). Defaults to "schema.zmodel" unless specified in package.json.`
     );
 
     const configOption = new Option('-c, --config [file]', 'config file');
