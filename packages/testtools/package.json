@@ -31,11 +31,7 @@
     "zenstack": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
     "@types/pg": "^8.10.2",
-    "@types/tmp": "^0.2.3",
-    "copyfiles": "^2.4.1",
-    "rimraf": "^3.0.2",
-    "typescript": "^4.9.5"
+    "@types/tmp": "^0.2.3"
   }
 }

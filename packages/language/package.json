@@ -19,11 +19,7 @@
     "author": "ZenStack Team",
     "license": "MIT",
     "devDependencies": {
-        "concurrently": "^7.4.0",
-        "copyfiles": "^2.4.1",
-        "langium-cli": "1.2.0",
-        "rimraf": "^3.0.2",
-        "typescript": "^4.9.4"
+        "langium-cli": "1.2.0"
     },
     "dependencies": {
         "langium": "1.2.0"
