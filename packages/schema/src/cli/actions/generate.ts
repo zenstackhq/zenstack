@@ -5,6 +5,7 @@ import { CliError } from '../cli-error';
 import {
     checkNewVersion,
     checkRequiredPackage,
+    getDefaultSchemaLocation,
     getZenStackPackages,
     loadDocument,
     requiredPrismaVersion,
@@ -12,7 +13,7 @@ import {
 import { PluginRunner, PluginRunnerOptions } from '../plugin-runner';
 
 type Options = {
-    schema: string;
+    schema?: string;
     output?: string;
     dependencyCheck: boolean;
     versionCheck: boolean;
@@ -52,11 +53,13 @@ export async function generate(projectPath: string, options: Options) {
 }
 
 async function runPlugins(options: Options) {
-    const model = await loadDocument(options.schema);
+    const schema = options.schema ?? getDefaultSchemaLocation();
+
+    const model = await loadDocument(schema);
 
     const runnerOpts: PluginRunnerOptions = {
         schema: model,
-        schemaPath: path.resolve(options.schema),
+        schemaPath: path.resolve(schema),
         defaultPlugins: options.defaultPlugins,
         output: options.output,
         compile: options.compile,

@@ -276,3 +276,22 @@ export async function formatDocument(fileName: string) {
     const edits = await formatter.formatDocument(document, { options, textDocument: identifier });
     return TextDocument.applyEdits(document.textDocument, edits);
 }
+
+export function getDefaultSchemaLocation() {
+    let location = path.resolve('schema.zmodel');
+
+    if (fs.existsSync('./package.json')) {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const pkgJson = require(path.resolve('./package.json'));
+            if (typeof pkgJson.zenstack?.schema === 'string') {
+                location = path.resolve(pkgJson.zenstack.schema);
+            }
+        } catch (e) {
+            console.error(e);
+            // noop
+        }
+    }
+
+    return location;
+}
