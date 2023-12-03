@@ -21,7 +21,6 @@
         "@zenstackhq/server": "workspace:*",
         "@zenstackhq/swr": "workspace:*",
         "@zenstackhq/trpc": "workspace:*",
-        "eslint-plugin-jest": "^27.1.7",
         "fs-extra": "^11.1.0",
         "jest-fetch-mock": "^3.0.3",
         "next": "^12.3.1",
