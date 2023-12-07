@@ -81,7 +81,6 @@ export function createProgram() {
         `schema file (with extension ${schemaExtensions}). Defaults to "schema.zmodel" unless specified in package.json.`
     );
 
-    const configOption = new Option('-c, --config [file]', 'config file');
     const pmOption = new Option('-p, --package-manager <pm>', 'package manager to use').choices([
         'npm',
         'yarn',
@@ -99,7 +98,6 @@ export function createProgram() {
     program
         .command('init')
         .description('Initialize an existing project for ZenStack.')
-        .addOption(configOption)
         .addOption(pmOption)
         .addOption(new Option('--prisma <file>', 'location of Prisma schema file to bootstrap from'))
         .addOption(new Option('--tag <tag>', 'the NPM package tag to use when installing dependencies'))
@@ -112,7 +110,6 @@ export function createProgram() {
         .description('Run code generation.')
         .addOption(schemaOption)
         .addOption(new Option('-o, --output <path>', 'default output directory for built-in plugins'))
-        .addOption(configOption)
         .addOption(new Option('--no-default-plugins', 'do not run default plugins'))
         .addOption(new Option('--no-compile', 'do not compile the output of built-in plugins'))
         .addOption(noVersionCheckOption)
