@@ -12,6 +12,11 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
+plugin zod {
+    provider = '@core/zod'
+    preserveTsFiles = true
+}
+
 /*
  * Model for a space in which users can collaborate on Lists and Todos
  */
@@ -104,6 +109,7 @@ model List {
     title String @length(1, 100)
     private Boolean @default(false)
     todos Todo[]
+    revision Int @default(0)
 
     // require login
     @@deny('all', auth() == null)

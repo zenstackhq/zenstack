@@ -1051,7 +1051,7 @@ export class PolicyUtil {
         if (!this.hasFieldValidation(model)) {
             return undefined;
         }
-        const schemaKey = `${upperCaseFirst(model)}${kind ? upperCaseFirst(kind) : ''}Schema`;
+        const schemaKey = `${upperCaseFirst(model)}${kind ? 'Prisma' + upperCaseFirst(kind) : ''}Schema`;
         return this.zodSchemas?.models?.[schemaKey];
     }
 

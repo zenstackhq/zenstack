@@ -7,20 +7,13 @@ import {
     TypeScriptExpressionTransformerError,
 } from '../../../utils/typescript-expression-transformer';
 
-export function makeFieldSchema(field: DataModelField, forMutation = false) {
+export function makeFieldSchema(field: DataModelField) {
     if (isDataModel(field.type.reference?.ref)) {
-        if (!forMutation) {
-            // read schema, always optional
-            if (field.type.array) {
-                return `z.array(z.unknown()).optional()`;
-            } else {
-                return `z.record(z.unknown()).optional()`;
-            }
+        if (field.type.array) {
+            // array field is always optional
+            return `z.array(z.unknown()).optional()`;
         } else {
-            // write schema
-            return `${
-                field.type.optional || field.type.array ? 'z.record(z.unknown()).optional()' : 'z.record(z.unknown())'
-            }`;
+            return field.type.optional ? `z.record(z.unknown()).optional()` : `z.record(z.unknown())`;
         }
     }
 
