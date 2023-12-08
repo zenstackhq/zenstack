@@ -13,6 +13,7 @@ describe('With Policy: field validation', () => {
                 email String? @email @endsWith("@myorg.com")
                 profileImage String? @url
                 handle String? @regex("^[0-9a-zA-Z]{4,16}$")
+                age Int @default(18) @gt(0) @lt(100)
 
                 userData UserData?
                 tasks Task[]
@@ -127,6 +128,24 @@ describe('With Policy: field validation', () => {
             'String must contain at least 8 character(s) at "password"',
             'must end with "@myorg.com" at "email"',
         ]);
+
+        await expect(
+            db.user.update({
+                where: { id: '1' },
+                data: {
+                    age: { increment: 100 },
+                },
+            })
+        ).toBeRejectedByPolicy(['Number must be less than 100 at "age"']);
+
+        await expect(
+            db.user.update({
+                where: { id: '1' },
+                data: {
+                    age: { increment: 10 },
+                },
+            })
+        ).toResolveTruthy();
     });
 
     it('direct write more', async () => {
