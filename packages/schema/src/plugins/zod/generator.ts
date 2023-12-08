@@ -4,8 +4,6 @@ import {
     PluginOptions,
     createProject,
     emitProject,
-    getAttribute,
-    getAttributeArg,
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
@@ -17,16 +15,7 @@ import {
     resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
-import {
-    DataModel,
-    DataModelField,
-    DataSource,
-    EnumField,
-    Model,
-    isDataModel,
-    isDataSource,
-    isEnum,
-} from '@zenstackhq/sdk/ast';
+import { DataModel, DataSource, EnumField, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { promises as fs } from 'fs';
 import { streamAllContents } from 'langium';
@@ -271,7 +260,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         overwrite: true,
     });
     sf.replaceWithText((writer) => {
-        const fields = model.fields.filter(
+        const scalarFields = model.fields.filter(
             (field) =>
                 // regular fields only
                 !isDataModel(field.type.reference?.ref) && !isForeignKeyField(field)
@@ -279,10 +268,6 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
         const relations = model.fields.filter((field) => isDataModel(field.type.reference?.ref));
         const fkFields = model.fields.filter((field) => isForeignKeyField(field));
-        // unsafe version of relations: including foreign keys and relation fields without fk
-        const unsafeRelations = model.fields.filter(
-            (field) => isForeignKeyField(field) || (isDataModel(field.type.reference?.ref) && !hasForeignKey(field))
-        );
 
         writer.writeLine('/* eslint-disable */');
         writer.writeLine(`import { z } from 'zod';`);
@@ -304,7 +289,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
         // import enum schemas
         const importedEnumSchemas = new Set<string>();
-        for (const field of fields) {
+        for (const field of scalarFields) {
             if (field.type.reference?.ref && isEnum(field.type.reference?.ref)) {
                 const name = upperCaseFirst(field.type.reference?.ref.name);
                 if (!importedEnumSchemas.has(name)) {
@@ -315,7 +300,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         }
 
         // import Decimal
-        if (fields.some((field) => field.type.type === 'Decimal')) {
+        if (scalarFields.some((field) => field.type.type === 'Decimal')) {
             writer.writeLine(`import { DecimalSchema } from '../common';`);
             writer.writeLine(`import { Decimal } from 'decimal.js';`);
         }
@@ -323,7 +308,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         // base schema
         writer.write(`const baseSchema = z.object(`);
         writer.inlineBlock(() => {
-            fields.forEach((field) => {
+            scalarFields.forEach((field) => {
                 writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
             });
         });
@@ -331,13 +316,12 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
         // relation fields
 
-        let allRelationSchema: string | undefined;
-        let safeRelationSchema: string | undefined;
-        let unsafeRelationSchema: string | undefined;
+        let relationSchema: string | undefined;
+        let fkSchema: string | undefined;
 
         if (relations.length > 0 || fkFields.length > 0) {
-            allRelationSchema = 'allRelationSchema';
-            writer.write(`const ${allRelationSchema} = z.object(`);
+            relationSchema = 'relationSchema';
+            writer.write(`const ${relationSchema} = z.object(`);
             writer.inlineBlock(() => {
                 [...relations, ...fkFields].forEach((field) => {
                     writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
@@ -346,23 +330,12 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
             writer.writeLine(');');
         }
 
-        if (relations.length > 0) {
-            safeRelationSchema = 'safeRelationSchema';
-            writer.write(`const ${safeRelationSchema} = z.object(`);
+        if (fkFields.length > 0) {
+            fkSchema = 'fkSchema';
+            writer.write(`const ${fkSchema} = z.object(`);
             writer.inlineBlock(() => {
-                relations.forEach((field) => {
-                    writer.writeLine(`${field.name}: ${makeFieldSchema(field, true)},`);
-                });
-            });
-            writer.writeLine(');');
-        }
-
-        if (unsafeRelations.length > 0) {
-            unsafeRelationSchema = 'unsafeRelationSchema';
-            writer.write(`const ${unsafeRelationSchema} = z.object(`);
-            writer.inlineBlock(() => {
-                unsafeRelations.forEach((field) => {
-                    writer.writeLine(`${field.name}: ${makeFieldSchema(field, true)},`);
+                fkFields.forEach((field) => {
+                    writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
                 });
             });
             writer.writeLine(');');
@@ -383,10 +356,10 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         ////////////////////////////////////////////////
         // 1. Model schema
         ////////////////////////////////////////////////
-        let modelSchema = 'baseSchema';
+        let modelSchema = makePartial('baseSchema');
 
         // omit fields
-        const fieldsToOmit = fields.filter((field) => hasAttribute(field, '@omit'));
+        const fieldsToOmit = scalarFields.filter((field) => hasAttribute(field, '@omit'));
         if (fieldsToOmit.length > 0) {
             modelSchema = makeOmit(
                 modelSchema,
@@ -394,14 +367,14 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
             );
         }
 
-        if (allRelationSchema) {
+        if (relationSchema) {
             // export schema with only scalar fields
             const modelScalarSchema = `${upperCaseFirst(model.name)}ScalarSchema`;
             writer.writeLine(`export const ${modelScalarSchema} = ${modelSchema};`);
             modelSchema = modelScalarSchema;
 
             // merge relations
-            modelSchema = makeMerge(modelSchema, allRelationSchema);
+            modelSchema = makeMerge(modelSchema, makePartial(relationSchema));
         }
 
         // refine
@@ -413,10 +386,40 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         writer.writeLine(`export const ${upperCaseFirst(model.name)}Schema = ${modelSchema};`);
 
         ////////////////////////////////////////////////
-        // 2. Create schema
+        // 2. Prisma create & update
+        ////////////////////////////////////////////////
+
+        // schema for validating prisma create input (all fields optional)
+        let prismaCreateSchema = makePartial('baseSchema');
+        if (refineFuncName) {
+            prismaCreateSchema = `${refineFuncName}(${prismaCreateSchema})`;
+        }
+        writer.writeLine(`export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSchema};`);
+
+        // schema for validating prisma update input (all fields optional)
+        // note numeric fields can be simple update or atomic operations
+        let prismaUpdateSchema = `z.object({
+            ${scalarFields
+                .map((field) => {
+                    let fieldSchema = makeFieldSchema(field);
+                    if (field.type.type === 'Int' || field.type.type === 'Float') {
+                        fieldSchema = `z.union([${fieldSchema}, z.record(z.unknown())])`;
+                    }
+                    return `\t${field.name}: ${fieldSchema}`;
+                })
+                .join(',\n')}
+})`;
+        prismaUpdateSchema = makePartial(prismaUpdateSchema);
+        if (refineFuncName) {
+            prismaUpdateSchema = `${refineFuncName}(${prismaUpdateSchema})`;
+        }
+        writer.writeLine(`export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSchema};`);
+
+        ////////////////////////////////////////////////
+        // 3. Create schema
         ////////////////////////////////////////////////
         let createSchema = 'baseSchema';
-        const fieldsWithDefault = fields.filter(
+        const fieldsWithDefault = scalarFields.filter(
             (field) => hasAttribute(field, '@default') || hasAttribute(field, '@updatedAt') || field.type.array
         );
         if (fieldsWithDefault.length > 0) {
@@ -426,30 +429,13 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
             );
         }
 
-        if (safeRelationSchema || unsafeRelationSchema) {
+        if (fkSchema) {
             // export schema with only scalar fields
             const createScalarSchema = `${upperCaseFirst(model.name)}CreateScalarSchema`;
             writer.writeLine(`export const ${createScalarSchema} = ${createSchema};`);
-            createSchema = createScalarSchema;
 
-            if (safeRelationSchema && unsafeRelationSchema) {
-                // build a union of with relation object fields and with fk fields (mutually exclusive)
-
-                // TODO: we make all relation fields partial for now because in case of
-                // nested create, not all relation/fk fields are inside payload, need a
-                // better solution
-                createSchema = makeUnion(
-                    makeMerge(createSchema, makePartial(safeRelationSchema)),
-                    makeMerge(createSchema, makePartial(unsafeRelationSchema))
-                );
-            } else if (safeRelationSchema) {
-                // just relation
-
-                // TODO: we make all relation fields partial for now because in case of
-                // nested create, not all relation/fk fields are inside payload, need a
-                // better solution
-                createSchema = makeMerge(createSchema, makePartial(safeRelationSchema));
-            }
+            // merge fk fields
+            createSchema = makeMerge(createScalarSchema, fkSchema);
         }
 
         if (refineFuncName) {
@@ -465,22 +451,14 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         ////////////////////////////////////////////////
         let updateSchema = makePartial('baseSchema');
 
-        if (safeRelationSchema || unsafeRelationSchema) {
+        if (fkSchema) {
             // export schema with only scalar fields
             const updateScalarSchema = `${upperCaseFirst(model.name)}UpdateScalarSchema`;
             writer.writeLine(`export const ${updateScalarSchema} = ${updateSchema};`);
             updateSchema = updateScalarSchema;
 
-            if (safeRelationSchema && unsafeRelationSchema) {
-                // build a union of with relation object fields and with fk fields (mutually exclusive)
-                updateSchema = makeUnion(
-                    makeMerge(updateSchema, makePartial(safeRelationSchema)),
-                    makeMerge(updateSchema, makePartial(unsafeRelationSchema))
-                );
-            } else if (safeRelationSchema) {
-                // just relation
-                updateSchema = makeMerge(updateSchema, makePartial(safeRelationSchema));
-            }
+            // merge fk fields
+            updateSchema = makeMerge(updateSchema, makePartial(fkSchema));
         }
 
         if (refineFuncName) {
@@ -513,16 +491,4 @@ function makeOmit(schema: string, fields: string[]) {
 
 function makeMerge(schema1: string, schema2: string): string {
     return `${schema1}.merge(${schema2})`;
-}
-
-function makeUnion(...schemas: string[]): string {
-    return `z.union([${schemas.join(', ')}])`;
-}
-
-function hasForeignKey(field: DataModelField) {
-    const relAttr = getAttribute(field, '@relation');
-    if (!relAttr) {
-        return false;
-    }
-    return !!getAttributeArg(relAttr, 'fields');
 }
