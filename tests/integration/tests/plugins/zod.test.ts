@@ -64,6 +64,8 @@ describe('Zod plugin tests', () => {
         expect(schemas.UserSchema).toBeTruthy();
         expect(schemas.UserCreateSchema).toBeTruthy();
         expect(schemas.UserUpdateSchema).toBeTruthy();
+        expect(schemas.UserPrismaCreateSchema).toBeTruthy();
+        expect(schemas.UserPrismaUpdateSchema).toBeTruthy();
 
         // create
         expect(schemas.UserCreateSchema.safeParse({ email: 'abc' }).success).toBeFalsy();
@@ -77,7 +79,6 @@ describe('Zod plugin tests', () => {
             schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN', password: 'abc123' }).success
         ).toBeTruthy();
 
-        // create unchecked
         // create unchecked
         expect(
             zodSchemas.input.UserInputSchema.create.safeParse({
@@ -97,7 +98,7 @@ describe('Zod plugin tests', () => {
         ).toBeTruthy();
 
         // model schema
-        expect(schemas.UserSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeFalsy();
+        expect(schemas.UserSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeTruthy();
         // without omitted field
         expect(
             schemas.UserSchema.safeParse({
@@ -126,6 +127,18 @@ describe('Zod plugin tests', () => {
         expect(schemas.PostCreateSchema.safeParse({ title: 'abc' }).success).toBeFalsy();
         expect(schemas.PostCreateSchema.safeParse({ title: 'abcabcabcabc' }).success).toBeFalsy();
         expect(schemas.PostCreateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
+        schemas.PostCreateSchema.parse({ title: 'abcde', authorId: 1 });
+        expect(schemas.PostCreateSchema.safeParse({ title: 'abcde', authorId: 1 }).data.authorId).toBe(1);
+        expect(schemas.PostUpdateSchema.safeParse({ authorId: 1 }).data.authorId).toBe(1);
+
+        expect(schemas.PostPrismaCreateSchema.safeParse({ title: 'a' }).success).toBeFalsy();
+        expect(schemas.PostPrismaCreateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
+        expect(schemas.PostPrismaCreateSchema.safeParse({ viewCount: 1 }).success).toBeTruthy();
+
+        expect(schemas.PostPrismaUpdateSchema.safeParse({ title: 'a' }).success).toBeFalsy();
+        expect(schemas.PostPrismaUpdateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
+        expect(schemas.PostPrismaUpdateSchema.safeParse({ viewCount: 1 }).success).toBeTruthy();
+        expect(schemas.PostPrismaUpdateSchema.safeParse({ viewCount: { increment: 1 } }).success).toBeTruthy();
     });
 
     it('mixed casing', async () => {
