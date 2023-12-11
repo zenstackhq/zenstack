@@ -16,7 +16,7 @@ const formatOptions = {
 async function formatFile(sourceFile: SourceFile) {
     try {
         const content = sourceFile.getFullText();
-        const formatted = prettier.format(content, formatOptions);
+        const formatted = await prettier.format(content, formatOptions);
         sourceFile.replaceWithText(formatted);
         await sourceFile.save();
     } catch {
