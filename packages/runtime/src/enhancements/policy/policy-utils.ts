@@ -381,7 +381,9 @@ export class PolicyUtil {
         if (operation === 'read') {
             // merge field-level read override guards
             const fieldReadOverrideGuard = this.getFieldReadGuards(db, model, args);
-            guard = this.or(guard, fieldReadOverrideGuard);
+            if (fieldReadOverrideGuard) {
+                guard = this.or(guard, fieldReadOverrideGuard);
+            }
         }
 
         if (this.isFalse(guard)) {
@@ -832,6 +834,11 @@ export class PolicyUtil {
             fields.push(...allFields.filter((f) => !fields.includes(f) && args.include[f.name]));
         }
 
+        if (fields.length === 0) {
+            // this can happen if only selecting pseudo fields like "_count"
+            return undefined;
+        }
+
         const allFieldGuards = fields.map((field) => this.getFieldOverrideReadAuthGuard(db, model, field.name));
         return this.and(...allFieldGuards);
     }
@@ -882,11 +889,12 @@ export class PolicyUtil {
         }
 
         const allFieldsCombined = this.and(...allFieldGuards);
-        const allOverrideFieldsCombined = this.and(...allOverrideFieldGuards);
+        const allOverrideFieldsCombined =
+            allOverrideFieldGuards.length !== 0 ? this.and(...allOverrideFieldGuards) : undefined;
 
         return {
             guard: allFieldsCombined,
-            overrideGuard: this.isFalse(allOverrideFieldsCombined) ? undefined : allOverrideFieldsCombined,
+            overrideGuard: allOverrideFieldsCombined,
             rejectedByField: undefined,
         };
     }

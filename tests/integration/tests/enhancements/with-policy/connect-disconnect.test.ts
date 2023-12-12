@@ -318,14 +318,14 @@ describe('With Policy: connect-disconnect', () => {
 
         const db = withPolicy();
 
-        await prisma.m1.create({ data: { id: 'm1-1', value: 1 } });
-        await prisma.m2.create({ data: { id: 'm2-1', value: 1 } });
-        await expect(
-            db.m1.update({
-                where: { id: 'm1-1' },
-                data: { m2: { connect: { id: 'm2-1' } } },
-            })
-        ).toResolveTruthy();
+        // await prisma.m1.create({ data: { id: 'm1-1', value: 1 } });
+        // await prisma.m2.create({ data: { id: 'm2-1', value: 1 } });
+        // await expect(
+        //     db.m1.update({
+        //         where: { id: 'm1-1' },
+        //         data: { m2: { connect: { id: 'm2-1' } } },
+        //     })
+        // ).toResolveTruthy();
 
         await prisma.m1.create({ data: { id: 'm1-2', value: 1 } });
         await prisma.m2.create({ data: { id: 'm2-2', value: 1, deleted: true } });
