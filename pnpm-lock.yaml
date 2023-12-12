@@ -349,9 +349,6 @@ importers:
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
-      prettier:
-        specifier: ^2.8.3
-        version: 2.8.3
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
@@ -364,6 +361,10 @@ importers:
       zod:
         specifier: ^3.22.4
         version: 3.22.4
+    optionalDependencies:
+      '@types/prettier':
+        specifier: ^2.7.2
+        version: 2.7.2
     devDependencies:
       '@trpc/next':
         specifier: ^10.32.0
@@ -380,9 +381,6 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.0.0
-      '@types/prettier':
-        specifier: ^2.7.2
-        version: 2.7.2
       '@zenstackhq/testtools':
         specifier: workspace:*
         version: link:../../testtools/dist
@@ -698,7 +696,7 @@ importers:
         specifier: ^2.0.2
         version: 2.0.2
       prettier:
-        specifier: ^2.8.3
+        specifier: ^2.8.3 || 3.x
         version: 2.8.3
       semver:
         specifier: ^7.3.8
@@ -967,7 +965,7 @@ importers:
         version: 0.2.1
       ts-jest:
         specifier: ^29.1.1
-        version: 29.1.1(@babel/core@7.23.2)(jest@29.5.0)(typescript@4.6.2)
+        version: 29.1.1(@babel/core@7.23.2)(esbuild@0.18.13)(jest@29.5.0)(typescript@4.6.2)
       ts-node:
         specifier: ^10.9.1
         version: 10.9.1(@types/node@18.0.0)(typescript@4.6.2)
@@ -1021,7 +1019,7 @@ packages:
     resolution: {integrity: sha512-Xmwn266vad+6DAqEB2A6V/CcZVp62BbwVmcOJc2RPuwih1kw02TjQvWVWlcKGbBPd+8/0V5DEkOcizRGYsspYQ==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/highlight': 7.22.5
+      '@babel/highlight': 7.22.20
     dev: true
 
   /@babel/compat-data@7.22.5:
@@ -1334,15 +1332,6 @@ packages:
       '@babel/helper-validator-identifier': 7.22.20
       chalk: 2.4.2
       js-tokens: 4.0.0
-
-  /@babel/highlight@7.22.5:
-    resolution: {integrity: sha512-BSKlD1hgnedS5XRnGOljZawtag7H1yPfQp0tdNJCHoH6AZ+Pcm9VvkrK59/Yy593Ypg0zMxH2BxD1VPYUQ7UIw==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/helper-validator-identifier': 7.22.20
-      chalk: 2.4.2
-      js-tokens: 4.0.0
-    dev: true
 
   /@babel/parser@7.23.0:
     resolution: {integrity: sha512-vvPKKdMemU85V9WE/l5wZEmImpCtLqbnTvqDS2U1fJ96KrxoW7KrXhNsNCblQlg8Ck4b85yxdTyelsMUgFUXiw==}
@@ -3395,7 +3384,7 @@ packages:
     hasBin: true
     dependencies:
       detect-libc: 2.0.1
-      https-proxy-agent: 5.0.0
+      https-proxy-agent: 5.0.1
       make-dir: 3.1.0
       node-fetch: 2.6.12
       nopt: 5.0.0
@@ -5148,7 +5137,9 @@ packages:
 
   /@types/prettier@2.7.2:
     resolution: {integrity: sha512-KufADq8uQqo1pYKVIYzfKbJfBAc0sOeXqGbFaSpv8MRmC/zXgowNZmFcbngndGk922QDmOASEXUZCaY48gs4cg==}
-    dev: true
+    requiresBuild: true
+    dev: false
+    optional: true
 
   /@types/prettier@2.7.3:
     resolution: {integrity: sha512-+68kP9yzs4LMp7VNh8gdzMSPZFL44MLGqiHWvttYJe+6qnuVr4Ek9wSBQoveqY/r+LwjCcU29kNVkidwim+kYA==}
@@ -9622,6 +9613,7 @@ packages:
       debug: 4.3.4
     transitivePeerDependencies:
       - supports-color
+    dev: false
 
   /https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
@@ -10317,7 +10309,7 @@ packages:
       pretty-format: 29.7.0
       slash: 3.0.0
       strip-json-comments: 3.1.1
-      ts-node: 10.9.1(@types/node@18.0.0)(typescript@4.6.2)
+      ts-node: 10.9.1(@types/node@18.0.0)(typescript@4.8.4)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -10357,7 +10349,7 @@ packages:
       pretty-format: 29.7.0
       slash: 3.0.0
       strip-json-comments: 3.1.1
-      ts-node: 10.9.1(@types/node@18.0.0)(typescript@4.6.2)
+      ts-node: 10.9.1(@types/node@18.0.0)(typescript@4.8.4)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -15058,7 +15050,7 @@ packages:
       yargs-parser: 21.1.1
     dev: true
 
-  /ts-jest@29.1.1(@babel/core@7.23.2)(jest@29.5.0)(typescript@4.6.2):
+  /ts-jest@29.1.1(@babel/core@7.23.2)(esbuild@0.18.13)(jest@29.5.0)(typescript@4.6.2):
     resolution: {integrity: sha512-D6xjnnbP17cC85nliwGiL+tpoKN0StpgE0TeOjXQTU6MVCfsB4v7aW05CgQ/1OywGb0x/oy9hHFnN+sczTiRaA==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
     hasBin: true
@@ -15081,6 +15073,7 @@ packages:
     dependencies:
       '@babel/core': 7.23.2
       bs-logger: 0.2.6
+      esbuild: 0.18.13
       fast-json-stable-stringify: 2.1.0
       jest: 29.5.0(@types/node@18.0.0)(ts-node@10.9.1)
       jest-util: 29.7.0
