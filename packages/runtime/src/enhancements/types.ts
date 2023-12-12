@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
 import {
+    FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
+    FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX,
     FIELD_LEVEL_READ_CHECKER_PREFIX,
     FIELD_LEVEL_READ_CHECKER_SELECTOR,
     FIELD_LEVEL_UPDATE_GUARD_PREFIX,
@@ -47,7 +49,12 @@ export type PolicyDef = {
             Partial<Record<`${PolicyOperationKind}_input`, InputCheckFunc | boolean>> &
             // field-level read checker functions or update guard functions
             Record<`${typeof FIELD_LEVEL_READ_CHECKER_PREFIX}${string}`, ReadFieldCheckFunc> &
-            Record<`${typeof FIELD_LEVEL_UPDATE_GUARD_PREFIX}${string}`, PolicyFunc> & {
+            Record<
+                | `${typeof FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${string}`
+                | `${typeof FIELD_LEVEL_UPDATE_GUARD_PREFIX}${string}`
+                | `${typeof FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${string}`,
+                PolicyFunc
+            > & {
                 // pre-update value selector
                 [PRE_UPDATE_VALUE_SELECTOR]?: object;
                 // field-level read checker selector

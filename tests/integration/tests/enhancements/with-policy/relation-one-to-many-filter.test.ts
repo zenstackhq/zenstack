@@ -432,32 +432,27 @@ describe('With Policy: relation one-to-many filter', () => {
             },
         });
 
-        await expect(db.m1.findFirst({ include: { _count: true } })).resolves.toEqual(
-            expect.objectContaining({ _count: { m2: 1 } })
-        );
-        await expect(db.m1.findFirst({ include: { _count: { select: { m2: true } } } })).resolves.toEqual(
-            expect.objectContaining({ _count: { m2: 1 } })
-        );
+        await expect(db.m1.findFirst({ include: { _count: true } })).resolves.toMatchObject({ _count: { m2: 1 } });
+        await expect(db.m1.findFirst({ include: { _count: { select: { m2: true } } } })).resolves.toMatchObject({
+            _count: { m2: 1 },
+        });
         await expect(
             db.m1.findFirst({ include: { _count: { select: { m2: { where: { value: { gt: 0 } } } } } } })
-        ).resolves.toEqual(expect.objectContaining({ _count: { m2: 1 } }));
+        ).resolves.toMatchObject({ _count: { m2: 1 } });
         await expect(
             db.m1.findFirst({ include: { _count: { select: { m2: { where: { value: { gt: 1 } } } } } } })
-        ).resolves.toEqual(expect.objectContaining({ _count: { m2: 0 } }));
+        ).resolves.toMatchObject({ _count: { m2: 0 } });
 
-        const t = await db.m1.findFirst({ include: { m2: { select: { _count: true } } } });
-        console.log(t);
-
-        await expect(db.m1.findFirst({ include: { m2: { select: { _count: true } } } })).resolves.toEqual(
-            expect.objectContaining({ m2: [{ _count: { m3: 1 } }] })
-        );
+        await expect(db.m1.findFirst({ include: { m2: { select: { _count: true } } } })).resolves.toMatchObject({
+            m2: [{ _count: { m3: 1 } }],
+        });
         await expect(
             db.m1.findFirst({ include: { m2: { select: { _count: { select: { m3: true } } } } } })
-        ).resolves.toEqual(expect.objectContaining({ m2: [{ _count: { m3: 1 } }] }));
+        ).resolves.toMatchObject({ m2: [{ _count: { m3: 1 } }] });
         await expect(
             db.m1.findFirst({
                 include: { m2: { select: { _count: { select: { m3: { where: { value: { gt: 1 } } } } } } } },
             })
-        ).resolves.toEqual(expect.objectContaining({ m2: [{ _count: { m3: 0 } }] }));
+        ).resolves.toMatchObject({ m2: [{ _count: { m3: 0 } }] });
     });
 });
