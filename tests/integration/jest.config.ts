@@ -11,8 +11,6 @@ export default {
 
     testTimeout: 300000,
 
-    globalSetup: './global-setup.js',
-
     setupFilesAfterEnv: ['./test-setup.ts'],
 
     // Indicates whether the coverage information should be collected while executing the test
