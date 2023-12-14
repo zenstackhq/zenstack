@@ -210,10 +210,10 @@ function generateMutationHook(
                         name: 'mutation',
                         initializer: `{
                     ..._mutation,
-                    async mutateAsync<T extends ${argsType}>(
+                    mutateAsync: async <T extends ${argsType}>(
                         args: Prisma.SelectSubset<T, ${argsType}>,
                         options?: ${optionsType}
-                      ) {
+                      ) => {
                         return (await _mutation.mutateAsync(
                           args,
                           options as any
@@ -236,10 +236,10 @@ function generateMutationHook(
                         name: 'mutation',
                         initializer: `derived(_mutation, value => ({
                     ...value,
-                    async mutateAsync<T extends ${argsType}>(
+                    mutateAsync: async <T extends ${argsType}>(
                         args: Prisma.SelectSubset<T, ${argsType}>,
                         options?: ${optionsType}
-                      ) {
+                      ) => {
                         return (await value.mutateAsync(
                           args,
                           options as any

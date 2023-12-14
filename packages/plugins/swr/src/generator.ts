@@ -93,6 +93,7 @@ function generateModelHooks(
                   'const { endpoint, fetch } = useHooksContext();',
                   `const invalidate = request.useInvalidation('${model.name}', metadata);`,
               ],
+              docs: ['@deprecated Use mutation hooks (useCreateXXX, useUpdateXXX, etc.) instead.'],
           })
         : undefined;
 
@@ -382,7 +383,7 @@ function generateMutation(
             `const mutation = request.useModelMutation('${model.name}', '${method}', '${operation}', metadata, options, ${checkReadBack});`,
             `return {
                 ...mutation,
-                trigger<T extends ${argsType}>(args: ${genericInputType}) {
+                trigger: <T extends ${argsType}>(args: ${genericInputType}) => {
                     return mutation.trigger(args, options as any) as Promise<${genericReturnType}>;
                 }
             };`,

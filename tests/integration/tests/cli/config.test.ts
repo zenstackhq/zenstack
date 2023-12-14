@@ -4,7 +4,6 @@
 import * as fs from 'fs';
 import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
-import { CliError } from '../../../../packages/schema/src/cli/cli-error';
 
 describe('CLI Config Tests', () => {
     let origDir: string;

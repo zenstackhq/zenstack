@@ -76,11 +76,12 @@ export function createProgram() {
         .showHelpAfterError()
         .showSuggestionAfterError();
 
-    const schemaOption = new Option('--schema <file>', `schema file (with extension ${schemaExtensions})`).default(
-        './schema.zmodel'
+    const schemaOption = new Option(
+        '--schema <file>',
+        `schema file (with extension ${schemaExtensions}). Defaults to "schema.zmodel" unless specified in package.json.`
     );
 
-    const configOption = new Option('-c, --config [file]', 'config file');
+    const configOption = new Option('-c, --config [file]', 'config file').hideHelp();
     const pmOption = new Option('-p, --package-manager <pm>', 'package manager to use').choices([
         'npm',
         'yarn',

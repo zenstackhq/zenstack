@@ -7,6 +7,8 @@ import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import {
     CrudFailureReason,
+    FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
+    FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX,
     FIELD_LEVEL_READ_CHECKER_PREFIX,
     FIELD_LEVEL_READ_CHECKER_SELECTOR,
     FIELD_LEVEL_UPDATE_GUARD_PREFIX,
@@ -236,12 +238,7 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    getAuthGuard(
-        db: Record<string, DbOperations>,
-        model: string,
-        operation: PolicyOperationKind,
-        preValue?: any
-    ): object {
+    getAuthGuard(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind, preValue?: any) {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -260,23 +257,61 @@ export class PolicyUtil {
     }
 
     /**
-     * Get field-level auth guard
+     * Get field-level read auth guard that overrides the model-level
      */
-    getFieldUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string): object {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
+    getFieldOverrideReadAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+        const guard = this.requireGuard(model);
+
+        const provider = guard[`${FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${field}`];
+        if (provider === undefined) {
+            // field access is denied by default in override mode
+            return this.makeFalse();
         }
 
-        const provider = guard[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field}`];
         if (typeof provider === 'boolean') {
             return this.reduce(provider);
         }
 
-        if (!provider) {
+        const r = provider({ user: this.user }, db);
+        return this.reduce(r);
+    }
+
+    /**
+     * Get field-level update auth guard
+     */
+    getFieldUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+        const guard = this.requireGuard(model);
+
+        const provider = guard[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field}`];
+        if (provider === undefined) {
             // field access is allowed by default
             return this.makeTrue();
         }
+
+        if (typeof provider === 'boolean') {
+            return this.reduce(provider);
+        }
+
+        const r = provider({ user: this.user }, db);
+        return this.reduce(r);
+    }
+
+    /**
+     * Get field-level update auth guard that overrides the model-level
+     */
+    getFieldOverrideUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+        const guard = this.requireGuard(model);
+
+        const provider = guard[`${FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${field}`];
+        if (provider === undefined) {
+            // field access is denied by default in override mode
+            return this.makeFalse();
+        }
+
+        if (typeof provider === 'boolean') {
+            return this.reduce(provider);
+        }
+
         const r = provider({ user: this.user }, db);
         return this.reduce(r);
     }
@@ -322,10 +357,6 @@ export class PolicyUtil {
      */
     injectAuthGuard(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
         let guard = this.getAuthGuard(db, model, operation);
-        if (this.isFalse(guard)) {
-            args.where = this.makeFalse();
-            return false;
-        }
 
         if (operation === 'update' && args) {
             // merge field-level policy guards
@@ -334,10 +365,30 @@ export class PolicyUtil {
                 // rejected
                 args.where = this.makeFalse();
                 return false;
-            } else if (fieldUpdateGuard.guard) {
-                // merge
-                guard = this.and(guard, fieldUpdateGuard.guard);
+            } else {
+                if (fieldUpdateGuard.guard) {
+                    // merge field-level guard
+                    guard = this.and(guard, fieldUpdateGuard.guard);
+                }
+
+                if (fieldUpdateGuard.overrideGuard) {
+                    // merge field-level override guard on the top level
+                    guard = this.or(guard, fieldUpdateGuard.overrideGuard);
+                }
             }
+        }
+
+        if (operation === 'read') {
+            // merge field-level read override guards
+            const fieldReadOverrideGuard = this.getFieldReadGuards(db, model, args);
+            if (fieldReadOverrideGuard) {
+                guard = this.or(guard, fieldReadOverrideGuard);
+            }
+        }
+
+        if (this.isFalse(guard)) {
+            args.where = this.makeFalse();
+            return false;
         }
 
         if (args.where) {
@@ -441,7 +492,8 @@ export class PolicyUtil {
      * Injects auth guard for read operations.
      */
     injectForRead(db: Record<string, DbOperations>, model: string, args: any) {
-        const injected: any = {};
+        // make select and include visible to the injection
+        const injected: any = { select: args.select, include: args.include };
         if (!this.injectAuthGuard(db, injected, model, 'read')) {
             return false;
         }
@@ -701,9 +753,16 @@ export class PolicyUtil {
                     }"`,
                     CrudFailureReason.ACCESS_POLICY_VIOLATION
                 );
-            } else if (fieldUpdateGuard.guard) {
-                // merge
-                guard = this.and(guard, fieldUpdateGuard.guard);
+            } else {
+                if (fieldUpdateGuard.guard) {
+                    // merge field-level guard
+                    guard = this.and(guard, fieldUpdateGuard.guard);
+                }
+
+                if (fieldUpdateGuard.overrideGuard) {
+                    // merge field-level override guard
+                    guard = this.or(guard, fieldUpdateGuard.overrideGuard);
+                }
             }
         }
 
@@ -761,8 +820,33 @@ export class PolicyUtil {
         }
     }
 
+    private getFieldReadGuards(db: Record<string, DbOperations>, model: string, args: { select?: any; include?: any }) {
+        const allFields = Object.values(getFields(this.modelMeta, model));
+
+        // all scalar fields by default
+        let fields = allFields.filter((f) => !f.isDataModel);
+
+        if (args.select) {
+            // explicitly selected fields
+            fields = allFields.filter((f) => args.select?.[f.name] === true);
+        } else if (args.include) {
+            // included relations
+            fields.push(...allFields.filter((f) => !fields.includes(f) && args.include[f.name]));
+        }
+
+        if (fields.length === 0) {
+            // this can happen if only selecting pseudo fields like "_count"
+            return undefined;
+        }
+
+        const allFieldGuards = fields.map((field) => this.getFieldOverrideReadAuthGuard(db, model, field.name));
+        return this.and(...allFieldGuards);
+    }
+
     private getFieldUpdateGuards(db: Record<string, DbOperations>, model: string, args: any) {
         const allFieldGuards = [];
+        const allOverrideFieldGuards = [];
+
         for (const [k, v] of Object.entries<any>(args.data ?? args)) {
             if (typeof v === 'undefined') {
                 continue;
@@ -778,20 +862,41 @@ export class PolicyUtil {
                     for (const fk of foreignKeys) {
                         const fieldGuard = this.getFieldUpdateAuthGuard(db, model, fk);
                         if (this.isFalse(fieldGuard)) {
-                            return { guard: allFieldGuards, rejectedByField: fk };
+                            return { guard: fieldGuard, rejectedByField: fk };
                         }
+
+                        // add field guard
                         allFieldGuards.push(fieldGuard);
+
+                        // add field override guard
+                        const overrideFieldGuard = this.getFieldOverrideUpdateAuthGuard(db, model, fk);
+                        allOverrideFieldGuards.push(overrideFieldGuard);
                     }
                 }
             } else {
                 const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
                 if (this.isFalse(fieldGuard)) {
-                    return { guard: allFieldGuards, rejectedByField: k };
+                    return { guard: fieldGuard, rejectedByField: k };
                 }
+
+                // add field guard
                 allFieldGuards.push(fieldGuard);
+
+                // add field override guard
+                const overrideFieldGuard = this.getFieldOverrideUpdateAuthGuard(db, model, k);
+                allOverrideFieldGuards.push(overrideFieldGuard);
             }
         }
-        return { guard: this.and(...allFieldGuards), rejectedByField: undefined };
+
+        const allFieldsCombined = this.and(...allFieldGuards);
+        const allOverrideFieldsCombined =
+            allOverrideFieldGuards.length !== 0 ? this.and(...allOverrideFieldGuards) : undefined;
+
+        return {
+            guard: allFieldsCombined,
+            overrideGuard: allOverrideFieldsCombined,
+            rejectedByField: undefined,
+        };
     }
 
     /**
@@ -841,7 +946,13 @@ export class PolicyUtil {
     ): Promise<{ result: unknown; error?: Error }> {
         uniqueFilter = this.clone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
-        const readArgs = { select: selectInclude.select, include: selectInclude.include, where: uniqueFilter };
+
+        // make sure only select and include are picked
+        const selectIncludeClean = this.pick(selectInclude, 'select', 'include');
+        const readArgs = {
+            ...this.clone(selectIncludeClean),
+            where: uniqueFilter,
+        };
 
         const error = this.deniedByPolicy(
             model,
@@ -866,7 +977,7 @@ export class PolicyUtil {
             return { error, result: undefined };
         }
 
-        this.postProcessForRead(result, model, selectInclude);
+        this.postProcessForRead(result, model, selectIncludeClean);
         return { result, error: undefined };
     }
 
@@ -1166,6 +1277,19 @@ export class PolicyUtil {
     }
 
     /**
+     * Picks properties from an object.
+     */
+    pick<T>(value: T, ...props: (keyof T)[]): Pick<T, (typeof props)[number]> {
+        const v: any = value;
+        return props.reduce(function (result, prop) {
+            if (prop in v) {
+                result[prop] = v[prop];
+            }
+            return result;
+        }, {} as any);
+    }
+
+    /**
      * Gets "id" fields for a given model.
      */
     getIdFields(model: string) {
@@ -1216,6 +1340,14 @@ export class PolicyUtil {
             // insert an AND clause
             where.AND = [extra];
         }
+    }
+
+    private requireGuard(model: string) {
+        const guard = this.policy.guard[lowerCaseFirst(model)];
+        if (!guard) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return guard;
     }
 
     //#endregion

@@ -84,9 +84,19 @@ export const FIELD_LEVEL_READ_CHECKER_PREFIX = 'readFieldCheck$';
 export const FIELD_LEVEL_READ_CHECKER_SELECTOR = 'readFieldSelect';
 
 /**
+ * Prefix for field-level override read guard function name
+ */
+export const FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX = 'readFieldGuardOverride$';
+
+/**
  * Prefix for field-level update guard function name
  */
-export const FIELD_LEVEL_UPDATE_GUARD_PREFIX = 'updateFieldCheck$';
+export const FIELD_LEVEL_UPDATE_GUARD_PREFIX = 'updateFieldGuard$';
+
+/**
+ * Prefix for field-level override update guard function name
+ */
+export const FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX = 'updateFieldGuardOverride$';
 
 /**
  * Flag that indicates if the model has field-level access control
