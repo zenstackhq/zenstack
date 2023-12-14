@@ -36,16 +36,28 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                 version: '1.0.0',
                 exports: {
                     './model-meta': {
-                        default: './model-meta.js',
                         types: './model-meta.ts',
+                        default: './model-meta.js',
                     },
                     './policy': {
-                        default: './policy.js',
                         types: './policy.d.ts',
+                        default: './policy.js',
                     },
                     './zod': {
-                        default: './zod/index.js',
                         types: './zod/index.d.ts',
+                        default: './zod/index.js',
+                    },
+                    './zod/models': {
+                        types: './zod/models/index.d.ts',
+                        default: './zod/models/index.js',
+                    },
+                    './zod/input': {
+                        types: './zod/input/index.d.ts',
+                        default: './zod/input/index.js',
+                    },
+                    './zod/objects': {
+                        types: './zod/objects/index.d.ts',
+                        default: './zod/objects/index.js',
                     },
                 },
             };
