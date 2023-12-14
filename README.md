@@ -29,7 +29,7 @@ Our goal is to let you save time writing boilerplate code and focus on building 
 
 ## How it works
 
-> Read full documentation at 👉🏻 [zenstack.dev](https://zenstack.dev).
+> Read full documentation at 👉🏻 [zenstack.dev](https://zenstack.dev). Join [Discord](https://discord.gg/Ykhr738dUe) for feedback and questions.
 
 ZenStack incrementally extends Prisma's power with the following four layers:
 
