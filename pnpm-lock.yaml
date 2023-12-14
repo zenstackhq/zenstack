@@ -588,9 +588,6 @@ importers:
 
   packages/server:
     dependencies:
-      '@zenstackhq/openapi':
-        specifier: workspace:*
-        version: link:../plugins/openapi/dist
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../runtime/dist
