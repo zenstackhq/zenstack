@@ -36,16 +36,16 @@
             "default": "./zod/objects.js"
         },
         "./browser": {
+            "types": "./browser/index.d.ts",
             "import": "./browser/index.mjs",
             "require": "./browser/index.js",
-            "default": "./browser/index.js",
-            "types": "./browser/index.d.ts"
+            "default": "./browser/index.js"
         },
         "./cross": {
+            "types": "./cross/index.d.ts",
             "import": "./cross/index.mjs",
             "require": "./cross/index.js",
-            "default": "./cross/index.js",
-            "types": "./cross/index.d.ts"
+            "default": "./cross/index.js"
         }
     },
     "publishConfig": {
