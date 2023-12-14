@@ -18,6 +18,8 @@ import {
     isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import {
+    FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
+    FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX,
     FIELD_LEVEL_READ_CHECKER_PREFIX,
     FIELD_LEVEL_READ_CHECKER_SELECTOR,
     FIELD_LEVEL_UPDATE_GUARD_PREFIX,
@@ -35,6 +37,7 @@ import {
     analyzePolicies,
     createProject,
     emitProject,
+    getAttributeArg,
     getAuthModel,
     getDataModels,
     getLiteral,
@@ -222,10 +225,26 @@ export default class PolicyGenerator {
         });
     }
 
-    private getPolicyExpressions(target: DataModel | DataModelField, kind: PolicyKind, operation: PolicyOperationKind) {
+    private getPolicyExpressions(
+        target: DataModel | DataModelField,
+        kind: PolicyKind,
+        operation: PolicyOperationKind,
+        override = false
+    ) {
         const attributes = target.attributes as (DataModelAttribute | DataModelFieldAttribute)[];
         const attrName = isDataModel(target) ? `@@${kind}` : `@${kind}`;
-        const attrs = attributes.filter((attr) => attr.decl.ref?.name === attrName);
+        const attrs = attributes.filter((attr) => {
+            if (attr.decl.ref?.name !== attrName) {
+                return false;
+            }
+
+            if (override) {
+                const overrideArg = getAttributeArg(attr, 'override');
+                return overrideArg && getLiteral<boolean>(overrideArg) === true;
+            } else {
+                return true;
+            }
+        });
 
         const checkOperation = operation === 'postUpdate' ? 'update' : operation;
 
@@ -350,7 +369,10 @@ export default class PolicyGenerator {
         }
 
         // generate field read checkers
-        this.generateReadFieldsGuards(model, sourceFile, result);
+        this.generateReadFieldsCheckers(model, sourceFile, result);
+
+        // generate field read override guards
+        this.generateReadFieldsOverrideGuards(model, sourceFile, result);
 
         // generate field update guards
         this.generateUpdateFieldsGuards(model, sourceFile, result);
@@ -358,7 +380,7 @@ export default class PolicyGenerator {
         return result;
     }
 
-    private generateReadFieldsGuards(
+    private generateReadFieldsCheckers(
         model: DataModel,
         sourceFile: SourceFile,
         result: Record<string, string | boolean | object>
@@ -376,7 +398,7 @@ export default class PolicyGenerator {
             allFieldsAllows.push(...allows);
             allFieldsDenies.push(...denies);
 
-            const guardFunc = this.generateReadFieldGuardFunction(sourceFile, field, allows, denies);
+            const guardFunc = this.generateReadFieldCheckerFunction(sourceFile, field, allows, denies);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             result[`${FIELD_LEVEL_READ_CHECKER_PREFIX}${field.name}`] = guardFunc.getName()!;
         }
@@ -390,7 +412,7 @@ export default class PolicyGenerator {
         }
     }
 
-    private generateReadFieldGuardFunction(
+    private generateReadFieldCheckerFunction(
         sourceFile: SourceFile,
         field: DataModelField,
         allows: Expression[],
@@ -463,6 +485,29 @@ export default class PolicyGenerator {
         return func;
     }
 
+    private generateReadFieldsOverrideGuards(
+        model: DataModel,
+        sourceFile: SourceFile,
+        result: Record<string, string | boolean | object>
+    ) {
+        for (const field of model.fields) {
+            const overrideAllows = this.getPolicyExpressions(field, 'allow', 'read', true);
+            if (overrideAllows.length > 0) {
+                const denies = this.getPolicyExpressions(field, 'deny', 'read');
+                const overrideGuardFunc = this.generateQueryGuardFunction(
+                    sourceFile,
+                    model,
+                    'read',
+                    overrideAllows,
+                    denies,
+                    field,
+                    true
+                );
+                result[`${FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${field.name}`] = overrideGuardFunc.getName()!;
+            }
+        }
+    }
+
     private generateUpdateFieldsGuards(
         model: DataModel,
         sourceFile: SourceFile,
@@ -479,6 +524,20 @@ export default class PolicyGenerator {
             const guardFunc = this.generateQueryGuardFunction(sourceFile, model, 'update', allows, denies, field);
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             result[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field.name}`] = guardFunc.getName()!;
+
+            const overrideAllows = this.getPolicyExpressions(field, 'allow', 'update', true);
+            if (overrideAllows.length > 0) {
+                const overrideGuardFunc = this.generateQueryGuardFunction(
+                    sourceFile,
+                    model,
+                    'update',
+                    overrideAllows,
+                    denies,
+                    field,
+                    true
+                );
+                result[`${FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${field.name}`] = overrideGuardFunc.getName()!;
+            }
         }
     }
 
@@ -623,8 +682,9 @@ export default class PolicyGenerator {
         kind: PolicyOperationKind,
         allows: Expression[],
         denies: Expression[],
-        forField?: DataModelField
-    ): FunctionDeclaration {
+        forField?: DataModelField,
+        fieldOverride = false
+    ) {
         const statements: (string | WriterFunction)[] = [];
 
         this.generateNormalizedAuthRef(model, allows, denies, statements);
@@ -724,7 +784,7 @@ export default class PolicyGenerator {
         }
 
         const func = sourceFile.addFunction({
-            name: `${model.name}${forField ? '$' + forField.name : ''}_${kind}`,
+            name: `${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
             returnType: 'any',
             parameters: [
                 {

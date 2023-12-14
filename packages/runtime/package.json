@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -36,16 +36,16 @@
             "default": "./zod/objects.js"
         },
         "./browser": {
+            "types": "./browser/index.d.ts",
             "import": "./browser/index.mjs",
             "require": "./browser/index.js",
-            "default": "./browser/index.js",
-            "types": "./browser/index.d.ts"
+            "default": "./browser/index.js"
         },
         "./cross": {
+            "types": "./cross/index.d.ts",
             "import": "./cross/index.mjs",
             "require": "./cross/index.js",
-            "default": "./cross/index.js",
-            "types": "./cross/index.d.ts"
+            "default": "./cross/index.js"
         }
     },
     "publishConfig": {
@@ -78,13 +78,8 @@
     "license": "MIT",
     "devDependencies": {
         "@types/bcryptjs": "^2.4.2",
-        "@types/jest": "^29.5.0",
-        "@types/node": "^18.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
-        "@types/uuid": "^8.3.4",
-        "copyfiles": "^2.4.1",
-        "rimraf": "^3.0.2",
-        "typescript": "^4.9.3"
+        "@types/uuid": "^8.3.4"
     }
 }

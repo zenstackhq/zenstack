@@ -43,12 +43,7 @@ describe('With Policy: field-level policy', () => {
         // y is unreadable
 
         r = await db.model.create({
-            data: {
-                id: 1,
-                x: 0,
-                y: 0,
-                ownerId: 1,
-            },
+            data: { id: 1, x: 0, y: 0, ownerId: 1 },
         });
         expect(r.x).toEqual(0);
         expect(r.y).toBeUndefined();
@@ -80,12 +75,7 @@ describe('With Policy: field-level policy', () => {
         // y is readable
 
         r = await db.model.create({
-            data: {
-                id: 2,
-                x: 1,
-                y: 0,
-                ownerId: 1,
-            },
+            data: { id: 2, x: 1, y: 0, ownerId: 1 },
         });
         expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
 
@@ -110,6 +100,84 @@ describe('With Policy: field-level policy', () => {
         r = await db.model.findUnique({ include: { owner: true }, where: { id: 2 } });
         expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
         expect(r.owner).toBeTruthy();
+    });
+
+    it('read override', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            admin Boolean @default(false)
+            models Model[]
+
+            @@allow('all', true)
+        }
+    
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int @allow('read', x > 0, true)
+            owner User @relation(fields: [ownerId], references: [id]) @allow('read', x > 1, true)
+            ownerId Int
+
+            @@allow('create', true)
+            @@allow('read', x > 1)
+        }
+        `
+        );
+
+        await prisma.user.create({ data: { id: 1, admin: true } });
+
+        const db = withPolicy();
+
+        // created but can't read back
+        await expect(
+            db.model.create({
+                data: { id: 1, x: 0, y: 0, ownerId: 1 },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(prisma.model.findUnique({ where: { id: 1 } })).resolves.toBeTruthy();
+        await expect(db.model.findUnique({ where: { id: 1 } })).resolves.toBeNull();
+
+        // y is readable through override
+        // created but can't read back
+        await expect(
+            db.model.create({
+                data: { id: 2, x: 1, y: 0, ownerId: 1 },
+            })
+        ).toBeRejectedByPolicy();
+
+        // y can be read back
+        await expect(
+            db.model.create({
+                data: { id: 3, x: 1, y: 0, ownerId: 1 },
+                select: { y: true },
+            })
+        ).resolves.toEqual({ y: 0 });
+
+        await expect(db.model.findUnique({ where: { id: 3 } })).resolves.toBeNull();
+        await expect(db.model.findUnique({ where: { id: 3 }, select: { y: true } })).resolves.toEqual({ y: 0 });
+        await expect(db.model.findUnique({ where: { id: 3 }, select: { x: true, y: true } })).resolves.toBeNull();
+        await expect(db.model.findUnique({ where: { id: 3 }, select: { owner: true, y: true } })).resolves.toBeNull();
+        await expect(db.model.findUnique({ where: { id: 3 }, include: { owner: true } })).resolves.toBeNull();
+
+        // y and owner are readable through override
+        await expect(
+            db.model.create({
+                data: { id: 4, x: 2, y: 0, ownerId: 1 },
+                select: { y: true },
+            })
+        ).resolves.toEqual({ y: 0 });
+        await expect(
+            db.model.findUnique({ where: { id: 4 }, select: { owner: true, y: true } })
+        ).resolves.toMatchObject({
+            owner: expect.objectContaining({ admin: true }),
+            y: 0,
+        });
+        await expect(db.model.findUnique({ where: { id: 4 }, include: { owner: true } })).resolves.toMatchObject({
+            owner: expect.objectContaining({ admin: true }),
+            y: 0,
+        });
     });
 
     it('read filter with auth', async () => {
@@ -498,6 +566,85 @@ describe('With Policy: field-level policy', () => {
                 data: { y: 2 },
             })
         ).toResolveTruthy();
+    });
+
+    it('update with override', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int @allow('update', x > 0, true) @deny('update', x == 100)
+            z Int @allow('update', x > 1, true)
+
+            @@allow('create,read', true)
+            @@allow('update', y > 0)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.model.create({
+            data: { id: 1, x: 0, y: 0, z: 0 },
+        });
+
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { y: 2 },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.model.update({
+                where: { id: 1 },
+                data: { x: 2 },
+            })
+        ).toBeRejectedByPolicy();
+
+        await db.model.create({
+            data: { id: 2, x: 1, y: 0, z: 0 },
+        });
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { x: 2, y: 1 },
+            })
+        ).toBeRejectedByPolicy(); // denied because field `x` doesn't have override
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { y: 1, z: 1 },
+            })
+        ).toBeRejectedByPolicy(); // denied because field `z` override not satisfied
+        await expect(
+            db.model.update({
+                where: { id: 2 },
+                data: { y: 1 },
+            })
+        ).toResolveTruthy(); // allowed by override
+        await expect(db.model.findUnique({ where: { id: 2 } })).resolves.toMatchObject({ y: 1 });
+
+        await db.model.create({
+            data: { id: 3, x: 2, y: 0, z: 0 },
+        });
+        await expect(
+            db.model.update({
+                where: { id: 3 },
+                data: { y: 1, z: 1 },
+            })
+        ).toResolveTruthy(); // allowed by override
+        await expect(db.model.findUnique({ where: { id: 3 } })).resolves.toMatchObject({ y: 1, z: 1 });
+
+        await db.model.create({
+            data: { id: 4, x: 100, y: 0, z: 0 },
+        });
+        await expect(
+            db.model.update({
+                where: { id: 4 },
+                data: { y: 1 },
+            })
+        ).toBeRejectedByPolicy(); // can't be allowed by override due to field-level deny
     });
 
     it('update filter with relation', async () => {
@@ -904,6 +1051,36 @@ describe('With Policy: field-level policy', () => {
         await expect(db.model.findUnique({ where: { id: 2 } })).resolves.toEqual(
             expect.objectContaining({ x: 1, y: 2 })
         );
+    });
+
+    it('updateMany override', async () => {
+        const { prisma, withPolicy } = await loadSchema(
+            `
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int @allow('update', x > 0, override: true)
+
+            @@allow('create,read', true)
+            @@allow('update', x > 1)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.model.create({ data: { id: 1, x: 0, y: 0 } });
+        await db.model.create({ data: { id: 2, x: 1, y: 0 } });
+
+        await expect(db.model.updateMany({ data: { y: 2 } })).resolves.toEqual({ count: 1 });
+        await expect(db.model.findUnique({ where: { id: 1 } })).resolves.toEqual(
+            expect.objectContaining({ x: 0, y: 0 })
+        );
+        await expect(db.model.findUnique({ where: { id: 2 } })).resolves.toEqual(
+            expect.objectContaining({ x: 1, y: 2 })
+        );
+
+        await expect(db.model.updateMany({ data: { x: 2, y: 3 } })).resolves.toEqual({ count: 0 });
     });
 
     it('updateMany nested', async () => {

@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/server",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "displayName": "ZenStack Server-side Adapters",
     "description": "ZenStack server-side adapters",
     "homepage": "https://zenstack.dev",
@@ -26,7 +26,6 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@zenstackhq/openapi": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "change-case": "^4.1.2",
         "lower-case-first": "^2.0.2",
@@ -42,25 +41,18 @@
         "@sveltejs/kit": "1.21.0",
         "@types/body-parser": "^1.19.2",
         "@types/express": "^4.17.17",
-        "@types/jest": "^29.5.0",
-        "@types/node": "^18.0.0",
         "@types/supertest": "^2.0.12",
         "@zenstackhq/testtools": "workspace:*",
         "body-parser": "^1.20.2",
-        "copyfiles": "^2.4.1",
         "decimal.js": "^10.4.2",
         "express": "^4.18.2",
         "fastify": "^4.14.1",
         "fastify-plugin": "^4.5.0",
         "h3": "^1.8.2",
         "isomorphic-fetch": "^3.0.0",
-        "jest": "^29.5.0",
         "next": "^13.4.5",
         "nuxt": "^3.7.4",
-        "rimraf": "^3.0.2",
-        "supertest": "^6.3.3",
-        "ts-jest": "^29.0.5",
-        "typescript": "^4.9.4"
+        "supertest": "^6.3.3"
     },
     "exports": {
         "./package.json": "./package.json",
