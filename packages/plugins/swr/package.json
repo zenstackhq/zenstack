@@ -10,8 +10,8 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
-        "watch": "tsc --watch",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup.config.ts && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup.config.ts --watch\"",
         "lint": "eslint src --ext ts",
         "test": "ZENSTACK_TEST=1 jest",
         "prepublishOnly": "pnpm build"
@@ -23,6 +23,20 @@
     "keywords": [],
     "author": "ZenStack Team",
     "license": "MIT",
+    "exports": {
+        ".": {
+            "default": "./index.js"
+        },
+        "./package.json": {
+            "default": "./package.json"
+        },
+        "./runtime": {
+            "types": "./runtime/index.d.ts",
+            "import": "./runtime/index.mjs",
+            "require": "./runtime/index.js",
+            "default": "./runtime/index.js"
+        }
+    },
     "dependencies": {
         "@prisma/generator-helper": "^5.0.0",
         "@zenstackhq/runtime": "workspace:*",
