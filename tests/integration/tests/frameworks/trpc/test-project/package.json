@@ -23,12 +23,9 @@
     "react-dom": "18.2.0",
     "superjson": "^1.12.2",
     "typescript": "4.9.4",
-    "zod": "^3.22.4",
-    "@zenstackhq/runtime": "../../../../../../../packages/runtime/dist"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
-    "prisma": "^4.8.0",
-    "zenstack": "../../../../../../../packages/schema/dist",
-    "@zenstackhq/trpc": "../../../../../../../packages/plugins/trpc/dist"
+    "prisma": "^4.8.0"
   }
 }

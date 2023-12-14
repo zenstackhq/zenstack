@@ -14,6 +14,16 @@ describe('tRPC Routers Generation Tests', () => {
         process.chdir(origDir);
     });
 
+    // deps
+    const ver = require('../../../../../package.json').version;
+    const depPkgs = [
+        `${path.join(__dirname, '../../../../../.build/zenstackhq-language-' + ver + '.tgz')}`,
+        `${path.join(__dirname, '../../../../../.build/zenstackhq-sdk-' + ver + '.tgz')}`,
+        `${path.join(__dirname, '../../../../../.build/zenstackhq-runtime-' + ver + '.tgz')}`,
+        `${path.join(__dirname, '../../../../../.build/zenstackhq-trpc-' + ver + '.tgz')}`,
+    ];
+    const deps = depPkgs.join(' ');
+
     it('basic', async () => {
         const testDir = path.join(__dirname, './test-run/basic');
         if (fs.existsSync(testDir)) {
@@ -24,6 +34,7 @@ describe('tRPC Routers Generation Tests', () => {
 
         process.chdir(testDir);
         run('npm install');
+        run('npm install ' + deps);
         run('npx zenstack generate --no-dependency-check --schema ./todo.zmodel', { NODE_PATH: 'node_modules' });
         run('npm run build', { NODE_PATH: 'node_modules' });
     });
