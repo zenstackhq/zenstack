@@ -176,7 +176,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 
 ### Todo SaaS App
 
-Check out the [Collaborative Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find different implementations below:
+Check out the [Multi-tenant Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find different implementations below:
 
 -   [Next.js 13 + NextAuth + SWR](https://github.com/zenstackhq/sample-todo-nextjs)
 -   [Next.js 13 + NextAuth + TanStack Query](https://github.com/zenstackhq/sample-todo-nextjs-tanstack)
