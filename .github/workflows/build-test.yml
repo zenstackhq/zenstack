@@ -86,24 +86,6 @@ jobs:
               with:
                   gradle-home-cache-cleanup: true
 
-            # Set gradle environment variables
-            - name: Export Properties
-              id: properties
-              shell: bash
-              run: |
-                  PROPERTIES="$(./gradlew properties --console=plain -q)"
-                  VERSION="$(echo "$PROPERTIES" | grep "^version:" | cut -f2- -d ' ')"
-                  CHANGELOG="$(./gradlew getChangelog --unreleased --no-header --console=plain -q)"
-
-                  echo "version=$VERSION" >> $GITHUB_OUTPUT
-                  echo "pluginVerifierHomeDir=~/.pluginVerifier" >> $GITHUB_OUTPUT
-
-                  echo "changelog<<EOF" >> $GITHUB_OUTPUT
-                  echo "$CHANGELOG" >> $GITHUB_OUTPUT
-                  echo "EOF" >> $GITHUB_OUTPUT
-
-                  ./gradlew listProductsReleases # prepare list of IDEs for Plugin Verifier
-
             - name: Build
               run: DEFAULT_NPM_TAG=latest pnpm run build
 
