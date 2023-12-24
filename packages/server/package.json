@@ -23,7 +23,7 @@
         "sveltekit",
         "nuxtjs"
     ],
-    "author": "",
+    "author": "ZenStack Team",
     "license": "MIT",
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",

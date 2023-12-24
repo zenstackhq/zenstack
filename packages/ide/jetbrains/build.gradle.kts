@@ -33,11 +33,11 @@ tasks {
     prepareSandbox {
         doLast {
             copy {
-                from("${project.projectDir}/../../packages/schema/bundle/language-server/main.js")
+                from("${project.projectDir}/../../schema/bundle/language-server/main.js")
                 into("${destinationDir.path}/zenstack/language-server/")
             }
             copy {
-                from("${project.projectDir}/../../packages/schema/src/res/stdlib.zmodel")
+                from("${project.projectDir}/../../schema/src/res/stdlib.zmodel")
                 into("${destinationDir.path}/zenstack/res/")
             }
             copy {
@@ -45,7 +45,7 @@ tasks {
                 into("${destinationDir.path}/zenstack/res/zmodel.tmbundle")
             }
             copy {
-                from("${project.projectDir}/../../packages/language/syntaxes/zmodel.tmLanguage")
+                from("${project.projectDir}/../../language/syntaxes/zmodel.tmLanguage")
                 into("${destinationDir.path}/zenstack/res/zmodel.tmbundle/Syntaxes/")
             }
         }
