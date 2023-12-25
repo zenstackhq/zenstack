@@ -23,19 +23,7 @@ require('esbuild')
     })
     .then(() => {
         fs.cpSync('./src/res', 'bundle/res', { force: true, recursive: true });
-        fs.cpSync('./asset', 'bundle/asset', {
-            force: true,
-            recursive: true,
-        });
-        fs.cpSync('./README.md', 'bundle/README.md', {
-            force: true,
-        });
-        fs.cpSync('../../LICENSE', 'bundle/LICENSE', {
-            force: true,
-        });
-        fs.cpSync('./package.json', 'bundle/package.json', {
-            force: true,
-        });
+        fs.cpSync('../language/syntaxes', 'bundle/syntaxes', { force: true, recursive: true });
     })
     .then(() => console.log(success))
     .catch((err) => {

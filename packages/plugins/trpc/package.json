@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "1.4.1",
+    "version": "1.6.0",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -28,7 +28,6 @@
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
         "lower-case-first": "^2.0.2",
-        "prettier": "^2.8.3",
         "ts-morph": "^16.0.0",
         "tslib": "^2.4.1",
         "upper-case-first": "^2.0.2",

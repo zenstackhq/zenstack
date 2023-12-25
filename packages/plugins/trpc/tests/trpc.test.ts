@@ -19,7 +19,7 @@ describe('tRPC Plugin Tests', () => {
         await loadSchema(
             `
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/trpc'
 }
 
@@ -67,7 +67,7 @@ model Foo {
         const { projectDir } = await loadSchema(
             `
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = './trpc'
 }
 
@@ -110,7 +110,7 @@ model Foo {
         const { projectDir } = await loadSchema(
             `
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = './trpc'
 }
 
@@ -141,7 +141,7 @@ model Post {
         const { projectDir } = await loadSchema(
             `
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = './trpc'
     generateModelActions = 'findMany,findUnique,update'
 }
@@ -171,7 +171,7 @@ model Post {
         const { projectDir } = await loadSchema(
             `
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = './trpc'
     generateModelActions = ['findMany', 'findUnique', 'update']
 }
@@ -220,7 +220,7 @@ model Post {
         await loadSchema(
             `
             plugin trpc {
-                provider = '${process.cwd()}/dist'
+                provider = '${path.resolve(__dirname, '../dist')}'
                 output = '$projectRoot/trpc'
                 generateClientHelpers = 'react'
             }
@@ -240,7 +240,7 @@ model Post {
         await loadSchema(
             `
             plugin trpc {
-                provider = '${process.cwd()}/dist'
+                provider = '${path.resolve(__dirname, '../dist')}'
                 output = '$projectRoot/trpc'
                 generateClientHelpers = 'next'
             }
@@ -260,7 +260,7 @@ model Post {
         await loadSchema(
             `
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/trpc'
 }
 
@@ -299,7 +299,7 @@ generator js {
 }
         
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/trpc'
     generateModels = ['Post']
     generateModelActions = ['findMany', 'update']
@@ -370,7 +370,7 @@ plugin zod {
 }
                     
 plugin trpc {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/trpc'
     generateModels = ['Post']
     generateModelActions = ['findMany', 'update']

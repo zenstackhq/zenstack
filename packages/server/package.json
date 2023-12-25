@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/server",
-    "version": "1.4.1",
+    "version": "1.6.0",
     "displayName": "ZenStack Server-side Adapters",
     "description": "ZenStack server-side adapters",
     "homepage": "https://zenstack.dev",
@@ -23,10 +23,9 @@
         "sveltekit",
         "nuxtjs"
     ],
-    "author": "",
+    "author": "ZenStack Team",
     "license": "MIT",
     "dependencies": {
-        "@zenstackhq/openapi": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
         "change-case": "^4.1.2",
         "lower-case-first": "^2.0.2",

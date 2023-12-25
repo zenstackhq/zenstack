@@ -4,8 +4,11 @@ import { Model } from '@zenstackhq/sdk/ast';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import { fromZodError } from 'zod-validation-error';
 import { SecuritySchemesSchema } from './schema';
+import semver from 'semver';
 
 export abstract class OpenAPIGeneratorBase {
+    protected readonly DEFAULT_SPEC_VERSION = '3.1.0';
+
     constructor(protected model: Model, protected options: PluginOptions, protected dmmf: DMMF.Document) {}
 
     abstract generate(): string[];
@@ -22,6 +25,43 @@ export abstract class OpenAPIGeneratorBase {
             return { type: 'array', items: schema };
         } else {
             return schema;
+        }
+    }
+
+    protected wrapNullable(
+        schema: OAPI.ReferenceObject | OAPI.SchemaObject,
+        isNullable: boolean
+    ): OAPI.ReferenceObject | OAPI.SchemaObject {
+        if (!isNullable) {
+            return schema;
+        }
+
+        const specVersion = this.getOption('specVersion', this.DEFAULT_SPEC_VERSION);
+
+        // https://stackoverflow.com/questions/48111459/how-to-define-a-property-that-can-be-string-or-null-in-openapi-swagger
+        // https://stackoverflow.com/questions/40920441/how-to-specify-a-property-can-be-null-or-a-reference-with-swagger
+        if (semver.gte(specVersion, '3.1.0')) {
+            // OAPI 3.1.0 and above has native 'null' type
+            if ((schema as OAPI.BaseSchemaObject).oneOf) {
+                // merge into existing 'oneOf'
+                return { oneOf: [...(schema as OAPI.BaseSchemaObject).oneOf!, { type: 'null' }] };
+            } else {
+                // wrap into a 'oneOf'
+                return { oneOf: [{ type: 'null' }, schema] };
+            }
+        } else {
+            if ((schema as OAPI.ReferenceObject).$ref) {
+                // nullable $ref needs to be represented as: { allOf: [{ $ref: ... }], nullable: true }
+                return {
+                    allOf: [schema],
+                    nullable: true,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any;
+            } else {
+                // nullable scalar: { type: ..., nullable: true }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return { ...schema, nullable: true } as any;
+            }
         }
     }
 

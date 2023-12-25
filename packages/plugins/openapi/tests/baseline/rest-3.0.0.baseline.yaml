@@ -1,10 +1,12 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
     title: ZenStack Generated API
     version: 1.0.0
 tags:
     - name: user
       description: User operations
+    - name: profile
+      description: Profile operations
     - name: post_Item
       description: Post-related operations
 paths:
@@ -183,6 +185,14 @@ paths:
                       type: array
                       items:
                           type: string
+                - name: filter[profile]
+                  required: false
+                  description: Equality filter for "profile"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -507,6 +517,14 @@ paths:
                       type: array
                       items:
                           type: string
+                - name: filter[profile]
+                  required: false
+                  description: Equality filter for "profile"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -701,6 +719,14 @@ paths:
                       type: array
                       items:
                           type: string
+                - name: filter[profile]
+                  required: false
+                  description: Equality filter for "profile"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -801,6 +827,463 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_toManyRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/user/{id}/profile':
+        get:
+            operationId: fetch-User-related-profile
+            description: Fetch the related "profile" resource for "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/ProfileResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/user/{id}/relationships/profile':
+        get:
+            operationId: fetch-User-relationship-profile
+            description: Fetch the "profile" relationships for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-User-relationship-profile-put
+            description: Update "profile" relationship for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-User-relationship-profile-patch
+            description: Update "profile" relationship for a "User"
+            tags:
+                - user
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /profile:
+        get:
+            operationId: list-Profile
+            description: List "Profile" resources
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/include'
+                - $ref: '#/components/parameters/sort'
+                - $ref: '#/components/parameters/page-offset'
+                - $ref: '#/components/parameters/page-limit'
+                - name: filter[id]
+                  required: false
+                  description: Id filter
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[image]
+                  required: false
+                  description: Equality filter for "image"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[image$contains]
+                  required: false
+                  description: String contains filter for "image"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[image$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "image"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[image$search]
+                  required: false
+                  description: String full-text search filter for "image"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[image$startsWith]
+                  required: false
+                  description: String startsWith filter for "image"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[image$endsWith]
+                  required: false
+                  description: String endsWith filter for "image"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[user]
+                  required: false
+                  description: Equality filter for "user"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/ProfileListResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        post:
+            operationId: create-Profile
+            description: Create a "Profile" resource
+            tags:
+                - profile
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileCreateRequest'
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/ProfileResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/profile/{id}':
+        get:
+            operationId: fetch-Profile
+            description: Fetch a "Profile" resource
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/ProfileResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-Profile-put
+            description: Update a "Profile" resource
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/ProfileResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-Profile-patch
+            description: Update a "Profile" resource
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpdateRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/ProfileResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        delete:
+            operationId: delete-Profile
+            description: Delete a "Profile" resource
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/profile/{id}/user':
+        get:
+            operationId: fetch-Profile-related-user
+            description: Fetch the related "user" resource for "Profile"
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+                - $ref: '#/components/parameters/include'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/UserResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    '/profile/{id}/relationships/user':
+        get:
+            operationId: fetch-Profile-relationship-user
+            description: Fetch the "user" relationships for a "Profile"
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        put:
+            operationId: update-Profile-relationship-user-put
+            description: Update "user" relationship for a "Profile"
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
+                '403':
+                    description: Request is forbidden
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '404':
+                    description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+        patch:
+            operationId: update-Profile-relationship-user-patch
+            description: Update "user" relationship for a "Profile"
+            tags:
+                - profile
+            parameters:
+                - $ref: '#/components/parameters/id'
+            requestBody:
+                content:
+                    application/vnd.api+json:
+                        schema:
+                            $ref: '#/components/schemas/_toOneRelationshipRequest'
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_toOneRelationshipResponse'
                 '403':
                     description: Request is forbidden
                     content:
@@ -1026,6 +1509,54 @@ paths:
                   explode: false
                   schema:
                       type: integer
+                - name: filter[notes]
+                  required: false
+                  description: Equality filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$contains]
+                  required: false
+                  description: String contains filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$icontains]
+                  required: false
+                  description: String case-insensitive contains filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$search]
+                  required: false
+                  description: String full-text search filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$startsWith]
+                  required: false
+                  description: String startsWith filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
+                - name: filter[notes$endsWith]
+                  required: false
+                  description: String endsWith filter for "notes"
+                  in: query
+                  style: form
+                  explode: false
+                  schema:
+                      type: string
             responses:
                 '200':
                     description: Successful operation
@@ -1352,25 +1883,21 @@ components:
                 - next
             properties:
                 first:
-                    oneOf:
-                        - type: string
-                          description: Link to the first page
-                        - type: 'null'
+                    type: string
+                    description: Link to the first page
+                    nullable: true
                 last:
-                    oneOf:
-                        - type: string
-                          description: Link to the last page
-                        - type: 'null'
+                    type: string
+                    description: Link to the last page
+                    nullable: true
                 prev:
-                    oneOf:
-                        - type: string
-                          description: Link to the previous page
-                        - type: 'null'
+                    type: string
+                    description: Link to the previous page
+                    nullable: true
                 next:
-                    oneOf:
-                        - type: string
-                          description: Link to the next page
-                        - type: 'null'
+                    type: string
+                    description: Link to the next page
+                    nullable: true
         _errors:
             type: array
             description: An array of error objects
@@ -1431,9 +1958,9 @@ components:
             description: A to-one relationship
             properties:
                 data:
-                    oneOf:
+                    allOf:
                         - $ref: '#/components/schemas/_resourceIdentifier'
-                        - type: 'null'
+                    nullable: true
         _toOneRelationshipWithLinks:
             type: object
             required:
@@ -1444,9 +1971,9 @@ components:
                 links:
                     $ref: '#/components/schemas/_relationLinks'
                 data:
-                    oneOf:
+                    allOf:
                         - $ref: '#/components/schemas/_resourceIdentifier'
-                        - type: 'null'
+                    nullable: true
         _toManyRelationship:
             type: object
             required:
@@ -1487,14 +2014,13 @@ components:
                         $ref: '#/components/schemas/_resourceIdentifier'
         _toOneRelationshipRequest:
             description: Input for manipulating a to-one relationship
-            oneOf:
-                - type: object
-                  required:
-                      - data
-                  properties:
-                      data:
-                          $ref: '#/components/schemas/_resourceIdentifier'
-                - type: 'null'
+            type: object
+            required:
+                - data
+            properties:
+                data:
+                    $ref: '#/components/schemas/_resourceIdentifier'
+            nullable: true
         _toManyRelationshipResponse:
             description: Response for a to-many relationship
             allOf:
@@ -1547,6 +2073,10 @@ components:
                     properties:
                         posts:
                             $ref: '#/components/schemas/_toManyRelationshipWithLinks'
+                        profile:
+                            allOf:
+                                - $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+                            nullable: true
         UserCreateRequest:
             type: object
             description: Input for creating a "User"
@@ -1583,6 +2113,10 @@ components:
                             properties:
                                 posts:
                                     $ref: '#/components/schemas/_toManyRelationship'
+                                profile:
+                                    allOf:
+                                        - $ref: '#/components/schemas/_toOneRelationship'
+                                    nullable: true
                 meta:
                     $ref: '#/components/schemas/_meta'
         UserUpdateRequest:
@@ -1621,6 +2155,10 @@ components:
                             properties:
                                 posts:
                                     $ref: '#/components/schemas/_toManyRelationship'
+                                profile:
+                                    allOf:
+                                        - $ref: '#/components/schemas/_toOneRelationship'
+                                    nullable: true
                 meta:
                     $ref: '#/components/schemas/_meta'
         UserResponse:
@@ -1641,6 +2179,8 @@ components:
                                   properties: &a1
                                       posts:
                                           $ref: '#/components/schemas/_toManyRelationship'
+                                      profile:
+                                          $ref: '#/components/schemas/_toOneRelationship'
                 meta:
                     $ref: '#/components/schemas/_meta'
                 included:
@@ -1678,6 +2218,151 @@ components:
                     allOf:
                         - $ref: '#/components/schemas/_links'
                         - $ref: '#/components/schemas/_pagination'
+        Profile:
+            type: object
+            description: The "Profile" model
+            required:
+                - id
+                - type
+                - attributes
+            properties:
+                id:
+                    type: string
+                type:
+                    type: string
+                attributes:
+                    type: object
+                    properties:
+                        image:
+                            type: string
+                            nullable: true
+                        userId:
+                            type: string
+                relationships:
+                    type: object
+                    properties:
+                        user:
+                            $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+        ProfileCreateRequest:
+            type: object
+            description: Input for creating a "Profile"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "Profile" model
+                    required:
+                        - type
+                        - attributes
+                    properties:
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            required:
+                                - userId
+                            properties:
+                                image:
+                                    type: string
+                                    nullable: true
+                                userId:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                user:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        ProfileUpdateRequest:
+            type: object
+            description: Input for updating a "Profile"
+            required:
+                - data
+            properties:
+                data:
+                    type: object
+                    description: The "Profile" model
+                    required:
+                        - id
+                        - type
+                        - attributes
+                    properties:
+                        id:
+                            type: string
+                        type:
+                            type: string
+                        attributes:
+                            type: object
+                            properties:
+                                image:
+                                    type: string
+                                    nullable: true
+                                userId:
+                                    type: string
+                        relationships:
+                            type: object
+                            properties:
+                                user:
+                                    $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
+        ProfileResponse:
+            type: object
+            description: Response for a "Profile"
+            required:
+                - data
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    allOf:
+                        - $ref: '#/components/schemas/Profile'
+                        - type: object
+                          properties:
+                              relationships:
+                                  type: object
+                                  properties: &a2
+                                      user:
+                                          $ref: '#/components/schemas/_toOneRelationship'
+                meta:
+                    $ref: '#/components/schemas/_meta'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    $ref: '#/components/schemas/_links'
+        ProfileListResponse:
+            type: object
+            description: Response for a list of "Profile"
+            required:
+                - data
+                - links
+            properties:
+                jsonapi:
+                    $ref: '#/components/schemas/_jsonapi'
+                data:
+                    type: array
+                    items:
+                        allOf:
+                            - $ref: '#/components/schemas/Profile'
+                            - type: object
+                              properties:
+                                  relationships:
+                                      type: object
+                                      properties: *a2
+                meta:
+                    $ref: '#/components/schemas/_meta'
+                included:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/_resource'
+                links:
+                    allOf:
+                        - $ref: '#/components/schemas/_links'
+                        - $ref: '#/components/schemas/_pagination'
         post_Item:
             type: object
             description: The "post_Item" model
@@ -1703,15 +2388,21 @@ components:
                             type: string
                         authorId:
                             type: string
+                            nullable: true
                         published:
                             type: boolean
                         viewCount:
                             type: integer
+                        notes:
+                            type: string
+                            nullable: true
                 relationships:
                     type: object
                     properties:
                         author:
-                            $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+                            allOf:
+                                - $ref: '#/components/schemas/_toOneRelationshipWithLinks'
+                            nullable: true
         post_ItemCreateRequest:
             type: object
             description: Input for creating a "post_Item"
@@ -1746,15 +2437,21 @@ components:
                                     type: string
                                 authorId:
                                     type: string
+                                    nullable: true
                                 published:
                                     type: boolean
                                 viewCount:
                                     type: integer
+                                notes:
+                                    type: string
+                                    nullable: true
                         relationships:
                             type: object
                             properties:
                                 author:
-                                    $ref: '#/components/schemas/_toOneRelationship'
+                                    allOf:
+                                        - $ref: '#/components/schemas/_toOneRelationship'
+                                    nullable: true
                 meta:
                     $ref: '#/components/schemas/_meta'
         post_ItemUpdateRequest:
@@ -1788,15 +2485,21 @@ components:
                                     type: string
                                 authorId:
                                     type: string
+                                    nullable: true
                                 published:
                                     type: boolean
                                 viewCount:
                                     type: integer
+                                notes:
+                                    type: string
+                                    nullable: true
                         relationships:
                             type: object
                             properties:
                                 author:
-                                    $ref: '#/components/schemas/_toOneRelationship'
+                                    allOf:
+                                        - $ref: '#/components/schemas/_toOneRelationship'
+                                    nullable: true
                 meta:
                     $ref: '#/components/schemas/_meta'
         post_ItemResponse:
@@ -1814,7 +2517,7 @@ components:
                           properties:
                               relationships:
                                   type: object
-                                  properties: &a2
+                                  properties: &a3
                                       author:
                                           $ref: '#/components/schemas/_toOneRelationship'
                 meta:
@@ -1843,7 +2546,7 @@ components:
                               properties:
                                   relationships:
                                       type: object
-                                      properties: *a2
+                                      properties: *a3
                 meta:
                     $ref: '#/components/schemas/_meta'
                 included:
