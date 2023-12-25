@@ -1,10 +1,12 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
     title: ZenStack Generated API
     version: 1.0.0
 tags:
     - name: user
       description: User operations
+    - name: profile
+      description: Profile operations
     - name: post_Item
       description: Post-related operations
 components:
@@ -22,6 +24,12 @@ components:
                 - updatedAt
                 - email
                 - role
+        ProfileScalarFieldEnum:
+            type: string
+            enum:
+                - id
+                - image
+                - userId
         Post_ItemScalarFieldEnum:
             type: string
             enum:
@@ -32,6 +40,7 @@ components:
                 - authorId
                 - published
                 - viewCount
+                - notes
         SortOrder:
             type: string
             enum:
@@ -66,12 +75,32 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/Post_Item'
+                profile:
+                    allOf:
+                        - $ref: '#/components/schemas/Profile'
+                    nullable: true
             required:
                 - id
                 - createdAt
                 - updatedAt
                 - email
                 - role
+        Profile:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+                user:
+                    $ref: '#/components/schemas/User'
+                userId:
+                    type: string
+            required:
+                - id
+                - user
+                - userId
         Post_Item:
             type: object
             properties:
@@ -86,13 +115,19 @@ components:
                 title:
                     type: string
                 author:
-                    $ref: '#/components/schemas/User'
+                    allOf:
+                        - $ref: '#/components/schemas/User'
+                    nullable: true
                 authorId:
                     type: string
+                    nullable: true
                 published:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
             required:
                 - id
                 - createdAt
@@ -143,6 +178,11 @@ components:
                         - $ref: '#/components/schemas/Role'
                 posts:
                     $ref: '#/components/schemas/Post_ItemListRelationFilter'
+                profile:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileRelationFilter'
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                    nullable: true
         UserOrderByWithRelationInput:
             type: object
             properties:
@@ -158,6 +198,8 @@ components:
                     $ref: '#/components/schemas/SortOrder'
                 posts:
                     $ref: '#/components/schemas/Post_ItemOrderByRelationAggregateInput'
+                profile:
+                    $ref: '#/components/schemas/ProfileOrderByWithRelationInput'
         UserWhereUniqueInput:
             type: object
             properties:
@@ -206,6 +248,94 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/EnumroleWithAggregatesFilter'
                         - $ref: '#/components/schemas/Role'
+        ProfileWhereInput:
+            type: object
+            properties:
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileWhereInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ProfileWhereInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileWhereInput'
+                id:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringFilter'
+                        - type: string
+                image:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableFilter'
+                        - type: string
+                    nullable: true
+                userId:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringFilter'
+                        - type: string
+                user:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserWhereInput'
+        ProfileOrderByWithRelationInput:
+            type: object
+            properties:
+                id:
+                    $ref: '#/components/schemas/SortOrder'
+                image:
+                    oneOf:
+                        - $ref: '#/components/schemas/SortOrder'
+                        - $ref: '#/components/schemas/SortOrderInput'
+                userId:
+                    $ref: '#/components/schemas/SortOrder'
+                user:
+                    $ref: '#/components/schemas/UserOrderByWithRelationInput'
+        ProfileWhereUniqueInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+        ProfileScalarWhereWithAggregatesInput:
+            type: object
+            properties:
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileScalarWhereWithAggregatesInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileScalarWhereWithAggregatesInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ProfileScalarWhereWithAggregatesInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileScalarWhereWithAggregatesInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileScalarWhereWithAggregatesInput'
+                id:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringWithAggregatesFilter'
+                        - type: string
+                image:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableWithAggregatesFilter'
+                        - type: string
+                    nullable: true
+                userId:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringWithAggregatesFilter'
+                        - type: string
         Post_ItemWhereInput:
             type: object
             properties:
@@ -247,6 +377,7 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/StringNullableFilter'
                         - type: string
+                    nullable: true
                 published:
                     oneOf:
                         - $ref: '#/components/schemas/BoolFilter'
@@ -255,10 +386,16 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/IntFilter'
                         - type: integer
+                notes:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableFilter'
+                        - type: string
+                    nullable: true
                 author:
                     oneOf:
                         - $ref: '#/components/schemas/UserRelationFilter'
                         - $ref: '#/components/schemas/UserWhereInput'
+                    nullable: true
         Post_ItemOrderByWithRelationInput:
             type: object
             properties:
@@ -278,6 +415,10 @@ components:
                     $ref: '#/components/schemas/SortOrder'
                 viewCount:
                     $ref: '#/components/schemas/SortOrder'
+                notes:
+                    oneOf:
+                        - $ref: '#/components/schemas/SortOrder'
+                        - $ref: '#/components/schemas/SortOrderInput'
                 author:
                     $ref: '#/components/schemas/UserOrderByWithRelationInput'
         Post_ItemWhereUniqueInput:
@@ -326,6 +467,7 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/StringNullableWithAggregatesFilter'
                         - type: string
+                    nullable: true
                 published:
                     oneOf:
                         - $ref: '#/components/schemas/BoolWithAggregatesFilter'
@@ -334,6 +476,11 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/IntWithAggregatesFilter'
                         - type: integer
+                notes:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableWithAggregatesFilter'
+                        - type: string
+                    nullable: true
         UserCreateInput:
             type: object
             properties:
@@ -351,6 +498,8 @@ components:
                     $ref: '#/components/schemas/Role'
                 posts:
                     $ref: '#/components/schemas/Post_ItemCreateNestedManyWithoutAuthorInput'
+                profile:
+                    $ref: '#/components/schemas/ProfileCreateNestedOneWithoutUserInput'
             required:
                 - email
         UserUpdateInput:
@@ -380,6 +529,8 @@ components:
                         - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
                 posts:
                     $ref: '#/components/schemas/Post_ItemUpdateManyWithoutAuthorNestedInput'
+                profile:
+                    $ref: '#/components/schemas/ProfileUpdateOneWithoutUserNestedInput'
         UserCreateManyInput:
             type: object
             properties:
@@ -422,6 +573,56 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
                         - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+        ProfileCreateInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+                user:
+                    $ref: '#/components/schemas/UserCreateNestedOneWithoutProfileInput'
+            required:
+                - user
+        ProfileUpdateInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                image:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
+                user:
+                    $ref: '#/components/schemas/UserUpdateOneRequiredWithoutProfileNestedInput'
+        ProfileCreateManyInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+            required:
+                - userId
+        ProfileUpdateManyMutationInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                image:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
         Post_ItemCreateInput:
             type: object
             properties:
@@ -439,6 +640,9 @@ components:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
                 author:
                     $ref: '#/components/schemas/UserCreateNestedOneWithoutPostsInput'
             required:
@@ -473,6 +677,11 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                notes:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
                 author:
                     $ref: '#/components/schemas/UserUpdateOneWithoutPostsNestedInput'
         Post_ItemCreateManyInput:
@@ -490,10 +699,14 @@ components:
                     type: string
                 authorId:
                     type: string
+                    nullable: true
                 published:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
             required:
                 - id
                 - title
@@ -526,6 +739,11 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                notes:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
         StringFilter:
             type: object
             properties:
@@ -632,6 +850,17 @@ components:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
                 none:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
+        ProfileRelationFilter:
+            type: object
+            properties:
+                is:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                    nullable: true
+                isNot:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                    nullable: true
         Post_ItemOrderByRelationAggregateInput:
             type: object
             properties:
@@ -757,18 +986,21 @@ components:
             properties:
                 equals:
                     type: string
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
                           items:
                               type: string
                         - type: string
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
                           items:
                               type: string
                         - type: string
+                    nullable: true
                 lt:
                     type: string
                 lte:
@@ -789,6 +1021,74 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/NestedStringNullableFilter'
+                    nullable: true
+        UserRelationFilter:
+            type: object
+            properties:
+                is:
+                    allOf:
+                        - $ref: '#/components/schemas/UserWhereInput'
+                    nullable: true
+                isNot:
+                    allOf:
+                        - $ref: '#/components/schemas/UserWhereInput'
+                    nullable: true
+        SortOrderInput:
+            type: object
+            properties:
+                sort:
+                    $ref: '#/components/schemas/SortOrder'
+                nulls:
+                    $ref: '#/components/schemas/NullsOrder'
+            required:
+                - sort
+        StringNullableWithAggregatesFilter:
+            type: object
+            properties:
+                equals:
+                    type: string
+                    nullable: true
+                in:
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
+                    nullable: true
+                notIn:
+                    oneOf:
+                        - type: array
+                          items:
+                              type: string
+                        - type: string
+                    nullable: true
+                lt:
+                    type: string
+                lte:
+                    type: string
+                gt:
+                    type: string
+                gte:
+                    type: string
+                contains:
+                    type: string
+                startsWith:
+                    type: string
+                endsWith:
+                    type: string
+                mode:
+                    $ref: '#/components/schemas/QueryMode'
+                not:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NestedStringNullableWithAggregatesFilter'
+                    nullable: true
+                _count:
+                    $ref: '#/components/schemas/NestedIntNullableFilter'
+                _min:
+                    $ref: '#/components/schemas/NestedStringNullableFilter'
+                _max:
+                    $ref: '#/components/schemas/NestedStringNullableFilter'
         BoolFilter:
             type: object
             properties:
@@ -827,65 +1127,6 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntFilter'
-        UserRelationFilter:
-            type: object
-            properties:
-                is:
-                    $ref: '#/components/schemas/UserWhereInput'
-                isNot:
-                    $ref: '#/components/schemas/UserWhereInput'
-        SortOrderInput:
-            type: object
-            properties:
-                sort:
-                    $ref: '#/components/schemas/SortOrder'
-                nulls:
-                    $ref: '#/components/schemas/NullsOrder'
-            required:
-                - sort
-        StringNullableWithAggregatesFilter:
-            type: object
-            properties:
-                equals:
-                    type: string
-                in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
-                notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
-                lt:
-                    type: string
-                lte:
-                    type: string
-                gt:
-                    type: string
-                gte:
-                    type: string
-                contains:
-                    type: string
-                startsWith:
-                    type: string
-                endsWith:
-                    type: string
-                mode:
-                    $ref: '#/components/schemas/QueryMode'
-                not:
-                    oneOf:
-                        - type: string
-                        - $ref: '#/components/schemas/NestedStringNullableWithAggregatesFilter'
-                _count:
-                    $ref: '#/components/schemas/NestedIntNullableFilter'
-                _min:
-                    $ref: '#/components/schemas/NestedStringNullableFilter'
-                _max:
-                    $ref: '#/components/schemas/NestedStringNullableFilter'
         BoolWithAggregatesFilter:
             type: object
             properties:
@@ -967,6 +1208,55 @@ components:
                         - type: array
                           items:
                               $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+        ProfileCreateNestedOneWithoutUserInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/ProfileCreateOrConnectWithoutUserInput'
+                connect:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+        Post_ItemUncheckedCreateNestedManyWithoutAuthorInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
+                connectOrCreate:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
+                createMany:
+                    $ref: '#/components/schemas/Post_ItemCreateManyAuthorInputEnvelope'
+                connect:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+        ProfileUncheckedCreateNestedOneWithoutUserInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/ProfileCreateOrConnectWithoutUserInput'
+                connect:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
         StringFieldUpdateOperationsInput:
             type: object
             properties:
@@ -1052,6 +1342,151 @@ components:
                         - type: array
                           items:
                               $ref: '#/components/schemas/Post_ItemScalarWhereInput'
+        ProfileUpdateOneWithoutUserNestedInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/ProfileCreateOrConnectWithoutUserInput'
+                upsert:
+                    $ref: '#/components/schemas/ProfileUpsertWithoutUserInput'
+                disconnect:
+                    type: boolean
+                delete:
+                    type: boolean
+                connect:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileUpdateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedUpdateWithoutUserInput'
+        Post_ItemUncheckedUpdateManyWithoutAuthorNestedInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemCreateWithoutAuthorInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemUncheckedCreateWithoutAuthorInput'
+                connectOrCreate:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemCreateOrConnectWithoutAuthorInput'
+                upsert:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemUpsertWithWhereUniqueWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemUpsertWithWhereUniqueWithoutAuthorInput'
+                createMany:
+                    $ref: '#/components/schemas/Post_ItemCreateManyAuthorInputEnvelope'
+                set:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                disconnect:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                delete:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                connect:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereUniqueInput'
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemUpdateWithWhereUniqueWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemUpdateWithWhereUniqueWithoutAuthorInput'
+                updateMany:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemUpdateManyWithWhereWithoutAuthorInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemUpdateManyWithWhereWithoutAuthorInput'
+                deleteMany:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemScalarWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemScalarWhereInput'
+        ProfileUncheckedUpdateOneWithoutUserNestedInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/ProfileCreateOrConnectWithoutUserInput'
+                upsert:
+                    $ref: '#/components/schemas/ProfileUpsertWithoutUserInput'
+                disconnect:
+                    type: boolean
+                delete:
+                    type: boolean
+                connect:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileUpdateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedUpdateWithoutUserInput'
+        UserCreateNestedOneWithoutProfileInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserCreateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedCreateWithoutProfileInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/UserCreateOrConnectWithoutProfileInput'
+                connect:
+                    $ref: '#/components/schemas/UserWhereUniqueInput'
+        NullableStringFieldUpdateOperationsInput:
+            type: object
+            properties:
+                set:
+                    type: string
+                    nullable: true
+        UserUpdateOneRequiredWithoutProfileNestedInput:
+            type: object
+            properties:
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserCreateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedCreateWithoutProfileInput'
+                connectOrCreate:
+                    $ref: '#/components/schemas/UserCreateOrConnectWithoutProfileInput'
+                upsert:
+                    $ref: '#/components/schemas/UserUpsertWithoutProfileInput'
+                connect:
+                    $ref: '#/components/schemas/UserWhereUniqueInput'
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserUpdateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutProfileInput'
         UserCreateNestedOneWithoutPostsInput:
             type: object
             properties:
@@ -1344,18 +1779,21 @@ components:
             properties:
                 equals:
                     type: string
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
                           items:
                               type: string
                         - type: string
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
                           items:
                               type: string
                         - type: string
+                    nullable: true
                 lt:
                     type: string
                 lte:
@@ -1374,32 +1812,27 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/NestedStringNullableFilter'
-        NestedBoolFilter:
-            type: object
-            properties:
-                equals:
-                    type: boolean
-                not:
-                    oneOf:
-                        - type: boolean
-                        - $ref: '#/components/schemas/NestedBoolFilter'
+                    nullable: true
         NestedStringNullableWithAggregatesFilter:
             type: object
             properties:
                 equals:
                     type: string
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
                           items:
                               type: string
                         - type: string
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
                           items:
                               type: string
                         - type: string
+                    nullable: true
                 lt:
                     type: string
                 lte:
@@ -1418,6 +1851,7 @@ components:
                     oneOf:
                         - type: string
                         - $ref: '#/components/schemas/NestedStringNullableWithAggregatesFilter'
+                    nullable: true
                 _count:
                     $ref: '#/components/schemas/NestedIntNullableFilter'
                 _min:
@@ -1429,18 +1863,21 @@ components:
             properties:
                 equals:
                     type: integer
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
                           items:
                               type: integer
                         - type: integer
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
                           items:
                               type: integer
                         - type: integer
+                    nullable: true
                 lt:
                     type: integer
                 lte:
@@ -1453,6 +1890,16 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntNullableFilter'
+                    nullable: true
+        NestedBoolFilter:
+            type: object
+            properties:
+                equals:
+                    type: boolean
+                not:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/NestedBoolFilter'
         NestedBoolWithAggregatesFilter:
             type: object
             properties:
@@ -1553,6 +2000,9 @@ components:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
             required:
                 - id
                 - title
@@ -1573,6 +2023,9 @@ components:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
             required:
                 - id
                 - title
@@ -1601,6 +2054,34 @@ components:
                     type: boolean
             required:
                 - data
+        ProfileCreateWithoutUserInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+        ProfileUncheckedCreateWithoutUserInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+        ProfileCreateOrConnectWithoutUserInput:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+            required:
+                - where
+                - create
         Post_ItemUpsertWithWhereUniqueWithoutAuthorInput:
             type: object
             properties:
@@ -1683,6 +2164,7 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/StringNullableFilter'
                         - type: string
+                    nullable: true
                 published:
                     oneOf:
                         - $ref: '#/components/schemas/BoolFilter'
@@ -1691,6 +2173,169 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/IntFilter'
                         - type: integer
+                notes:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableFilter'
+                        - type: string
+                    nullable: true
+        ProfileUpsertWithoutUserInput:
+            type: object
+            properties:
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileUpdateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedUpdateWithoutUserInput'
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+            required:
+                - update
+                - create
+        ProfileUpdateWithoutUserInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                image:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
+        ProfileUncheckedUpdateWithoutUserInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                image:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
+        UserCreateWithoutProfileInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+                role:
+                    $ref: '#/components/schemas/Role'
+                posts:
+                    $ref: '#/components/schemas/Post_ItemCreateNestedManyWithoutAuthorInput'
+            required:
+                - email
+        UserUncheckedCreateWithoutProfileInput:
+            type: object
+            properties:
+                id:
+                    type: string
+                createdAt:
+                    type: string
+                    format: date-time
+                updatedAt:
+                    type: string
+                    format: date-time
+                email:
+                    type: string
+                role:
+                    $ref: '#/components/schemas/Role'
+                posts:
+                    $ref: "#/components/schemas/Post_ItemUncheckedCreateNestedManyWithoutAuthorInpu\
+                        t"
+            required:
+                - email
+        UserCreateOrConnectWithoutProfileInput:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/UserWhereUniqueInput'
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserCreateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedCreateWithoutProfileInput'
+            required:
+                - where
+                - create
+        UserUpsertWithoutProfileInput:
+            type: object
+            properties:
+                update:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserUpdateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutProfileInput'
+                create:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserCreateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedCreateWithoutProfileInput'
+            required:
+                - update
+                - create
+        UserUpdateWithoutProfileInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                createdAt:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
+                updatedAt:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
+                email:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                role:
+                    oneOf:
+                        - $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+                posts:
+                    $ref: '#/components/schemas/Post_ItemUpdateManyWithoutAuthorNestedInput'
+        UserUncheckedUpdateWithoutProfileInput:
+            type: object
+            properties:
+                id:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                createdAt:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
+                updatedAt:
+                    oneOf:
+                        - type: string
+                          format: date-time
+                        - $ref: '#/components/schemas/DateTimeFieldUpdateOperationsInput'
+                email:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/StringFieldUpdateOperationsInput'
+                role:
+                    oneOf:
+                        - $ref: '#/components/schemas/Role'
+                        - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+                posts:
+                    $ref: "#/components/schemas/Post_ItemUncheckedUpdateManyWithoutAuthorNestedInpu\
+                        t"
         UserCreateWithoutPostsInput:
             type: object
             properties:
@@ -1706,6 +2351,8 @@ components:
                     type: string
                 role:
                     $ref: '#/components/schemas/Role'
+                profile:
+                    $ref: '#/components/schemas/ProfileCreateNestedOneWithoutUserInput'
             required:
                 - email
         UserUncheckedCreateWithoutPostsInput:
@@ -1723,6 +2370,8 @@ components:
                     type: string
                 role:
                     $ref: '#/components/schemas/Role'
+                profile:
+                    $ref: '#/components/schemas/ProfileUncheckedCreateNestedOneWithoutUserInput'
             required:
                 - email
         UserCreateOrConnectWithoutPostsInput:
@@ -1776,6 +2425,8 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
                         - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+                profile:
+                    $ref: '#/components/schemas/ProfileUpdateOneWithoutUserNestedInput'
         UserUncheckedUpdateWithoutPostsInput:
             type: object
             properties:
@@ -1801,6 +2452,8 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
                         - $ref: '#/components/schemas/EnumroleFieldUpdateOperationsInput'
+                profile:
+                    $ref: '#/components/schemas/ProfileUncheckedUpdateOneWithoutUserNestedInput'
         Post_ItemCreateManyAuthorInput:
             type: object
             properties:
@@ -1818,6 +2471,9 @@ components:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
             required:
                 - id
                 - title
@@ -1850,6 +2506,11 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                notes:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
         Post_ItemUncheckedUpdateWithoutAuthorInput:
             type: object
             properties:
@@ -1879,6 +2540,11 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                notes:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
         Post_ItemUncheckedUpdateManyWithoutPostsInput:
             type: object
             properties:
@@ -1908,6 +2574,11 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/IntFieldUpdateOperationsInput'
+                notes:
+                    oneOf:
+                        - type: string
+                        - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
+                    nullable: true
         UserArgs:
             type: object
             properties:
@@ -1915,6 +2586,13 @@ components:
                     $ref: '#/components/schemas/UserSelect'
                 include:
                     $ref: '#/components/schemas/UserInclude'
+        ProfileArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
         UserInclude:
             type: object
             properties:
@@ -1922,10 +2600,21 @@ components:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/Post_ItemFindManyArgs'
+                profile:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileArgs'
                 _count:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/UserCountOutputTypeArgs'
+        ProfileInclude:
+            type: object
+            properties:
+                user:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/UserArgs'
         Post_ItemInclude:
             type: object
             properties:
@@ -1960,10 +2649,27 @@ components:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/Post_ItemFindManyArgs'
+                profile:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileArgs'
                 _count:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/UserCountOutputTypeArgs'
+        ProfileSelect:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                image:
+                    type: boolean
+                user:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/UserArgs'
+                userId:
+                    type: boolean
         Post_ItemSelect:
             type: object
             properties:
@@ -1984,6 +2690,8 @@ components:
                 published:
                     type: boolean
                 viewCount:
+                    type: boolean
+                notes:
                     type: boolean
         UserCountAggregateInput:
             type: object
@@ -2026,15 +2734,50 @@ components:
                     type: boolean
                 role:
                     type: boolean
+        ProfileCountAggregateInput:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                image:
+                    type: boolean
+                userId:
+                    type: boolean
+                _all:
+                    type: boolean
+        ProfileMinAggregateInput:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                image:
+                    type: boolean
+                userId:
+                    type: boolean
+        ProfileMaxAggregateInput:
+            type: object
+            properties:
+                id:
+                    type: boolean
+                image:
+                    type: boolean
+                userId:
+                    type: boolean
         AggregateUser:
             type: object
             properties:
                 _count:
-                    $ref: '#/components/schemas/UserCountAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                    nullable: true
                 _min:
-                    $ref: '#/components/schemas/UserMinAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/UserMinAggregateOutputType'
+                    nullable: true
                 _max:
-                    $ref: '#/components/schemas/UserMaxAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/UserMaxAggregateOutputType'
+                    nullable: true
         UserGroupByOutputType:
             type: object
             properties:
@@ -2051,30 +2794,86 @@ components:
                 role:
                     $ref: '#/components/schemas/Role'
                 _count:
-                    $ref: '#/components/schemas/UserCountAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/UserCountAggregateOutputType'
+                    nullable: true
                 _min:
-                    $ref: '#/components/schemas/UserMinAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/UserMinAggregateOutputType'
+                    nullable: true
                 _max:
-                    $ref: '#/components/schemas/UserMaxAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/UserMaxAggregateOutputType'
+                    nullable: true
             required:
                 - id
                 - createdAt
                 - updatedAt
                 - email
                 - role
+        AggregateProfile:
+            type: object
+            properties:
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileCountAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMaxAggregateOutputType'
+                    nullable: true
+        ProfileGroupByOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+                _count:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileCountAggregateOutputType'
+                    nullable: true
+                _min:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMinAggregateOutputType'
+                    nullable: true
+                _max:
+                    allOf:
+                        - $ref: '#/components/schemas/ProfileMaxAggregateOutputType'
+                    nullable: true
+            required:
+                - id
+                - userId
         AggregatePost_Item:
             type: object
             properties:
                 _count:
-                    $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                    nullable: true
                 _avg:
-                    $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
+                    nullable: true
                 _sum:
-                    $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
+                    nullable: true
                 _min:
-                    $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
+                    nullable: true
                 _max:
-                    $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+                    nullable: true
         Post_ItemGroupByOutputType:
             type: object
             properties:
@@ -2090,20 +2889,34 @@ components:
                     type: string
                 authorId:
                     type: string
+                    nullable: true
                 published:
                     type: boolean
                 viewCount:
                     type: integer
+                notes:
+                    type: string
+                    nullable: true
                 _count:
-                    $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemCountAggregateOutputType'
+                    nullable: true
                 _avg:
-                    $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemAvgAggregateOutputType'
+                    nullable: true
                 _sum:
-                    $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemSumAggregateOutputType'
+                    nullable: true
                 _min:
-                    $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMinAggregateOutputType'
+                    nullable: true
                 _max:
-                    $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/Post_ItemMaxAggregateOutputType'
+                    nullable: true
             required:
                 - id
                 - createdAt
@@ -2138,31 +2951,83 @@ components:
             properties:
                 id:
                     type: string
+                    nullable: true
                 createdAt:
                     type: string
                     format: date-time
+                    nullable: true
                 updatedAt:
                     type: string
                     format: date-time
+                    nullable: true
                 email:
                     type: string
+                    nullable: true
                 role:
-                    $ref: '#/components/schemas/Role'
+                    allOf:
+                        - $ref: '#/components/schemas/Role'
+                    nullable: true
         UserMaxAggregateOutputType:
             type: object
             properties:
                 id:
                     type: string
+                    nullable: true
                 createdAt:
                     type: string
                     format: date-time
+                    nullable: true
                 updatedAt:
                     type: string
                     format: date-time
+                    nullable: true
                 email:
                     type: string
+                    nullable: true
                 role:
-                    $ref: '#/components/schemas/Role'
+                    allOf:
+                        - $ref: '#/components/schemas/Role'
+                    nullable: true
+        ProfileCountAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: integer
+                image:
+                    type: integer
+                userId:
+                    type: integer
+                _all:
+                    type: integer
+            required:
+                - id
+                - image
+                - userId
+                - _all
+        ProfileMinAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+                    nullable: true
+        ProfileMaxAggregateOutputType:
+            type: object
+            properties:
+                id:
+                    type: string
+                    nullable: true
+                image:
+                    type: string
+                    nullable: true
+                userId:
+                    type: string
+                    nullable: true
         Post_ItemCountAggregateOutputType:
             type: object
             properties:
@@ -2180,6 +3045,8 @@ components:
                     type: integer
                 viewCount:
                     type: integer
+                notes:
+                    type: integer
                 _all:
                     type: integer
             required:
@@ -2190,55 +3057,78 @@ components:
                 - authorId
                 - published
                 - viewCount
+                - notes
                 - _all
         Post_ItemAvgAggregateOutputType:
             type: object
             properties:
                 viewCount:
                     type: number
+                    nullable: true
         Post_ItemSumAggregateOutputType:
             type: object
             properties:
                 viewCount:
                     type: integer
+                    nullable: true
         Post_ItemMinAggregateOutputType:
             type: object
             properties:
                 id:
                     type: string
+                    nullable: true
                 createdAt:
                     type: string
                     format: date-time
+                    nullable: true
                 updatedAt:
                     type: string
                     format: date-time
+                    nullable: true
                 title:
                     type: string
+                    nullable: true
                 authorId:
                     type: string
+                    nullable: true
                 published:
                     type: boolean
+                    nullable: true
                 viewCount:
                     type: integer
+                    nullable: true
+                notes:
+                    type: string
+                    nullable: true
         Post_ItemMaxAggregateOutputType:
             type: object
             properties:
                 id:
                     type: string
+                    nullable: true
                 createdAt:
                     type: string
                     format: date-time
+                    nullable: true
                 updatedAt:
                     type: string
                     format: date-time
+                    nullable: true
                 title:
                     type: string
+                    nullable: true
                 authorId:
                     type: string
+                    nullable: true
                 published:
                     type: boolean
+                    nullable: true
                 viewCount:
                     type: integer
+                    nullable: true
+                notes:
+                    type: string
+                    nullable: true
         _Meta:
             type: object
             properties:
@@ -2463,6 +3353,186 @@ components:
                     $ref: '#/components/schemas/UserMinAggregateInput'
                 _max:
                     $ref: '#/components/schemas/UserMaxAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileCreateArgs:
+            type: object
+            required:
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                data:
+                    $ref: '#/components/schemas/ProfileCreateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileCreateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                data:
+                    $ref: '#/components/schemas/ProfileCreateManyInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileFindUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileFindFirstArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileFindManyArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileUpdateArgs:
+            type: object
+            required:
+                - where
+                - data
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                data:
+                    $ref: '#/components/schemas/ProfileUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileUpdateManyArgs:
+            type: object
+            required:
+                - data
+            properties:
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                data:
+                    $ref: '#/components/schemas/ProfileUpdateManyMutationInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileUpsertArgs:
+            type: object
+            required:
+                - create
+                - update
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                create:
+                    $ref: '#/components/schemas/ProfileCreateInput'
+                update:
+                    $ref: '#/components/schemas/ProfileUpdateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileDeleteUniqueArgs:
+            type: object
+            required:
+                - where
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                include:
+                    $ref: '#/components/schemas/ProfileInclude'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileDeleteManyArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileCountArgs:
+            type: object
+            properties:
+                select:
+                    $ref: '#/components/schemas/ProfileSelect'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileAggregateArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                orderBy:
+                    $ref: '#/components/schemas/ProfileOrderByWithRelationInput'
+                cursor:
+                    $ref: '#/components/schemas/ProfileWhereUniqueInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileCountAggregateInput'
+                _min:
+                    $ref: '#/components/schemas/ProfileMinAggregateInput'
+                _max:
+                    $ref: '#/components/schemas/ProfileMaxAggregateInput'
+                meta:
+                    $ref: '#/components/schemas/_Meta'
+        ProfileGroupByArgs:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                orderBy:
+                    $ref: '#/components/schemas/ProfileOrderByWithRelationInput'
+                by:
+                    $ref: '#/components/schemas/ProfileScalarFieldEnum'
+                having:
+                    $ref: '#/components/schemas/ProfileScalarWhereWithAggregatesInput'
+                take:
+                    type: integer
+                skip:
+                    type: integer
+                _count:
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileCountAggregateInput'
+                _min:
+                    $ref: '#/components/schemas/ProfileMinAggregateInput'
+                _max:
+                    $ref: '#/components/schemas/ProfileMaxAggregateInput'
                 meta:
                     $ref: '#/components/schemas/_Meta'
         Post_ItemCreateArgs:
@@ -3210,6 +4280,599 @@ paths:
                       application/json:
                           schema:
                               $ref: '#/components/schemas/UserGroupByArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/create:
+        post:
+            operationId: createProfile
+            description: Create a new Profile
+            tags:
+                - profile
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileCreateArgs'
+    /profile/createMany:
+        post:
+            operationId: createManyProfile
+            description: Create several Profile
+            tags:
+                - profile
+            responses:
+                '201':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileCreateManyArgs'
+    /profile/findUnique:
+        get:
+            operationId: findUniqueProfile
+            description: Find one unique Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileFindUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/findFirst:
+        get:
+            operationId: findFirstProfile
+            description: Find the first Profile matching the given condition
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileFindFirstArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/findMany:
+        get:
+            operationId: findManyProfile
+            description: Find a list of Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileFindManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/update:
+        patch:
+            operationId: updateProfile
+            description: Update a Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpdateArgs'
+    /profile/updateMany:
+        patch:
+            operationId: updateManyProfile
+            description: Update Profiles matching the given condition
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpdateManyArgs'
+    /profile/upsert:
+        post:
+            operationId: upsertProfile
+            description: Upsert a Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ProfileUpsertArgs'
+    /profile/delete:
+        delete:
+            operationId: deleteProfile
+            description: Delete one unique Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/Profile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileDeleteUniqueArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/deleteMany:
+        delete:
+            operationId: deleteManyProfile
+            description: Delete Profiles matching the given condition
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/BatchPayload'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileDeleteManyArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/count:
+        get:
+            operationId: countProfile
+            description: Find a list of Profile
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        oneOf:
+                                            - type: integer
+                                            - $ref: '#/components/schemas/ProfileCountAggregateOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileCountArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/aggregate:
+        get:
+            operationId: aggregateProfile
+            description: Aggregate Profiles
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/AggregateProfile'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileAggregateArgs'
+                - name: meta
+                  in: query
+                  description: Superjson serialization metadata for parameter "q"
+                  content:
+                      application/json:
+                          schema: {}
+    /profile/groupBy:
+        get:
+            operationId: groupByProfile
+            description: Group Profiles by fields
+            tags:
+                - profile
+            responses:
+                '200':
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                required:
+                                    - data
+                                properties:
+                                    data:
+                                        type: array
+                                        items:
+                                            $ref: '#/components/schemas/ProfileGroupByOutputType'
+                                        description: The Prisma response data serialized with superjson
+                                    meta:
+                                        $ref: '#/components/schemas/_Meta'
+                                        description: The superjson serialization metadata for the "data" field
+                '400':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Invalid request
+                '403':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is forbidden
+            parameters:
+                - name: q
+                  in: query
+                  required: true
+                  description: Superjson-serialized Prisma query object
+                  content:
+                      application/json:
+                          schema:
+                              $ref: '#/components/schemas/ProfileGroupByArgs'
                 - name: meta
                   in: query
                   description: Superjson serialization metadata for parameter "q"

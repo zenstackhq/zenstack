@@ -522,24 +522,24 @@ components:
             properties:
                 first:
                     oneOf:
+                        - type: 'null'
                         - type: string
                           description: Link to the first page
-                        - type: 'null'
                 last:
                     oneOf:
+                        - type: 'null'
                         - type: string
                           description: Link to the last page
-                        - type: 'null'
                 prev:
                     oneOf:
+                        - type: 'null'
                         - type: string
                           description: Link to the previous page
-                        - type: 'null'
                 next:
                     oneOf:
+                        - type: 'null'
                         - type: string
                           description: Link to the next page
-                        - type: 'null'
         _errors:
             type: array
             description: An array of error objects
