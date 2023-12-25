@@ -1,0 +1,57 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>dev.zenstack.zenstack</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>ZenStack Language Tools</name>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="contact@zenstack.dev" url="https://zenstack.dev">ZenStack</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+        <a href="https://zenstack.dev">ZenStack</a> is a toolkit that simplifies the development of a web app's backend. This plugin provides code editing experiences for its ZModel schema language.
+
+        <h3>Features</h3>
+
+        <ul>
+            <li>Syntax highlighting</li>
+            <li>Go to definition</li>
+            <li>Code completion</li>
+        </ul>
+    ]]></description>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.ultimate</depends>
+    <depends>JavaScript</depends>
+    <depends>org.jetbrains.plugins.textmate</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="ZModel"
+                  language="ZModel"
+                  implementationClass="dev.zenstack.lang.ZModelFileType"
+                  extensions="zmodel"
+                  fieldName="INSTANCE"/>
+
+        <platform.lsp.serverSupportProvider implementation="dev.zenstack.lsp.ZenStackLspServerSupportProvider"/>
+
+        <!-- The following two settings are for prevent language type from overriding textmate bundle
+            https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008202719-Syntax-Highlighting-for-Custom-Filetype-conflicts-with-Textmate-bundle
+        -->
+        <editorHighlighterProvider
+                filetype="ZModel"
+                implementationClass="org.jetbrains.plugins.textmate.language.syntax.highlighting.TextMateEditorHighlighterProvider"
+        />
+        <lang.syntaxHighlighterFactory
+                language="ZModel"
+                implementationClass="org.jetbrains.plugins.textmate.language.syntax.highlighting.TextMateSyntaxHighlighterFactory"/>
+
+    </extensions>
+</idea-plugin>

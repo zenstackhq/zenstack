@@ -1,0 +1,17 @@
+{
+    "name": "jetbrains",
+    "version": "1.5.0",
+    "displayName": "ZenStack JetBrains IDE Plugin",
+    "description": "ZenStack JetBrains IDE plugin",
+    "homepage": "https://zenstack.dev",
+    "private": true,
+    "scripts": {
+       "build": "./gradlew buildPlugin"
+    },
+    "author": "ZenStack Team",
+    "license": "MIT",
+    "devDependencies": {
+      "zenstack": "workspace:*",
+      "@zenstackhq/language": "workspace:*"
+    }
+}
