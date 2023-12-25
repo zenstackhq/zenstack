@@ -12,12 +12,13 @@ import {
     resolvePath,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
-import * as fs from 'fs';
+import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
-import * as path from 'path';
+import path from 'path';
 import pluralize from 'pluralize';
 import invariant from 'tiny-invariant';
+import { P, match } from 'ts-pattern';
 import YAML from 'yaml';
 import { name } from '.';
 import { OpenAPIGeneratorBase } from './generator-base';
@@ -49,7 +50,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
 
         const openapi: OAPI.Document = {
-            openapi: this.getOption('specVersion', '3.1.0'),
+            openapi: this.getOption('specVersion', this.DEFAULT_SPEC_VERSION),
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
@@ -483,9 +484,8 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 schema = this.fieldTypeToOpenAPISchema(field.type);
             }
         }
-        if (array) {
-            schema = { type: 'array', items: schema };
-        }
+
+        schema = this.wrapArray(schema, array);
 
         return {
             name: name === 'id' ? 'filter[id]' : `filter[${field.name}${name}]`,
@@ -576,10 +576,10 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 description: 'Pagination information',
                 required: ['first', 'last', 'prev', 'next'],
                 properties: {
-                    first: this.nullable({ type: 'string', description: 'Link to the first page' }),
-                    last: this.nullable({ type: 'string', description: 'Link to the last page' }),
-                    prev: this.nullable({ type: 'string', description: 'Link to the previous page' }),
-                    next: this.nullable({ type: 'string', description: 'Link to the next page' }),
+                    first: this.wrapNullable({ type: 'string', description: 'Link to the first page' }, true),
+                    last: this.wrapNullable({ type: 'string', description: 'Link to the last page' }, true),
+                    prev: this.wrapNullable({ type: 'string', description: 'Link to the previous page' }, true),
+                    next: this.wrapNullable({ type: 'string', description: 'Link to the next page' }, true),
                 },
             },
             _errors: {
@@ -634,7 +634,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 type: 'object',
                 description: 'A to-one relationship',
                 properties: {
-                    data: this.nullable(this.ref('_resourceIdentifier')),
+                    data: this.wrapNullable(this.ref('_resourceIdentifier'), true),
                 },
             },
             _toOneRelationshipWithLinks: {
@@ -643,7 +643,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 description: 'A to-one relationship with links',
                 properties: {
                     links: this.ref('_relationLinks'),
-                    data: this.nullable(this.ref('_resourceIdentifier')),
+                    data: this.wrapNullable(this.ref('_resourceIdentifier'), true),
                 },
             },
             _toManyRelationship: {
@@ -680,13 +680,16 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             },
             _toOneRelationshipRequest: {
                 description: 'Input for manipulating a to-one relationship',
-                ...this.nullable({
-                    type: 'object',
-                    required: ['data'],
-                    properties: {
-                        data: this.ref('_resourceIdentifier'),
+                ...this.wrapNullable(
+                    {
+                        type: 'object',
+                        required: ['data'],
+                        properties: {
+                            data: this.ref('_resourceIdentifier'),
+                        },
                     },
-                }),
+                    true
+                ),
             },
             _toManyRelationshipResponse: {
                 description: 'Response for a to-many relationship',
@@ -841,7 +844,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
         const fields = model.fields.filter((f) => !isIdField(f));
 
         const attributes: Record<string, OAPI.SchemaObject> = {};
-        const relationships: Record<string, OAPI.ReferenceObject> = {};
+        const relationships: Record<string, OAPI.ReferenceObject | OAPI.SchemaObject> = {};
 
         const required: string[] = [];
 
@@ -853,7 +856,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 } else {
                     relType = field.type.array ? '_toManyRelationshipWithLinks' : '_toOneRelationshipWithLinks';
                 }
-                relationships[field.name] = this.ref(relType);
+                relationships[field.name] = this.wrapNullable(this.ref(relType), field.type.optional);
             } else {
                 attributes[field.name] = this.generateField(field);
                 if (
@@ -911,46 +914,31 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     }
 
     private generateField(field: DataModelField) {
-        return this.wrapArray(this.fieldTypeToOpenAPISchema(field.type), field.type.array);
-    }
-
-    private get specVersion() {
-        return this.getOption('specVersion', '3.0.0');
+        return this.wrapArray(
+            this.wrapNullable(this.fieldTypeToOpenAPISchema(field.type), field.type.optional),
+            field.type.array
+        );
     }
 
     private fieldTypeToOpenAPISchema(type: DataModelFieldType): OAPI.ReferenceObject | OAPI.SchemaObject {
-        switch (type.type) {
-            case 'String':
-                return { type: 'string' };
-            case 'Int':
-            case 'BigInt':
-                return { type: 'integer' };
-            case 'Float':
-                return { type: 'number' };
-            case 'Decimal':
-                return this.oneOf({ type: 'number' }, { type: 'string' });
-            case 'Boolean':
-                return { type: 'boolean' };
-            case 'DateTime':
-                return { type: 'string', format: 'date-time' };
-            case 'Bytes':
-                return { type: 'string', format: 'byte', description: 'Base64 encoded byte array' };
-            case 'Json':
-                return {};
-            default: {
+        return match(type.type)
+            .with('String', () => ({ type: 'string' }))
+            .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' }))
+            .with('Float', () => ({ type: 'number' }))
+            .with('Decimal', () => this.oneOf({ type: 'number' }, { type: 'string' }))
+            .with('Boolean', () => ({ type: 'boolean' }))
+            .with('DateTime', () => ({ type: 'string', format: 'date-time' }))
+            .with('Bytes', () => ({ type: 'string', format: 'byte', description: 'Base64 encoded byte array' }))
+            .with('Json', () => ({}))
+            .otherwise((t) => {
                 const fieldDecl = type.reference?.ref;
-                invariant(fieldDecl);
+                invariant(fieldDecl, `Type ${t} is not a model reference`);
                 return this.ref(fieldDecl?.name);
-            }
-        }
+            });
     }
 
     private ref(type: string) {
         return { $ref: `#/components/schemas/${type}` };
-    }
-
-    private nullable(schema: OAPI.SchemaObject | OAPI.ReferenceObject) {
-        return this.specVersion === '3.0.0' ? { ...schema, nullable: true } : this.oneOf(schema, { type: 'null' });
     }
 
     private parameter(type: string) {

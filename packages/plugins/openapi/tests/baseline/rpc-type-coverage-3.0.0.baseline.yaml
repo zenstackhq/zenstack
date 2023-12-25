@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.0
 info:
     title: ZenStack Generated API
     version: 1.0.0
@@ -29,6 +29,11 @@ components:
             enum:
                 - default
                 - insensitive
+        NullsOrder:
+            type: string
+            enum:
+                - first
+                - last
         Foo:
             type: object
             properties:
@@ -54,6 +59,7 @@ components:
                 bytes:
                     type: string
                     format: byte
+                    nullable: true
             required:
                 - id
                 - string
@@ -63,7 +69,6 @@ components:
                 - float
                 - decimal
                 - boolean
-                - bytes
         FooWhereInput:
             type: object
             properties:
@@ -120,9 +125,10 @@ components:
                         - type: boolean
                 bytes:
                     oneOf:
-                        - $ref: '#/components/schemas/BytesFilter'
+                        - $ref: '#/components/schemas/BytesNullableFilter'
                         - type: string
                           format: byte
+                    nullable: true
         FooOrderByWithRelationInput:
             type: object
             properties:
@@ -143,7 +149,9 @@ components:
                 boolean:
                     $ref: '#/components/schemas/SortOrder'
                 bytes:
-                    $ref: '#/components/schemas/SortOrder'
+                    oneOf:
+                        - $ref: '#/components/schemas/SortOrder'
+                        - $ref: '#/components/schemas/SortOrderInput'
         FooWhereUniqueInput:
             type: object
             properties:
@@ -205,9 +213,10 @@ components:
                         - type: boolean
                 bytes:
                     oneOf:
-                        - $ref: '#/components/schemas/BytesWithAggregatesFilter'
+                        - $ref: '#/components/schemas/BytesNullableWithAggregatesFilter'
                         - type: string
                           format: byte
+                    nullable: true
         FooCreateInput:
             type: object
             properties:
@@ -233,6 +242,7 @@ components:
                 bytes:
                     type: string
                     format: byte
+                    nullable: true
             required:
                 - string
                 - int
@@ -241,7 +251,6 @@ components:
                 - float
                 - decimal
                 - boolean
-                - bytes
         FooUpdateInput:
             type: object
             properties:
@@ -284,7 +293,8 @@ components:
                     oneOf:
                         - type: string
                           format: byte
-                        - $ref: '#/components/schemas/BytesFieldUpdateOperationsInput'
+                        - $ref: '#/components/schemas/NullableBytesFieldUpdateOperationsInput'
+                    nullable: true
         FooCreateManyInput:
             type: object
             properties:
@@ -310,6 +320,7 @@ components:
                 bytes:
                     type: string
                     format: byte
+                    nullable: true
             required:
                 - string
                 - int
@@ -318,7 +329,6 @@ components:
                 - float
                 - decimal
                 - boolean
-                - bytes
         FooUpdateManyMutationInput:
             type: object
             properties:
@@ -361,7 +371,8 @@ components:
                     oneOf:
                         - type: string
                           format: byte
-                        - $ref: '#/components/schemas/BytesFieldUpdateOperationsInput'
+                        - $ref: '#/components/schemas/NullableBytesFieldUpdateOperationsInput'
+                    nullable: true
         StringFilter:
             type: object
             properties:
@@ -583,12 +594,13 @@ components:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/NestedBoolFilter'
-        BytesFilter:
+        BytesNullableFilter:
             type: object
             properties:
                 equals:
                     type: string
                     format: byte
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
@@ -597,6 +609,7 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
@@ -605,11 +618,22 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 not:
                     oneOf:
                         - type: string
                           format: byte
-                        - $ref: '#/components/schemas/NestedBytesFilter'
+                        - $ref: '#/components/schemas/NestedBytesNullableFilter'
+                    nullable: true
+        SortOrderInput:
+            type: object
+            properties:
+                sort:
+                    $ref: '#/components/schemas/SortOrder'
+                nulls:
+                    $ref: '#/components/schemas/NullsOrder'
+            required:
+                - sort
         StringWithAggregatesFilter:
             type: object
             properties:
@@ -889,12 +913,13 @@ components:
                     $ref: '#/components/schemas/NestedBoolFilter'
                 _max:
                     $ref: '#/components/schemas/NestedBoolFilter'
-        BytesWithAggregatesFilter:
+        BytesNullableWithAggregatesFilter:
             type: object
             properties:
                 equals:
                     type: string
                     format: byte
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
@@ -903,6 +928,7 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
@@ -911,17 +937,19 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 not:
                     oneOf:
                         - type: string
                           format: byte
-                        - $ref: '#/components/schemas/NestedBytesWithAggregatesFilter'
+                        - $ref: '#/components/schemas/NestedBytesNullableWithAggregatesFilter'
+                    nullable: true
                 _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
+                    $ref: '#/components/schemas/NestedIntNullableFilter'
                 _min:
-                    $ref: '#/components/schemas/NestedBytesFilter'
+                    $ref: '#/components/schemas/NestedBytesNullableFilter'
                 _max:
-                    $ref: '#/components/schemas/NestedBytesFilter'
+                    $ref: '#/components/schemas/NestedBytesNullableFilter'
         StringFieldUpdateOperationsInput:
             type: object
             properties:
@@ -1000,12 +1028,13 @@ components:
             properties:
                 set:
                     type: boolean
-        BytesFieldUpdateOperationsInput:
+        NullableBytesFieldUpdateOperationsInput:
             type: object
             properties:
                 set:
                     type: string
                     format: byte
+                    nullable: true
         NestedStringFilter:
             type: object
             properties:
@@ -1225,12 +1254,13 @@ components:
                     oneOf:
                         - type: boolean
                         - $ref: '#/components/schemas/NestedBoolFilter'
-        NestedBytesFilter:
+        NestedBytesNullableFilter:
             type: object
             properties:
                 equals:
                     type: string
                     format: byte
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
@@ -1239,6 +1269,7 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
@@ -1247,11 +1278,13 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 not:
                     oneOf:
                         - type: string
                           format: byte
-                        - $ref: '#/components/schemas/NestedBytesFilter'
+                        - $ref: '#/components/schemas/NestedBytesNullableFilter'
+                    nullable: true
         NestedStringWithAggregatesFilter:
             type: object
             properties:
@@ -1529,12 +1562,13 @@ components:
                     $ref: '#/components/schemas/NestedBoolFilter'
                 _max:
                     $ref: '#/components/schemas/NestedBoolFilter'
-        NestedBytesWithAggregatesFilter:
+        NestedBytesNullableWithAggregatesFilter:
             type: object
             properties:
                 equals:
                     type: string
                     format: byte
+                    nullable: true
                 in:
                     oneOf:
                         - type: array
@@ -1543,6 +1577,7 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 notIn:
                     oneOf:
                         - type: array
@@ -1551,17 +1586,52 @@ components:
                               format: byte
                         - type: string
                           format: byte
+                    nullable: true
                 not:
                     oneOf:
                         - type: string
                           format: byte
-                        - $ref: '#/components/schemas/NestedBytesWithAggregatesFilter'
+                        - $ref: '#/components/schemas/NestedBytesNullableWithAggregatesFilter'
+                    nullable: true
                 _count:
-                    $ref: '#/components/schemas/NestedIntFilter'
+                    $ref: '#/components/schemas/NestedIntNullableFilter'
                 _min:
-                    $ref: '#/components/schemas/NestedBytesFilter'
+                    $ref: '#/components/schemas/NestedBytesNullableFilter'
                 _max:
-                    $ref: '#/components/schemas/NestedBytesFilter'
+                    $ref: '#/components/schemas/NestedBytesNullableFilter'
+        NestedIntNullableFilter:
+            type: object
+            properties:
+                equals:
+                    type: integer
+                    nullable: true
+                in:
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
+                    nullable: true
+                notIn:
+                    oneOf:
+                        - type: array
+                          items:
+                              type: integer
+                        - type: integer
+                    nullable: true
+                lt:
+                    type: integer
+                lte:
+                    type: integer
+                gt:
+                    type: integer
+                gte:
+                    type: integer
+                not:
+                    oneOf:
+                        - type: integer
+                        - $ref: '#/components/schemas/NestedIntNullableFilter'
+                    nullable: true
         FooSelect:
             type: object
             properties:
@@ -1674,15 +1744,25 @@ components:
             type: object
             properties:
                 _count:
-                    $ref: '#/components/schemas/FooCountAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooCountAggregateOutputType'
+                    nullable: true
                 _avg:
-                    $ref: '#/components/schemas/FooAvgAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooAvgAggregateOutputType'
+                    nullable: true
                 _sum:
-                    $ref: '#/components/schemas/FooSumAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooSumAggregateOutputType'
+                    nullable: true
                 _min:
-                    $ref: '#/components/schemas/FooMinAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooMinAggregateOutputType'
+                    nullable: true
                 _max:
-                    $ref: '#/components/schemas/FooMaxAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooMaxAggregateOutputType'
+                    nullable: true
         FooGroupByOutputType:
             type: object
             properties:
@@ -1708,16 +1788,27 @@ components:
                 bytes:
                     type: string
                     format: byte
+                    nullable: true
                 _count:
-                    $ref: '#/components/schemas/FooCountAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooCountAggregateOutputType'
+                    nullable: true
                 _avg:
-                    $ref: '#/components/schemas/FooAvgAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooAvgAggregateOutputType'
+                    nullable: true
                 _sum:
-                    $ref: '#/components/schemas/FooSumAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooSumAggregateOutputType'
+                    nullable: true
                 _min:
-                    $ref: '#/components/schemas/FooMinAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooMinAggregateOutputType'
+                    nullable: true
                 _max:
-                    $ref: '#/components/schemas/FooMaxAggregateOutputType'
+                    allOf:
+                        - $ref: '#/components/schemas/FooMaxAggregateOutputType'
+                    nullable: true
             required:
                 - id
                 - string
@@ -1727,7 +1818,6 @@ components:
                 - float
                 - decimal
                 - boolean
-                - bytes
         FooCountAggregateOutputType:
             type: object
             properties:
@@ -1767,77 +1857,103 @@ components:
             properties:
                 int:
                     type: number
+                    nullable: true
                 bigInt:
                     type: number
+                    nullable: true
                 float:
                     type: number
+                    nullable: true
                 decimal:
                     oneOf:
                         - type: string
                         - type: number
+                    nullable: true
         FooSumAggregateOutputType:
             type: object
             properties:
                 int:
                     type: integer
+                    nullable: true
                 bigInt:
                     type: integer
+                    nullable: true
                 float:
                     type: number
+                    nullable: true
                 decimal:
                     oneOf:
                         - type: string
                         - type: number
+                    nullable: true
         FooMinAggregateOutputType:
             type: object
             properties:
                 id:
                     type: string
+                    nullable: true
                 string:
                     type: string
+                    nullable: true
                 int:
                     type: integer
+                    nullable: true
                 bigInt:
                     type: integer
+                    nullable: true
                 date:
                     type: string
                     format: date-time
+                    nullable: true
                 float:
                     type: number
+                    nullable: true
                 decimal:
                     oneOf:
                         - type: string
                         - type: number
+                    nullable: true
                 boolean:
                     type: boolean
+                    nullable: true
                 bytes:
                     type: string
                     format: byte
+                    nullable: true
         FooMaxAggregateOutputType:
             type: object
             properties:
                 id:
                     type: string
+                    nullable: true
                 string:
                     type: string
+                    nullable: true
                 int:
                     type: integer
+                    nullable: true
                 bigInt:
                     type: integer
+                    nullable: true
                 date:
                     type: string
                     format: date-time
+                    nullable: true
                 float:
                     type: number
+                    nullable: true
                 decimal:
                     oneOf:
                         - type: string
                         - type: number
+                    nullable: true
                 boolean:
                     type: boolean
+                    nullable: true
                 bytes:
                     type: string
                     format: byte
+                    nullable: true
         _Meta:
             type: object
             properties:
