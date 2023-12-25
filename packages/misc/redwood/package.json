@@ -9,8 +9,8 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ../../LICENSE dist",
-        "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup-browser.config.ts --watch\" \"tsup-node --config ./tsup-cross.config.ts --watch\"",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc",
+        "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
     },
@@ -18,31 +18,27 @@
     "types": "index.d.ts",
     "exports": {
         ".": {
-            "default": "./index.js",
-            "types": "./index.d.ts"
-        },
-        "./setup": {
-            "default": "./setup.js"
+            "default": "./dist/index.js",
+            "types": "./dist/index.d.ts"
         },
         "./package.json": {
             "default": "./package.json"
         }
-    },
-    "publishConfig": {
-        "directory": "dist",
-        "linkDirectory": true
     },
     "author": {
         "name": "ZenStack Team"
     },
     "homepage": "https://zenstack.dev",
     "license": "MIT",
-    "bin": "node setup.js",
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
-        "colors": "1.4.0"
+        "colors": "1.4.0",
+        "ora": "^5.4.1",
+        "ts-morph": "^16.0.0",
+        "yargs": "^17.7.2"
     },
     "devDependencies": {
+        "@types/yargs": "^17.0.32",
         "graphql-yoga": "^5.0.2"
     }
 }
