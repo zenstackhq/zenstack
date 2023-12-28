@@ -37,21 +37,27 @@ ZenStack incrementally extends Prisma's power with the following four layers:
 
 ZenStack introduces a data modeling language called "ZModel" - a superset of Prisma schema language. It extended Prisma schema with custom attributes and functions and, based on that, implemented a flexible access control layer around Prisma.
 
-```prisma
-// schema.zmodel
-
-model Post {
+```ts
+// base.zmodel
+abstract model Base {
     id String @id
-    title String
-    published Boolean @default(false)
     author User @relation(fields: [authorId], references: [id])
     authorId String
 
-    // 🔐 allow logged-in users to read published posts
-    @@allow('read', auth() != null && published)
-
     // 🔐 allow full CRUD by author
     @@allow('all', author == auth())
+}
+```
+
+```ts
+// schema.zmodel
+import "base"
+model Post extends Base {
+    title String
+    published Boolean @default(false)
+
+    // 🔐 allow logged-in users to read published posts
+    @@allow('read', auth() != null && published)
 }
 ```
 
