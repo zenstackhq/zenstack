@@ -1,8 +1,8 @@
 {
     "name": "@zenstackhq/redwood",
-    "displayName": "ZenStack RedwoodJS setup and runtime package",
-    "version": "0.5.0",
-    "description": "For using ZenStack with RedwoodJS projects.",
+    "displayName": "ZenStack RedwoodJS Integration",
+    "version": "1.6.0",
+    "description": "CLI and runtime for integrating ZenStack with RedwoodJS projects.",
     "repository": {
         "type": "git",
         "url": "https://github.com/zenstackhq/zenstack"
@@ -14,12 +14,16 @@
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
     },
-    "main": "index.js",
-    "types": "index.d.ts",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
         ".": {
             "default": "./dist/index.js",
             "types": "./dist/index.d.ts"
+        },
+        "./graphql": {
+            "default": "./dist/graphql.js",
+            "types": "./dist/graphql.d.ts"
         },
         "./package.json": {
             "default": "./package.json"
@@ -33,11 +37,17 @@
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
         "colors": "1.4.0",
-        "ora": "^5.4.1",
-        "ts-morph": "^16.0.0",
+        "ts-morph": "^16.0.0"
+    },
+    "peerDependencies": {
+        "execa": "^5.0.0",
+        "listr2": "^6.0.0",
+        "terminal-link": "^2.0.0",
         "yargs": "^17.7.2"
     },
     "devDependencies": {
+        "@redwoodjs/graphql-server": "^6.6.0",
+        "@redwoodjs/cli-helpers": "^6.6.0",
         "@types/yargs": "^17.0.32",
         "graphql-yoga": "^5.0.2"
     }

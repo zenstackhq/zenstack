@@ -63,6 +63,7 @@ import {
     SimpleField,
 } from './prisma-builder';
 import { ZModelCodeGenerator } from '@zenstackhq/sdk';
+import { getPackageJson } from '../../utils/pkg-utils';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
@@ -112,8 +113,9 @@ export default class PrismaSchemaGenerator {
             }
         }
 
-        let outFile = (options.output as string) ?? './prisma/schema.prisma';
-        outFile = resolvePath(outFile, options);
+        const outFile = options.output
+            ? resolvePath(options.output as string, options)
+            : getDefaultPrismaOutputFile(options.schemaPath);
 
         if (!fs.existsSync(path.dirname(outFile))) {
             fs.mkdirSync(path.dirname(outFile), { recursive: true });
@@ -429,4 +431,18 @@ export default class PrismaSchemaGenerator {
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
         _enum.addField(field.name, attributes, documentations);
     }
+}
+
+export function getDefaultPrismaOutputFile(schemaPath: string) {
+    let result: string | undefined;
+
+    // handle override from package.json
+    const pkgJson = getPackageJson();
+    if (typeof pkgJson.zenstack?.prisma === 'string') {
+        result = path.resolve(pkgJson.zenstack.prisma);
+    } else {
+        result = './prisma/schema.prisma';
+    }
+
+    return resolvePath(result, { schemaPath });
 }

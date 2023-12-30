@@ -1,17 +1,11 @@
-import { enhance, type AuthUser } from '@zenstackhq/runtime';
-import { type Plugin } from 'graphql-yoga';
+import { makePassthroughCommand } from './cli-passthrough';
 import setup from './commands/setup';
 
-export function useZenStack<PrismaClient extends object>(
-    db: PrismaClient
-): Plugin<{ currentUser: AuthUser; db: PrismaClient }> {
-    return {
-        onContextBuilding() {
-            return ({ context }) => {
-                context.db = enhance(db, { user: context?.currentUser });
-            };
-        },
-    };
-}
-
-export const commands = [setup];
+export const commands = [
+    setup,
+    makePassthroughCommand('generate'),
+    makePassthroughCommand('info'),
+    makePassthroughCommand('format'),
+    makePassthroughCommand('repl'),
+];
+export * from './graphql';
