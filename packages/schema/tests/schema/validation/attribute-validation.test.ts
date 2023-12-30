@@ -665,7 +665,7 @@ describe('Attribute tests', () => {
                 list List @relation(fields: [listId], references: [id])
                 listId Int
               
-                @@allow('read', list.user == user)
+                @@allow('read', list.user.id == userId)
             }
             
         `)

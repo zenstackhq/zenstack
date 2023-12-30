@@ -13,7 +13,6 @@ import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
-import exp from 'constants';
 
 /**
  * Validates expressions.
@@ -127,6 +126,16 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     break;
                 }
 
+                // not supported:
+                //   - foo.a == bar
+                //   - foo.user.id == userId
+                if(isMemberAccessExpr(expr.left) && isDataModel(expr.left.operand.$resolvedType?.decl) 
+                    || isMemberAccessExpr(expr.right) && isDataModel(expr.right.operand.$resolvedType?.decl))
+                {
+                    accept('error', 'comparison between fields of different models are not supported', { node: expr }); 
+                    break;                      
+                }
+
                 if (
                     (expr.left.$resolvedType?.nullable && isNullExpr(expr.right)) ||
                     (expr.right.$resolvedType?.nullable && isNullExpr(expr.left))
@@ -158,13 +167,6 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                         // incompatible model types
                         // TODO: inheritance case?
                         accept('error', 'incompatible operand types', { node: expr });
-                    }
-
-                    // not supported:
-                    //   - foo.a == bar
-                    if(isMemberAccessExpr(expr.left) || isMemberAccessExpr(expr.left))
-                    {
-                        accept('error', 'comparison between fields of different models are not supported', { node: expr });   
                     }
 
                     // not supported:
