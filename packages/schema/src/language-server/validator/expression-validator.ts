@@ -4,6 +4,7 @@ import {
     ExpressionType,
     isDataModel,
     isEnum,
+    isMemberAccessExpr,
     isNullExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
@@ -12,6 +13,7 @@ import { ValidationAcceptor } from 'langium';
 import { isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
+import exp from 'constants';
 
 /**
  * Validates expressions.
@@ -156,6 +158,13 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                         // incompatible model types
                         // TODO: inheritance case?
                         accept('error', 'incompatible operand types', { node: expr });
+                    }
+
+                    // not supported:
+                    //   - foo.a == bar
+                    if(isMemberAccessExpr(expr.left) || isMemberAccessExpr(expr.left))
+                    {
+                        accept('error', 'comparison between fields of different models are not supported', { node: expr });   
                     }
 
                     // not supported:
