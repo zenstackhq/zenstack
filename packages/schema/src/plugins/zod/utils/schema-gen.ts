@@ -36,13 +36,6 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
     let schema = makeZodSchema(field);
     const isDecimal = field.type.type === 'Decimal';
 
-    if (respectDefault) {
-        const schemaDefault = getFieldSchemaDefault(field);
-        if (schemaDefault) {
-            schema += `.default(${schemaDefault})`;
-        }
-    }
-
     for (const attr of field.attributes) {
         const message = getAttrLiteralArg<string>(attr, 'message');
         const messageArg = message ? `, { message: ${JSON.stringify(message)} }` : '';
@@ -128,6 +121,13 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
                 }
                 break;
             }
+        }
+    }
+
+    if (respectDefault) {
+        const schemaDefault = getFieldSchemaDefault(field);
+        if (schemaDefault) {
+            schema += `.default(${schemaDefault})`;
         }
     }
 
