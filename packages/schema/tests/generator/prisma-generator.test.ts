@@ -158,6 +158,36 @@ describe('Prisma generator test', () => {
         expect(content).toContain(`/// @TypeGraphQL.field(name: 'bar')`);
     });
 
+    it('triple slash comments complex', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'sqlite'
+                url = 'file:dev.db'
+            }
+
+            /// This is a comment
+            model Foo {
+                id String @id 
+                /// Supposed to be for value, but will be counted for id
+                value Int /// comment for value
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        await getDMMF({ datamodel: content });
+
+        expect(content).toContain('/// Supposed to be for value, but will be counted for id');
+        expect(content).toContain('/// comment for value');
+    });
+
     it('model and field mapping', async () => {
         const model = await loadModel(`
             datasource db {

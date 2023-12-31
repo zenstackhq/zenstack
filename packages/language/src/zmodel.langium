@@ -190,7 +190,7 @@ DataModel:
 
 DataModelField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularID type=DataModelFieldType (attributes+=DataModelFieldAttribute)*;
+    name=RegularID type=DataModelFieldType (attributes+=DataModelFieldAttribute)* (comments+=TRIPLE_SLASH_COMMENT)*;
 
 DataModelFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
@@ -209,7 +209,7 @@ Enum:
 
 EnumField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularID (attributes+=DataModelFieldAttribute)*;
+    name=RegularID (attributes+=DataModelFieldAttribute)* (comments+=TRIPLE_SLASH_COMMENT)*;
 
 // function
 FunctionDecl:
