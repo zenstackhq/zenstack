@@ -53,7 +53,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllDeclarationsFromImports, isAuthInvocation } from '../utils/ast-utils';
+import { getAllDeclarationsFromImports, isAuthInvocation, getContainingDataModel } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -292,22 +292,11 @@ export class ZModelLinker extends DefaultLinker {
                 }
             } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
                 // future() function is resolved to current model
-                node.$resolvedType = { decl: this.getContainingDataModel(node) };
+                node.$resolvedType = { decl: getContainingDataModel(node) };
             } else {
                 this.resolveToDeclaredType(node, funcDecl.returnType);
             }
         }
-    }
-
-    private getContainingDataModel(node: Expression): DataModel | undefined {
-        let curr: AstNode | undefined = node.$container;
-        while (curr) {
-            if (isDataModel(curr)) {
-                return curr;
-            }
-            curr = curr.$container;
-        }
-        return undefined;
     }
 
     private resolveLiteral(node: LiteralExpr) {
