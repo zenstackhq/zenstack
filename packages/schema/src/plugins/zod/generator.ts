@@ -26,7 +26,7 @@ import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
-import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
+import { makeFieldSchema, makeValidationRefinements, getFieldSchemaDefault } from './utils/schema-gen';
 
 export async function generate(
     model: Model,
@@ -309,7 +309,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         writer.write(`const baseSchema = z.object(`);
         writer.inlineBlock(() => {
             scalarFields.forEach((field) => {
-                writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
+                writer.writeLine(`${field.name}: ${makeFieldSchema(field, true)},`);
             });
         });
         writer.writeLine(');');
@@ -356,7 +356,12 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         ////////////////////////////////////////////////
         // 1. Model schema
         ////////////////////////////////////////////////
-        let modelSchema = makePartial('baseSchema');
+        const fieldsWithoutDefault = scalarFields.filter((f) => !getFieldSchemaDefault(f));
+        // mark fields without default value as optional
+        let modelSchema = makePartial(
+            'baseSchema',
+            fieldsWithoutDefault.length < scalarFields.length ? fieldsWithoutDefault.map((f) => f.name) : undefined
+        );
 
         // omit fields
         const fieldsToOmit = scalarFields.filter((field) => hasAttribute(field, '@omit'));
