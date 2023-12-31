@@ -75,8 +75,6 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
             // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             const oppositeModel = fieldAstNode.type.reference!.ref! as DataModel;
 
-            const lastField = oppositeModel.fields[oppositeModel.fields.length - 1];
-
             const currentModel = document.parseResult.value as Model;
 
             const container = currentModel.declarations.find(
@@ -121,16 +119,21 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                         '\n' +
                         indent +
                         `${fieldName} ${typeName} @relation(fields: [${referenceIdFieldName}], references: [${idFieldName}])` +
-                        referenceField;
+                        referenceField +
+                        '\n';
                 } else {
                     // user User @relation(fields: [userAbc], references: [id])
                     const typeName = container.name;
                     const fieldName = this.lowerCaseFirstLetter(typeName);
-                    newText = '\n' + indent + `${fieldName} ${typeName}[]`;
+                    newText = '\n' + indent + `${fieldName} ${typeName}[]` + '\n';
                 }
 
                 // the opposite model might be in the imported file
                 const targetDocument = getDocument(oppositeModel);
+
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                const endOffset = oppositeModel.$cstNode!.end - 1;
+                const position = document.textDocument.positionAt(endOffset);
 
                 return {
                     title: `Add opposite relation fields on ${oppositeModel.name}`,
@@ -142,10 +145,8 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                             [targetDocument.textDocument.uri]: [
                                 {
                                     range: {
-                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                        start: lastField.$cstNode!.range.end,
-                                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                        end: lastField.$cstNode!.range.end,
+                                        start: position,
+                                        end: position,
                                     },
                                     newText,
                                 },
