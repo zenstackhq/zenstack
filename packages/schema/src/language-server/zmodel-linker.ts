@@ -9,7 +9,6 @@ import {
     DataModelFieldType,
     Enum,
     EnumField,
-    Expression,
     ExpressionType,
     FunctionDecl,
     FunctionParam,
