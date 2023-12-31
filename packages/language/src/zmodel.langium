@@ -183,14 +183,17 @@ DataModel:
         ((isView?='view') name=RegularID)
     )
     '{' (
-        fields+=DataModelField
+        fields+=DataModelField<false>
             | attributes+=DataModelAttribute
         )*
+        (
+        fields+=DataModelField<true> | attributes+=DataModelAttribute
+        )
     '}';
 
-DataModelField:
+DataModelField<isLast>:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularID type=DataModelFieldType (attributes+=DataModelFieldAttribute)* (comments+=TRIPLE_SLASH_COMMENT)*;
+    name=RegularID type=DataModelFieldType (attributes+=DataModelFieldAttribute)* (<isLast>(comments+=TRIPLE_SLASH_COMMENT)*)?;
 
 DataModelFieldType:
     (type=BuiltinType | unsupported=UnsupportedFieldType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')? (optional?='?')?;
@@ -202,14 +205,18 @@ UnsupportedFieldType:
 Enum:
     (comments+=TRIPLE_SLASH_COMMENT)*
     'enum' name=RegularID '{' (
-           fields+=EnumField
+           fields+=EnumField<false>
            | attributes+=DataModelAttribute
-        )+ 
+        )*
+        (
+           fields+=EnumField<true>
+           | attributes+=DataModelAttribute
+        )
     '}';
 
-EnumField:
+EnumField<isLast>:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularID (attributes+=DataModelFieldAttribute)* (comments+=TRIPLE_SLASH_COMMENT)*;
+    name=RegularID (attributes+=DataModelFieldAttribute)* (<isLast>(comments+=TRIPLE_SLASH_COMMENT)*)?;
 
 // function
 FunctionDecl:

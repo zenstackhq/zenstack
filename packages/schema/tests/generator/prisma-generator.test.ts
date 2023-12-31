@@ -121,8 +121,12 @@ describe('Prisma generator test', () => {
 
         const content = fs.readFileSync(name, 'utf-8');
         await getDMMF({ datamodel: content });
+
         expect(content).toContain('/// This is a comment');
-        expect(content).toContain('/// Comment for field value');
+        expect(content.replace(/\s/g, '')).toContain(
+            `/// Comment for field value 
+            value Int`.replace(/\s/g, '')
+        );
     });
 
     it('triple slash attribute pass-through', async () => {
@@ -168,8 +172,8 @@ describe('Prisma generator test', () => {
             /// This is a comment
             model Foo {
                 id String @id 
-                /// Supposed to be for value, but will be counted for id
-                value Int /// comment for value
+                /// comment 1 for value 
+                value Int /// comment 2 for value
             }
         `);
 
@@ -184,8 +188,12 @@ describe('Prisma generator test', () => {
         const content = fs.readFileSync(name, 'utf-8');
         await getDMMF({ datamodel: content });
 
-        expect(content).toContain('/// Supposed to be for value, but will be counted for id');
-        expect(content).toContain('/// comment for value');
+        expect(content.replace(/\s/g, '')).toContain(
+            `/// comment 1 for value
+             /// comment 2 for value
+                value Int
+            `.replace(/\s/g, '')
+        );
     });
 
     it('model and field mapping', async () => {

@@ -2057,7 +2057,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                   "rule": {
                     "$ref": "#/rules@38"
                   },
-                  "arguments": []
+                  "arguments": [
+                    {
+                      "$type": "NamedArgument",
+                      "value": {
+                        "$type": "LiteralCondition",
+                        "true": false
+                      },
+                      "calledByName": false
+                    }
+                  ]
                 }
               },
               {
@@ -2076,6 +2085,44 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "cardinality": "*"
           },
           {
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "fields",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@38"
+                  },
+                  "arguments": [
+                    {
+                      "$type": "NamedArgument",
+                      "value": {
+                        "$type": "LiteralCondition",
+                        "true": true
+                      },
+                      "calledByName": false
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "attributes",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@56"
+                  },
+                  "arguments": []
+                }
+              }
+            ]
+          },
+          {
             "$type": "Keyword",
             "value": "}"
           }
@@ -2091,6 +2138,12 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     {
       "$type": "ParserRule",
       "name": "DataModelField",
+      "parameters": [
+        {
+          "$type": "Parameter",
+          "name": "isLast"
+        }
+      ],
       "definition": {
         "$type": "Group",
         "elements": [
@@ -2145,17 +2198,29 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "cardinality": "*"
           },
           {
-            "$type": "Assignment",
-            "feature": "comments",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@69"
-              },
-              "arguments": []
+            "$type": "Group",
+            "guardCondition": {
+              "$type": "ParameterReference",
+              "parameter": {
+                "$ref": "#/rules@38/parameters@0"
+              }
             },
-            "cardinality": "*"
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "comments",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@69"
+                  },
+                  "arguments": []
+                },
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
           }
         ]
       },
@@ -2163,7 +2228,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "entry": false,
       "fragment": false,
       "hiddenTokens": [],
-      "parameters": [],
       "wildcard": false
     },
     {
@@ -2348,7 +2412,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                   "rule": {
                     "$ref": "#/rules@42"
                   },
-                  "arguments": []
+                  "arguments": [
+                    {
+                      "$type": "NamedArgument",
+                      "value": {
+                        "$type": "LiteralCondition",
+                        "true": false
+                      },
+                      "calledByName": false
+                    }
+                  ]
                 }
               },
               {
@@ -2364,7 +2437,45 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
                 }
               }
             ],
-            "cardinality": "+"
+            "cardinality": "*"
+          },
+          {
+            "$type": "Alternatives",
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "fields",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@42"
+                  },
+                  "arguments": [
+                    {
+                      "$type": "NamedArgument",
+                      "value": {
+                        "$type": "LiteralCondition",
+                        "true": true
+                      },
+                      "calledByName": false
+                    }
+                  ]
+                }
+              },
+              {
+                "$type": "Assignment",
+                "feature": "attributes",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@56"
+                  },
+                  "arguments": []
+                }
+              }
+            ]
           },
           {
             "$type": "Keyword",
@@ -2382,6 +2493,12 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
     {
       "$type": "ParserRule",
       "name": "EnumField",
+      "parameters": [
+        {
+          "$type": "Parameter",
+          "name": "isLast"
+        }
+      ],
       "definition": {
         "$type": "Group",
         "elements": [
@@ -2424,17 +2541,29 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "cardinality": "*"
           },
           {
-            "$type": "Assignment",
-            "feature": "comments",
-            "operator": "+=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@69"
-              },
-              "arguments": []
+            "$type": "Group",
+            "guardCondition": {
+              "$type": "ParameterReference",
+              "parameter": {
+                "$ref": "#/rules@42/parameters@0"
+              }
             },
-            "cardinality": "*"
+            "elements": [
+              {
+                "$type": "Assignment",
+                "feature": "comments",
+                "operator": "+=",
+                "terminal": {
+                  "$type": "RuleCall",
+                  "rule": {
+                    "$ref": "#/rules@69"
+                  },
+                  "arguments": []
+                },
+                "cardinality": "*"
+              }
+            ],
+            "cardinality": "?"
           }
         ]
       },
@@ -2442,7 +2571,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "entry": false,
       "fragment": false,
       "hiddenTokens": [],
-      "parameters": [],
       "wildcard": false
     },
     {
