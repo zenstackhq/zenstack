@@ -38,6 +38,12 @@ You should run the following command after updating "schema.zmodel":
 yarn rw @zenstackhq generate
 ```
 
+The command does the following things:
+
+1. Regenerate "schema.prisma"
+2. Run `prisma generate` to regenerate PrismaClient
+3. Generates supporting JS modules for enforcing access policies at runtime
+
 <!-- You can also use the
 
 ```bash
