@@ -86,7 +86,7 @@ yarn rw @zenstackhq <cmd> [options]
 
 The plugin is a simple wrapper of the standard `zenstack` CLI, similar to how RedwoodJS wraps the standard `prisma` CLI. It's equivalent to running `npx zenstack ...` inside the "api" directory.
 
-See the [CLI references](/docs/reference/cli) for the full list of commands.
+See the [CLI references](https://zenstack.dev/docs/reference/cli) for the full list of commands.
 
 ### Sample application
 
