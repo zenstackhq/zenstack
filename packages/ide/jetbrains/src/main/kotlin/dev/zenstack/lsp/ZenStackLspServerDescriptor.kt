@@ -1,6 +1,5 @@
 package dev.zenstack.lsp
 
-import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.javascript.nodejs.interpreter.NodeCommandLineConfigurator
@@ -11,11 +10,9 @@ import com.intellij.lang.javascript.service.JSLanguageServiceUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.lsp.api.ProjectWideLspServerDescriptor
-import com.intellij.platform.lsp.api.customization.LspCompletionSupport
 import com.intellij.platform.lsp.api.customization.LspFormattingSupport
-import org.jetbrains.plugins.textmate.configuration.TextMateUserBundlesSettings
-import org.jetbrains.plugins.textmate.TextMateService;
 import dev.zenstack.lang.ZModelFileType
+import dev.zenstack.Utils
 
 class ZenStackLspServerDescriptor(project: Project) : ProjectWideLspServerDescriptor(project, "ZenStack") {
 
@@ -23,11 +20,7 @@ class ZenStackLspServerDescriptor(project: Project) : ProjectWideLspServerDescri
 
     override fun createCommandLine(): GeneralCommandLine {
 
-        // install TextMate bundle
-        val textMateBundle = JSLanguageServiceUtil.getPluginDirectory(javaClass, "res/zmodel.tmbundle")
-        TextMateUserBundlesSettings.instance?.addBundle(textMateBundle.path, "zmodel")
-        val textMateService = TextMateService.getInstance();
-        textMateService.reloadEnabledBundles()
+        Utils.Companion.addTextMateBundle()
 
         // start language server
         val interpreter = NodeJsInterpreterManager.getInstance(project).interpreter
