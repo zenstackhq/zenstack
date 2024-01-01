@@ -20,8 +20,10 @@
 
         <ul>
             <li>Syntax highlighting</li>
+            <li>Error highlighting</li>
             <li>Go to definition</li>
             <li>Code completion</li>
+            <li>Formatting</li>
         </ul>
     ]]></description>
 
@@ -54,4 +56,12 @@
                 implementationClass="org.jetbrains.plugins.textmate.language.syntax.highlighting.TextMateSyntaxHighlighterFactory"/>
 
     </extensions>
+
+    <applicationListeners>
+        <listener
+                class="dev.zenstack.plugin.PluginStateListener"
+                topic="com.intellij.ide.plugins.DynamicPluginListener"/>
+    </applicationListeners>
+
+    <idea-version since-build="233.2" />
 </idea-plugin>

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.zenstack"
-version = "0.5.0"
+version = "1.6.0"
 
 repositories {
     mavenCentral()
