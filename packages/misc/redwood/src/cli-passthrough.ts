@@ -40,9 +40,7 @@ export function makePassthroughCommand(command: string): CommandModule<unknown> 
                 .strictOptions(false)
                 .strictCommands(false)
                 .strict(false)
-                .parserConfiguration({ 'camel-case-expansion': false, 'boolean-negation': false })
-                .help(false)
-                .version(false);
+                .parserConfiguration({ 'camel-case-expansion': false, 'boolean-negation': false });
         },
         handler: async ({ _, $0: _$0, ...options }) => {
             await runCommand(command, options);

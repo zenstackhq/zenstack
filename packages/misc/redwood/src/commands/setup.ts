@@ -1,4 +1,4 @@
-import { getPaths } from '@redwoodjs/cli-helpers';
+import { getPaths, updateTomlConfig } from '@redwoodjs/cli-helpers';
 import colors from 'colors';
 import execa from 'execa';
 import fs from 'fs';
@@ -8,6 +8,15 @@ import terminalLink from 'terminal-link';
 import { Project, SyntaxKind, type PropertyAssignment } from 'ts-morph';
 import type { CommandModule } from 'yargs';
 import { addApiPackages } from '../utils';
+
+function updateToml() {
+    return {
+        title: 'Updating redwood.toml...',
+        task: () => {
+            updateTomlConfig('@zenstackhq/redwood');
+        },
+    };
+}
 
 function installDependencies() {
     return addApiPackages([
@@ -54,15 +63,15 @@ function installGraphQLPlugin() {
         title: 'Installing GraphQL plugin...',
         task: async () => {
             // locate "api/functions/graphql.[js|ts]"
-            let sourcePath: string | undefined;
+            let graphQlSourcePath: string | undefined;
             const functionsDir = getPaths().api.functions;
             if (fs.existsSync(path.join(functionsDir, 'graphql.ts'))) {
-                sourcePath = path.join(functionsDir, 'graphql.ts');
+                graphQlSourcePath = path.join(functionsDir, 'graphql.ts');
             } else if (fs.existsSync(path.join(functionsDir, 'graphql.js'))) {
-                sourcePath = path.join(functionsDir, 'graphql.js');
+                graphQlSourcePath = path.join(functionsDir, 'graphql.js');
             }
 
-            if (!sourcePath) {
+            if (!graphQlSourcePath) {
                 console.warn(
                     colors.yellow(`Unable to find handler source file: ${path.join(functionsDir, 'graphql.(js|ts)')}`)
                 );
@@ -71,21 +80,21 @@ function installGraphQLPlugin() {
 
             // add import
             const project = new Project();
-            const sf = project.addSourceFileAtPathIfExists(sourcePath)!;
-            let changed = false;
+            const graphQlSourceFile = project.addSourceFileAtPathIfExists(graphQlSourcePath)!;
+            let graphQlSourceFileChanged = false;
             let identified = false;
 
-            const imports = sf.getImportDeclarations();
+            const imports = graphQlSourceFile.getImportDeclarations();
             if (!imports.some((i) => i.getModuleSpecifierValue() === '@zenstackhq/redwood')) {
-                sf.addImportDeclaration({
+                graphQlSourceFile.addImportDeclaration({
                     moduleSpecifier: '@zenstackhq/redwood',
                     namedImports: ['useZenStack'],
                 });
-                changed = true;
+                graphQlSourceFileChanged = true;
             }
 
             // add "extraPlugins" option to `createGraphQLHandler` call
-            sf.getDescendantsOfKind(SyntaxKind.CallExpression).forEach((expr) => {
+            graphQlSourceFile.getDescendantsOfKind(SyntaxKind.CallExpression).forEach((expr) => {
                 if (identified) {
                     return;
                 }
@@ -104,7 +113,7 @@ function installGraphQLPlugin() {
                             if (pluginArr) {
                                 if (!pluginArr.getElements().some((e) => e.getText().includes('useZenStack'))) {
                                     pluginArr.addElement('useZenStack(db)');
-                                    changed = true;
+                                    graphQlSourceFileChanged = true;
                                 }
                             }
                         } else {
@@ -112,7 +121,7 @@ function installGraphQLPlugin() {
                                 name: 'extraPlugins',
                                 initializer: '[useZenStack(db)]',
                             });
-                            changed = true;
+                            graphQlSourceFileChanged = true;
                         }
                     }
                 }
@@ -126,8 +135,32 @@ function installGraphQLPlugin() {
                 );
             }
 
-            if (changed) {
-                sf.formatText();
+            if (graphQlSourceFileChanged) {
+                graphQlSourceFile.formatText();
+            }
+
+            // create type-def file to add `db` into global context
+            let contextTypeDefCreated = false;
+            if (graphQlSourcePath.endsWith('.ts')) {
+                const typeDefPath = path.join(getPaths().api.src, 'zenstack.d.ts');
+                if (!fs.existsSync(typeDefPath)) {
+                    const typeDefSourceFile = project.createSourceFile(
+                        typeDefPath,
+                        `import type { PrismaClient } from '@prisma/client'
+
+declare module '@redwoodjs/graphql-server' {
+  interface GlobalContext {
+    db: PrismaClient
+  }
+}
+`
+                    );
+                    typeDefSourceFile.formatText();
+                    contextTypeDefCreated = true;
+                }
+            }
+
+            if (graphQlSourceFileChanged || contextTypeDefCreated) {
                 await project.save();
             }
         },
@@ -185,8 +218,8 @@ function whatsNext() {
         task: (_ctx, task) => {
             task.title =
                 `What's next...\n\n` +
-                `   - Install ${terminalLink('ZenStack IDE extensions', 'https://zenstack.dev/docs/guides/ide')}.\n` +
-                `   - Use "${zmodel}" to model your database schema and access control.\n` +
+                `   - Install ${terminalLink('IDE extensions', 'https://zenstack.dev/docs/guides/ide')}.\n` +
+                `   - Use "${zmodel}" to model database schema and access control.\n` +
                 `   - Run \`yarn rw @zenstackhq generate\` to regenerate Prisma schema and client.\n` +
                 `   - Learn ${terminalLink(
                     "how ZenStack extends Prisma's power",
@@ -205,8 +238,10 @@ function whatsNext() {
 const setupCommand: CommandModule<unknown> = {
     command: 'setup',
     describe: 'Set up ZenStack environment',
+    builder: (yargs) => yargs,
     handler: async () => {
         const tasks = new Listr([
+            updateToml(),
             installDependencies(),
             bootstrapSchema(),
             installGraphQLPlugin(),
