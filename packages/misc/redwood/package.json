@@ -29,6 +29,10 @@
             "default": "./package.json"
         }
     },
+    "bin": "bin/cli",
+    "engines": {
+        "redwoodjs": ">=6.0.0"
+    },
     "author": {
         "name": "ZenStack Team"
     },
@@ -37,9 +41,8 @@
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
         "colors": "1.4.0",
-        "ts-morph": "^16.0.0"
-    },
-    "peerDependencies": {
+        "ts-morph": "^16.0.0",
+        "@redwoodjs/cli-helpers": "^6.6.0",
         "execa": "^5.0.0",
         "listr2": "^6.0.0",
         "terminal-link": "^2.0.0",
@@ -47,7 +50,6 @@
     },
     "devDependencies": {
         "@redwoodjs/graphql-server": "^6.6.0",
-        "@redwoodjs/cli-helpers": "^6.6.0",
         "@types/yargs": "^17.0.32",
         "graphql-yoga": "^5.0.2"
     }
