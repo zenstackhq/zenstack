@@ -480,9 +480,13 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
 
 function makePartial(schema: string, fields?: string[]) {
     if (fields) {
-        return `${schema}.partial({
-        ${fields.map((f) => `${f}: true`).join(', ')},
+        if (fields.length === 0) {
+            return schema;
+        } else {
+            return `${schema}.partial({
+        ${fields.map((f) => `${f}: true`).join(', ')}
     })`;
+        }
     } else {
         return `${schema}.partial()`;
     }
