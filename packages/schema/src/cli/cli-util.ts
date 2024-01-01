@@ -15,6 +15,7 @@ import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
 import { ZModelFormatter } from '../language-server/zmodel-formatter';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { getPackageJson } from '../utils/pkg-utils';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.8.0';
@@ -280,17 +281,10 @@ export async function formatDocument(fileName: string) {
 export function getDefaultSchemaLocation() {
     let location = path.resolve('schema.zmodel');
 
-    if (fs.existsSync('./package.json')) {
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const pkgJson = require(path.resolve('./package.json'));
-            if (typeof pkgJson.zenstack?.schema === 'string') {
-                location = path.resolve(pkgJson.zenstack.schema);
-            }
-        } catch (e) {
-            console.error(e);
-            // noop
-        }
+    // handle override from package.json
+    const pkgJson = getPackageJson();
+    if (typeof pkgJson?.zenstack?.schema === 'string') {
+        location = path.resolve(pkgJson.zenstack.schema);
     }
 
     return location;

@@ -1,3 +1,4 @@
+.env
 .vscode/**
 .vscode-test/**
 .gitignore
@@ -8,3 +9,5 @@ bin
 build
 jest.config.ts
 tsconfig.json
+dist
+README-global.md

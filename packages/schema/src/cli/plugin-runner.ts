@@ -18,6 +18,7 @@ import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
 import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
+import { getDefaultPrismaOutputFile } from '../plugins/prisma/schema-generator';
 import telemetry from '../telemetry';
 import { getVersion } from '../utils/version-utils';
 
@@ -54,7 +55,7 @@ export class PluginRunner {
         const plugins: PluginInfo[] = [];
         const pluginDecls = options.schema.declarations.filter((d): d is Plugin => isPlugin(d));
 
-        let prismaOutput = resolvePath('./prisma/schema.prisma', { schemaPath: options.schemaPath });
+        let prismaOutput = getDefaultPrismaOutputFile(options.schemaPath);
 
         for (const pluginDecl of pluginDecls) {
             const pluginProvider = this.getPluginProvider(pluginDecl);

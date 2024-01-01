@@ -156,3 +156,15 @@ export function getAllDeclarationsFromImports(documents: LangiumDocuments, model
 export function isCollectionPredicate(node: AstNode): node is BinaryExpr {
     return isBinaryExpr(node) && ['?', '!', '^'].includes(node.operator);
 }
+
+
+export function getContainingDataModel(node: Expression): DataModel | undefined {
+    let curr: AstNode | undefined = node.$container;
+    while (curr) {
+        if (isDataModel(curr)) {
+            return curr;
+        }
+        curr = curr.$container;
+    }
+    return undefined;
+}

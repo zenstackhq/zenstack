@@ -1,6 +1,6 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
-describe('Regression: issue nested create', () => {
+describe('Regression: issue 864', () => {
     it('safe create', async () => {
         const { prisma, enhance } = await loadSchema(
             `

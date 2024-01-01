@@ -16,6 +16,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
+import { match, P } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
 import YAML from 'yaml';
 import { name } from '.';
@@ -62,7 +63,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         this.pruneComponents(paths, components);
 
         const openapi: OAPI.Document = {
-            openapi: this.getOption('specVersion', '3.1.0'),
+            openapi: this.getOption('specVersion', this.DEFAULT_SPEC_VERSION),
             info: {
                 title: this.getOption('title', 'ZenStack Generated API'),
                 version: this.getOption('version', '1.0.0'),
@@ -710,14 +711,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private generateField(def: { kind: DMMF.FieldKind; type: string; isList: boolean }) {
+    private generateField(def: { kind: DMMF.FieldKind; type: string; isList: boolean; isRequired: boolean }) {
         switch (def.kind) {
             case 'scalar':
-                return this.wrapArray(this.prismaTypeToOpenAPIType(def.type), def.isList);
+                return this.wrapArray(this.prismaTypeToOpenAPIType(def.type, !def.isRequired), def.isList);
 
             case 'enum':
             case 'object':
-                return this.wrapArray(this.ref(def.type, false), def.isList);
+                return this.wrapArray(this.wrapNullable(this.ref(def.type, false), !def.isRequired), def.isList);
 
             default:
                 throw new PluginError(this.options.name, `Unsupported field kind: ${def.kind}`);
@@ -735,9 +736,18 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         f.location !== 'fieldRefTypes'
                 )
                 .map((f) => {
-                    return this.wrapArray(this.prismaTypeToOpenAPIType(f.type), f.isList);
+                    return this.wrapArray(this.prismaTypeToOpenAPIType(f.type, false), f.isList);
                 });
-            properties[field.name] = options.length > 1 ? { oneOf: options } : options[0];
+
+            let prop = options.length > 1 ? { oneOf: options } : options[0];
+
+            // if types include 'Null', make it nullable
+            prop = this.wrapNullable(
+                prop,
+                field.inputTypes.some((f) => f.type === 'Null')
+            );
+
+            properties[field.name] = prop;
         }
 
         const result: OAPI.SchemaObject = { type: 'object', properties };
@@ -752,11 +762,12 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             switch (field.outputType.location) {
                 case 'scalar':
                 case 'enumTypes':
-                    outputType = this.prismaTypeToOpenAPIType(field.outputType.type);
+                    outputType = this.prismaTypeToOpenAPIType(field.outputType.type, !!field.isNullable);
                     break;
                 case 'outputObjectTypes':
                     outputType = this.prismaTypeToOpenAPIType(
-                        typeof field.outputType.type === 'string' ? field.outputType.type : field.outputType.type.name
+                        typeof field.outputType.type === 'string' ? field.outputType.type : field.outputType.type.name,
+                        !!field.isNullable
                     );
                     break;
             }
@@ -786,30 +797,19 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
     }
 
-    private prismaTypeToOpenAPIType(type: DMMF.ArgType): OAPI.ReferenceObject | OAPI.SchemaObject {
-        switch (type) {
-            case 'String':
-                return { type: 'string' };
-            case 'Int':
-            case 'BigInt':
-                return { type: 'integer' };
-            case 'Float':
-                return { type: 'number' };
-            case 'Decimal':
-                return this.oneOf({ type: 'string' }, { type: 'number' });
-            case 'Boolean':
-            case 'True':
-                return { type: 'boolean' };
-            case 'DateTime':
-                return { type: 'string', format: 'date-time' };
-            case 'Bytes':
-                return { type: 'string', format: 'byte' };
-            case 'JSON':
-            case 'Json':
-                return {};
-            default:
-                return this.ref(type.toString(), false);
-        }
+    private prismaTypeToOpenAPIType(type: DMMF.ArgType, nullable: boolean): OAPI.ReferenceObject | OAPI.SchemaObject {
+        const result = match(type)
+            .with('String', () => ({ type: 'string' }))
+            .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' }))
+            .with('Float', () => ({ type: 'number' }))
+            .with('Decimal', () => this.oneOf({ type: 'string' }, { type: 'number' }))
+            .with(P.union('Boolean', 'True'), () => ({ type: 'boolean' }))
+            .with('DateTime', () => ({ type: 'string', format: 'date-time' }))
+            .with('Bytes', () => ({ type: 'string', format: 'byte' }))
+            .with(P.union('JSON', 'Json'), () => ({}))
+            .otherwise((type) => this.ref(type.toString(), false));
+
+        return this.wrapNullable(result, nullable);
     }
 
     private ref(type: string, rooted = true, description?: string): OAPI.ReferenceObject {

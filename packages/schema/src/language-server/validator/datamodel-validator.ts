@@ -235,22 +235,13 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             const node = field.$isInherited ? field.$container : field;
             const info: DiagnosticInfo<AstNode, string> = { node, code: IssueCodes.MissingOppositeRelation };
 
-            let relationFieldDocUri: string;
-            let relationDataModelName: string;
+            info.property = 'name';
+            // use cstNode because the field might be inherited from parent model
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            const container = field.$cstNode!.element.$container as DataModel;
 
-            if (field.$isInherited) {
-                info.property = 'name';
-                const container = field.$container as DataModel;
-                const abstractContainer = container.superTypes.find((x) =>
-                    x.ref?.fields.find((f) => f.name === field.name)
-                )?.ref as DataModel;
-
-                relationFieldDocUri = getDocument(abstractContainer).textDocument.uri;
-                relationDataModelName = abstractContainer.name;
-            } else {
-                relationFieldDocUri = getDocument(field).textDocument.uri;
-                relationDataModelName = field.$container.name;
-            }
+            const relationFieldDocUri = getDocument(container).textDocument.uri;
+            const relationDataModelName = container.name;
 
             const data: MissingOppositeRelationData = {
                 relationFieldName: field.name,
