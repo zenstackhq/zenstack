@@ -17,5 +17,6 @@ describe('Regression: issue 886', () => {
         expect(r.a).toBe(100);
         expect(r.b).toBe('');
         expect(r.c).toBeInstanceOf(Date);
+        expect(r.id).toBeUndefined();
     });
 });
