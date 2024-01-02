@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && pnpm pack dist --pack-destination '../../../.build'",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
