@@ -1,6 +1,7 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
+import path from 'path';
 
 describe('SWR Plugin Tests', () => {
     let origDir: string;
@@ -49,7 +50,7 @@ model Foo {
         await loadSchema(
             `
 plugin swr {
-    provider = '${process.cwd()}/dist'
+    provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
 }
 

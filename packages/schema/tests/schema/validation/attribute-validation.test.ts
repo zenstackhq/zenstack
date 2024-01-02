@@ -645,6 +645,35 @@ describe('Attribute tests', () => {
         expect(
             await loadModelWithError(`
             ${prelude}
+            model User {
+                id Int @id
+                lists List[]
+                todos Todo[]
+            }
+              
+            model List {
+                id Int @id
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                todos Todo[]
+            }
+              
+            model Todo {
+                id Int @id
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                list List @relation(fields: [listId], references: [id])
+                listId Int
+              
+                @@allow('read', list.user.id == userId)
+            }
+            
+        `)
+        ).toContain('comparison between fields of different models are not supported');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
             model A {
                 id String @id
                 x Int

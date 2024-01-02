@@ -1,5 +1,21 @@
-import { ExpressionContext, PluginError, getAttributeArg, getAttributeArgLiteral, getLiteral } from '@zenstackhq/sdk';
-import { DataModel, DataModelField, DataModelFieldAttribute, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
+import {
+    ExpressionContext,
+    PluginError,
+    getAttributeArg,
+    getAttributeArgLiteral,
+    getLiteral,
+    isFromStdlib,
+} from '@zenstackhq/sdk';
+import {
+    DataModel,
+    DataModelField,
+    DataModelFieldAttribute,
+    isDataModel,
+    isEnum,
+    isInvocationExpr,
+    isNumberLiteral,
+    isStringLiteral,
+} from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
 import {
@@ -7,7 +23,7 @@ import {
     TypeScriptExpressionTransformerError,
 } from '../../../utils/typescript-expression-transformer';
 
-export function makeFieldSchema(field: DataModelField) {
+export function makeFieldSchema(field: DataModelField, respectDefault = false) {
     if (isDataModel(field.type.reference?.ref)) {
         if (field.type.array) {
             // array field is always optional
@@ -108,6 +124,13 @@ export function makeFieldSchema(field: DataModelField) {
         }
     }
 
+    if (respectDefault) {
+        const schemaDefault = getFieldSchemaDefault(field);
+        if (schemaDefault) {
+            schema += `.default(${schemaDefault})`;
+        }
+    }
+
     if (field.type.optional) {
         schema += '.nullish()';
     }
@@ -201,4 +224,27 @@ function refineDecimal(op: 'gt' | 'gte' | 'lt' | 'lte', value: number, messageAr
             return false;
         }
     }${messageArg})`;
+}
+
+export function getFieldSchemaDefault(field: DataModelField) {
+    const attr = field.attributes.find((attr) => attr.decl.ref?.name === '@default');
+    if (!attr) {
+        return undefined;
+    }
+    const arg = attr.args.find((arg) => arg.$resolvedParam?.name === 'value');
+    if (arg) {
+        if (isStringLiteral(arg.value)) {
+            return JSON.stringify(arg.value.value);
+        } else if (isNumberLiteral(arg.value)) {
+            return arg.value.value;
+        } else if (
+            isInvocationExpr(arg.value) &&
+            isFromStdlib(arg.value.function.ref!) &&
+            arg.value.function.$refText === 'now'
+        ) {
+            return `() => new Date()`;
+        }
+    }
+
+    return undefined;
 }

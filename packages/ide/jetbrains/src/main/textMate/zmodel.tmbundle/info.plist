@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>contactEmailRot13</key>
+	<string>contact@zenstack.dev</string>
+	<key>contactName</key>
+	<string>ZenStack Team</string>
+	<key>description</key>
+	<string>ZModel Language</string>
+	<key>name</key>
+	<string>zmodel</string>
+	<key>uuid</key>
+	<string>0EA94AB2-A210-4A58-9A25-CFFF59AC430B</string>
+</dict>
+</plist>

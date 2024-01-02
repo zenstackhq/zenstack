@@ -7,7 +7,7 @@ import { getIdFields, type ModelMeta } from '../../cross';
 import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
 import { AuthUser, DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
-import { makeProxy } from '../proxy';
+import { ErrorTransformer, makeProxy } from '../proxy';
 import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
 import { PolicyProxyHandler } from './handler';
 
@@ -41,6 +41,11 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
      * Whether to log Prisma query
      */
     logPrismaQuery?: boolean;
+
+    /**
+     * Hook for transforming errors before they are thrown to the caller.
+     */
+    errorTransformer?: ErrorTransformer;
 }
 
 /**
@@ -110,6 +115,7 @@ export function withPolicy<DbClient extends object>(
                 context?.user,
                 options?.logPrismaQuery
             ),
-        'policy'
+        'policy',
+        options?.errorTransformer
     );
 }

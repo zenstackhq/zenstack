@@ -11,6 +11,11 @@ import { createDeferredPromise } from './policy/promise';
 export type BatchResult = { count: number };
 
 /**
+ * Function for transforming errors.
+ */
+export type ErrorTransformer = (error: unknown) => unknown;
+
+/**
  * Interface for proxy that intercepts Prisma operations.
  */
 export interface PrismaProxyHandler {
@@ -174,7 +179,8 @@ export function makeProxy<T extends PrismaProxyHandler>(
     prisma: any,
     modelMeta: ModelMeta,
     makeHandler: (prisma: object, model: string) => T,
-    name = 'unnamed_enhancer'
+    name = 'unnamed_enhancer',
+    errorTransformer?: ErrorTransformer
 ) {
     const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
     const proxy = new Proxy(prisma, {
@@ -227,7 +233,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 return propVal;
             }
 
-            return createHandlerProxy(makeHandler(target, prop), propVal);
+            return createHandlerProxy(makeHandler(target, prop), propVal, errorTransformer);
         },
     });
 
@@ -235,7 +241,11 @@ export function makeProxy<T extends PrismaProxyHandler>(
 }
 
 // A proxy for capturing errors and processing stack trace
-function createHandlerProxy<T extends PrismaProxyHandler>(handler: T, origTarget: any): T {
+function createHandlerProxy<T extends PrismaProxyHandler>(
+    handler: T,
+    origTarget: any,
+    errorTransformer?: ErrorTransformer
+): T {
     return new Proxy(handler, {
         get(target, propKey) {
             const prop = target[propKey as keyof T];
@@ -265,6 +275,10 @@ function createHandlerProxy<T extends PrismaProxyHandler>(handler: T, origTarget
                                     // save the original stack and replace it with a clean one
                                     (err as any).internalStack = err.stack;
                                     err.stack = cleanCallStack(capture.stack, propKey.toString(), err.message);
+                                }
+
+                                if (errorTransformer) {
+                                    err = errorTransformer ? errorTransformer(err) : err;
                                 }
                                 reject(err);
                             }

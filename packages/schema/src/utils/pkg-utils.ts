@@ -84,3 +84,12 @@ export function ensurePackage(
         installPackage(pkg, dev, pkgManager, tag, resolvePath, exactVersion);
     }
 }
+
+export function getPackageJson() {
+    const pkgJsonPath = path.join(process.cwd(), 'package.json');
+    if (fs.existsSync(pkgJsonPath)) {
+        return JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+    } else {
+        return undefined;
+    }
+}

@@ -72,6 +72,20 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Gradle Wrapper Validation
+              uses: gradle/wrapper-validation-action@v1.1.0
+
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: zulu
+                  java-version: 17
+
+            - name: Setup Gradle
+              uses: gradle/gradle-build-action@v2
+              with:
+                  gradle-home-cache-cleanup: true
+
             - name: Build
               run: DEFAULT_NPM_TAG=latest pnpm run build
 

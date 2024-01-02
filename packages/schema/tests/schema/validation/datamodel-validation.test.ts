@@ -633,5 +633,29 @@ describe('Data Model Validation Tests', () => {
         expect(errors.length).toBe(1);
 
         expect(errors[0]).toEqual(`Model A cannot be extended because it's not abstract`);
+
+        // relation incomplete from multiple level inheritance
+        expect(
+            await loadModelWithError(`
+                ${prelude}
+                  model User {
+                    id Int @id @default(autoincrement())
+                  }
+                  
+                  abstract model Base {
+                    id Int @id @default(autoincrement())
+                    user User @relation(fields: [userId], references: [id])
+                    userId Int
+                  }
+                  
+                  abstract model Base1 extends Base {
+                    isPublic Boolean @default(false)
+                  }
+                  
+                  model A extends Base1 {
+                    a String
+                  }
+            `)
+        ).toContain(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`);
     });
 });
