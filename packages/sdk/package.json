@@ -25,7 +25,7 @@
         "@zenstackhq/runtime": "workspace:*",
         "lower-case-first": "^2.0.2",
         "prettier": "^2.8.3 || 3.x",
-        "semver": "^7.3.8",
+        "semver": "^7.5.2",
         "ts-morph": "^16.0.0",
         "upper-case-first": "^2.0.2"
     },
