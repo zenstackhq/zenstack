@@ -352,7 +352,7 @@ describe('Attribute tests', () => {
         `);
     });
 
-    it.only('attribute function coverage', async () => {
+    it('attribute function coverage', async () => {
         await loadModel(`
             ${prelude}
             model User { id String @id }
