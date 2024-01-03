@@ -99,12 +99,12 @@ export class ZModelLinker extends DefaultLinker {
         extraScopes: ScopeProvider[],
         onlyFromExtraScopes = false
     ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const reference: DefaultReference = (container as any)[property];
         if (this.resolveFromScopeProviders(container, property, document, extraScopes)) {
-            // Add the reference to the document's array of references
             return;
         }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reference: DefaultReference = (container as any)[property];
 
         if (onlyFromExtraScopes) {
             // if reference is not resolved from explicit scope providers and automatic linking is not allowed,
@@ -265,7 +265,7 @@ export class ZModelLinker extends DefaultLinker {
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
 
         if (node.target.ref) {
-            // if the reference is inside a collection predicate, it cannot be resolve to a field
+            // if the reference is inside the RHS of a collection predicate, it cannot be resolve to a field
             // not belonging to the collection's model type
 
             const collectionPredicateContext = this.getCollectionPredicateContextDataModel(node);

@@ -86,8 +86,6 @@ describe('ZModel Generator Tests', () => {
                 name String
                 role UserRole
                 deleted Boolean
-                level Int
-
                 
                 posts Post[]
 
@@ -95,13 +93,14 @@ describe('ZModel Generator Tests', () => {
 
                 @@deny('read', name == '123' && (role == USER || name == '456'))
 
-                @@allow('delete', posts?[author == auth() && ( level <10  || author.role == USER) && !author.deleted])
+                @@allow('delete', posts?[author == auth() && ( length <10  || author.role == USER) && !author.deleted])
             }
             
             model Post {
                 id String @id
                 author User? @relation(fields: [authorId], references: [id])
                 authorId String?
+                length Int
             }
     `,
             'User'
@@ -111,7 +110,7 @@ describe('ZModel Generator Tests', () => {
         checkAttribute(model.attributes[1], `@@deny('read', name == '123' && (role == USER || name == '456'))`);
         checkAttribute(
             model.attributes[2],
-            `@@allow('delete', posts?[author == auth() && (level < 10 || author.role == USER) && !author.deleted])`
+            `@@allow('delete', posts?[author == auth() && (length < 10 || author.role == USER) && !author.deleted])`
         );
     });
 });
