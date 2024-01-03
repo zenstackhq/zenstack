@@ -87,7 +87,7 @@
         "cross-fetch": "^4.0.0",
         "decimal.js": "^10.4.2",
         "lower-case-first": "^2.0.2",
-        "semver": "^7.3.8",
+        "semver": "^7.5.2",
         "superjson": "^1.11.0",
         "ts-morph": "^16.0.0",
         "upper-case-first": "^2.0.2"
