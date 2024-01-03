@@ -102,7 +102,7 @@ describe('Prisma Builder Tests', () => {
                     undefined,
                     new AttributeArgValue(
                         'FunctionCall',
-                        new FunctionCall('dbgenerated', [new FunctionCallArg(undefined, 'timestamp_id()')])
+                        new FunctionCall('dbgenerated', [new FunctionCallArg(undefined, '"timestamp_id()"')])
                     )
                 ),
             ]),
