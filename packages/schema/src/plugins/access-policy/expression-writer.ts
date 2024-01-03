@@ -461,8 +461,9 @@ export class ExpressionWriter {
         this.writer.write(`db.${lowerCaseFirst(containingModel.name)}.fields.${expr.target.ref.name}`);
     }
 
-    private isAuthOrAuthMemberAccess(expr: Expression) {
-        return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthInvocation(expr.operand));
+    private isAuthOrAuthMemberAccess(expr: Expression): boolean {
+        // recursive check for auth().x.y.z
+        return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && this.isAuthOrAuthMemberAccess(expr.operand));
     }
 
     private writeOperator(operator: ComparisonOperator, fieldAccess: Expression, writeOperand: () => void) {

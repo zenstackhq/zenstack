@@ -73,4 +73,36 @@ model M {
             expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 0 } }] })
         );
     });
+    it('auth() multiple level member access', async () => {
+        const model = `
+         model User {
+            id Int @id @default(autoincrement())
+            cart Cart?
+          }
+          
+          model Cart {
+            id Int @id @default(autoincrement())
+            tasks Task[]
+            user User @relation(fields: [userId], references: [id])
+            userId Int @unique
+          }
+          
+          model Task {
+            id Int @id @default(autoincrement())
+            cart Cart @relation(fields: [cartId], references: [id])
+            cartId Int
+            value Int
+            @@allow('read', auth().cart.tasks?[id == 123] && value >10)
+          }
+                `;
+
+        const { policy } = await loadSchema(model);
+        expect(policy.guard.task.read({ user: { cart: { tasks: [{ id: 1 }] } } })).toEqual(
+            expect.objectContaining({ AND: [{ OR: [] }, { value: { gt: 10 } }] })
+        );
+
+        expect(policy.guard.task.read({ user: { cart: { tasks: [{ id: 123 }] } } })).toEqual(
+            expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 10 } }] })
+        );
+    });
 });

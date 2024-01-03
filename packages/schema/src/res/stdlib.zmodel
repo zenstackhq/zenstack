@@ -94,6 +94,12 @@ function cuid(): String {
 } @@@expressionContext([DefaultValue])
 
 /**
+ * Generates an indentifier based on the nanoid spec.
+ */
+function nanoid(length: Int?): String {
+} @@@expressionContext([DefaultValue])
+
+/**
  * Creates a sequence of integers in the underlying database and assign the incremented 
  * values to the ID values of the created records based on the sequence.
  */

@@ -360,6 +360,8 @@ describe('Attribute tests', () => {
             model A {
                 id String @id @default(uuid())
                 id1 String @default(cuid())
+                nanodId String @default(nanoid())
+                nanodIdWithLength String @default(nanoid(3))
                 created DateTime @default(now())
                 serial Int @default(autoincrement())
                 foo String @default(dbgenerated("gen_random_uuid()"))
