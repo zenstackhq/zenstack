@@ -52,7 +52,12 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllDeclarationsFromImports, isAuthInvocation, getContainingDataModel } from '../utils/ast-utils';
+import {
+    getAllDeclarationsFromImports,
+    getContainingDataModel,
+    isAuthInvocation,
+    isCollectionPredicate,
+} from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -94,9 +99,21 @@ export class ZModelLinker extends DefaultLinker {
         extraScopes: ScopeProvider[],
         onlyFromExtraScopes = false
     ) {
-        if (!this.resolveFromScopeProviders(container, property, document, extraScopes) && !onlyFromExtraScopes) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const reference: Reference<AstNode> = (container as any)[property];
+        if (this.resolveFromScopeProviders(container, property, document, extraScopes)) {
+            return;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reference: DefaultReference = (container as any)[property];
+
+        if (onlyFromExtraScopes) {
+            // if reference is not resolved from explicit scope providers and automatic linking is not allowed,
+            // we should explicitly create a linking error
+            reference._ref = this.createLinkingError({ reference, container, property });
+
+            // Add the reference to the document's array of references
+            document.references.push(reference);
+        } else {
             this.doLink({ reference, container, property }, document);
         }
     }
@@ -118,6 +135,10 @@ export class ZModelLinker extends DefaultLinker {
             if (target) {
                 reference._ref = target;
                 reference._nodeDescription = this.descriptions.createDescription(target, target.name, document);
+
+                // Add the reference to the document's array of references
+                document.references.push(reference);
+
                 return target;
             }
         }
@@ -244,6 +265,22 @@ export class ZModelLinker extends DefaultLinker {
         node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
 
         if (node.target.ref) {
+            // if the reference is inside the RHS of a collection predicate, it cannot be resolve to a field
+            // not belonging to the collection's model type
+
+            const collectionPredicateContext = this.getCollectionPredicateContextDataModel(node);
+            if (
+                // inside a collection predicate RHS
+                collectionPredicateContext &&
+                // current ref expr is resolved to a field
+                isDataModelField(node.target.ref) &&
+                // the resolved field doesn't belong to the collection predicate's operand's type
+                node.target.ref.$container !== collectionPredicateContext
+            ) {
+                this.unresolvableRefExpr(node);
+                return;
+            }
+
             // resolve type
             if (node.target.ref.$type === EnumField) {
                 this.resolveToBuiltinTypeOrDecl(node, node.target.ref.$container);
@@ -251,6 +288,26 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveToDeclaredType(node, (node.target.ref as DataModelField | FunctionParam).type);
             }
         }
+    }
+
+    private getCollectionPredicateContextDataModel(node: ReferenceExpr) {
+        let curr: AstNode | undefined = node;
+        while (curr) {
+            if (
+                curr.$container &&
+                // parent is a collection predicate
+                isCollectionPredicate(curr.$container) &&
+                // the collection predicate's LHS is resolved to a DataModel
+                isDataModel(curr.$container.left.$resolvedType?.decl) &&
+                // current node is the RHS
+                curr.$containerProperty === 'right'
+            ) {
+                // return the resolved type of LHS
+                return curr.$container.left.$resolvedType?.decl;
+            }
+            curr = curr.$container;
+        }
+        return undefined;
     }
 
     private resolveArray(node: ArrayExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
@@ -414,13 +471,8 @@ export class ZModelLinker extends DefaultLinker {
                             if (resolved) {
                                 this.resolveToDeclaredType(item, (resolved as DataModelField).type);
                             } else {
-                                // need to clear linked reference, because it's resolved in default scope by default
-                                const ref = item.target as DefaultReference;
-                                ref._ref = this.createLinkingError({
-                                    reference: ref,
-                                    container: item,
-                                    property: 'target',
-                                });
+                                // mark unresolvable
+                                this.unresolvableRefExpr(item);
                             }
                         }
                     });
@@ -432,13 +484,8 @@ export class ZModelLinker extends DefaultLinker {
                     if (resolved) {
                         this.resolveToDeclaredType(node.value, (resolved as DataModelField).type);
                     } else {
-                        // need to clear linked reference, because it's resolved in default scope by default
-                        const ref = node.value.target as DefaultReference;
-                        ref._ref = this.createLinkingError({
-                            reference: ref,
-                            container: node.value,
-                            property: 'target',
-                        });
+                        // mark unresolvable
+                        this.unresolvableRefExpr(node.value);
                     }
                 }
             }
@@ -446,6 +493,15 @@ export class ZModelLinker extends DefaultLinker {
             this.resolve(node.value, document, extraScopes);
         }
         node.$resolvedType = node.value.$resolvedType;
+    }
+
+    private unresolvableRefExpr(item: ReferenceExpr) {
+        const ref = item.target as DefaultReference;
+        ref._ref = this.createLinkingError({
+            reference: ref,
+            container: item,
+            property: 'target',
+        });
     }
 
     private findAttrParamForArg(arg: AttributeArg): AttributeParam | undefined {

@@ -77,8 +77,8 @@ export type GetDMMFOptions = {
 /**
  * Loads Prisma DMMF with appropriate version
  */
-export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
-    const prismaVersion = getPrismaVersion();
+export function getDMMF(options: GetDMMFOptions, defaultPrismaVersion?: string): Promise<DMMF.Document> {
+    const prismaVersion = getPrismaVersion() ?? defaultPrismaVersion;
     if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
         const _getDMMF = require('@prisma/internals-v5').getDMMF;
         return _getDMMF(options);

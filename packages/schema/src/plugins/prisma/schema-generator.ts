@@ -18,7 +18,9 @@ import {
     isArrayExpr,
     isInvocationExpr,
     isLiteralExpr,
+    isNullExpr,
     isReferenceExpr,
+    isStringLiteral,
     LiteralExpr,
     Model,
     NumberLiteral,
@@ -35,6 +37,7 @@ import {
     PluginOptions,
     resolved,
     resolvePath,
+    ZModelCodeGenerator,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
@@ -45,6 +48,7 @@ import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
+import { getPackageJson } from '../../utils/pkg-utils';
 import {
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
@@ -62,8 +66,6 @@ import {
     PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
-import { ZModelCodeGenerator } from '@zenstackhq/sdk';
-import { getPackageJson } from '../../utils/pkg-utils';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
@@ -377,10 +379,15 @@ export default class PrismaSchemaGenerator {
         return new PrismaFunctionCall(
             resolved(node.function).name,
             node.args.map((arg) => {
-                if (!isLiteralExpr(arg.value)) {
-                    throw new PluginError(name, 'Function call argument must be literal');
-                }
-                return new PrismaFunctionCallArg(arg.name, arg.value.value);
+                const val = match(arg.value)
+                    .when(isStringLiteral, (v) => `"${v.value}"`)
+                    .when(isLiteralExpr, (v) => v.value.toString())
+                    .when(isNullExpr, () => 'null')
+                    .otherwise(() => {
+                        throw new PluginError(name, 'Function call argument must be literal or null');
+                    });
+
+                return new PrismaFunctionCallArg(arg.name, val);
             })
         );
     }

@@ -304,17 +304,10 @@ export class FunctionCall {
 }
 
 export class FunctionCallArg {
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-    constructor(public name: string | undefined, public value: any) {}
+    constructor(public name: string | undefined, public value: string) {}
 
     toString(): string {
-        const val =
-            this.value === null || this.value === undefined
-                ? 'null'
-                : typeof this.value === 'string'
-                ? `"${this.value}"`
-                : this.value.toString();
-        return this.name ? `${this.name}: ${val}` : val;
+        return this.name ? `${this.name}: ${this.value}` : this.value;
     }
 }
 
