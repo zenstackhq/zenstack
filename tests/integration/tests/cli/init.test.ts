@@ -24,9 +24,12 @@ describe('CLI init command tests', () => {
     });
 
     it('init project t3 npm std', async () => {
-        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
-            npm_config_user_agent: 'npm',
-            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', {
+            stdio: 'inherit',
+            env: {
+                npm_config_user_agent: 'npm',
+                npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+            },
         });
         createNpmrc();
 
@@ -42,9 +45,12 @@ describe('CLI init command tests', () => {
     // Disabled because it blows up memory on MAC, not sure why ...
     // eslint-disable-next-line jest/no-disabled-tests
     it.skip('init project t3 yarn std', async () => {
-        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
-            npm_config_user_agent: 'yarn',
-            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', {
+            stdio: 'inherit',
+            env: {
+                npm_config_user_agent: 'yarn',
+                npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+            },
         });
         createNpmrc();
 
@@ -58,9 +64,12 @@ describe('CLI init command tests', () => {
     });
 
     it('init project t3 pnpm std', async () => {
-        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
-            npm_config_user_agent: 'pnpm',
-            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', {
+            stdio: 'inherit',
+            env: {
+                npm_config_user_agent: 'pnpm',
+                npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+            },
         });
         createNpmrc();
 
@@ -74,9 +83,12 @@ describe('CLI init command tests', () => {
     });
 
     it('init project t3 non-std prisma schema', async () => {
-        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
-            npm_config_user_agent: 'npm',
-            npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+        execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', {
+            stdio: 'inherit',
+            env: {
+                npm_config_user_agent: 'npm',
+                npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
+            },
         });
         createNpmrc();
         fs.renameSync('prisma/schema.prisma', 'prisma/my.prisma');

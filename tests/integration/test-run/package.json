@@ -10,9 +10,9 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@prisma/client": "^4.8.0",
+        "@prisma/client": "^5.0.0",
         "@zenstackhq/runtime": "file:../../../packages/runtime/dist",
-        "prisma": "^4.8.0",
+        "prisma": "^5.0.0",
         "react": "^18.2.0",
         "swr": "^1.3.0",
         "typescript": "^4.9.3",

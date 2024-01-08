@@ -4,7 +4,6 @@
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../../constants';
 import { getIdFields, type ModelMeta } from '../../cross';
-import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
 import { AuthUser, DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
 import { ErrorTransformer, makeProxy } from '../proxy';
@@ -25,12 +24,12 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
     /**
      * Policy definition
      */
-    policy?: PolicyDef;
+    policy: PolicyDef;
 
     /**
      * Model metadata
      */
-    modelMeta?: ModelMeta;
+    modelMeta: ModelMeta;
 
     /**
      * Zod schemas for validation
@@ -46,6 +45,11 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
      * Hook for transforming errors before they are thrown to the caller.
      */
     errorTransformer?: ErrorTransformer;
+
+    /**
+     * The Node module that contains PrismaClient
+     */
+    prismaModule: any;
 }
 
 /**
@@ -58,8 +62,8 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
  */
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,
-    context?: WithPolicyContext,
-    options?: WithPolicyOptions
+    options: WithPolicyOptions,
+    context?: WithPolicyContext
 ): DbClient {
     if (!prisma) {
         throw new Error('Invalid prisma instance');
@@ -72,9 +76,9 @@ export function withPolicy<DbClient extends object>(
         );
     }
 
-    const _policy = options?.policy ?? getDefaultPolicy(options?.loadPath);
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
-    const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
+    const _policy = options.policy;
+    const _modelMeta = options.modelMeta;
+    const _zodSchemas = options?.zodSchemas;
 
     // validate user context
     const userContext = context?.user;
@@ -111,6 +115,7 @@ export function withPolicy<DbClient extends object>(
                 _policy,
                 _modelMeta,
                 _zodSchemas,
+                options.prismaModule,
                 model,
                 context?.user,
                 options?.logPrismaQuery

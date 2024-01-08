@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { enumerate, getModelFields, resolveField, type ModelMeta } from '../cross';
-import { getDefaultModelMeta } from '../loader';
 import { DbClientContract } from '../types';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 import { CommonEnhancementOptions } from './types';
@@ -14,18 +13,17 @@ export interface WithOmitOptions extends CommonEnhancementOptions {
     /**
      * Model metadata
      */
-    modelMeta?: ModelMeta;
+    modelMeta: ModelMeta;
 }
 
 /**
  * Gets an enhanced Prisma client that supports @omit attribute.
  */
-export function withOmit<DbClient extends object>(prisma: DbClient, options?: WithOmitOptions): DbClient {
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
+export function withOmit<DbClient extends object>(prisma: DbClient, options: WithOmitOptions): DbClient {
     return makeProxy(
         prisma,
-        _modelMeta,
-        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, _modelMeta),
+        options.modelMeta,
+        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, options.modelMeta),
         'omit'
     );
 }

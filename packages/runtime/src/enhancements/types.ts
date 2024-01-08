@@ -76,5 +76,5 @@ export type PolicyDef = {
  */
 export type ZodSchemas = {
     models: Record<string, z.ZodSchema>;
-    input: Record<string, Record<string, z.ZodSchema>>;
+    input?: Record<string, Record<string, z.ZodSchema>>;
 };

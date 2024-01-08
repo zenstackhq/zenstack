@@ -47,6 +47,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         private readonly policy: PolicyDef,
         private readonly modelMeta: ModelMeta,
         private readonly zodSchemas: ZodSchemas | undefined,
+        private readonly prismaModule: any,
         model: string,
         private readonly user?: AuthUser,
         private readonly logPrismaQuery?: boolean
@@ -57,6 +58,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.modelMeta,
             this.policy,
             this.zodSchemas,
+            this.prismaModule,
             this.user,
             this.shouldLogQuery
         );
@@ -73,20 +75,28 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     findUnique(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.where) {
-            throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'where field is required in query argument'
+            );
         }
         return this.findWithFluentCallStubs(args, 'findUnique', false, () => null);
     }
 
     findUniqueOrThrow(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.where) {
-            throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'where field is required in query argument'
+            );
         }
         return this.findWithFluentCallStubs(args, 'findUniqueOrThrow', true, () => {
             throw this.utils.notFound(this.model);
@@ -216,10 +226,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async create(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.data) {
-            throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'data field is required in query argument'
+            );
         }
 
         this.utils.tryReject(this.prisma, this.model, 'create');
@@ -469,10 +483,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async createMany(args: { data: any; skipDuplicates?: boolean }) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.data) {
-            throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'data field is required in query argument'
+            );
         }
 
         this.utils.tryReject(this.prisma, this.model, 'create');
@@ -576,13 +594,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async update(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.where) {
-            throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'where field is required in query argument'
+            );
         }
         if (!args.data) {
-            throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'data field is required in query argument'
+            );
         }
 
         args = this.utils.clone(args);
@@ -967,10 +993,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async updateMany(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.data) {
-            throw prismaClientValidationError(this.prisma, 'data field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'data field is required in query argument'
+            );
         }
 
         this.utils.tryReject(this.prisma, this.model, 'update');
@@ -1024,16 +1054,28 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async upsert(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.where) {
-            throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'where field is required in query argument'
+            );
         }
         if (!args.create) {
-            throw prismaClientValidationError(this.prisma, 'create field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'create field is required in query argument'
+            );
         }
         if (!args.update) {
-            throw prismaClientValidationError(this.prisma, 'update field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'update field is required in query argument'
+            );
         }
 
         this.utils.tryReject(this.prisma, this.model, 'create');
@@ -1077,10 +1119,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async delete(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
         if (!args.where) {
-            throw prismaClientValidationError(this.prisma, 'where field is required in query argument');
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'where field is required in query argument'
+            );
         }
 
         this.utils.tryReject(this.prisma, this.model, 'delete');
@@ -1133,7 +1179,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async aggregate(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
 
         args = this.utils.clone(args);
@@ -1149,7 +1195,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     async groupBy(args: any) {
         if (!args) {
-            throw prismaClientValidationError(this.prisma, 'query argument is required');
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
         }
 
         args = this.utils.clone(args);
@@ -1193,7 +1239,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             args = { create: {}, update: {}, delete: {} };
         } else {
             if (typeof args !== 'object') {
-                throw prismaClientValidationError(this.prisma, 'argument must be an object');
+                throw prismaClientValidationError(this.prisma, this.prismaModule, 'argument must be an object');
             }
             if (Object.keys(args).length === 0) {
                 // include all
@@ -1254,6 +1300,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.policy,
             this.modelMeta,
             this.zodSchemas,
+            this.prismaModule,
             model,
             this.user,
             this.logPrismaQuery
