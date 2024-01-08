@@ -131,12 +131,10 @@ describe('CLI Plugins Tests', () => {
         }`,
         `plugin meta {
             provider = '@core/model-meta'
-            output = 'model-meta'
         }
         `,
         `plugin policy {
             provider = '@core/access-policy'
-            output = 'policy'
         }`,
         `plugin tanstack {
             provider = '@zenstackhq/tanstack-query'
