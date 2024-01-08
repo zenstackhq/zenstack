@@ -96,6 +96,38 @@ describe('Prisma generator test', () => {
         expect(content).toContain('unsupported Unsupported("foo")');
     });
 
+    it('attribute function', async () => {
+        const model = await loadModel(`
+            datasource db {
+                provider = 'postgresql'
+                url = env('DATABASE_URL')
+            }
+
+            model User {
+                id String @id @default(nanoid(6))
+                x String @default(nanoid())
+                y String @default(dbgenerated("gen_random_uuid()"))
+            }
+        `);
+
+        const { name } = tmp.fileSync({ postfix: '.prisma' });
+        await new PrismaSchemaGenerator().generate(model, {
+            name: 'Prisma',
+            provider: '@core/prisma',
+            schemaPath: 'schema.zmodel',
+            output: name,
+            generateClient: false,
+        });
+
+        const content = fs.readFileSync(name, 'utf-8');
+        // "nanoid()" is only available in later versions of Prisma
+        await getDMMF({ datamodel: content }, '5.0.0');
+
+        expect(content).toContain('@default(nanoid(6))');
+        expect(content).toContain('@default(nanoid())');
+        expect(content).toContain('@default(dbgenerated("gen_random_uuid()"))');
+    });
+
     it('triple slash comments', async () => {
         const model = await loadModel(`
             datasource db {
