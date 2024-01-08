@@ -285,7 +285,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { value: 0 } });
         await prisma.model.create({ data: { value: 1 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-resultMutation',
                 query: {
@@ -324,7 +324,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { value: 0 } });
         await prisma.model.create({ data: { value: 1 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-resultNewFields',
                 result: {

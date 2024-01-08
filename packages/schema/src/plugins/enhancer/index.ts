@@ -43,7 +43,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Wit
     return createEnhancement(prisma, {
         modelMeta,
         policy,
-        zodSchemas: zodSchemas as (ZodSchemas | undefined),
+        zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
         prismaModule: Prisma,
         ...options
     }, context);
