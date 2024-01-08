@@ -254,6 +254,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             withOmit: undefined as any,
             withPassword: undefined as any,
             enhance: undefined as any,
+            enhanceRaw: undefined as any,
             policy: undefined as any,
             modelMeta: undefined as any,
             zodSchemas: undefined as any,
@@ -291,6 +292,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         withPassword: () => withPassword<FullDbClientContract>(prisma, { modelMeta }),
         enhance: (user?: AuthUser): FullDbClientContract =>
             enhance(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }),
+        enhanceRaw: enhance,
         policy,
         modelMeta,
         zodSchemas,

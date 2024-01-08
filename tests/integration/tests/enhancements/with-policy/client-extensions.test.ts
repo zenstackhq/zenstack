@@ -1,4 +1,3 @@
-import { enhance } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
@@ -14,7 +13,7 @@ describe('With Policy: client extensions', () => {
     });
 
     it('all model new method', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, enhanceRaw, prismaModule } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -46,7 +45,7 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.getAll()).resolves.toHaveLength(2);
 
         // FIXME: extending an enhanced client doesn't work for this case
@@ -55,7 +54,7 @@ describe('With Policy: client extensions', () => {
     });
 
     it('one model new method', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, enhanceRaw, prismaModule } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -86,12 +85,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.getAll()).resolves.toHaveLength(2);
     });
 
     it('add client method', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -122,7 +121,7 @@ describe('With Policy: client extensions', () => {
     });
 
     it('query override one model', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -154,12 +153,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override all models', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -192,12 +191,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override all operations', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -230,12 +229,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override everything', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -266,12 +265,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('result mutation', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -303,14 +302,14 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         const r = await db.model.findMany();
         expect(r).toHaveLength(1);
         expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ value: 2 })]));
     });
 
     it('result custom fields', async () => {
-        const { prisma, prismaModule } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -341,7 +340,7 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         const r = await db.model.findMany();
         expect(r).toHaveLength(1);
         expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ doubleValue: 2 })]));
