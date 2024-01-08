@@ -9,7 +9,7 @@ env:
 
 on:
     pull_request:
-        branches: ['dev', 'main']
+        branches: ['dev', 'main', 'v2']
 
 jobs:
     build-test:
