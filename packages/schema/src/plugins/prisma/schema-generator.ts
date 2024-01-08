@@ -136,7 +136,7 @@ export default class PrismaSchemaGenerator {
         if (generateClient) {
             try {
                 // run 'prisma generate'
-                await execSync(`npx prisma generate --schema "${outFile}"`, 'ignore');
+                await execSync(`npx prisma generate --schema "${outFile}"`, { stdio: 'ignore' });
             } catch {
                 await this.trackPrismaSchemaError(outFile);
                 try {

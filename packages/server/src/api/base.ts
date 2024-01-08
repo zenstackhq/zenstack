@@ -1,5 +1,6 @@
-import { DbClientContract, ModelMeta, ZodSchemas, getDefaultModelMeta } from '@zenstackhq/runtime';
-import { LoggerConfig } from '../types';
+import type { DbClientContract, ModelMeta, ZodSchemas } from '@zenstackhq/runtime';
+import { getDefaultModelMeta } from '../shared';
+import type { LoggerConfig } from '../types';
 
 /**
  * API request context

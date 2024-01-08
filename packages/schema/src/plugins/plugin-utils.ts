@@ -81,7 +81,7 @@ export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
     let runtimeModulePath = require.resolve('@zenstackhq/runtime');
 
     if (process.env.ZENSTACK_TEST === '1') {
-        // handling the case when running as tests, resolve relative to CWD
+        // handle the case when running as tests, resolve relative to CWD
         runtimeModulePath = path.resolve(path.join(process.cwd(), 'node_modules', '@zenstackhq', 'runtime'));
     }
 

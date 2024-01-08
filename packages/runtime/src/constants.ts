@@ -66,7 +66,7 @@ export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';
 /**
  * Minimum Prisma version supported
  */
-export const PRISMA_MINIMUM_VERSION = '4.8.0';
+export const PRISMA_MINIMUM_VERSION = '5.0.0';
 
 /**
  * Selector function name for fetching pre-update entity values.

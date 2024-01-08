@@ -6,9 +6,26 @@ import path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
+import { execSync } from '../../src/utils/exec-utils';
 import { loadModel } from '../utils';
 
 describe('Prisma generator test', () => {
+    let origDir: string;
+
+    beforeEach(() => {
+        origDir = process.cwd();
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        console.log(`Project dir: ${r.name}`);
+        process.chdir(r.name);
+
+        execSync('npm init -y', { stdio: 'ignore' });
+        execSync('npm install prisma');
+    });
+
+    afterEach(() => {
+        process.chdir(origDir);
+    });
+
     it('datasource coverage', async () => {
         const model = await loadModel(`
             datasource db {
@@ -32,15 +49,14 @@ describe('Prisma generator test', () => {
             }
         `);
 
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
         await new PrismaSchemaGenerator().generate(model, {
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
-            output: name,
+            output: 'schema.prisma',
         });
 
-        const content = fs.readFileSync(name, 'utf-8');
+        const content = fs.readFileSync('schema.prisma', 'utf-8');
         expect(content).toContain('provider = "postgresql"');
         expect(content).toContain('url = env("DATABASE_URL")');
         expect(content).toContain('directUrl = env("DATABASE_URL")');

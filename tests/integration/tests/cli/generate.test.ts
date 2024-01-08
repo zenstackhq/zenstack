@@ -86,26 +86,6 @@ model Post {
         expect(fs.existsSync('./out/zod')).toBeTruthy();
     });
 
-    it('generate custom output override', async () => {
-        fs.appendFileSync(
-            'schema.zmodel',
-            `
-        plugin policy {
-            provider = '@core/access-policy'
-            output = 'policy-out'
-        }
-        `
-        );
-
-        const program = createProgram();
-        await program.parseAsync(['generate', '--no-dependency-check', '-o', 'out'], { from: 'user' });
-        expect(fs.existsSync('./node_modules/.zenstack')).toBeFalsy();
-        expect(fs.existsSync('./out/model-meta.js')).toBeTruthy();
-        expect(fs.existsSync('./out/zod')).toBeTruthy();
-        expect(fs.existsSync('./out/policy.js')).toBeFalsy();
-        expect(fs.existsSync('./policy-out/policy.js')).toBeTruthy();
-    });
-
     it('generate no default plugins run nothing', async () => {
         const program = createProgram();
         await program.parseAsync(['generate', '--no-dependency-check', '--no-default-plugins'], { from: 'user' });

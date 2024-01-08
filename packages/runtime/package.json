@@ -53,11 +53,9 @@
         "linkDirectory": true
     },
     "dependencies": {
-        "@types/bcryptjs": "^2.4.2",
         "bcryptjs": "^2.4.3",
         "buffer": "^6.0.3",
         "change-case": "^4.1.2",
-        "colors": "1.4.0",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
         "lower-case-first": "^2.0.2",

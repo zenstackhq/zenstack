@@ -24,6 +24,7 @@ import { getVersion } from '../utils/version-utils';
 
 type PluginInfo = {
     name: string;
+    description?: string;
     provider: string;
     options: PluginOptions;
     run: PluginFunction;
@@ -93,6 +94,7 @@ export class PluginRunner {
 
             plugins.push({
                 name: pluginName,
+                description: this.getPluginDescription(pluginModule),
                 provider: pluginProvider,
                 dependencies,
                 options: pluginOptions,
@@ -123,6 +125,7 @@ export class PluginRunner {
                 const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
                 plugins.unshift({
                     name: pluginName,
+                    description: this.getPluginDescription(pluginModule),
                     provider: corePlugin.provider,
                     dependencies: [],
                     options: { schemaPath: options.schemaPath, name: pluginName, ...corePlugin.options },
@@ -153,9 +156,9 @@ export class PluginRunner {
         const warnings: string[] = [];
 
         let dmmf: DMMF.Document | undefined = undefined;
-        for (const { name, provider, run, options: pluginOptions } of plugins) {
+        for (const { name, description, provider, run, options: pluginOptions } of plugins) {
             // const start = Date.now();
-            await this.runPlugin(name, run, options, pluginOptions, dmmf, warnings);
+            await this.runPlugin(name, description, run, options, pluginOptions, dmmf, warnings);
             // console.log(`✅ Plugin ${colors.bold(name)} (${provider}) completed in ${Date.now() - start}ms`);
             if (provider === '@core/prisma') {
                 // load prisma DMMF
@@ -199,6 +202,13 @@ export class PluginRunner {
                 zodImplicitlyAdded = true;
                 corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
             }
+        }
+
+        if (options.defaultPlugins) {
+            corePlugins.push({
+                provider: '@core/enhancer',
+                options: { withZodSchemas: corePlugins.some((p) => p.provider === '@core/zod') },
+            });
         }
 
         // core plugins introduced by dependencies
@@ -251,8 +261,13 @@ export class PluginRunner {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private getPluginName(pluginModule: any, pluginProvider: string): string {
+    private getPluginName(pluginModule: any, pluginProvider: string) {
         return typeof pluginModule.name === 'string' ? (pluginModule.name as string) : pluginProvider;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private getPluginDescription(pluginModule: any) {
+        return typeof pluginModule.description === 'string' ? (pluginModule.description as string) : undefined;
     }
 
     private getPluginDependencies(pluginModule: any) {
@@ -266,13 +281,15 @@ export class PluginRunner {
 
     private async runPlugin(
         name: string,
+        description: string | undefined,
         run: PluginFunction,
         runnerOptions: PluginRunnerOptions,
         options: PluginOptions,
         dmmf: DMMF.Document | undefined,
         warnings: string[]
     ) {
-        const spinner = ora(`Running plugin ${colors.cyan(name)}`).start();
+        const title = description ?? `Running plugin ${colors.cyan(name)}`;
+        const spinner = ora(title).start();
         try {
             await telemetry.trackSpan(
                 'cli:plugin:start',

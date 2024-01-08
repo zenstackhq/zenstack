@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import { enhance, withOmit, withPassword, withPolicy, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
+import { withOmit, withPassword, withPolicy, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
 import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -35,14 +35,14 @@ export type FullDbClientContract = Record<string, DbOperations> & {
 };
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
-    const start = Date.now();
+    // const start = Date.now();
     execSync(cmd, {
         stdio: 'pipe',
         encoding: 'utf-8',
         env: { ...process.env, DO_NOT_TRACK: '1', ...env },
         cwd,
     });
-    console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
+    // console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
 }
 
 function normalizePath(p: string) {
@@ -224,7 +224,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
 
-    const Prisma = require(path.join(projectRoot, 'node_modules/@prisma/client')).Prisma;
+    const prismaModule = require(path.join(projectRoot, 'node_modules/@prisma/client')).Prisma;
 
     if (opt.pulseApiKey) {
         const withPulse = require(path.join(projectRoot, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
@@ -248,58 +248,53 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     if (options?.getPrismaOnly) {
         return {
             prisma,
-            Prisma,
+            prismaModule,
             projectDir: projectRoot,
             withPolicy: undefined as any,
             withOmit: undefined as any,
             withPassword: undefined as any,
             enhance: undefined as any,
+            policy: undefined as any,
+            modelMeta: undefined as any,
+            zodSchemas: undefined as any,
         };
     }
 
-    let policy: any;
-    let modelMeta: any;
+    const outputPath = opt.output
+        ? path.isAbsolute(opt.output)
+            ? opt.output
+            : path.join(projectRoot, opt.output)
+        : path.join(projectRoot, 'node_modules', '.zenstack');
+
+    const policy = require(path.join(outputPath, 'policy')).default;
+    const modelMeta = require(path.join(outputPath, 'model-meta')).default;
+
     let zodSchemas: any;
+    try {
+        zodSchemas = require(path.join(outputPath, 'zod'));
+    } catch {
+        /* noop */
+    }
 
-    const outputPath = path.join(projectRoot, 'node_modules');
-
-    try {
-        policy = require(path.join(outputPath, '.zenstack/policy')).default;
-    } catch {
-        /* noop */
-    }
-    try {
-        modelMeta = require(path.join(outputPath, '.zenstack/model-meta')).default;
-    } catch {
-        /* noop */
-    }
-    try {
-        zodSchemas = require(path.join(outputPath, '.zenstack/zod'));
-    } catch {
-        /* noop */
-    }
+    const enhance = require(path.join(outputPath, 'enhance')).enhance;
 
     return {
         projectDir: projectRoot,
         prisma,
-        Prisma,
         withPolicy: (user?: AuthUser) =>
             withPolicy<FullDbClientContract>(
                 prisma,
-                { user },
-                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
+                { policy, modelMeta, zodSchemas, prismaModule, logPrismaQuery: opt.logPrismaQuery },
+                { user }
             ),
         withOmit: () => withOmit<FullDbClientContract>(prisma, { modelMeta }),
         withPassword: () => withPassword<FullDbClientContract>(prisma, { modelMeta }),
-        enhance: (user?: AuthUser) =>
-            enhance<FullDbClientContract>(
-                prisma,
-                { user },
-                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
-            ),
+        enhance: (user?: AuthUser): FullDbClientContract =>
+            enhance(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }),
         policy,
         modelMeta,
         zodSchemas,
+        prismaModule,
     };
 }
 

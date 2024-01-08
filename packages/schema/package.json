@@ -112,7 +112,7 @@
         "zod-validation-error": "^1.5.0"
     },
     "devDependencies": {
-        "@prisma/client": "^4.8.0",
+        "@prisma/client": "^5.7.1",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
@@ -124,7 +124,7 @@
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",
-        "prisma": "^4.8.0",
+        "prisma": "^5.7.1",
         "renamer": "^4.0.0",
         "tmp": "^0.2.1",
         "tsc-alias": "^1.7.0",

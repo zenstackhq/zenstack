@@ -1,4 +1,3 @@
-import { getDefaultModelMeta } from '../loader';
 import { withOmit, WithOmitOptions } from './omit';
 import { withPassword, WithPasswordOptions } from './password';
 import { withPolicy, WithPolicyContext, WithPolicyOptions } from './policy';
@@ -21,16 +20,15 @@ let hasOmit: boolean | undefined = undefined;
  * @param context The context to for evaluating access policies.
  * @param options Options.
  */
-export function enhance<DbClient extends object>(
+export function createEnhancement<DbClient extends object>(
     prisma: DbClient,
-    context?: WithPolicyContext,
-    options?: EnhancementOptions
+    options: EnhancementOptions,
+    context?: WithPolicyContext
 ) {
     let result = prisma;
 
     if (hasPassword === undefined || hasOmit === undefined) {
-        const modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
-        const allFields = Object.values(modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
+        const allFields = Object.values(options.modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     }
@@ -46,7 +44,7 @@ export function enhance<DbClient extends object>(
     }
 
     // policy proxy
-    result = withPolicy(result, context, options);
+    result = withPolicy(result, options, context);
 
     return result;
 }

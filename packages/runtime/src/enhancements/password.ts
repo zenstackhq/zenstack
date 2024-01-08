@@ -4,7 +4,6 @@
 import { hash } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
 import { NestedWriteVisitor, type ModelMeta, type PrismaWriteActionType } from '../cross';
-import { getDefaultModelMeta } from '../loader';
 import { DbClientContract } from '../types';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 import { CommonEnhancementOptions } from './types';
@@ -16,18 +15,17 @@ export interface WithPasswordOptions extends CommonEnhancementOptions {
     /**
      * Model metadata
      */
-    modelMeta?: ModelMeta;
+    modelMeta: ModelMeta;
 }
 
 /**
  * Gets an enhanced Prisma client that supports @password attribute.
  */
-export function withPassword<DbClient extends object = any>(prisma: DbClient, options?: WithPasswordOptions): DbClient {
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
+export function withPassword<DbClient extends object = any>(prisma: DbClient, options: WithPasswordOptions): DbClient {
     return makeProxy(
         prisma,
-        _modelMeta,
-        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, _modelMeta),
+        options.modelMeta,
+        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, options.modelMeta),
         'password'
     );
 }

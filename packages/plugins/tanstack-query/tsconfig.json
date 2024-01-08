@@ -6,5 +6,5 @@
         "jsx": "react"
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["src/runtime"]
+    "exclude": ["src/runtime", "src/runtime-v5"]
 }
