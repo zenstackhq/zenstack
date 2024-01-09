@@ -183,6 +183,10 @@ export function makeProxy<T extends PrismaProxyHandler>(
     errorTransformer?: ErrorTransformer
 ) {
     const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
+
+    // a store for saving fields that belong to the proxy (not the target)
+    const proxyStorage: Record<string, unknown> = {};
+
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             // enhancer metadata
@@ -192,6 +196,10 @@ export function makeProxy<T extends PrismaProxyHandler>(
 
             if (prop === 'toString') {
                 return () => `$zenstack_${name}[${target.toString()}]`;
+            }
+
+            if (typeof prop === 'string' && prop in proxyStorage) {
+                return proxyStorage[prop];
             }
 
             if (prop === '$transaction') {
@@ -213,8 +221,14 @@ export function makeProxy<T extends PrismaProxyHandler>(
 
                         const txFunc = input;
                         return $transaction.bind(target)((tx: any) => {
+                            // create a proxy for the transaction function
                             const txProxy = makeProxy(tx, modelMeta, makeHandler, name + '$tx');
+
+                            // record in-transaction flag on the proxy (not the target)
+                            // see logic in "set" handler below
                             txProxy[PRISMA_TX_FLAG] = true;
+
+                            // call the transaction function with the proxy
                             return txFunc(txProxy);
                         }, ...rest);
                     };
@@ -234,6 +248,17 @@ export function makeProxy<T extends PrismaProxyHandler>(
             }
 
             return createHandlerProxy(makeHandler(target, prop), propVal, errorTransformer);
+        },
+
+        set: (target: any, prop: string | symbol, value: any) => {
+            if (prop === PRISMA_TX_FLAG) {
+                // set to the proxy store
+                proxyStorage[prop] = value;
+            } else {
+                // pass through to the original target
+                target[prop] = value;
+            }
+            return true;
         },
     });
 
