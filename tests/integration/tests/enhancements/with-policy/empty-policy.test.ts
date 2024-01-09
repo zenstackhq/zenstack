@@ -13,7 +13,7 @@ describe('With Policy:empty policy', () => {
     });
 
     it('direct operations', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -22,7 +22,7 @@ describe('With Policy:empty policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.model.create({ data: { id: '1', value: 0 } });
         await expect(db.model.create({ data: {} })).toBeRejectedByPolicy();
@@ -57,7 +57,7 @@ describe('With Policy:empty policy', () => {
     });
 
     it('to-many write', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -74,7 +74,7 @@ describe('With Policy:empty policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({
@@ -88,7 +88,7 @@ describe('With Policy:empty policy', () => {
     });
 
     it('to-one write', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -105,7 +105,7 @@ describe('With Policy:empty policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({

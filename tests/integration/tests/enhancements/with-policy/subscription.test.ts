@@ -17,7 +17,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe auth check', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -42,11 +42,11 @@ describe.skip('With Policy: subscription test', () => {
 
         const rawSub = await prisma.model.subscribe();
 
-        const anonDb = withPolicy();
+        const anonDb = enhance();
         console.log('Anonymous db subscribing');
         const anonSub = await anonDb.model.subscribe();
 
-        const authDb = withPolicy({ id: 1 });
+        const authDb = enhance({ id: 1 });
         console.log('Auth db subscribing');
         const authSub = await authDb.model.subscribe();
 
@@ -75,7 +75,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe model check', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -96,7 +96,7 @@ describe.skip('With Policy: subscription test', () => {
 
         const rawSub = await prisma.model.subscribe();
 
-        const enhanced = withPolicy();
+        const enhanced = enhance();
         console.log('Auth db subscribing');
         const enhancedSub = await enhanced.model.subscribe();
 
@@ -130,7 +130,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe partial', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -151,7 +151,7 @@ describe.skip('With Policy: subscription test', () => {
 
         const rawSub = await prisma.model.subscribe({ create: {} });
 
-        const enhanced = withPolicy();
+        const enhanced = enhance();
         console.log('Auth db subscribing');
         const enhancedSub = await enhanced.model.subscribe({ create: {} });
 
@@ -185,7 +185,7 @@ describe.skip('With Policy: subscription test', () => {
     });
 
     it('subscribe mixed model check', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -210,7 +210,7 @@ describe.skip('With Policy: subscription test', () => {
             delete: { before: { name: { contains: 'world' } } },
         });
 
-        const enhanced = withPolicy();
+        const enhanced = enhance();
         console.log('Auth db subscribing');
         const enhancedSub = await enhanced.model.subscribe({
             create: { after: { name: { contains: 'world' } } },

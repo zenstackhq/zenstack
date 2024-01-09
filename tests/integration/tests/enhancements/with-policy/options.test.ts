@@ -1,4 +1,3 @@
-import { withPolicy } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 

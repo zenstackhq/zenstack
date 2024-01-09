@@ -22,9 +22,9 @@ describe('Password test', () => {
     }`;
 
     it('password tests', async () => {
-        const { withPassword } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPassword();
+        const db = enhance();
         const r = await db.user.create({
             data: {
                 id: '1',

@@ -1,56 +1,11 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import semver from 'semver';
-import { PRISMA_MINIMUM_VERSION } from '../../constants';
-import { getIdFields, type ModelMeta } from '../../cross';
-import { AuthUser, DbClientContract } from '../../types';
+import { getIdFields } from '../../cross';
+import { DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
-import { ErrorTransformer, makeProxy } from '../proxy';
-import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
+import type { EnhancementContext, EnhancementOptions } from '../enhance';
+import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';
-
-/**
- * Context for evaluating access policies
- */
-export type WithPolicyContext = {
-    user?: AuthUser;
-};
-
-/**
- * Options for @see withPolicy
- */
-export interface WithPolicyOptions extends CommonEnhancementOptions {
-    /**
-     * Policy definition
-     */
-    policy: PolicyDef;
-
-    /**
-     * Model metadata
-     */
-    modelMeta: ModelMeta;
-
-    /**
-     * Zod schemas for validation
-     */
-    zodSchemas?: ZodSchemas;
-
-    /**
-     * Whether to log Prisma query
-     */
-    logPrismaQuery?: boolean;
-
-    /**
-     * Hook for transforming errors before they are thrown to the caller.
-     */
-    errorTransformer?: ErrorTransformer;
-
-    /**
-     * The Node module that contains PrismaClient
-     */
-    prismaModule: any;
-}
 
 /**
  * Gets an enhanced Prisma client with access policy check.
@@ -59,31 +14,20 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
  * @param context The policy evaluation context
  * @param policy The policy definition, will be loaded from default location if not provided
  * @param modelMeta The model metadata, will be loaded from default location if not provided
+ *
+ * @private
  */
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,
-    options: WithPolicyOptions,
-    context?: WithPolicyContext
+    options: EnhancementOptions,
+    context?: EnhancementContext
 ): DbClient {
-    if (!prisma) {
-        throw new Error('Invalid prisma instance');
-    }
-
-    const prismaVer = (prisma as any)._clientVersion;
-    if (prismaVer && semver.lt(prismaVer, PRISMA_MINIMUM_VERSION)) {
-        console.warn(
-            `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVer}".`
-        );
-    }
-
-    const _policy = options.policy;
-    const _modelMeta = options.modelMeta;
-    const _zodSchemas = options?.zodSchemas;
+    const { modelMeta, policy, zodSchemas, prismaModule, logPrismaQuery } = options;
 
     // validate user context
     const userContext = context?.user;
-    if (userContext && _modelMeta.authModel) {
-        const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
+    if (userContext && modelMeta.authModel) {
+        const idFields = getIdFields(modelMeta, modelMeta.authModel);
         if (
             !hasAllFields(
                 context.user,
@@ -96,7 +40,7 @@ export function withPolicy<DbClient extends object>(
         }
 
         // validate user context for fields used in policy expressions
-        const authSelector = _policy.authSelector;
+        const authSelector = policy.authSelector;
         if (authSelector) {
             Object.keys(authSelector).forEach((f) => {
                 if (!(f in userContext)) {
@@ -108,17 +52,17 @@ export function withPolicy<DbClient extends object>(
 
     return makeProxy(
         prisma,
-        _modelMeta,
+        modelMeta,
         (_prisma, model) =>
             new PolicyProxyHandler(
                 _prisma as DbClientContract,
-                _policy,
-                _modelMeta,
-                _zodSchemas,
-                options.prismaModule,
+                policy,
+                modelMeta,
+                zodSchemas,
+                prismaModule,
                 model,
                 context?.user,
-                options?.logPrismaQuery
+                logPrismaQuery
             ),
         'policy',
         options?.errorTransformer

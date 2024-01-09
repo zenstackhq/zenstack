@@ -32,9 +32,9 @@ describe('Omit test', () => {
     `;
 
     it('omit tests', async () => {
-        const { withOmit } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withOmit();
+        const db = enhance();
         const r = await db.user.create({
             include: { profile: true },
             data: {

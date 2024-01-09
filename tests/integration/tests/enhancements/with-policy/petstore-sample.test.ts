@@ -7,11 +7,11 @@ describe('Pet Store Policy Tests', () => {
     let prisma: FullDbClientContract;
 
     beforeAll(async () => {
-        const { withPolicy, prisma: _prisma } = await loadSchemaFromFile(
+        const { enhance, prisma: _prisma } = await loadSchemaFromFile(
             path.join(__dirname, '../../schema/petstore.zmodel'),
             { addPrelude: false }
         );
-        getDb = withPolicy;
+        getDb = enhance;
         prisma = _prisma;
     });
 

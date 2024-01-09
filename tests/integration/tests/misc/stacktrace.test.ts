@@ -13,7 +13,7 @@ describe('Stack trace tests', () => {
     });
 
     it('stack trace', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -21,7 +21,7 @@ describe('Stack trace tests', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         let error: Error | undefined = undefined;
 
         try {

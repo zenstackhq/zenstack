@@ -258,11 +258,11 @@ function createHandlerProxy<T extends PrismaProxyHandler>(
             // eslint-disable-next-line @typescript-eslint/ban-types
             const origMethod = prop as Function;
             return function (...args: any[]) {
-                // using proxy with async functions results in messed-up error stack trace,
+                // using proxy with async functions messes up error stack trace,
                 // create an error to capture the current stack
                 const capture = new Error(ERROR_MARKER);
 
-                // the original proxy returned by the PrismaClient proxy
+                // the original promise returned by the PrismaClient proxy
                 const promise: Promise<unknown> = origMethod.apply(handler, args);
 
                 // modify the error stack

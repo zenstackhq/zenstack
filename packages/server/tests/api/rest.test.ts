@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import { CrudFailureReason, withPolicy, type ModelMeta } from '@zenstackhq/runtime';
+import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
@@ -1882,7 +1882,7 @@ describe('REST server tests', () => {
         beforeAll(async () => {
             const params = await loadSchema(schema);
 
-            prisma = withPolicy(params.prisma, params);
+            prisma = params.enhanceRaw(params.prisma, params);
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 
@@ -1995,7 +1995,7 @@ describe('REST server tests', () => {
         beforeAll(async () => {
             const params = await loadSchema(schema);
 
-            prisma = withPolicy(params.prisma, params);
+            prisma = params.enhanceRaw(params.prisma, params);
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 

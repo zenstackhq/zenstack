@@ -3,23 +3,15 @@
 
 import { enumerate, getModelFields, resolveField, type ModelMeta } from '../cross';
 import { DbClientContract } from '../types';
+import { EnhancementOptions } from './enhance';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
-import { CommonEnhancementOptions } from './types';
 
 /**
- * Options for @see withOmit
+ * Gets an enhanced Prisma client that supports `@omit` attribute.
+ *
+ * @private
  */
-export interface WithOmitOptions extends CommonEnhancementOptions {
-    /**
-     * Model metadata
-     */
-    modelMeta: ModelMeta;
-}
-
-/**
- * Gets an enhanced Prisma client that supports @omit attribute.
- */
-export function withOmit<DbClient extends object>(prisma: DbClient, options: WithOmitOptions): DbClient {
+export function withOmit<DbClient extends object>(prisma: DbClient, options: EnhancementOptions): DbClient {
     return makeProxy(
         prisma,
         options.modelMeta,

@@ -2,7 +2,7 @@ import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Regression: issue 665', () => {
     it('regression', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
             model User {
                 id Int @id @default(autoincrement())
@@ -20,19 +20,19 @@ describe('Regression: issue 665', () => {
         await prisma.user.create({ data: { id: 1, username: 'test', password: 'test', admin: true } });
 
         // admin
-        let r = await withPolicy({ id: 1, admin: true }).user.findFirst();
+        let r = await enhance({ id: 1, admin: true }).user.findFirst();
         expect(r.username).toEqual('test');
 
         // owner
-        r = await withPolicy({ id: 1 }).user.findFirst();
+        r = await enhance({ id: 1 }).user.findFirst();
         expect(r.username).toEqual('test');
 
         // anonymous
-        r = await withPolicy().user.findFirst();
+        r = await enhance().user.findFirst();
         expect(r.username).toBeUndefined();
 
         // non-owner
-        r = await withPolicy({ id: 2 }).user.findFirst();
+        r = await enhance({ id: 2 }).user.findFirst();
         expect(r.username).toBeUndefined();
     });
 });

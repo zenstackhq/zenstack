@@ -1,30 +1,98 @@
-import { withOmit, WithOmitOptions } from './omit';
-import { withPassword, WithPasswordOptions } from './password';
-import { withPolicy, WithPolicyContext, WithPolicyOptions } from './policy';
+import semver from 'semver';
+import { PRISMA_MINIMUM_VERSION } from '../constants';
+import { ModelMeta } from '../cross';
+import type { AuthUser } from '../types';
+import { withOmit } from './omit';
+import { withPassword } from './password';
+import { withPolicy } from './policy';
+import type { ErrorTransformer } from './proxy';
+import type { PolicyDef, ZodSchemas } from './types';
 
 /**
- * Options @see enhance
+ * Kinds of enhancements to `PrismaClient`
  */
-export type EnhancementOptions = WithPolicyOptions & WithPasswordOptions & WithOmitOptions;
+export enum EnhancementKind {
+    Password = 'password',
+    Omit = 'omit',
+    Policy = 'policy',
+}
+
+/**
+ * Options for {@link createEnhancement}
+ */
+export type EnhancementOptions = {
+    /**
+     * Policy definition
+     */
+    policy: PolicyDef;
+
+    /**
+     * Model metadata
+     */
+    modelMeta: ModelMeta;
+
+    /**
+     * Zod schemas for validation
+     */
+    zodSchemas?: ZodSchemas;
+
+    /**
+     * Whether to log Prisma query
+     */
+    logPrismaQuery?: boolean;
+
+    /**
+     * Hook for transforming errors before they are thrown to the caller.
+     */
+    errorTransformer?: ErrorTransformer;
+
+    /**
+     * The Node module that contains PrismaClient
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prismaModule: any;
+
+    /**
+     * The kinds of enhancements to apply. By default all enhancements are applied.
+     */
+    kinds?: EnhancementKind[];
+};
+
+/**
+ * Context for creating enhanced `PrismaClient`
+ */
+export type EnhancementContext = {
+    user?: AuthUser;
+};
 
 let hasPassword: boolean | undefined = undefined;
 let hasOmit: boolean | undefined = undefined;
 
 /**
- * Gets a Prisma client enhanced with all essential behaviors, including access
+ * Gets a Prisma client enhanced with all enhancement behaviors, including access
  * policy, field validation, field omission and password hashing.
  *
- * It's a shortcut for calling withOmit(withPassword(withPolicy(prisma, options))).
- *
  * @param prisma The Prisma client to enhance.
- * @param context The context to for evaluating access policies.
+ * @param context Context.
  * @param options Options.
  */
 export function createEnhancement<DbClient extends object>(
     prisma: DbClient,
     options: EnhancementOptions,
-    context?: WithPolicyContext
+    context?: EnhancementContext
 ) {
+    if (!prisma) {
+        throw new Error('Invalid prisma instance');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prismaVer = (prisma as any)._clientVersion;
+    if (prismaVer && semver.lt(prismaVer, PRISMA_MINIMUM_VERSION)) {
+        console.warn(
+            `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVer}".`
+        );
+    }
+
     let result = prisma;
 
     if (hasPassword === undefined || hasOmit === undefined) {
@@ -33,18 +101,22 @@ export function createEnhancement<DbClient extends object>(
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     }
 
-    if (hasPassword) {
+    const kinds = options.kinds ?? [EnhancementKind.Password, EnhancementKind.Omit, EnhancementKind.Policy];
+
+    if (hasPassword && kinds.includes(EnhancementKind.Password)) {
         // @password proxy
         result = withPassword(result, options);
     }
 
-    if (hasOmit) {
+    if (hasOmit && kinds.includes(EnhancementKind.Omit)) {
         // @omit proxy
         result = withOmit(result, options);
     }
 
     // policy proxy
-    result = withPolicy(result, options, context);
+    if (kinds.includes(EnhancementKind.Policy)) {
+        result = withPolicy(result, options, context);
+    }
 
     return result;
 }

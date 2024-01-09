@@ -13,7 +13,7 @@ describe('With Policy: post update', () => {
     });
 
     it('simple allow', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -25,7 +25,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.create({ data: { id: '1', value: 0 } })).toResolveTruthy();
         await expect(db.model.update({ where: { id: '1' }, data: { value: 1 } })).toBeRejectedByPolicy();
@@ -33,7 +33,7 @@ describe('With Policy: post update', () => {
     });
 
     it('simple deny', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -45,7 +45,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.create({ data: { id: '1', value: 0 } })).toResolveTruthy();
         await expect(db.model.update({ where: { id: '1' }, data: { value: 1 } })).toBeRejectedByPolicy();
@@ -53,7 +53,7 @@ describe('With Policy: post update', () => {
     });
 
     it('mixed pre and post', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -65,7 +65,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.create({ data: { id: '1', value: 0 } })).toResolveTruthy();
         await expect(db.model.update({ where: { id: '1' }, data: { value: 1 } })).toBeRejectedByPolicy();
@@ -76,7 +76,7 @@ describe('With Policy: post update', () => {
     });
 
     it('functions pre-update', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -89,7 +89,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.model.create({ data: { id: '1', value: 'good', x: 1 } });
         await expect(db.model.update({ where: { id: '1' }, data: { value: 'hello' } })).toBeRejectedByPolicy();
@@ -100,7 +100,7 @@ describe('With Policy: post update', () => {
     });
 
     it('functions post-update', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -114,7 +114,7 @@ describe('With Policy: post update', () => {
             { logPrismaQuery: true }
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.model.create({ data: { id: '1', value: 'good', x: 1 } });
         await expect(db.model.update({ where: { id: '1' }, data: { value: 'nice' } })).toBeRejectedByPolicy();
@@ -124,7 +124,7 @@ describe('With Policy: post update', () => {
     });
 
     it('collection predicate pre-update', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -145,7 +145,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.m1.create({
             data: {
@@ -181,7 +181,7 @@ describe('With Policy: post update', () => {
     });
 
     it('collection predicate post-update', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -202,7 +202,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.m1.create({
             data: {
@@ -238,7 +238,7 @@ describe('With Policy: post update', () => {
     });
 
     it('nested to-many', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -258,7 +258,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({
@@ -297,7 +297,7 @@ describe('With Policy: post update', () => {
     });
 
     it('nested to-one', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -317,7 +317,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({
@@ -350,7 +350,7 @@ describe('With Policy: post update', () => {
     });
 
     it('nested select', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -370,7 +370,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({
@@ -401,7 +401,7 @@ describe('With Policy: post update', () => {
     });
 
     it('deep nesting', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -432,7 +432,7 @@ describe('With Policy: post update', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({

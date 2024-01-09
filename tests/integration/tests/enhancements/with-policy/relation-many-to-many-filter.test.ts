@@ -35,9 +35,9 @@ describe('With Policy: relation many-to-many filter', () => {
     `;
 
     it('some filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -128,9 +128,9 @@ describe('With Policy: relation many-to-many filter', () => {
     });
 
     it('none filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -211,9 +211,9 @@ describe('With Policy: relation many-to-many filter', () => {
     });
 
     it('every filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
