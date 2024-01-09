@@ -38,8 +38,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     await generateModelMeta(project, models, {
         output: path.join(outDir, '__model_meta.ts'),
-        compile: false,
-        preserveTsFiles: true,
         generateAttributes: false,
     });
 

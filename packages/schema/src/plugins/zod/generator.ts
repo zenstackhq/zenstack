@@ -26,7 +26,7 @@ import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
-import { makeFieldSchema, makeValidationRefinements, getFieldSchemaDefault } from './utils/schema-gen';
+import { getFieldSchemaDefault, makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
 export async function generate(
     model: Model,

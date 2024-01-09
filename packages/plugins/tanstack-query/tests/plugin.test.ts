@@ -61,7 +61,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@4.29.7'],
-                copyDependencies: [`${origDir}/dist`],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
             }
         );
@@ -83,7 +83,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@^5.0.0'],
-                copyDependencies: [`${origDir}/dist`],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
             }
         );
@@ -104,7 +104,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@4.37.0'],
-                copyDependencies: [`${origDir}/dist`],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
             }
         );
@@ -126,7 +126,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@latest'],
-                copyDependencies: [`${origDir}/dist`],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
             }
         );
@@ -147,7 +147,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
-                copyDependencies: [`${origDir}/dist`],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
             }
         );
@@ -169,7 +169,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@^5.0.0'],
-                copyDependencies: [`${origDir}/dist`],
+                copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
             }
         );

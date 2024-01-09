@@ -3,7 +3,7 @@
 import { DataModel, Enum, Expression, isDataModel, isEnum } from '@zenstackhq/language/ast';
 import * as tmp from 'tmp';
 import { Project, VariableDeclarationKind } from 'ts-morph';
-import { ExpressionWriter } from '../../src/plugins/access-policy/expression-writer';
+import { ExpressionWriter } from '../../src/plugins/enhancer/policy/expression-writer';
 import { loadModel } from '../utils';
 
 describe('Expression Writer Tests', () => {

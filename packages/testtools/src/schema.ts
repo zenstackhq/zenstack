@@ -84,13 +84,8 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    preserveTsFiles = true
-}
-
-plugin policy {
-    provider = '@core/access-policy'
+plugin enhancer {
+    provider = '@core/enhancer'
     preserveTsFiles = true
 }
 
@@ -321,7 +316,12 @@ export async function loadZModelAndDmmf(
     const model = await loadDocument(modelFile);
 
     const { name: prismaFile } = tmp.fileSync({ postfix: '.prisma' });
-    await prismaPlugin(model, { schemaPath: modelFile, name: 'Prisma', output: prismaFile, generateClient: false });
+    await prismaPlugin(model, {
+        provider: '@core/plugin',
+        schemaPath: modelFile,
+        output: prismaFile,
+        generateClient: false,
+    });
 
     const prismaContent = fs.readFileSync(prismaFile, { encoding: 'utf-8' });
 

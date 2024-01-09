@@ -721,7 +721,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 return this.wrapArray(this.wrapNullable(this.ref(def.type, false), !def.isRequired), def.isList);
 
             default:
-                throw new PluginError(this.options.name, `Unsupported field kind: ${def.kind}`);
+                throw new PluginError(name, `Unsupported field kind: ${def.kind}`);
         }
     }
 

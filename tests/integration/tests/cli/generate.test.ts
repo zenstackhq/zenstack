@@ -116,8 +116,8 @@ model Post {
         fs.appendFileSync(
             'schema.zmodel',
             `
-        plugin policy {
-            provider = '@core/access-policy'
+        plugin enhancer {
+            provider = '@core/enhancer'
         }
         `
         );
@@ -133,8 +133,8 @@ model Post {
         fs.appendFileSync(
             'schema.zmodel',
             `
-        plugin policy {
-            provider = '@core/access-policy'
+        plugin enhancer {
+            provider = '@core/enhancer'
         }
         `
         );
