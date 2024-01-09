@@ -56,7 +56,7 @@ model Foo {
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }
@@ -98,7 +98,7 @@ model Foo {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }
@@ -128,7 +128,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -153,7 +153,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -183,7 +183,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -229,7 +229,12 @@ model Post {
             `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/react-query'],
+                extraDependencies: [
+                    path.resolve(__dirname, '../dist'),
+                    '@trpc/client',
+                    '@trpc/server',
+                    '@trpc/react-query',
+                ],
                 compile: true,
                 fullZod: true,
             }
@@ -249,7 +254,7 @@ model Post {
             `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server', '@trpc/next'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server', '@trpc/next'],
                 compile: true,
                 fullZod: true,
             }
@@ -279,7 +284,7 @@ model post_item {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }
@@ -326,7 +331,7 @@ model Foo {
             {
                 addPrelude: false,
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
             }
         );
@@ -397,7 +402,7 @@ model Foo {
             {
                 addPrelude: false,
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
             }
         );

@@ -59,7 +59,12 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [`${origDir}/dist`, 'react@18.2.0', '@types/react@18.2.0', 'swr@^2'],
+                extraDependencies: [
+                    path.resolve(__dirname, '../dist'),
+                    'react@18.2.0',
+                    '@types/react@18.2.0',
+                    'swr@^2',
+                ],
                 compile: true,
             }
         );

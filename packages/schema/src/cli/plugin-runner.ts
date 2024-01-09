@@ -117,7 +117,7 @@ export class PluginRunner {
         // check dependencies
         for (const plugin of allPlugins) {
             for (const dep of plugin.dependencies) {
-                if (!plugins.find((p) => p.provider === dep)) {
+                if (!allPlugins.find((p) => p.provider === dep)) {
                     console.error(`Plugin ${plugin.provider} depends on "${dep}" but it's not declared`);
                     throw new PluginError(
                         plugin.name,
@@ -196,7 +196,7 @@ export class PluginRunner {
             }
         }
 
-        // core plugins introduced by dependencies
+        // collect core plugins introduced by dependencies
         plugins.forEach((plugin) => {
             // TODO: generalize this
             const isTrpcPlugin =
