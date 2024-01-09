@@ -31,12 +31,9 @@ import {
 import {
     ExpressionContext,
     PluginError,
-    PluginGlobalOptions,
     PluginOptions,
     RUNTIME_PACKAGE,
     analyzePolicies,
-    createProject,
-    emitProject,
     getAttributeArg,
     getAuthModel,
     getDataModels,
@@ -48,35 +45,26 @@ import {
     isForeignKeyField,
     isFromStdlib,
     isFutureExpr,
-    resolvePath,
     resolved,
-    saveProject,
 } from '@zenstackhq/sdk';
 import { streamAllContents, streamAst, streamContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import { FunctionDeclaration, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
-import { name } from '.';
-import { getIdFields, isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
+import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
+import { name } from '..';
+import { getIdFields, isAuthInvocation, isCollectionPredicate } from '../../../utils/ast-utils';
 import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
-} from '../../utils/typescript-expression-transformer';
-import { ALL_OPERATION_KINDS, getDefaultOutputFolder } from '../plugin-utils';
+} from '../../../utils/typescript-expression-transformer';
+import { ALL_OPERATION_KINDS } from '../../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
  */
-export default class PolicyGenerator {
-    async generate(model: Model, options: PluginOptions, globalOptions?: PluginGlobalOptions) {
-        let output = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
-        if (!output) {
-            throw new PluginError(options.name, `Unable to determine output path, not running plugin`);
-        }
-        output = resolvePath(output, options);
-
-        const project = createProject();
+export class PolicyGenerator {
+    async generate(project: Project, model: Model, _options: PluginOptions, output: string) {
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
         sf.addStatements('/* eslint-disable */');
 
@@ -156,22 +144,6 @@ export default class PolicyGenerator {
         });
 
         sf.addStatements('export default policy');
-
-        let shouldCompile = true;
-        if (typeof options.compile === 'boolean') {
-            // explicit override
-            shouldCompile = options.compile;
-        } else if (globalOptions) {
-            shouldCompile = globalOptions.compile;
-        }
-
-        if (!shouldCompile || options.preserveTsFiles === true) {
-            // save ts files
-            await saveProject(project);
-        }
-        if (shouldCompile) {
-            await emitProject(project);
-        }
     }
 
     // Generates a { select: ... } object to select `auth()` fields used in policy rules

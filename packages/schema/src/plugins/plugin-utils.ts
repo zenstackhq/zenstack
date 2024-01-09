@@ -95,3 +95,12 @@ export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
     const modulesFolder = getNodeModulesFolder(runtimeModulePath);
     return modulesFolder ? path.join(modulesFolder, DEFAULT_RUNTIME_LOAD_PATH) : undefined;
 }
+
+/**
+ * Core plugin providers
+ */
+export enum CorePlugins {
+    Prisma = '@core/prisma',
+    Zod = '@core/zod',
+    Enhancer = '@core/enhancer',
+}

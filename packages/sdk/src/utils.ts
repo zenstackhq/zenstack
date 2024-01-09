@@ -29,7 +29,7 @@ import {
 } from '@zenstackhq/language/ast';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
-import { PluginError, PluginOptions } from './types';
+import { PluginDeclaredOptions, PluginError, PluginOptions } from './types';
 
 /**
  * Gets data models that are not ignored
@@ -280,7 +280,7 @@ export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaP
     }
 }
 
-export function requireOption<T>(options: PluginOptions, name: string, pluginName: string): T {
+export function requireOption<T>(options: PluginDeclaredOptions, name: string, pluginName: string): T {
     const value = options[name];
     if (value === undefined) {
         throw new PluginError(pluginName, `Plugin "${options.name}" is missing required option: ${name}`);
@@ -288,8 +288,8 @@ export function requireOption<T>(options: PluginOptions, name: string, pluginNam
     return value as T;
 }
 
-export function parseOptionAsStrings(options: PluginOptions, optionaName: string, pluginName: string) {
-    const value = options[optionaName];
+export function parseOptionAsStrings(options: PluginDeclaredOptions, optionName: string, pluginName: string) {
+    const value = options[optionName];
     if (value === undefined) {
         return undefined;
     } else if (typeof value === 'string') {
@@ -304,7 +304,7 @@ export function parseOptionAsStrings(options: PluginOptions, optionaName: string
     } else {
         throw new PluginError(
             pluginName,
-            `Invalid "${optionaName}" option: must be a comma-separated string or an array of strings`
+            `Invalid "${optionName}" option: must be a comma-separated string or an array of strings`
         );
     }
 }

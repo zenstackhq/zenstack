@@ -34,21 +34,16 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const target = requireOption<string>(options, 'target', name);
     if (!supportedTargets.includes(target)) {
-        throw new PluginError(
-            options.name,
-            `Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`
-        );
+        throw new PluginError(name, `Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`);
     }
 
     const version = typeof options.version === 'string' ? options.version : 'v4';
     if (version !== 'v4' && version !== 'v5') {
-        throw new PluginError(options.name, `Unsupported version "${version}": use "v4" or "v5"`);
+        throw new PluginError(name, `Unsupported version "${version}": use "v4" or "v5"`);
     }
 
     await generateModelMeta(project, models, {
         output: path.join(outDir, '__model_meta.ts'),
-        compile: false,
-        preserveTsFiles: true,
         generateAttributes: false,
     });
 

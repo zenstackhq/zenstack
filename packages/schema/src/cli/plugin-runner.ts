@@ -8,16 +8,17 @@ import {
     getLiteral,
     getLiteralArray,
     hasValidationAttributes,
+    OptionValue,
+    PluginDeclaredOptions,
     PluginError,
     PluginFunction,
-    PluginOptions,
     resolvePath,
 } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import ora from 'ora';
 import path from 'path';
-import { ensureDefaultOutputFolder } from '../plugins/plugin-utils';
+import { CorePlugins, ensureDefaultOutputFolder } from '../plugins/plugin-utils';
 import { getDefaultPrismaOutputFile } from '../plugins/prisma/schema-generator';
 import telemetry from '../telemetry';
 import { getVersion } from '../utils/version-utils';
@@ -26,7 +27,7 @@ type PluginInfo = {
     name: string;
     description?: string;
     provider: string;
-    options: PluginOptions;
+    options: PluginDeclaredOptions;
     run: PluginFunction;
     dependencies: string[];
     module: any;
@@ -47,16 +48,16 @@ export class PluginRunner {
     /**
      * Runs a series of nested generators
      */
-    async run(options: PluginRunnerOptions): Promise<void> {
+    async run(runnerOptions: PluginRunnerOptions): Promise<void> {
         const version = getVersion();
         console.log(colors.bold(`⌛️ ZenStack CLI v${version}, running plugins`));
 
-        ensureDefaultOutputFolder(options);
+        ensureDefaultOutputFolder(runnerOptions);
 
         const plugins: PluginInfo[] = [];
-        const pluginDecls = options.schema.declarations.filter((d): d is Plugin => isPlugin(d));
+        const pluginDecls = runnerOptions.schema.declarations.filter((d): d is Plugin => isPlugin(d));
 
-        let prismaOutput = getDefaultPrismaOutputFile(options.schemaPath);
+        let prismaOutput = getDefaultPrismaOutputFile(runnerOptions.schemaPath);
 
         for (const pluginDecl of pluginDecls) {
             const pluginProvider = this.getPluginProvider(pluginDecl);
@@ -69,7 +70,7 @@ export class PluginRunner {
             let pluginModule: any;
 
             try {
-                pluginModule = this.loadPluginModule(pluginProvider, options);
+                pluginModule = this.loadPluginModule(pluginProvider, runnerOptions.schemaPath);
             } catch (err) {
                 console.error(`Unable to load plugin module ${pluginProvider}: ${err}`);
                 throw new PluginError('', `Unable to load plugin module ${pluginProvider}`);
@@ -82,7 +83,9 @@ export class PluginRunner {
 
             const dependencies = this.getPluginDependencies(pluginModule);
             const pluginName = this.getPluginName(pluginModule, pluginProvider);
-            const pluginOptions: PluginOptions = { schemaPath: options.schemaPath, name: pluginName };
+            const pluginOptions: PluginDeclaredOptions = {
+                provider: pluginProvider,
+            };
 
             pluginDecl.fields.forEach((f) => {
                 const value = getLiteral(f.value) ?? getLiteralArray(f.value);
@@ -104,39 +107,15 @@ export class PluginRunner {
 
             if (pluginProvider === '@core/prisma' && typeof pluginOptions.output === 'string') {
                 // record custom prisma output path
-                prismaOutput = resolvePath(pluginOptions.output, pluginOptions);
+                prismaOutput = resolvePath(pluginOptions.output, { schemaPath: runnerOptions.schemaPath });
             }
         }
 
-        // get core plugins that need to be enabled
-        const corePlugins = this.calculateCorePlugins(options, plugins);
-
-        // shift/insert core plugins to the front
-        for (const corePlugin of corePlugins.reverse()) {
-            const existingIdx = plugins.findIndex((p) => p.provider === corePlugin.provider);
-            if (existingIdx >= 0) {
-                // shift the plugin to the front
-                const existing = plugins[existingIdx];
-                plugins.splice(existingIdx, 1);
-                plugins.unshift(existing);
-            } else {
-                // synthesize a plugin and insert front
-                const pluginModule = require(this.getPluginModulePath(corePlugin.provider, options));
-                const pluginName = this.getPluginName(pluginModule, corePlugin.provider);
-                plugins.unshift({
-                    name: pluginName,
-                    description: this.getPluginDescription(pluginModule),
-                    provider: corePlugin.provider,
-                    dependencies: [],
-                    options: { schemaPath: options.schemaPath, name: pluginName, ...corePlugin.options },
-                    run: pluginModule.default,
-                    module: pluginModule,
-                });
-            }
-        }
+        // calculate all plugins (including core plugins implicitly enabled)
+        const allPlugins = this.calculateAllPlugins(runnerOptions, plugins);
 
         // check dependencies
-        for (const plugin of plugins) {
+        for (const plugin of allPlugins) {
             for (const dep of plugin.dependencies) {
                 if (!plugins.find((p) => p.provider === dep)) {
                     console.error(`Plugin ${plugin.provider} depends on "${dep}" but it's not declared`);
@@ -148,7 +127,7 @@ export class PluginRunner {
             }
         }
 
-        if (plugins.length === 0) {
+        if (allPlugins.length === 0) {
             console.log(colors.yellow('No plugins configured.'));
             return;
         }
@@ -156,9 +135,9 @@ export class PluginRunner {
         const warnings: string[] = [];
 
         let dmmf: DMMF.Document | undefined = undefined;
-        for (const { name, description, provider, run, options: pluginOptions } of plugins) {
+        for (const { name, description, provider, run, options: pluginOptions } of allPlugins) {
             // const start = Date.now();
-            await this.runPlugin(name, description, run, options, pluginOptions, dmmf, warnings);
+            await this.runPlugin(name, description, run, runnerOptions, pluginOptions, dmmf, warnings);
             // console.log(`✅ Plugin ${colors.bold(name)} (${provider}) completed in ${Date.now() - start}ms`);
             if (provider === '@core/prisma') {
                 // load prisma DMMF
@@ -174,41 +153,47 @@ export class PluginRunner {
         console.log(`Don't forget to restart your dev server to let the changes take effect.`);
     }
 
-    private calculateCorePlugins(options: PluginRunnerOptions, plugins: PluginInfo[]) {
-        const corePlugins: Array<{ provider: string; options?: Record<string, unknown> }> = [];
-
-        if (options.defaultPlugins) {
-            corePlugins.push(
-                { provider: '@core/prisma' },
-                { provider: '@core/model-meta' },
-                { provider: '@core/access-policy' }
-            );
-        } else if (plugins.length > 0) {
-            // "@core/prisma" plugin is always enabled if any plugin is configured
-            corePlugins.push({ provider: '@core/prisma' });
-        }
-
-        // "@core/access-policy" has implicit requirements
+    private calculateAllPlugins(options: PluginRunnerOptions, plugins: PluginInfo[]) {
+        const corePlugins: PluginInfo[] = [];
         let zodImplicitlyAdded = false;
-        if ([...plugins, ...corePlugins].find((p) => p.provider === '@core/access-policy')) {
-            // make sure "@core/model-meta" is enabled
-            if (!corePlugins.find((p) => p.provider === '@core/model-meta')) {
-                corePlugins.push({ provider: '@core/model-meta' });
-            }
 
-            // '@core/zod' plugin is auto-enabled by "@core/access-policy"
-            // if there're validation rules
-            if (!corePlugins.find((p) => p.provider === '@core/zod') && this.hasValidation(options.schema)) {
-                zodImplicitlyAdded = true;
-                corePlugins.push({ provider: '@core/zod', options: { modelOnly: true } });
-            }
+        // 1. @core/prisma
+        const existingPrisma = plugins.find((p) => p.provider === CorePlugins.Prisma);
+        if (existingPrisma) {
+            corePlugins.push(existingPrisma);
+            plugins.splice(plugins.indexOf(existingPrisma), 1);
+        } else if (options.defaultPlugins || plugins.some((p) => p.provider !== CorePlugins.Prisma)) {
+            // "@core/prisma" is enabled as default or if any other plugin is configured
+            corePlugins.push(this.makeCorePlugin(CorePlugins.Prisma, options.schemaPath, {}));
         }
 
-        if (options.defaultPlugins) {
-            corePlugins.push({
-                provider: '@core/enhancer',
-                options: { withZodSchemas: corePlugins.some((p) => p.provider === '@core/zod') },
-            });
+        // 2. @core/zod
+        const existingZod = plugins.find((p) => p.provider === CorePlugins.Zod);
+        if (existingZod) {
+            corePlugins.push(existingZod);
+            plugins.splice(plugins.indexOf(existingZod), 1);
+        } else if (
+            (options.defaultPlugins || plugins.some((p) => p.provider === CorePlugins.Enhancer)) &&
+            this.hasValidation(options.schema)
+        ) {
+            // "@core/zod" is enabled if "@core/enhancer" is enabled and there're validation rules
+            zodImplicitlyAdded = true;
+            corePlugins.push(this.makeCorePlugin(CorePlugins.Zod, options.schemaPath, { modelOnly: true }));
+        }
+
+        // 3. @core/enhancer
+        const existingEnhancer = plugins.find((p) => p.provider === CorePlugins.Enhancer);
+        if (existingEnhancer) {
+            corePlugins.push(existingEnhancer);
+            plugins.splice(plugins.indexOf(existingEnhancer), 1);
+        } else {
+            if (options.defaultPlugins) {
+                corePlugins.push(
+                    this.makeCorePlugin(CorePlugins.Enhancer, options.schemaPath, {
+                        withZodSchemas: corePlugins.some((p) => p.provider === CorePlugins.Zod),
+                    })
+                );
+            }
         }
 
         // core plugins introduced by dependencies
@@ -227,7 +212,9 @@ export class PluginRunner {
                         if (existing.provider === '@core/zod') {
                             // Zod plugin can be automatically enabled in `modelOnly` mode, however
                             // other plugin (tRPC) for now requires it to run in full mode
-                            existing.options = {};
+                            if (existing.options.modelOnly) {
+                                delete existing.options.modelOnly;
+                            }
 
                             if (
                                 isTrpcPlugin &&
@@ -239,21 +226,39 @@ export class PluginRunner {
                         }
                     } else {
                         // add core dependency
-                        const toAdd = { provider: dep, options: {} as Record<string, unknown> };
+                        const depOptions: Record<string, OptionValue | OptionValue[]> = {};
 
                         // TODO: generalize this
                         if (dep === '@core/zod' && isTrpcPlugin) {
                             // pass trpc plugin's `generateModels` option down to zod plugin
-                            toAdd.options.generateModels = plugin.options.generateModels;
+                            depOptions.generateModels = plugin.options.generateModels;
                         }
 
-                        corePlugins.push(toAdd);
+                        corePlugins.push(this.makeCorePlugin(dep, options.schemaPath, depOptions));
                     }
                 }
             }
         });
 
-        return corePlugins;
+        return [...corePlugins, ...plugins];
+    }
+
+    private makeCorePlugin(
+        provider: string,
+        schemaPath: string,
+        options: Record<string, OptionValue | OptionValue[]>
+    ): PluginInfo {
+        const pluginModule = require(this.getPluginModulePath(provider, schemaPath));
+        const pluginName = this.getPluginName(pluginModule, provider);
+        return {
+            name: pluginName,
+            description: this.getPluginDescription(pluginModule),
+            provider: provider,
+            dependencies: [],
+            options: { ...options, provider },
+            run: pluginModule.default,
+            module: pluginModule,
+        };
     }
 
     private hasValidation(schema: Model) {
@@ -284,7 +289,7 @@ export class PluginRunner {
         description: string | undefined,
         run: PluginFunction,
         runnerOptions: PluginRunnerOptions,
-        options: PluginOptions,
+        options: PluginDeclaredOptions,
         dmmf: DMMF.Document | undefined,
         warnings: string[]
     ) {
@@ -300,7 +305,7 @@ export class PluginRunner {
                     options,
                 },
                 async () => {
-                    let result = run(runnerOptions.schema, options, dmmf, {
+                    let result = run(runnerOptions.schema, { ...options, schemaPath: runnerOptions.schemaPath }, dmmf, {
                         output: runnerOptions.output,
                         compile: runnerOptions.compile,
                     });
@@ -319,7 +324,7 @@ export class PluginRunner {
         }
     }
 
-    private getPluginModulePath(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
+    private getPluginModulePath(provider: string, schemaPath: string) {
         let pluginModulePath = provider;
         if (provider.startsWith('@core/')) {
             pluginModulePath = provider.replace(/^@core/, path.join(__dirname, '../plugins'));
@@ -329,14 +334,14 @@ export class PluginRunner {
                 require.resolve(pluginModulePath);
             } catch {
                 // relative
-                pluginModulePath = resolvePath(provider, options);
+                pluginModulePath = resolvePath(provider, { schemaPath });
             }
         }
         return pluginModulePath;
     }
 
-    private loadPluginModule(provider: string, options: Pick<PluginOptions, 'schemaPath'>) {
-        const pluginModulePath = this.getPluginModulePath(provider, options);
+    private loadPluginModule(provider: string, schemaPath: string) {
+        const pluginModulePath = this.getPluginModulePath(provider, schemaPath);
         return require(pluginModulePath);
     }
 }

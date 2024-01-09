@@ -26,12 +26,12 @@ import {
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter } from 'ts-morph';
-import { name } from '.';
-import { getIdFields, isAuthInvocation } from '../../utils/ast-utils';
+import { name } from '..';
+import { getIdFields, isAuthInvocation } from '../../../utils/ast-utils';
 import {
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
-} from '../../utils/typescript-expression-transformer';
+} from '../../../utils/typescript-expression-transformer';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 

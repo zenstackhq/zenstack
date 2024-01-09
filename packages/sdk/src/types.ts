@@ -9,22 +9,17 @@ export type OptionValue = string | number | boolean;
 /**
  * Plugin configuration options
  */
-export type PluginOptions = {
+export type PluginDeclaredOptions = {
     /***
      * The provider package
      */
-    provider?: string;
-
-    /**
-     * The path of the ZModel schema
-     */
-    schemaPath: string;
-
-    /**
-     * The name of the plugin
-     */
-    name: string;
+    provider: string;
 } & Record<string, OptionValue | OptionValue[]>;
+
+/**
+ * Plugin configuration options for execution
+ */
+export type PluginOptions = { schemaPath: string } & PluginDeclaredOptions;
 
 /**
  * Global options that apply to all plugins

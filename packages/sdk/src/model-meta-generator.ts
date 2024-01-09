@@ -14,7 +14,6 @@ import type { RuntimeAttribute } from '@zenstackhq/runtime';
 import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
 import {
-    emitProject,
     getAttribute,
     getAttributeArg,
     getAttributeArgs,
@@ -26,13 +25,10 @@ import {
     isForeignKeyField,
     isIdField,
     resolved,
-    saveProject,
 } from '.';
 
 export type ModelMetaGeneratorOptions = {
     output: string;
-    compile: boolean;
-    preserveTsFiles: boolean;
     generateAttributes: boolean;
 };
 
@@ -44,14 +40,7 @@ export async function generate(project: Project, models: DataModel[], options: M
         declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(models, writer, options) }],
     });
     sf.addStatements('export default metadata;');
-
-    if (!options.compile || options.preserveTsFiles) {
-        // save ts files
-        await saveProject(project);
-    }
-    if (options.compile) {
-        await emitProject(project);
-    }
+    return sf;
 }
 
 function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter, options: ModelMetaGeneratorOptions) {
