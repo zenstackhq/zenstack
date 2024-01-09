@@ -129,12 +129,8 @@ describe('CLI Plugins Tests', () => {
             output = 'prisma/my.prisma'
             generateClient = true
         }`,
-        `plugin meta {
-            provider = '@core/model-meta'
-        }
-        `,
-        `plugin policy {
-            provider = '@core/access-policy'
+        `plugin enhancer {
+            provider = '@core/enhancer'
         }`,
         `plugin tanstack {
             provider = '@zenstackhq/tanstack-query'

@@ -84,13 +84,8 @@ generator js {
     previewFeatures = ['clientExtensions']
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    preserveTsFiles = true
-}
-
-plugin policy {
-    provider = '@core/access-policy'
+plugin enhancer {
+    provider = '@core/enhancer'
     preserveTsFiles = true
 }
 
