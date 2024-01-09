@@ -82,7 +82,6 @@ export class PluginRunner {
             }
 
             const dependencies = this.getPluginDependencies(pluginModule);
-            const pluginName = this.getPluginName(pluginModule, pluginProvider);
             const pluginOptions: PluginDeclaredOptions = {
                 provider: pluginProvider,
             };
@@ -90,13 +89,13 @@ export class PluginRunner {
             pluginDecl.fields.forEach((f) => {
                 const value = getLiteral(f.value) ?? getLiteralArray(f.value);
                 if (value === undefined) {
-                    throw new PluginError(pluginName, `Invalid option value for ${f.name}`);
+                    throw new PluginError(pluginDecl.name, `Invalid option value for ${f.name}`);
                 }
                 pluginOptions[f.name] = value;
             });
 
             plugins.push({
-                name: pluginName,
+                name: pluginDecl.name,
                 description: this.getPluginDescription(pluginModule),
                 provider: pluginProvider,
                 dependencies,
@@ -167,16 +166,22 @@ export class PluginRunner {
             corePlugins.push(this.makeCorePlugin(CorePlugins.Prisma, options.schemaPath, {}));
         }
 
+        const hasValidation = this.hasValidation(options.schema);
+
         // 2. @core/zod
         const existingZod = plugins.find((p) => p.provider === CorePlugins.Zod);
-        if (existingZod) {
-            corePlugins.push(existingZod);
+        if (existingZod && !existingZod.options.output) {
+            // we can reuse the user-provided zod plugin if it didn't specify a custom output path
             plugins.splice(plugins.indexOf(existingZod), 1);
-        } else if (
+            corePlugins.push(existingZod);
+        }
+
+        if (
+            !corePlugins.some((p) => p.provider === CorePlugins.Zod) &&
             (options.defaultPlugins || plugins.some((p) => p.provider === CorePlugins.Enhancer)) &&
-            this.hasValidation(options.schema)
+            hasValidation
         ) {
-            // "@core/zod" is enabled if "@core/enhancer" is enabled and there're validation rules
+            // ensure "@core/zod" is enabled if "@core/enhancer" is enabled and there're validation rules
             zodImplicitlyAdded = true;
             corePlugins.push(this.makeCorePlugin(CorePlugins.Zod, options.schemaPath, { modelOnly: true }));
         }
@@ -190,7 +195,7 @@ export class PluginRunner {
             if (options.defaultPlugins) {
                 corePlugins.push(
                     this.makeCorePlugin(CorePlugins.Enhancer, options.schemaPath, {
-                        withZodSchemas: corePlugins.some((p) => p.provider === CorePlugins.Zod),
+                        withZodSchemas: hasValidation,
                     })
                 );
             }
