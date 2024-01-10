@@ -17,7 +17,7 @@ import {
     type ModelMeta,
 } from '../../cross';
 import { DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
-import type { EnhancementContext, EnhancementOptions } from '../enhance';
+import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import { PrismaProxyHandler } from '../proxy';
 import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';

@@ -29,7 +29,7 @@ import {
 } from '../../cross';
 import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
-import type { EnhancementContext, EnhancementOptions } from '../enhance';
+import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,

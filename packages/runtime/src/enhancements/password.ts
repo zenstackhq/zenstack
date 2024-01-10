@@ -5,7 +5,7 @@ import { hash } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
 import { NestedWriteVisitor, type ModelMeta, type PrismaWriteActionType } from '../cross';
 import { DbClientContract } from '../types';
-import { EnhancementOptions } from './enhance';
+import { EnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 
 /**
@@ -17,13 +17,13 @@ export function withPassword<DbClient extends object = any>(prisma: DbClient, op
     return makeProxy(
         prisma,
         options.modelMeta,
-        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, options.modelMeta),
+        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, options),
         'password'
     );
 }
 
 class PasswordHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, readonly modelMeta: ModelMeta) {
+    constructor(prisma: DbClientContract, model: string, private readonly options: EnhancementOptions) {
         super(prisma, model);
     }
 
@@ -37,7 +37,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
     }
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
-        const visitor = new NestedWriteVisitor(this.modelMeta, {
+        const visitor = new NestedWriteVisitor(this.options.modelMeta, {
             field: async (field, _action, data, context) => {
                 const pwdAttr = field.attributes?.find((attr) => attr.name === '@password');
                 if (pwdAttr && field.type === 'String') {

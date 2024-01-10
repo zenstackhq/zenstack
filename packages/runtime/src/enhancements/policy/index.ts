@@ -3,7 +3,7 @@
 import { getIdFields } from '../../cross';
 import { DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
-import type { EnhancementContext, EnhancementOptions } from '../enhance';
+import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';
 

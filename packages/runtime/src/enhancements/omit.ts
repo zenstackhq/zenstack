@@ -3,7 +3,7 @@
 
 import { enumerate, getModelFields, resolveField, type ModelMeta } from '../cross';
 import { DbClientContract } from '../types';
-import { EnhancementOptions } from './enhance';
+import { EnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 
 /**
@@ -15,13 +15,13 @@ export function withOmit<DbClient extends object>(prisma: DbClient, options: Enh
     return makeProxy(
         prisma,
         options.modelMeta,
-        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, options.modelMeta),
+        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, options),
         'omit'
     );
 }
 
 class OmitHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, private readonly modelMeta: ModelMeta) {
+    constructor(prisma: DbClientContract, model: string, private readonly options: EnhancementOptions) {
         super(prisma, model);
     }
 
@@ -37,7 +37,7 @@ class OmitHandler extends DefaultPrismaProxyHandler {
 
     private async doPostProcess(entityData: any, model: string) {
         for (const field of getModelFields(entityData)) {
-            const fieldInfo = await resolveField(this.modelMeta, model, field);
+            const fieldInfo = await resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo) {
                 continue;
             }
