@@ -54,11 +54,6 @@ export enum PrismaErrorCode {
 }
 
 /**
- * Field name for storing in-transaction flag
- */
-export const PRISMA_TX_FLAG = '$__zenstack_tx';
-
-/**
  * Field name for getting current enhancer
  */
 export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';

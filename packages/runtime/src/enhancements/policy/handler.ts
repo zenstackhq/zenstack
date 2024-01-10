@@ -1232,11 +1232,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     private transaction(action: (tx: Record<string, DbOperations>) => Promise<any>) {
-        if (this.prisma[PRISMA_TX_FLAG]) {
+        if (this.prisma['$transaction']) {
+            return this.prisma.$transaction((tx) => action(tx), { maxWait: 100000, timeout: 100000 });
+        } else {
             // already in transaction, don't nest
             return action(this.prisma);
-        } else {
-            return this.prisma.$transaction((tx) => action(tx), { maxWait: 100000, timeout: 100000 });
         }
     }
 

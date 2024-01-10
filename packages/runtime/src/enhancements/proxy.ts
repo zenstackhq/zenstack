@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { PRISMA_PROXY_ENHANCER, PRISMA_TX_FLAG } from '../constants';
+import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
 import { createDeferredPromise } from './policy/promise';
@@ -184,9 +184,6 @@ export function makeProxy<T extends PrismaProxyHandler>(
 ) {
     const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
 
-    // a store for saving fields that belong to the proxy (not the target)
-    const proxyStorage: Record<string, unknown> = {};
-
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             // enhancer metadata
@@ -195,11 +192,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
             }
 
             if (prop === 'toString') {
-                return () => `$zenstack_${name}[${target.toString()}]`;
-            }
-
-            if (typeof prop === 'string' && prop in proxyStorage) {
-                return proxyStorage[prop];
+                return () => `$zenstack_prisma_${prisma._clientVersion}`;
             }
 
             if (prop === '$transaction') {
@@ -223,10 +216,6 @@ export function makeProxy<T extends PrismaProxyHandler>(
                         return $transaction.bind(target)((tx: any) => {
                             // create a proxy for the transaction function
                             const txProxy = makeProxy(tx, modelMeta, makeHandler, name + '$tx');
-
-                            // record in-transaction flag on the proxy (not the target)
-                            // see logic in "set" handler below
-                            txProxy[PRISMA_TX_FLAG] = true;
 
                             // call the transaction function with the proxy
                             return txFunc(txProxy);
