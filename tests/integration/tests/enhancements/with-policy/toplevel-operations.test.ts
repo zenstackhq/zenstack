@@ -13,7 +13,7 @@ describe('With Policy: toplevel operations', () => {
     });
 
     it('read tests', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -25,7 +25,7 @@ describe('With Policy: toplevel operations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.model.create({
@@ -62,7 +62,7 @@ describe('With Policy: toplevel operations', () => {
     });
 
     it('write tests', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -75,7 +75,7 @@ describe('With Policy: toplevel operations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         // create denied
         await expect(
@@ -148,7 +148,7 @@ describe('With Policy: toplevel operations', () => {
     });
 
     it('delete tests', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -161,7 +161,7 @@ describe('With Policy: toplevel operations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.delete({ where: { id: '1' } })).toBeNotFound();
 

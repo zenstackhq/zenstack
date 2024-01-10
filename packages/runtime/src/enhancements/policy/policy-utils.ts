@@ -29,6 +29,7 @@ import {
 } from '../../cross';
 import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
+import type { EnhancementContext, EnhancementOptions } from '../enhance';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,
@@ -42,20 +43,28 @@ import { Logger } from './logger';
  * Access policy enforcement utilities
  */
 export class PolicyUtil {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
     private readonly logger: Logger;
+    private readonly modelMeta: ModelMeta;
+    private readonly policy: PolicyDef;
+    private readonly zodSchemas?: ZodSchemas;
+    private readonly prismaModule: any;
+    private readonly user?: AuthUser;
 
     constructor(
         private readonly db: DbClientContract,
-        private readonly modelMeta: ModelMeta,
-        private readonly policy: PolicyDef,
-        private readonly zodSchemas: ZodSchemas | undefined,
-        private readonly prismaModule: any,
-        private readonly user?: AuthUser,
+        options: EnhancementOptions,
+        context?: EnhancementContext,
         private readonly shouldLogQuery = false
     ) {
         this.logger = new Logger(db);
+        this.user = context?.user;
+
+        ({
+            modelMeta: this.modelMeta,
+            policy: this.policy,
+            zodSchemas: this.zodSchemas,
+            prismaModule: this.prismaModule,
+        } = options);
     }
 
     //#region Logical operators

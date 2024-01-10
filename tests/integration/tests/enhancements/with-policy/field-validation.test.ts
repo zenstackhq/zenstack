@@ -5,7 +5,7 @@ describe('With Policy: field validation', () => {
     let db: FullDbClientContract;
 
     beforeAll(async () => {
-        const { withPolicy, prisma: _prisma } = await loadSchema(
+        const { enhance, prisma: _prisma } = await loadSchema(
             `
             model User {
                 id String @id @default(cuid())
@@ -49,7 +49,7 @@ describe('With Policy: field validation', () => {
             }
 `
         );
-        db = withPolicy();
+        db = enhance();
     });
 
     beforeEach(() => {

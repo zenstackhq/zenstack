@@ -13,7 +13,7 @@ describe('With Policy: multiple id fields', () => {
     });
 
     it('multi-id fields', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model A {
             x String
@@ -43,7 +43,7 @@ describe('With Policy: multiple id fields', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.a.create({ data: { x: '1', y: 1, value: 0 } })).toBeRejectedByPolicy();
         await expect(db.a.create({ data: { x: '1', y: 2, value: 1 } })).toResolveTruthy();
@@ -70,7 +70,7 @@ describe('With Policy: multiple id fields', () => {
     });
 
     it('multi-id auth', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
             model User {
                 x String
@@ -124,7 +124,7 @@ describe('With Policy: multiple id fields', () => {
         await prisma.user.create({ data: { x: '1', y: '1' } });
         await prisma.user.create({ data: { x: '1', y: '2' } });
 
-        const anonDb = withPolicy();
+        const anonDb = enhance();
 
         await expect(
             anonDb.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })
@@ -139,7 +139,7 @@ describe('With Policy: multiple id fields', () => {
             anonDb.n.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })
         ).toBeRejectedByPolicy();
 
-        const db = withPolicy({ x: '1', y: '1' });
+        const db = enhance({ x: '1', y: '1' });
 
         await expect(db.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toBeRejectedByPolicy();
         await expect(db.m.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })).toResolveTruthy();
@@ -149,13 +149,13 @@ describe('With Policy: multiple id fields', () => {
         await expect(db.p.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toResolveTruthy();
 
         await expect(
-            withPolicy(undefined).q.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })
+            enhance(undefined).q.create({ data: { owner: { connect: { x_y: { x: '1', y: '1' } } } } })
         ).toBeRejectedByPolicy();
         await expect(db.q.create({ data: { owner: { connect: { x_y: { x: '1', y: '2' } } } } })).toResolveTruthy();
     });
 
     it('multi-id to-one nested write', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model A {
                 x Int
@@ -177,7 +177,7 @@ describe('With Policy: multiple id fields', () => {
             }
             `
         );
-        const db = withPolicy();
+        const db = enhance();
         await expect(
             db.b.create({
                 data: {
@@ -205,7 +205,7 @@ describe('With Policy: multiple id fields', () => {
     });
 
     it('multi-id to-many nested write', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model A {
                 x Int
@@ -237,7 +237,7 @@ describe('With Policy: multiple id fields', () => {
             }
             `
         );
-        const db = withPolicy();
+        const db = enhance();
         await expect(
             db.b.create({
                 data: {

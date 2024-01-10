@@ -8,13 +8,13 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
 
     project.createSourceFile(
         outFile,
-        `import { createEnhancement, type WithPolicyContext, type EnhancementOptions, type ZodSchemas } from '@zenstackhq/runtime';
+        `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas } from '@zenstackhq/runtime';
 import modelMeta from './model-meta';
 import policy from './policy';
 ${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
 import { Prisma } from '${getPrismaClientImportSpec(model, outDir)}';
 
-export function enhance<DbClient extends object>(prisma: DbClient, context?: WithPolicyContext, options?: EnhancementOptions): DbClient {
+export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext, options?: EnhancementOptions): DbClient {
     return createEnhancement(prisma, {
         modelMeta,
         policy,

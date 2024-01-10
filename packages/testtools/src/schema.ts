@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import { withOmit, withPassword, withPolicy, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
+import type { AuthUser, DbOperations, EnhancementOptions } from '@zenstackhq/runtime';
 import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -245,9 +245,6 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             prisma,
             prismaModule,
             projectDir: projectRoot,
-            withPolicy: undefined as any,
-            withOmit: undefined as any,
-            withPassword: undefined as any,
             enhance: undefined as any,
             enhanceRaw: undefined as any,
             policy: undefined as any,
@@ -277,16 +274,19 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     return {
         projectDir: projectRoot,
         prisma,
-        withPolicy: (user?: AuthUser) =>
-            withPolicy<FullDbClientContract>(
+        enhance: (user?: AuthUser, options?: EnhancementOptions): FullDbClientContract =>
+            enhance(
                 prisma,
-                { policy, modelMeta, zodSchemas, prismaModule, logPrismaQuery: opt.logPrismaQuery },
-                { user }
+                { user },
+                {
+                    policy,
+                    modelMeta,
+                    zodSchemas,
+                    logPrismaQuery: opt.logPrismaQuery,
+                    transactionTimeout: 10000,
+                    ...options,
+                }
             ),
-        withOmit: () => withOmit<FullDbClientContract>(prisma, { modelMeta }),
-        withPassword: () => withPassword<FullDbClientContract>(prisma, { modelMeta }),
-        enhance: (user?: AuthUser): FullDbClientContract =>
-            enhance(prisma, { user }, { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }),
         enhanceRaw: enhance,
         policy,
         modelMeta,

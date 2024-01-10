@@ -47,9 +47,9 @@ describe('With Policy: connect-disconnect', () => {
     `;
 
     it('simple to-many', async () => {
-        const { withPolicy, prisma } = await loadSchema(modelToMany);
+        const { enhance, prisma } = await loadSchema(modelToMany);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1-1 -> m2-1
         await db.m2.create({ data: { id: 'm2-1', value: 1, deleted: false } });
@@ -164,9 +164,9 @@ describe('With Policy: connect-disconnect', () => {
     });
 
     it('nested to-many', async () => {
-        const { withPolicy } = await loadSchema(modelToMany);
+        const { enhance } = await loadSchema(modelToMany);
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m3.create({ data: { id: 'm3-1', value: 1, deleted: false } });
         await expect(
@@ -219,9 +219,9 @@ describe('With Policy: connect-disconnect', () => {
     `;
 
     it('to-one', async () => {
-        const { withPolicy, prisma } = await loadSchema(modelToOne);
+        const { enhance, prisma } = await loadSchema(modelToOne);
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m2.create({ data: { id: 'm2-1', value: 1, deleted: false } });
         await db.m1.create({
@@ -314,9 +314,9 @@ describe('With Policy: connect-disconnect', () => {
     `;
 
     it('implicit many-to-many', async () => {
-        const { withPolicy, prisma } = await loadSchema(modelImplicitManyToMany);
+        const { enhance, prisma } = await loadSchema(modelImplicitManyToMany);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // await prisma.m1.create({ data: { id: 'm1-1', value: 1 } });
         // await prisma.m2.create({ data: { id: 'm2-1', value: 1 } });
@@ -379,9 +379,9 @@ describe('With Policy: connect-disconnect', () => {
     `;
 
     it('explicit many-to-many', async () => {
-        const { withPolicy, prisma } = await loadSchema(modelExplicitManyToMany);
+        const { enhance, prisma } = await loadSchema(modelExplicitManyToMany);
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.m1.create({ data: { id: 'm1-1', value: 1 } });
         await prisma.m2.create({ data: { id: 'm2-1', value: 1 } });

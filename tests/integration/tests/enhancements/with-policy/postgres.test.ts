@@ -16,14 +16,14 @@ describe('With Policy: with postgres', () => {
 
     beforeEach(async () => {
         dbUrl = await createPostgresDb(DB_NAME);
-        const { prisma: _prisma, withPolicy } = await loadSchemaFromFile(
+        const { prisma: _prisma, enhance } = await loadSchemaFromFile(
             path.join(__dirname, '../../schema/todo-pg.zmodel'),
             {
                 provider: 'postgresql',
                 dbUrl,
             }
         );
-        getDb = withPolicy;
+        getDb = enhance;
         prisma = _prisma;
     });
 

@@ -67,7 +67,7 @@ The `zenstack` CLI and ZModel VSCode extension implementation. The package also 
 
 ### `runtime`
 
-Runtime enhancements to PrismaClient, including infrastructure for creating transparent proxies and concrete implementations for the `withPolicy`, `withPassword`, and `withOmit` proxies.
+Runtime enhancements to PrismaClient, including infrastructure for creating transparent proxies and concrete implementations of various proxies.
 
 ### `server`
 

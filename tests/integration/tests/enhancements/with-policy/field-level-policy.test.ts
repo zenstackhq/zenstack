@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-describe('With Policy: field-level policy', () => {
+describe('Policy: field-level policy', () => {
     let origDir: string;
 
     beforeAll(async () => {
@@ -13,7 +13,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read simple', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -37,7 +37,7 @@ describe('With Policy: field-level policy', () => {
 
         await prisma.user.create({ data: { id: 1, admin: true } });
 
-        const db = withPolicy();
+        const db = enhance();
         let r;
 
         // y is unreadable
@@ -103,7 +103,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read override', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -128,7 +128,7 @@ describe('With Policy: field-level policy', () => {
 
         await prisma.user.create({ data: { id: 1, admin: true } });
 
-        const db = withPolicy();
+        const db = enhance();
 
         // created but can't read back
         await expect(
@@ -181,7 +181,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read filter with auth', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -205,7 +205,7 @@ describe('With Policy: field-level policy', () => {
 
         await prisma.user.create({ data: { id: 1, admin: true } });
 
-        let db = withPolicy({ id: 1, admin: false });
+        let db = enhance({ id: 1, admin: false });
         let r;
 
         // y is unreadable
@@ -246,7 +246,7 @@ describe('With Policy: field-level policy', () => {
         expect(r.y).toBeUndefined();
 
         // y is readable
-        db = withPolicy({ id: 1, admin: true });
+        db = enhance({ id: 1, admin: true });
         r = await db.model.create({
             data: {
                 id: 2,
@@ -281,7 +281,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read filter with relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -306,7 +306,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.user.create({ data: { id: 1, admin: false } });
         await prisma.user.create({ data: { id: 2, admin: true } });
 
-        const db = withPolicy();
+        const db = enhance();
         let r;
 
         // y is unreadable
@@ -381,7 +381,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read coverage', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -393,7 +393,7 @@ describe('With Policy: field-level policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         let r;
 
         // y is unreadable
@@ -430,7 +430,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('read relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -472,7 +472,7 @@ describe('With Policy: field-level policy', () => {
             },
         });
 
-        const db = withPolicy();
+        const db = enhance();
 
         // read to-many relation
         let r = await db.user.findUnique({
@@ -498,7 +498,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update simple', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -523,7 +523,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.user.create({
             data: { id: 1 },
         });
-        const db = withPolicy();
+        const db = enhance();
 
         await db.model.create({
             data: { id: 1, x: 0, y: 0, ownerId: 1 },
@@ -569,7 +569,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update with override', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -583,7 +583,7 @@ describe('With Policy: field-level policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.model.create({
             data: { id: 1, x: 0, y: 0, z: 0 },
@@ -648,7 +648,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update filter with relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -676,7 +676,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.user.create({
             data: { id: 2, admin: true },
         });
-        const db = withPolicy();
+        const db = enhance();
 
         await db.model.create({
             data: { id: 1, x: 0, y: 0, ownerId: 1 },
@@ -706,7 +706,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update with nested to-many relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -734,7 +734,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.user.create({
             data: { id: 2, admin: true, models: { create: { id: 2, x: 0, y: 0 } } },
         });
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.user.update({
@@ -758,7 +758,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update with nested to-one relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -786,7 +786,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.user.create({
             data: { id: 2, admin: true, model: { create: { id: 2, x: 0, y: 0 } } },
         });
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.user.update({
@@ -828,7 +828,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update with connect to-many relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -854,7 +854,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.model.create({ data: { id: 1, value: 0 } });
         await prisma.model.create({ data: { id: 2, value: 1 } });
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.model.update({
@@ -922,7 +922,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('update with connect to-one relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -948,7 +948,7 @@ describe('With Policy: field-level policy', () => {
         await prisma.model.create({ data: { id: 1, value: 0 } });
         await prisma.model.create({ data: { id: 2, value: 1 } });
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.model.update({
@@ -1010,7 +1010,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('updateMany simple', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -1042,7 +1042,7 @@ describe('With Policy: field-level policy', () => {
                 },
             },
         });
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.updateMany({ data: { y: 2 } })).resolves.toEqual({ count: 1 });
         await expect(db.model.findUnique({ where: { id: 1 } })).resolves.toEqual(
@@ -1054,7 +1054,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('updateMany override', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model Model {
             id Int @id @default(autoincrement())
@@ -1067,7 +1067,7 @@ describe('With Policy: field-level policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.model.create({ data: { id: 1, x: 0, y: 0 } });
         await db.model.create({ data: { id: 2, x: 1, y: 0 } });
@@ -1084,7 +1084,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('updateMany nested', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -1116,7 +1116,7 @@ describe('With Policy: field-level policy', () => {
                 },
             },
         });
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.user.update({ where: { id: 1 }, data: { models: { updateMany: { data: { y: 2 } } } } })
@@ -1144,7 +1144,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('this expression', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
             model User {
                 id Int @id
@@ -1157,24 +1157,24 @@ describe('With Policy: field-level policy', () => {
         await prisma.user.create({ data: { id: 1, username: 'test' } });
 
         // admin
-        let r = await withPolicy({ id: 1, admin: true }).user.findFirst();
+        let r = await enhance({ id: 1, admin: true }).user.findFirst();
         expect(r.username).toEqual('test');
 
         // owner
-        r = await withPolicy({ id: 1 }).user.findFirst();
+        r = await enhance({ id: 1 }).user.findFirst();
         expect(r.username).toEqual('test');
 
         // anonymous
-        r = await withPolicy().user.findFirst();
+        r = await enhance().user.findFirst();
         expect(r.username).toBeUndefined();
 
         // non-owner
-        r = await withPolicy({ id: 2 }).user.findFirst();
+        r = await enhance({ id: 2 }).user.findFirst();
         expect(r.username).toBeUndefined();
     });
 
     it('collection predicate', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -1206,7 +1206,7 @@ describe('With Policy: field-level policy', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await prisma.user.create({
             data: {
@@ -1269,7 +1269,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('deny only without field access', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -1285,14 +1285,14 @@ describe('With Policy: field-level policy', () => {
         });
 
         await expect(
-            withPolicy({ id: 1, role: 'ADMIN' }).user.update({
+            enhance({ id: 1, role: 'ADMIN' }).user.update({
                 where: { id: user.id },
                 data: { role: 'ADMIN' },
             })
         ).toResolveTruthy();
 
         await expect(
-            withPolicy({ id: 1, role: 'USER' }).user.update({
+            enhance({ id: 1, role: 'USER' }).user.update({
                 where: { id: user.id },
                 data: { role: 'ADMIN' },
             })
@@ -1300,7 +1300,7 @@ describe('With Policy: field-level policy', () => {
     });
 
     it('deny only with field access', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -1317,14 +1317,14 @@ describe('With Policy: field-level policy', () => {
         });
 
         await expect(
-            withPolicy({ id: 1, role: 'ADMIN' }).user.update({
+            enhance({ id: 1, role: 'ADMIN' }).user.update({
                 where: { id: user1.id },
                 data: { role: 'ADMIN' },
             })
         ).toResolveTruthy();
 
         await expect(
-            withPolicy({ id: 1, role: 'USER' }).user.update({
+            enhance({ id: 1, role: 'USER' }).user.update({
                 where: { id: user1.id },
                 data: { role: 'ADMIN' },
             })
@@ -1335,7 +1335,7 @@ describe('With Policy: field-level policy', () => {
         });
 
         await expect(
-            withPolicy({ id: 1, role: 'ADMIN' }).user.update({
+            enhance({ id: 1, role: 'ADMIN' }).user.update({
                 where: { id: user2.id },
                 data: { role: 'ADMIN' },
             })

@@ -13,7 +13,7 @@ describe('With Policy: auth() test', () => {
     });
 
     it('undefined user with string id simple', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -29,15 +29,15 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
 
-        const authDb = withPolicy({ id: 'user1' });
+        const authDb = enhance({ id: 'user1' });
         await expect(authDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 
     it('undefined user with string id more', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -53,15 +53,15 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
 
-        const authDb = withPolicy({ id: 'user1' });
+        const authDb = enhance({ id: 'user1' });
         await expect(authDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 
     it('undefined user with int id', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -77,15 +77,15 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
 
-        const authDb = withPolicy({ id: 'user1' });
+        const authDb = enhance({ id: 'user1' });
         await expect(authDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 
     it('undefined user compared with field', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -106,21 +106,21 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.user.create({ data: { id: 'user1' } })).toResolveTruthy();
         await expect(db.post.create({ data: { id: '1', title: 'abc', authorId: 'user1' } })).toResolveTruthy();
 
-        const authDb = withPolicy();
+        const authDb = enhance();
         await expect(authDb.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        expect(() => withPolicy({ id: null })).toThrow(/Invalid user context/);
+        expect(() => enhance({ id: null })).toThrow(/Invalid user context/);
 
-        const authDb2 = withPolicy({ id: 'user1' });
+        const authDb2 = enhance({ id: 'user1' });
         await expect(authDb2.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();
     });
 
     it('undefined user compared with field more', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -141,18 +141,18 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.user.create({ data: { id: 'user1' } })).toResolveTruthy();
         await expect(db.post.create({ data: { id: '1', title: 'abc', authorId: 'user1' } })).toResolveTruthy();
 
         await expect(db.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        const authDb2 = withPolicy({ id: 'user1' });
+        const authDb2 = enhance({ id: 'user1' });
         await expect(authDb2.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();
     });
 
     it('undefined user non-id field', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -174,20 +174,20 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.user.create({ data: { id: 'user1', role: 'USER' } })).toResolveTruthy();
         await expect(db.post.create({ data: { id: '1', title: 'abc', authorId: 'user1' } })).toResolveTruthy();
         await expect(db.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        const authDb = withPolicy({ id: 'user1', role: 'USER' });
+        const authDb = enhance({ id: 'user1', role: 'USER' });
         await expect(authDb.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toBeRejectedByPolicy();
 
-        const authDb1 = withPolicy({ id: 'user2', role: 'ADMIN' });
+        const authDb1 = enhance({ id: 'user2', role: 'ADMIN' });
         await expect(authDb1.post.update({ where: { id: '1' }, data: { title: 'bcd' } })).toResolveTruthy();
     });
 
     it('non User auth model', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Foo {
             id String @id @default(uuid())
@@ -206,15 +206,15 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const userDb = withPolicy({ id: 'user1', role: 'USER' });
+        const userDb = enhance({ id: 'user1', role: 'USER' });
         await expect(userDb.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
 
-        const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
+        const adminDb = enhance({ id: 'user1', role: 'ADMIN' });
         await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 
     it('User model ignored', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -233,15 +233,15 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const userDb = withPolicy({ id: 'user1', role: 'USER' });
+        const userDb = enhance({ id: 'user1', role: 'USER' });
         await expect(userDb.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
 
-        const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
+        const adminDb = enhance({ id: 'user1', role: 'ADMIN' });
         await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 
     it('Auth model ignored', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Foo {
             id String @id @default(uuid())
@@ -261,10 +261,10 @@ describe('With Policy: auth() test', () => {
         `
         );
 
-        const userDb = withPolicy({ id: 'user1', role: 'USER' });
+        const userDb = enhance({ id: 'user1', role: 'USER' });
         await expect(userDb.post.create({ data: { title: 'abc' } })).toBeRejectedByPolicy();
 
-        const adminDb = withPolicy({ id: 'user1', role: 'ADMIN' });
+        const adminDb = enhance({ id: 'user1', role: 'ADMIN' });
         await expect(adminDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
     });
 

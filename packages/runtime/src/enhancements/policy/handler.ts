@@ -4,7 +4,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
+import { CrudFailureReason } from '../../constants';
 import {
     ModelDataVisitor,
     NestedWriteVisitor,
@@ -16,9 +16,9 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import type { EnhancementContext, EnhancementOptions } from '../enhance';
 import { PrismaProxyHandler } from '../proxy';
-import type { PolicyDef, ZodSchemas } from '../types';
 import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
@@ -41,28 +41,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     private readonly logger: Logger;
     private readonly utils: PolicyUtil;
     private readonly model: string;
+    private readonly modelMeta: ModelMeta;
+    private readonly prismaModule: any;
+    private readonly logPrismaQuery?: boolean;
 
     constructor(
         private readonly prisma: DbClient,
-        private readonly policy: PolicyDef,
-        private readonly modelMeta: ModelMeta,
-        private readonly zodSchemas: ZodSchemas | undefined,
-        private readonly prismaModule: any,
         model: string,
-        private readonly user?: AuthUser,
-        private readonly logPrismaQuery?: boolean
+        private readonly options: EnhancementOptions,
+        private readonly context?: EnhancementContext
     ) {
         this.logger = new Logger(prisma);
-        this.utils = new PolicyUtil(
-            this.prisma,
-            this.modelMeta,
-            this.policy,
-            this.zodSchemas,
-            this.prismaModule,
-            this.user,
-            this.shouldLogQuery
-        );
         this.model = lowerCaseFirst(model);
+
+        ({ modelMeta: this.modelMeta, logPrismaQuery: this.logPrismaQuery, prismaModule: this.prismaModule } = options);
+
+        this.utils = new PolicyUtil(prisma, options, context, this.shouldLogQuery);
     }
 
     private get modelClient() {
@@ -1278,11 +1272,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     private transaction(action: (tx: Record<string, DbOperations>) => Promise<any>) {
-        if (this.prisma[PRISMA_TX_FLAG]) {
+        if (this.prisma['$transaction']) {
+            return this.prisma.$transaction((tx) => action(tx), {
+                maxWait: this.options.transactionMaxWait,
+                timeout: this.options.transactionTimeout,
+                isolationLevel: this.options.transactionIsolationLevel,
+            });
+        } else {
             // already in transaction, don't nest
             return action(this.prisma);
-        } else {
-            return this.prisma.$transaction((tx) => action(tx), { maxWait: 100000, timeout: 100000 });
         }
     }
 
@@ -1295,16 +1293,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     private makeHandler(model: string) {
-        return new PolicyProxyHandler(
-            this.prisma,
-            this.policy,
-            this.modelMeta,
-            this.zodSchemas,
-            this.prismaModule,
-            model,
-            this.user,
-            this.logPrismaQuery
-        );
+        return new PolicyProxyHandler(this.prisma, model, this.options, this.context);
     }
 
     private requireBackLink(fieldInfo: FieldInfo) {

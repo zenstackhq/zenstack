@@ -13,7 +13,7 @@ describe('With Policy: multi-field unique', () => {
     });
 
     it('toplevel crud test unnamed constraint', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -28,7 +28,7 @@ describe('With Policy: multi-field unique', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.create({ data: { a: 'a1', b: 'b1', x: 1 } })).toResolveTruthy();
         await expect(db.model.create({ data: { a: 'a1', b: 'b1', x: 2 } })).toBeRejectedWithCode('P2002');
@@ -43,7 +43,7 @@ describe('With Policy: multi-field unique', () => {
     });
 
     it('toplevel crud test named constraint', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -58,7 +58,7 @@ describe('With Policy: multi-field unique', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.model.create({ data: { a: 'a1', b: 'b1', x: 1 } })).toResolveTruthy();
         await expect(db.model.findUnique({ where: { myconstraint: { a: 'a1', b: 'b1' } } })).toResolveTruthy();
@@ -73,7 +73,7 @@ describe('With Policy: multi-field unique', () => {
     });
 
     it('nested crud test', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -95,7 +95,7 @@ describe('With Policy: multi-field unique', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.m1.create({ data: { id: '1', m2: { create: { a: 'a1', b: 'b1', x: 1 } } } })).toResolveTruthy();
         await expect(

@@ -45,9 +45,9 @@ describe('With Policy: relation one-to-many filter', () => {
     `;
 
     it('some filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -163,9 +163,9 @@ describe('With Policy: relation one-to-many filter', () => {
     });
 
     it('none filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -281,9 +281,9 @@ describe('With Policy: relation one-to-many filter', () => {
     });
 
     it('every filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -399,9 +399,9 @@ describe('With Policy: relation one-to-many filter', () => {
     });
 
     it('_count filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({

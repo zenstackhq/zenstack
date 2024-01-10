@@ -13,7 +13,7 @@ describe('GitHub issues regression', () => {
     });
 
     it('issue 389', async () => {
-        const { withPolicy } = await loadSchema(`
+        const { enhance } = await loadSchema(`
         model model {
             id String @id @default(uuid())
             value Int
@@ -21,7 +21,7 @@ describe('GitHub issues regression', () => {
             @@allow('create', value > 0)
         }
         `);
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.model.create({ data: { value: 0 } })).toBeRejectedByPolicy();
         await expect(db.model.create({ data: { value: 1 } })).toResolveTruthy();
     });
@@ -88,7 +88,7 @@ describe('GitHub issues regression', () => {
     });
 
     it('select with _count', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
             model User {
                 id String @id @unique @default(uuid())
@@ -117,7 +117,7 @@ describe('GitHub issues regression', () => {
             },
         });
 
-        const db = withPolicy();
+        const db = enhance();
         const r = await db.user.findFirst({ select: { _count: { select: { posts: true } } } });
         expect(r).toMatchObject({ _count: { posts: 2 } });
     });
@@ -150,7 +150,7 @@ describe('GitHub issues regression', () => {
     });
 
     it('issue 552', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
             model Tenant {
                 id Int @id @default(autoincrement())
@@ -240,7 +240,7 @@ describe('GitHub issues regression', () => {
             },
         });
 
-        const db = withPolicy({ id: 1, is_super_admin: true });
+        const db = enhance({ id: 1, is_super_admin: true });
         await db.userTenant.update({
             where: {
                 user_id_tenant_id: {
@@ -259,7 +259,7 @@ describe('GitHub issues regression', () => {
     });
 
     it('issue 609', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
             model User {
                 id String @id @default(cuid())
@@ -300,7 +300,7 @@ describe('GitHub issues regression', () => {
         });
 
         // connecting a child comment from a different user to a parent comment should succeed
-        const db = withPolicy({ id: '2' });
+        const db = enhance({ id: '2' });
         await expect(
             db.comment.create({
                 data: {
@@ -313,7 +313,7 @@ describe('GitHub issues regression', () => {
     });
 
     it('issue 624', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
 model User {
     id String @id @default(uuid())
@@ -476,7 +476,7 @@ model Group {
             console.log(`Created user with id: ${user.id}`);
         }
 
-        const db = withPolicy({ id: 'robin@prisma.io' });
+        const db = enhance({ id: 'robin@prisma.io' });
         await expect(
             db.post.findMany({
                 where: {},
@@ -507,7 +507,7 @@ model Group {
     });
 
     it('issue 627', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
 model User {
     id String @id @default(uuid())
@@ -541,7 +541,7 @@ model Equipment extends BaseEntityWithTenant {
             },
         });
 
-        const db = withPolicy({ id: 'tenant-1' });
+        const db = enhance({ id: 'tenant-1' });
         await expect(
             db.equipment.create({
                 data: {
@@ -586,7 +586,7 @@ model TwoEnumsOneModelTest {
     });
 
     it('issue 634', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
 model User {
     id String @id @default(uuid())
@@ -749,7 +749,7 @@ model Group {
             console.log(`Created user with id: ${user.id}`);
         }
 
-        const db = withPolicy({ id: 'robin@prisma.io' });
+        const db = enhance({ id: 'robin@prisma.io' });
         await expect(
             db.comment.findMany({
                 where: {

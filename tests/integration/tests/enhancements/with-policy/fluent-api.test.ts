@@ -13,7 +13,7 @@ describe('With Policy: fluent API', () => {
     });
 
     it('fluent api', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
 model User {
     id Int @id
@@ -58,7 +58,7 @@ model Post {
             },
         });
 
-        const db = withPolicy({ id: 1 });
+        const db = enhance({ id: 1 });
 
         // check policies
         await expect(db.user.findUnique({ where: { id: 1 } }).posts()).resolves.toHaveLength(2);
