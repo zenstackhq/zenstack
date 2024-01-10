@@ -55,6 +55,8 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
  * @param context The policy evaluation context
  * @param policy The policy definition, will be loaded from default location if not provided
  * @param modelMeta The model metadata, will be loaded from default location if not provided
+ *
+ * @deprecated Use {@link enhance} instead
  */
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,

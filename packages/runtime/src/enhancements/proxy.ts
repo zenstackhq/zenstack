@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { PRISMA_PROXY_ENHANCER, PRISMA_TX_FLAG } from '../constants';
+import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
 import { createDeferredPromise } from './policy/promise';
@@ -183,6 +183,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
     errorTransformer?: ErrorTransformer
 ) {
     const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
+
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             // enhancer metadata
@@ -191,7 +192,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
             }
 
             if (prop === 'toString') {
-                return () => `$zenstack_${name}[${target.toString()}]`;
+                return () => `$zenstack_prisma_${prisma._clientVersion}`;
             }
 
             if (prop === '$transaction') {
@@ -213,8 +214,10 @@ export function makeProxy<T extends PrismaProxyHandler>(
 
                         const txFunc = input;
                         return $transaction.bind(target)((tx: any) => {
+                            // create a proxy for the transaction function
                             const txProxy = makeProxy(tx, modelMeta, makeHandler, name + '$tx');
-                            txProxy[PRISMA_TX_FLAG] = true;
+
+                            // call the transaction function with the proxy
                             return txFunc(txProxy);
                         }, ...rest);
                     };

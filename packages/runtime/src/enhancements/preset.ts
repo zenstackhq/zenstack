@@ -10,6 +10,8 @@ import { WithPolicyContext } from './policy';
  * @param prisma The Prisma client to enhance.
  * @param context The context to for evaluating access policies.
  * @param options Options.
+ *
+ * @deprecated Use {@link enhance} instead
  */
 export function withPresets<DbClient extends object>(
     prisma: DbClient,

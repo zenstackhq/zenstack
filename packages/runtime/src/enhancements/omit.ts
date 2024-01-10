@@ -18,7 +18,9 @@ export interface WithOmitOptions extends CommonEnhancementOptions {
 }
 
 /**
- * Gets an enhanced Prisma client that supports @omit attribute.
+ * Gets an enhanced Prisma client that supports "@omit" attribute.
+ *
+ * @deprecated Use {@link enhance} instead
  */
 export function withOmit<DbClient extends object>(prisma: DbClient, options?: WithOmitOptions): DbClient {
     const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
