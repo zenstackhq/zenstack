@@ -22,7 +22,7 @@ export function withPolicy<DbClient extends object>(
     options: EnhancementOptions,
     context?: EnhancementContext
 ): DbClient {
-    const { modelMeta, policy, zodSchemas, prismaModule, logPrismaQuery } = options;
+    const { modelMeta, policy } = options;
 
     // validate user context
     const userContext = context?.user;
@@ -53,17 +53,7 @@ export function withPolicy<DbClient extends object>(
     return makeProxy(
         prisma,
         modelMeta,
-        (_prisma, model) =>
-            new PolicyProxyHandler(
-                _prisma as DbClientContract,
-                policy,
-                modelMeta,
-                zodSchemas,
-                prismaModule,
-                model,
-                context?.user,
-                logPrismaQuery
-            ),
+        (_prisma, model) => new PolicyProxyHandler(_prisma as DbClientContract, model, options, context),
         'policy',
         options?.errorTransformer
     );

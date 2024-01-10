@@ -18,6 +18,16 @@ export enum EnhancementKind {
 }
 
 /**
+ * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
+ */
+export type TransactionIsolationLevel =
+    | 'ReadUncommitted'
+    | 'ReadCommitted'
+    | 'RepeatableRead'
+    | 'Snapshot'
+    | 'Serializable';
+
+/**
  * Options for {@link createEnhancement}
  */
 export type EnhancementOptions = {
@@ -42,11 +52,6 @@ export type EnhancementOptions = {
     logPrismaQuery?: boolean;
 
     /**
-     * Hook for transforming errors before they are thrown to the caller.
-     */
-    errorTransformer?: ErrorTransformer;
-
-    /**
      * The Node module that contains PrismaClient
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +61,26 @@ export type EnhancementOptions = {
      * The kinds of enhancements to apply. By default all enhancements are applied.
      */
     kinds?: EnhancementKind[];
+
+    /**
+     * Hook for transforming errors before they are thrown to the caller.
+     */
+    errorTransformer?: ErrorTransformer;
+
+    /**
+     * The `maxWait` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
+     */
+    transactionMaxWait?: number;
+
+    /**
+     * The `timeout` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
+     */
+    transactionTimeout?: number;
+
+    /**
+     * The `isolationLevel` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
+     */
+    transactionIsolationLevel?: TransactionIsolationLevel;
 };
 
 /**
