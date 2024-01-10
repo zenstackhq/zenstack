@@ -21,6 +21,8 @@ export interface WithPasswordOptions extends CommonEnhancementOptions {
 
 /**
  * Gets an enhanced Prisma client that supports @password attribute.
+ *
+ * @deprecated Use {@link enhance} instead
  */
 export function withPassword<DbClient extends object = any>(prisma: DbClient, options?: WithPasswordOptions): DbClient {
     const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
