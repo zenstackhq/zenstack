@@ -238,17 +238,6 @@ export function makeProxy<T extends PrismaProxyHandler>(
 
             return createHandlerProxy(makeHandler(target, prop), propVal, errorTransformer);
         },
-
-        set: (target: any, prop: string | symbol, value: any) => {
-            if (prop === PRISMA_TX_FLAG) {
-                // set to the proxy store
-                proxyStorage[prop] = value;
-            } else {
-                // pass through to the original target
-                target[prop] = value;
-            }
-            return true;
-        },
     });
 
     return proxy;

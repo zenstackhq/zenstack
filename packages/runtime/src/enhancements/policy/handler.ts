@@ -4,7 +4,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
-import { CrudFailureReason, PRISMA_TX_FLAG } from '../../constants';
+import { CrudFailureReason } from '../../constants';
 import {
     ModelDataVisitor,
     NestedWriteVisitor,
