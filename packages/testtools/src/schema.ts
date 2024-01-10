@@ -278,7 +278,14 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             enhance(
                 prisma,
                 { user },
-                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery, ...options }
+                {
+                    policy,
+                    modelMeta,
+                    zodSchemas,
+                    logPrismaQuery: opt.logPrismaQuery,
+                    transactionTimeout: 10000,
+                    ...options,
+                }
             ),
         enhanceRaw: enhance,
         policy,
