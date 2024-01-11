@@ -121,7 +121,9 @@ export function createEnhancement<DbClient extends object>(
     let result = prisma;
 
     if (hasPassword === undefined || hasOmit === undefined) {
-        const allFields = Object.values(options.modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
+        const allFields = Object.values(options.modelMeta.models).flatMap((modelInfo) =>
+            Object.values(modelInfo.fields)
+        );
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     }

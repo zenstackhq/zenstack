@@ -169,7 +169,7 @@ export function isDataModelFieldReference(node: AstNode): node is ReferenceExpr 
  * Gets `@@id` fields declared at the data model level
  */
 export function getModelIdFields(model: DataModel) {
-    const idAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@id');
+    const idAttr = model.attributes.find((attr) => attr.decl.$refText === '@@id');
     if (!idAttr) {
         return [];
     }
@@ -187,7 +187,7 @@ export function getModelIdFields(model: DataModel) {
  * Gets `@@unique` fields declared at the data model level
  */
 export function getModelUniqueFields(model: DataModel) {
-    const uniqueAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@unique');
+    const uniqueAttr = model.attributes.find((attr) => attr.decl.$refText === '@@unique');
     if (!uniqueAttr) {
         return [];
     }

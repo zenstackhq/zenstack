@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
-import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
+import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator';
 import { execSync } from '../../src/utils/exec-utils';
 import { loadModel } from '../utils';
 

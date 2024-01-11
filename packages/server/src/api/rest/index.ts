@@ -956,7 +956,7 @@ class RequestHandler extends APIHandlerBase {
 
     private buildTypeMap(logger: LoggerConfig | undefined, modelMeta: ModelMeta): void {
         this.typeMap = {};
-        for (const [model, fields] of Object.entries(modelMeta.fields)) {
+        for (const [model, { fields }] of Object.entries(modelMeta.models)) {
             const idFields = getIdFields(modelMeta, model);
             if (idFields.length === 0) {
                 logWarning(logger, `Not including model ${model} in the API because it has no ID field`);
@@ -1013,7 +1013,7 @@ class RequestHandler extends APIHandlerBase {
         this.serializers = new Map();
         const linkers: Record<string, Linker<any>> = {};
 
-        for (const model of Object.keys(modelMeta.fields)) {
+        for (const model of Object.keys(modelMeta.models)) {
             const ids = getIdFields(modelMeta, model);
             if (ids.length !== 1) {
                 continue;
@@ -1027,7 +1027,7 @@ class RequestHandler extends APIHandlerBase {
             linkers[model] = linker;
 
             let projection: Record<string, 0> | null = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.fields[model])) {
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.models[model].fields)) {
                 if (fieldMeta.isDataModel) {
                     projection[field] = 0;
                 }
@@ -1049,14 +1049,14 @@ class RequestHandler extends APIHandlerBase {
         }
 
         // set relators
-        for (const model of Object.keys(modelMeta.fields)) {
+        for (const model of Object.keys(modelMeta.models)) {
             const serializer = this.serializers.get(model);
             if (!serializer) {
                 continue;
             }
 
             const relators: Record<string, Relator<any>> = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.fields[model])) {
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.models[model].fields)) {
                 if (!fieldMeta.isDataModel) {
                     continue;
                 }

@@ -1,4 +1,4 @@
-import { isEnumField, isModel, Model, DataModel } from '@zenstackhq/language/ast';
+import { isEnumField, isModel, Model, DataModel, DataModelField } from '@zenstackhq/language/ast';
 import {
     AstNode,
     AstNodeDescription,
@@ -75,8 +75,8 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
                 dataModel.$resolvedFields = [...dataModel.fields];
                 this.getRecursiveSuperTypes(dataModel).forEach((superType) => {
                     superType.fields.forEach((field) => {
-                        const cloneField = Object.assign({}, field);
-                        cloneField.$isInherited = true;
+                        const cloneField = this.copyField(field);
+                        cloneField.$inheritedFrom = superType;
                         const mutable = cloneField as Mutable<AstNode>;
                         // update container
                         mutable.$container = dataModel;
@@ -85,6 +85,10 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
                 });
             }
         });
+    }
+
+    private copyField(field: DataModelField) {
+        return Object.assign({}, field) as DataModelField;
     }
 
     private getRecursiveSuperTypes(dataModel: DataModel): DataModel[] {

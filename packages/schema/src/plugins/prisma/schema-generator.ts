@@ -16,6 +16,7 @@ import {
     GeneratorDecl,
     InvocationExpr,
     isArrayExpr,
+    isDataModel,
     isInvocationExpr,
     isLiteralExpr,
     isNullExpr,
@@ -27,12 +28,16 @@ import {
     StringLiteral,
 } from '@zenstackhq/language/ast';
 import { match } from 'ts-pattern';
+import { getIdFields } from '../../utils/ast-utils';
 
 import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
+    getAttribute,
     getDMMF,
     getLiteral,
     getPrismaVersion,
+    hasAttribute,
+    isIdField,
     PluginError,
     PluginOptions,
     resolved,
@@ -41,15 +46,18 @@ import {
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
+import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
 import stripColor from 'strip-color';
+import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
 import { getPackageJson } from '../../utils/pkg-utils';
 import {
+    AttributeArgValue,
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
@@ -66,6 +74,7 @@ import {
     PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
+import { DELEGATE_AUX_RELATION_PREFIX } from '../../constants';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
@@ -73,7 +82,7 @@ const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
 /**
  * Generates Prisma schema file
  */
-export default class PrismaSchemaGenerator {
+export class PrismaSchemaGenerator {
     private zModelGenerator: ZModelCodeGenerator = new ZModelCodeGenerator();
 
     private readonly PRELUDE = `//////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,8 +92,13 @@ export default class PrismaSchemaGenerator {
 
 `;
 
+    private mode: 'logical' | 'physical' = 'physical';
+
     async generate(model: Model, options: PluginOptions) {
         const warnings: string[] = [];
+        if (options.mode) {
+            this.mode = options.mode as 'logical' | 'physical';
+        }
 
         const prismaVersion = getPrismaVersion();
         if (prismaVersion && semver.lt(prismaVersion, PRISMA_MINIMUM_VERSION)) {
@@ -110,7 +124,7 @@ export default class PrismaSchemaGenerator {
                     break;
 
                 case GeneratorDecl:
-                    this.generateGenerator(prisma, decl as GeneratorDecl);
+                    this.generateGenerator(prisma, decl as GeneratorDecl, options);
                     break;
             }
         }
@@ -213,7 +227,7 @@ export default class PrismaSchemaGenerator {
         return JSON.stringify(expr.value);
     }
 
-    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
+    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl, options: PluginOptions) {
         const generator = prisma.addGenerator(
             decl.name,
             decl.fields.map((f) => ({ name: f.name, text: this.configExprToText(f.value) }))
@@ -255,13 +269,31 @@ export default class PrismaSchemaGenerator {
                     }
                 }
             }
+
+            if (typeof options.overrideClientGenerationPath === 'string') {
+                const output = generator.fields.find((f) => f.name === 'output');
+                if (output) {
+                    output.text = JSON.stringify(options.overrideClientGenerationPath);
+                } else {
+                    generator.fields.push({
+                        name: 'output',
+                        text: JSON.stringify(options.overrideClientGenerationPath),
+                    });
+                }
+            }
         }
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel) {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
-            this.generateModelField(model, field);
+            if (field.$inheritedFrom) {
+                if (field.$inheritedFrom.isAbstract || this.mode === 'logical' || isIdField(field)) {
+                    this.generateModelField(model, field);
+                }
+            } else {
+                this.generateModelField(model, field);
+            }
         }
 
         for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
@@ -274,6 +306,154 @@ export default class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
+
+        this.generateDelegateRelationForBase(model, decl);
+        this.generateDelegateRelationForConcrete(model, decl);
+        this.generatePolymorphicRelations(model, decl);
+    }
+
+    private generateDelegateRelationForBase(model: PrismaDataModel, decl: DataModel) {
+        if (!hasAttribute(decl, '@@delegate')) {
+            return;
+        }
+
+        // collect concrete models inheriting this model
+        const concreteModels = decl.$container.declarations.filter(
+            (d) => isDataModel(d) && d !== decl && d.superTypes.some((base) => base.ref === decl)
+        );
+
+        if (concreteModels.length > 0) {
+            if (this.mode === 'physical') {
+                // generate an optional relation from delegate base model to each concrete model
+                concreteModels.forEach((concrete) => {
+                    const auxName = `${lowerCaseFirst(concrete.name)}`;
+                    model.addField(auxName, new ModelFieldType(concrete.name, false, true));
+                });
+            }
+
+            // // create a "delegateType" discriminator field
+            // model.addField('delegateType', 'String');
+        }
+    }
+
+    private generateDelegateRelationForConcrete(model: PrismaDataModel, decl: DataModel) {
+        if (this.mode === 'logical') {
+            return;
+        }
+
+        // generate a relation field and fk field for each delegated base model
+
+        const baseModels = decl.superTypes
+            .map((t) => t.ref)
+            .filter((t): t is DataModel => !!t)
+            .filter((t) => hasAttribute(t, '@@delegate'));
+
+        baseModels.forEach((base) => {
+            const idFields = getIdFields(base);
+
+            // add relation and fk fields
+            const relationField = `${lowerCaseFirst(base.name)}`;
+            model.addField(relationField, base.name, [
+                new PrismaFieldAttribute('@relation', [
+                    new PrismaAttributeArg(
+                        'fields',
+                        new AttributeArgValue(
+                            'Array',
+                            idFields.map(
+                                (idField) =>
+                                    new AttributeArgValue(
+                                        'FieldReference',
+                                        new PrismaFieldReference(
+                                            `${lowerCaseFirst(base.name)}${upperCaseFirst(idField.name)}`
+                                        )
+                                    )
+                            )
+                        )
+                    ),
+                    new PrismaAttributeArg(
+                        'references',
+                        new AttributeArgValue(
+                            'Array',
+                            idFields.map(
+                                (idField) =>
+                                    new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
+                            )
+                        )
+                    ),
+                    new PrismaAttributeArg(
+                        'onDelete',
+                        new AttributeArgValue('FieldReference', new PrismaFieldReference('Cascade'))
+                    ),
+                    new PrismaAttributeArg(
+                        'onUpdate',
+                        new AttributeArgValue('FieldReference', new PrismaFieldReference('Cascade'))
+                    ),
+                ]),
+            ]);
+
+            idFields.forEach((idField) => {
+                const fkField = `${lowerCaseFirst(base.name)}${upperCaseFirst(idField.name)}`;
+                model.addField(fkField, idField.type.type!, [new PrismaFieldAttribute('@unique')]);
+            });
+        });
+    }
+
+    private generatePolymorphicRelations(model: PrismaDataModel, decl: DataModel) {
+        if (this.mode === 'physical') {
+            return;
+        }
+
+        // for the given model, find all concrete models that have relation to it,
+        // and generate an auxiliary opposite relation field
+        // TODO: give a name to the relation to avoid ambiguity
+        decl.fields.forEach((f) => {
+            const fieldType = f.type.reference?.ref;
+            if (!isDataModel(fieldType)) {
+                return;
+            }
+
+            const concreteModels = decl.$container.declarations.filter(
+                (d) => isDataModel(d) && d.superTypes.some((s) => s.ref === fieldType)
+            );
+
+            concreteModels.forEach((concrete) => {
+                const relationField = model.addField(
+                    `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}`,
+                    new ModelFieldType(concrete.name, f.type.array, f.type.optional)
+                );
+                const relAttr = getAttribute(f, '@relation');
+                if (relAttr) {
+                    const fieldsArg = relAttr.args.find((arg) => arg.name === 'fields');
+                    if (fieldsArg) {
+                        const idFields = getIdFields(fieldType);
+                        idFields.forEach((idField) => {
+                            model.addField(
+                                `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}${upperCaseFirst(
+                                    idField.name
+                                )}`,
+                                idField.type.type!
+                            );
+                        });
+
+                        const args = new AttributeArgValue(
+                            'Array',
+                            idFields.map(
+                                (idField) =>
+                                    new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
+                            )
+                        );
+                        relationField.attributes.push(
+                            new PrismaFieldAttribute('@relation', [
+                                new PrismaAttributeArg('fields', args),
+                                new PrismaAttributeArg('references', args),
+                            ])
+                        );
+                    } else {
+                        relationField.attributes.push(this.makeFieldAttribute(relAttr as DataModelFieldAttribute));
+                    }
+                }
+            });
+        });
     }
 
     private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
@@ -302,7 +482,7 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private generateModelField(model: PrismaDataModel, field: DataModelField) {
+    private generateModelField(model: PrismaDataModel, field: DataModelField, addToFront = false) {
         const fieldType =
             field.type.type || field.type.reference?.ref?.name || this.getUnsupportedFieldType(field.type);
         if (!fieldType) {
@@ -319,7 +499,7 @@ export default class PrismaSchemaGenerator {
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
 
-        const result = model.addField(field.name, type, attributes, documentations);
+        const result = model.addField(field.name, type, attributes, documentations, addToFront);
 
         // user defined comments pass-through
         field.comments.forEach((c) => result.addComment(c));

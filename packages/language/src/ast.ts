@@ -52,7 +52,11 @@ declare module './generated/ast' {
     }
 
     interface DataModelField {
-        $isInherited?: boolean;
+        $inheritedFrom?: DataModel;
+    }
+
+    interface DataModelAttribute {
+        $inheritedFrom?: DataModel;
     }
 }
 

@@ -542,7 +542,7 @@ export class PolicyUtil {
     // flatten unique constraint filters
     private flattenGeneratedUniqueField(model: string, args: any) {
         // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
+        const uniqueConstraints = this.modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints;
         if (uniqueConstraints && Object.keys(uniqueConstraints).length > 0) {
             for (const [field, value] of Object.entries<any>(args)) {
                 if (
@@ -566,7 +566,7 @@ export class PolicyUtil {
      * Gets unique constraints for the given model.
      */
     getUniqueConstraints(model: string) {
-        return this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)] ?? {};
+        return this.modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
     }
 
     /**
@@ -1059,7 +1059,7 @@ export class PolicyUtil {
     }
 
     private makeAllScalarFieldSelect(model: string): any {
-        const fields = this.modelMeta.fields[lowerCaseFirst(model)];
+        const fields = this.getModelFields(model);
         const result: any = {};
         if (fields) {
             Object.entries(fields).forEach(([k, v]) => {
@@ -1269,15 +1269,14 @@ export class PolicyUtil {
      */
     getModelFields(model: string) {
         model = lowerCaseFirst(model);
-        return this.modelMeta.fields[model];
+        return this.modelMeta.models[model]?.fields;
     }
 
     /**
      * Gets information for a specific model field.
      */
     getModelField(model: string, field: string) {
-        model = lowerCaseFirst(model);
-        return this.modelMeta.fields[model]?.[field];
+        return resolveField(this.modelMeta, model, field);
     }
 
     /**

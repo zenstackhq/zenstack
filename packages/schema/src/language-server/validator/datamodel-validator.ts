@@ -6,7 +6,7 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
+import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields, hasAttribute } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
@@ -219,6 +219,11 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         }
 
+        if (field.$inheritedFrom && hasAttribute(field.$inheritedFrom, '@@delegate')) {
+            // relation fields inherited from delegate model don't need opposite relation
+            return;
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
@@ -232,7 +237,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         });
 
         if (oppositeFields.length === 0) {
-            const node = field.$isInherited ? field.$container : field;
+            const node = field.$inheritedFrom ? field.$container : field;
             const info: DiagnosticInfo<AstNode, string> = { node, code: IssueCodes.MissingOppositeRelation };
 
             info.property = 'name';
@@ -260,7 +265,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         } else if (oppositeFields.length > 1) {
             oppositeFields
-                .filter((x) => !x.$isInherited)
+                .filter((x) => !x.$inheritedFrom)
                 .forEach((f) => {
                     if (this.isSelfRelation(f)) {
                         // self relations are partial
@@ -363,12 +368,19 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
     private validateBaseAbstractModel(model: DataModel, accept: ValidationAcceptor) {
         model.superTypes.forEach((superType, index) => {
-            if (!superType.ref?.isAbstract)
-                accept('error', `Model ${superType.$refText} cannot be extended because it's not abstract`, {
-                    node: model,
-                    property: 'superTypes',
-                    index,
-                });
+            if (
+                !superType.ref?.isAbstract &&
+                !superType.ref?.attributes.some((attr) => attr.decl.ref?.name === '@@delegate')
+            )
+                accept(
+                    'error',
+                    `Model ${superType.$refText} cannot be extended because it's neither abstract nor marked as "@@delegate"`,
+                    {
+                        node: model,
+                        property: 'superTypes',
+                        index,
+                    }
+                );
         });
     }
 }

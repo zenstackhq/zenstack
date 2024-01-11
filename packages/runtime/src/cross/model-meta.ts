@@ -4,7 +4,14 @@ import { lowerCaseFirst } from 'lower-case-first';
  * Runtime information of a data model or field attribute
  */
 export type RuntimeAttribute = {
+    /**
+     * Attribute name
+     */
     name: string;
+
+    /**
+     * Attribute arguments
+     */
     args: Array<{ name?: string; value: unknown }>;
 };
 
@@ -66,6 +73,11 @@ export type FieldInfo = {
      * Mapping from foreign key field names to relation field names
      */
     foreignKeyMapping?: Record<string, string>;
+
+    /**
+     * Model from which the field is inherited
+     */
+    inheritedFrom?: string;
 };
 
 /**
@@ -75,23 +87,48 @@ export type FieldInfo = {
 export type UniqueConstraint = { name: string; fields: string[] };
 
 /**
+ * Metadata for a data model
+ */
+export type ModelInfo = {
+    /**
+     * Model name
+     */
+    name: string;
+
+    /**
+     * Base types
+     */
+    baseTypes?: string[];
+
+    /**
+     * Fields
+     */
+    fields: Record<string, FieldInfo>;
+
+    /**
+     * Unique constraints
+     */
+    uniqueConstraints?: Record<string, UniqueConstraint>;
+
+    /**
+     * Attributes on the model
+     */
+    attributes?: RuntimeAttribute[];
+};
+
+/**
  * ZModel data model metadata
  */
 export type ModelMeta = {
     /**
-     * Model fields
+     * Data models
      */
-    fields: Record<string, Record<string, FieldInfo>>;
+    models: Record<string, ModelInfo>;
 
     /**
-     * Model unique constraints
+     * Mapping from model name to models that will be deleted because of it due to cascade delete
      */
-    uniqueConstraints: Record<string, Record<string, UniqueConstraint>>;
-
-    /**
-     * Information for cascading delete
-     */
-    deleteCascade: Record<string, string[]>;
+    deleteCascade?: Record<string, string[]>;
 
     /**
      * Name of model that backs the `auth()` function
@@ -103,7 +140,7 @@ export type ModelMeta = {
  * Resolves a model field to its metadata. Returns undefined if not found.
  */
 export function resolveField(modelMeta: ModelMeta, model: string, field: string) {
-    return modelMeta.fields[lowerCaseFirst(model)]?.[field];
+    return modelMeta.models[lowerCaseFirst(model)]?.fields?.[field];
 }
 
 /**
@@ -121,5 +158,5 @@ export function requireField(modelMeta: ModelMeta, model: string, field: string)
  * Gets all fields of a model.
  */
 export function getFields(modelMeta: ModelMeta, model: string) {
-    return modelMeta.fields[lowerCaseFirst(model)];
+    return modelMeta.models[lowerCaseFirst(model)]?.fields;
 }

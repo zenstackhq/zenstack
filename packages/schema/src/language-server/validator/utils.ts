@@ -34,7 +34,7 @@ export function validateDuplicatedDeclarations(
         if (decls.length > 1) {
             let errorField = decls[1];
             if (decls[0].$type === 'DataModelField') {
-                const nonInheritedFields = decls.filter((x) => !(x as DataModelField).$isInherited);
+                const nonInheritedFields = decls.filter((x) => !(x as DataModelField).$inheritedFrom);
                 if (nonInheritedFields.length > 0) {
                     errorField = nonInheritedFields.slice(-1)[0];
                 }

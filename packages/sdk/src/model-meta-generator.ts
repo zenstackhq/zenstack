@@ -26,6 +26,7 @@ import {
     isIdField,
     resolved,
 } from '.';
+import { write } from 'fs';
 
 export type ModelMetaGeneratorOptions = {
     output: string;
@@ -45,122 +46,166 @@ export async function generate(project: Project, models: DataModel[], options: M
 
 function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter, options: ModelMetaGeneratorOptions) {
     writer.block(() => {
-        writer.write('fields:');
-        writer.block(() => {
-            for (const model of dataModels) {
-                writer.write(`${lowerCaseFirst(model.name)}:`);
-                writer.block(() => {
-                    for (const f of model.fields) {
-                        const backlink = getBackLink(f);
-                        const fkMapping = generateForeignKeyMapping(f);
-                        writer.write(`${f.name}: {
-                    name: "${f.name}",
-                    type: "${
-                        f.type.reference
-                            ? f.type.reference.$refText
-                            : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                              f.type.type!
-                    }",`);
+        writeModels(writer, dataModels, options);
+        writeDeleteCascade(writer, dataModels);
+        writeAuthModel(writer, dataModels);
+    });
+}
 
-                        if (isIdField(f)) {
-                            writer.write(`
-                    isId: true,`);
-                        }
-
-                        if (isDataModel(f.type.reference?.ref)) {
-                            writer.write(`
-                    isDataModel: true,`);
-                        }
-
-                        if (f.type.array) {
-                            writer.write(`
-                    isArray: true,`);
-                        }
-
-                        if (f.type.optional) {
-                            writer.write(`
-                    isOptional: true,`);
-                        }
-
-                        if (options.generateAttributes) {
-                            const attrs = getFieldAttributes(f);
-                            if (attrs.length > 0) {
-                                writer.write(`
-                    attributes: ${JSON.stringify(attrs)},`);
-                            }
-                        } else {
-                            // only include essential attributes
-                            const attrs = getFieldAttributes(f).filter((attr) =>
-                                ['@default', '@updatedAt'].includes(attr.name)
-                            );
-                            if (attrs.length > 0) {
-                                writer.write(`
-                    attributes: ${JSON.stringify(attrs)},`);
-                            }
-                        }
-
-                        if (backlink) {
-                            writer.write(`
-                    backLink: '${backlink.name}',`);
-                        }
-
-                        if (isRelationOwner(f, backlink)) {
-                            writer.write(`
-                    isRelationOwner: true,`);
-                        }
-
-                        if (isForeignKeyField(f)) {
-                            writer.write(`
-                    isForeignKey: true,`);
-                        }
-
-                        if (fkMapping && Object.keys(fkMapping).length > 0) {
-                            writer.write(`
-                    foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
-                        }
-
-                        writer.write(`
-                },`);
-                    }
-                });
-                writer.write(',');
-            }
-        });
-        writer.write(',');
-
-        writer.write('uniqueConstraints:');
-        writer.block(() => {
-            for (const model of dataModels) {
-                writer.write(`${lowerCaseFirst(model.name)}:`);
-                writer.block(() => {
-                    for (const constraint of getUniqueConstraints(model)) {
-                        writer.write(`${constraint.name}: {
-                    name: "${constraint.name}",
-                    fields: ${JSON.stringify(constraint.fields)}
-                },`);
-                    }
-                });
-                writer.write(',');
-            }
-        });
-        writer.write(',');
-
-        writer.write('deleteCascade:');
-        writer.block(() => {
-            for (const model of dataModels) {
-                const cascades = getDeleteCascades(model);
-                if (cascades.length > 0) {
-                    writer.writeLine(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}],`);
+function writeModels(writer: CodeBlockWriter, dataModels: DataModel[], options: ModelMetaGeneratorOptions) {
+    writer.write('models:');
+    writer.block(() => {
+        for (const model of dataModels) {
+            writer.write(`${lowerCaseFirst(model.name)}:`);
+            writer.block(() => {
+                writer.write(`name: '${model.name}',`);
+                writeBaseTypes(writer, model);
+                writeFields(writer, model, options);
+                writeUniqueConstraints(writer, model);
+                if (options.generateAttributes) {
+                    writeModelAttributes(writer, model);
                 }
-            }
-        });
-        writer.write(',');
-
-        const authModel = getAuthModel(dataModels);
-        if (authModel) {
-            writer.writeLine(`authModel: '${authModel.name}'`);
+            });
+            writer.writeLine(',');
         }
     });
+    writer.writeLine(',');
+}
+
+function writeBaseTypes(writer: CodeBlockWriter, model: DataModel) {
+    if (model.superTypes.length > 0) {
+        writer.write('baseTypes: [');
+        writer.write(model.superTypes.map((t) => `'${t.ref?.name}'`).join(', '));
+        writer.write('],');
+    }
+}
+
+function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[]) {
+    const authModel = getAuthModel(dataModels);
+    if (authModel) {
+        writer.writeLine(`authModel: '${authModel.name}'`);
+    }
+}
+
+function writeDeleteCascade(writer: CodeBlockWriter, dataModels: DataModel[]) {
+    writer.write('deleteCascade:');
+    writer.block(() => {
+        for (const model of dataModels) {
+            const cascades = getDeleteCascades(model);
+            if (cascades.length > 0) {
+                writer.writeLine(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}],`);
+            }
+        }
+    });
+    writer.writeLine(',');
+}
+
+function writeUniqueConstraints(writer: CodeBlockWriter, model: DataModel) {
+    const constraints = getUniqueConstraints(model);
+    if (constraints.length > 0) {
+        writer.write('uniqueConstraints:');
+        writer.block(() => {
+            for (const constraint of constraints) {
+                writer.write(`${constraint.name}: {
+                                name: "${constraint.name}",
+                                fields: ${JSON.stringify(constraint.fields)}
+                            },`);
+            }
+        });
+        writer.write(',');
+    }
+}
+
+function writeModelAttributes(writer: CodeBlockWriter, model: DataModel) {
+    const attrs = getAttributes(model);
+    if (attrs.length > 0) {
+        writer.write(`
+attributes: ${JSON.stringify(attrs)},`);
+    }
+}
+
+function writeFields(writer: CodeBlockWriter, model: DataModel, options: ModelMetaGeneratorOptions) {
+    writer.write('fields:');
+    writer.block(() => {
+        for (const f of model.fields) {
+            const backlink = getBackLink(f);
+            const fkMapping = generateForeignKeyMapping(f);
+            writer.write(`${f.name}: {`);
+
+            writer.write(`
+        name: "${f.name}",
+        type: "${
+            f.type.reference
+                ? f.type.reference.$refText
+                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  f.type.type!
+        }",`);
+
+            if (isIdField(f)) {
+                writer.write(`
+        isId: true,`);
+            }
+
+            if (isDataModel(f.type.reference?.ref)) {
+                writer.write(`
+        isDataModel: true,`);
+            }
+
+            if (f.type.array) {
+                writer.write(`
+        isArray: true,`);
+            }
+
+            if (f.type.optional) {
+                writer.write(`
+        isOptional: true,`);
+            }
+
+            if (options.generateAttributes) {
+                const attrs = getAttributes(f);
+                if (attrs.length > 0) {
+                    writer.write(`
+        attributes: ${JSON.stringify(attrs)},`);
+                }
+            } else {
+                // only include essential attributes
+                const attrs = getAttributes(f).filter((attr) => ['@default', '@updatedAt'].includes(attr.name));
+                if (attrs.length > 0) {
+                    writer.write(`
+        attributes: ${JSON.stringify(attrs)},`);
+                }
+            }
+
+            if (backlink) {
+                writer.write(`
+        backLink: '${backlink.name}',`);
+            }
+
+            if (isRelationOwner(f, backlink)) {
+                writer.write(`
+        isRelationOwner: true,`);
+            }
+
+            if (isForeignKeyField(f)) {
+                writer.write(`
+        isForeignKey: true,`);
+            }
+
+            if (fkMapping && Object.keys(fkMapping).length > 0) {
+                writer.write(`
+        foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
+            }
+
+            if (f.$inheritedFrom && hasAttribute(f.$inheritedFrom, '@@delegate')) {
+                writer.write(`
+        inheritedFrom: ${JSON.stringify(f.$inheritedFrom.name)},`);
+            }
+
+            writer.write(`
+    },`);
+        }
+    });
+    writer.write(',');
 }
 
 function getBackLink(field: DataModelField) {
@@ -194,8 +239,8 @@ function getRelationName(field: DataModelField) {
     return relName;
 }
 
-function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
-    return field.attributes
+function getAttributes(target: DataModelField | DataModel): RuntimeAttribute[] {
+    return target.attributes
         .map((attr) => {
             const args: Array<{ name?: string; value: unknown }> = [];
             for (const arg of attr.args) {

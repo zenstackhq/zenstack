@@ -81,7 +81,6 @@ datasource db {
 
 generator js {
     provider = 'prisma-client-js'
-    previewFeatures = ['clientExtensions']
 }
 
 plugin enhancer {

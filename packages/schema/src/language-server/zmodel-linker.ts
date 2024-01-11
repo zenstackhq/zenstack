@@ -460,10 +460,11 @@ export class ZModelLinker extends DefaultLinker {
             //
             // In model B, the attribute argument "myId" is resolved to the field "myId" in model A
 
-            const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
-            if (transtiveDataModel) {
+            const transitiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
+            if (transitiveDataModel) {
                 // resolve references in the context of the transitive data model
-                const scopeProvider = (name: string) => transtiveDataModel.$resolvedFields.find((f) => f.name === name);
+                const scopeProvider = (name: string) =>
+                    transitiveDataModel.$resolvedFields.find((f) => f.name === name);
                 if (isArrayExpr(node.value)) {
                     node.value.items.forEach((item) => {
                         if (isReferenceExpr(item)) {

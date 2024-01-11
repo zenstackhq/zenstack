@@ -521,3 +521,13 @@ attribute @prisma.passthrough(_ text: String)
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.
  */
 attribute @@prisma.passthrough(_ text: String)
+
+/**
+ * Marks a model to be a delegate. Used for implementing polymorphism.
+ */
+attribute @@delegate(_ discriminator: FieldReference)
+
+// /**
+//  * Marks a field to be the discriminator that identifies model's type in a polymorphic hierarchy.
+//  */
+// attribute @discriminator()

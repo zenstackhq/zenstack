@@ -47,7 +47,7 @@ export function zip<T1, T2>(x: Enumerable<T1>, y: Enumerable<T2>): Array<[T1, T2
 }
 
 export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
-    let fields = modelMeta.fields[lowerCaseFirst(model)];
+    let fields = modelMeta.models[lowerCaseFirst(model)]?.fields;
     if (!fields) {
         if (throwIfNotFound) {
             throw new Error(`Unable to load fields for ${model}`);

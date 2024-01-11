@@ -3,6 +3,7 @@
 import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
+import { EnhancementOptions } from './create-enhancement';
 import { createDeferredPromise } from './policy/promise';
 
 /**
@@ -63,7 +64,11 @@ export type PrismaProxyActions = keyof PrismaProxyHandler;
  * methods to allow more easily inject custom logic.
  */
 export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
-    constructor(protected readonly prisma: DbClientContract, protected readonly model: string) {}
+    constructor(
+        protected readonly prisma: DbClientContract,
+        protected readonly model: string,
+        protected readonly options: EnhancementOptions
+    ) {}
 
     async findUnique(args: any): Promise<unknown> {
         args = await this.preprocessArgs('findUnique', args);
@@ -167,6 +172,22 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     protected async preprocessArgs(method: PrismaProxyActions, args: any) {
         return args;
     }
+
+    /**
+     * Initiates a transaction.
+     */
+    protected transaction(action: (tx: Record<string, DbClientContract['string']>) => Promise<any>) {
+        if (this.prisma['$transaction']) {
+            return this.prisma.$transaction((tx) => action(tx), {
+                maxWait: this.options.transactionMaxWait,
+                timeout: this.options.transactionTimeout,
+                isolationLevel: this.options.transactionIsolationLevel,
+            });
+        } else {
+            // already in transaction, don't nest
+            return action(this.prisma);
+        }
+    }
 }
 
 // a marker for filtering error stack trace
@@ -182,7 +203,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
     name = 'unnamed_enhancer',
     errorTransformer?: ErrorTransformer
 ) {
-    const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
+    const models = Object.keys(modelMeta.models).map((k) => k.toLowerCase());
 
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {

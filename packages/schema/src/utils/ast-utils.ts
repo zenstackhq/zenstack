@@ -1,6 +1,7 @@
 import {
     BinaryExpr,
     DataModel,
+    DataModelAttribute,
     DataModelField,
     Expression,
     isArrayExpr,
@@ -15,7 +16,7 @@ import {
     ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isFromStdlib } from '@zenstackhq/sdk';
+import { getAttribute, isFromStdlib } from '@zenstackhq/sdk';
 import { AstNode, getDocument, LangiumDocuments, Mutable } from 'langium';
 import { URI, Utils } from 'vscode-uri';
 
@@ -33,12 +34,19 @@ export function mergeBaseModel(model: Model) {
 
             dataModel.fields = dataModel.superTypes
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                .flatMap((superType) => updateContainer(superType.ref!.fields, dataModel))
+                .flatMap((superType) => superType.ref!.fields)
+                // // "@discriminator" field should not be inherited
+                // .filter((f) => !hasAttribute(f, '@discriminator'))
+                .filter((f) => !isDiscriminatorField(f))
+                .map((f) => updateContainer(f, dataModel))
                 .concat(dataModel.fields);
 
             dataModel.attributes = dataModel.superTypes
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                .flatMap((superType) => updateContainer(superType.ref!.attributes, dataModel))
+                .flatMap((superType) => superType.ref!.attributes)
+                // "@@delegate" attribute should not be inherited
+                .filter((attr) => attr.decl.$refText !== '@@delegate')
+                .map((attr) => updateContainer(attr, dataModel))
                 .concat(dataModel.attributes);
         });
 
@@ -46,14 +54,13 @@ export function mergeBaseModel(model: Model) {
     model.declarations = model.declarations.filter((x) => !(x.$type == 'DataModel' && x.isAbstract));
 }
 
-function updateContainer<T extends AstNode>(nodes: T[], container: AstNode): Mutable<T>[] {
-    return nodes.map((node) => {
-        const cloneField = Object.assign({}, node);
-        const mutable = cloneField as Mutable<T>;
-        // update container
-        mutable.$container = container;
-        return mutable;
-    });
+function updateContainer<T extends DataModelField | DataModelAttribute>(node: T, container: DataModel): Mutable<T> {
+    const cloneField = Object.assign({}, node);
+    cloneField.$inheritedFrom = node.$container as DataModel;
+    const mutable = cloneField as Mutable<T>;
+    // update container
+    mutable.$container = container;
+    return mutable;
 }
 
 export function getIdFields(dataModel: DataModel) {
@@ -157,7 +164,6 @@ export function isCollectionPredicate(node: AstNode): node is BinaryExpr {
     return isBinaryExpr(node) && ['?', '!', '^'].includes(node.operator);
 }
 
-
 export function getContainingDataModel(node: Expression): DataModel | undefined {
     let curr: AstNode | undefined = node.$container;
     while (curr) {
@@ -167,4 +173,12 @@ export function getContainingDataModel(node: Expression): DataModel | undefined 
         curr = curr.$container;
     }
     return undefined;
+}
+
+function isDiscriminatorField(field: DataModelField) {
+    const containingModel = field.$container as DataModel;
+    const delegateAttr = getAttribute(containingModel, '@@delegate');
+    return (
+        delegateAttr && isReferenceExpr(delegateAttr.args[0]?.value) && delegateAttr.args[0].value.target.ref === field
+    );
 }
