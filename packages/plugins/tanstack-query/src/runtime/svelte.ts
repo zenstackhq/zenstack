@@ -6,7 +6,7 @@ import {
     useQueryClient,
     type CreateInfiniteQueryOptions,
     type MutationOptions,
-    type QueryOptions,
+    type CreateQueryOptions,
 } from '@tanstack/svelte-query';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
@@ -59,7 +59,7 @@ export function useModelQuery<R>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<QueryOptions<R>, 'queryKey'>,
+    options?: Omit<CreateQueryOptions<R>, 'queryKey'>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
