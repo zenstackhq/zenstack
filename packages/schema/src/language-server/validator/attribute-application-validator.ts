@@ -221,6 +221,10 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
             // attribute parameter type is ContextType, need to infer type from
             // the attribute's container
             if (isDataModelField(attr.$container)) {
+                if (attr.$container.type.array && isArrayExpr(arg.value) && arg.value.items.length == 0) {
+                    // empty array literal is assignable to any array type
+                    return true;
+                }
                 if (!attr.$container?.type?.type) {
                     return false;
                 }
