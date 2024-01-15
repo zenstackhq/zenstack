@@ -1,5 +1,7 @@
 import {
     AstNode,
+    Attribute,
+    AttributeParam,
     ConfigExpr,
     DataModel,
     DataModelAttribute,
@@ -110,11 +112,17 @@ export function indentString(string: string, count = 4): string {
     return string.replace(/^(?!\s*$)/gm, indent.repeat(count));
 }
 
-export function hasAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
+export function hasAttribute(
+    decl: DataModel | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    name: string
+) {
     return !!getAttribute(decl, name);
 }
 
-export function getAttribute(decl: DataModel | DataModelField | Enum | EnumField, name: string) {
+export function getAttribute(
+    decl: DataModel | DataModelField | Enum | EnumField | FunctionDecl | Attribute | AttributeParam,
+    name: string
+) {
     return (decl.attributes as (DataModelAttribute | DataModelFieldAttribute)[]).find(
         (attr) => attr.decl.$refText === name
     );
