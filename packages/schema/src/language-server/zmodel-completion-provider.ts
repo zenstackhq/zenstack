@@ -24,12 +24,13 @@ import {
     CompletionProviderOptions,
     CompletionValueItem,
     DefaultCompletionProvider,
+    LangiumDocument,
     LangiumServices,
     MaybePromise,
     NextFeature,
 } from 'langium';
 import { P, match } from 'ts-pattern';
-import { CompletionItemKind, MarkupContent } from 'vscode-languageserver';
+import { CompletionItemKind, CompletionList, CompletionParams, MarkupContent } from 'vscode-languageserver';
 
 export class ZModelCompletionProvider extends DefaultCompletionProvider {
     constructor(private readonly services: LangiumServices) {
@@ -39,6 +40,18 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
     readonly completionOptions?: CompletionProviderOptions = {
         triggerCharacters: ['@', '(', ',', '.'],
     };
+
+    override async getCompletion(
+        document: LangiumDocument,
+        params: CompletionParams
+    ): Promise<CompletionList | undefined> {
+        try {
+            return await super.getCompletion(document, params);
+        } catch (e) {
+            console.error('Completion error:', (e as Error).message);
+            return undefined;
+        }
+    }
 
     override completionFor(
         context: CompletionContext,
