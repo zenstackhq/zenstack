@@ -14,12 +14,6 @@ export function isAbstractDeclaration(item: unknown): item is AbstractDeclaratio
     return reflection.isInstance(item, AbstractDeclaration);
 }
 
-export type AttributeName = DataModelAttributeName | DataModelFieldAttributeName | InternalAttributeName;
-
-export function isAttributeName(item: unknown): item is AttributeName {
-    return isDataModelAttributeName(item) || isDataModelFieldAttributeName(item) || isInternalAttributeName(item);
-}
-
 export type Boolean = boolean;
 
 export function isBoolean(item: unknown): item is Boolean {
@@ -40,18 +34,6 @@ export function isConfigExpr(item: unknown): item is ConfigExpr {
     return reflection.isInstance(item, ConfigExpr);
 }
 
-export type DataModelAttributeName = string;
-
-export function isDataModelAttributeName(item: unknown): item is DataModelAttributeName {
-    return typeof item === 'string';
-}
-
-export type DataModelFieldAttributeName = string;
-
-export function isDataModelFieldAttributeName(item: unknown): item is DataModelFieldAttributeName {
-    return typeof item === 'string';
-}
-
 export type Expression = ArrayExpr | BinaryExpr | InvocationExpr | LiteralExpr | MemberAccessExpr | NullExpr | ObjectExpr | ReferenceExpr | ThisExpr | UnaryExpr;
 
 export const Expression = 'Expression';
@@ -66,24 +48,12 @@ export function isExpressionType(item: unknown): item is ExpressionType {
     return item === 'String' || item === 'Int' || item === 'Float' || item === 'Boolean' || item === 'DateTime' || item === 'Null' || item === 'Object' || item === 'Any' || item === 'Unsupported';
 }
 
-export type InternalAttributeName = string;
-
-export function isInternalAttributeName(item: unknown): item is InternalAttributeName {
-    return typeof item === 'string';
-}
-
 export type LiteralExpr = BooleanLiteral | NumberLiteral | StringLiteral;
 
 export const LiteralExpr = 'LiteralExpr';
 
 export function isLiteralExpr(item: unknown): item is LiteralExpr {
     return reflection.isInstance(item, LiteralExpr);
-}
-
-export type QualifiedName = string;
-
-export function isQualifiedName(item: unknown): item is QualifiedName {
-    return typeof item === 'string';
 }
 
 export type ReferenceTarget = DataModelField | EnumField | FunctionParam;
@@ -137,7 +107,8 @@ export interface Attribute extends AstNode {
     readonly $container: Model;
     readonly $type: 'Attribute';
     attributes: Array<InternalAttribute>
-    name: AttributeName
+    comments: Array<string>
+    name: string
     params: Array<AttributeParam>
 }
 
@@ -163,6 +134,8 @@ export function isAttributeArg(item: unknown): item is AttributeArg {
 export interface AttributeParam extends AstNode {
     readonly $container: Attribute;
     readonly $type: 'AttributeParam';
+    attributes: Array<InternalAttribute>
+    comments: Array<string>
     default: boolean
     name: RegularID
     type: AttributeParamType
@@ -454,7 +427,7 @@ export function isGeneratorDecl(item: unknown): item is GeneratorDecl {
 }
 
 export interface InternalAttribute extends AstNode {
-    readonly $container: Attribute | FunctionDecl;
+    readonly $container: Attribute | AttributeParam | FunctionDecl;
     readonly $type: 'InternalAttribute';
     args: Array<AttributeArg>
     decl: Reference<Attribute>
@@ -519,7 +492,7 @@ export function isModelImport(item: unknown): item is ModelImport {
 export interface NullExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'NullExpr';
-    value: string
+    value: 'null'
 }
 
 export const NullExpr = 'NullExpr';
@@ -619,7 +592,7 @@ export function isStringLiteral(item: unknown): item is StringLiteral {
 export interface ThisExpr extends AstNode {
     readonly $container: Argument | ArrayExpr | AttributeArg | BinaryExpr | ConfigArrayExpr | ConfigField | ConfigInvocationArg | FieldInitializer | FunctionDecl | MemberAccessExpr | PluginField | UnaryExpr | UnsupportedFieldType;
     readonly $type: 'ThisExpr';
-    value: string
+    value: 'this'
 }
 
 export const ThisExpr = 'ThisExpr';
@@ -801,6 +774,7 @@ export class ZModelAstReflection extends AbstractAstReflection {
                     name: 'Attribute',
                     mandatory: [
                         { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' },
                         { name: 'params', type: 'array' }
                     ]
                 };
@@ -809,6 +783,8 @@ export class ZModelAstReflection extends AbstractAstReflection {
                 return {
                     name: 'AttributeParam',
                     mandatory: [
+                        { name: 'attributes', type: 'array' },
+                        { name: 'comments', type: 'array' },
                         { name: 'default', type: 'boolean' }
                     ]
                 };

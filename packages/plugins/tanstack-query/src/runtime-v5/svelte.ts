@@ -8,8 +8,8 @@ import {
     type InfiniteData,
     type MutationOptions,
     type StoreOrVal,
+    type CreateQueryOptions,
 } from '@tanstack/svelte-query-v5';
-import { QueryOptions } from '@tanstack/vue-query';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
 import { Readable, derived } from 'svelte/store';
@@ -62,7 +62,7 @@ export function useModelQuery<R>(
     model: string,
     url: string,
     args?: unknown,
-    options?: StoreOrVal<Omit<QueryOptions<R>, 'queryKey'>>,
+    options?: StoreOrVal<Omit<CreateQueryOptions<R>, 'queryKey'>>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {

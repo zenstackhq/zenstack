@@ -179,10 +179,29 @@ function assignableToAttributeParam(arg: AttributeArg, param: AttributeParam, at
 
     let dstType = param.type.type;
     let dstIsArray = param.type.array;
+
+    if (dstType === 'ContextType') {
+        // ContextType is inferred from the attribute's container's type
+        if (isDataModelField(attr.$container)) {
+            dstIsArray = attr.$container.type.array;
+        }
+    }
+
     const dstRef = param.type.reference;
 
     if (dstType === 'Any' && !dstIsArray) {
         return true;
+    }
+
+    if (argResolvedType.decl === 'Any') {
+        // arg is any type
+        if (!argResolvedType.array) {
+            // if it's not an array, it's assignable to any type
+            return true;
+        } else {
+            // otherwise it's assignable to any array type
+            return argResolvedType.array === dstIsArray;
+        }
     }
 
     // destination is field reference or transitive field reference, check if

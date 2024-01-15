@@ -1,22 +1,34 @@
-import { isEnumField, isModel, Model, DataModel } from '@zenstackhq/language/ast';
+import {
+    DataModel,
+    MemberAccessExpr,
+    Model,
+    isDataModel,
+    isDataModelField,
+    isEnumField,
+    isInvocationExpr,
+    isMemberAccessExpr,
+    isModel,
+    isReferenceExpr,
+} from '@zenstackhq/language/ast';
+import { getAuthModel, getDataModels } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
     DefaultScopeComputation,
     DefaultScopeProvider,
     EMPTY_SCOPE,
-    equalURI,
-    getContainerOfType,
-    interruptAndCheck,
     LangiumDocument,
     LangiumServices,
     Mutable,
     PrecomputedScopes,
     ReferenceInfo,
     Scope,
+    StreamScope,
+    equalURI,
+    getContainerOfType,
+    interruptAndCheck,
     stream,
     streamAllContents,
-    StreamScope,
 } from 'langium';
 import { CancellationToken } from 'vscode-jsonrpc';
 import { resolveImportUri } from '../utils/ast-utils';
@@ -124,5 +136,54 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                 importedUris.some((importedUri) => (des.documentUri, importedUri))
         );
         return new StreamScope(importedElements);
+    }
+
+    override getScope(context: ReferenceInfo): Scope {
+        if (isMemberAccessExpr(context.container) && context.container.operand && context.property === 'member') {
+            return this.getMemberAccessScope(context.container);
+        }
+        return super.getScope(context);
+    }
+
+    private getMemberAccessScope(node: MemberAccessExpr) {
+        if (isReferenceExpr(node.operand)) {
+            // scope to target model's fields
+            const ref = node.operand.target.ref;
+            if (isDataModelField(ref)) {
+                const targetModel = ref.type.reference?.ref;
+                if (isDataModel(targetModel)) {
+                    return this.createScopeForNodes(targetModel.fields);
+                }
+            }
+        } else if (isMemberAccessExpr(node.operand)) {
+            // scope to target model's fields
+            const ref = node.operand.member.ref;
+            if (isDataModelField(ref)) {
+                const targetModel = ref.type.reference?.ref;
+                if (isDataModel(targetModel)) {
+                    return this.createScopeForNodes(targetModel.fields);
+                }
+            }
+        } else if (isInvocationExpr(node.operand)) {
+            // deal with member access from `auth()` and `future()
+            const funcName = node.operand.function.$refText;
+            if (funcName === 'auth') {
+                // resolve to `User` or `@@auth` model
+                const model = getContainerOfType(node, isModel);
+                if (model) {
+                    const authModel = getAuthModel(getDataModels(model));
+                    if (authModel) {
+                        return this.createScopeForNodes(authModel.fields);
+                    }
+                }
+            }
+            if (funcName === 'future') {
+                const thisModel = getContainerOfType(node, isDataModel);
+                if (thisModel) {
+                    return this.createScopeForNodes(thisModel.fields);
+                }
+            }
+        }
+        return EMPTY_SCOPE;
     }
 }

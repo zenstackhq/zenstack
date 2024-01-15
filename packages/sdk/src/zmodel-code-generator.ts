@@ -2,7 +2,10 @@ import {
     Argument,
     ArrayExpr,
     AstNode,
+    Attribute,
     AttributeArg,
+    AttributeParam,
+    AttributeParamType,
     BinaryExpr,
     BinaryExprOperatorPriority,
     BooleanLiteral,
@@ -18,6 +21,9 @@ import {
     Enum,
     EnumField,
     FieldInitializer,
+    FunctionDecl,
+    FunctionParam,
+    FunctionParamType,
     GeneratorDecl,
     InvocationExpr,
     LiteralExpr,
@@ -282,7 +288,39 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
         return 'this';
     }
 
-    argument(ast: Argument) {
+    @gen(Attribute)
+    private _generateAttribute(ast: Attribute) {
+        return `attribute ${ast.name}(${ast.params.map((x) => this.generate(x)).join(', ')})`;
+    }
+
+    @gen(AttributeParam)
+    private _generateAttributeParam(ast: AttributeParam) {
+        return `${ast.default ? '_ ' : ''}${ast.name}: ${this.generate(ast.type)}`;
+    }
+
+    @gen(AttributeParamType)
+    private _generateAttributeParamType(ast: AttributeParamType) {
+        return `${ast.type ?? ast.reference?.$refText}${ast.array ? '[]' : ''}${ast.optional ? '?' : ''}`;
+    }
+
+    @gen(FunctionDecl)
+    private _generateFunctionDecl(ast: FunctionDecl) {
+        return `function ${ast.name}(${ast.params.map((x) => this.generate(x)).join(', ')}) ${
+            ast.returnType ? ': ' + this.generate(ast.returnType) : ''
+        } {}`;
+    }
+
+    @gen(FunctionParam)
+    private _generateFunctionParam(ast: FunctionParam) {
+        return `${ast.name}: ${this.generate(ast.type)}`;
+    }
+
+    @gen(FunctionParamType)
+    private _generateFunctionParamType(ast: FunctionParamType) {
+        return `${ast.type ?? ast.reference?.$refText}${ast.array ? '[]' : ''}`;
+    }
+
+    private argument(ast: Argument) {
         return `${ast.name ? ast.name + ': ' : ''}${this.generate(ast.value)}`;
     }
 
