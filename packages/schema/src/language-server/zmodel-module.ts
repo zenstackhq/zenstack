@@ -1,6 +1,5 @@
 import { ZModelGeneratedModule, ZModelGeneratedSharedModule } from '@zenstackhq/language/module';
 import {
-    createDefaultModule,
     DefaultConfigurationProvider,
     DefaultDocumentBuilder,
     DefaultIndexManager,
@@ -9,24 +8,29 @@ import {
     DefaultLanguageServer,
     DefaultServiceRegistry,
     DefaultSharedModuleContext,
-    inject,
     LangiumDefaultSharedServices,
     LangiumServices,
     LangiumSharedServices,
     Module,
     MutexLock,
     PartialLangiumServices,
+    createGrammarConfig as createDefaultGrammarConfig,
+    createDefaultModule,
+    inject,
 } from 'langium';
 import { TextDocuments } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ZModelValidationRegistry, ZModelValidator } from './validator/zmodel-validator';
 import { ZModelCodeActionProvider } from './zmodel-code-action';
+import { ZModelCompletionProvider } from './zmodel-completion-provider';
+import { ZModelDefinitionProvider } from './zmodel-definition';
 import { ZModelFormatter } from './zmodel-formatter';
+import { ZModelHighlightProvider } from './zmodel-highlight';
+import { ZModelHoverProvider } from './zmodel-hover';
 import { ZModelLinker } from './zmodel-linker';
 import { ZModelScopeComputation, ZModelScopeProvider } from './zmodel-scope';
-import ZModelWorkspaceManager from './zmodel-workspace-manager';
-import { ZModelDefinitionProvider } from './zmodel-definition';
 import { ZModelSemanticTokenProvider } from './zmodel-semantic';
+import ZModelWorkspaceManager from './zmodel-workspace-manager';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -63,6 +67,12 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
         CodeActionProvider: (services) => new ZModelCodeActionProvider(services),
         DefinitionProvider: (services) => new ZModelDefinitionProvider(services),
         SemanticTokenProvider: (services) => new ZModelSemanticTokenProvider(services),
+        CompletionProvider: (services) => new ZModelCompletionProvider(services),
+        HoverProvider: (services) => new ZModelHoverProvider(services),
+        DocumentHighlightProvider: (services) => new ZModelHighlightProvider(services),
+    },
+    parser: {
+        GrammarConfig: (services) => createGrammarConfig(services),
     },
 };
 
@@ -114,4 +124,10 @@ export function createZModelServices(context: DefaultSharedModuleContext): {
     const ZModel = inject(createDefaultModule({ shared }), ZModelGeneratedModule, ZModelModule);
     shared.ServiceRegistry.register(ZModel);
     return { shared, ZModel };
+}
+
+function createGrammarConfig(services: LangiumServices) {
+    const config = createDefaultGrammarConfig(services);
+    config.nameRegexp = /^[@\w\p{L}]$/u;
+    return config;
 }

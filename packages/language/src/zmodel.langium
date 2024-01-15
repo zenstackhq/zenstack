@@ -68,10 +68,10 @@ ConfigExpr:
 
 type ReferenceTarget = FunctionParam | DataModelField | EnumField;
 ThisExpr:
-    value=THIS;
+    value='this';
 
 NullExpr:
-    value=NULL;
+    value='null';
 
 ReferenceExpr:
     target=[ReferenceTarget:RegularID] ('(' ReferenceArgList ')')?;
@@ -221,36 +221,17 @@ FunctionParam:
 FunctionParamType:
     (type=ExpressionType | reference=[TypeDeclaration:RegularID]) (array?='[' ']')?;
 
-QualifiedName returns string:
-    // TODO: is this the right way to deal with token precedence?
-    ID ('.' (ID|BuiltinType))*;
-
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
     ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'sort' | 'view' | 'import';
 
-// internal attribute
-InternalAttributeName returns string:
-    '@@@' QualifiedName;
-
-// model-level attribute
-DataModelAttributeName returns string:
-    '@@' QualifiedName;
-
-// field-level attribute
-DataModelFieldAttributeName returns string:
-    '@' QualifiedName;
-
-AttributeName returns string:
-    DataModelAttributeName | DataModelFieldAttributeName | InternalAttributeName;
-
 // attribute
 Attribute:
-    TRIPLE_SLASH_COMMENT* 'attribute' name=AttributeName '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=InternalAttribute)*;
+    (comments+=TRIPLE_SLASH_COMMENT)* 'attribute' name=(INTERNAL_ATTRIBUTE_NAME|MODEL_ATTRIBUTE_NAME|FIELD_ATTRIBUTE_NAME) '(' (params+=AttributeParam (',' params+=AttributeParam)*)? ')' (attributes+=InternalAttribute)*;
 
 AttributeParam:
-    TRIPLE_SLASH_COMMENT* (default?='_')? name=RegularID ':' type=AttributeParamType;
+    (comments+=TRIPLE_SLASH_COMMENT)* (default?='_')? name=RegularID ':' type=AttributeParamType (attributes+=InternalAttribute)*;
 
 // FieldReference refers to fields declared in the current model
 // TransitiveFieldReference refers to fields declared in the model type of the current field
@@ -259,13 +240,13 @@ AttributeParamType:
 
 type TypeDeclaration = DataModel | Enum;
 DataModelFieldAttribute:
-    decl=[Attribute:DataModelFieldAttributeName] ('(' AttributeArgList? ')')?;
+    decl=[Attribute:FIELD_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 
 DataModelAttribute:
-    TRIPLE_SLASH_COMMENT* decl=[Attribute:DataModelAttributeName] ('(' AttributeArgList? ')')?;
+    TRIPLE_SLASH_COMMENT* decl=[Attribute:MODEL_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 
 InternalAttribute:
-    decl=[Attribute:InternalAttributeName] ('(' AttributeArgList? ')')?;
+    decl=[Attribute:INTERNAL_ATTRIBUTE_NAME] ('(' AttributeArgList? ')')?;
 
 fragment AttributeArgList:
     args+=AttributeArg (',' args+=AttributeArg)*;
@@ -283,8 +264,9 @@ Boolean returns boolean:
     'true' | 'false';
 
 hidden terminal WS: /\s+/;
-terminal NULL: 'null';
-terminal THIS: 'this';
+terminal INTERNAL_ATTRIBUTE_NAME: /@@@([_a-zA-Z][\w_]*\.)*[_a-zA-Z][\w_]*/;
+terminal MODEL_ATTRIBUTE_NAME: /@@([_a-zA-Z][\w_]*\.)*[_a-zA-Z][\w_]*/;
+terminal FIELD_ATTRIBUTE_NAME: /@([_a-zA-Z][\w_]*\.)*[_a-zA-Z][\w_]*/;
 terminal ID: /[_a-zA-Z][\w_]*/;
 terminal STRING: /"(\\.|[^"\\])*"|'(\\.|[^'\\])*'/;
 terminal NUMBER: /[+-]?[0-9]+(\.[0-9]+)?/;
