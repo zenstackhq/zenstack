@@ -564,7 +564,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         case 'svelte':
             return [
                 `import { derived } from 'svelte/store';`,
-                `import type { MutationOptions, QueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
+                `import type { MutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
                 ...(version === 'v5'
                     ? [`import type { InfiniteData, StoreOrVal } from '@tanstack/svelte-query';`]
                     : []),
@@ -592,8 +592,8 @@ function makeQueryOptions(target: string, returnType: string, infinite: boolean,
                     ? `Omit<CreateInfiniteQueryOptions<${returnType}>, 'queryKey'>`
                     : `StoreOrVal<Omit<CreateInfiniteQueryOptions<${returnType}, unknown, InfiniteData<${returnType}>>, 'queryKey'>>`
                 : version === 'v4'
-                ? `Omit<QueryOptions<${returnType}>, 'queryKey'>`
-                : `StoreOrVal<Omit<QueryOptions<${returnType}>, 'queryKey'>>`;
+                ? `Omit<CreateQueryOptions<${returnType}>, 'queryKey'>`
+                : `StoreOrVal<Omit<CreateQueryOptions<${returnType}>, 'queryKey'>>`;
         default:
             throw new PluginError(name, `Unsupported target: ${target}`);
     }
