@@ -114,6 +114,11 @@ export type ModelInfo = {
      * Attributes on the model
      */
     attributes?: RuntimeAttribute[];
+
+    /**
+     * Discriminator field name
+     */
+    discriminator?: string;
 };
 
 /**
@@ -159,4 +164,11 @@ export function requireField(modelMeta: ModelMeta, model: string, field: string)
  */
 export function getFields(modelMeta: ModelMeta, model: string) {
     return modelMeta.models[lowerCaseFirst(model)]?.fields;
+}
+
+/**
+ * Gets unique constraints of a model.
+ */
+export function getUniqueConstraints(modelMeta: ModelMeta, model: string) {
+    return modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints;
 }

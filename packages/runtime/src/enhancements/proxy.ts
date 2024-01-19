@@ -32,7 +32,7 @@ export interface PrismaProxyHandler {
 
     create(args: any): Promise<unknown>;
 
-    createMany(args: any, skipDuplicates?: boolean): Promise<BatchResult>;
+    createMany(args: { data: any; skipDuplicates?: boolean }): Promise<BatchResult>;
 
     update(args: any): Promise<unknown>;
 
@@ -106,9 +106,9 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         return this.processResultEntity(r);
     }
 
-    async createMany(args: any, skipDuplicates?: boolean | undefined): Promise<{ count: number }> {
+    async createMany(args: { data: any; skipDuplicates?: boolean }): Promise<{ count: number }> {
         args = await this.preprocessArgs('createMany', args);
-        return this.prisma[this.model].createMany(args, skipDuplicates);
+        return this.prisma[this.model].createMany(args);
     }
 
     async update(args: any): Promise<unknown> {
@@ -178,11 +178,17 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
      */
     protected transaction(action: (tx: Record<string, DbClientContract['string']>) => Promise<any>) {
         if (this.prisma['$transaction']) {
-            return this.prisma.$transaction((tx) => action(tx), {
-                maxWait: this.options.transactionMaxWait,
-                timeout: this.options.transactionTimeout,
-                isolationLevel: this.options.transactionIsolationLevel,
-            });
+            return this.prisma.$transaction(
+                (tx) => {
+                    (tx as any)[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient$tx';
+                    return action(tx);
+                },
+                {
+                    maxWait: this.options.transactionMaxWait,
+                    timeout: this.options.transactionTimeout,
+                    isolationLevel: this.options.transactionIsolationLevel,
+                }
+            );
         } else {
             // already in transaction, don't nest
             return action(this.prisma);

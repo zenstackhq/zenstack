@@ -65,6 +65,7 @@ function writeModels(writer: CodeBlockWriter, dataModels: DataModel[], options: 
                 if (options.generateAttributes) {
                     writeModelAttributes(writer, model);
                 }
+                writeDiscriminator(writer, model);
             });
             writer.writeLine(',');
         }
@@ -121,6 +122,20 @@ function writeModelAttributes(writer: CodeBlockWriter, model: DataModel) {
     if (attrs.length > 0) {
         writer.write(`
 attributes: ${JSON.stringify(attrs)},`);
+    }
+}
+
+function writeDiscriminator(writer: CodeBlockWriter, model: DataModel) {
+    const delegateAttr = getAttribute(model, '@@delegate');
+    if (!delegateAttr) {
+        return;
+    }
+    const discriminator = getAttributeArg(delegateAttr, 'discriminator') as ReferenceExpr;
+    if (!discriminator) {
+        return;
+    }
+    if (discriminator) {
+        writer.write(`discriminator: ${JSON.stringify(discriminator.target.$refText)},`);
     }
 }
 

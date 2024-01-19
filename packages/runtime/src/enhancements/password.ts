@@ -23,8 +23,8 @@ export function withPassword<DbClient extends object = any>(prisma: DbClient, op
 }
 
 class PasswordHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, private readonly options: EnhancementOptions) {
-        super(prisma, model);
+    constructor(prisma: DbClientContract, model: string, options: EnhancementOptions) {
+        super(prisma, model, options);
     }
 
     // base override

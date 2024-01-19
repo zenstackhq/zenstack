@@ -30,7 +30,7 @@ import {
 import { match } from 'ts-pattern';
 import { getIdFields } from '../../utils/ast-utils';
 
-import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
+import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
     getDMMF,
@@ -74,7 +74,6 @@ import {
     PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
-import { DELEGATE_AUX_RELATION_PREFIX } from '../../constants';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
@@ -313,6 +312,10 @@ export class PrismaSchemaGenerator {
     }
 
     private generateDelegateRelationForBase(model: PrismaDataModel, decl: DataModel) {
+        if (this.mode !== 'physical') {
+            return;
+        }
+
         if (!hasAttribute(decl, '@@delegate')) {
             return;
         }
@@ -322,28 +325,21 @@ export class PrismaSchemaGenerator {
             (d) => isDataModel(d) && d !== decl && d.superTypes.some((base) => base.ref === decl)
         );
 
-        if (concreteModels.length > 0) {
-            if (this.mode === 'physical') {
-                // generate an optional relation from delegate base model to each concrete model
-                concreteModels.forEach((concrete) => {
-                    const auxName = `${lowerCaseFirst(concrete.name)}`;
-                    model.addField(auxName, new ModelFieldType(concrete.name, false, true));
-                });
-            }
-
-            // // create a "delegateType" discriminator field
-            // model.addField('delegateType', 'String');
-        }
+        // generate an optional relation field in delegate base model to each concrete model
+        concreteModels.forEach((concrete) => {
+            const auxName = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}`;
+            model.addField(auxName, new ModelFieldType(concrete.name, false, true));
+        });
     }
 
-    private generateDelegateRelationForConcrete(model: PrismaDataModel, decl: DataModel) {
-        if (this.mode === 'logical') {
+    private generateDelegateRelationForConcrete(model: PrismaDataModel, concreteDecl: DataModel) {
+        if (this.mode !== 'physical') {
             return;
         }
 
         // generate a relation field and fk field for each delegated base model
 
-        const baseModels = decl.superTypes
+        const baseModels = concreteDecl.superTypes
             .map((t) => t.ref)
             .filter((t): t is DataModel => !!t)
             .filter((t) => hasAttribute(t, '@@delegate'));
@@ -352,7 +348,7 @@ export class PrismaSchemaGenerator {
             const idFields = getIdFields(base);
 
             // add relation and fk fields
-            const relationField = `${lowerCaseFirst(base.name)}`;
+            const relationField = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(base.name)}`;
             model.addField(relationField, base.name, [
                 new PrismaFieldAttribute('@relation', [
                     new PrismaAttributeArg(
@@ -361,12 +357,7 @@ export class PrismaSchemaGenerator {
                             'Array',
                             idFields.map(
                                 (idField) =>
-                                    new AttributeArgValue(
-                                        'FieldReference',
-                                        new PrismaFieldReference(
-                                            `${lowerCaseFirst(base.name)}${upperCaseFirst(idField.name)}`
-                                        )
-                                    )
+                                    new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
                             )
                         )
                     ),
@@ -391,27 +382,29 @@ export class PrismaSchemaGenerator {
                 ]),
             ]);
 
-            idFields.forEach((idField) => {
-                const fkField = `${lowerCaseFirst(base.name)}${upperCaseFirst(idField.name)}`;
-                model.addField(fkField, idField.type.type!, [new PrismaFieldAttribute('@unique')]);
-            });
+            // idFields.forEach((idField) => {
+            //     const fkField = `${lowerCaseFirst(base.name)}${upperCaseFirst(idField.name)}`;
+            //     model.addField(fkField, idField.type.type!, [new PrismaFieldAttribute('@unique')]);
+            // });
         });
     }
 
     private generatePolymorphicRelations(model: PrismaDataModel, decl: DataModel) {
-        if (this.mode === 'physical') {
+        if (this.mode !== 'logical') {
             return;
         }
 
+        // the logical schema needs to expand relations to the delegate models to concrete ones
+
         // for the given model, find all concrete models that have relation to it,
         // and generate an auxiliary opposite relation field
-        // TODO: give a name to the relation to avoid ambiguity
         decl.fields.forEach((f) => {
             const fieldType = f.type.reference?.ref;
             if (!isDataModel(fieldType)) {
                 return;
             }
 
+            // find concrete models that inherit from this field's model type
             const concreteModels = decl.$container.declarations.filter(
                 (d) => isDataModel(d) && d.superTypes.some((s) => s.ref === fieldType)
             );
@@ -493,6 +486,16 @@ export class PrismaSchemaGenerator {
 
         const attributes = field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))
+            .filter(
+                (attr) =>
+                    // when building physical schema, exclude `@default` for id fields inherited from delegate base
+                    !(
+                        this.mode === 'physical' &&
+                        isIdField(field) &&
+                        this.isInheritedFromDelegate(field) &&
+                        attr.decl.$refText === '@default'
+                    )
+            )
             .map((attr) => this.makeFieldAttribute(attr));
 
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
@@ -503,6 +506,10 @@ export class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         field.comments.forEach((c) => result.addComment(c));
+    }
+
+    private isInheritedFromDelegate(field: DataModelField) {
+        return field.$inheritedFrom && hasAttribute(field.$inheritedFrom, '@@delegate');
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {

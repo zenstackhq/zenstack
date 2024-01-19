@@ -30,6 +30,7 @@ import {
 import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
+import { Logger } from '../logger';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,
@@ -37,7 +38,6 @@ import {
     prismaClientUnknownRequestError,
     prismaClientValidationError,
 } from '../utils';
-import { Logger } from './logger';
 
 /**
  * Access policy enforcement utilities

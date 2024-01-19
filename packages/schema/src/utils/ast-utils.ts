@@ -35,9 +35,6 @@ export function mergeBaseModel(model: Model) {
             dataModel.fields = dataModel.superTypes
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .flatMap((superType) => superType.ref!.fields)
-                // // "@discriminator" field should not be inherited
-                // .filter((f) => !hasAttribute(f, '@discriminator'))
-                .filter((f) => !isDiscriminatorField(f))
                 .map((f) => updateContainer(f, dataModel))
                 .concat(dataModel.fields);
 

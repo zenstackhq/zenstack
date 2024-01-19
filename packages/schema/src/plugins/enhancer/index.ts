@@ -36,8 +36,6 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
         shouldCompile = globalOptions.compile;
     }
 
-    console.log('PreserveTsFiles', options.preserveTsFiles);
-
     if (!shouldCompile || options.preserveTsFiles === true) {
         await saveProject(project);
     }

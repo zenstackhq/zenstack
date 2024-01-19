@@ -282,7 +282,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
                     modelMeta,
                     zodSchemas,
                     logPrismaQuery: opt.logPrismaQuery,
-                    transactionTimeout: 10000,
+                    transactionTimeout: 1000000,
                     ...options,
                 }
             ),

@@ -18,9 +18,9 @@ import {
 } from '../../cross';
 import { DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
+import { Logger } from '../logger';
 import { PrismaProxyHandler } from '../proxy';
 import { formatObject, prismaClientValidationError } from '../utils';
-import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
 import { createDeferredPromise } from './promise';
 

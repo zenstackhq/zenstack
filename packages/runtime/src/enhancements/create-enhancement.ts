@@ -1,7 +1,8 @@
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../constants';
-import { ModelMeta } from '../cross';
+import { ModelInfo, ModelMeta } from '../cross';
 import type { AuthUser } from '../types';
+import { withDelegate } from './delegate';
 import { withOmit } from './omit';
 import { withPassword } from './password';
 import { withPolicy } from './policy';
@@ -145,5 +146,14 @@ export function createEnhancement<DbClient extends object>(
         result = withPolicy(result, options, context);
     }
 
+    // delegate proxy
+    if (Object.values(options.modelMeta.models).some((model) => isDelegate(model))) {
+        result = withDelegate(result, options);
+    }
+
     return result;
+}
+
+function isDelegate(model: ModelInfo) {
+    return !!model.attributes?.some((attr) => attr.name === '@@delegate');
 }

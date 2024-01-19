@@ -61,3 +61,11 @@ export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound
     }
     return result;
 }
+
+export function getModelInfo(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
+    const info = modelMeta.models[lowerCaseFirst(model)];
+    if (!info && throwIfNotFound) {
+        throw new Error(`Unable to load info for ${model}`);
+    }
+    return info;
+}
