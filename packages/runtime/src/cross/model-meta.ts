@@ -144,7 +144,7 @@ export type ModelMeta = {
 /**
  * Resolves a model field to its metadata. Returns undefined if not found.
  */
-export function resolveField(modelMeta: ModelMeta, model: string, field: string) {
+export function resolveField(modelMeta: ModelMeta, model: string, field: string): FieldInfo | undefined {
     return modelMeta.models[lowerCaseFirst(model)]?.fields?.[field];
 }
 

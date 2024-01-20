@@ -53,7 +53,7 @@ export function mergeBaseModel(model: Model) {
 
 function updateContainer<T extends DataModelField | DataModelAttribute>(node: T, container: DataModel): Mutable<T> {
     const cloneField = Object.assign({}, node);
-    cloneField.$inheritedFrom = node.$container as DataModel;
+    cloneField.$inheritedFrom = node.$inheritedFrom ?? (node.$container as DataModel);
     const mutable = cloneField as Mutable<T>;
     // update container
     mutable.$container = container;

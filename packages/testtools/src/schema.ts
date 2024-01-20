@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import type { AuthUser, DbOperations, EnhancementOptions } from '@zenstackhq/runtime';
+import type { AuthUser, DbOperations, EnhancementKind, EnhancementOptions } from '@zenstackhq/runtime';
 import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -110,6 +110,8 @@ export type SchemaLoadOptions = {
     dbUrl?: string;
     pulseApiKey?: string;
     getPrismaOnly?: boolean;
+    enhancements?: EnhancementKind[];
+    enhanceOptions?: Partial<EnhancementOptions>;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -283,7 +285,8 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
                     zodSchemas,
                     logPrismaQuery: opt.logPrismaQuery,
                     transactionTimeout: 1000000,
-                    ...options,
+                    kinds: opt.enhancements,
+                    ...(options ?? opt.enhanceOptions),
                 }
             ),
         enhanceRaw: enhance,

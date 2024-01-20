@@ -12,11 +12,7 @@ import type { PolicyDef, ZodSchemas } from './types';
 /**
  * Kinds of enhancements to `PrismaClient`
  */
-export enum EnhancementKind {
-    Password = 'password',
-    Omit = 'omit',
-    Policy = 'policy',
-}
+export type EnhancementKind = 'password' | 'omit' | 'policy' | 'delegate';
 
 /**
  * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
@@ -129,25 +125,25 @@ export function createEnhancement<DbClient extends object>(
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     }
 
-    const kinds = options.kinds ?? [EnhancementKind.Password, EnhancementKind.Omit, EnhancementKind.Policy];
+    const kinds = options.kinds ?? ['password', 'omit', 'policy', 'password'];
 
-    if (hasPassword && kinds.includes(EnhancementKind.Password)) {
+    if (hasPassword && kinds.includes('password')) {
         // @password proxy
         result = withPassword(result, options);
     }
 
-    if (hasOmit && kinds.includes(EnhancementKind.Omit)) {
+    if (hasOmit && kinds.includes('omit')) {
         // @omit proxy
         result = withOmit(result, options);
     }
 
     // policy proxy
-    if (kinds.includes(EnhancementKind.Policy)) {
+    if (kinds.includes('policy')) {
         result = withPolicy(result, options, context);
     }
 
     // delegate proxy
-    if (Object.values(options.modelMeta.models).some((model) => isDelegate(model))) {
+    if (kinds.includes('delegate') && Object.values(options.modelMeta.models).some((model) => isDelegate(model))) {
         result = withDelegate(result, options);
     }
 

@@ -1,3 +1,4 @@
+import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     getAttribute,
     getDataModels,
@@ -16,7 +17,6 @@ import {
     SyntaxKind,
     TypeAliasDeclaration,
 } from 'ts-morph';
-import { DELEGATE_AUX_RELATION_PREFIX } from '../../../constants';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 
 export async function generate(model: Model, options: PluginOptions, project: Project, outDir: string) {

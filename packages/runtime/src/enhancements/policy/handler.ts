@@ -743,7 +743,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const _connectDisconnect = async (model: string, args: any, context: NestedWriteVisitorContext) => {
             if (context.field?.backLink) {
                 const backLinkField = this.utils.getModelField(model, context.field.backLink);
-                if (backLinkField.isRelationOwner) {
+                if (backLinkField?.isRelationOwner) {
                     // update happens on the related model, require updatable,
                     // translate args to foreign keys so field-level policies can be checked
                     const checkArgs: any = {};

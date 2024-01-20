@@ -306,9 +306,14 @@ export class PrismaSchemaGenerator {
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
 
+        // generate relation fields on base models linking to concrete models
         this.generateDelegateRelationForBase(model, decl);
+
+        // generate reverse relation fields on concrete models
         this.generateDelegateRelationForConcrete(model, decl);
-        this.generatePolymorphicRelations(model, decl);
+
+        // expand relations on other models that reference delegated models to concrete models
+        this.expandPolymorphicRelations(model, decl);
     }
 
     private generateDelegateRelationForBase(model: PrismaDataModel, decl: DataModel) {
@@ -337,7 +342,7 @@ export class PrismaSchemaGenerator {
             return;
         }
 
-        // generate a relation field and fk field for each delegated base model
+        // generate a relation field for each delegated base model
 
         const baseModels = concreteDecl.superTypes
             .map((t) => t.ref)
@@ -347,7 +352,7 @@ export class PrismaSchemaGenerator {
         baseModels.forEach((base) => {
             const idFields = getIdFields(base);
 
-            // add relation and fk fields
+            // add relation fields
             const relationField = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(base.name)}`;
             model.addField(relationField, base.name, [
                 new PrismaFieldAttribute('@relation', [
@@ -381,15 +386,10 @@ export class PrismaSchemaGenerator {
                     ),
                 ]),
             ]);
-
-            // idFields.forEach((idField) => {
-            //     const fkField = `${lowerCaseFirst(base.name)}${upperCaseFirst(idField.name)}`;
-            //     model.addField(fkField, idField.type.type!, [new PrismaFieldAttribute('@unique')]);
-            // });
         });
     }
 
-    private generatePolymorphicRelations(model: PrismaDataModel, decl: DataModel) {
+    private expandPolymorphicRelations(model: PrismaDataModel, decl: DataModel) {
         if (this.mode !== 'logical') {
             return;
         }
@@ -406,7 +406,7 @@ export class PrismaSchemaGenerator {
 
             // find concrete models that inherit from this field's model type
             const concreteModels = decl.$container.declarations.filter(
-                (d) => isDataModel(d) && d.superTypes.some((s) => s.ref === fieldType)
+                (d) => isDataModel(d) && isDescendantOf(d, fieldType)
             );
 
             concreteModels.forEach((concrete) => {
@@ -625,6 +625,10 @@ export class PrismaSchemaGenerator {
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
         _enum.addField(field.name, attributes, documentations);
     }
+}
+
+function isDescendantOf(model: DataModel, superModel: DataModel): boolean {
+    return model.superTypes.some((s) => s.ref === superModel || isDescendantOf(s.ref!, superModel));
 }
 
 export function getDefaultPrismaOutputFile(schemaPath: string) {
