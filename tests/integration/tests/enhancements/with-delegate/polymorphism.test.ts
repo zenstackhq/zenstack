@@ -2,44 +2,44 @@ import { loadSchema } from '@zenstackhq/testtools';
 
 describe('V2 Polymorphism Test', () => {
     const schema = `
-    model User {
-        id Int @id @default(autoincrement())
-        level Int @default(0)
-        assets Asset[]
+model User {
+    id Int @id @default(autoincrement())
+    level Int @default(0)
+    assets Asset[]
 
-        @@allow('all', true)
-    }
+    @@allow('all', true)
+}
 
-    model Asset {
-        id Int @id @default(autoincrement())
-        createdAt DateTime @default(now())
-        viewCount Int @default(0)
-        owner User @relation(fields: [ownerId], references: [id])
-        ownerId Int
-        assetType String
-        
-        @@delegate(assetType)
-        @@allow('all', true)
-    }
+model Asset {
+    id Int @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    viewCount Int @default(0)
+    owner User @relation(fields: [ownerId], references: [id])
+    ownerId Int
+    assetType String
     
-    model Video extends Asset {
-        duration Int
-        url String
-        videoType String
+    @@delegate(assetType)
+    @@allow('all', true)
+}
 
-        @@delegate(videoType)
-    }
+model Video extends Asset {
+    duration Int
+    url String
+    videoType String
 
-    model RatedVideo extends Video {
-        rating Int
-    }
+    @@delegate(videoType)
+}
 
-    model Image extends Asset {
-        format String
-    }
-    `;
+model RatedVideo extends Video {
+    rating Int
+}
 
-    it('create', async () => {
+model Image extends Asset {
+    format String
+}
+`;
+
+    async function setup() {
         const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
         const db = enhance();
 
@@ -47,8 +47,16 @@ describe('V2 Polymorphism Test', () => {
 
         const video = await db.ratedVideo.create({
             data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-            include: { owner: true },
         });
+
+        const videoWithOwner = await db.ratedVideo.findUnique({ where: { id: video.id }, include: { owner: true } });
+
+        return { db, video, user, videoWithOwner };
+    }
+
+    it('create', async () => {
+        const { db, user, videoWithOwner: video } = await setup();
+
         expect(video).toMatchObject({
             viewCount: 1,
             duration: 100,
@@ -75,19 +83,7 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('read with concrete', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
-
-        const user = await db.user.create({
-            data: {
-                id: 1,
-            },
-        });
-
-        // video: multi-inheritance
-        const video = await db.ratedVideo.create({
-            data: { owner: { connect: { id: 1 } }, viewCount: 1, duration: 100, rating: 100, url: 'xyz' },
-        });
+        const { db, user, video } = await setup();
 
         // find with include
         let found = await db.ratedVideo.findFirst({ include: { owner: true } });
@@ -160,18 +156,7 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('read with base', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
-
-        const user = await db.user.create({
-            data: {
-                id: 1,
-            },
-        });
-
-        const r = await db.ratedVideo.create({
-            data: { owner: { connect: { id: 1 } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
+        const { db, user, video: r } = await setup();
 
         let video = await db.video.findFirst({ where: { duration: r.duration }, include: { owner: true } });
         expect(video).toMatchObject({
@@ -210,19 +195,7 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('update', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
-
-        const user = await db.user.create({
-            data: {
-                id: 1,
-            },
-        });
-
-        const video = await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-            include: { owner: true },
-        });
+        const { db, videoWithOwner: video } = await setup();
 
         // update with concrete
         let updated = await db.ratedVideo.update({
@@ -283,15 +256,8 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('delete', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
+        let { db, user, video: ratedVideo } = await setup();
 
-        const user = await db.user.create({ data: { id: 1 } });
-
-        // delete with concrete
-        let ratedVideo = await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
         let deleted = await db.ratedVideo.delete({
             where: { id: ratedVideo.id },
             select: { rating: true, owner: true },
@@ -349,14 +315,7 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('aggregate', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
-
-        const user = await db.user.create({ data: { id: 1 } });
-
-        await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
+        const { db } = await setup();
 
         const aggregate = await db.ratedVideo.aggregate({
             _count: true,
@@ -374,14 +333,7 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('count', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
-
-        const user = await db.user.create({ data: { id: 1 } });
-
-        await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
+        const { db } = await setup();
 
         let count = await db.ratedVideo.count();
         expect(count).toBe(1);
@@ -398,14 +350,7 @@ describe('V2 Polymorphism Test', () => {
     });
 
     it('groupBy', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
-        const db = enhance();
-
-        const user = await db.user.create({ data: { id: 1 } });
-
-        const video = await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
+        const { db, video } = await setup();
 
         let group = await db.ratedVideo.groupBy({ by: ['rating'] });
         expect(group).toHaveLength(1);

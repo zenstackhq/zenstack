@@ -400,6 +400,9 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
+      colors:
+        specifier: 1.4.0
+        version: 1.4.0
       decimal.js:
         specifier: ^10.4.2
         version: 10.4.2

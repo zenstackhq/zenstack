@@ -4,6 +4,7 @@ import {
     getDataModels,
     getPrismaClientImportSpec,
     hasAttribute,
+    isDelegateModel,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import { DataModelField, isDataModel, isReferenceExpr, type DataModel, type Model } from '@zenstackhq/sdk/ast';
@@ -53,8 +54,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 function hasDelegateModel(model: Model) {
     const dataModels = getDataModels(model);
     return dataModels.some(
-        (dm) =>
-            hasAttribute(dm, '@@delegate') && dataModels.some((sub) => sub.superTypes.some((base) => base.ref === dm))
+        (dm) => isDelegateModel(dm) && dataModels.some((sub) => sub.superTypes.some((base) => base.ref === dm))
     );
 }
 

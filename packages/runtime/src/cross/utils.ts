@@ -69,3 +69,7 @@ export function getModelInfo(modelMeta: ModelMeta, model: string, throwIfNotFoun
     }
     return info;
 }
+
+export function isDelegateModel(modelMeta: ModelMeta, model: string) {
+    return !!getModelInfo(modelMeta, model, true).attributes?.some((attr) => attr.name === '@@delegate');
+}

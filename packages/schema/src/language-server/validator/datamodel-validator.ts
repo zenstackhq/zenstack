@@ -6,7 +6,7 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields, hasAttribute } from '@zenstackhq/sdk';
+import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
@@ -219,7 +219,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         }
 
-        if (field.$inheritedFrom && hasAttribute(field.$inheritedFrom, '@@delegate')) {
+        if (field.$inheritedFrom && isDelegateModel(field.$inheritedFrom)) {
             // relation fields inherited from delegate model don't need opposite relation
             return;
         }

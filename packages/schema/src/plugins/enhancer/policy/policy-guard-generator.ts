@@ -6,7 +6,6 @@ import {
     Enum,
     Expression,
     Model,
-    isBinaryExpr,
     isDataModel,
     isDataModelField,
     isEnum,
@@ -15,7 +14,6 @@ import {
     isMemberAccessExpr,
     isReferenceExpr,
     isThisExpr,
-    isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import {
     FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
@@ -251,30 +249,6 @@ export class PolicyGenerator {
             // we completely skip pre-update check and defer them to post-update
             return hasFutureReference ? [] : expressions;
         }
-    }
-
-    private visitPolicyExpression(expr: Expression, postUpdate: boolean): Expression | undefined {
-        if (isBinaryExpr(expr) && (expr.operator === '&&' || expr.operator === '||')) {
-            const left = this.visitPolicyExpression(expr.left, postUpdate);
-            const right = this.visitPolicyExpression(expr.right, postUpdate);
-            if (!left) return right;
-            if (!right) return left;
-            return { ...expr, left, right };
-        }
-
-        if (isUnaryExpr(expr) && expr.operator === '!') {
-            const operand = this.visitPolicyExpression(expr.operand, postUpdate);
-            if (!operand) return undefined;
-            return { ...expr, operand };
-        }
-
-        if (postUpdate && !this.hasFutureReference(expr)) {
-            return undefined;
-        } else if (!postUpdate && this.hasFutureReference(expr)) {
-            return undefined;
-        }
-
-        return expr;
     }
 
     private hasFutureReference(expr: Expression) {

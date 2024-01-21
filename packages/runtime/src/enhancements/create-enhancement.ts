@@ -1,6 +1,7 @@
+import colors from 'colors';
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../constants';
-import { ModelInfo, ModelMeta } from '../cross';
+import { type ModelMeta, isDelegateModel } from '../cross';
 import type { AuthUser } from '../types';
 import { withDelegate } from './delegate';
 import { withOmit } from './omit';
@@ -143,13 +144,17 @@ export function createEnhancement<DbClient extends object>(
     }
 
     // delegate proxy
-    if (kinds.includes('delegate') && Object.values(options.modelMeta.models).some((model) => isDelegate(model))) {
-        result = withDelegate(result, options);
+    if (Object.values(options.modelMeta.models).some((model) => isDelegateModel(options.modelMeta, model.name))) {
+        if (!kinds.includes('delegate')) {
+            console.warn(
+                colors.yellow(
+                    'Your ZModel contains delegate models but "delegate" enhancement kind is not enabled. This may result in unexpected behavior.'
+                )
+            );
+        } else {
+            result = withDelegate(result, options);
+        }
     }
 
     return result;
-}
-
-function isDelegate(model: ModelInfo) {
-    return !!model.attributes?.some((attr) => attr.name === '@@delegate');
 }

@@ -365,3 +365,7 @@ export function getAuthModel(dataModels: DataModel[]) {
     }
     return authModel;
 }
+
+export function isDelegateModel(model: DataModel) {
+    return hasAttribute(model, '@@delegate');
+}

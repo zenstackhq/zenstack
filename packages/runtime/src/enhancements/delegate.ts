@@ -9,6 +9,7 @@ import {
     getIdFields,
     getModelInfo,
     getUniqueConstraints,
+    isDelegateModel,
     resolveField,
 } from '../cross';
 import { DbClientContract, DbOperations } from '../types';
@@ -48,7 +49,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
-        if (this.isDelegate(this.model)) {
+        if (isDelegateModel(this.options.modelMeta, this.model)) {
             throw prismaClientValidationError(
                 this.prisma,
                 this.options.prismaModule,
@@ -245,7 +246,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         where = deepcopy(where);
         Object.entries(where).forEach(([field, value]) => {
             const fieldInfo = resolveField(this.options.modelMeta, this.model, field);
-            if (fieldInfo?.isId || !fieldInfo?.inheritedFrom) {
+            if (!fieldInfo?.inheritedFrom) {
                 return;
             }
 
@@ -552,11 +553,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         args = deepcopy(args);
 
-        if (args.cursor) {
+        if (args?.cursor) {
             args.cursor = this.buildWhereHierarchy(args.cursor);
         }
 
-        if (args.where) {
+        if (args?.where) {
             args.where = this.buildWhereHierarchy(args.where);
         }
 
@@ -580,7 +581,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         if (args.by) {
             for (const by of enumerate(args.by)) {
                 const fieldInfo = resolveField(this.options.modelMeta, this.model, by);
-                if (fieldInfo && !fieldInfo.isId && fieldInfo.inheritedFrom) {
+                if (fieldInfo && fieldInfo.inheritedFrom) {
                     throw prismaClientValidationError(
                         this.prisma,
                         this.options.prismaModule,
@@ -611,7 +612,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             if (args[op] && typeof args[op] === 'object') {
                 for (const field of Object.keys(args[op])) {
                     const fieldInfo = resolveField(this.options.modelMeta, this.model, field);
-                    if (fieldInfo?.inheritedFrom && !fieldInfo.isId) {
+                    if (fieldInfo?.inheritedFrom) {
                         throw prismaClientValidationError(
                             this.prisma,
                             this.options.prismaModule,
@@ -674,12 +675,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
     private hasBaseModel(model: string) {
         const baseTypes = getModelInfo(this.options.modelMeta, model, true).baseTypes;
-        return !!(baseTypes && baseTypes.length > 0 && baseTypes.some((base) => this.isDelegate(base)));
-    }
-
-    private isDelegate(model: string) {
-        return !!getModelInfo(this.options.modelMeta, model, true).attributes?.some(
-            (attr) => attr.name === '@@delegate'
+        return !!(
+            baseTypes &&
+            baseTypes.length > 0 &&
+            baseTypes.some((base) => isDelegateModel(this.options.modelMeta, base))
         );
     }
 

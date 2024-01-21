@@ -36,7 +36,7 @@ import {
     getDMMF,
     getLiteral,
     getPrismaVersion,
-    hasAttribute,
+    isDelegateModel,
     isIdField,
     PluginError,
     PluginOptions,
@@ -321,7 +321,7 @@ export class PrismaSchemaGenerator {
             return;
         }
 
-        if (!hasAttribute(decl, '@@delegate')) {
+        if (!isDelegateModel(decl)) {
             return;
         }
 
@@ -347,7 +347,7 @@ export class PrismaSchemaGenerator {
         const baseModels = concreteDecl.superTypes
             .map((t) => t.ref)
             .filter((t): t is DataModel => !!t)
-            .filter((t) => hasAttribute(t, '@@delegate'));
+            .filter((t) => isDelegateModel(t));
 
         baseModels.forEach((base) => {
             const idFields = getIdFields(base);
@@ -509,7 +509,7 @@ export class PrismaSchemaGenerator {
     }
 
     private isInheritedFromDelegate(field: DataModelField) {
-        return field.$inheritedFrom && hasAttribute(field.$inheritedFrom, '@@delegate');
+        return field.$inheritedFrom && isDelegateModel(field.$inheritedFrom);
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {

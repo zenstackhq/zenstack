@@ -21,6 +21,7 @@ import {
     getDataModels,
     getLiteral,
     hasAttribute,
+    isDelegateModel,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
@@ -211,7 +212,7 @@ function writeFields(writer: CodeBlockWriter, model: DataModel, options: ModelMe
         foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
             }
 
-            if (f.$inheritedFrom && hasAttribute(f.$inheritedFrom, '@@delegate')) {
+            if (f.$inheritedFrom && isDelegateModel(f.$inheritedFrom) && !isIdField(f)) {
                 writer.write(`
         inheritedFrom: ${JSON.stringify(f.$inheritedFrom.name)},`);
             }
