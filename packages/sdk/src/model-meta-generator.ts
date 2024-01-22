@@ -1,10 +1,12 @@
 import {
     ArrayExpr,
+    AttributeArg,
     DataModel,
     DataModelField,
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
+    isInvocationExpr,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
@@ -23,6 +25,7 @@ import {
     hasAttribute,
     isEnumFieldReference,
     isForeignKeyField,
+    isFromStdlib,
     isIdField,
     resolved,
 } from '.';
@@ -210,8 +213,10 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
                     args.push({ name: arg.name, value: v });
                 } else if (isStringLiteral(arg.value) || isBooleanLiteral(arg.value)) {
                     args.push({ name: arg.name, value: arg.value.value });
+                } else if (isAuthDefaultValue(arg)) {
+                    args.push({ name: arg.name, value: arg.value.toString() });
                 } else {
-                    // non-literal args are ignored
+                    // non-literal and auth args are ignored
                 }
             }
             return { name: resolved(attr.decl).name, args };
@@ -326,4 +331,12 @@ function getDeleteCascades(model: DataModel): string[] {
             return relationFields.length > 0;
         })
         .map((m) => m.name);
+}
+
+function isAuthDefaultValue(arg: AttributeArg): boolean {
+    return (
+        isInvocationExpr(arg.value) &&
+        isFromStdlib(arg.value.function.ref!) &&
+        arg.value.function.$refText.startsWith('auth')
+    );
 }

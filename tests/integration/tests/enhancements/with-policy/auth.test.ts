@@ -363,4 +363,32 @@ describe('With Policy: auth() test', () => {
             enhance({ id: '1', posts: [{ id: '1', published: true, comments: [] }] }).post.create(createPayload)
         ).toResolveTruthy();
     });
+
+    it('Field with default auth() created correctly', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id @default(uuid())
+            name String
+            // posts Post[]
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            authorName String @default(auth().name)
+            // author User @relation(fields: [authorId], references: [id])
+            // authorId String @default(auth().id)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const userDb = enhance({ id: '1', name: 'user1' });
+        await expect(userDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
+        console.log(await userDb.post.findMany());
+        await expect(userDb.post.count({ where: { authorName: 'user1' } })).resolves.toBe(1);
+    });
 });

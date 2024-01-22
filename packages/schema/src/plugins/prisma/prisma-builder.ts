@@ -225,8 +225,8 @@ export class AttributeArg {
 
 export class AttributeArgValue {
     constructor(
-        public type: 'String' | 'FieldReference' | 'Number' | 'Boolean' | 'Array' | 'FunctionCall',
-        public value: string | number | boolean | FieldReference | FunctionCall | AttributeArgValue[]
+        public type: 'String' | 'FieldReference' | 'Number' | 'Boolean' | 'Array' | 'FunctionCall' | 'AuthAttribute',
+        public value: string | number | boolean | FieldReference | FunctionCall | AttributeArgValue[] | AuthAttribute
     ) {
         switch (type) {
             case 'String':
@@ -248,6 +248,10 @@ export class AttributeArgValue {
                 break;
             case 'FunctionCall':
                 if (!(value instanceof FunctionCall)) throw new Error('Value must be FunctionCall');
+                break;
+            case 'AuthAttribute':
+                // TODO: implement validation
+                // if (!(value instanceof FunctionCall)) throw new Error('Value must be FunctionCall');
                 break;
         }
     }
@@ -271,6 +275,8 @@ export class AttributeArgValue {
                     return r;
                 }
             }
+            case 'AuthAttribute':
+                return this.value.toString();
             case 'FunctionCall':
                 return this.value.toString();
             case 'Boolean':
@@ -308,6 +314,14 @@ export class FunctionCallArg {
 
     toString(): string {
         return this.name ? `${this.name}: ${this.value}` : this.value;
+    }
+}
+
+export class AuthAttribute {
+    constructor(public field: string) {}
+
+    toString(): string {
+        return `"${this.field}"`;
     }
 }
 
