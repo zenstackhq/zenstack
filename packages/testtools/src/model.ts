@@ -16,7 +16,7 @@ export class SchemaLoadingError extends Error {
 export async function loadModel(content: string, validate = true, verbose = true) {
     const { name: docPath } = tmp.fileSync({ postfix: '.zmodel' });
     fs.writeFileSync(docPath, content);
-    const { shared } = createZModelServices(NodeFileSystem);
+    const { shared, ZModel } = createZModelServices(NodeFileSystem);
     const stdLib = shared.workspace.LangiumDocuments.getOrCreateDocument(
         URI.file(path.resolve(__dirname, '../../schema/src/res/stdlib.zmodel'))
     );
@@ -51,7 +51,7 @@ export async function loadModel(content: string, validate = true, verbose = true
 
     const model = (await doc.parseResult.value) as Model;
 
-    mergeBaseModel(model);
+    mergeBaseModel(model, ZModel.references.Linker);
 
     return model;
 }

@@ -1,7 +1,8 @@
-import { AbstractDeclaration, ExpressionType, BinaryExpr } from './generated/ast';
+import { AstNode } from 'langium';
+import { AbstractDeclaration, BinaryExpr, DataModel, ExpressionType } from './generated/ast';
 
-export * from './generated/ast';
 export { AstNode, Reference } from 'langium';
+export * from './generated/ast';
 
 /**
  * Shape of type resolution result: an expression type or reference to a declaration
@@ -44,16 +45,17 @@ declare module './generated/ast' {
         $resolvedParam?: AttributeParam;
     }
 
-    interface DataModel {
-        /**
-         * Resolved fields, include inherited fields
-         */
-        $resolvedFields: Array<DataModelField>;
+    interface DataModelField {
+        $inheritedFrom?: DataModel;
     }
 
-    interface DataModelField {
-        $isInherited?: boolean;
+    interface DataModelAttribute {
+        $inheritedFrom?: DataModel;
     }
+}
+
+export interface InheritableNode extends AstNode {
+    $inheritedFrom?: DataModel;
 }
 
 declare module 'langium' {
