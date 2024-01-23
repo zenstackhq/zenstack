@@ -19,11 +19,14 @@ import {
 import { isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
-    copyAstNode,
     CstNode,
+    GenericAstNode,
     getContainerOfType,
     getDocument,
+    isAstNode,
+    isReference,
     LangiumDocuments,
+    linkContentToContainer,
     Linker,
     Mutable,
     Reference,
@@ -59,14 +62,13 @@ export function mergeBaseModel(model: Model, linker: Linker) {
 
             dataModel.attributes = dataModel.superTypes
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                // .flatMap((superType) => updateContainer(superType.ref!.attributes, dataModel))
                 .flatMap((superType) => superType.ref!.attributes)
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
         });
 
     // remove abstract models
-    model.declarations = model.declarations.filter((x) => !(x.$type == 'DataModel' && x.isAbstract));
+    model.declarations = model.declarations.filter((x) => !(isDataModel(x) && x.isAbstract));
 }
 
 // deep clone an AST, relink references, and set its container
@@ -77,8 +79,42 @@ function cloneAst<T extends InheritableNode>(
 ): Mutable<T> {
     const clone = copyAstNode(node, buildReference) as Mutable<T>;
     clone.$container = newContainer;
+    clone.$containerProperty = node.$containerProperty;
+    clone.$containerIndex = node.$containerIndex;
     clone.$inheritedFrom = getContainerOfType(node, isDataModel);
     return clone;
+}
+
+// this function is copied from Langium's ast-utils, but copying $resolvedType as well
+function copyAstNode<T extends AstNode = AstNode>(node: T, buildReference: BuildReference): T {
+    const copy: GenericAstNode = { $type: node.$type, $resolvedType: node.$resolvedType };
+
+    for (const [name, value] of Object.entries(node)) {
+        if (!name.startsWith('$')) {
+            if (isAstNode(value)) {
+                copy[name] = copyAstNode(value, buildReference);
+            } else if (isReference(value)) {
+                copy[name] = buildReference(copy, name, value.$refNode, value.$refText);
+            } else if (Array.isArray(value)) {
+                const copiedArray: unknown[] = [];
+                for (const element of value) {
+                    if (isAstNode(element)) {
+                        copiedArray.push(copyAstNode(element, buildReference));
+                    } else if (isReference(element)) {
+                        copiedArray.push(buildReference(copy, name, element.$refNode, element.$refText));
+                    } else {
+                        copiedArray.push(element);
+                    }
+                }
+                copy[name] = copiedArray;
+            } else {
+                copy[name] = value;
+            }
+        }
+    }
+
+    linkContentToContainer(copy);
+    return copy as unknown as T;
 }
 
 export function getIdFields(dataModel: DataModel) {
