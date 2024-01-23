@@ -1,11 +1,16 @@
 import { lowerCaseFirst } from 'lower-case-first';
 
 /**
+ * An access key in the user context object (e.g. `profile.picture.url`)
+ */
+export type AuthContextSelector = string;
+
+/**
  * Runtime information of a data model or field attribute
  */
 export type RuntimeAttribute = {
     name: string;
-    args: Array<{ name?: string; value: unknown }>;
+    args: Array<{ name?: string; value: unknown } | { name: 'auth()'; value: AuthContextSelector }>;
 };
 
 /**

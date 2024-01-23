@@ -50,7 +50,6 @@ import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
 import { getPackageJson } from '../../utils/pkg-utils';
 import {
-    AuthAttribute,
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
@@ -67,7 +66,6 @@ import {
     PassThroughAttribute as PrismaPassThroughAttribute,
     SimpleField,
 } from './prisma-builder';
-import { isAuthInvocation } from '../../utils/ast-utils';
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
@@ -288,7 +286,12 @@ export default class PrismaSchemaGenerator {
             !!attrDecl.attributes.find((a) => a.decl.ref?.name === '@@@prisma') ||
             // the special pass-through attribute
             attrDecl.name === MODEL_PASSTHROUGH_ATTR ||
-            attrDecl.name === FIELD_PASSTHROUGH_ATTR
+            attrDecl.name === FIELD_PASSTHROUGH_ATTR ||
+            // auth() in @default() is not supported by Prisma
+            // FIXME: condition is inverted to avoid error...
+            !!attrDecl.attributes.find(
+                (a) => a.decl.ref?.name === '@default' && a.args[0].value.$cstNode?.text.startsWith('auth()')
+            )
         );
     }
 
@@ -337,9 +340,10 @@ export default class PrismaSchemaGenerator {
             } else {
                 throw new PluginError(name, `Invalid arguments for ${FIELD_PASSTHROUGH_ATTR} attribute`);
             }
-            // remove @default(auth()) field attributes as they are not supported by Prisma
-        } else if (attrName.startsWith('@default') && isAuthInvocation(attr.args[0].value)) {
-            return new PrismaFieldAttribute(NO_FIELD_ATTRIBUTE);
+            // do not write @default(auth()) field attribute as it is not supported by Prisma
+            // TODO: we should add a comment to the field
+        } else if (attrName === '@default' && attr.args[0].value.$cstNode?.text.startsWith('auth()')) {
+            return new PrismaPassThroughAttribute(NO_FIELD_ATTRIBUTE);
         } else {
             return new PrismaFieldAttribute(
                 attrName,
@@ -376,10 +380,6 @@ export default class PrismaSchemaGenerator {
         } else if (isInvocationExpr(node)) {
             // invocation
             return new PrismaAttributeArgValue('FunctionCall', this.makeFunctionCall(node));
-            // @ts-expect-error TODO: fix this
-        } else if (node.operand?.function?.$refText === 'auth') {
-            console.log('member access', node);
-            return new PrismaAttributeArgValue('AuthAttribute', new AuthAttribute('DEFAULT USER FROM PRISMA BUILDER'));
         } else {
             throw new PluginError(name, `Unsupported attribute argument expression type: ${node.$type}`);
         }

@@ -7,7 +7,7 @@ import { withPassword } from './password';
 import { withPolicy } from './policy';
 import type { ErrorTransformer } from './proxy';
 import type { PolicyDef, ZodSchemas } from './types';
-// import { withDefaultAuth } from './default-auth';
+import { withDefaultAuth } from './default-auth';
 
 /**
  * Kinds of enhancements to `PrismaClient`
@@ -127,16 +127,9 @@ export function createEnhancement<DbClient extends object>(
         const allFields = Object.values(options.modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
-        // FIXME: check from modelMeta if @default(auth()) is present in some fields
-        // hasDefaultAuth = allFields.some((field) =>
-        //     field.attributes?.some(
-        //         (attr) =>
-        //             attr.name === '@default' &&
-        //             typeof attr.args[0]?.value === 'string' &&
-        //             attr.args[0]?.value.startsWith('auth()')
-        //     )
-        // );
-        hasDefaultAuth = true;
+        hasDefaultAuth = allFields.some((field) =>
+            field.attributes?.some((attr) => attr.name === '@default' && attr.args[0]?.name === 'auth()')
+        );
     }
 
     const kinds = options.kinds ?? [
@@ -156,10 +149,10 @@ export function createEnhancement<DbClient extends object>(
         result = withOmit(result, options);
     }
 
-    // if (hasDefaultAuth && kinds.includes(EnhancementKind.DefaultAuth)) {
-    //     // @default(auth()) proxy
-    //     result = withDefaultAuth(result, options, context);
-    // }
+    if (hasDefaultAuth && kinds.includes(EnhancementKind.DefaultAuth)) {
+        // @default(auth()) proxy
+        result = withDefaultAuth(result, options, context);
+    }
 
     // policy proxy
     if (kinds.includes(EnhancementKind.Policy)) {

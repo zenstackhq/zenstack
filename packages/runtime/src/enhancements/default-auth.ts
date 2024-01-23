@@ -8,6 +8,8 @@ import {
     type ModelMeta,
     NestedWriteVisitor,
     PrismaWriteActionType,
+    NestedWriteVisitorContext,
+    FieldInfo,
 } from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, EnhancementOptions } from './create-enhancement';
@@ -32,6 +34,7 @@ export function withDefaultAuth<DbClient extends object>(
 }
 
 class DefaultAuthHandler extends DefaultPrismaProxyHandler {
+    private readonly db: DbClientContract;
     constructor(
         prisma: DbClientContract,
         model: string,
@@ -39,12 +42,13 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         private readonly context?: EnhancementContext
     ) {
         super(prisma, model);
+        this.db = prisma;
     }
 
     // base override
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
         const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
-        if (args && args.data && actionsOfInterest.includes(action)) {
+        if (actionsOfInterest.includes(action)) {
             await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
         }
         return args;
@@ -52,23 +56,33 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
         const visitor = new NestedWriteVisitor(this.options.modelMeta, {
-            field: async (field, _action, _data, context) => {
-                const defaultAuthAttr = field.attributes?.find(
-                    (attr) =>
-                        attr.name === '@default' &&
-                        typeof attr.args[0]?.value === 'string' &&
-                        attr.args[0]?.value.startsWith('auth()')
-                );
-                if (defaultAuthAttr && field.type === 'String') {
-                    const authSelector = (defaultAuthAttr?.args[0]?.value as string).slice('auth()'.length);
-                    // get auth selector and retrieve default value from context
-                    const userContext = this.context?.user;
-                    if (!userContext) {
-                        throw new Error(`Invalid user context`);
-                    }
-                    const authValue = authSelector ? userContext[authSelector] : userContext;
-                    context.parent[field.name] = authValue;
+            create: async (model, args, _context) => {
+                const userContext = this.context?.user;
+                if (!userContext) {
+                    throw new Error(`Invalid user context`);
                 }
+                const fields = this.options.modelMeta.fields[model];
+                const isDefaultAuthField = (fieldInfo: FieldInfo) =>
+                    fieldInfo.attributes?.find((attr) => attr.name === '@default' && attr.args?.[0]?.name === 'auth()');
+                const defaultAuthSelectorFields = Object.fromEntries(
+                    Object.entries(fields)
+                        .filter(([_, fieldInfo]) => isDefaultAuthField(fieldInfo))
+                        .map(([field, fieldInfo]) => [
+                            field,
+                            fieldInfo.attributes?.find((attr) => attr.name === '@default')?.args[0]?.value as
+                                | string
+                                | undefined,
+                        ])
+                );
+                const defaultAuthFields = Object.fromEntries(
+                    Object.entries(defaultAuthSelectorFields).map(([field, selector]) => [
+                        field,
+                        selector ? userContext[selector] : userContext,
+                    ])
+                );
+                console.log('defaultAuthFields :', defaultAuthFields);
+                const result = await this.db[model].create({ data: { ...defaultAuthFields, ...args } });
+                return result;
             },
         });
 
