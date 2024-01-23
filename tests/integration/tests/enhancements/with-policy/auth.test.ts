@@ -388,8 +388,6 @@ describe('With Policy: auth() test', () => {
         const userDb = enhance({ id: '1', name: 'user1', score: 10 });
         await expect(userDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
         await expect(userDb.post.findMany()).resolves.toHaveLength(1);
-
-        console.log(await userDb.post.findMany());
         await expect(userDb.post.count({ where: { authorName: 'user1', score: 10 } })).resolves.toBe(1);
     });
 
@@ -417,9 +415,7 @@ describe('With Policy: auth() test', () => {
 
         const db = enhance({ id: 'userId-1' });
         await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
-        console.log(await db.user.findMany());
         await expect(db.post.create({ data: { title: 'abc' } })).toResolveTruthy();
-        console.log(await db.post.findMany());
         await expect(db.post.count({ where: { authorId: 'userId-1' } })).resolves.toBe(1);
     });
 });
