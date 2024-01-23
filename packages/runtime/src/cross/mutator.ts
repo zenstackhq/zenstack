@@ -124,7 +124,6 @@ function createMutate(
             insert[name] = newData[name];
         } else {
             const defaultAttr = field.attributes?.find((attr) => attr.name === '@default');
-            // TODO: handle default auth() attributes here ?
             if (field.type === 'DateTime') {
                 // default value for DateTime field
                 if (defaultAttr || field.attributes?.some((attr) => attr.name === '@updatedAt')) {
