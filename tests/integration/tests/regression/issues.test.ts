@@ -327,9 +327,9 @@ model User {
     // can be created by anyone, even not logged in
     @@allow('create', true)
     // can be read by users in the same organization
-    @@allow('read', orgs?[members?[auth() == this]])
+    @@allow('read', orgs?[members?[auth().id == id]])
     // full access by oneself
-    @@allow('all', auth() == this)
+    @@allow('all', auth().id == id)
 }
 
 model Organization {
@@ -343,7 +343,7 @@ model Organization {
     // everyone can create a organization
     @@allow('create', true)
     // any user in the organization can read the organization
-    @@allow('read', members?[auth() == this])
+    @@allow('read', members?[auth().id == id])
 }
 
 abstract model organizationBaseEntity {
@@ -359,15 +359,15 @@ abstract model organizationBaseEntity {
     groups Group[]
 
     // when create, owner must be set to current user, and user must be in the organization
-    @@allow('create', owner == auth() && org.members?[this == auth()])
+    @@allow('create', owner == auth() && org.members?[id == auth().id])
     // only the owner can update it and is not allowed to change the owner
-    @@allow('update', owner == auth() && org.members?[this == auth()] && future().owner == owner)
+    @@allow('update', owner == auth() && org.members?[id == auth().id] && future().owner == owner)
     // allow owner to read
     @@allow('read', owner == auth())
     // allow shared group members to read it
-    @@allow('read', groups?[users?[this == auth()]])
+    @@allow('read', groups?[users?[id == auth().id]])
     // allow organization to access if public
-    @@allow('read', isPublic && org.members?[this == auth()])
+    @@allow('read', isPublic && org.members?[id == auth().id])
     // can not be read if deleted
     @@deny('all', isDeleted == true)
 }
@@ -394,7 +394,7 @@ model Group {
     orgId String
 
     // group is shared by organization
-    @@allow('all', org.members?[auth() == this])
+    @@allow('all', org.members?[auth().id == id])
 }
         `
         );
@@ -616,7 +616,7 @@ model Organization {
     // everyone can create a organization
     @@allow('create', true)
     // any user in the organization can read the organization
-    @@allow('read', members?[auth() == this])
+    @@allow('read', members?[auth().id == id])
 }
 
 abstract model organizationBaseEntity {
@@ -632,15 +632,15 @@ abstract model organizationBaseEntity {
     groups Group[]
 
     // when create, owner must be set to current user, and user must be in the organization
-    @@allow('create', owner == auth() && org.members?[this == auth()])
+    @@allow('create', owner == auth() && org.members?[id == auth().id])
     // only the owner can update it and is not allowed to change the owner
-    @@allow('update', owner == auth() && org.members?[this == auth()] && future().owner == owner)
+    @@allow('update', owner == auth() && org.members?[id == auth().id] && future().owner == owner)
     // allow owner to read
     @@allow('read', owner == auth())
     // allow shared group members to read it
-    @@allow('read', groups?[users?[this == auth()]])
+    @@allow('read', groups?[users?[id == auth().id]])
     // allow organization to access if public
-    @@allow('read', isPublic && org.members?[this == auth()])
+    @@allow('read', isPublic && org.members?[id == auth().id])
     // can not be read if deleted
     @@deny('all', isDeleted == true)
 }
@@ -667,7 +667,7 @@ model Group {
     orgId String
 
     // group is shared by organization
-    @@allow('all', org.members?[auth() == this])
+    @@allow('all', org.members?[auth().id == id])
 }
 `
         );

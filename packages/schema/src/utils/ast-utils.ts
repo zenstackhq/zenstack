@@ -1,9 +1,9 @@
 import {
     BinaryExpr,
     DataModel,
-    DataModelAttribute,
     DataModelField,
     Expression,
+    InheritableNode,
     isArrayExpr,
     isBinaryExpr,
     isDataModel,
@@ -16,8 +16,21 @@ import {
     ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { getAttribute, isFromStdlib } from '@zenstackhq/sdk';
-import { AstNode, getDocument, LangiumDocuments, Mutable } from 'langium';
+import { isFromStdlib } from '@zenstackhq/sdk';
+import {
+    AstNode,
+    CstNode,
+    GenericAstNode,
+    getContainerOfType,
+    getDocument,
+    isAstNode,
+    isReference,
+    LangiumDocuments,
+    linkContentToContainer,
+    Linker,
+    Mutable,
+    Reference,
+} from 'langium';
 import { URI, Utils } from 'vscode-uri';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
@@ -26,7 +39,16 @@ export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     ) as DataModel[];
 }
 
-export function mergeBaseModel(model: Model) {
+type BuildReference = (
+    node: AstNode,
+    property: string,
+    refNode: CstNode | undefined,
+    refText: string
+) => Reference<AstNode>;
+
+export function mergeBaseModel(model: Model, linker: Linker) {
+    const buildReference = linker.buildReference.bind(linker);
+
     model.declarations
         .filter((x) => x.$type === 'DataModel')
         .forEach((decl) => {
@@ -35,33 +57,68 @@ export function mergeBaseModel(model: Model) {
             dataModel.fields = dataModel.superTypes
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .flatMap((superType) => superType.ref!.fields)
-                .map((f) => updateContainer(f, dataModel))
+                .map((f) => cloneAst(f, dataModel, buildReference))
                 .concat(dataModel.fields);
 
             dataModel.attributes = dataModel.superTypes
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .flatMap((superType) => superType.ref!.attributes)
-                // "@@delegate" attribute should not be inherited
-                .filter((attr) => attr.decl.$refText !== '@@delegate')
-                .map((attr) => updateContainer(attr, dataModel))
+                .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
         });
 
     // remove abstract models
-    model.declarations = model.declarations.filter((x) => !(x.$type == 'DataModel' && x.isAbstract));
+    model.declarations = model.declarations.filter((x) => !(isDataModel(x) && x.isAbstract));
 }
 
-function updateContainer<T extends DataModelField | DataModelAttribute>(node: T, container: DataModel): Mutable<T> {
-    const cloneField = Object.assign({}, node);
-    cloneField.$inheritedFrom = node.$inheritedFrom ?? (node.$container as DataModel);
-    const mutable = cloneField as Mutable<T>;
-    // update container
-    mutable.$container = container;
-    return mutable;
+// deep clone an AST, relink references, and set its container
+function cloneAst<T extends InheritableNode>(
+    node: T,
+    newContainer: AstNode,
+    buildReference: BuildReference
+): Mutable<T> {
+    const clone = copyAstNode(node, buildReference) as Mutable<T>;
+    clone.$container = newContainer;
+    clone.$containerProperty = node.$containerProperty;
+    clone.$containerIndex = node.$containerIndex;
+    clone.$inheritedFrom = getContainerOfType(node, isDataModel);
+    return clone;
+}
+
+// this function is copied from Langium's ast-utils, but copying $resolvedType as well
+function copyAstNode<T extends AstNode = AstNode>(node: T, buildReference: BuildReference): T {
+    const copy: GenericAstNode = { $type: node.$type, $resolvedType: node.$resolvedType };
+
+    for (const [name, value] of Object.entries(node)) {
+        if (!name.startsWith('$')) {
+            if (isAstNode(value)) {
+                copy[name] = copyAstNode(value, buildReference);
+            } else if (isReference(value)) {
+                copy[name] = buildReference(copy, name, value.$refNode, value.$refText);
+            } else if (Array.isArray(value)) {
+                const copiedArray: unknown[] = [];
+                for (const element of value) {
+                    if (isAstNode(element)) {
+                        copiedArray.push(copyAstNode(element, buildReference));
+                    } else if (isReference(element)) {
+                        copiedArray.push(buildReference(copy, name, element.$refNode, element.$refText));
+                    } else {
+                        copiedArray.push(element);
+                    }
+                }
+                copy[name] = copiedArray;
+            } else {
+                copy[name] = value;
+            }
+        }
+    }
+
+    linkContentToContainer(copy);
+    return copy as unknown as T;
 }
 
 export function getIdFields(dataModel: DataModel) {
-    const fieldLevelId = dataModel.$resolvedFields.find((f) =>
+    const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
         f.attributes.some((attr) => attr.decl.$refText === '@id')
     );
     if (fieldLevelId) {
@@ -85,6 +142,10 @@ export function getIdFields(dataModel: DataModel) {
 
 export function isAuthInvocation(node: AstNode) {
     return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
+}
+
+export function isFutureInvocation(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
 }
 
 export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
@@ -172,10 +233,18 @@ export function getContainingDataModel(node: Expression): DataModel | undefined 
     return undefined;
 }
 
-function isDiscriminatorField(field: DataModelField) {
-    const containingModel = field.$container as DataModel;
-    const delegateAttr = getAttribute(containingModel, '@@delegate');
-    return (
-        delegateAttr && isReferenceExpr(delegateAttr.args[0]?.value) && delegateAttr.args[0].value.target.ref === field
-    );
+export function getModelFieldsWithBases(model: DataModel) {
+    return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
+}
+
+export function getRecursiveBases(dataModel: DataModel): DataModel[] {
+    const result: DataModel[] = [];
+    dataModel.superTypes.forEach((superType) => {
+        const baseDecl = superType.ref;
+        if (baseDecl) {
+            result.push(baseDecl);
+            result.push(...getRecursiveBases(baseDecl));
+        }
+    });
+    return result;
 }
