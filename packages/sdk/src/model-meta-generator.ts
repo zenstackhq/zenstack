@@ -10,7 +10,7 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import type { RuntimeAttribute } from '@zenstackhq/runtime';
+import type { AuthContextSelector, RuntimeAttribute } from '@zenstackhq/runtime';
 import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
 import {
@@ -215,7 +215,7 @@ function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
                     attr.args[0].value.$cstNode?.text.startsWith('auth()')
                 ) {
                     const authValue = attr.args[0].value.$cstNode?.text;
-                    const authSelector = authValue === 'auth()' ? authValue : authValue.slice('auth().'.length);
+                    const authSelector: AuthContextSelector = authValue.slice('auth().'.length);
                     args.push({ name: 'auth()', value: authSelector });
                 } else {
                     // non-literal args are ignored

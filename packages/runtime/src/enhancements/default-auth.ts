@@ -56,16 +56,21 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                     throw new Error(`Invalid user context`);
                 }
                 const fields = this.options.modelMeta.fields[model];
-                const defaultAuthSelectorFields: Record<string, AuthContextSelector> = Object.fromEntries(
-                    Object.entries(fields)
-                        .filter(([_, fieldInfo]) => this.isDefaultAuthField(fieldInfo))
-                        .map(([field, fieldInfo]) => [field, this.getAuthSelector(fieldInfo)])
-                );
+                const defaultAuthSelectorFields: Record<string, { fieldType: string; selector: AuthContextSelector }> =
+                    Object.fromEntries(
+                        Object.entries(fields)
+                            .filter(([_, fieldInfo]) => this.isDefaultAuthField(fieldInfo))
+                            .map(([field, fieldInfo]) => [
+                                field,
+                                { fieldType: fieldInfo.type, selector: this.getAuthSelector(fieldInfo) },
+                            ])
+                    );
                 const defaultAuthFields = Object.fromEntries(
-                    Object.entries(defaultAuthSelectorFields).map(([field, authSelector]) => [
-                        field,
-                        deepGet(userContext, authSelector, userContext),
-                    ])
+                    Object.entries(defaultAuthSelectorFields).map(([field, { fieldType, selector }]) => {
+                        // if field type is String, we expect auth() to return the whole user context as string
+                        const defaultValue = fieldType === 'String' ? JSON.stringify(userContext) : userContext;
+                        return [field, deepGet(userContext, selector, defaultValue)];
+                    })
                 );
                 console.log('defaultAuthFields :', defaultAuthFields);
                 newArgs = { ...args, data: { ...defaultAuthFields, ...args.data } };

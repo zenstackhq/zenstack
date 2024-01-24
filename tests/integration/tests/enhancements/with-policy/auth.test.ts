@@ -416,6 +416,43 @@ describe('With Policy: auth() test', () => {
         await expect(userDb.post.count({ where: { authorName: overrideName } })).resolves.toBe(1);
     });
 
+    it('Default auth() return user context', async () => {
+        const { enhance, modelMeta } = await loadSchema(
+            `
+        model User {
+            id String @id
+            name String
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            authorName String? @default(auth().name)
+            userDetailsAsString String? @default(auth())
+            userDetailsAsJson Json? @default(auth())
+
+            @@allow('all', true)
+        }
+        `,
+            {
+                provider: 'postgresql',
+                compile: true,
+            }
+        );
+
+        const userContext = { id: '1', name: 'user1' };
+        const db = enhance(userContext);
+        const userDetailsAttributes = modelMeta.fields.post.userDetails.attributes;
+        expect(userDetailsAttributes).toHaveProperty('0.name', '@default');
+        expect(userDetailsAttributes).toHaveProperty('0.args.0.name', 'auth()');
+        expect(userDetailsAttributes).toHaveProperty('0.args.0.value', '');
+        await expect(db.post.create({ data: {} })).toResolveTruthy();
+        await expect(db.post.count()).resolves.toBe(1);
+        const post = await db.post.findFirst();
+        expect(post?.userDetailsAsString).toEqual(JSON.stringify(userContext));
+        expect(post?.userDetailsAsJson).toEqual(userContext);
+    });
+
     it('Default auth() with foreign key', async () => {
         const { enhance, modelMeta } = await loadSchema(
             `

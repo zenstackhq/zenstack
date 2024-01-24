@@ -24,7 +24,7 @@ export function prismaClientUnknownRequestError(prismaModule: any, ...args: unkn
 }
 
 export function deepGet(object: object, path: string | string[] | undefined, defaultValue: unknown): unknown {
-    if (path === undefined) {
+    if (path === undefined || path === '') {
         return defaultValue;
     }
     const keys = Array.isArray(path) ? path : path.split('.');
