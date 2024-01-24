@@ -123,7 +123,12 @@ export function createEnhancement<DbClient extends object>(
 
     let result = prisma;
 
-    if (hasPassword === undefined || hasOmit === undefined || hasDefaultAuth === undefined) {
+    if (
+        process.env.ZENSTACK_TEST === '1' || // avoid caching in tests
+        hasPassword === undefined ||
+        hasOmit === undefined ||
+        hasDefaultAuth === undefined
+    ) {
         const allFields = Object.values(options.modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
