@@ -3,7 +3,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 /**
  * An access key in the user context object (e.g. `profile.picture.url`)
  */
-export type AuthContextSelector = string;
+export type AuthContextSelector = string | undefined;
 
 /**
  * Runtime information of a data model or field attribute

@@ -392,7 +392,7 @@ describe('With Policy: auth() test', () => {
     });
 
     it('Default auth() with foreign key', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance, modelMeta } = await loadSchema(
             `
         model User {
             id String @id
@@ -414,8 +414,42 @@ describe('With Policy: auth() test', () => {
         );
 
         const db = enhance({ id: 'userId-1' });
+        const attributes = modelMeta.fields.post.authorId.attributes;
+        expect(attributes).toHaveProperty('0.name', '@default');
+        expect(attributes).toHaveProperty('0.args.0.name', 'auth()');
+        expect(attributes).toHaveProperty('0.args.0.value', 'id');
         await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
         await expect(db.post.create({ data: { title: 'abc' } })).toResolveTruthy();
         await expect(db.post.count({ where: { authorId: 'userId-1' } })).resolves.toBe(1);
+    });
+
+    it('Default auth() with nested user context value', async () => {
+        const { enhance, modelMeta } = await loadSchema(
+            `
+        model User {
+            id String @id
+
+            @@allow('all', true)
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            defaultImageUrl string @default(auth().profile.image.url)
+
+            @@allow('all', true)
+        }
+        `
+        );
+        const url = 'https://zenstack.dev';
+        const db = enhance({ id: 'userId-1', profile: { image: { url } } });
+        const attributes = modelMeta.fields.post.authorId.attributes;
+        expect(attributes).toHaveProperty('0.name', '@default');
+        expect(attributes).toHaveProperty('0.args.0.name', 'auth()');
+        expect(attributes).toHaveProperty('0.args.0.value', 'profile.image.url');
+        await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
+        await expect(db.post.create({ data: { title: 'abc' } })).toResolveTruthy();
+        await expect(db.post.count({ where: { defaultImageUrl: url } })).resolves.toBe(1);
     });
 });

@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { NestedWriteVisitor, PrismaWriteActionType, FieldInfo } from '../cross';
+import { NestedWriteVisitor, PrismaWriteActionType, FieldInfo, AuthContextSelector } from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, EnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
+import { deepGet } from './utils';
 
 /**
  * Gets an enhanced Prisma client that supports `@default(auth())` attribute.
@@ -40,44 +41,46 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
         const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
         if (actionsOfInterest.includes(action)) {
-            await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
+            const newArgs = await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
+            return newArgs;
         }
         return args;
     }
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
+        let newArgs = {};
         const visitor = new NestedWriteVisitor(this.options.modelMeta, {
-            field: async (field, action, data, context) => {
+            create: (model, _data, _context) => {
                 const userContext = this.context?.user;
                 if (!userContext) {
                     throw new Error(`Invalid user context`);
                 }
                 const fields = this.options.modelMeta.fields[model];
-                const isDefaultAuthField = (fieldInfo: FieldInfo) =>
-                    fieldInfo.attributes?.find((attr) => attr.name === '@default' && attr.args?.[0]?.name === 'auth()');
-                const defaultAuthSelectorFields = Object.fromEntries(
+                const defaultAuthSelectorFields: Record<string, AuthContextSelector> = Object.fromEntries(
                     Object.entries(fields)
-                        .filter(([_, fieldInfo]) => isDefaultAuthField(fieldInfo))
-                        .map(([field, fieldInfo]) => [
-                            field,
-                            fieldInfo.attributes?.find((attr) => attr.name === '@default')?.args[0]?.value as
-                                | string
-                                | undefined,
-                        ])
+                        .filter(([_, fieldInfo]) => this.isDefaultAuthField(fieldInfo))
+                        .map(([field, fieldInfo]) => [field, this.getAuthSelector(fieldInfo)])
                 );
                 const defaultAuthFields = Object.fromEntries(
-                    Object.entries(defaultAuthSelectorFields).map(([field, selector]) => [
+                    Object.entries(defaultAuthSelectorFields).map(([field, authSelector]) => [
                         field,
-                        selector ? userContext[selector] : userContext,
+                        deepGet(userContext, authSelector, userContext),
                     ])
                 );
                 console.log('defaultAuthFields :', defaultAuthFields);
-                for (const [field, defaultValue] of Object.entries(defaultAuthFields)) {
-                    context.parent[field] = defaultValue;
-                }
+                newArgs = { ...args, data: { ...args.data, ...defaultAuthFields } };
             },
         });
 
         await visitor.visit(model, action, args);
+        return newArgs;
+    }
+
+    private isDefaultAuthField(field: FieldInfo): boolean {
+        return !!field.attributes?.find((attr) => attr.name === '@default' && attr.args?.[0]?.name === 'auth()');
+    }
+
+    private getAuthSelector(fieldInfo: FieldInfo): AuthContextSelector {
+        return fieldInfo.attributes?.find((attr) => attr.name === '@default')?.args[0]?.value as AuthContextSelector;
     }
 }

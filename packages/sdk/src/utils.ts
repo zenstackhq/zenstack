@@ -280,6 +280,13 @@ export function isForeignKeyField(field: DataModelField) {
     });
 }
 
+export function isDefaultAuthField(field: DataModelField) {
+    return (
+        hasAttribute(field, '@default') &&
+        !!field.attributes.find((attr) => attr.args?.[0]?.value.$cstNode?.text.startsWith('auth()'))
+    );
+}
+
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;

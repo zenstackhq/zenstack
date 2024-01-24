@@ -33,6 +33,7 @@ import {
     getDMMF,
     getLiteral,
     getPrismaVersion,
+    isDefaultAuthField,
     PluginError,
     PluginOptions,
     resolved,
@@ -69,7 +70,6 @@ import {
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
-const NO_FIELD_ATTRIBUTE = '';
 
 /**
  * Generates Prisma schema file
@@ -286,12 +286,7 @@ export default class PrismaSchemaGenerator {
             !!attrDecl.attributes.find((a) => a.decl.ref?.name === '@@@prisma') ||
             // the special pass-through attribute
             attrDecl.name === MODEL_PASSTHROUGH_ATTR ||
-            attrDecl.name === FIELD_PASSTHROUGH_ATTR ||
-            // auth() in @default() is not supported by Prisma
-            // FIXME: condition is inverted to avoid error...
-            !!attrDecl.attributes.find(
-                (a) => a.decl.ref?.name === '@default' && a.args[0].value.$cstNode?.text.startsWith('auth()')
-            )
+            attrDecl.name === FIELD_PASSTHROUGH_ATTR
         );
     }
 
@@ -317,9 +312,7 @@ export default class PrismaSchemaGenerator {
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
-        const attributes = field.attributes
-            .filter((attr) => this.isPrismaAttribute(attr))
-            .map((attr) => this.makeFieldAttribute(attr));
+        const attributes = this.getAttributesToGenerate(field);
 
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
@@ -331,6 +324,15 @@ export default class PrismaSchemaGenerator {
         field.comments.forEach((c) => result.addComment(c));
     }
 
+    private getAttributesToGenerate(field: DataModelField) {
+        if (isDefaultAuthField(field)) {
+            return [];
+        }
+        return field.attributes
+            .filter((attr) => this.isPrismaAttribute(attr))
+            .map((attr) => this.makeFieldAttribute(attr));
+    }
+
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
         const attrName = resolved(attr.decl).name;
         if (attrName === FIELD_PASSTHROUGH_ATTR) {
@@ -340,10 +342,6 @@ export default class PrismaSchemaGenerator {
             } else {
                 throw new PluginError(name, `Invalid arguments for ${FIELD_PASSTHROUGH_ATTR} attribute`);
             }
-            // do not write @default(auth()) field attribute as it is not supported by Prisma
-            // TODO: we should add a comment to the field
-        } else if (attrName === '@default' && attr.args[0].value.$cstNode?.text.startsWith('auth()')) {
-            return new PrismaPassThroughAttribute(NO_FIELD_ATTRIBUTE);
         } else {
             return new PrismaFieldAttribute(
                 attrName,
