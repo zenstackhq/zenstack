@@ -68,7 +68,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                     ])
                 );
                 console.log('defaultAuthFields :', defaultAuthFields);
-                newArgs = { ...args, data: { ...args.data, ...defaultAuthFields } };
+                newArgs = { ...args, data: { ...defaultAuthFields, ...args.data } };
             },
         });
 

@@ -391,6 +391,31 @@ describe('With Policy: auth() test', () => {
         await expect(userDb.post.count({ where: { authorName: 'user1', score: 10 } })).resolves.toBe(1);
     });
 
+    it('Default auth() data should not override passed args', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id
+            name String
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            authorName String? @default(auth().name)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const userContextName = 'user1';
+        const overrideName = 'no-default-auth-name';
+        const userDb = enhance({ id: '1', name: userContextName });
+        await expect(userDb.post.create({ data: { authorName: overrideName } })).toResolveTruthy();
+        await expect(userDb.post.count({ where: { authorName: overrideName } })).resolves.toBe(1);
+    });
+
     it('Default auth() with foreign key', async () => {
         const { enhance, modelMeta } = await loadSchema(
             `
