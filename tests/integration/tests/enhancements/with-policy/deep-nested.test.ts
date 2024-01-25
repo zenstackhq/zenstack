@@ -294,7 +294,7 @@ describe('With Policy:deep nested', () => {
         expect(r2.m2.m3).toBeNull();
     });
 
-    it('update', async () => {
+    it('update simple nested', async () => {
         await db.m1.create({
             data: { myId: '1' },
         });
@@ -438,6 +438,142 @@ describe('With Policy:deep nested', () => {
             },
         });
         expect(r2.m2.m3).toBeNull();
+    });
+
+    it('update createMany/updateMany/deleteMany nested', async () => {
+        await db.m1.create({
+            data: {
+                myId: '1',
+                m2: {
+                    create: {
+                        value: 2,
+                    },
+                },
+            },
+        });
+
+        // createMany with duplicate
+        await expect(
+            db.m1.update({
+                where: { myId: '1' },
+                data: {
+                    m2: {
+                        update: {
+                            m4: {
+                                createMany: {
+                                    data: [
+                                        { id: 'm4-1', value: 21 },
+                                        { id: 'm4-1', value: 22 },
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                },
+            })
+        ).rejects.toThrow('Unique constraint failed');
+
+        // createMany skip duplicate
+        await db.m1.update({
+            where: { myId: '1' },
+            data: {
+                m2: {
+                    update: {
+                        m4: {
+                            createMany: {
+                                skipDuplicates: true,
+                                data: [
+                                    { id: 'm4-1', value: 21 },
+                                    { id: 'm4-1', value: 211 },
+                                    { id: 'm4-2', value: 22 },
+                                ],
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        await expect(db.m4.findMany()).resolves.toHaveLength(2);
+
+        // updateMany, filtered out by policy
+        await db.m1.update({
+            where: { myId: '1' },
+            data: {
+                m2: {
+                    update: {
+                        m4: {
+                            updateMany: {
+                                where: {
+                                    id: 'm4-1',
+                                },
+                                data: {
+                                    value: 210,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        await expect(db.m4.findUnique({ where: { id: 'm4-1' } })).resolves.toMatchObject({ value: 21 });
+        await expect(db.m4.findUnique({ where: { id: 'm4-2' } })).resolves.toMatchObject({ value: 22 });
+
+        // updateMany, success
+        await db.m1.update({
+            where: { myId: '1' },
+            data: {
+                m2: {
+                    update: {
+                        m4: {
+                            updateMany: {
+                                where: {
+                                    id: 'm4-2',
+                                },
+                                data: {
+                                    value: 220,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        await expect(db.m4.findUnique({ where: { id: 'm4-1' } })).resolves.toMatchObject({ value: 21 });
+        await expect(db.m4.findUnique({ where: { id: 'm4-2' } })).resolves.toMatchObject({ value: 220 });
+
+        // deleteMany, filtered out by policy
+        await db.m1.update({
+            where: { myId: '1' },
+            data: {
+                m2: {
+                    update: {
+                        m4: {
+                            deleteMany: {
+                                id: 'm4-1',
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        await expect(db.m4.findMany()).resolves.toHaveLength(2);
+
+        // deleteMany, success
+        await db.m1.update({
+            where: { myId: '1' },
+            data: {
+                m2: {
+                    update: {
+                        m4: {
+                            deleteMany: {
+                                id: 'm4-2',
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        await expect(db.m4.findMany()).resolves.toHaveLength(1);
     });
 
     it('delete', async () => {
