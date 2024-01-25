@@ -66,6 +66,11 @@ export type FieldInfo = {
      * Mapping from foreign key field names to relation field names
      */
     foreignKeyMapping?: Record<string, string>;
+
+    /**
+     * If the field is an auto-increment field
+     */
+    isAutoIncrement?: boolean;
 };
 
 /**
