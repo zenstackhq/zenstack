@@ -3,16 +3,16 @@ import {
     Expression,
     ExpressionType,
     isDataModel,
+    isDataModelField,
     isEnum,
+    isLiteralExpr,
     isMemberAccessExpr,
     isNullExpr,
     isThisExpr,
-    isDataModelField,
-    isLiteralExpr,
 } from '@zenstackhq/language/ast';
-import { isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
+import { isAuthInvocation, isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
-import { getContainingDataModel, isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
+import { getContainingDataModel, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
 
@@ -132,18 +132,24 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 //   - foo.user.id == userId
                 // except:
                 //   - future().userId == userId
-                if(isMemberAccessExpr(expr.left) &&  isDataModelField(expr.left.member.ref) && expr.left.member.ref.$container != getContainingDataModel(expr)
-                || isMemberAccessExpr(expr.right) &&  isDataModelField(expr.right.member.ref) && expr.right.member.ref.$container != getContainingDataModel(expr))
-                {
+                if (
+                    (isMemberAccessExpr(expr.left) &&
+                        isDataModelField(expr.left.member.ref) &&
+                        expr.left.member.ref.$container != getContainingDataModel(expr)) ||
+                    (isMemberAccessExpr(expr.right) &&
+                        isDataModelField(expr.right.member.ref) &&
+                        expr.right.member.ref.$container != getContainingDataModel(expr))
+                ) {
                     // foo.user.id == auth().id
                     // foo.user.id == "123"
                     // foo.user.id == null
                     // foo.user.id == EnumValue
-                    if(!(this.isNotModelFieldExpr(expr.left) || this.isNotModelFieldExpr(expr.right)))
-                    {
-                        accept('error', 'comparison between fields of different models are not supported', { node: expr }); 
-                        break;  
-                    }                   
+                    if (!(this.isNotModelFieldExpr(expr.left) || this.isNotModelFieldExpr(expr.right))) {
+                        accept('error', 'comparison between fields of different models are not supported', {
+                            node: expr,
+                        });
+                        break;
+                    }
                 }
 
                 if (
@@ -205,14 +211,13 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         }
     }
 
-
     private isNotModelFieldExpr(expr: Expression) {
-        return isLiteralExpr(expr) || isEnumFieldReference(expr) || isNullExpr(expr) || this.isAuthOrAuthMemberAccess(expr)
+        return (
+            isLiteralExpr(expr) || isEnumFieldReference(expr) || isNullExpr(expr) || this.isAuthOrAuthMemberAccess(expr)
+        );
     }
 
     private isAuthOrAuthMemberAccess(expr: Expression) {
         return isAuthInvocation(expr) || (isMemberAccessExpr(expr) && isAuthInvocation(expr.operand));
     }
-
 }
-

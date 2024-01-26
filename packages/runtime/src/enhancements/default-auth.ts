@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { NestedWriteVisitor, PrismaWriteActionType, FieldInfo, AuthContextSelector } from '../cross';
+import deepcopy from 'deepcopy';
+import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields } from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, EnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
-import { deepGet } from './utils';
 
 /**
  * Gets an enhanced Prisma client that supports `@default(auth())` attribute.
@@ -27,6 +27,8 @@ export function withDefaultAuth<DbClient extends object>(
 
 class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     private readonly db: DbClientContract;
+    private readonly userContext: any;
+
     constructor(
         prisma: DbClientContract,
         model: string,
@@ -35,6 +37,12 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     ) {
         super(prisma, model);
         this.db = prisma;
+
+        if (!this.context?.user) {
+            throw new Error(`Using \`auth()\` in \`@default\` requires a user context`);
+        }
+
+        this.userContext = this.context.user;
     }
 
     // base override
@@ -48,44 +56,47 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     }
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
-        let newArgs = {};
-        const visitor = new NestedWriteVisitor(this.options.modelMeta, {
-            create: (model, _data, _context) => {
-                const userContext = this.context?.user;
-                if (!userContext) {
-                    throw new Error(`Invalid user context`);
+        const newArgs = deepcopy(args);
+
+        const processCreatePayload = (model: string, data: any) => {
+            const fields = getFields(this.options.modelMeta, model);
+            for (const fieldInfo of Object.values(fields)) {
+                if (fieldInfo.name in data) {
+                    // create payload already sets field value
+                    continue;
                 }
-                const fields = this.options.modelMeta.fields[model];
-                const defaultAuthSelectorFields: Record<string, { fieldType: string; selector: AuthContextSelector }> =
-                    Object.fromEntries(
-                        Object.entries(fields)
-                            .filter(([_, fieldInfo]) => this.isDefaultAuthField(fieldInfo))
-                            .map(([field, fieldInfo]) => [
-                                field,
-                                { fieldType: fieldInfo.type, selector: this.getAuthSelector(fieldInfo) },
-                            ])
-                    );
-                const defaultAuthFields = Object.fromEntries(
-                    Object.entries(defaultAuthSelectorFields).map(([field, { fieldType, selector }]) => {
-                        // if field type is String, we expect auth() to return the whole user context as string
-                        const defaultValue = fieldType === 'String' ? JSON.stringify(userContext) : userContext;
-                        return [field, deepGet(userContext, selector, defaultValue)];
-                    })
-                );
-                console.log('defaultAuthFields :', defaultAuthFields);
-                newArgs = { ...args, data: { ...defaultAuthFields, ...args.data } };
+
+                if (!fieldInfo.defaultValueProvider) {
+                    // field doesn't have a runtime default value provider
+                    continue;
+                }
+
+                const authDefaultValue = this.getDefaultValueFromAuth(fieldInfo);
+                if (authDefaultValue !== undefined) {
+                    // set field value extracted from `auth()`
+                    data[fieldInfo.name] = authDefaultValue;
+                }
+            }
+        };
+
+        // visit create payload and set default value to fields using `auth()` in `@default()`
+        const visitor = new NestedWriteVisitor(this.options.modelMeta, {
+            create: (model, data) => {
+                processCreatePayload(model, data);
+            },
+
+            createMany: (model, args) => {
+                for (const item of enumerate(args.data)) {
+                    processCreatePayload(model, item);
+                }
             },
         });
 
-        await visitor.visit(model, action, args);
+        await visitor.visit(model, action, newArgs);
         return newArgs;
     }
 
-    private isDefaultAuthField(field: FieldInfo): boolean {
-        return !!field.attributes?.find((attr) => attr.name === '@default' && attr.args?.[0]?.name === 'auth()');
-    }
-
-    private getAuthSelector(fieldInfo: FieldInfo): AuthContextSelector {
-        return fieldInfo.attributes?.find((attr) => attr.name === '@default')?.args[0]?.value as AuthContextSelector;
+    private getDefaultValueFromAuth(fieldInfo: FieldInfo) {
+        return fieldInfo.defaultValueProvider?.(this.userContext);
     }
 }
