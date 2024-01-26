@@ -1,6 +1,8 @@
 import {
     ExpressionContext,
     PluginError,
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
     getAttributeArg,
     getAttributeArgLiteral,
     getLiteral,
@@ -18,10 +20,6 @@ import {
 } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
-import {
-    TypeScriptExpressionTransformer,
-    TypeScriptExpressionTransformerError,
-} from '../../../utils/typescript-expression-transformer';
 
 export function makeFieldSchema(field: DataModelField, respectDefault = false) {
     if (isDataModel(field.type.reference?.ref)) {

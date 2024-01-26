@@ -73,7 +73,7 @@ function env(name: String): String {
  * Gets the current login user.
  */
 function auth(): Any {
-} @@@expressionContext([AccessPolicy])
+} @@@expressionContext([DefaultValue, AccessPolicy])
 
 /**
  * Gets current date-time (as DateTime type).
@@ -204,7 +204,7 @@ attribute @id(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@
 
 /**
  * Defines a default value for a field.
- * @param value: An expression (e.g. 5, true, now()).
+ * @param value: An expression (e.g. 5, true, now(), auth()).
  */
 attribute @default(_ value: ContextType, map: String?) @@@prisma
 

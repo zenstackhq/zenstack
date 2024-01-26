@@ -363,4 +363,146 @@ describe('With Policy: auth() test', () => {
             enhance({ id: '1', posts: [{ id: '1', published: true, comments: [] }] }).post.create(createPayload)
         ).toResolveTruthy();
     });
+
+    it('Default auth() on literal fields', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id
+            name String
+            score Int
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            score Int? @default(auth().score)
+            authorName String? @default(auth().name)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const userDb = enhance({ id: '1', name: 'user1', score: 10 });
+        await expect(userDb.post.create({ data: { title: 'abc' } })).toResolveTruthy();
+        await expect(userDb.post.findMany()).resolves.toHaveLength(1);
+        await expect(userDb.post.count({ where: { authorName: 'user1', score: 10 } })).resolves.toBe(1);
+    });
+
+    it('Default auth() data should not override passed args', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id
+            name String
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            authorName String? @default(auth().name)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const userContextName = 'user1';
+        const overrideName = 'no-default-auth-name';
+        const userDb = enhance({ id: '1', name: userContextName });
+        await expect(userDb.post.create({ data: { authorName: overrideName } })).toResolveTruthy();
+        await expect(userDb.post.count({ where: { authorName: overrideName } })).resolves.toBe(1);
+    });
+
+    it('Default auth() with foreign key', async () => {
+        const { enhance, modelMeta } = await loadSchema(
+            `
+        model User {
+            id String @id
+            posts Post[]
+
+            @@allow('all', true)
+
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            author User @relation(fields: [authorId], references: [id])
+            authorId String @default(auth().id)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance({ id: 'userId-1' });
+        await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
+        await expect(db.post.create({ data: { title: 'abc' } })).resolves.toMatchObject({ authorId: 'userId-1' });
+    });
+
+    it('Default auth() with nested user context value', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id
+            profile Profile?
+            posts Post[]
+
+            @@allow('all', true)
+        }
+
+        model Profile {
+            id String @id @default(uuid())
+            image Image?
+            user User @relation(fields: [userId], references: [id])
+            userId String @unique
+        }
+
+        model Image {
+            id String @id @default(uuid())
+            url String
+            profile Profile @relation(fields: [profileId], references: [id])
+            profileId String @unique
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            defaultImageUrl String @default(auth().profile.image.url)
+            author User @relation(fields: [authorId], references: [id])
+            authorId String
+
+            @@allow('all', true)
+        }
+        `
+        );
+        const url = 'https://zenstack.dev';
+        const db = enhance({ id: 'userId-1', profile: { image: { url } } });
+
+        // top-level create
+        await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
+        await expect(
+            db.post.create({ data: { title: 'abc', author: { connect: { id: 'userId-1' } } } })
+        ).resolves.toMatchObject({ defaultImageUrl: url });
+
+        // nested create
+        let result = await db.user.create({
+            data: {
+                id: 'userId-2',
+                posts: {
+                    create: [{ title: 'p1' }, { title: 'p2' }],
+                },
+            },
+            include: { posts: true },
+        });
+        expect(result.posts).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ title: 'p1', defaultImageUrl: url }),
+                expect.objectContaining({ title: 'p2', defaultImageUrl: url }),
+            ])
+        );
+    });
 });

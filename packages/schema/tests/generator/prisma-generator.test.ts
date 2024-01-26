@@ -123,6 +123,7 @@ describe('Prisma generator test', () => {
                 id String @id @default(nanoid(6))
                 x String @default(nanoid())
                 y String @default(dbgenerated("gen_random_uuid()"))
+                z String @default(auth().id)
             }
         `);
 
@@ -142,6 +143,7 @@ describe('Prisma generator test', () => {
         expect(content).toContain('@default(nanoid(6))');
         expect(content).toContain('@default(nanoid())');
         expect(content).toContain('@default(dbgenerated("gen_random_uuid()"))');
+        expect(content).not.toContain('@default(auth().id)');
     });
 
     it('triple slash comments', async () => {

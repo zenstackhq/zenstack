@@ -22,6 +22,7 @@ import {
     isGeneratorDecl,
     isInvocationExpr,
     isLiteralExpr,
+    isMemberAccessExpr,
     isModel,
     isObjectExpr,
     isReferenceExpr,
@@ -280,6 +281,13 @@ export function isForeignKeyField(field: DataModelField) {
     });
 }
 
+export function isDefaultAuthField(field: DataModelField) {
+    return (
+        hasAttribute(field, '@default') &&
+        !!field.attributes.find((attr) => attr.args?.[0]?.value.$cstNode?.text.startsWith('auth()'))
+    );
+}
+
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;
@@ -334,7 +342,11 @@ export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
 }
 
 export function isFutureExpr(node: AstNode) {
-    return !!(isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref));
+    return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
+}
+
+export function isAuthInvocation(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
 }
 
 export function isFromStdlib(node: AstNode) {
@@ -372,4 +384,37 @@ export function getAuthModel(dataModels: DataModel[]) {
         authModel = dataModels.find((m) => m.name === 'User');
     }
     return authModel;
+}
+
+export function getIdFields(dataModel: DataModel) {
+    const fieldLevelId = dataModel.$resolvedFields.find((f) =>
+        f.attributes.some((attr) => attr.decl.$refText === '@id')
+    );
+    if (fieldLevelId) {
+        return [fieldLevelId];
+    } else {
+        // get model level @@id attribute
+        const modelIdAttr = dataModel.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
+        if (modelIdAttr) {
+            // get fields referenced in the attribute: @@id([field1, field2]])
+            if (!isArrayExpr(modelIdAttr.args[0].value)) {
+                return [];
+            }
+            const argValue = modelIdAttr.args[0].value;
+            return argValue.items
+                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getDataModelFieldReference(expr))
+                .map((expr) => expr.target.ref as DataModelField);
+        }
+    }
+    return [];
+}
+
+export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
+    if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
+        return expr.target.ref;
+    } else if (isMemberAccessExpr(expr) && isDataModelField(expr.member.ref)) {
+        return expr.member.ref;
+    } else {
+        return undefined;
+    }
 }
