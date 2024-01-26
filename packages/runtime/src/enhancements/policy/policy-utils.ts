@@ -365,7 +365,7 @@ export class PolicyUtil {
     /**
      * Injects model auth guard as where clause.
      */
-    injectAuthGuard(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
+    injectAuthGuardAsWhere(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
         let guard = this.getAuthGuard(db, model, operation);
 
         if (operation === 'update' && args) {
@@ -504,7 +504,7 @@ export class PolicyUtil {
     injectForRead(db: Record<string, DbOperations>, model: string, args: any) {
         // make select and include visible to the injection
         const injected: any = { select: args.select, include: args.include };
-        if (!this.injectAuthGuard(db, injected, model, 'read')) {
+        if (!this.injectAuthGuardAsWhere(db, injected, model, 'read')) {
             return false;
         }
 
@@ -572,7 +572,7 @@ export class PolicyUtil {
     /**
      * Builds a reversed query for the given nested path.
      */
-    buildReversedQuery(context: NestedWriteVisitorContext, mutating = false, unsafeOperation = false) {
+    buildReversedQuery(context: NestedWriteVisitorContext, forMutationPayload = false, unsafeOperation = false) {
         let result, currQuery: any;
         let currField: FieldInfo | undefined;
 
@@ -603,7 +603,7 @@ export class PolicyUtil {
                     throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
                 }
 
-                if (backLinkField.isArray && !mutating) {
+                if (backLinkField.isArray && !forMutationPayload) {
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
                     currQuery = currQuery[currField.backLink].some;
@@ -613,7 +613,7 @@ export class PolicyUtil {
                     // calculate if we should preserve the relation condition (e.g., { user: { id: 1 } })
                     const shouldPreserveRelationCondition =
                         // doing a mutation
-                        mutating &&
+                        forMutationPayload &&
                         // and it's a safe mutate
                         !unsafeOperation &&
                         // and the current segment is the direct parent (the last one is the mutate itself),
@@ -676,7 +676,7 @@ export class PolicyUtil {
                     continue;
                 }
                 // inject into the "where" clause inside select
-                this.injectAuthGuard(db, injectTarget._count.select[field], fieldInfo.type, 'read');
+                this.injectAuthGuardAsWhere(db, injectTarget._count.select[field], fieldInfo.type, 'read');
             }
         }
 
@@ -702,7 +702,7 @@ export class PolicyUtil {
                     injectTarget[field] = {};
                 }
                 // inject extra condition for to-many or nullable to-one relation
-                this.injectAuthGuard(db, injectTarget[field], fieldInfo.type, 'read');
+                this.injectAuthGuardAsWhere(db, injectTarget[field], fieldInfo.type, 'read');
 
                 // recurse
                 const subHoisted = this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);

@@ -76,6 +76,11 @@ export type FieldInfo = {
      * A function that provides a default value for the field
      */
     defaultValueProvider?: FieldDefaultValueProvider;
+
+    /**
+     * If the field is an auto-increment field
+     */
+    isAutoIncrement?: boolean;
 };
 
 /**

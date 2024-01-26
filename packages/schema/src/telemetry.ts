@@ -3,13 +3,13 @@ import { getPrismaVersion } from '@zenstackhq/sdk';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
 import { init, Mixpanel } from 'mixpanel';
-import { machineIdSync } from 'node-machine-id';
 import * as os from 'os';
 import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import isDocker from './utils/is-docker';
 import { getVersion } from './utils/version-utils';
+import { getMachineId } from './utils/machine-id-utils';
 
 /**
  * Telemetry events
@@ -32,7 +32,7 @@ export type TelemetryEvents =
  */
 export class Telemetry {
     private readonly mixpanel: Mixpanel | undefined;
-    private readonly hostId = machineIdSync();
+    private readonly hostId = getMachineId();
     private readonly sessionid = createId();
     private readonly _os_type = os.type();
     private readonly _os_release = os.release();

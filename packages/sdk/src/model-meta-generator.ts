@@ -5,6 +5,7 @@ import {
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
+    isInvocationExpr,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
@@ -134,6 +135,11 @@ function generateModelMetadata(
                         if (defaultValueProvider) {
                             writer.write(`
                             defaultValueProvider: ${defaultValueProvider},`);
+                        }
+
+                        if (isAutoIncrement(f)) {
+                            writer.write(`
+                    isAutoIncrement: true,`);
                         }
 
                         writer.write(`
@@ -376,4 +382,18 @@ function generateDefaultValueProvider(field: DataModelField, sourceFile: SourceF
     });
 
     return func.getName();
+}
+
+function isAutoIncrement(field: DataModelField) {
+    const defaultAttr = getAttribute(field, '@default');
+    if (!defaultAttr) {
+        return false;
+    }
+
+    const arg = defaultAttr.args[0]?.value;
+    if (!arg) {
+        return false;
+    }
+
+    return isInvocationExpr(arg) && arg.function.$refText === 'autoincrement';
 }
