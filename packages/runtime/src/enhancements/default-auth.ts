@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import deepcopy from 'deepcopy';
 import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields } from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, EnhancementOptions } from './create-enhancement';
@@ -49,15 +48,12 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     protected async preprocessArgs(action: PrismaProxyActions, args: any) {
         const actionsOfInterest: PrismaProxyActions[] = ['create', 'createMany', 'update', 'updateMany', 'upsert'];
         if (actionsOfInterest.includes(action)) {
-            const newArgs = await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
-            return newArgs;
+            await this.preprocessWritePayload(this.model, action as PrismaWriteActionType, args);
         }
         return args;
     }
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
-        const newArgs = deepcopy(args);
-
         const processCreatePayload = (model: string, data: any) => {
             const fields = getFields(this.options.modelMeta, model);
             for (const fieldInfo of Object.values(fields)) {
@@ -92,8 +88,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
             },
         });
 
-        await visitor.visit(model, action, newArgs);
-        return newArgs;
+        await visitor.visit(model, action, args);
     }
 
     private getDefaultValueFromAuth(fieldInfo: FieldInfo) {
