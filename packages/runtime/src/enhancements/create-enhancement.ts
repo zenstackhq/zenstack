@@ -132,9 +132,7 @@ export function createEnhancement<DbClient extends object>(
         const allFields = Object.values(options.modelMeta.fields).flatMap((modelInfo) => Object.values(modelInfo));
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
-        hasDefaultAuth = allFields.some((field) =>
-            field.attributes?.some((attr) => attr.name === '@default' && attr.args[0]?.name === 'auth()')
-        );
+        hasDefaultAuth = allFields.some((field) => field.defaultValueProvider);
     }
 
     const kinds = options.kinds ?? [

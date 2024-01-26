@@ -416,43 +416,6 @@ describe('With Policy: auth() test', () => {
         await expect(userDb.post.count({ where: { authorName: overrideName } })).resolves.toBe(1);
     });
 
-    it('Default auth() return user context', async () => {
-        const { enhance, modelMeta } = await loadSchema(
-            `
-        model User {
-            id String @id
-            name String
-
-        }
-
-        model Post {
-            id String @id @default(uuid())
-            authorName String? @default(auth().name)
-            userDetailsAsString String? @default(auth())
-            userDetailsAsJson Json? @default(auth())
-
-            @@allow('all', true)
-        }
-        `,
-            {
-                provider: 'postgresql',
-                compile: true,
-            }
-        );
-
-        const userContext = { id: '1', name: 'user1' };
-        const db = enhance(userContext);
-        const userDetailsAttributes = modelMeta.fields.post.userDetails.attributes;
-        expect(userDetailsAttributes).toHaveProperty('0.name', '@default');
-        expect(userDetailsAttributes).toHaveProperty('0.args.0.name', 'auth()');
-        expect(userDetailsAttributes).toHaveProperty('0.args.0.value', '');
-        await expect(db.post.create({ data: {} })).toResolveTruthy();
-        await expect(db.post.count()).resolves.toBe(1);
-        const post = await db.post.findFirst();
-        expect(post?.userDetailsAsString).toEqual(JSON.stringify(userContext));
-        expect(post?.userDetailsAsJson).toEqual(userContext);
-    });
-
     it('Default auth() with foreign key', async () => {
         const { enhance, modelMeta } = await loadSchema(
             `
@@ -476,29 +439,41 @@ describe('With Policy: auth() test', () => {
         );
 
         const db = enhance({ id: 'userId-1' });
-        const attributes = modelMeta.fields.post.authorId.attributes;
-        expect(attributes).toHaveProperty('0.name', '@default');
-        expect(attributes).toHaveProperty('0.args.0.name', 'auth()');
-        expect(attributes).toHaveProperty('0.args.0.value', 'id');
         await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
-        await expect(db.post.create({ data: { title: 'abc' } })).toResolveTruthy();
-        await expect(db.post.count({ where: { authorId: 'userId-1' } })).resolves.toBe(1);
+        await expect(db.post.create({ data: { title: 'abc' } })).resolves.toMatchObject({ authorId: 'userId-1' });
     });
 
     it('Default auth() with nested user context value', async () => {
-        const { enhance, modelMeta } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model User {
             id String @id
+            profile Profile?
+            posts Post[]
 
             @@allow('all', true)
+        }
 
+        model Profile {
+            id String @id @default(uuid())
+            image Image?
+            user User @relation(fields: [userId], references: [id])
+            userId String @unique
+        }
+
+        model Image {
+            id String @id @default(uuid())
+            url String
+            profile Profile @relation(fields: [profileId], references: [id])
+            profileId String @unique
         }
 
         model Post {
             id String @id @default(uuid())
             title String
-            defaultImageUrl string @default(auth().profile.image.url)
+            defaultImageUrl String @default(auth().profile.image.url)
+            author User @relation(fields: [authorId], references: [id])
+            authorId String
 
             @@allow('all', true)
         }
@@ -506,12 +481,28 @@ describe('With Policy: auth() test', () => {
         );
         const url = 'https://zenstack.dev';
         const db = enhance({ id: 'userId-1', profile: { image: { url } } });
-        const attributes = modelMeta.fields.post.authorId.attributes;
-        expect(attributes).toHaveProperty('0.name', '@default');
-        expect(attributes).toHaveProperty('0.args.0.name', 'auth()');
-        expect(attributes).toHaveProperty('0.args.0.value', 'profile.image.url');
+
+        // top-level create
         await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
-        await expect(db.post.create({ data: { title: 'abc' } })).toResolveTruthy();
-        await expect(db.post.count({ where: { defaultImageUrl: url } })).resolves.toBe(1);
+        await expect(
+            db.post.create({ data: { title: 'abc', author: { connect: { id: 'userId-1' } } } })
+        ).resolves.toMatchObject({ defaultImageUrl: url });
+
+        // nested create
+        let result = await db.user.create({
+            data: {
+                id: 'userId-2',
+                posts: {
+                    create: [{ title: 'p1' }, { title: 'p2' }],
+                },
+            },
+            include: { posts: true },
+        });
+        expect(result.posts).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ title: 'p1', defaultImageUrl: url }),
+                expect.objectContaining({ title: 'p2', defaultImageUrl: url }),
+            ])
+        );
     });
 });

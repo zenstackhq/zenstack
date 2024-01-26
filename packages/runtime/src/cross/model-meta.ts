@@ -1,17 +1,17 @@
 import { lowerCaseFirst } from 'lower-case-first';
 
 /**
- * An access key in the user context object (e.g. `profile.picture.url`)
- */
-export type AuthContextSelector = string;
-
-/**
  * Runtime information of a data model or field attribute
  */
 export type RuntimeAttribute = {
     name: string;
-    args: Array<{ name?: string; value: unknown } | { name: 'auth()'; value: AuthContextSelector }>;
+    args: Array<{ name?: string; value: unknown }>;
 };
+
+/**
+ * Function for computing default value for a field
+ */
+export type FieldDefaultValueProvider = (userContext: unknown) => unknown;
 
 /**
  * Runtime information of a data model field
@@ -71,6 +71,11 @@ export type FieldInfo = {
      * Mapping from foreign key field names to relation field names
      */
     foreignKeyMapping?: Record<string, string>;
+
+    /**
+     * A function that provides a default value for the field
+     */
+    defaultValueProvider?: FieldDefaultValueProvider;
 };
 
 /**

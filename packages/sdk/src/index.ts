@@ -4,6 +4,7 @@ export { generate as generateModelMeta } from './model-meta-generator';
 export * from './policy';
 export * from './prisma';
 export * from './types';
+export * from './typescript-expression-transformer';
 export * from './utils';
 export * from './validation';
 export * from './zmodel-code-generator';
