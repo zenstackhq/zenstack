@@ -5,6 +5,7 @@ import {
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
+    isInvocationExpr,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
@@ -117,6 +118,11 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter,
                         if (fkMapping && Object.keys(fkMapping).length > 0) {
                             writer.write(`
                     foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
+                        }
+
+                        if (isAutoIncrement(f)) {
+                            writer.write(`
+                    isAutoIncrement: true,`);
                         }
 
                         writer.write(`
@@ -326,4 +332,18 @@ function getDeleteCascades(model: DataModel): string[] {
             return relationFields.length > 0;
         })
         .map((m) => m.name);
+}
+
+function isAutoIncrement(field: DataModelField) {
+    const defaultAttr = getAttribute(field, '@default');
+    if (!defaultAttr) {
+        return false;
+    }
+
+    const arg = defaultAttr.args[0]?.value;
+    if (!arg) {
+        return false;
+    }
+
+    return isInvocationExpr(arg) && arg.function.$refText === 'autoincrement';
 }
