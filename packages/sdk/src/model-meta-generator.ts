@@ -5,15 +5,18 @@ import {
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
+    isInvocationExpr,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
+import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
-import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
+import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import {
+    ExpressionContext,
     getAttribute,
     getAttributeArg,
     getAttributeArgs,
@@ -21,10 +24,12 @@ import {
     getDataModels,
     getLiteral,
     hasAttribute,
+    isAuthInvocation,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
     resolved,
+    TypeScriptExpressionTransformer,
 } from '.';
 
 export type ModelMetaGeneratorOptions = {
@@ -37,13 +42,20 @@ export async function generate(project: Project, models: DataModel[], options: M
     sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(models, writer, options) }],
+        declarations: [
+            { name: 'metadata', initializer: (writer) => generateModelMetadata(models, sf, writer, options) },
+        ],
     });
     sf.addStatements('export default metadata;');
     return sf;
 }
 
-function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter, options: ModelMetaGeneratorOptions) {
+function generateModelMetadata(
+    dataModels: DataModel[],
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    options: ModelMetaGeneratorOptions
+) {
     writer.block(() => {
         writer.write('fields:');
         writer.block(() => {
@@ -117,6 +129,17 @@ function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter,
                         if (fkMapping && Object.keys(fkMapping).length > 0) {
                             writer.write(`
                     foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
+                        }
+
+                        const defaultValueProvider = generateDefaultValueProvider(f, sourceFile);
+                        if (defaultValueProvider) {
+                            writer.write(`
+                            defaultValueProvider: ${defaultValueProvider},`);
+                        }
+
+                        if (isAutoIncrement(f)) {
+                            writer.write(`
+                    isAutoIncrement: true,`);
                         }
 
                         writer.write(`
@@ -326,4 +349,51 @@ function getDeleteCascades(model: DataModel): string[] {
             return relationFields.length > 0;
         })
         .map((m) => m.name);
+}
+
+function generateDefaultValueProvider(field: DataModelField, sourceFile: SourceFile) {
+    const defaultAttr = getAttribute(field, '@default');
+    if (!defaultAttr) {
+        return undefined;
+    }
+
+    const expr = defaultAttr.args[0]?.value;
+    if (!expr) {
+        return undefined;
+    }
+
+    // find `auth()` in default value expression
+    const hasAuth = streamAst(expr).some(isAuthInvocation);
+    if (!hasAuth) {
+        return undefined;
+    }
+
+    // generates a provider function like:
+    //     function $default$Model$field(user: any) { ... }
+    const func = sourceFile.addFunction({
+        name: `$default$${field.$container.name}$${field.name}`,
+        parameters: [{ name: 'user', type: 'any' }],
+        returnType: 'unknown',
+        statements: (writer) => {
+            const tsWriter = new TypeScriptExpressionTransformer({ context: ExpressionContext.DefaultValue });
+            const code = tsWriter.transform(expr, false);
+            writer.write(`return ${code};`);
+        },
+    });
+
+    return func.getName();
+}
+
+function isAutoIncrement(field: DataModelField) {
+    const defaultAttr = getAttribute(field, '@default');
+    if (!defaultAttr) {
+        return false;
+    }
+
+    const arg = defaultAttr.args[0]?.value;
+    if (!arg) {
+        return false;
+    }
+
+    return isInvocationExpr(arg) && arg.function.$refText === 'autoincrement';
 }

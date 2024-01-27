@@ -1,22 +1,14 @@
 import {
     BinaryExpr,
     DataModel,
-    DataModelField,
     Expression,
     InheritableNode,
-    isArrayExpr,
     isBinaryExpr,
     isDataModel,
-    isDataModelField,
-    isInvocationExpr,
-    isMemberAccessExpr,
     isModel,
-    isReferenceExpr,
     Model,
     ModelImport,
-    ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     CstNode,
@@ -117,47 +109,6 @@ function copyAstNode<T extends AstNode = AstNode>(node: T, buildReference: Build
     return copy as unknown as T;
 }
 
-export function getIdFields(dataModel: DataModel) {
-    const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
-        f.attributes.some((attr) => attr.decl.$refText === '@id')
-    );
-    if (fieldLevelId) {
-        return [fieldLevelId];
-    } else {
-        // get model level @@id attribute
-        const modelIdAttr = dataModel.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
-        if (modelIdAttr) {
-            // get fields referenced in the attribute: @@id([field1, field2]])
-            if (!isArrayExpr(modelIdAttr.args[0].value)) {
-                return [];
-            }
-            const argValue = modelIdAttr.args[0].value;
-            return argValue.items
-                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getDataModelFieldReference(expr))
-                .map((expr) => expr.target.ref as DataModelField);
-        }
-    }
-    return [];
-}
-
-export function isAuthInvocation(node: AstNode) {
-    return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
-}
-
-export function isFutureInvocation(node: AstNode) {
-    return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
-}
-
-export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
-    if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
-        return expr.target.ref;
-    } else if (isMemberAccessExpr(expr) && isDataModelField(expr.member.ref)) {
-        return expr.member.ref;
-    } else {
-        return undefined;
-    }
-}
-
 export function resolveImportUri(imp: ModelImport): URI | undefined {
     if (imp.path === undefined || imp.path.length === 0) {
         return undefined;
@@ -231,20 +182,4 @@ export function getContainingDataModel(node: Expression): DataModel | undefined 
         curr = curr.$container;
     }
     return undefined;
-}
-
-export function getModelFieldsWithBases(model: DataModel) {
-    return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
-}
-
-export function getRecursiveBases(dataModel: DataModel): DataModel[] {
-    const result: DataModel[] = [];
-    dataModel.superTypes.forEach((superType) => {
-        const baseDecl = superType.ref;
-        if (baseDecl) {
-            result.push(baseDecl);
-            result.push(...getRecursiveBases(baseDecl));
-        }
-    });
-    return result;
 }

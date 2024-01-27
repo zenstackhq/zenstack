@@ -10,7 +10,14 @@ import {
     isReferenceExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
-import { getAuthModel, getDataModels } from '@zenstackhq/sdk';
+import {
+    getAuthModel,
+    getDataModels,
+    getModelFieldsWithBases,
+    getRecursiveBases,
+    isAuthInvocation,
+    isFutureExpr,
+} from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -31,14 +38,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import {
-    getModelFieldsWithBases,
-    getRecursiveBases,
-    isAuthInvocation,
-    isCollectionPredicate,
-    isFutureInvocation,
-    resolveImportUri,
-} from '../utils/ast-utils';
+import { isCollectionPredicate, resolveImportUri } from '../utils/ast-utils';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
 
 /**
@@ -164,7 +164,7 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                     // resolve to `User` or `@@auth` model
                     return this.createScopeForAuthModel(node, globalScope);
                 }
-                if (isFutureInvocation(operand)) {
+                if (isFutureExpr(operand)) {
                     // resolve `future()` to the containing model
                     return this.createScopeForContainingModel(node, globalScope);
                 }

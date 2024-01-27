@@ -17,9 +17,9 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { ExpressionContext, getLiteral, isFromStdlib, isFutureExpr } from '@zenstackhq/sdk';
 import { match, P } from 'ts-pattern';
-import { getIdFields } from './ast-utils';
+import { ExpressionContext } from './constants';
+import { getIdFields, getLiteral, isFromStdlib, isFutureExpr } from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {

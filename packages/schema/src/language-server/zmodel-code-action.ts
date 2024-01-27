@@ -10,8 +10,8 @@ import {
     getDocument,
 } from 'langium';
 
+import { getModelFieldsWithBases } from '@zenstackhq/sdk';
 import { CodeAction, CodeActionKind, CodeActionParams, Command, Diagnostic } from 'vscode-languageserver';
-import { getModelFieldsWithBases } from '../utils/ast-utils';
 import { IssueCodes } from './constants';
 import { MissingOppositeRelationData } from './validator/datamodel-validator';
 import { ZModelFormatter } from './zmodel-formatter';

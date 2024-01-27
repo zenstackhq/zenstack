@@ -6,7 +6,7 @@
     "homepage": "https://zenstack.dev",
     "private": true,
     "scripts": {
-       "build": "./gradlew buildPlugin"
+      "build": "./gradlew buildPlugin"
     },
     "author": "ZenStack Team",
     "license": "MIT",

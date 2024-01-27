@@ -30,9 +30,11 @@ import { match } from 'ts-pattern';
 
 import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
+    getAttribute,
     getDMMF,
     getLiteral,
     getPrismaVersion,
+    isAuthInvocation,
     PluginError,
     PluginOptions,
     resolved,
@@ -41,6 +43,7 @@ import {
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
+import { streamAst } from 'langium';
 import path from 'path';
 import semver from 'semver';
 import stripColor from 'strip-color';
@@ -311,9 +314,7 @@ export default class PrismaSchemaGenerator {
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
-        const attributes = field.attributes
-            .filter((attr) => this.isPrismaAttribute(attr))
-            .map((attr) => this.makeFieldAttribute(attr));
+        const attributes = this.getAttributesToGenerate(field);
 
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
@@ -323,6 +324,30 @@ export default class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         field.comments.forEach((c) => result.addComment(c));
+    }
+
+    private getAttributesToGenerate(field: DataModelField) {
+        if (this.hasDefaultWithAuth(field)) {
+            return [];
+        }
+        return field.attributes
+            .filter((attr) => this.isPrismaAttribute(attr))
+            .map((attr) => this.makeFieldAttribute(attr));
+    }
+
+    private hasDefaultWithAuth(field: DataModelField) {
+        const defaultAttr = getAttribute(field, '@default');
+        if (!defaultAttr) {
+            return false;
+        }
+
+        const expr = defaultAttr.args[0]?.value;
+        if (!expr) {
+            return false;
+        }
+
+        // find `auth()` in default value expression
+        return streamAst(expr).some(isAuthInvocation);
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {

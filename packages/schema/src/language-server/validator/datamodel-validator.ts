@@ -6,9 +6,14 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
+import {
+    analyzePolicies,
+    getLiteral,
+    getModelFieldsWithBases,
+    getModelIdFields,
+    getModelUniqueFields,
+} from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
-import { getModelFieldsWithBases } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getUniqueFields } from '../utils';
