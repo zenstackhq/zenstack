@@ -32,7 +32,7 @@ import {
 } from '@zenstackhq/language/ast';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
-import { PluginDeclaredOptions, PluginError, PluginOptions } from './types';
+import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
 
 /**
  * Gets data models that are not ignored
@@ -281,13 +281,6 @@ export function isForeignKeyField(field: DataModelField) {
     });
 }
 
-export function isDefaultAuthField(field: DataModelField) {
-    return (
-        hasAttribute(field, '@default') &&
-        !!field.attributes.find((attr) => attr.args?.[0]?.value.$cstNode?.text.startsWith('auth()'))
-    );
-}
-
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;
@@ -387,7 +380,7 @@ export function getAuthModel(dataModels: DataModel[]) {
 }
 
 export function getIdFields(dataModel: DataModel) {
-    const fieldLevelId = dataModel.$resolvedFields.find((f) =>
+    const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
         f.attributes.some((attr) => attr.decl.$refText === '@id')
     );
     if (fieldLevelId) {
@@ -417,4 +410,20 @@ export function getDataModelFieldReference(expr: Expression): DataModelField | u
     } else {
         return undefined;
     }
+}
+
+export function getModelFieldsWithBases(model: DataModel) {
+    return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
+}
+
+export function getRecursiveBases(dataModel: DataModel): DataModel[] {
+    const result: DataModel[] = [];
+    dataModel.superTypes.forEach((superType) => {
+        const baseDecl = superType.ref;
+        if (baseDecl) {
+            result.push(baseDecl);
+            result.push(...getRecursiveBases(baseDecl));
+        }
+    });
+    return result;
 }

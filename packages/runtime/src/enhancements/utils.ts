@@ -22,18 +22,3 @@ export function prismaClientKnownRequestError(prisma: DbClientContract, prismaMo
 export function prismaClientUnknownRequestError(prismaModule: any, ...args: unknown[]): Error {
     throw new prismaModule.PrismaClientUnknownRequestError(...args);
 }
-
-export function deepGet(object: object, path: string | string[] | undefined, defaultValue: unknown): unknown {
-    if (path === undefined || path === '') {
-        return defaultValue;
-    }
-    const keys = Array.isArray(path) ? path : path.split('.');
-    for (const key of keys) {
-        if (object && typeof object === 'object' && key in object) {
-            object = object[key as keyof typeof object];
-        } else {
-            return defaultValue;
-        }
-    }
-    return object !== undefined ? object : defaultValue;
-}

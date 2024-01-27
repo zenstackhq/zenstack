@@ -2,18 +2,19 @@ import { DataModel, DataModelField, Model, isDataModel } from '@zenstackhq/langu
 import {
     AstReflection,
     CodeActionProvider,
-    getDocument,
     IndexManager,
     LangiumDocument,
     LangiumDocuments,
     LangiumServices,
     MaybePromise,
+    getDocument,
 } from 'langium';
 
+import { getModelFieldsWithBases } from '@zenstackhq/sdk';
 import { CodeAction, CodeActionKind, CodeActionParams, Command, Diagnostic } from 'vscode-languageserver';
 import { IssueCodes } from './constants';
-import { ZModelFormatter } from './zmodel-formatter';
 import { MissingOppositeRelationData } from './validator/datamodel-validator';
+import { ZModelFormatter } from './zmodel-formatter';
 
 export class ZModelCodeActionProvider implements CodeActionProvider {
     protected readonly reflection: AstReflection;
@@ -92,8 +93,8 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
 
                 let newText = '';
                 if (fieldAstNode.type.array) {
-                    //post Post[]
-                    const idField = container.$resolvedFields.find((f) =>
+                    // post Post[]
+                    const idField = getModelFieldsWithBases(container).find((f) =>
                         f.attributes.find((attr) => attr.decl.ref?.name === '@id')
                     ) as DataModelField;
 
@@ -111,7 +112,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
                     const idFieldName = idField.name;
                     const referenceIdFieldName = fieldName + this.upperCaseFirstLetter(idFieldName);
 
-                    if (!oppositeModel.$resolvedFields.find((f) => f.name === referenceIdFieldName)) {
+                    if (!getModelFieldsWithBases(oppositeModel).find((f) => f.name === referenceIdFieldName)) {
                         referenceField = '\n' + indent + `${referenceIdFieldName} ${idField.type.type}`;
                     }
 

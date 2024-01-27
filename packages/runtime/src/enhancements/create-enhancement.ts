@@ -2,12 +2,12 @@ import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../constants';
 import { ModelMeta } from '../cross';
 import type { AuthUser } from '../types';
+import { withDefaultAuth } from './default-auth';
 import { withOmit } from './omit';
 import { withPassword } from './password';
 import { withPolicy } from './policy';
 import type { ErrorTransformer } from './proxy';
 import type { PolicyDef, ZodSchemas } from './types';
-import { withDefaultAuth } from './default-auth';
 
 /**
  * Kinds of enhancements to `PrismaClient`

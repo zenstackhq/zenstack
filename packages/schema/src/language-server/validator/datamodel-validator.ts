@@ -6,7 +6,13 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
+import {
+    analyzePolicies,
+    getLiteral,
+    getModelFieldsWithBases,
+    getModelIdFields,
+    getModelUniqueFields,
+} from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
@@ -20,16 +26,15 @@ import { validateDuplicatedDeclarations } from './utils';
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
         this.validateBaseAbstractModel(dm, accept);
-        validateDuplicatedDeclarations(dm.$resolvedFields, accept);
+        validateDuplicatedDeclarations(getModelFieldsWithBases(dm), accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
     }
 
     private validateFields(dm: DataModel, accept: ValidationAcceptor) {
-        const idFields = dm.$resolvedFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
-        const uniqueFields = dm.$resolvedFields.filter((f) =>
-            f.attributes.find((attr) => attr.decl.ref?.name === '@unique')
-        );
+        const allFields = getModelFieldsWithBases(dm);
+        const idFields = allFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@id'));
+        const uniqueFields = allFields.filter((f) => f.attributes.find((attr) => attr.decl.ref?.name === '@unique'));
         const modelLevelIds = getModelIdFields(dm);
         const modelUniqueFields = getModelUniqueFields(dm);
 
@@ -42,7 +47,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
             if (allows.length > 0 || denies.length > 0 || hasFieldValidation) {
                 // TODO: relax this requirement to require only @unique fields
-                // when access policies or field valdaition is used, require an @id field
+                // when access policies or field validation is used, require an @id field
                 accept(
                     'error',
                     'Model must include a field with @id or @unique attribute, or a model-level @@id or @@unique attribute to use access policies',
@@ -74,10 +79,10 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         dm.fields.forEach((field) => this.validateField(field, accept));
 
         if (!dm.isAbstract) {
-            dm.$resolvedFields
+            allFields
                 .filter((x) => isDataModel(x.type.reference?.ref))
                 .forEach((y) => {
-                    this.validateRelationField(y, accept);
+                    this.validateRelationField(dm, y, accept);
                 });
         }
     }
@@ -194,7 +199,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             // points back
             const oppositeModel = field.type.reference?.ref as DataModel;
             if (oppositeModel) {
-                const oppositeModelFields = oppositeModel.$resolvedFields as DataModelField[];
+                const oppositeModelFields = getModelFieldsWithBases(oppositeModel);
                 for (const oppositeField of oppositeModelFields) {
                     // find the opposite relation with the matching name
                     const relAttr = oppositeField.attributes.find((a) => a.decl.ref?.name === '@relation');
@@ -213,7 +218,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         return false;
     }
 
-    private validateRelationField(field: DataModelField, accept: ValidationAcceptor) {
+    private validateRelationField(contextModel: DataModel, field: DataModelField, accept: ValidationAcceptor) {
         const thisRelation = this.parseRelation(field, accept);
         if (!thisRelation.valid) {
             return;
@@ -223,8 +228,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
         // Use name because the current document might be updated
-        let oppositeFields = oppositeModel.$resolvedFields.filter(
-            (f) => f.type.reference?.ref?.name === field.$container.name
+        let oppositeFields = getModelFieldsWithBases(oppositeModel).filter(
+            (f) => f.type.reference?.ref?.name === contextModel.name
         );
         oppositeFields = oppositeFields.filter((f) => {
             const fieldRel = this.parseRelation(f);
@@ -232,13 +237,13 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         });
 
         if (oppositeFields.length === 0) {
-            const node = field.$isInherited ? field.$container : field;
-            const info: DiagnosticInfo<AstNode, string> = { node, code: IssueCodes.MissingOppositeRelation };
+            const info: DiagnosticInfo<AstNode, string> = {
+                node: field,
+                code: IssueCodes.MissingOppositeRelation,
+            };
 
             info.property = 'name';
-            // use cstNode because the field might be inherited from parent model
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const container = field.$cstNode!.element.$container as DataModel;
+            const container = field.$container;
 
             const relationFieldDocUri = getDocument(container).textDocument.uri;
             const relationDataModelName = container.name;
@@ -247,20 +252,20 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 relationFieldName: field.name,
                 relationDataModelName,
                 relationFieldDocUri,
-                dataModelName: field.$container.name,
+                dataModelName: contextModel.name,
             };
 
             info.data = data;
 
             accept(
                 'error',
-                `The relation field "${field.name}" on model "${field.$container.name}" is missing an opposite relation field on model "${oppositeModel.name}"`,
+                `The relation field "${field.name}" on model "${contextModel.name}" is missing an opposite relation field on model "${oppositeModel.name}"`,
                 info
             );
             return;
         } else if (oppositeFields.length > 1) {
             oppositeFields
-                .filter((x) => !x.$isInherited)
+                .filter((x) => !x.$inheritedFrom)
                 .forEach((f) => {
                     if (this.isSelfRelation(f)) {
                         // self relations are partial

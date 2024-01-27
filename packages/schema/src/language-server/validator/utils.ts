@@ -33,8 +33,8 @@ export function validateDuplicatedDeclarations(
     for (const [name, decls] of Object.entries<AstNode[]>(groupByName)) {
         if (decls.length > 1) {
             let errorField = decls[1];
-            if (decls[0].$type === 'DataModelField') {
-                const nonInheritedFields = decls.filter((x) => !(x as DataModelField).$isInherited);
+            if (isDataModelField(decls[0])) {
+                const nonInheritedFields = decls.filter((x) => !(x as DataModelField).$inheritedFrom);
                 if (nonInheritedFields.length > 0) {
                     errorField = nonInheritedFields.slice(-1)[0];
                 }

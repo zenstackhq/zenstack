@@ -89,7 +89,7 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     validationAfterMerge(model);
 
-    mergeBaseModel(model);
+    mergeBaseModel(model, services.references.Linker);
 
     return model;
 }

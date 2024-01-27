@@ -310,6 +310,7 @@ export class FunctionCallArg {
         return this.name ? `${this.name}: ${this.value}` : this.value;
     }
 }
+
 export class Enum extends ContainerDeclaration {
     public fields: EnumField[] = [];
 

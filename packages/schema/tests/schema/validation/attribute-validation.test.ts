@@ -1088,11 +1088,14 @@ describe('Attribute tests', () => {
             model A { 
                 id String @id 
                 x Int
+                b B @relation(references: [id], fields: [bId])
+                bId String @unique
             }
 
             model B {
                 id String @id
-                a A
+                a A?
+                aId String @unique
                 @@allow('all', a?[x > 0])
             }
         `)

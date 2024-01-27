@@ -30,10 +30,11 @@ import { match } from 'ts-pattern';
 
 import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
+    getAttribute,
     getDMMF,
     getLiteral,
     getPrismaVersion,
-    isDefaultAuthField,
+    isAuthInvocation,
     PluginError,
     PluginOptions,
     resolved,
@@ -42,6 +43,7 @@ import {
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
+import { streamAst } from 'langium';
 import path from 'path';
 import semver from 'semver';
 import stripColor from 'strip-color';
@@ -325,12 +327,27 @@ export default class PrismaSchemaGenerator {
     }
 
     private getAttributesToGenerate(field: DataModelField) {
-        if (isDefaultAuthField(field)) {
+        if (this.hasDefaultWithAuth(field)) {
             return [];
         }
         return field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))
             .map((attr) => this.makeFieldAttribute(attr));
+    }
+
+    private hasDefaultWithAuth(field: DataModelField) {
+        const defaultAttr = getAttribute(field, '@default');
+        if (!defaultAttr) {
+            return false;
+        }
+
+        const expr = defaultAttr.args[0]?.value;
+        if (!expr) {
+            return false;
+        }
+
+        // find `auth()` in default value expression
+        return streamAst(expr).some(isAuthInvocation);
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
