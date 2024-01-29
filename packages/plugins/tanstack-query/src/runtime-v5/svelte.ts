@@ -5,10 +5,10 @@ import {
     createQuery,
     useQueryClient,
     type CreateInfiniteQueryOptions,
+    type CreateQueryOptions,
     type InfiniteData,
     type MutationOptions,
     type StoreOrVal,
-    type CreateQueryOptions,
 } from '@tanstack/svelte-query-v5';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
@@ -58,17 +58,17 @@ export function getHooksContext() {
  * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
-export function useModelQuery<R>(
+export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: StoreOrVal<Omit<CreateQueryOptions<R>, 'queryKey'>>,
+    options?: StoreOrVal<Omit<CreateQueryOptions<TQueryFnData, TData, TError>, 'queryKey'>>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);
     const queryKey = getQueryKey(model, url, args, false, optimisticUpdate);
-    const queryFn = () => fetcher<R, false>(reqUrl, undefined, fetch, false);
+    const queryFn = () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
 
     let mergedOpt: any;
     if (isStore(options)) {
@@ -100,19 +100,19 @@ export function useModelQuery<R>(
  * @param options The svelte-query infinite query options object
  * @returns useQuery hook
  */
-export function useInfiniteModelQuery<R>(
+export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args: unknown,
-    options: StoreOrVal<Omit<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>, 'queryKey'>>,
+    options: StoreOrVal<Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
     const queryKey = getQueryKey(model, url, args, true);
     const queryFn = ({ pageParam }: { pageParam: unknown }) =>
-        fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+        fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
 
-    let mergedOpt: StoreOrVal<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>>;
-    if (isStore<CreateInfiniteQueryOptions<R, unknown, InfiniteData<R>>>(options)) {
+    let mergedOpt: StoreOrVal<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>>;
+    if (isStore<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>>(options)) {
         // options is store
         mergedOpt = derived([options], ([$opt]) => {
             return {
@@ -129,7 +129,7 @@ export function useInfiniteModelQuery<R>(
             ...options,
         };
     }
-    return createInfiniteQuery<R, unknown, InfiniteData<R>>(mergedOpt);
+    return createInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(mergedOpt);
 }
 
 function isStore<T>(opt: unknown): opt is Readable<T> {
