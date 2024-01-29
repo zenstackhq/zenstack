@@ -62,7 +62,7 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: StoreOrVal<Omit<CreateQueryOptions<TQueryFnData, TData, TError>, 'queryKey'>>,
+    options?: StoreOrVal<Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
