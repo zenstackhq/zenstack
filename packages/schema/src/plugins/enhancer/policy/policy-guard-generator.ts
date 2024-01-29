@@ -57,7 +57,7 @@ import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { name } from '..';
 import { isCollectionPredicate } from '../../../utils/ast-utils';
-import { ALL_OPERATION_KINDS } from '../../plugin-utils';
+import { ALL_OPERATION_KINDS, CRUD_OPERATION_KINDS } from '../../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -71,6 +71,7 @@ export class PolicyGenerator {
         sf.addImportDeclaration({
             namedImports: [
                 { name: 'type QueryContext' },
+                { name: 'type AuthUser' },
                 { name: 'type DbOperations' },
                 { name: 'allFieldsEqual' },
                 { name: 'type PolicyDef' },
@@ -93,6 +94,61 @@ export class PolicyGenerator {
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
+
+        // generate permissions checker
+        sf.addFunction({
+            name: 'permissionsChecker',
+            parameters: [
+                {
+                    name: 'args',
+                    type: 'any',
+                },
+                {
+                    name: 'user?',
+                    type: 'AuthUser',
+                },
+            ],
+            statements: (writer) => {
+                writer.write('return ');
+                writer.inlineBlock(() => {
+                    for (const model of models) {
+                        writer.write(`${lowerCaseFirst(model.name)}:`);
+                        writer.inlineBlock(() => {
+                            for (const kind of CRUD_OPERATION_KINDS) {
+                                // TODO: create real permissions based on model and fields policies
+                                if (kind === 'create') {
+                                    writer.write(`${kind}: false,`);
+                                } else {
+                                    writer.write(`${kind}: true,`);
+                                }
+                            }
+                        });
+                        writer.write(',');
+                    }
+                });
+            },
+        });
+
+        // writer.block(() => {
+        //     writer.write('guard:');
+        //     writer.inlineBlock(() => {
+        //         for (const [model, map] of Object.entries(policyMap)) {
+        //             writer.write(`${lowerCaseFirst(model)}:`);
+        //             writer.inlineBlock(() => {
+        //                 for (const [op, func] of Object.entries(map)) {
+        //                     if (typeof func === 'object') {
+        //                         writer.write(`${op}: ${JSON.stringify(func)},`);
+        //                     } else {
+        //                         writer.write(`${op}: ${func},`);
+        //                     }
+        //                 }
+        //             });
+        //             writer.write(',');
+        //         }
+        //     });
+        //     writer.writeLine(',');
+
+        // });
 
         const authSelector = this.generateAuthSelector(models);
 
@@ -132,6 +188,9 @@ export class PolicyGenerator {
                                     writer.writeLine(',');
                                 }
                             });
+                            writer.writeLine(',');
+
+                            writer.write('permissions: permissionsChecker');
 
                             if (authSelector) {
                                 writer.writeLine(',');

@@ -2,7 +2,7 @@
 
 import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
-import type { DbClientContract } from '../types';
+import type { DbClientContract, PolicyOperationKind } from '../types';
 import { createDeferredPromise } from './policy/promise';
 
 /**
@@ -50,6 +50,8 @@ export interface PrismaProxyHandler {
     count(args: any): Promise<unknown | number>;
 
     subscribe(args: any): Promise<unknown>;
+
+    check(operation: PolicyOperationKind, args: any): Promise<boolean>;
 }
 
 /**
@@ -154,6 +156,19 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         return this.prisma[this.model].subscribe(args);
     }
 
+    async check(operation: PolicyOperationKind, args: any): Promise<boolean> {
+        console.log("Hi from proxy check's new method");
+        console.log('Args: ', args);
+        console.log('Operation: ', operation);
+        args = await this.preprocessArgs('check', args);
+        // const r = await this.prisma[this.model].check(args);
+        // const r = new Promise<boolean>((resolve) => {
+        //     resolve(true);
+        // });
+        // return r;
+        return false;
+    }
+
     /**
      * Processes result entities before they're returned
      */
@@ -252,6 +267,10 @@ function createHandlerProxy<T extends PrismaProxyHandler>(
     return new Proxy(handler, {
         get(target, propKey) {
             const prop = target[propKey as keyof T];
+            // console.log('target: ', target); // PolicyProxyHandler
+            // console.log('propKey: ', propKey); // create
+            // console.log('prop: ', prop); // [Function create]
+
             if (typeof prop !== 'function') {
                 // the proxy handler doesn't have this method, fall back to the original target
                 // this can happen for new methods added by Prisma Client Extensions

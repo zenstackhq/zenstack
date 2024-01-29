@@ -16,7 +16,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { CRUDOperationKind, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import { PrismaProxyHandler } from '../proxy';
 import { formatObject, prismaClientValidationError } from '../utils';
@@ -1309,6 +1309,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.logger.info(`[policy] \`subscribe\` ${this.model}:\n${formatObject(args)}`);
         }
         return this.modelClient.subscribe(args);
+    }
+
+    //#endregion
+
+    //#region Check (custom method)
+
+    async check(operation: CRUDOperationKind, args: any): Promise<boolean> {
+        args = args ? this.utils.clone(args) : {};
+
+        // if (this.shouldLogQuery) {
+        this.logger.info(`[policy] \`check\` ${this.model} operation:\n${operation}`);
+        this.logger.info(`[policy] \`check\` ${this.model} args:\n${formatObject(args)}`);
+        // }
+
+        return this.utils.checkPermissions(this.model, operation, args, this.utils.user);
+        // return this.modelClient.check(operation, args);
     }
 
     //#endregion

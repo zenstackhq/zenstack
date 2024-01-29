@@ -27,10 +27,10 @@ import {
     type ModelMeta,
     type NestedWriteVisitorContext,
 } from '../../cross';
-import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { AuthUser, CRUDOperationKind, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
-import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import type { Condition, Conditions, InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import {
     formatObject,
     prismaClientKnownRequestError,
@@ -48,7 +48,7 @@ export class PolicyUtil {
     private readonly policy: PolicyDef;
     private readonly zodSchemas?: ZodSchemas;
     private readonly prismaModule: any;
-    private readonly user?: AuthUser;
+    public readonly user?: AuthUser;
 
     constructor(
         private readonly db: DbClientContract,
@@ -1359,6 +1359,89 @@ export class PolicyUtil {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
         return guard;
+    }
+
+    //#endregion
+
+    //#region Permissions
+
+    /**
+     * Checks permissions for the given operation
+     */
+    checkPermissions(model: string, operation: CRUDOperationKind, args: any, user: AuthUser | undefined): boolean {
+        console.log(
+            `Checking permissions for: model \`${model}\`, operation \`${operation}\`, args ${formatObject(
+                args
+            )}, user ${formatObject(user)}`
+        );
+        const permissions = this.policy.permissions;
+        if (!permissions) {
+            console.log('No permissions found'.toUpperCase());
+            throw this.unknownError(`unable to load policy permissions for ${model}`);
+        }
+        let topData = args;
+        switch (operation) {
+            case 'create':
+            case 'update':
+                topData = args.data;
+                break;
+            case 'read':
+            case 'delete':
+                topData = args.where;
+                break;
+        }
+        const conditions = permissions(topData, user)[model][operation];
+        console.log('Conditions: ', conditions);
+        return this.checkConditions(conditions, args);
+        // return new Promise<boolean>((resolve) => {
+        //     resolve(true);
+        // });
+    }
+
+    private checkCondition(condition: Condition, args: Record<string, unknown>): boolean {
+        return 'AND' in condition || 'OR' in condition
+            ? this.checkConditions(condition, args)
+            : this.compare(condition.field, condition.value, condition.operator);
+    }
+
+    private checkConditions(conditions: Conditions, args: Record<string, unknown>): boolean {
+        if (typeof conditions === 'boolean') {
+            return conditions;
+        }
+        if ('AND' in conditions) {
+            return conditions.AND.every((condition) => this.checkCondition(condition, args));
+        }
+        if ('OR' in conditions) {
+            return conditions.OR.some((condition) => this.checkCondition(condition, args));
+        }
+
+        // Neither AND or OR conditions => should not be possible...
+        return false;
+    }
+
+    /**
+     * Compare the given arg with the permission value
+     */
+    private compare(value1: any, value2: any, operator: string): boolean {
+        if (value1 === undefined || value2 === undefined) return false;
+        switch (operator) {
+            case '===':
+                return value1 === value2;
+            case '>':
+                return value1 > value2;
+            case '<':
+                return value1 < value2;
+            case 'in':
+                if (Array.isArray(value2)) {
+                    return value2.includes(value1);
+                } else if (typeof value2 === 'object') {
+                    return value1 in value2;
+                }
+                throw new Error(`Invalid use of 'in' operator.`);
+            // TODO: Add more comparison cases as needed (<=, ...)
+            default:
+                throw new Error(`Unsupported operator: ${operator}`);
+        }
     }
 
     //#endregion

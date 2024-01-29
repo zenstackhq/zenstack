@@ -1,10 +1,11 @@
-import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind } from '@zenstackhq/runtime';
+import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind, type CRUDOperationKind } from '@zenstackhq/runtime';
 import { PluginGlobalOptions } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
 import { PluginRunnerOptions } from '../cli/plugin-runner';
 
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
+export const CRUD_OPERATION_KINDS: CRUDOperationKind[] = ['create', 'update', 'read', 'delete'];
 
 /**
  * Gets the nearest "node_modules" folder by walking up from start path.
