@@ -55,18 +55,18 @@ export function getHooksContext() {
  * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
-export function useModelQuery<R>(
+export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<UseQueryOptions<R>, 'queryKey'>,
+    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);
-    return useQuery<R>({
+    return useQuery<TQueryFnData, TError, TData>({
         queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
-        queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
+        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
 }
@@ -81,17 +81,17 @@ export function useModelQuery<R>(
  * @param fetch The fetch function to use for sending the HTTP request
  * @returns useInfiniteQuery hook
  */
-export function useInfiniteModelQuery<R>(
+export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<UseInfiniteQueryOptions<R>, 'queryKey'>,
+    options?: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn
 ) {
-    return useInfiniteQuery<R>({
+    return useInfiniteQuery<TQueryFnData, TError, TData>({
         queryKey: getQueryKey(model, url, args, true),
         queryFn: ({ pageParam }) => {
-            return fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
         ...options,
     });

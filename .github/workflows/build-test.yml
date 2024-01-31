@@ -31,7 +31,7 @@ jobs:
 
         strategy:
             matrix:
-                node-version: [18.x]
+                node-version: [20.x]
                 prisma-version: [v4, v5]
 
         steps:

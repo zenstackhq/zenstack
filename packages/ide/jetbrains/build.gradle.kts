@@ -1,11 +1,15 @@
+import org.jetbrains.changelog.Changelog
+import org.jetbrains.changelog.date
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "1.9.21"
     id("org.jetbrains.intellij") version "1.16.1"
+    id("org.jetbrains.changelog") version "2.2.0"
 }
 
 group = "dev.zenstack"
-version = "1.7.1"
+version = "1.8.0"
 
 repositories {
     mavenCentral()
@@ -52,8 +56,17 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("231")
-        untilBuild.set("241.*")
+        sinceBuild.set("233.2")
+        untilBuild.set("251.*")
+        changeNotes.set(provider {
+            changelog.renderItem(
+                    changelog
+                            .getUnreleased()
+                            .withHeader(false)
+                            .withEmptySections(false),
+                    Changelog.OutputType.HTML
+            )
+        })
     }
 
     signPlugin {
@@ -65,4 +78,22 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
+}
+
+changelog {
+    header.set(provider { "[${version.get()}] - ${date()}" })
+    introduction.set(
+            """
+        [ZenStack](https://zenstack.dev) is a toolkit that simplifies the development of a web app's backend. This plugin provides code editing experiences for its ZModel schema language.
+        
+        ## Features
+        
+        - Syntax highlighting
+        - Error highlighting
+        - Go to definition
+        - Code completion
+        - Formatting
+        """.trimIndent()
+    )
+    groups.set(listOf("Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"))
 }

@@ -7,15 +7,15 @@ import { AstNode, getDocument, LangiumDocument, LangiumDocuments, Mutable } from
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import semver from 'semver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
+import { ZModelFormatter } from '../language-server/zmodel-formatter';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
+import { findPackageJson } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
-import { ZModelFormatter } from '../language-server/zmodel-formatter';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getPackageJson } from '../utils/pkg-utils';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.8.0';
@@ -279,13 +279,19 @@ export async function formatDocument(fileName: string) {
 }
 
 export function getDefaultSchemaLocation() {
-    let location = path.resolve('schema.zmodel');
-
     // handle override from package.json
-    const pkgJson = getPackageJson();
-    if (typeof pkgJson?.zenstack?.schema === 'string') {
-        location = path.resolve(pkgJson.zenstack.schema);
+    const pkgJsonPath = findPackageJson();
+    if (pkgJsonPath) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+        if (typeof pkgJson?.zenstack?.schema === 'string') {
+            if (path.isAbsolute(pkgJson.zenstack.schema)) {
+                return pkgJson.zenstack.schema;
+            } else {
+                // resolve relative to package.json
+                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.schema);
+            }
+        }
     }
 
-    return location;
+    return path.resolve('schema.zmodel');
 }
