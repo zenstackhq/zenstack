@@ -37,7 +37,7 @@ export type FullDbClientContract = Record<string, DbOperations> & {
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     const start = Date.now();
     execSync(cmd, {
-        stdio: 'inherit',
+        stdio: 'pipe',
         encoding: 'utf-8',
         env: { ...process.env, DO_NOT_TRACK: '1', ...env },
         cwd,
