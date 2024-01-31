@@ -51,7 +51,7 @@ import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
-import { getPackageJson } from '../../utils/pkg-utils';
+import { findPackageJson } from '../../utils/pkg-utils';
 import {
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
@@ -466,15 +466,19 @@ export default class PrismaSchemaGenerator {
 }
 
 export function getDefaultPrismaOutputFile(schemaPath: string) {
-    let result: string | undefined;
-
     // handle override from package.json
-    const pkgJson = getPackageJson();
-    if (typeof pkgJson.zenstack?.prisma === 'string') {
-        result = path.resolve(pkgJson.zenstack.prisma);
-    } else {
-        result = './prisma/schema.prisma';
+    const pkgJsonPath = findPackageJson(path.dirname(schemaPath));
+    if (pkgJsonPath) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+        if (typeof pkgJson?.zenstack?.prisma === 'string') {
+            if (path.isAbsolute(pkgJson.zenstack.prisma)) {
+                return pkgJson.zenstack.prisma;
+            } else {
+                // resolve relative to package.json
+                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.prisma);
+            }
+        }
     }
 
-    return resolvePath(result, { schemaPath });
+    return resolvePath('./prisma/schema.prisma', { schemaPath });
 }
