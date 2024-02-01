@@ -8,8 +8,8 @@ import sleep from 'sleep-promise';
 import { CliError } from './cli/cli-error';
 import { TELEMETRY_TRACKING_TOKEN } from './constants';
 import isDocker from './utils/is-docker';
-import { getVersion } from './utils/version-utils';
 import { getMachineId } from './utils/machine-id-utils';
+import { getVersion } from './utils/version-utils';
 
 /**
  * Telemetry events
