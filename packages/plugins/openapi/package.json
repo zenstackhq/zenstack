@@ -1,7 +1,7 @@
 {
   "name": "@zenstackhq/openapi",
   "displayName": "ZenStack Plugin and Runtime for OpenAPI",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "ZenStack plugin and runtime supporting OpenAPI",
   "main": "index.js",
   "repository": {
