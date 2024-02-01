@@ -90,7 +90,6 @@
         "langium": "1.2.0",
         "lower-case-first": "^2.0.2",
         "mixpanel": "^0.17.0",
-        "node-machine-id": "^1.1.12",
         "ora": "^5.4.1",
         "pluralize": "^8.0.0",
         "pretty-repl": "^4.0.0",
