@@ -89,6 +89,10 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
                 schema += `.url(${messageArgFirst})`;
                 break;
             }
+            case '@trim': {
+                schema += `.trim()`;
+                break;
+            }
             case '@datetime': {
                 schema += `.datetime({ offset: true${message ? ', message: ' + JSON.stringify(message) : ''} })`;
                 break;
