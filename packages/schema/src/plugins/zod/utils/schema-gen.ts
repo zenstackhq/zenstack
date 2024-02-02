@@ -93,6 +93,14 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
                 schema += `.trim()`;
                 break;
             }
+            case '@lower': {
+                schema += `.toLowerCase()`;
+                break;
+            }
+            case '@upper': {
+                schema += `.toUpperCase()`;
+                break;
+            }
             case '@datetime': {
                 schema += `.datetime({ offset: true${message ? ', message: ' + JSON.stringify(message) : ''} })`;
                 break;
