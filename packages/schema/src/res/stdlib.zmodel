@@ -515,6 +515,21 @@ attribute @datetime(_ message: String?) @@@targetField([StringField]) @@@validat
 attribute @url(_ message: String?) @@@targetField([StringField]) @@@validation
 
 /**
+ * Trims whitespaces from the start and end of the string.
+ */
+attribute @trim() @@@targetField([StringField]) @@@validation
+
+/**
+ * Transform entire string toLowerCase.
+ */
+attribute @lower() @@@targetField([StringField]) @@@validation
+
+/**
+ * Transform entire string toUpperCase.
+ */
+attribute @upper() @@@targetField([StringField]) @@@validation
+
+/**
  * Validates a number field is greater than the given value.
  */
 attribute @gt(_ value: Int, _ message: String?) @@@targetField([IntField, FloatField, DecimalField]) @@@validation
