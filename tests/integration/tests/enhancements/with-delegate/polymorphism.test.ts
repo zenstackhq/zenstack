@@ -1,11 +1,12 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
-describe('V2 Polymorphism Test', () => {
+describe('Polymorphism Test', () => {
     const schema = `
 model User {
     id Int @id @default(autoincrement())
     level Int @default(0)
     assets Asset[]
+    ratedVideos RatedVideo[] @relation('direct')
 
     @@allow('all', true)
 }
@@ -32,10 +33,19 @@ model Video extends Asset {
 
 model RatedVideo extends Video {
     rating Int
+    user User? @relation(name: 'direct', fields: [userId], references: [id])
+    userId Int?
 }
 
 model Image extends Asset {
     format String
+    gallery Gallery? @relation(fields: [galleryId], references: [id])
+    galleryId Int?
+}
+
+model Gallery {
+    id Int @id @default(autoincrement())
+    images Image[]
 }
 `;
 
@@ -54,8 +64,16 @@ model Image extends Asset {
         return { db, video, user, videoWithOwner };
     }
 
-    it('create', async () => {
-        const { db, user, videoWithOwner: video } = await setup();
+    it('create hierarchy', async () => {
+        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const db = enhance();
+
+        const user = await db.user.create({ data: { id: 1 } });
+
+        const video = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+            include: { owner: true },
+        });
 
         expect(video).toMatchObject({
             viewCount: 1,
@@ -67,8 +85,8 @@ model Image extends Asset {
             owner: user,
         });
 
-        expect(() => db.asset.create({ data: { type: 'Video' } })).toThrow('is a delegate');
-        expect(() => db.video.create({ data: { type: 'RatedVideo' } })).toThrow('is a delegate');
+        await expect(db.asset.create({ data: { type: 'Video' } })).rejects.toThrow('is a delegate');
+        await expect(db.video.create({ data: { type: 'RatedVideo' } })).rejects.toThrow('is a delegate');
 
         const image = await db.image.create({
             data: { owner: { connect: { id: user.id } }, viewCount: 1, format: 'png' },
@@ -80,6 +98,71 @@ model Image extends Asset {
             assetType: 'Image',
             owner: user,
         });
+
+        // create in a nested payload
+        const gallery = await db.gallery.create({
+            data: {
+                images: {
+                    create: [
+                        { owner: { connect: { id: user.id } }, format: 'png', viewCount: 1 },
+                        { owner: { connect: { id: user.id } }, format: 'jpg', viewCount: 2 },
+                    ],
+                },
+            },
+            include: { images: { include: { owner: true } } },
+        });
+        expect(gallery.images).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    format: 'png',
+                    assetType: 'Image',
+                    viewCount: 1,
+                    owner: user,
+                }),
+                expect.objectContaining({
+                    format: 'jpg',
+                    assetType: 'Image',
+                    viewCount: 2,
+                    owner: user,
+                }),
+            ])
+        );
+    });
+
+    it('create with base all defaults', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Base {
+                id Int @id @default(autoincrement())
+                createdAt DateTime @default(now())
+                type String
+
+                @@delegate(type)
+            }
+
+            model Foo extends Base {
+                name String
+            }
+            `,
+            { logPrismaQuery: true, enhancements: ['delegate'] }
+        );
+
+        const db = enhance();
+        const r = await db.foo.create({ data: { name: 'foo' } });
+        expect(r).toMatchObject({ name: 'foo', type: 'Foo', id: expect.any(Number), createdAt: expect.any(Date) });
+    });
+
+    it('create with nesting', async () => {
+        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const db = enhance();
+
+        // nested create a relation from base
+        await expect(
+            db.ratedVideo.create({
+                data: { owner: { create: { id: 2 } }, url: 'xyz', rating: 200, duration: 200 },
+                include: { owner: true },
+            })
+        ).resolves.toMatchObject({ owner: { id: 2 } });
     });
 
     it('read with concrete', async () => {
@@ -194,7 +277,7 @@ model Image extends Asset {
         expect(imgAsset.owner).toMatchObject(user);
     });
 
-    it('update', async () => {
+    it('update simple', async () => {
         const { db, videoWithOwner: video } = await setup();
 
         // update with concrete
@@ -222,8 +305,56 @@ model Image extends Asset {
         });
         expect(updated.viewCount).toBe(200);
 
-        // update with relation
-        updated = await db.asset.update({
+        // set discriminator
+        await expect(db.ratedVideo.update({ where: { id: video.id }, data: { assetType: 'Image' } })).rejects.toThrow(
+            'is a discriminator'
+        );
+        await expect(
+            db.ratedVideo.update({ where: { id: video.id }, data: { videoType: 'RatedVideo' } })
+        ).rejects.toThrow('is a discriminator');
+    });
+
+    it('update nested', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
+
+        // create delegate not allowed
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: {
+                    assets: {
+                        create: { viewCount: 1 },
+                    },
+                },
+                include: { assets: true },
+            })
+        ).rejects.toThrow('is a delegate');
+
+        // create concrete
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: {
+                    ratedVideos: {
+                        create: {
+                            viewCount: 1,
+                            duration: 100,
+                            url: 'xyz',
+                            rating: 100,
+                            owner: { connect: { id: user.id } },
+                        },
+                    },
+                },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([
+                expect.objectContaining({ viewCount: 1, duration: 100, url: 'xyz', rating: 100 }),
+            ]),
+        });
+
+        // update
+        let updated = await db.asset.update({
             where: { id: video.id },
             data: { owner: { update: { level: 1 } } },
             include: { owner: true },
@@ -246,13 +377,164 @@ model Image extends Asset {
         expect(updated.rating).toBe(300);
         expect(updated.owner.level).toBe(3);
 
+        // updateMany
+        await db.user.update({
+            where: { id: user.id },
+            data: {
+                ratedVideos: {
+                    create: { url: 'xyz', duration: 111, rating: 222, owner: { connect: { id: user.id } } },
+                },
+            },
+        });
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { updateMany: { where: { duration: 111 }, data: { rating: 333 } } } },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({ ratedVideos: expect.arrayContaining([expect.objectContaining({ rating: 333 })]) });
+
+        // delete with base
+        await db.user.update({
+            where: { id: user.id },
+            data: { assets: { delete: { id: video.id } } },
+        });
+        await expect(db.asset.findUnique({ where: { id: video.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: video.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: video.id } })).resolves.toBeNull();
+
+        // delete with concrete
+        const u = await db.user.update({
+            where: { id: user.id },
+            data: {
+                ratedVideos: {
+                    create: { url: 'xyz', duration: 111, rating: 222, owner: { connect: { id: user.id } } },
+                },
+            },
+            include: { ratedVideos: true },
+        });
+        const vid = u.ratedVideos[0].id;
+        await db.user.update({
+            where: { id: user.id },
+            data: { ratedVideos: { delete: { id: vid } } },
+        });
+        await expect(db.asset.findUnique({ where: { id: vid } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: vid } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: vid } })).resolves.toBeNull();
+
+        // nested create a relation from base
+        const newVideo = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
+        await expect(
+            db.ratedVideo.update({
+                where: { id: newVideo.id },
+                data: { owner: { create: { id: 2 } }, url: 'xyz', duration: 200, rating: 200 },
+                include: { owner: true },
+            })
+        ).resolves.toMatchObject({ owner: { id: 2 } });
+    });
+
+    it('updateMany', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
+        const otherVideo = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 10000, duration: 10000, url: 'xyz', rating: 10000 },
+        });
+
+        // update only the current level
+        await expect(
+            db.ratedVideo.updateMany({
+                where: { rating: video.rating, viewCount: video.viewCount },
+                data: { rating: 100 },
+            })
+        ).resolves.toMatchObject({ count: 1 });
+        let read = await db.ratedVideo.findUnique({ where: { id: video.id } });
+        expect(read).toMatchObject({ rating: 100 });
+
+        // update with concrete
+        await expect(
+            db.ratedVideo.updateMany({
+                where: { id: video.id },
+                data: { viewCount: 1, duration: 11, rating: 101 },
+            })
+        ).resolves.toMatchObject({ count: 1 });
+        read = await db.ratedVideo.findUnique({ where: { id: video.id } });
+        expect(read).toMatchObject({ viewCount: 1, duration: 11, rating: 101 });
+
+        // update with base
+        await db.video.updateMany({
+            where: { viewCount: 1, duration: 11 },
+            data: { viewCount: 2, duration: 12 },
+        });
+        read = await db.ratedVideo.findUnique({ where: { id: video.id } });
+        expect(read).toMatchObject({ viewCount: 2, duration: 12 });
+
+        // update with base
+        await db.asset.updateMany({
+            where: { viewCount: 2 },
+            data: { viewCount: 3 },
+        });
+        read = await db.ratedVideo.findUnique({ where: { id: video.id } });
+        expect(read.viewCount).toBe(3);
+
+        // the other video is unchanged
+        await expect(await db.ratedVideo.findUnique({ where: { id: otherVideo.id } })).toMatchObject(otherVideo);
+
+        // update with concrete no where
+        await expect(
+            db.ratedVideo.updateMany({
+                data: { viewCount: 111, duration: 111, rating: 111 },
+            })
+        ).resolves.toMatchObject({ count: 2 });
+        await expect(db.ratedVideo.findUnique({ where: { id: video.id } })).resolves.toMatchObject({ duration: 111 });
+        await expect(db.ratedVideo.findUnique({ where: { id: otherVideo.id } })).resolves.toMatchObject({
+            duration: 111,
+        });
+
         // set discriminator
-        expect(() => db.ratedVideo.update({ where: { id: video.id }, data: { assetType: 'Image' } })).toThrow(
+        await expect(db.ratedVideo.updateMany({ data: { assetType: 'Image' } })).rejects.toThrow('is a discriminator');
+        await expect(db.ratedVideo.updateMany({ data: { videoType: 'RatedVideo' } })).rejects.toThrow(
             'is a discriminator'
         );
-        expect(() => db.ratedVideo.update({ where: { id: video.id }, data: { videoType: 'RatedVideo' } })).toThrow(
-            'is a discriminator'
-        );
+    });
+
+    it('upsert', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
+
+        await expect(
+            db.asset.upsert({
+                where: { id: video.id },
+                create: { id: video.id, viewCount: 1 },
+                update: { viewCount: 2 },
+            })
+        ).rejects.toThrow('is a delegate');
+
+        // update
+        await expect(
+            db.ratedVideo.upsert({
+                where: { id: video.id },
+                create: {
+                    viewCount: 1,
+                    duration: 300,
+                    url: 'xyz',
+                    rating: 100,
+                    owner: { connect: { id: user.id } },
+                },
+                update: { duration: 200 },
+            })
+        ).resolves.toMatchObject({
+            id: video.id,
+            duration: 200,
+        });
+
+        // create
+        const created = await db.ratedVideo.upsert({
+            where: { id: video.id + 1 },
+            create: { viewCount: 1, duration: 300, url: 'xyz', rating: 100, owner: { connect: { id: user.id } } },
+            update: { duration: 200 },
+        });
+        expect(created.id).not.toEqual(video.id);
+        expect(created.duration).toBe(300);
     });
 
     it('delete', async () => {

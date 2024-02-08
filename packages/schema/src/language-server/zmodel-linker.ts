@@ -469,12 +469,12 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
-        if (node.superTypes.length > 0) {
-            const providers = node.superTypes.map(
-                (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
-            );
-            extraScopes = [...providers, ...extraScopes];
-        }
+        // if (node.superTypes.length > 0) {
+        //     const providers = node.superTypes.map(
+        //         (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
+        //     );
+        //     extraScopes = [...providers, ...extraScopes];
+        // }
 
         return this.resolveDefault(node, document, extraScopes);
     }

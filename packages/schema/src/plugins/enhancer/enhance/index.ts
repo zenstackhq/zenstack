@@ -79,7 +79,7 @@ async function processClientTypes(model: Model, prismaClientDir: string) {
 
     const delegateModels: [DataModel, DataModel[]][] = [];
     model.declarations
-        .filter((d): d is DataModel => isDataModel(d) && hasAttribute(d, '@@delegate'))
+        .filter((d): d is DataModel => isDelegateModel(d))
         .forEach((dm) => {
             delegateModels.push([
                 dm,

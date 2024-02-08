@@ -1,5 +1,5 @@
 import { lowerCaseFirst } from 'lower-case-first';
-import { ModelMeta } from '.';
+import { ModelInfo, ModelMeta } from '.';
 
 /**
  * Gets field names in a data model entity, filtering out internal fields.
@@ -62,7 +62,11 @@ export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound
     return result;
 }
 
-export function getModelInfo(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
+export function getModelInfo<Throw extends boolean = false>(
+    modelMeta: ModelMeta,
+    model: string,
+    throwIfNotFound: Throw = false as Throw
+): Throw extends true ? ModelInfo : ModelInfo | undefined {
     const info = modelMeta.models[lowerCaseFirst(model)];
     if (!info && throwIfNotFound) {
         throw new Error(`Unable to load info for ${model}`);
@@ -71,5 +75,5 @@ export function getModelInfo(modelMeta: ModelMeta, model: string, throwIfNotFoun
 }
 
 export function isDelegateModel(modelMeta: ModelMeta, model: string) {
-    return !!getModelInfo(modelMeta, model, true).attributes?.some((attr) => attr.name === '@@delegate');
+    return !!getModelInfo(modelMeta, model)?.attributes?.some((attr) => attr.name === '@@delegate');
 }

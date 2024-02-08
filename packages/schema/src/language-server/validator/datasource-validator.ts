@@ -9,7 +9,7 @@ import { SUPPORTED_PROVIDERS } from '../constants';
  */
 export default class DataSourceValidator implements AstValidator<DataSource> {
     validate(ds: DataSource, accept: ValidationAcceptor): void {
-        validateDuplicatedDeclarations(ds.fields, accept);
+        validateDuplicatedDeclarations(ds, ds.fields, accept);
         this.validateProvider(ds, accept);
         this.validateUrl(ds, accept);
         this.validateRelationMode(ds, accept);

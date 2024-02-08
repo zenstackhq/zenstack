@@ -52,6 +52,13 @@ declare module './generated/ast' {
     interface DataModelAttribute {
         $inheritedFrom?: DataModel;
     }
+
+    export interface DataModel {
+        /**
+         * Indicates whether the model is already merged with the base types
+         */
+        $baseMerged?: boolean;
+    }
 }
 
 export interface InheritableNode extends AstNode {

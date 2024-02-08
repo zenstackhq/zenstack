@@ -172,28 +172,6 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     protected async preprocessArgs(method: PrismaProxyActions, args: any) {
         return args;
     }
-
-    /**
-     * Initiates a transaction.
-     */
-    protected transaction(action: (tx: Record<string, DbClientContract['string']>) => Promise<any>) {
-        if (this.prisma['$transaction']) {
-            return this.prisma.$transaction(
-                (tx) => {
-                    (tx as any)[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient$tx';
-                    return action(tx);
-                },
-                {
-                    maxWait: this.options.transactionMaxWait,
-                    timeout: this.options.transactionTimeout,
-                    isolationLevel: this.options.transactionIsolationLevel,
-                }
-            );
-        } else {
-            // already in transaction, don't nest
-            return action(this.prisma);
-        }
-    }
 }
 
 // a marker for filtering error stack trace

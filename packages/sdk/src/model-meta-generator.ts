@@ -16,6 +16,7 @@ import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
 import {
     getAttribute,
     getAttributeArg,
+    getAttributeArgLiteral,
     getAttributeArgs,
     getAuthModel,
     getDataModels,
@@ -250,9 +251,11 @@ function getBackLink(field: DataModelField) {
 }
 
 function getRelationName(field: DataModelField) {
-    const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === 'relation');
-    const relName = relAttr && relAttr.args?.[0] && getLiteral<string>(relAttr.args?.[0].value);
-    return relName;
+    const relAttr = getAttribute(field, '@relation');
+    if (!relAttr) {
+        return undefined;
+    }
+    return getAttributeArgLiteral(relAttr, 'name');
 }
 
 function getAttributes(target: DataModelField | DataModel): RuntimeAttribute[] {

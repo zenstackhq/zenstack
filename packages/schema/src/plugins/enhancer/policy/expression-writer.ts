@@ -2,9 +2,11 @@ import {
     BinaryExpr,
     BooleanLiteral,
     DataModel,
+    DataModelField,
     Expression,
     InvocationExpr,
     isDataModel,
+    isDataModelField,
     isEnumField,
     isMemberAccessExpr,
     isReferenceExpr,
@@ -13,18 +15,22 @@ import {
     MemberAccessExpr,
     NumberLiteral,
     ReferenceExpr,
+    ReferenceTarget,
     StringLiteral,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
+import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     getFunctionExpressionContext,
     getLiteral,
     isDataModelFieldReference,
+    isDelegateModel,
     isFutureExpr,
     PluginError,
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
+import invariant from 'tiny-invariant';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '..';
 import { getIdFields, isAuthInvocation } from '../../../utils/ast-utils';
@@ -114,9 +120,42 @@ export class ExpressionWriter {
             throw new Error('We should never get here');
         } else {
             this.block(() => {
-                this.writer.write(`${expr.target.ref?.name}: true`);
+                const ref = expr.target.ref;
+                invariant(ref);
+                if (this.isFieldReferenceToDelegateModel(ref)) {
+                    const thisModel = ref.$container as DataModel;
+                    const targetBase = ref.$inheritedFrom;
+                    this.writeBaseHierarchy(thisModel, targetBase, () => this.writer.write(`${ref.name}: true`));
+                } else {
+                    this.writer.write(`${ref.name}: true`);
+                }
             });
         }
+    }
+
+    private writeBaseHierarchy(thisModel: DataModel, targetBase: DataModel | undefined, conditionWriter: () => void) {
+        if (!targetBase || thisModel === targetBase) {
+            conditionWriter();
+            return;
+        }
+
+        const base = this.getDelegateBase(thisModel);
+        if (!base) {
+            throw new PluginError(name, `Failed to resolve delegate base model for "${thisModel.name}"`);
+        }
+
+        this.writer.write(`${`${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(base.name)}`}: `);
+        this.writer.block(() => {
+            this.writeBaseHierarchy(base, targetBase, conditionWriter);
+        });
+    }
+
+    private getDelegateBase(model: DataModel) {
+        return model.superTypes.map((t) => t.ref).filter((t) => t && isDelegateModel(t))?.[0];
+    }
+
+    private isFieldReferenceToDelegateModel(ref: ReferenceTarget): ref is DataModelField {
+        return isDataModelField(ref) && !!ref.$inheritedFrom && isDelegateModel(ref.$inheritedFrom);
     }
 
     private writeMemberAccess(expr: MemberAccessExpr) {
@@ -497,48 +536,67 @@ export class ExpressionWriter {
         filterOp?: FilterOperators,
         extraArgs?: Record<string, Expression>
     ) {
-        let selector: string | undefined;
+        // let selector: string | undefined;
         let operand: Expression | undefined;
+        let fieldWriter: ((conditionWriter: () => void) => void) | undefined;
 
         if (isThisExpr(fieldAccess)) {
             // pass on
             writeCondition();
             return;
         } else if (isReferenceExpr(fieldAccess)) {
-            selector = fieldAccess.target.ref?.name;
-        } else if (isMemberAccessExpr(fieldAccess)) {
-            if (isFutureExpr(fieldAccess.operand)) {
-                // future().field should be treated as the "field"
-                selector = fieldAccess.member.ref?.name;
+            const ref = fieldAccess.target.ref;
+            invariant(ref);
+            if (this.isFieldReferenceToDelegateModel(ref)) {
+                const thisModel = ref.$container as DataModel;
+                const targetBase = ref.$inheritedFrom;
+                fieldWriter = (conditionWriter: () => void) =>
+                    this.writeBaseHierarchy(thisModel, targetBase, () => {
+                        this.writer.write(`${ref.name}: `);
+                        conditionWriter();
+                    });
             } else {
-                selector = fieldAccess.member.ref?.name;
+                fieldWriter = (conditionWriter: () => void) => {
+                    this.writer.write(`${ref.name}: `);
+                    conditionWriter();
+                };
+            }
+        } else if (isMemberAccessExpr(fieldAccess)) {
+            if (!isFutureExpr(fieldAccess.operand)) {
+                // future().field should be treated as the "field"
                 operand = fieldAccess.operand;
             }
+            fieldWriter = (conditionWriter: () => void) => {
+                this.writer.write(`${fieldAccess.member.ref?.name}: `);
+                conditionWriter();
+            };
         } else {
             throw new PluginError(name, `Unsupported expression type: ${fieldAccess.$type}`);
         }
 
-        if (!selector) {
+        if (!fieldWriter) {
             throw new PluginError(name, `Failed to write FieldAccess expression`);
         }
 
         const writerFilterOutput = () => {
-            this.writer.write(selector + ': ');
-            if (filterOp) {
-                this.block(() => {
-                    this.writer.write(`${filterOp}: `);
-                    writeCondition();
+            // this.writer.write(selector + ': ');
+            fieldWriter!(() => {
+                if (filterOp) {
+                    this.block(() => {
+                        this.writer.write(`${filterOp}: `);
+                        writeCondition();
 
-                    if (extraArgs) {
-                        for (const [k, v] of Object.entries(extraArgs)) {
-                            this.writer.write(`,\n${k}: `);
-                            this.plain(v);
+                        if (extraArgs) {
+                            for (const [k, v] of Object.entries(extraArgs)) {
+                                this.writer.write(`,\n${k}: `);
+                                this.plain(v);
+                            }
                         }
-                    }
-                });
-            } else {
-                writeCondition();
-            }
+                    });
+                } else {
+                    writeCondition();
+                }
+            });
         };
 
         if (operand) {

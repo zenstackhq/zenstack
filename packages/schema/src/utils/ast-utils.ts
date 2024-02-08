@@ -49,26 +49,38 @@ type BuildReference = (
 export function mergeBaseModel(model: Model, linker: Linker) {
     const buildReference = linker.buildReference.bind(linker);
 
-    model.declarations
-        .filter((x) => x.$type === 'DataModel')
-        .forEach((decl) => {
-            const dataModel = decl as DataModel;
+    model.declarations.filter(isDataModel).forEach((decl) => {
+        const dataModel = decl as DataModel;
 
-            dataModel.fields = dataModel.superTypes
+        const bases = getRecursiveBases(dataModel);
+        if (bases.length > 0) {
+            dataModel.fields = bases
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                .flatMap((superType) => superType.ref!.fields)
+                .flatMap((base) => base.fields)
+                // don't inherit skip-level fields
+                .filter((f) => !f.$inheritedFrom)
                 .map((f) => cloneAst(f, dataModel, buildReference))
                 .concat(dataModel.fields);
 
-            dataModel.attributes = dataModel.superTypes
+            dataModel.attributes = bases
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                .flatMap((superType) => superType.ref!.attributes)
+                .flatMap((base) => base.attributes)
+                // don't inherit skip-level attributes
+                .filter((attr) => !attr.$inheritedFrom)
+                // don't inherit `@@delegate` attribute
+                .filter((attr) => attr.decl.$refText !== '@@delegate')
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
-        });
+        }
+
+        dataModel.$baseMerged = true;
+    });
 
     // remove abstract models
     model.declarations = model.declarations.filter((x) => !(isDataModel(x) && x.isAbstract));
+
+    // // remove super types
+    // model.declarations.filter(isDataModel).forEach((decl) => decl.superTypes.splice(0));
 }
 
 // deep clone an AST, relink references, and set its container
@@ -81,13 +93,16 @@ function cloneAst<T extends InheritableNode>(
     clone.$container = newContainer;
     clone.$containerProperty = node.$containerProperty;
     clone.$containerIndex = node.$containerIndex;
-    clone.$inheritedFrom = getContainerOfType(node, isDataModel);
+    clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
     return clone;
 }
 
 // this function is copied from Langium's ast-utils, but copying $resolvedType as well
 function copyAstNode<T extends AstNode = AstNode>(node: T, buildReference: BuildReference): T {
-    const copy: GenericAstNode = { $type: node.$type, $resolvedType: node.$resolvedType };
+    const copy: GenericAstNode = { $type: node.$type };
+    if (node.$resolvedType) {
+        copy.$resolvedType = node.$resolvedType;
+    }
 
     for (const [name, value] of Object.entries(node)) {
         if (!name.startsWith('$')) {

@@ -1,21 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import deepcopy from 'deepcopy';
+import deepmerge from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import { DELEGATE_AUX_RELATION_PREFIX } from '../constants';
 import {
     FieldInfo,
     ModelInfo,
+    NestedWriteVisitor,
     enumerate,
     getIdFields,
     getModelInfo,
-    getUniqueConstraints,
     isDelegateModel,
+    requireField,
     resolveField,
 } from '../cross';
 import { DbClientContract, DbOperations } from '../types';
 import { EnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
+import { QueryUtils } from './query-utils';
 import { formatObject, prismaClientValidationError } from './utils';
 
 export function withDelegate<DbClient extends object>(prisma: DbClient, options: EnhancementOptions): DbClient {
@@ -29,166 +32,13 @@ export function withDelegate<DbClient extends object>(prisma: DbClient, options:
 
 export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private readonly logger: Logger;
+    private readonly queryUtils: QueryUtils;
 
     constructor(prisma: DbClientContract, model: string, options: EnhancementOptions) {
         super(prisma, model, options);
         this.logger = new Logger(prisma);
+        this.queryUtils = new QueryUtils(prisma, this.options);
     }
-
-    // #region create
-
-    override create(args: any): Promise<unknown> {
-        if (!args) {
-            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
-        }
-        if (!args.data) {
-            throw prismaClientValidationError(
-                this.prisma,
-                this.options.prismaModule,
-                'data field is required in query argument'
-            );
-        }
-
-        if (isDelegateModel(this.options.modelMeta, this.model)) {
-            throw prismaClientValidationError(
-                this.prisma,
-                this.options.prismaModule,
-                `Model ${this.model} is a delegate and cannot be created directly`
-            );
-        }
-
-        if (!this.hasBaseModel(this.model)) {
-            return super.create(args);
-        }
-
-        args = deepcopy(args);
-        const selectInclude = this.buildSelectIncludeHierarchy(args);
-        const dataHierarchy = this.makeCreateUpdateHierarchy(this.model, args.data, 'create');
-
-        return this.doCreate(this.prisma, this.model, { ...args, data: dataHierarchy, ...selectInclude });
-    }
-
-    override createMany(args: { data: any; skipDuplicates?: boolean }): Promise<{ count: number }> {
-        if (!args) {
-            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
-        }
-        if (!args.data) {
-            throw prismaClientValidationError(
-                this.prisma,
-                this.options.prismaModule,
-                'data field is required in query argument'
-            );
-        }
-
-        if (!this.hasBaseModel(this.model)) {
-            return super.createMany(args);
-        }
-
-        // note that we can't call `createMany` directly because it doesn't support
-        // nested created, which is needed for creating base entities
-        return this.transaction(async (tx) => {
-            const r = await Promise.all(
-                enumerate(args.data).map(async (item) => {
-                    if (args.skipDuplicates) {
-                        if (await this.checkUniqueConstraintExistence(tx, this.model, item)) {
-                            return undefined;
-                        }
-                    }
-                    const dataHierarchy = this.makeCreateUpdateHierarchy(this.model, item, 'create');
-                    return this.doCreate(tx, this.model, { ...item, ...dataHierarchy });
-                })
-            );
-
-            // filter out undefined value (due to skipping duplicates)
-            return { count: r.filter((item) => !!item).length };
-        });
-    }
-
-    private async checkUniqueConstraintExistence(db: Record<string, DbOperations>, model: string, item: any) {
-        const uniqueConstraints = getUniqueConstraints(this.options.modelMeta, model);
-        if (uniqueConstraints) {
-            for (const constraint of Object.values(uniqueConstraints)) {
-                if (constraint.fields.every((f) => item[f] !== undefined)) {
-                    const uniqueFilter = constraint.fields.reduce((acc, f) => ({ ...acc, [f]: item[f] }), {});
-
-                    if (this.options.logPrismaQuery) {
-                        this.logger.info(
-                            `[delegate] checking ${model} existence: \`findUnique\`:\n${formatObject(uniqueFilter)}`
-                        );
-                    }
-                    const existing = await db[model].findUnique(uniqueFilter);
-                    if (existing) {
-                        if (this.options.logPrismaQuery) {
-                            this.logger.info(`[delegate] skipping duplicate ${formatObject(item)}`);
-                        }
-                        return undefined;
-                    }
-                }
-            }
-        }
-    }
-
-    private async doCreate(db: Record<string, DbOperations>, model: string, args: any) {
-        if (this.options.logPrismaQuery) {
-            this.logger.info(`[delegate] \`create\` ${this.getModelName(model)}: ${formatObject(args)}`);
-        }
-        const result = await db[model].create(args);
-        return this.assembleHierarchy(model, result);
-    }
-
-    private makeCreateUpdateHierarchy(model: string, data: any, mode: 'create' | 'update') {
-        const result: any = {};
-
-        for (const [field, value] of Object.entries(data)) {
-            const fieldInfo = resolveField(this.options.modelMeta, model, field);
-            if (!fieldInfo?.inheritedFrom) {
-                result[field] = value;
-                continue;
-            }
-            this.injectBaseFieldData(fieldInfo, value, result, mode);
-        }
-
-        return result;
-    }
-
-    private injectBaseFieldData(fieldInfo: FieldInfo, value: unknown, result: any, mode: 'create' | 'update') {
-        let base = this.getBaseModel(this.model);
-        let sub = this.getModelInfo(this.model);
-        let curr = result;
-        while (base) {
-            if (base.discriminator === fieldInfo.name) {
-                throw prismaClientValidationError(
-                    this.prisma,
-                    this.options.prismaModule,
-                    `fields "${fieldInfo.name}" is a discriminator and cannot be set directly`
-                );
-            }
-
-            const baseRelationName = this.makeBaseRelationName(base);
-
-            if (!curr[baseRelationName]) {
-                curr[baseRelationName] = {};
-            }
-            if (!curr[baseRelationName][mode]) {
-                curr[baseRelationName][mode] = {};
-                if (mode === 'create' && base.discriminator) {
-                    // set discriminator field
-                    curr[baseRelationName][mode][base.discriminator] = sub.name;
-                }
-            }
-            curr = curr[baseRelationName][mode];
-
-            if (fieldInfo.inheritedFrom === base.name) {
-                curr[fieldInfo.name] = value;
-                break;
-            }
-
-            sub = base;
-            base = this.getBaseModel(base.name);
-        }
-    }
-
-    // #endregion
 
     // #region find
 
@@ -218,24 +68,62 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         method: 'findFirst' | 'findFirstOrThrow' | 'findUnique' | 'findUniqueOrThrow' | 'findMany',
         args: any
     ) {
-        if (!this.hasBaseModel(model)) {
+        if (!this.involvesDelegateModel(model)) {
             return super[method](args);
         }
 
-        const where = this.buildWhereHierarchy(args?.where);
-        const selectInclude = this.buildSelectIncludeHierarchy(args);
-        const findArgs = { ...args, where, ...selectInclude };
+        args = args ? deepcopy(args) : {};
+
+        this.injectWhereHierarchy(model, args?.where);
+        this.injectSelectIncludeHierarchy(model, args);
 
         if (this.options.logPrismaQuery) {
-            this.logger.info(`[delegate] \`${method}\` ${this.getModelName(model)}: ${formatObject(findArgs)}`);
+            this.logger.info(`[delegate] \`${method}\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }
-        const entity = await db[model][method](findArgs);
+        const entity = await db[model][method](args);
 
-        for (const item of enumerate(entity)) {
-            this.assembleHierarchy(model, item);
+        if (Array.isArray(entity)) {
+            return entity.map((item) => this.assembleHierarchy(model, item));
+        } else {
+            return this.assembleHierarchy(model, entity);
+        }
+    }
+
+    private injectWhereHierarchy(model: string, where: any) {
+        if (!where || typeof where !== 'object') {
+            return;
         }
 
-        return entity;
+        Object.entries(where).forEach(([field, value]) => {
+            const fieldInfo = resolveField(this.options.modelMeta, model, field);
+            if (!fieldInfo?.inheritedFrom) {
+                return;
+            }
+
+            let base = this.getBaseModel(model);
+            let target = where;
+
+            while (base) {
+                const baseRelationName = this.makeAuxRelationName(base);
+
+                // prepare base layer where
+                let thisLayer: any;
+                if (target[baseRelationName]) {
+                    thisLayer = target[baseRelationName];
+                } else {
+                    thisLayer = target[baseRelationName] = {};
+                }
+
+                if (base.name === fieldInfo.inheritedFrom) {
+                    thisLayer[field] = value;
+                    delete where[field];
+                    break;
+                } else {
+                    target = thisLayer;
+                    base = this.getBaseModel(base.name);
+                }
+            }
+        });
     }
 
     private buildWhereHierarchy(where: any) {
@@ -254,7 +142,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             let target = where;
 
             while (base) {
-                const baseRelationName = this.makeBaseRelationName(base);
+                const baseRelationName = this.makeAuxRelationName(base);
 
                 // prepare base layer where
                 let thisLayer: any;
@@ -278,14 +166,46 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         return where;
     }
 
-    private buildSelectIncludeHierarchy(args: any) {
+    private injectSelectIncludeHierarchy(model: string, args: any) {
+        if (!args || typeof args !== 'object') {
+            return;
+        }
+
+        for (const kind of ['select', 'include'] as const) {
+            if (args[kind] && typeof args[kind] === 'object') {
+                for (const [field, value] of Object.entries(args[kind])) {
+                    if (value !== undefined) {
+                        if (this.injectBaseFieldSelect(model, field, value, args, kind)) {
+                            delete args[kind][field];
+                        } else {
+                            const fieldInfo = resolveField(this.options.modelMeta, model, field);
+                            if (fieldInfo && this.isDelegateOrDescendantOfDelegate(fieldInfo.type)) {
+                                let nextValue = value;
+                                if (nextValue === true) {
+                                    // make sure the payload is an object
+                                    args[kind][field] = nextValue = {};
+                                }
+                                this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!args.select) {
+            this.injectBaseIncludeRecursively(model, args);
+        }
+    }
+
+    private buildSelectIncludeHierarchy(model: string, args: any) {
         args = deepcopy(args);
         const selectInclude: any = this.extractSelectInclude(args) || {};
 
         if (selectInclude.select && typeof selectInclude.select === 'object') {
             Object.entries(selectInclude.select).forEach(([field, value]) => {
                 if (value) {
-                    if (this.injectBaseFieldSelect(this.model, field, value, selectInclude, 'select')) {
+                    if (this.injectBaseFieldSelect(model, field, value, selectInclude, 'select')) {
                         delete selectInclude.select[field];
                     }
                 }
@@ -293,7 +213,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         } else if (selectInclude.include && typeof selectInclude.include === 'object') {
             Object.entries(selectInclude.include).forEach(([field, value]) => {
                 if (value) {
-                    if (this.injectBaseFieldSelect(this.model, field, value, selectInclude, 'include')) {
+                    if (this.injectBaseFieldSelect(model, field, value, selectInclude, 'include')) {
                         delete selectInclude.include[field];
                     }
                 }
@@ -301,7 +221,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
 
         if (!selectInclude.select) {
-            this.injectBaseIncludeRecursively(this.model, selectInclude);
+            this.injectBaseIncludeRecursively(model, selectInclude);
         }
         return selectInclude;
     }
@@ -322,7 +242,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         let target = selectInclude;
 
         while (base) {
-            const baseRelationName = this.makeBaseRelationName(base);
+            const baseRelationName = this.makeAuxRelationName(base);
 
             // prepare base layer select/include
             // let selectOrInclude = 'select';
@@ -361,7 +281,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         if (!base) {
             return;
         }
-        const baseRelationName = this.makeBaseRelationName(base);
+        const baseRelationName = this.makeAuxRelationName(base);
 
         if (selectInclude.select) {
             selectInclude.include = { [baseRelationName]: {}, ...selectInclude.select };
@@ -374,7 +294,193 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
     // #endregion
 
-    // #region
+    // #region create
+
+    override async create(args: any) {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
+        }
+        if (!args.data) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                'data field is required in query argument'
+            );
+        }
+
+        if (isDelegateModel(this.options.modelMeta, this.model)) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                `Model "${this.model}" is a delegate and cannot be created directly`
+            );
+        }
+
+        if (!this.involvesDelegateModel(this.model)) {
+            return super.create(args);
+        }
+
+        return this.doCreate(this.prisma, this.model, args);
+    }
+
+    override createMany(args: { data: any; skipDuplicates?: boolean }): Promise<{ count: number }> {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
+        }
+        if (!args.data) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                'data field is required in query argument'
+            );
+        }
+
+        if (!this.involvesDelegateModel(this.model)) {
+            return super.createMany(args);
+        }
+
+        if (this.isDelegateOrDescendantOfDelegate(this.model) && args.skipDuplicates) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
+            );
+        }
+
+        // note that we can't call `createMany` directly because it doesn't support
+        // nested created, which is needed for creating base entities
+        return this.queryUtils.transaction(this.prisma, async (tx) => {
+            const r = await Promise.all(
+                enumerate(args.data).map(async (item) => {
+                    return this.doCreate(tx, this.model, item);
+                })
+            );
+
+            // filter out undefined value (due to skipping duplicates)
+            return { count: r.filter((item) => !!item).length };
+        });
+    }
+
+    private async doCreate(db: Record<string, DbOperations>, model: string, args: any) {
+        args = deepcopy(args);
+
+        await this.injectCreateHierarchy(model, args);
+        this.injectSelectIncludeHierarchy(model, args);
+
+        if (this.options.logPrismaQuery) {
+            this.logger.info(`[delegate] \`create\` ${this.getModelName(model)}: ${formatObject(args)}`);
+        }
+        const result = await db[model].create(args);
+        return this.assembleHierarchy(model, result);
+    }
+
+    private async injectCreateHierarchy(model: string, args: any) {
+        const visitor = new NestedWriteVisitor(this.options.modelMeta, {
+            create: (model, args, _context) => {
+                this.doProcessCreatePayload(model, args);
+            },
+
+            createMany: (model, args, _context) => {
+                if (args.skipDuplicates) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.options.prismaModule,
+                        '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
+                    );
+                }
+
+                for (const item of enumerate(args?.data)) {
+                    this.doProcessCreatePayload(model, item);
+                }
+            },
+        });
+
+        await visitor.visit(model, 'create', args);
+    }
+
+    private doProcessCreatePayload(model: string, args: any) {
+        if (!args) {
+            return;
+        }
+
+        this.ensureBaseCreateHierarchy(model, args);
+
+        for (const [field, value] of Object.entries(args)) {
+            const fieldInfo = resolveField(this.options.modelMeta, model, field);
+            if (fieldInfo?.inheritedFrom) {
+                this.injectBaseFieldData(model, fieldInfo, value, args, 'create');
+                delete args[field];
+            }
+        }
+    }
+
+    // ensure the full nested "create" structure is created for base types
+    private ensureBaseCreateHierarchy(model: string, result: any) {
+        let curr = result;
+        let base = this.getBaseModel(model);
+        let sub = this.getModelInfo(model);
+
+        while (base) {
+            const baseRelationName = this.makeAuxRelationName(base);
+
+            if (!curr[baseRelationName]) {
+                curr[baseRelationName] = {};
+            }
+            if (!curr[baseRelationName].create) {
+                curr[baseRelationName].create = {};
+                if (base.discriminator) {
+                    // set discriminator field
+                    curr[baseRelationName].create[base.discriminator] = sub.name;
+                }
+            }
+            curr = curr[baseRelationName].create;
+            sub = base;
+            base = this.getBaseModel(base.name);
+        }
+    }
+
+    // inject field data that belongs to base type into proper nesting structure
+    private injectBaseFieldData(
+        model: string,
+        fieldInfo: FieldInfo,
+        value: unknown,
+        args: any,
+        mode: 'create' | 'update'
+    ) {
+        let base = this.getBaseModel(model);
+        let curr = args;
+
+        while (base) {
+            if (base.discriminator === fieldInfo.name) {
+                throw prismaClientValidationError(
+                    this.prisma,
+                    this.options.prismaModule,
+                    `fields "${fieldInfo.name}" is a discriminator and cannot be set directly`
+                );
+            }
+
+            const baseRelationName = this.makeAuxRelationName(base);
+
+            if (!curr[baseRelationName]) {
+                curr[baseRelationName] = {};
+            }
+            if (!curr[baseRelationName][mode]) {
+                curr[baseRelationName][mode] = {};
+            }
+            curr = curr[baseRelationName][mode];
+
+            if (fieldInfo.inheritedFrom === base.name) {
+                curr[fieldInfo.name] = value;
+                break;
+            }
+
+            base = this.getBaseModel(base.name);
+        }
+    }
+
+    // #endregion
+
+    // #region update
 
     override update(args: any): Promise<unknown> {
         if (!args) {
@@ -388,17 +494,14 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.update(args);
         }
 
-        const selectInclude = this.buildSelectIncludeHierarchy(args);
-        const dataHierarchy = this.makeCreateUpdateHierarchy(this.model, args.data, 'update');
-
-        return this.doUpdate(this.prisma, this.model, { ...args, data: dataHierarchy, ...selectInclude });
+        return this.queryUtils.transaction(this.prisma, (tx) => this.doUpdate(tx, this.model, args));
     }
 
-    override updateMany(args: any): Promise<{ count: number }> {
+    override async updateMany(args: any): Promise<{ count: number }> {
         if (!args) {
             throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
         }
@@ -410,28 +513,227 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.updateMany(args);
         }
 
-        return this.transaction(async (tx) => {
-            const r = await Promise.all(
-                enumerate(args.data).map(async (item) => {
-                    const dataHierarchy = this.makeCreateUpdateHierarchy(this.model, item, 'update');
-                    return this.doUpdate(tx, this.model, { ...item, ...dataHierarchy });
-                })
-            );
-
-            return { count: r.length };
+        const simpleUpdateMany = Object.keys(args.data).every((key) => {
+            // check if the `data` clause involves base fields
+            const fieldInfo = resolveField(this.options.modelMeta, this.model, key);
+            return !fieldInfo?.inheritedFrom;
         });
+
+        return this.queryUtils.transaction(this.prisma, (tx) =>
+            this.doUpdateMany(tx, this.model, args, !simpleUpdateMany)
+        );
+    }
+
+    override async upsert(args: any): Promise<unknown> {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
+        }
+        if (!args.where) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                'where field is required in query argument'
+            );
+        }
+
+        if (isDelegateModel(this.options.modelMeta, this.model)) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.options.prismaModule,
+                `Model "${this.model}" is a delegate and doesn't support upsert`
+            );
+        }
+
+        if (!this.involvesDelegateModel(this.model)) {
+            return super.upsert(args);
+        }
+
+        args = deepcopy(args);
+        this.injectWhereHierarchy(this.model, (args as any)?.where);
+        this.injectSelectIncludeHierarchy(this.model, args);
+        if (args.create) {
+            this.doProcessCreatePayload(this.model, args.create);
+        }
+        if (args.update) {
+            this.doProcessUpdatePayload(this.model, args.update);
+        }
+
+        if (this.options.logPrismaQuery) {
+            this.logger.info(`[delegate] \`upsert\` ${this.getModelName(this.model)}: ${formatObject(args)}`);
+        }
+        const result = await this.prisma[this.model].upsert(args);
+        return this.assembleHierarchy(this.model, result);
     }
 
     private async doUpdate(db: Record<string, DbOperations>, model: string, args: any): Promise<unknown> {
+        args = deepcopy(args);
+
+        await this.injectUpdateHierarchy(db, model, args);
+        this.injectSelectIncludeHierarchy(model, args);
+
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`update\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }
         const result = await db[model].update(args);
         return this.assembleHierarchy(model, result);
+    }
+
+    private async doUpdateMany(
+        db: Record<string, DbOperations>,
+        model: string,
+        args: any,
+        simpleUpdateMany: boolean
+    ): Promise<{ count: number }> {
+        if (simpleUpdateMany) {
+            // do a direct `updateMany`
+            args = deepcopy(args);
+            await this.injectUpdateHierarchy(db, model, args);
+
+            if (this.options.logPrismaQuery) {
+                this.logger.info(`[delegate] \`updateMany\` ${this.getModelName(model)}: ${formatObject(args)}`);
+            }
+            return db[model].updateMany(args);
+        } else {
+            // translate to plain `update` for nested write into base fields
+            const findArgs = {
+                where: deepcopy(args.where),
+                select: this.queryUtils.makeIdSelection(model),
+            };
+            await this.injectUpdateHierarchy(db, model, findArgs);
+            if (this.options.logPrismaQuery) {
+                this.logger.info(
+                    `[delegate] \`updateMany\` find candidates: ${this.getModelName(model)}: ${formatObject(findArgs)}`
+                );
+            }
+            const entities = await db[model].findMany(findArgs);
+
+            const updatePayload = { data: deepcopy(args.data), select: this.queryUtils.makeIdSelection(model) };
+            await this.injectUpdateHierarchy(db, model, updatePayload);
+            const result = await Promise.all(
+                entities.map((entity) => {
+                    const updateArgs = {
+                        where: entity,
+                        ...updatePayload,
+                    };
+                    this.logger.info(
+                        `[delegate] \`updateMany\` update: ${this.getModelName(model)}: ${formatObject(updateArgs)}`
+                    );
+                    return db[model].update(updateArgs);
+                })
+            );
+            return { count: result.length };
+        }
+    }
+
+    private async injectUpdateHierarchy(db: Record<string, DbOperations>, model: string, args: any) {
+        const visitor = new NestedWriteVisitor(this.options.modelMeta, {
+            update: (model, args, _context) => {
+                this.injectWhereHierarchy(model, (args as any)?.where);
+                this.doProcessUpdatePayload(model, (args as any)?.data);
+            },
+
+            updateMany: async (model, args, context) => {
+                let simpleUpdateMany = Object.keys(args.data).every((key) => {
+                    // check if the `data` clause involves base fields
+                    const fieldInfo = resolveField(this.options.modelMeta, model, key);
+                    return !fieldInfo?.inheritedFrom;
+                });
+
+                if (simpleUpdateMany) {
+                    // check if the `where` clause involves base fields
+                    simpleUpdateMany = Object.keys(args.where || {}).every((key) => {
+                        const fieldInfo = resolveField(this.options.modelMeta, model, key);
+                        return !fieldInfo?.inheritedFrom;
+                    });
+                }
+
+                if (simpleUpdateMany) {
+                    this.injectWhereHierarchy(model, (args as any)?.where);
+                    this.doProcessUpdatePayload(model, (args as any)?.data);
+                } else {
+                    const where = this.queryUtils.buildReversedQuery(context, false, false);
+                    await this.queryUtils.transaction(db, async (tx) => {
+                        await this.doUpdateMany(tx, model, { ...args, where }, simpleUpdateMany);
+                    });
+                    delete context.parent['updateMany'];
+                }
+            },
+
+            upsert: (model, args, _context) => {
+                this.injectWhereHierarchy(model, (args as any)?.where);
+                if (args.create) {
+                    this.doProcessCreatePayload(model, (args as any)?.create);
+                }
+                if (args.update) {
+                    this.doProcessUpdatePayload(model, (args as any)?.update);
+                }
+            },
+
+            create: (model, args, _context) => {
+                if (isDelegateModel(this.options.modelMeta, model)) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.options.prismaModule,
+                        `Model "${model}" is a delegate and cannot be created directly`
+                    );
+                }
+                this.doProcessCreatePayload(model, args);
+            },
+
+            createMany: (model, args, _context) => {
+                if (args.skipDuplicates) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.options.prismaModule,
+                        '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
+                    );
+                }
+
+                for (const item of enumerate(args?.data)) {
+                    this.doProcessCreatePayload(model, item);
+                }
+            },
+
+            connectOrCreate: (model, args, _context) => {
+                this.injectWhereHierarchy(model, args.where);
+                if (args.create) {
+                    this.doProcessCreatePayload(model, args.create);
+                }
+            },
+
+            delete: async (model, args, context) => {
+                const where = this.queryUtils.buildReversedQuery(context, false, false);
+                this.injectWhereHierarchy(model, where);
+                await this.queryUtils.transaction(db, async (tx) => {
+                    await this.doDelete(tx, model, { where });
+                });
+                delete context.parent['delete'];
+            },
+
+            deleteMany: (_model, args, _context) => {
+                this.injectWhereHierarchy(model, (args as any).where);
+            },
+        });
+
+        await visitor.visit(model, 'update', args);
+    }
+
+    private doProcessUpdatePayload(model: string, data: any) {
+        if (!data) {
+            return;
+        }
+
+        for (const [field, value] of Object.entries(data)) {
+            const fieldInfo = resolveField(this.options.modelMeta, model, field);
+            if (fieldInfo?.inheritedFrom) {
+                this.injectBaseFieldData(model, fieldInfo, value, data, 'update');
+                delete data[field];
+            }
+        }
     }
 
     // #endregion
@@ -443,12 +745,12 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
         }
 
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.delete(args);
         }
 
-        return this.prisma.$transaction(async (tx) => {
-            const selectInclude = this.buildSelectIncludeHierarchy(args);
+        return this.queryUtils.transaction(this.prisma, async (tx) => {
+            const selectInclude = this.buildSelectIncludeHierarchy(this.model, args);
 
             // make sure id fields are selected
             const idFields = this.getIdFields(this.model);
@@ -458,35 +760,25 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
             }
 
-            const entity: any = await this.doDelete(tx, this.model, { ...args, ...selectInclude });
-            const idValues = idFields.reduce((acc, f) => ({ ...acc, [f.name]: entity[f.name] }), {});
+            const deleteArgs = { ...deepcopy(args), ...selectInclude };
+            this.injectWhereHierarchy(this.model, deleteArgs.where);
 
-            // recursively delete base entities (they all have the same id values)
-            await this.deleteBaseRecursively(tx, idValues);
-
-            return entity;
+            return this.doDelete(tx, this.model, deleteArgs);
         });
     }
 
     override deleteMany(args: any): Promise<{ count: number }> {
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.deleteMany(args);
         }
 
         return this.prisma.$transaction(async (tx) => {
-            const idFields = this.getIdFields(this.model);
-            // build id field selection
-            const idSelection = Object.assign({}, ...idFields.map((f) => ({ [f.name]: true })));
+            const idSelection = this.queryUtils.makeIdSelection(this.model);
             // query existing entities with id
             const entities = await tx[this.model].findMany({ where: args?.where, select: idSelection });
 
             // recursively delete base entities (they all have the same id values)
-            await Promise.all(
-                entities.map((entity) => {
-                    const idValues = idFields.reduce((acc, f) => ({ ...acc, [f.name]: entity[f.name] }), {});
-                    return this.deleteBaseRecursively(tx, idValues);
-                })
-            );
+            await Promise.all(entities.map((entity) => this.doDelete(tx, this.model, { where: entity })));
 
             return { count: entities.length };
         });
@@ -505,6 +797,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             this.logger.info(`[delegate] \`delete\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }
         const result = await db[model].delete(args);
+        const idValues = this.queryUtils.getEntityIds(model, result);
+
+        // recursively delete base entities (they all have the same id values)
+        await this.deleteBaseRecursively(db, idValues);
         return this.assembleHierarchy(model, result);
     }
 
@@ -516,7 +812,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         if (!args) {
             throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
         }
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.aggregate(args);
         }
 
@@ -544,7 +840,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     override count(args: any): Promise<unknown> {
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.count(args);
         }
 
@@ -571,7 +867,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         if (!args) {
             throw prismaClientValidationError(this.prisma, this.options.prismaModule, 'query argument is required');
         }
-        if (!this.hasBaseModel(this.model)) {
+        if (!this.involvesDelegateModel(this.model)) {
             return super.groupBy(args);
         }
 
@@ -640,8 +936,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             : undefined;
     }
 
-    private makeBaseRelationName(base: ModelInfo) {
-        return `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(base.name)}`;
+    private makeAuxRelationName(model: ModelInfo) {
+        return `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(model.name)}`;
     }
 
     private getModelName(model: string) {
@@ -673,123 +969,139 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         return this.options.modelMeta.models[lowerCaseFirst(baseNames[0])];
     }
 
-    private hasBaseModel(model: string) {
-        const baseTypes = getModelInfo(this.options.modelMeta, model, true).baseTypes;
-        return !!(
-            baseTypes &&
-            baseTypes.length > 0 &&
-            baseTypes.some((base) => isDelegateModel(this.options.modelMeta, base))
+    private involvesDelegateModel(model: string, visited?: Set<string>): boolean {
+        if (this.isDelegateOrDescendantOfDelegate(model)) {
+            return true;
+        }
+
+        visited = visited ?? new Set<string>();
+        if (visited.has(model)) {
+            return false;
+        }
+        visited.add(model);
+
+        const modelInfo = getModelInfo(this.options.modelMeta, model, true);
+        return Object.values(modelInfo.fields).some(
+            (field) => field.isDataModel && this.involvesDelegateModel(field.type, visited)
         );
     }
 
-    private isUnsafeMutate(model: string, args: any) {
-        if (!args) {
-            return false;
+    private isDelegateOrDescendantOfDelegate(model: string): boolean {
+        if (isDelegateModel(this.options.modelMeta, model)) {
+            return true;
         }
-        for (const k of Object.keys(args)) {
-            const field = resolveField(this.options.modelMeta, model, k);
-            if (field?.isId || field?.isForeignKey) {
-                return true;
-            }
-        }
-        return false;
+        const baseTypes = getModelInfo(this.options.modelMeta, model)?.baseTypes;
+        return !!(
+            baseTypes &&
+            baseTypes.length > 0 &&
+            baseTypes.some((base) => this.isDelegateOrDescendantOfDelegate(base))
+        );
     }
 
     private assembleHierarchy(model: string, entity: any) {
-        if (!entity) {
-            return;
+        if (!entity || typeof entity !== 'object') {
+            return entity;
         }
 
+        const result: any = {};
         const base = this.getBaseModel(model);
-        if (!base) {
-            return;
+
+        if (base) {
+            // merge base fields
+            const baseRelationName = this.makeAuxRelationName(base);
+            const baseData = entity[baseRelationName];
+            if (baseData && typeof baseData === 'object') {
+                const baseAssembled = this.assembleHierarchy(base.name, baseData);
+                Object.assign(result, baseAssembled);
+            }
         }
 
-        const baseRelationName = this.makeBaseRelationName(base);
-        const baseData = entity[baseRelationName];
-        if (baseData && typeof baseData === 'object') {
-            this.assembleHierarchy(base.name, baseData);
-            Object.entries(baseData).forEach(([field, value]) => {
-                if (!(field in entity)) {
-                    entity[field] = value;
+        const modelInfo = getModelInfo(this.options.modelMeta, model, true);
+
+        for (const field of Object.values(modelInfo.fields)) {
+            if (field.inheritedFrom) {
+                // already merged from base
+                continue;
+            }
+
+            if (field.name in entity) {
+                const fieldValue = entity[field.name];
+                if (field.isDataModel) {
+                    if (Array.isArray(fieldValue)) {
+                        result[field.name] = fieldValue.map((item) => this.assembleHierarchy(field.type, item));
+                    } else {
+                        result[field.name] = this.assembleHierarchy(field.type, fieldValue);
+                    }
+                } else {
+                    result[field.name] = fieldValue;
                 }
-            });
+            }
         }
 
-        delete entity[baseRelationName];
-
-        return entity;
+        return result;
     }
 
     // #endregion
 
     // #region backup
 
-    private async _createHierarchy(
-        tx: Record<string, DbOperations>,
-        model: string,
-        data: any,
-        selectInclude: any
-    ): Promise<any> {
-        const base = this.getBaseModel(model);
-        if (!base) {
-            return tx[model].create({ data, ...selectInclude });
+    private transformWhereHierarchy(where: any, contextModel: ModelInfo, forModel: ModelInfo) {
+        if (!where || typeof where !== 'object') {
+            return where;
         }
 
-        const thisData = deepcopy(data);
-        let thisSelectInclude: any = undefined;
-        const baseData: any = {};
-        let baseSelectInclude: any = undefined;
+        let curr: ModelInfo | undefined = contextModel;
+        const inheritStack: ModelInfo[] = [];
+        while (curr) {
+            inheritStack.unshift(curr);
+            curr = this.getBaseModel(curr.name);
+        }
 
-        Object.entries(data).forEach(([field, value]) => {
-            if (field in base.fields) {
-                baseData[field] = value;
-                delete thisData[field];
+        let result: any = {};
+        for (const [key, value] of Object.entries(where)) {
+            const fieldInfo = requireField(this.options.modelMeta, contextModel.name, key);
+            const fieldHierarchy = this.transformFieldHierarchy(fieldInfo, value, contextModel, forModel, inheritStack);
+            result = deepmerge(result, fieldHierarchy);
+        }
+
+        return result;
+    }
+
+    private transformFieldHierarchy(
+        fieldInfo: FieldInfo,
+        value: unknown,
+        contextModel: ModelInfo,
+        forModel: ModelInfo,
+        inheritStack: ModelInfo[]
+    ): any {
+        const fieldModel = fieldInfo.inheritedFrom ? this.getModelInfo(fieldInfo.inheritedFrom) : contextModel;
+        if (fieldModel === forModel) {
+            return { [fieldInfo.name]: value };
+        }
+
+        const fieldModelPos = inheritStack.findIndex((m) => m === fieldModel);
+        const forModelPos = inheritStack.findIndex((m) => m === forModel);
+        const result: any = {};
+        let curr = result;
+
+        if (fieldModelPos > forModelPos) {
+            // walk down hierarchy
+            for (let i = forModelPos + 1; i <= fieldModelPos; i++) {
+                const rel = this.makeAuxRelationName(inheritStack[i]);
+                curr[rel] = {};
+                curr = curr[rel];
             }
-        });
-        if (base.discriminator) {
-            baseData[base.discriminator] = this.getModelName(model);
-        }
-
-        const idFields = this.getIdFields(base.name);
-
-        if (selectInclude) {
-            thisSelectInclude = deepcopy(selectInclude);
-            baseSelectInclude = {};
-            const key = 'select' in selectInclude ? 'select' : 'include';
-            Object.entries(selectInclude[key]).forEach(([field, value]) => {
-                if (field in base.fields) {
-                    baseSelectInclude[key] = { ...baseSelectInclude[key], [field]: value };
-                    delete thisSelectInclude[key][field];
-                }
-            });
-
-            if (baseSelectInclude.select) {
-                // make sure id fields are selected
-                idFields.forEach((f) => (baseSelectInclude.select[f.name] = true));
-            }
-        }
-
-        const baseEntity = await this._createHierarchy(tx, base.name, baseData, baseSelectInclude);
-        if (this.isUnsafeMutate(model, thisData)) {
-            // insert fk fields
-            idFields.forEach((f) => {
-                thisData[f.name] = baseEntity[f.name];
-            });
         } else {
-            // insert base connect
-            const baseIdValues: any = {};
-            idFields.forEach((f) => (baseIdValues[f.name] = baseEntity[f.name]));
-            const baseRelationName = this.makeBaseRelationName(base);
-            thisData[baseRelationName] = { connect: baseIdValues };
+            // walk up hierarchy
+            for (let i = forModelPos - 1; i >= fieldModelPos; i--) {
+                const rel = this.makeAuxRelationName(inheritStack[i]);
+                curr[rel] = {};
+                curr = curr[rel];
+            }
         }
 
-        if (this.options.logPrismaQuery) {
-            this.logger.info(`[delegate] \`create\` ${this.model}: ${formatObject(thisData)}`);
-        }
-        const thisEntity = await tx[model].create({ data: thisData, ...thisSelectInclude });
-
-        return { ...baseEntity, ...thisEntity };
+        curr[fieldInfo.name] = value;
+        return result;
     }
 
     // #endregion

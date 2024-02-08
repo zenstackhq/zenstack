@@ -374,6 +374,6 @@ export function getAuthModel(dataModels: DataModel[]) {
     return authModel;
 }
 
-export function isDelegateModel(model: DataModel) {
-    return hasAttribute(model, '@@delegate');
+export function isDelegateModel(node: AstNode) {
+    return isDataModel(node) && hasAttribute(node, '@@delegate');
 }

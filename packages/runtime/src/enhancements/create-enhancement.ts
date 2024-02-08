@@ -1,9 +1,10 @@
 import colors from 'colors';
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../constants';
-import { type ModelMeta, isDelegateModel } from '../cross';
+import { isDelegateModel, type ModelMeta } from '../cross';
 import type { AuthUser } from '../types';
 import { withDelegate } from './delegate';
+import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
 import { withPolicy } from './policy';
@@ -14,6 +15,11 @@ import type { PolicyDef, ZodSchemas } from './types';
  * Kinds of enhancements to `PrismaClient`
  */
 export type EnhancementKind = 'password' | 'omit' | 'policy' | 'delegate';
+
+/**
+ * All enhancement kinds
+ */
+const ALL_ENHANCEMENTS = ['password', 'omit', 'policy', 'delegate'];
 
 /**
  * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
@@ -116,6 +122,9 @@ export function createEnhancement<DbClient extends object>(
         );
     }
 
+    const logger = new Logger(prisma);
+    logger.info(`Enabled ZenStack enhancements: ${options.kinds?.join(', ')}`);
+
     let result = prisma;
 
     if (hasPassword === undefined || hasOmit === undefined) {
@@ -126,7 +135,7 @@ export function createEnhancement<DbClient extends object>(
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
     }
 
-    const kinds = options.kinds ?? ['password', 'omit', 'policy', 'password'];
+    const kinds = options.kinds ?? ALL_ENHANCEMENTS;
 
     if (hasPassword && kinds.includes('password')) {
         // @password proxy

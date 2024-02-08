@@ -59,6 +59,7 @@
         "colors": "1.4.0",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
+        "deepmerge": "^4.3.1",
         "lower-case-first": "^2.0.2",
         "pluralize": "^8.0.0",
         "semver": "^7.5.2",
