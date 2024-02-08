@@ -524,7 +524,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         });
 
         return this.queryUtils.transaction(this.prisma, (tx) =>
-            this.doUpdateMany(tx, this.model, args, !simpleUpdateMany)
+            this.doUpdateMany(tx, this.model, args, simpleUpdateMany)
         );
     }
 
