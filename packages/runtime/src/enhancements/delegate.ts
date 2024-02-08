@@ -705,7 +705,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
             },
 
-            delete: async (model, args, context) => {
+            delete: async (model, _args, context) => {
                 const where = this.queryUtils.buildReversedQuery(context, false, false);
                 this.injectWhereHierarchy(model, where);
                 await this.queryUtils.transaction(db, async (tx) => {
@@ -714,8 +714,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 delete context.parent['delete'];
             },
 
-            deleteMany: (_model, args, _context) => {
-                this.injectWhereHierarchy(model, (args as any).where);
+            deleteMany: (_model, _args, _context) => {
+                throw new Error('not implemented');
+                // this.injectWhereHierarchy(model, (args as any).where);
             },
         });
 
@@ -784,10 +785,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         });
     }
 
-    private async deleteBaseRecursively(db: Record<string, DbOperations>, idValues: any) {
-        let base = this.getBaseModel(this.model);
+    private async deleteBaseRecursively(db: Record<string, DbOperations>, model: string, idValues: any) {
+        let base = this.getBaseModel(model);
         while (base) {
-            await this.doDelete(db, base.name, { where: idValues });
+            await db[base.name].delete({ where: idValues });
             base = this.getBaseModel(base.name);
         }
     }
@@ -800,7 +801,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         const idValues = this.queryUtils.getEntityIds(model, result);
 
         // recursively delete base entities (they all have the same id values)
-        await this.deleteBaseRecursively(db, idValues);
+        await this.deleteBaseRecursively(db, model, idValues);
         return this.assembleHierarchy(model, result);
     }
 

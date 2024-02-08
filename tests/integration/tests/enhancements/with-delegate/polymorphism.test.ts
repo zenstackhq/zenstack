@@ -587,6 +587,7 @@ model Gallery {
             data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
         });
 
+        // no where
         await expect(db.ratedVideo.deleteMany()).resolves.toMatchObject({ count: 2 });
         await expect(db.ratedVideo.findUnique({ where: { id: video1.id } })).resolves.toBeNull();
         await expect(db.video.findUnique({ where: { id: video1.id } })).resolves.toBeNull();
@@ -594,6 +595,10 @@ model Gallery {
         await expect(db.ratedVideo.findUnique({ where: { id: video2.id } })).resolves.toBeNull();
         await expect(db.video.findUnique({ where: { id: video2.id } })).resolves.toBeNull();
         await expect(db.asset.findUnique({ where: { id: video2.id } })).resolves.toBeNull();
+
+        // where current level
+
+        // where with base level
     });
 
     it('aggregate', async () => {
