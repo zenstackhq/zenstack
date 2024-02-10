@@ -139,14 +139,18 @@ export default class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
+            let generateCmd = `npx prisma generate --schema "${outFile}"`;
+            if (typeof options.generateArgs === 'string') {
+                generateCmd += ` ${options.generateArgs}`;
+            }
             try {
                 // run 'prisma generate'
-                await execSync(`npx prisma generate --schema "${outFile}"`, { stdio: 'ignore' });
+                await execSync(generateCmd, { stdio: 'ignore' });
             } catch {
                 await this.trackPrismaSchemaError(outFile);
                 try {
                     // run 'prisma generate' again with output to the console
-                    await execSync(`npx prisma generate --schema "${outFile}"`);
+                    await execSync(generateCmd);
                 } catch {
                     // noop
                 }

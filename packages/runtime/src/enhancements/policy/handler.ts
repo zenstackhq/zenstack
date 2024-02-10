@@ -45,6 +45,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     private readonly prismaModule: any;
     private readonly logPrismaQuery?: boolean;
 
+    private readonly DEFAULT_TX_MAXWAIT = 100000;
+    private readonly DEFAULT_TX_TIMEOUT = 100000;
+
     constructor(
         private readonly prisma: DbClient,
         model: string,
@@ -1316,7 +1319,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     //#region Utils
 
     private get shouldLogQuery() {
-        return !!this.logPrismaQuery && this.logger.enabled('info');
+        return !!this.options?.logPrismaQuery && this.logger.enabled('info');
     }
 
     private transaction(action: (tx: Record<string, DbOperations>) => Promise<any>) {
