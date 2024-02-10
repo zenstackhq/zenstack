@@ -632,7 +632,9 @@ describe('Data Model Validation Tests', () => {
                 `);
         expect(errors.length).toBe(1);
 
-        expect(errors[0]).toEqual(`Model A cannot be extended because it's not abstract`);
+        expect(errors[0]).toEqual(
+            `Model A cannot be extended because it's neither abstract nor marked as "@@delegate"`
+        );
 
         // relation incomplete from multiple level inheritance
         expect(

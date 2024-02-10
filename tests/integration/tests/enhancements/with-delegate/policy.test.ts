@@ -153,4 +153,65 @@ describe('Polymorphic Policy Test', () => {
             ).toBeRejectedByPolicy();
         }
     });
+
+    it('interaction with updateMany/deleteMany', async () => {
+        const schema = `
+        model User {
+            id Int @id @default(autoincrement())
+            level Int @default(0)
+            assets Asset[]
+            banned Boolean @default(false)
+    
+            @@allow('all', true)
+        }
+    
+        model Asset {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            published Boolean @default(false)
+            owner User @relation(fields: [ownerId], references: [id])
+            ownerId Int
+            assetType String
+            viewCount Int @default(0)
+            version Int @default(0)
+            
+            @@delegate(assetType)
+            @@deny('update', viewCount > 0)
+            @@deny('delete', viewCount > 0)
+            @@allow('all', true)
+        }
+        
+        model Video extends Asset {
+            watched Boolean @default(false)
+
+            @@deny('update', watched)
+            @@deny('delete', watched)
+        }
+        `;
+
+        const { enhance } = await loadSchema(schema, {
+            logPrismaQuery: true,
+        });
+        const db = enhance();
+
+        const user = await db.user.create({ data: { id: 1 } });
+        const vid1 = await db.video.create({
+            data: { watched: false, viewCount: 0, owner: { connect: { id: user.id } } },
+        });
+        const vid2 = await db.video.create({
+            data: { watched: true, viewCount: 1, owner: { connect: { id: user.id } } },
+        });
+
+        await expect(db.asset.updateMany({ data: { version: { increment: 1 } } })).resolves.toMatchObject({
+            count: 1,
+        });
+        await expect(db.asset.findUnique({ where: { id: vid1.id } })).resolves.toMatchObject({ version: 1 });
+        await expect(db.asset.findUnique({ where: { id: vid2.id } })).resolves.toMatchObject({ version: 0 });
+
+        await expect(db.asset.deleteMany()).resolves.toMatchObject({
+            count: 1,
+        });
+        await expect(db.asset.findUnique({ where: { id: vid1.id } })).toResolveNull();
+        await expect(db.asset.findUnique({ where: { id: vid2.id } })).toResolveTruthy();
+    });
 });

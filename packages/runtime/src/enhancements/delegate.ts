@@ -14,8 +14,8 @@ import {
     requireField,
     resolveField,
 } from '../cross';
-import { DbClientContract, DbOperations } from '../types';
-import { EnhancementOptions } from './create-enhancement';
+import type { CrudContract, DbClientContract } from '../types';
+import type { EnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 import { QueryUtils } from './query-utils';
@@ -63,7 +63,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private async doFind(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         model: string,
         method: 'findFirst' | 'findFirstOrThrow' | 'findUnique' | 'findUniqueOrThrow' | 'findMany',
         args: any
@@ -361,7 +361,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         });
     }
 
-    private async doCreate(db: Record<string, DbOperations>, model: string, args: any) {
+    private async doCreate(db: CrudContract, model: string, args: any) {
         args = deepcopy(args);
 
         await this.injectCreateHierarchy(model, args);
@@ -569,7 +569,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         return this.assembleHierarchy(this.model, result);
     }
 
-    private async doUpdate(db: Record<string, DbOperations>, model: string, args: any): Promise<unknown> {
+    private async doUpdate(db: CrudContract, model: string, args: any): Promise<unknown> {
         args = deepcopy(args);
 
         await this.injectUpdateHierarchy(db, model, args);
@@ -583,7 +583,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private async doUpdateMany(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         model: string,
         args: any,
         simpleUpdateMany: boolean
@@ -629,7 +629,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
     }
 
-    private async injectUpdateHierarchy(db: Record<string, DbOperations>, model: string, args: any) {
+    private async injectUpdateHierarchy(db: CrudContract, model: string, args: any) {
         const visitor = new NestedWriteVisitor(this.options.modelMeta, {
             update: (model, args, _context) => {
                 this.injectWhereHierarchy(model, (args as any)?.where);
@@ -698,6 +698,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
             },
 
+            connect: (model, args, _context) => {
+                this.injectWhereHierarchy(model, args);
+            },
+
             connectOrCreate: (model, args, _context) => {
                 this.injectWhereHierarchy(model, args.where);
                 if (args.create) {
@@ -705,18 +709,28 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
             },
 
+            disconnect: (model, args, _context) => {
+                this.injectWhereHierarchy(model, args);
+            },
+
+            set: (model, args, _context) => {
+                this.injectWhereHierarchy(model, args);
+            },
+
             delete: async (model, _args, context) => {
                 const where = this.queryUtils.buildReversedQuery(context, false, false);
-                this.injectWhereHierarchy(model, where);
                 await this.queryUtils.transaction(db, async (tx) => {
                     await this.doDelete(tx, model, { where });
                 });
                 delete context.parent['delete'];
             },
 
-            deleteMany: (_model, _args, _context) => {
-                throw new Error('not implemented');
-                // this.injectWhereHierarchy(model, (args as any).where);
+            deleteMany: async (model, _args, context) => {
+                const where = this.queryUtils.buildReversedQuery(context, false, false);
+                await this.queryUtils.transaction(db, async (tx) => {
+                    await this.doDeleteMany(tx, model, where);
+                });
+                delete context.parent['deleteMany'];
             },
         });
 
@@ -762,8 +776,6 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
 
             const deleteArgs = { ...deepcopy(args), ...selectInclude };
-            this.injectWhereHierarchy(this.model, deleteArgs.where);
-
             return this.doDelete(tx, this.model, deleteArgs);
         });
     }
@@ -773,19 +785,29 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return super.deleteMany(args);
         }
 
-        return this.prisma.$transaction(async (tx) => {
-            const idSelection = this.queryUtils.makeIdSelection(this.model);
-            // query existing entities with id
-            const entities = await tx[this.model].findMany({ where: args?.where, select: idSelection });
-
-            // recursively delete base entities (they all have the same id values)
-            await Promise.all(entities.map((entity) => this.doDelete(tx, this.model, { where: entity })));
-
-            return { count: entities.length };
-        });
+        return this.queryUtils.transaction(this.prisma, (tx) => this.doDeleteMany(tx, this.model, args?.where));
     }
 
-    private async deleteBaseRecursively(db: Record<string, DbOperations>, model: string, idValues: any) {
+    private async doDeleteMany(db: CrudContract, model: string, where: any): Promise<{ count: number }> {
+        // query existing entities with id
+        const idSelection = this.queryUtils.makeIdSelection(model);
+        const findArgs = { where: deepcopy(where), select: idSelection };
+        this.injectWhereHierarchy(model, findArgs.where);
+
+        if (this.options.logPrismaQuery) {
+            this.logger.info(
+                `[delegate] \`deleteMany\` find candidates: ${this.getModelName(model)}: ${formatObject(findArgs)}`
+            );
+        }
+        const entities = await db[model].findMany(findArgs);
+
+        // recursively delete base entities (they all have the same id values)
+        await Promise.all(entities.map((entity) => this.doDelete(db, model, { where: entity })));
+
+        return { count: entities.length };
+    }
+
+    private async deleteBaseRecursively(db: CrudContract, model: string, idValues: any) {
         let base = this.getBaseModel(model);
         while (base) {
             await db[base.name].delete({ where: idValues });
@@ -793,7 +815,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
     }
 
-    private async doDelete(db: Record<string, DbOperations>, model: string, args: any): Promise<unknown> {
+    private async doDelete(db: CrudContract, model: string, args: any): Promise<unknown> {
+        this.injectWhereHierarchy(model, args.where);
+
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`delete\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }

@@ -7,7 +7,7 @@ import {
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
-import { AstNode, DiagnosticInfo, getContainerOfType, getDocument, ValidationAcceptor } from 'langium';
+import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { getModelFieldsWithBases } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';

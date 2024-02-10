@@ -16,7 +16,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { PrismaProxyHandler } from '../proxy';
@@ -296,7 +296,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     // create with nested write
-    private async doCreate(model: string, args: any, db: Record<string, DbOperations>) {
+    private async doCreate(model: string, args: any, db: CrudContract) {
         // record id fields involved in the nesting context
         const idSelections: Array<{ path: FieldInfo[]; ids: string[] }> = [];
         const pushIdFields = (model: string, context: NestedWriteVisitorContext) => {
@@ -535,11 +535,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private async doCreateMany(
-        model: string,
-        args: { data: any; skipDuplicates?: boolean },
-        db: Record<string, DbOperations>
-    ) {
+    private async doCreateMany(model: string, args: { data: any; skipDuplicates?: boolean }, db: CrudContract) {
         // We can't call the native "createMany" because we can't get back what was created
         // for post-create checks. Instead, do a "create" for each item and collect the results.
 
@@ -636,7 +632,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private async doUpdate(args: any, db: Record<string, DbOperations>) {
+    private async doUpdate(args: any, db: CrudContract) {
         // collected post-update checks
         const postWriteChecks: PostWriteCheckRecord[] = [];
 
@@ -1282,7 +1278,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return !!this.logPrismaQuery && this.logger.enabled('info');
     }
 
-    private async runPostWriteChecks(postWriteChecks: PostWriteCheckRecord[], db: Record<string, DbOperations>) {
+    private async runPostWriteChecks(postWriteChecks: PostWriteCheckRecord[], db: CrudContract) {
         await Promise.all(
             postWriteChecks.map(async ({ model, operation, uniqueFilter, preValue }) =>
                 this.policyUtils.checkPolicyForUnique(model, uniqueFilter, operation, db, undefined, preValue)

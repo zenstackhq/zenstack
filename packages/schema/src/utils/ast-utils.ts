@@ -52,7 +52,7 @@ export function mergeBaseModel(model: Model, linker: Linker) {
     model.declarations.filter(isDataModel).forEach((decl) => {
         const dataModel = decl as DataModel;
 
-        const bases = getRecursiveBases(dataModel);
+        const bases = getRecursiveBases(dataModel).reverse();
         if (bases.length > 0) {
             dataModel.fields = bases
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -78,9 +78,6 @@ export function mergeBaseModel(model: Model, linker: Linker) {
 
     // remove abstract models
     model.declarations = model.declarations.filter((x) => !(isDataModel(x) && x.isAbstract));
-
-    // // remove super types
-    // model.declarations.filter(isDataModel).forEach((decl) => decl.superTypes.splice(0));
 }
 
 // deep clone an AST, relink references, and set its container
@@ -100,9 +97,9 @@ function cloneAst<T extends InheritableNode>(
 // this function is copied from Langium's ast-utils, but copying $resolvedType as well
 function copyAstNode<T extends AstNode = AstNode>(node: T, buildReference: BuildReference): T {
     const copy: GenericAstNode = { $type: node.$type };
-    if (node.$resolvedType) {
-        copy.$resolvedType = node.$resolvedType;
-    }
+    // if (node.$resolvedType) {
+    //     copy.$resolvedType = node.$resolvedType;
+    // }
 
     for (const [name, value] of Object.entries(node)) {
         if (!name.startsWith('$')) {

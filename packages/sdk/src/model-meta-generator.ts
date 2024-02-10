@@ -28,7 +28,6 @@ import {
     isIdField,
     resolved,
 } from '.';
-import { write } from 'fs';
 
 export type ModelMetaGeneratorOptions = {
     output: string;

@@ -7,7 +7,7 @@ import {
     getUniqueConstraints,
     resolveField,
 } from '../cross';
-import { DbClientContract, DbOperations } from '../types';
+import { CrudContract, DbClientContract } from '../types';
 import { getVersion } from '../version';
 import { EnhancementOptions } from './create-enhancement';
 import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
@@ -36,7 +36,7 @@ export class QueryUtils {
     /**
      * Initiates a transaction.
      */
-    transaction<T>(db: Record<string, DbOperations>, action: (tx: Record<string, DbOperations>) => Promise<T>) {
+    transaction<T>(db: CrudContract, action: (tx: CrudContract) => Promise<T>) {
         const fullDb = db as DbClientContract;
         if (fullDb['$transaction']) {
             return fullDb.$transaction(

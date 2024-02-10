@@ -3,7 +3,6 @@ import {
     getAttribute,
     getDataModels,
     getPrismaClientImportSpec,
-    hasAttribute,
     isDelegateModel,
     type PluginOptions,
 } from '@zenstackhq/sdk';

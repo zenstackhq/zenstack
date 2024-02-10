@@ -137,22 +137,8 @@ export function createEnhancement<DbClient extends object>(
 
     const kinds = options.kinds ?? ALL_ENHANCEMENTS;
 
-    if (hasPassword && kinds.includes('password')) {
-        // @password proxy
-        result = withPassword(result, options);
-    }
-
-    if (hasOmit && kinds.includes('omit')) {
-        // @omit proxy
-        result = withOmit(result, options);
-    }
-
-    // policy proxy
-    if (kinds.includes('policy')) {
-        result = withPolicy(result, options, context);
-    }
-
-    // delegate proxy
+    // delegate proxy needs to be wrapped inside policy proxy, since it may translate `deleteMany`
+    // and `updateMany` to plain `delete` and `update`
     if (Object.values(options.modelMeta.models).some((model) => isDelegateModel(options.modelMeta, model.name))) {
         if (!kinds.includes('delegate')) {
             console.warn(
@@ -163,6 +149,21 @@ export function createEnhancement<DbClient extends object>(
         } else {
             result = withDelegate(result, options);
         }
+    }
+
+    // policy proxy
+    if (kinds.includes('policy')) {
+        result = withPolicy(result, options, context);
+    }
+
+    if (hasPassword && kinds.includes('password')) {
+        // @password proxy
+        result = withPassword(result, options);
+    }
+
+    if (hasOmit && kinds.includes('omit')) {
+        // @omit proxy
+        result = withOmit(result, options);
     }
 
     return result;

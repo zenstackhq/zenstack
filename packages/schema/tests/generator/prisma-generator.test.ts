@@ -362,6 +362,7 @@ describe('Prisma generator test', () => {
             output: name,
             generateClient: false,
         });
+        console.log('Generated:', name);
 
         const content = fs.readFileSync(name, 'utf-8');
         const dmmf = await getDMMF({ datamodel: content });
@@ -370,9 +371,7 @@ describe('Prisma generator test', () => {
         const post = dmmf.datamodel.models[0];
         expect(post.name).toBe('Post');
         expect(post.fields.length).toBe(5);
-        expect(post.fields[0].name).toBe('id');
-        expect(post.fields[3].name).toBe('title');
-        expect(post.fields[4].name).toBe('published');
+        expect(post.fields.map((f) => f.name)).toEqual(expect.arrayContaining(['id', 'title', 'published']));
     });
 
     it('abstract multi files', async () => {

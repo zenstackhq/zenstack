@@ -17,7 +17,7 @@ import {
     PrismaErrorCode,
 } from '../../constants';
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
-import { AuthUser, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { AuthUser, CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
@@ -236,7 +236,7 @@ export class PolicyUtil extends QueryUtils {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    getAuthGuard(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind, preValue?: any) {
+    getAuthGuard(db: CrudContract, model: string, operation: PolicyOperationKind, preValue?: any) {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -257,7 +257,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Get field-level read auth guard that overrides the model-level
      */
-    getFieldOverrideReadAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+    getFieldOverrideReadAuthGuard(db: CrudContract, model: string, field: string) {
         const guard = this.requireGuard(model);
 
         const provider = guard[`${FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${field}`];
@@ -277,7 +277,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Get field-level update auth guard
      */
-    getFieldUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+    getFieldUpdateAuthGuard(db: CrudContract, model: string, field: string) {
         const guard = this.requireGuard(model);
 
         const provider = guard[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field}`];
@@ -297,7 +297,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Get field-level update auth guard that overrides the model-level
      */
-    getFieldOverrideUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+    getFieldOverrideUpdateAuthGuard(db: CrudContract, model: string, field: string) {
         const guard = this.requireGuard(model);
 
         const provider = guard[`${FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${field}`];
@@ -353,7 +353,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Injects model auth guard as where clause.
      */
-    injectAuthGuard(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
+    injectAuthGuard(db: CrudContract, args: any, model: string, operation: PolicyOperationKind) {
         let guard = this.getAuthGuard(db, model, operation);
 
         if (operation === 'update' && args) {
@@ -401,7 +401,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private injectGuardForRelationFields(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         model: string,
         payload: any,
         operation: PolicyOperationKind
@@ -425,7 +425,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private injectGuardForToManyField(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         fieldInfo: FieldInfo,
         payload: { some?: any; every?: any; none?: any },
         operation: PolicyOperationKind
@@ -459,7 +459,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private injectGuardForToOneField(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         fieldInfo: FieldInfo,
         payload: { is?: any; isNot?: any } & Record<string, any>,
         operation: PolicyOperationKind
@@ -489,7 +489,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Injects auth guard for read operations.
      */
-    injectForRead(db: Record<string, DbOperations>, model: string, args: any) {
+    injectForRead(db: CrudContract, model: string, args: any) {
         // make select and include visible to the injection
         const injected: any = { select: args.select, include: args.include };
         if (!this.injectAuthGuard(db, injected, model, 'read')) {
@@ -534,7 +534,7 @@ export class PolicyUtil extends QueryUtils {
         return this.modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
     }
 
-    private injectNestedReadConditions(db: Record<string, DbOperations>, model: string, args: any): any[] {
+    private injectNestedReadConditions(db: CrudContract, model: string, args: any): any[] {
         const injectTarget = args.select ?? args.include;
         if (!injectTarget) {
             return [];
@@ -627,7 +627,7 @@ export class PolicyUtil extends QueryUtils {
         model: string,
         uniqueFilter: any,
         operation: PolicyOperationKind,
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         args: any,
         preValue?: any
     ) {
@@ -721,7 +721,7 @@ export class PolicyUtil extends QueryUtils {
         }
     }
 
-    private getFieldReadGuards(db: Record<string, DbOperations>, model: string, args: { select?: any; include?: any }) {
+    private getFieldReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
         const allFields = Object.values(getFields(this.modelMeta, model));
 
         // all scalar fields by default
@@ -744,7 +744,7 @@ export class PolicyUtil extends QueryUtils {
         return this.and(...allFieldGuards);
     }
 
-    private getFieldUpdateGuards(db: Record<string, DbOperations>, model: string, args: any) {
+    private getFieldUpdateGuards(db: CrudContract, model: string, args: any) {
         const allFieldGuards = [];
         const allOverrideFieldGuards = [];
 
@@ -803,7 +803,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Tries rejecting a request based on static "false" policy.
      */
-    tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
+    tryReject(db: CrudContract, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation, undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
@@ -813,12 +813,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Checks if a model exists given a unique filter.
      */
-    async checkExistence(
-        db: Record<string, DbOperations>,
-        model: string,
-        uniqueFilter: any,
-        throwIfNotFound = false
-    ): Promise<any> {
+    async checkExistence(db: CrudContract, model: string, uniqueFilter: any, throwIfNotFound = false): Promise<any> {
         uniqueFilter = this.clone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
@@ -839,7 +834,7 @@ export class PolicyUtil extends QueryUtils {
      * Returns an entity given a unique filter with read policy checked. Reject if not readable.
      */
     async readBack(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         model: string,
         operation: PolicyOperationKind,
         selectInclude: { select?: any; include?: any },

@@ -9,7 +9,7 @@ import {
     HAS_FIELD_LEVEL_POLICY_FLAG,
     PRE_UPDATE_VALUE_SELECTOR,
 } from '../constants';
-import type { DbOperations, PolicyOperationKind, QueryContext } from '../types';
+import type { CrudContract, PolicyOperationKind, QueryContext } from '../types';
 
 /**
  * Common options for PrismaClient enhancements
@@ -24,7 +24,7 @@ export interface CommonEnhancementOptions {
 /**
  * Function for getting policy guard with a given context
  */
-export type PolicyFunc = (context: QueryContext, db: Record<string, DbOperations>) => object;
+export type PolicyFunc = (context: QueryContext, db: CrudContract) => object;
 
 /**
  * Function for getting policy guard with a given context

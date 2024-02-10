@@ -313,5 +313,5 @@ async function relinkAll(model: Model, services: ZModelServices) {
     (model as Mutable<Model>).$document = newDoc;
 
     // rebuild the document
-    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'none' });
+    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
 }

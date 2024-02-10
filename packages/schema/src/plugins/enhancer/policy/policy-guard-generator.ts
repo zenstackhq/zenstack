@@ -1,8 +1,6 @@
 import {
     DataModel,
-    DataModelAttribute,
     DataModelField,
-    DataModelFieldAttribute,
     Enum,
     Expression,
     Model,
@@ -69,7 +67,7 @@ export class PolicyGenerator {
         sf.addImportDeclaration({
             namedImports: [
                 { name: 'type QueryContext' },
-                { name: 'type DbOperations' },
+                { name: 'type CrudContract' },
                 { name: 'allFieldsEqual' },
                 { name: 'type PolicyDef' },
             ],
@@ -201,7 +199,7 @@ export class PolicyGenerator {
         operation: PolicyOperationKind,
         override = false
     ) {
-        const attributes = target.attributes as (DataModelAttribute | DataModelFieldAttribute)[];
+        const attributes = target.attributes;
         const attrName = isDataModel(target) ? `@@${kind}` : `@${kind}`;
         const attrs = attributes.filter((attr) => {
             if (attr.decl.ref?.name !== attrName) {
@@ -740,7 +738,7 @@ export class PolicyGenerator {
                 {
                     // for generating field references used by field comparison in the same model
                     name: 'db',
-                    type: 'Record<string, DbOperations>',
+                    type: 'CrudContract',
                 },
             ],
             statements,

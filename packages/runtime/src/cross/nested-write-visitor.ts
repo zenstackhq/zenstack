@@ -219,8 +219,10 @@ export class NestedWriteVisitor {
 
             case 'set':
                 if (this.callback.set) {
-                    const newContext = pushNewContext(field, model, {});
-                    await this.callback.set(model, data, newContext);
+                    for (const item of enumerate(data)) {
+                        const newContext = pushNewContext(field, model, item, true);
+                        await this.callback.set(model, item, newContext);
+                    }
                 }
                 break;
 

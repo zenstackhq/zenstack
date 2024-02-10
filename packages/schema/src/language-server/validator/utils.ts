@@ -3,7 +3,6 @@ import {
     AttributeParam,
     BuiltinType,
     DataModelAttribute,
-    DataModelField,
     DataModelFieldAttribute,
     Expression,
     ExpressionType,

@@ -1,4 +1,5 @@
 import { loadSchema } from '@zenstackhq/testtools';
+import { PrismaErrorCode } from '@zenstackhq/runtime';
 
 describe('Polymorphism Test', () => {
     const schema = `
@@ -15,8 +16,8 @@ model Asset {
     id Int @id @default(autoincrement())
     createdAt DateTime @default(now())
     viewCount Int @default(0)
-    owner User @relation(fields: [ownerId], references: [id])
-    ownerId Int
+    owner User? @relation(fields: [ownerId], references: [id])
+    ownerId Int?
     assetType String
     
     @@delegate(assetType)
@@ -314,7 +315,7 @@ model Gallery {
         ).rejects.toThrow('is a discriminator');
     });
 
-    it('update nested', async () => {
+    it('update nested create', async () => {
         const { db, videoWithOwner: video, user } = await setup();
 
         // create delegate not allowed
@@ -353,6 +354,22 @@ model Gallery {
             ]),
         });
 
+        // nested create a relation from base
+        const newVideo = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
+        await expect(
+            db.ratedVideo.update({
+                where: { id: newVideo.id },
+                data: { owner: { create: { id: 2 } }, url: 'xyz', duration: 200, rating: 200 },
+                include: { owner: true },
+            })
+        ).resolves.toMatchObject({ owner: { id: 2 } });
+    });
+
+    it('update nested updateOne', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
+
         // update
         let updated = await db.asset.update({
             where: { id: video.id },
@@ -376,6 +393,10 @@ model Gallery {
         });
         expect(updated.rating).toBe(300);
         expect(updated.owner.level).toBe(3);
+    });
+
+    it('update nested updateMany', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
 
         // updateMany
         await db.user.update({
@@ -393,6 +414,10 @@ model Gallery {
                 include: { ratedVideos: true },
             })
         ).resolves.toMatchObject({ ratedVideos: expect.arrayContaining([expect.objectContaining({ rating: 333 })]) });
+    });
+
+    it('update nested deleteOne', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
 
         // delete with base
         await db.user.update({
@@ -404,35 +429,296 @@ model Gallery {
         await expect(db.ratedVideo.findUnique({ where: { id: video.id } })).resolves.toBeNull();
 
         // delete with concrete
-        const u = await db.user.update({
-            where: { id: user.id },
+        let vid = await db.ratedVideo.create({
             data: {
-                ratedVideos: {
-                    create: { url: 'xyz', duration: 111, rating: 222, owner: { connect: { id: user.id } } },
-                },
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'xyz',
+                duration: 111,
+                rating: 222,
             },
-            include: { ratedVideos: true },
         });
-        const vid = u.ratedVideos[0].id;
         await db.user.update({
             where: { id: user.id },
-            data: { ratedVideos: { delete: { id: vid } } },
+            data: { ratedVideos: { delete: { id: vid.id } } },
         });
-        await expect(db.asset.findUnique({ where: { id: vid } })).resolves.toBeNull();
-        await expect(db.video.findUnique({ where: { id: vid } })).resolves.toBeNull();
-        await expect(db.ratedVideo.findUnique({ where: { id: vid } })).resolves.toBeNull();
+        await expect(db.asset.findUnique({ where: { id: vid.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: vid.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: vid.id } })).resolves.toBeNull();
 
-        // nested create a relation from base
-        const newVideo = await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        // delete with mixed filter
+        vid = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'xyz',
+                duration: 111,
+                rating: 222,
+            },
+        });
+        await db.user.update({
+            where: { id: user.id },
+            data: { ratedVideos: { delete: { id: vid.id, duration: 111 } } },
+        });
+        await expect(db.asset.findUnique({ where: { id: vid.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: vid.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: vid.id } })).resolves.toBeNull();
+
+        // delete not found
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { delete: { id: vid.id } } },
+            })
+        ).toBeNotFound();
+    });
+
+    it('update nested deleteMany', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
+
+        // delete with base no filter
+        await db.user.update({
+            where: { id: user.id },
+            data: { assets: { deleteMany: {} } },
+        });
+        await expect(db.asset.findUnique({ where: { id: video.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: video.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: video.id } })).resolves.toBeNull();
+
+        // delete with concrete
+        let vid1 = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'abc',
+                duration: 111,
+                rating: 111,
+            },
+        });
+        let vid2 = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'xyz',
+                duration: 222,
+                rating: 222,
+            },
+        });
+        await db.user.update({
+            where: { id: user.id },
+            data: { ratedVideos: { deleteMany: { rating: 111 } } },
+        });
+        await expect(db.asset.findUnique({ where: { id: vid1.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: vid1.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: vid1.id } })).resolves.toBeNull();
+        await expect(db.asset.findUnique({ where: { id: vid2.id } })).toResolveTruthy();
+        await db.asset.deleteMany();
+
+        // delete with mixed args
+        vid1 = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'abc',
+                duration: 111,
+                rating: 111,
+                viewCount: 111,
+            },
+        });
+        vid2 = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'xyz',
+                duration: 222,
+                rating: 222,
+                viewCount: 222,
+            },
+        });
+        await db.user.update({
+            where: { id: user.id },
+            data: { ratedVideos: { deleteMany: { url: 'abc', rating: 111, viewCount: 111 } } },
+        });
+        await expect(db.asset.findUnique({ where: { id: vid1.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: vid1.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.findUnique({ where: { id: vid1.id } })).resolves.toBeNull();
+        await expect(db.asset.findUnique({ where: { id: vid2.id } })).toResolveTruthy();
+        await db.asset.deleteMany();
+
+        // delete not found
+        vid1 = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'abc',
+                duration: 111,
+                rating: 111,
+            },
+        });
+        vid2 = await db.ratedVideo.create({
+            data: {
+                user: { connect: { id: user.id } },
+                owner: { connect: { id: user.id } },
+                url: 'xyz',
+                duration: 222,
+                rating: 222,
+            },
+        });
+        await db.user.update({
+            where: { id: user.id },
+            data: { ratedVideos: { deleteMany: { url: 'abc', rating: 222 } } },
+        });
+        await expect(db.asset.count()).resolves.toBe(2);
+    });
+
+    it('update nested relation manipulation', async () => {
+        const { db, videoWithOwner: video, user } = await setup();
+
+        // connect, disconnect with base
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { assets: { disconnect: { id: video.id } } },
+                include: { assets: true },
+            })
+        ).resolves.toMatchObject({
+            assets: expect.arrayContaining([]),
         });
         await expect(
-            db.ratedVideo.update({
-                where: { id: newVideo.id },
-                data: { owner: { create: { id: 2 } }, url: 'xyz', duration: 200, rating: 200 },
-                include: { owner: true },
+            db.user.update({
+                where: { id: user.id },
+                data: { assets: { connect: { id: video.id } } },
+                include: { assets: true },
             })
-        ).resolves.toMatchObject({ owner: { id: 2 } });
+        ).resolves.toMatchObject({
+            assets: expect.arrayContaining([expect.objectContaining({ id: video.id })]),
+        });
+
+        /// connect, disconnect with concrete
+
+        let vid1 = await db.ratedVideo.create({
+            data: {
+                url: 'abc',
+                duration: 111,
+                rating: 111,
+            },
+        });
+        let vid2 = await db.ratedVideo.create({
+            data: {
+                url: 'xyz',
+                duration: 222,
+                rating: 222,
+            },
+        });
+
+        // connect not found
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { connect: [{ id: vid2.id + 1 }] } },
+                include: { ratedVideos: true },
+            })
+        ).toBeRejectedWithCode(PrismaErrorCode.REQUIRED_CONNECTED_RECORD_NOT_FOUND);
+
+        // connect found
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { connect: [{ id: vid1.id, duration: vid1.duration, rating: vid1.rating }] } },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([expect.objectContaining({ id: vid1.id })]),
+        });
+
+        // connectOrCreate
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: {
+                    ratedVideos: {
+                        connectOrCreate: [
+                            {
+                                where: { id: vid2.id, duration: 333 },
+                                create: {
+                                    url: 'xyz',
+                                    duration: 333,
+                                    rating: 333,
+                                },
+                            },
+                        ],
+                    },
+                },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([expect.objectContaining({ duration: 333 })]),
+        });
+
+        // disconnect not found
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { disconnect: [{ id: vid2.id }] } },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([expect.objectContaining({ id: vid1.id })]),
+        });
+
+        // disconnect found
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { disconnect: [{ id: vid1.id, duration: vid1.duration, rating: vid1.rating }] } },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([]),
+        });
+
+        // set
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: {
+                    ratedVideos: {
+                        set: [
+                            { id: vid1.id, viewCount: vid1.viewCount },
+                            { id: vid2.id, viewCount: vid2.viewCount },
+                        ],
+                    },
+                },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([
+                expect.objectContaining({ id: vid1.id }),
+                expect.objectContaining({ id: vid2.id }),
+            ]),
+        });
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: { ratedVideos: { set: [] } },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([]),
+        });
+        await expect(
+            db.user.update({
+                where: { id: user.id },
+                data: {
+                    ratedVideos: {
+                        set: { id: vid1.id, viewCount: vid1.viewCount },
+                    },
+                },
+                include: { ratedVideos: true },
+            })
+        ).resolves.toMatchObject({
+            ratedVideos: expect.arrayContaining([expect.objectContaining({ id: vid1.id })]),
+        });
     });
 
     it('updateMany', async () => {
@@ -562,13 +848,25 @@ model Gallery {
         await expect(db.video.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
         await expect(db.asset.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
 
+        // delete with concrete
         ratedVideo = await db.ratedVideo.create({
             data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
         });
-        const asset = await db.asset.findUnique({ where: { id: ratedVideo.id } });
+        let asset = await db.asset.findUnique({ where: { id: ratedVideo.id } });
         deleted = await db.video.delete({ where: { id: ratedVideo.id }, include: { owner: true } });
         expect(deleted).toMatchObject(asset);
         expect(deleted.owner).toMatchObject(user);
+        await expect(db.ratedVideo.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
+        await expect(db.video.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
+        await expect(db.asset.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
+
+        // delete with combined condition
+        ratedVideo = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
+        asset = await db.asset.findUnique({ where: { id: ratedVideo.id } });
+        deleted = await db.video.delete({ where: { id: ratedVideo.id, viewCount: 1 } });
+        expect(deleted).toMatchObject(asset);
         await expect(db.ratedVideo.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
         await expect(db.video.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
         await expect(db.asset.findUnique({ where: { id: ratedVideo.id } })).resolves.toBeNull();
@@ -580,14 +878,13 @@ model Gallery {
 
         const user = await db.user.create({ data: { id: 1 } });
 
-        const video1 = await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
-        const video2 = await db.ratedVideo.create({
-            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
-        });
-
         // no where
+        let video1 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
+        let video2 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
         await expect(db.ratedVideo.deleteMany()).resolves.toMatchObject({ count: 2 });
         await expect(db.ratedVideo.findUnique({ where: { id: video1.id } })).resolves.toBeNull();
         await expect(db.video.findUnique({ where: { id: video1.id } })).resolves.toBeNull();
@@ -595,10 +892,54 @@ model Gallery {
         await expect(db.ratedVideo.findUnique({ where: { id: video2.id } })).resolves.toBeNull();
         await expect(db.video.findUnique({ where: { id: video2.id } })).resolves.toBeNull();
         await expect(db.asset.findUnique({ where: { id: video2.id } })).resolves.toBeNull();
+        await expect(db.ratedVideo.count()).resolves.toBe(0);
+
+        // with base
+        video1 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'abc', rating: 100 },
+        });
+        video2 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 2, duration: 200, url: 'xyz', rating: 200 },
+        });
+        await expect(db.asset.deleteMany({ where: { viewCount: 1 } })).resolves.toMatchObject({ count: 1 });
+        await expect(db.asset.count()).resolves.toBe(1);
+        await db.asset.deleteMany();
 
         // where current level
+        video1 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'abc', rating: 100 },
+        });
+        video2 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 2, duration: 200, url: 'xyz', rating: 200 },
+        });
+        await expect(db.ratedVideo.deleteMany({ where: { rating: 100 } })).resolves.toMatchObject({ count: 1 });
+        await expect(db.ratedVideo.count()).resolves.toBe(1);
+        await db.ratedVideo.deleteMany();
 
-        // where with base level
+        // where mixed with base level
+        video1 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'abc', rating: 100 },
+        });
+        video2 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 2, duration: 200, url: 'xyz', rating: 200 },
+        });
+        await expect(db.ratedVideo.deleteMany({ where: { viewCount: 1, duration: 100 } })).resolves.toMatchObject({
+            count: 1,
+        });
+        await expect(db.ratedVideo.count()).resolves.toBe(1);
+        await db.ratedVideo.deleteMany();
+
+        // delete not found
+        video1 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 1, duration: 100, url: 'abc', rating: 100 },
+        });
+        video2 = await db.ratedVideo.create({
+            data: { owner: { connect: { id: user.id } }, viewCount: 2, duration: 200, url: 'xyz', rating: 200 },
+        });
+        await expect(db.ratedVideo.deleteMany({ where: { viewCount: 2, duration: 100 } })).resolves.toMatchObject({
+            count: 0,
+        });
+        await expect(db.ratedVideo.count()).resolves.toBe(2);
     });
 
     it('aggregate', async () => {
