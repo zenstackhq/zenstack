@@ -19,6 +19,16 @@ export type WithPolicyContext = {
 };
 
 /**
+ * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
+ */
+export type TransactionIsolationLevel =
+    | 'ReadUncommitted'
+    | 'ReadCommitted'
+    | 'RepeatableRead'
+    | 'Snapshot'
+    | 'Serializable';
+
+/**
  * Options for @see withPolicy
  */
 export interface WithPolicyOptions extends CommonEnhancementOptions {
@@ -46,6 +56,21 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
      * Hook for transforming errors before they are thrown to the caller.
      */
     errorTransformer?: ErrorTransformer;
+
+    /**
+     * The `maxWait` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
+     */
+    transactionMaxWait?: number;
+
+    /**
+     * The `timeout` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
+     */
+    transactionTimeout?: number;
+
+    /**
+     * The `isolationLevel` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
+     */
+    transactionIsolationLevel?: TransactionIsolationLevel;
 }
 
 /**
@@ -115,7 +140,7 @@ export function withPolicy<DbClient extends object>(
                 _zodSchemas,
                 model,
                 context?.user,
-                options?.logPrismaQuery
+                options
             ),
         'policy',
         options?.errorTransformer
