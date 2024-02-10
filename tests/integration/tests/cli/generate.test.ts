@@ -180,4 +180,18 @@ model Post {
         expect(fs.existsSync('./node_modules/.zenstack/zod/index.js')).toBeFalsy();
         expect(fs.existsSync('./node_modules/.zenstack/zod/index.ts')).toBeTruthy();
     });
+
+    it('generate with prisma generateArgs', async () => {
+        fs.appendFileSync(
+            'schema.zmodel',
+            `
+        plugin prisma {
+            provider = '@core/prisma'
+            generateArgs = '--no-engine'
+        }
+        `
+        );
+        const program = createProgram();
+        await program.parseAsync(['generate', '--no-dependency-check', '--no-default-plugins'], { from: 'user' });
+    });
 });

@@ -23,6 +23,7 @@ import { formatObject, prismaClientValidationError } from '../utils';
 import { Logger } from './logger';
 import { PolicyUtil } from './policy-utils';
 import { createDeferredPromise } from './promise';
+import { WithPolicyOptions } from '.';
 
 // a record for post-write policy check
 type PostWriteCheckRecord = {
@@ -42,14 +43,17 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     private readonly utils: PolicyUtil;
     private readonly model: string;
 
+    private readonly DEFAULT_TX_MAXWAIT = 100000;
+    private readonly DEFAULT_TX_TIMEOUT = 100000;
+
     constructor(
         private readonly prisma: DbClient,
         private readonly policy: PolicyDef,
         private readonly modelMeta: ModelMeta,
         private readonly zodSchemas: ZodSchemas | undefined,
         model: string,
-        private readonly user?: AuthUser,
-        private readonly logPrismaQuery?: boolean
+        private readonly user: AuthUser | undefined,
+        private readonly options: WithPolicyOptions | undefined
     ) {
         this.logger = new Logger(prisma);
         this.utils = new PolicyUtil(
@@ -1276,12 +1280,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     //#region Utils
 
     private get shouldLogQuery() {
-        return !!this.logPrismaQuery && this.logger.enabled('info');
+        return !!this.options?.logPrismaQuery && this.logger.enabled('info');
     }
 
     private transaction(action: (tx: Record<string, DbOperations>) => Promise<any>) {
         if (this.prisma['$transaction']) {
-            return this.prisma.$transaction((tx) => action(tx), { maxWait: 100000, timeout: 100000 });
+            const txOptions: any = { maxWait: this.DEFAULT_TX_MAXWAIT, timeout: this.DEFAULT_TX_TIMEOUT };
+            if (this.options?.transactionMaxWait !== undefined) {
+                txOptions.maxWait = this.options.transactionMaxWait;
+            }
+            if (this.options?.transactionTimeout !== undefined) {
+                txOptions.timeout = this.options.transactionTimeout;
+            }
+            if (this.options?.transactionIsolationLevel !== undefined) {
+                txOptions.isolationLevel = this.options.transactionIsolationLevel;
+            }
+            return this.prisma.$transaction((tx) => action(tx), txOptions);
         } else {
             // already in transaction, don't nest
             return action(this.prisma);
@@ -1304,7 +1318,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.zodSchemas,
             model,
             this.user,
-            this.logPrismaQuery
+            this.options
         );
     }
 
