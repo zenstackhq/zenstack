@@ -519,12 +519,17 @@ export class ZModelLinker extends DefaultLinker {
 
     private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
         if (node.superTypes.length > 0) {
-            const providers = node.superTypes.map(
-                (superType) => (name: string) => superType.ref?.fields.find((f) => f.name === name)
-            );
-            extraScopes = [...providers, ...extraScopes];
+            const superTypeProviders: ScopeProvider[] = [];
+            // build scope providers for super types recursively with breadth-first search
+            const queue = node.superTypes.map((t) => t.ref!);
+            while (queue.length > 0) {
+                const superType = queue.shift()!;
+                const provider = (name: string) => superType.fields.find((f) => f.name === name);
+                superTypeProviders.push(provider);
+                queue.push(...superType.superTypes.map((t) => t.ref!));
+            }
+            extraScopes = [...superTypeProviders, ...extraScopes];
         }
-
         return this.resolveDefault(node, document, extraScopes);
     }
 
