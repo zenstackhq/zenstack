@@ -34,7 +34,7 @@ export type NestedWriteVisitorContext = {
  * to let the visitor traverse it instead of its original children.
  */
 export type NestedWriterVisitorCallback = {
-    create?: (model: string, args: any, context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
+    create?: (model: string, data: any, context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
 
     createMany?: (
         model: string,

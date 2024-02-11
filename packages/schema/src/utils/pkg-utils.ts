@@ -85,9 +85,25 @@ export function ensurePackage(
     }
 }
 
-export function getPackageJson() {
-    const pkgJsonPath = path.join(process.cwd(), 'package.json');
-    if (fs.existsSync(pkgJsonPath)) {
+export function findPackageJson(searchPath?: string) {
+    let currDir = searchPath ?? process.cwd();
+    while (currDir) {
+        const pkgJsonPath = path.join(currDir, 'package.json');
+        if (fs.existsSync(pkgJsonPath)) {
+            return pkgJsonPath;
+        }
+        const up = path.resolve(currDir, '..');
+        if (up === currDir) {
+            return undefined;
+        }
+        currDir = up;
+    }
+    return undefined;
+}
+
+export function getPackageJson(searchPath?: string) {
+    const pkgJsonPath = findPackageJson(searchPath);
+    if (pkgJsonPath) {
         return JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
     } else {
         return undefined;

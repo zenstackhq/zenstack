@@ -5,15 +5,18 @@ import {
     isArrayExpr,
     isBooleanLiteral,
     isDataModel,
+    isInvocationExpr,
     isNumberLiteral,
     isReferenceExpr,
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
 import type { RuntimeAttribute } from '@zenstackhq/runtime';
+import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
-import { CodeBlockWriter, Project, VariableDeclarationKind } from 'ts-morph';
+import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import {
+    ExpressionContext,
     getAttribute,
     getAttributeArg,
     getAttributeArgLiteral,
@@ -23,10 +26,12 @@ import {
     getLiteral,
     hasAttribute,
     isDelegateModel,
+    isAuthInvocation,
     isEnumFieldReference,
     isForeignKeyField,
     isIdField,
     resolved,
+    TypeScriptExpressionTransformer,
 } from '.';
 
 export type ModelMetaGeneratorOptions = {
@@ -39,21 +44,33 @@ export async function generate(project: Project, models: DataModel[], options: M
     sf.addStatements('/* eslint-disable */');
     sf.addVariableStatement({
         declarationKind: VariableDeclarationKind.Const,
-        declarations: [{ name: 'metadata', initializer: (writer) => generateModelMetadata(models, writer, options) }],
+        declarations: [
+            { name: 'metadata', initializer: (writer) => generateModelMetadata(models, sf, writer, options) },
+        ],
     });
     sf.addStatements('export default metadata;');
     return sf;
 }
 
-function generateModelMetadata(dataModels: DataModel[], writer: CodeBlockWriter, options: ModelMetaGeneratorOptions) {
+function generateModelMetadata(
+    dataModels: DataModel[],
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    options: ModelMetaGeneratorOptions
+) {
     writer.block(() => {
-        writeModels(writer, dataModels, options);
+        writeModels(sourceFile, writer, dataModels, options);
         writeDeleteCascade(writer, dataModels);
         writeAuthModel(writer, dataModels);
     });
 }
 
-function writeModels(writer: CodeBlockWriter, dataModels: DataModel[], options: ModelMetaGeneratorOptions) {
+function writeModels(
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    dataModels: DataModel[],
+    options: ModelMetaGeneratorOptions
+) {
     writer.write('models:');
     writer.block(() => {
         for (const model of dataModels) {
@@ -61,7 +78,7 @@ function writeModels(writer: CodeBlockWriter, dataModels: DataModel[], options: 
             writer.block(() => {
                 writer.write(`name: '${model.name}',`);
                 writeBaseTypes(writer, model);
-                writeFields(writer, model, options);
+                writeFields(sourceFile, writer, model, options);
                 writeUniqueConstraints(writer, model);
                 if (options.generateAttributes) {
                     writeModelAttributes(writer, model);
@@ -140,7 +157,12 @@ function writeDiscriminator(writer: CodeBlockWriter, model: DataModel) {
     }
 }
 
-function writeFields(writer: CodeBlockWriter, model: DataModel, options: ModelMetaGeneratorOptions) {
+function writeFields(
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    model: DataModel,
+    options: ModelMetaGeneratorOptions
+) {
     writer.write('fields:');
     writer.block(() => {
         for (const f of model.fields) {
@@ -212,9 +234,20 @@ function writeFields(writer: CodeBlockWriter, model: DataModel, options: ModelMe
         foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
             }
 
+            const defaultValueProvider = generateDefaultValueProvider(f, sourceFile);
+            if (defaultValueProvider) {
+                writer.write(`
+                defaultValueProvider: ${defaultValueProvider},`);
+            }
+
             if (f.$inheritedFrom && isDelegateModel(f.$inheritedFrom) && !isIdField(f)) {
                 writer.write(`
         inheritedFrom: ${JSON.stringify(f.$inheritedFrom.name)},`);
+            }
+
+            if (isAutoIncrement(f)) {
+                writer.write(`
+        isAutoIncrement: true,`);
             }
 
             writer.write(`
@@ -389,4 +422,51 @@ function getDeleteCascades(model: DataModel): string[] {
             return relationFields.length > 0;
         })
         .map((m) => m.name);
+}
+
+function generateDefaultValueProvider(field: DataModelField, sourceFile: SourceFile) {
+    const defaultAttr = getAttribute(field, '@default');
+    if (!defaultAttr) {
+        return undefined;
+    }
+
+    const expr = defaultAttr.args[0]?.value;
+    if (!expr) {
+        return undefined;
+    }
+
+    // find `auth()` in default value expression
+    const hasAuth = streamAst(expr).some(isAuthInvocation);
+    if (!hasAuth) {
+        return undefined;
+    }
+
+    // generates a provider function like:
+    //     function $default$Model$field(user: any) { ... }
+    const func = sourceFile.addFunction({
+        name: `$default$${field.$container.name}$${field.name}`,
+        parameters: [{ name: 'user', type: 'any' }],
+        returnType: 'unknown',
+        statements: (writer) => {
+            const tsWriter = new TypeScriptExpressionTransformer({ context: ExpressionContext.DefaultValue });
+            const code = tsWriter.transform(expr, false);
+            writer.write(`return ${code};`);
+        },
+    });
+
+    return func.getName();
+}
+
+function isAutoIncrement(field: DataModelField) {
+    const defaultAttr = getAttribute(field, '@default');
+    if (!defaultAttr) {
+        return false;
+    }
+
+    const arg = defaultAttr.args[0]?.value;
+    if (!arg) {
+        return false;
+    }
+
+    return isInvocationExpr(arg) && arg.function.$refText === 'autoincrement';
 }

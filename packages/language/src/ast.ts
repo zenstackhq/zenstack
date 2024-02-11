@@ -65,6 +65,10 @@ export interface InheritableNode extends AstNode {
     $inheritedFrom?: DataModel;
 }
 
+export interface InheritableNode extends AstNode {
+    $inheritedFrom?: DataModel;
+}
+
 declare module 'langium' {
     export interface AstNode {
         /**

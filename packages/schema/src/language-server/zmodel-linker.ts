@@ -35,7 +35,13 @@ import {
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getContainingModel, hasAttribute, isFromStdlib } from '@zenstackhq/sdk';
+import {
+    getContainingModel,
+    getModelFieldsWithBases,
+    hasAttribute,
+    isAuthInvocation,
+    isFutureExpr,
+} from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -52,12 +58,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import {
-    getAllDeclarationsFromImports,
-    getContainingDataModel,
-    getModelFieldsWithBases,
-    isAuthInvocation,
-} from '../utils/ast-utils';
+import { getAllDeclarationsFromImports, getContainingDataModel } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -292,7 +293,7 @@ export class ZModelLinker extends DefaultLinker {
         if (node.function.ref) {
             // eslint-disable-next-line @typescript-eslint/ban-types
             const funcDecl = node.function.ref as FunctionDecl;
-            if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
+            if (isAuthInvocation(node)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
 
@@ -309,7 +310,7 @@ export class ZModelLinker extends DefaultLinker {
                         node.$resolvedType = { decl: authModel, nullable: true };
                     }
                 }
-            } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
+            } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
                 node.$resolvedType = { decl: getContainingDataModel(node) };
             } else {

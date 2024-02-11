@@ -29,14 +29,18 @@ import {
     PluginError,
     PluginOptions,
     RUNTIME_PACKAGE,
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
     analyzePolicies,
     getAttributeArg,
     getAuthModel,
     getDataModels,
+    getIdFields,
     getLiteral,
     getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
+    isAuthInvocation,
     isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
@@ -48,11 +52,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { name } from '..';
-import { getIdFields, isAuthInvocation, isCollectionPredicate } from '../../../utils/ast-utils';
-import {
-    TypeScriptExpressionTransformer,
-    TypeScriptExpressionTransformerError,
-} from '../../../utils/typescript-expression-transformer';
+import { isCollectionPredicate } from '../../../utils/ast-utils';
 import { ALL_OPERATION_KINDS } from '../../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 

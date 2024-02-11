@@ -353,7 +353,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Injects model auth guard as where clause.
      */
-    injectAuthGuard(db: CrudContract, args: any, model: string, operation: PolicyOperationKind) {
+    injectAuthGuardAsWhere(db: CrudContract, args: any, model: string, operation: PolicyOperationKind) {
         let guard = this.getAuthGuard(db, model, operation);
 
         if (operation === 'update' && args) {
@@ -492,7 +492,7 @@ export class PolicyUtil extends QueryUtils {
     injectForRead(db: CrudContract, model: string, args: any) {
         // make select and include visible to the injection
         const injected: any = { select: args.select, include: args.include };
-        if (!this.injectAuthGuard(db, injected, model, 'read')) {
+        if (!this.injectAuthGuardAsWhere(db, injected, model, 'read')) {
             return false;
         }
 
@@ -567,7 +567,7 @@ export class PolicyUtil extends QueryUtils {
                     continue;
                 }
                 // inject into the "where" clause inside select
-                this.injectAuthGuard(db, injectTarget._count.select[field], fieldInfo.type, 'read');
+                this.injectAuthGuardAsWhere(db, injectTarget._count.select[field], fieldInfo.type, 'read');
             }
         }
 
@@ -593,7 +593,7 @@ export class PolicyUtil extends QueryUtils {
                     injectTarget[field] = {};
                 }
                 // inject extra condition for to-many or nullable to-one relation
-                this.injectAuthGuard(db, injectTarget[field], fieldInfo.type, 'read');
+                this.injectAuthGuardAsWhere(db, injectTarget[field], fieldInfo.type, 'read');
 
                 // recurse
                 const subHoisted = this.injectNestedReadConditions(db, fieldInfo.type, injectTarget[field]);

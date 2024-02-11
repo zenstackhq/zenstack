@@ -16,7 +16,7 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
+import { type CrudContract, type DbClientContract, PolicyOperationKind } from '../../types';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { PrismaProxyHandler } from '../proxy';
@@ -44,7 +44,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     private readonly model: string;
     private readonly modelMeta: ModelMeta;
     private readonly prismaModule: any;
-    private readonly logPrismaQuery?: boolean;
     private readonly queryUtils: QueryUtils;
 
     constructor(
@@ -56,7 +55,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         this.logger = new Logger(prisma);
         this.model = lowerCaseFirst(model);
 
-        ({ modelMeta: this.modelMeta, logPrismaQuery: this.logPrismaQuery, prismaModule: this.prismaModule } = options);
+        ({ modelMeta: this.modelMeta, prismaModule: this.prismaModule } = options);
 
         this.policyUtils = new PolicyUtil(prisma, options, context, this.shouldLogQuery);
         this.queryUtils = new QueryUtils(prisma, options);
@@ -542,29 +541,16 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         let createResult = await Promise.all(
             enumerate(args.data).map(async (item) => {
                 if (args.skipDuplicates) {
-                    // check unique constraint conflicts
-                    // we can't rely on try/catch/ignore constraint violation error: https://github.com/prisma/prisma/issues/20496
-                    // TODO: for simple cases we should be able to translate it to an `upsert` with empty `update` payload
-
-                    // for each unique constraint, check if the input item has all fields set, and if so, check if
-                    // an entity already exists, and ignore accordingly
-                    const uniqueConstraints = this.policyUtils.getUniqueConstraints(model);
-                    for (const constraint of Object.values(uniqueConstraints)) {
-                        if (constraint.fields.every((f) => item[f] !== undefined)) {
-                            const uniqueFilter = constraint.fields.reduce((acc, f) => ({ ...acc, [f]: item[f] }), {});
-                            const existing = await this.policyUtils.checkExistence(db, model, uniqueFilter);
-                            if (existing) {
-                                if (this.shouldLogQuery) {
-                                    this.logger.info(`[policy] skipping duplicate ${formatObject(item)}`);
-                                }
-                                return undefined;
-                            }
+                    if (await this.hasDuplicatedUniqueConstraint(model, item, db)) {
+                        if (this.shouldLogQuery) {
+                            this.logger.info(`[policy] \`createMany\` skipping duplicate ${formatObject(item)}`);
                         }
+                        return undefined;
                     }
                 }
 
                 if (this.shouldLogQuery) {
-                    this.logger.info(`[policy] \`create\` ${model}: ${formatObject(item)}`);
+                    this.logger.info(`[policy] \`create\` for \`createMany\` ${model}: ${formatObject(item)}`);
                 }
                 return await db[model].create({ select: this.policyUtils.makeIdSelection(model), data: item });
             })
@@ -581,6 +567,26 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 uniqueFilter: item,
             })),
         };
+    }
+
+    private async hasDuplicatedUniqueConstraint(model: string, createData: any, db: CrudContract) {
+        // check unique constraint conflicts
+        // we can't rely on try/catch/ignore constraint violation error: https://github.com/prisma/prisma/issues/20496
+        // TODO: for simple cases we should be able to translate it to an `upsert` with empty `update` payload
+
+        // for each unique constraint, check if the input item has all fields set, and if so, check if
+        // an entity already exists, and ignore accordingly
+        const uniqueConstraints = this.policyUtils.getUniqueConstraints(model);
+        for (const constraint of Object.values(uniqueConstraints)) {
+            if (constraint.fields.every((f) => createData[f] !== undefined)) {
+                const uniqueFilter = constraint.fields.reduce((acc, f) => ({ ...acc, [f]: createData[f] }), {});
+                const existing = await this.policyUtils.checkExistence(db, model, uniqueFilter);
+                if (existing) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     //#endregion
@@ -734,17 +740,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             postWriteChecks.push(...checks);
         };
 
-        const _createMany = async (model: string, args: any, context: NestedWriteVisitorContext) => {
-            if (context.field?.backLink) {
-                // handles the connection to upstream entity
-                const reversedQuery = this.policyUtils.buildReversedQuery(context);
-                for (const item of enumerate(args.data)) {
-                    Object.assign(item, reversedQuery);
+        const _createMany = async (
+            model: string,
+            args: { data: any; skipDuplicates?: boolean },
+            context: NestedWriteVisitorContext
+        ) => {
+            for (const item of enumerate(args.data)) {
+                if (args.skipDuplicates) {
+                    if (await this.hasDuplicatedUniqueConstraint(model, item, db)) {
+                        if (this.shouldLogQuery) {
+                            this.logger.info(`[policy] \`createMany\` skipping duplicate ${formatObject(item)}`);
+                        }
+                        continue;
+                    }
                 }
+                await _create(model, item, context);
             }
-            // proceed with the create and collect post-create checks
-            const { postWriteChecks: checks } = await this.doCreateMany(model, args, db);
-            postWriteChecks.push(...checks);
         };
 
         const _connectDisconnect = async (model: string, args: any, context: NestedWriteVisitorContext) => {
@@ -824,9 +835,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             },
 
             updateMany: async (model, args, context) => {
-                // injects auth guard into where clause
-                this.policyUtils.injectAuthGuard(db, args, model, 'update');
-
                 // prepare for post-update check
                 if (this.policyUtils.hasAuthGuard(model, 'postUpdate') || this.policyUtils.getZodSchema(model)) {
                     let select = this.policyUtils.makeIdSelection(model);
@@ -836,10 +844,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     }
                     const reversedQuery = this.policyUtils.buildReversedQuery(context);
                     const currentSetQuery = { select, where: reversedQuery };
-                    this.policyUtils.injectAuthGuard(db, currentSetQuery, model, 'read');
+                    this.policyUtils.injectAuthGuardAsWhere(db, currentSetQuery, model, 'read');
 
                     if (this.shouldLogQuery) {
-                        this.logger.info(`[policy] \`findMany\` ${model}:\n${formatObject(currentSetQuery)}`);
+                        this.logger.info(
+                            `[policy] \`findMany\` for post update check ${model}:\n${formatObject(currentSetQuery)}`
+                        );
                     }
                     const currentSet = await db[model].findMany(currentSetQuery);
 
@@ -851,6 +861,27 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                             preValue: preValueSelect ? preValue : undefined,
                         }))
                     );
+                }
+
+                const updateGuard = this.policyUtils.getAuthGuard(db, model, 'update');
+                if (this.policyUtils.isTrue(updateGuard) || this.policyUtils.isFalse(updateGuard)) {
+                    // injects simple auth guard into where clause
+                    this.policyUtils.injectAuthGuardAsWhere(db, args, model, 'update');
+                } else {
+                    // we have to process `updateMany` separately because the guard may contain
+                    // filters using relation fields which are not allowed in nested `updateMany`
+                    const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                    const updateWhere = this.policyUtils.and(reversedQuery, updateGuard);
+                    if (this.shouldLogQuery) {
+                        this.logger.info(
+                            `[policy] \`updateMany\` ${model}:\n${formatObject({
+                                where: updateWhere,
+                                data: args.data,
+                            })}`
+                        );
+                    }
+                    await db[model].updateMany({ where: updateWhere, data: args.data });
+                    delete context.parent.updateMany;
                 }
             },
 
@@ -958,9 +989,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             },
 
             deleteMany: async (model, args, context) => {
-                // inject delete guard
                 const guard = await this.policyUtils.getAuthGuard(db, model, 'delete');
-                context.parent.deleteMany = this.policyUtils.and(args, guard);
+                if (this.policyUtils.isTrue(guard) || this.policyUtils.isFalse(guard)) {
+                    // inject simple auth guard
+                    context.parent.deleteMany = this.policyUtils.and(args, guard);
+                } else {
+                    // we have to process `deleteMany` separately because the guard may contain
+                    // filters using relation fields which are not allowed in nested `deleteMany`
+                    const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                    const deleteWhere = this.policyUtils.and(reversedQuery, guard);
+                    if (this.shouldLogQuery) {
+                        this.logger.info(`[policy] \`deleteMany\` ${model}:\n${formatObject({ where: deleteWhere })}`);
+                    }
+                    await db[model].deleteMany({ where: deleteWhere });
+                    delete context.parent.deleteMany;
+                }
             },
         });
 
@@ -985,11 +1028,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
         for (const k of Object.keys(args)) {
             const field = resolveField(this.modelMeta, model, k);
-            if (field?.isId || field?.isForeignKey) {
+            if (field && (this.isAutoIncrementIdField(field) || field.isForeignKey)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private isAutoIncrementIdField(field: FieldInfo) {
+        return field.isId && field.isAutoIncrement;
     }
 
     async updateMany(args: any) {
@@ -1007,7 +1054,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         this.policyUtils.tryReject(this.prisma, this.model, 'update');
 
         args = this.policyUtils.clone(args);
-        this.policyUtils.injectAuthGuard(this.prisma, args, this.model, 'update');
+        this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'update');
 
         if (this.policyUtils.hasAuthGuard(this.model, 'postUpdate') || this.policyUtils.getZodSchema(this.model)) {
             // use a transaction to do post-update checks
@@ -1020,7 +1067,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     select = { ...select, ...preValueSelect };
                 }
                 const currentSetQuery = { select, where: args.where };
-                this.policyUtils.injectAuthGuard(tx, currentSetQuery, this.model, 'read');
+                this.policyUtils.injectAuthGuardAsWhere(tx, currentSetQuery, this.model, 'read');
 
                 if (this.shouldLogQuery) {
                     this.logger.info(`[policy] \`findMany\` ${this.model}: ${formatObject(currentSetQuery)}`);
@@ -1165,7 +1212,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         // inject policy conditions
         args = args ?? {};
-        this.policyUtils.injectAuthGuard(this.prisma, args, this.model, 'delete');
+        this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'delete');
 
         // conduct the deletion
         if (this.shouldLogQuery) {
@@ -1186,7 +1233,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = this.policyUtils.clone(args);
 
         // inject policy conditions
-        this.policyUtils.injectAuthGuard(this.prisma, args, this.model, 'read');
+        this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`aggregate\` ${this.model}:\n${formatObject(args)}`);
@@ -1202,7 +1249,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = this.policyUtils.clone(args);
 
         // inject policy conditions
-        this.policyUtils.injectAuthGuard(this.prisma, args, this.model, 'read');
+        this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`groupBy\` ${this.model}:\n${formatObject(args)}`);
@@ -1213,7 +1260,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     async count(args: any) {
         // inject policy conditions
         args = args ? this.policyUtils.clone(args) : {};
-        this.policyUtils.injectAuthGuard(this.prisma, args, this.model, 'read');
+        this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
 
         if (this.shouldLogQuery) {
             this.logger.info(`[policy] \`count\` ${this.model}:\n${formatObject(args)}`);
@@ -1275,7 +1322,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     //#region Utils
 
     private get shouldLogQuery() {
-        return !!this.logPrismaQuery && this.logger.enabled('info');
+        return !!this.options?.logPrismaQuery && this.logger.enabled('info');
     }
 
     private async runPostWriteChecks(postWriteChecks: PostWriteCheckRecord[], db: CrudContract) {

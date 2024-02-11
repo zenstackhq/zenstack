@@ -16,6 +16,11 @@ export type RuntimeAttribute = {
 };
 
 /**
+ * Function for computing default value for a field
+ */
+export type FieldDefaultValueProvider = (userContext: unknown) => unknown;
+
+/**
  * Runtime information of a data model field
  */
 export type FieldInfo = {
@@ -78,6 +83,16 @@ export type FieldInfo = {
      * Model from which the field is inherited
      */
     inheritedFrom?: string;
+
+    /**
+     * A function that provides a default value for the field
+     */
+    defaultValueProvider?: FieldDefaultValueProvider;
+
+    /**
+     * If the field is an auto-increment field
+     */
+    isAutoIncrement?: boolean;
 };
 
 /**

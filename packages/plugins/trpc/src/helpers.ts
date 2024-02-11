@@ -21,24 +21,14 @@ export function generateProcedure(
         writer.write(`
         ${opType}: procedure.input(${typeName}).query(({ctx, input}) => checkRead(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input as any))) as ProcReturns<
-            "query",
-            Proc,
-            (typeof $Schema.${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
-            ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
-        >,
+        )}.${prismaMethod}(input as any))),
     `);
     } else if (procType === 'mutation') {
         // the cast "as any" is to circumvent a TS compiler misfired error in certain cases
         writer.write(`
         ${opType}: procedure.input(${typeName}).mutation(async ({ctx, input}) => checkMutate(db(ctx).${lowerCaseFirst(
             modelName
-        )}.${prismaMethod}(input as any))) as ProcReturns<
-                "mutation",
-                Proc,
-                (typeof $Schema.${upperCaseFirst(modelName)}InputSchema)["${opType.replace('OrThrow', '')}"],
-                ReturnType<PrismaClient["${lowerCaseFirst(modelName)}"]["${opType}"]>
-            >,
+        )}.${prismaMethod}(input as any))),
     `);
     }
 }
@@ -203,18 +193,18 @@ export function generateRouterTyping(writer: CodeBlockWriter, opType: string, mo
     writer.block(() => {
         if (procType === 'query') {
             writer.writeLine(`
-                useQuery: <T extends ${genericBase}>(
+                useQuery: <T extends ${genericBase}, TData = ${resultType}>(
                     input: ${argsType},
-                    opts?: UseTRPCQueryOptions<string, T, ${resultType}, ${resultType}, Error>
+                    opts?: UseTRPCQueryOptions<string, T, ${resultType}, TData, Error>
                     ) => UseTRPCQueryResult<
-                    ${resultType},
+                        TData,
                         ${errorType}
                     >;
                 useInfiniteQuery: <T extends ${genericBase}>(
                     input: Omit<${argsType}, 'cursor'>,
                     opts?: UseTRPCInfiniteQueryOptions<string, T, ${resultType}, Error>
                     ) => UseTRPCInfiniteQueryResult<
-                    ${resultType},
+                        ${resultType},
                         ${errorType}
                     >;
                     `);
@@ -223,7 +213,7 @@ export function generateRouterTyping(writer: CodeBlockWriter, opType: string, mo
                 useMutation: <T extends ${genericBase}>(opts?: UseTRPCMutationOptions<
                     ${genericBase},
                     ${errorType},
-                    Prisma.${upperCaseFirst(modelName)}GetPayload<null>,
+                    ${resultType},
                     Context
                 >,) =>
                 Omit<UseTRPCMutationResult<${resultType}, ${errorType}, ${argsType}, Context>, 'mutateAsync'> & {

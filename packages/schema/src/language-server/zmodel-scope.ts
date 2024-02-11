@@ -10,7 +10,13 @@ import {
     isReferenceExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
-import { getAuthModel, getDataModels } from '@zenstackhq/sdk';
+import {
+    getAuthModel,
+    getDataModels,
+    getModelFieldsWithBases,
+    getRecursiveBases,
+    isAuthInvocation,
+} from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -31,14 +37,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import {
-    getModelFieldsWithBases,
-    getRecursiveBases,
-    isAuthInvocation,
-    isCollectionPredicate,
-    isFutureInvocation,
-    resolveImportUri,
-} from '../utils/ast-utils';
+import { isCollectionPredicate, isFutureInvocation, resolveImportUri } from '../utils/ast-utils';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
 
 /**

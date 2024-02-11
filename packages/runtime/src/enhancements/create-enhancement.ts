@@ -3,6 +3,7 @@ import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../constants';
 import { isDelegateModel, type ModelMeta } from '../cross';
 import type { AuthUser } from '../types';
+import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
 import { Logger } from './logger';
 import { withOmit } from './omit';
@@ -96,6 +97,7 @@ export type EnhancementContext = {
 
 let hasPassword: boolean | undefined = undefined;
 let hasOmit: boolean | undefined = undefined;
+let hasDefaultAuth: boolean | undefined = undefined;
 
 /**
  * Gets a Prisma client enhanced with all enhancement behaviors, including access
@@ -127,12 +129,18 @@ export function createEnhancement<DbClient extends object>(
 
     let result = prisma;
 
-    if (hasPassword === undefined || hasOmit === undefined) {
+    if (
+        process.env.ZENSTACK_TEST === '1' || // avoid caching in tests
+        hasPassword === undefined ||
+        hasOmit === undefined ||
+        hasDefaultAuth === undefined
+    ) {
         const allFields = Object.values(options.modelMeta.models).flatMap((modelInfo) =>
             Object.values(modelInfo.fields)
         );
         hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
         hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
+        hasDefaultAuth = allFields.some((field) => field.defaultValueProvider);
     }
 
     const kinds = options.kinds ?? ALL_ENHANCEMENTS;
@@ -154,6 +162,10 @@ export function createEnhancement<DbClient extends object>(
     // policy proxy
     if (kinds.includes('policy')) {
         result = withPolicy(result, options, context);
+        if (hasDefaultAuth) {
+            // @default(auth()) proxy
+            result = withDefaultAuth(result, options, context);
+        }
     }
 
     if (hasPassword && kinds.includes('password')) {

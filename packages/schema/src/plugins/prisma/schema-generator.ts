@@ -36,6 +36,7 @@ import {
     getDMMF,
     getLiteral,
     getPrismaVersion,
+    isAuthInvocation,
     isDelegateModel,
     isIdField,
     PluginError,
@@ -46,6 +47,7 @@ import {
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
+import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
@@ -55,7 +57,7 @@ import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
-import { getPackageJson } from '../../utils/pkg-utils';
+import { findPackageJson } from '../../utils/pkg-utils';
 import {
     AttributeArgValue,
     ModelFieldType,
@@ -149,14 +151,18 @@ export class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
+            let generateCmd = `npx prisma generate --schema "${outFile}"`;
+            if (typeof options.generateArgs === 'string') {
+                generateCmd += ` ${options.generateArgs}`;
+            }
             try {
                 // run 'prisma generate'
-                await execSync(`npx prisma generate --schema "${outFile}"`, { stdio: 'ignore' });
+                await execSync(generateCmd, { stdio: 'ignore' });
             } catch {
                 await this.trackPrismaSchemaError(outFile);
                 try {
                     // run 'prisma generate' again with output to the console
-                    await execSync(`npx prisma generate --schema "${outFile}"`);
+                    await execSync(generateCmd);
                 } catch {
                     // noop
                 }
@@ -486,6 +492,8 @@ export class PrismaSchemaGenerator {
 
         const attributes = field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))
+            // `@default` with `auth()` is handled outside Prisma
+            .filter((attr) => !this.isDefaultWithAuth(attr))
             .filter(
                 (attr) =>
                     // when building physical schema, exclude `@default` for id fields inherited from delegate base
@@ -510,6 +518,20 @@ export class PrismaSchemaGenerator {
 
     private isInheritedFromDelegate(field: DataModelField) {
         return field.$inheritedFrom && isDelegateModel(field.$inheritedFrom);
+    }
+
+    private isDefaultWithAuth(attr: DataModelFieldAttribute) {
+        if (attr.decl.ref?.name !== '@default') {
+            return false;
+        }
+
+        const expr = attr.args[0]?.value;
+        if (!expr) {
+            return false;
+        }
+
+        // find `auth()` in default value expression
+        return streamAst(expr).some(isAuthInvocation);
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
@@ -632,15 +654,19 @@ function isDescendantOf(model: DataModel, superModel: DataModel): boolean {
 }
 
 export function getDefaultPrismaOutputFile(schemaPath: string) {
-    let result: string | undefined;
-
     // handle override from package.json
-    const pkgJson = getPackageJson();
-    if (typeof pkgJson.zenstack?.prisma === 'string') {
-        result = path.resolve(pkgJson.zenstack.prisma);
-    } else {
-        result = './prisma/schema.prisma';
+    const pkgJsonPath = findPackageJson(path.dirname(schemaPath));
+    if (pkgJsonPath) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+        if (typeof pkgJson?.zenstack?.prisma === 'string') {
+            if (path.isAbsolute(pkgJson.zenstack.prisma)) {
+                return pkgJson.zenstack.prisma;
+            } else {
+                // resolve relative to package.json
+                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.prisma);
+            }
+        }
     }
 
-    return resolvePath(result, { schemaPath });
+    return resolvePath('./prisma/schema.prisma', { schemaPath });
 }

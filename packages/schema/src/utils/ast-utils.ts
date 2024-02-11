@@ -102,7 +102,7 @@ export function getIdFields(dataModel: DataModel) {
         const modelIdAttr = dataModel.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
         if (modelIdAttr) {
             // get fields referenced in the attribute: @@id([field1, field2]])
-            if (!isArrayExpr(modelIdAttr.args[0].value)) {
+            if (!isArrayExpr(modelIdAttr.args[0]?.value)) {
                 return [];
             }
             const argValue = modelIdAttr.args[0].value;

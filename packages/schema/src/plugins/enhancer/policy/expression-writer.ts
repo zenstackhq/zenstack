@@ -23,21 +23,20 @@ import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     getFunctionExpressionContext,
+    getIdFields,
     getLiteral,
+    isAuthInvocation,
     isDataModelFieldReference,
     isDelegateModel,
     isFutureExpr,
     PluginError,
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
 } from '@zenstackhq/sdk';
 import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '..';
-import { getIdFields, isAuthInvocation } from '../../../utils/ast-utils';
-import {
-    TypeScriptExpressionTransformer,
-    TypeScriptExpressionTransformerError,
-} from '../../../utils/typescript-expression-transformer';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 

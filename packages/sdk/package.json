@@ -23,10 +23,12 @@
         "@prisma/internals-v5": "npm:@prisma/internals@^5.0.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
+        "langium": "1.2.0",
         "lower-case-first": "^2.0.2",
         "prettier": "^2.8.3 || 3.x",
         "semver": "^7.5.2",
         "ts-morph": "^16.0.0",
+        "ts-pattern": "^4.3.0",
         "upper-case-first": "^2.0.2"
     },
     "devDependencies": {
