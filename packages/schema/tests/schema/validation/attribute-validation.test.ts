@@ -251,6 +251,7 @@ describe('Attribute tests', () => {
             ${prelude}
 
             model _String {
+                id String @id
                 _string String @db.String
                 _string1 String @db.String(1)
                 _text String @db.Text
@@ -275,6 +276,7 @@ describe('Attribute tests', () => {
             }
 
             model _Boolean {
+                id String @id
                 _boolean Boolean @db.Boolean
                 _bit Boolean @db.Bit
                 _bit1 Boolean @db.Bit(1)
@@ -283,6 +285,7 @@ describe('Attribute tests', () => {
             }
 
             model _Int {
+                id String @id
                 _int Int @db.Int
                 _integer Int @db.Integer
                 _smallInt Int @db.SmallInt
@@ -298,12 +301,14 @@ describe('Attribute tests', () => {
             }
 
             model _BigInt {
+                id String @id
                 _bigInt BigInt @db.BigInt
                 _unsignedBigInt BigInt @db.UnsignedBigInt
                 _int8 BigInt @db.Int8
             }
 
             model _FloatDecimal {
+                id String @id
                 _float Float @db.Float
                 _decimal Decimal @db.Decimal
                 _decimal1 Decimal @db.Decimal(10, 2)
@@ -318,6 +323,7 @@ describe('Attribute tests', () => {
             }
 
             model _DateTime {
+                id String @id
                 _dateTime DateTime @db.DateTime
                 _dateTime2 DateTime @db.DateTime2
                 _smallDateTime DateTime @db.SmallDateTime
@@ -334,11 +340,13 @@ describe('Attribute tests', () => {
             }
 
             model _Json {
+                id String @id
                 _json Json @db.Json
                 _jsonb Json @db.JsonB
             }
 
             model _Bytes {
+                id String @id
                 _bytes Bytes @db.Bytes
                 _byteA Bytes @db.ByteA
                 _longBlob Bytes @db.LongBlob
@@ -1118,6 +1126,7 @@ describe('Attribute tests', () => {
             }
 
             model M {
+                id String @id
                 e E @default(E1)
             }
         `);
