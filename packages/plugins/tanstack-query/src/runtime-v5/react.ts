@@ -4,10 +4,14 @@ import {
     useMutation,
     useQuery,
     useQueryClient,
+    useSuspenseInfiniteQuery,
+    useSuspenseQuery,
     type InfiniteData,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
+    UseSuspenseInfiniteQueryOptions,
+    UseSuspenseQueryOptions,
 } from '@tanstack/react-query-v5';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
 import { createContext, useContext } from 'react';
@@ -72,6 +76,33 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 }
 
 /**
+ * Creates a react-query suspense query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The react-query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @param optimisticUpdate Whether to enable automatic optimistic update
+ * @returns useSuspenseQuery hook
+ */
+export function useSuspenseModelQuery<TQueryFnData, TData, TError>(
+    model: string,
+    url: string,
+    args?: unknown,
+    options?: Omit<UseSuspenseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
+    fetch?: FetchFn,
+    optimisticUpdate = false
+) {
+    const reqUrl = makeUrl(url, args);
+    return useSuspenseQuery({
+        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
+        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
+        ...options,
+    });
+}
+
+/**
  * Creates a react-query infinite query.
  *
  * @param model The name of the model under query.
@@ -89,6 +120,32 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     return useInfiniteQuery({
+        queryKey: getQueryKey(model, url, args, true),
+        queryFn: ({ pageParam }) => {
+            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+        },
+        ...options,
+    });
+}
+
+/**
+ * Creates a react-query infinite suspense query.
+ *
+ * @param model The name of the model under query.
+ * @param url The request URL.
+ * @param args The initial request args object, URL-encoded and appended as "?q=" parameter
+ * @param options The react-query infinite query options object
+ * @param fetch The fetch function to use for sending the HTTP request
+ * @returns useSuspenseInfiniteQuery hook
+ */
+export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
+    model: string,
+    url: string,
+    args: unknown,
+    options: Omit<UseSuspenseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey'>,
+    fetch?: FetchFn
+) {
+    return useSuspenseInfiniteQuery({
         queryKey: getQueryKey(model, url, args, true),
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
