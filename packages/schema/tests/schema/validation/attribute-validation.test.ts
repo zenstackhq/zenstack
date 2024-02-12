@@ -161,11 +161,11 @@ describe('Attribute tests', () => {
             model A {
                 x Int
                 y String
-                @@id([x, y], name: 'x_y', map: '_x_y', length: 10, sort: 'Asc', clustered: true)
+                @@id([x, y], name: 'x_y', map: '_x_y', length: 10, sort: Asc, clustered: true)
             }
 
             model B {
-                id String @id(map: '_id', length: 10, sort: 'Asc', clustered: true)
+                id String @id(map: '_id', length: 10, sort: Asc, clustered: true)
             }
         `);
 
@@ -175,7 +175,7 @@ describe('Attribute tests', () => {
                 id String @id
                 x Int
                 y String
-                @@unique([x, y], name: 'x_y', map: '_x_y', length: 10, sort: 'Asc', clustered: true)
+                @@unique([x, y], name: 'x_y', map: '_x_y', length: 10, sort: Asc, clustered: true)
             }
         `);
 
@@ -193,7 +193,7 @@ describe('Attribute tests', () => {
         ${prelude}
             model A {
                 id String @id
-                x Int @unique(map: '_x', length: 10, sort: 'Asc', clustered: true)
+                x Int @unique(map: '_x', length: 10, sort: Asc, clustered: true)
             }
         `);
 
@@ -222,7 +222,7 @@ describe('Attribute tests', () => {
                 id String @id
                 x Int
                 y String
-                @@index([x(sort: Asc), y(sort: Desc)], name: 'myindex', map: '_myindex', length: 10, sort: 'asc', clustered: true, type: BTree)
+                @@index([x(sort: Asc), y(sort: Desc)], name: 'myindex', map: '_myindex', length: 10, sort: Asc, clustered: true, type: BTree)
             }
         `);
 

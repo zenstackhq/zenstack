@@ -61,6 +61,9 @@ enum ExpressionContext {
 
     // used in @@validate
     ValidationRule
+
+    // used in @@index
+    Index
 }
 
 /**
@@ -200,7 +203,7 @@ attribute @@@completionHint(_ values: String[])
  * @param sort: Allows you to specify in what order the entries of the ID are stored in the database. The available options are Asc and Desc.
  * @param clustered: Defines whether the ID is clustered or non-clustered. Defaults to true.
  */
-attribute @id(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
+attribute @id(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma
 
 /**
  * Defines a default value for a field.
@@ -215,7 +218,7 @@ attribute @default(_ value: ContextType, map: String?) @@@prisma
  * @param sort: Allows you to specify in what order the entries of the constraint are stored in the database. The available options are Asc and Desc.
  * @param clustered: Boolean	Defines whether the constraint is clustered or non-clustered. Defaults to false.
  */
-attribute @unique(map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
+attribute @unique(map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma
 
 /**
  * Defines a multi-field ID (composite ID) on the model.
@@ -227,7 +230,7 @@ attribute @unique(map: String?, length: Int?, sort: String?, clustered: Boolean?
  * @param sort: Allows you to specify in what order the entries of the ID are stored in the database. The available options are Asc and Desc.
  * @param clustered: Defines whether the ID is clustered or non-clustered. Defaults to true.
  */
-attribute @@id(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
+attribute @@id(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma
 
 /**
  * Defines a compound unique constraint for the specified fields.
@@ -238,7 +241,7 @@ attribute @@id(_ fields: FieldReference[], name: String?, map: String?, length: 
  * @param sort: Allows you to specify in what order the entries of the constraint are stored in the database. The available options are Asc and Desc.
  * @param clustered: Boolean	Defines whether the constraint is clustered or non-clustered. Defaults to false.
  */
-attribute @@unique(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?) @@@prisma
+attribute @@unique(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?) @@@prisma
 
 /**
  * Index types
@@ -253,6 +256,84 @@ enum IndexType {
 }
 
 /**
+ * Operator class for index
+ */
+enum IndexOperatorClass {
+    // GIN
+    ArrayOps
+    JsonbOps
+    JsonbPathOps
+
+    // Gist
+    InetOps
+
+    // SpGist
+    TextOps
+
+    // BRIN
+    BitMinMaxOps
+    VarBitMinMaxOps
+    BpcharBloomOps
+    BpcharMinMaxOps
+    ByteaBloomOps
+    ByteaMinMaxOps
+    DateBloomOps
+    DateMinMaxOps
+    DateMinMaxMultiOps
+    Float4BloomOps
+    Float4MinMaxOps
+    Float4MinMaxMultiOps
+    Float8BloomOps
+    Float8MinMaxOps
+    Float8MinMaxMultiOps
+    InetInclusionOps
+    InetBloomOps
+    InetMinMaxOps
+    InetMinMaxMultiOps
+    Int2BloomOps
+    Int2MinMaxOps
+    Int2MinMaxMultiOps
+    Int4BloomOps
+    Int4MinMaxOps
+    Int4MinMaxMultiOps
+    Int8BloomOps
+    Int8MinMaxOps
+    Int8MinMaxMultiOps
+    NumericBloomOps
+    NumericMinMaxOps
+    NumericMinMaxMultiOps
+    OidBloomOps
+    OidMinMaxOps
+    OidMinMaxMultiOps
+    TextBloomOps
+    TextMinMaxOps
+    TextMinMaxMultiOps
+    TimestampBloomOps
+    TimestampMinMaxOps
+    TimestampMinMaxMultiOps
+    TimestampTzBloomOps
+    TimestampTzMinMaxOps
+    TimestampTzMinMaxMultiOps
+    TimeBloomOps
+    TimeMinMaxOps
+    TimeMinMaxMultiOps
+    TimeTzBloomOps
+    TimeTzMinMaxOps
+    TimeTzMinMaxMultiOps
+    UuidBloomOps
+    UuidMinMaxOps
+    UuidMinMaxMultiOps
+}
+
+/**
+ * Index sort order
+ */
+enum SortOrder {
+    Asc
+    Desc
+}
+
+/**
  * Defines an index in the database.
  *
  * @params fields: A list of field names - for example, [firstname, lastname]
@@ -263,7 +344,7 @@ enum IndexType {
  * @params clustered: Defines whether the index is clustered or non-clustered. Defaults to false.
  * @params type: Allows you to specify an index access method. Defaults to BTree.
  */
-attribute @@index(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: String?, clustered: Boolean?, type: IndexType?) @@@prisma
+attribute @@index(_ fields: FieldReference[], name: String?, map: String?, length: Int?, sort: SortOrder?, clustered: Boolean?, type: IndexType?) @@@prisma
 
 /**
  * Defines meta information about the relation.
@@ -598,3 +679,9 @@ attribute @prisma.passthrough(_ text: String)
  * A utility attribute to allow passthrough of arbitrary attribute text to the generated Prisma schema.
  */
 attribute @@prisma.passthrough(_ text: String)
+
+/**
+ * Used for specifying operator classes for GIN index.
+ */
+function raw(value: String): Any {
+} @@@expressionContext([Index])
