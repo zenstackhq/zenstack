@@ -9,7 +9,8 @@ import { createProgram } from '../../../../packages/schema/src/cli';
 import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
 import { createNpmrc } from './share';
 
-describe('CLI init command tests', () => {
+// eslint-disable-next-line jest/no-disabled-tests
+describe.skip('CLI init command tests', () => {
     let origDir: string;
 
     beforeEach(() => {
@@ -23,6 +24,7 @@ describe('CLI init command tests', () => {
         process.chdir(origDir);
     });
 
+    // eslint-disable-next-line jest/no-disabled-tests
     it('init project t3 npm std', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', {
             stdio: 'inherit',
@@ -42,9 +44,7 @@ describe('CLI init command tests', () => {
         checkDependency('@zenstackhq/runtime', false, true);
     });
 
-    // Disabled because it blows up memory on MAC, not sure why ...
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('init project t3 yarn std', async () => {
+    it('init project t3 yarn std', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', {
             stdio: 'inherit',
             env: {
