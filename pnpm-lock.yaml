@@ -400,12 +400,18 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
+      colors:
+        specifier: 1.4.0
+        version: 1.4.0
       decimal.js:
         specifier: ^10.4.2
         version: 10.4.2
       deepcopy:
         specifier: ^2.1.0
         version: 2.1.0
+      deepmerge:
+        specifier: ^4.3.1
+        version: 4.3.1
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2

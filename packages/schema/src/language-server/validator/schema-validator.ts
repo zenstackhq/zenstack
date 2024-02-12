@@ -13,7 +13,7 @@ export default class SchemaValidator implements AstValidator<Model> {
     constructor(protected readonly documents: LangiumDocuments) {}
     validate(model: Model, accept: ValidationAcceptor): void {
         this.validateImports(model, accept);
-        validateDuplicatedDeclarations(model.declarations, accept);
+        validateDuplicatedDeclarations(model, model.declarations, accept);
 
         const importedModels = resolveTransitiveImports(this.documents, model);
 

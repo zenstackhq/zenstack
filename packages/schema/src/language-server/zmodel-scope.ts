@@ -16,7 +16,6 @@ import {
     getModelFieldsWithBases,
     getRecursiveBases,
     isAuthInvocation,
-    isFutureExpr,
 } from '@zenstackhq/sdk';
 import {
     AstNode,
@@ -38,7 +37,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { isCollectionPredicate, resolveImportUri } from '../utils/ast-utils';
+import { isCollectionPredicate, isFutureInvocation, resolveImportUri } from '../utils/ast-utils';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
 
 /**
@@ -76,7 +75,7 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
     override processNode(node: AstNode, document: LangiumDocument<AstNode>, scopes: PrecomputedScopes) {
         super.processNode(node, document, scopes);
 
-        if (isDataModel(node)) {
+        if (isDataModel(node) && !node.$baseMerged) {
             // add base fields to the scope recursively
             const bases = getRecursiveBases(node);
             for (const base of bases) {
@@ -164,7 +163,7 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                     // resolve to `User` or `@@auth` model
                     return this.createScopeForAuthModel(node, globalScope);
                 }
-                if (isFutureExpr(operand)) {
+                if (isFutureInvocation(operand)) {
                     // resolve `future()` to the containing model
                     return this.createScopeForContainingModel(node, globalScope);
                 }

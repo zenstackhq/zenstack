@@ -3,6 +3,7 @@
 import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
+import { EnhancementOptions } from './create-enhancement';
 import { createDeferredPromise } from './policy/promise';
 
 /**
@@ -31,7 +32,7 @@ export interface PrismaProxyHandler {
 
     create(args: any): Promise<unknown>;
 
-    createMany(args: any, skipDuplicates?: boolean): Promise<BatchResult>;
+    createMany(args: { data: any; skipDuplicates?: boolean }): Promise<BatchResult>;
 
     update(args: any): Promise<unknown>;
 
@@ -63,7 +64,11 @@ export type PrismaProxyActions = keyof PrismaProxyHandler;
  * methods to allow more easily inject custom logic.
  */
 export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
-    constructor(protected readonly prisma: DbClientContract, protected readonly model: string) {}
+    constructor(
+        protected readonly prisma: DbClientContract,
+        protected readonly model: string,
+        protected readonly options: EnhancementOptions
+    ) {}
 
     async findUnique(args: any): Promise<unknown> {
         args = await this.preprocessArgs('findUnique', args);
@@ -101,9 +106,9 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
         return this.processResultEntity(r);
     }
 
-    async createMany(args: any, skipDuplicates?: boolean | undefined): Promise<{ count: number }> {
+    async createMany(args: { data: any; skipDuplicates?: boolean }): Promise<{ count: number }> {
         args = await this.preprocessArgs('createMany', args);
-        return this.prisma[this.model].createMany(args, skipDuplicates);
+        return this.prisma[this.model].createMany(args);
     }
 
     async update(args: any): Promise<unknown> {
@@ -182,7 +187,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
     name = 'unnamed_enhancer',
     errorTransformer?: ErrorTransformer
 ) {
-    const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
+    const models = Object.keys(modelMeta.models).map((k) => k.toLowerCase());
 
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {

@@ -56,6 +56,6 @@ function startLanguageClient(context: vscode.ExtensionContext): LanguageClient {
     const client = new LanguageClient('zmodel', 'ZenStack Model', serverOptions, clientOptions);
 
     // Start the client. This will also launch the server
-    client.start();
+    void client.start();
     return client;
 }

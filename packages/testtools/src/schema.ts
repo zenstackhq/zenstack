@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import type { AuthUser, DbOperations, EnhancementOptions } from '@zenstackhq/runtime';
+import type { AuthUser, CrudContract, EnhancementKind, EnhancementOptions } from '@zenstackhq/runtime';
 import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -24,7 +24,7 @@ import prismaPlugin from 'zenstack/plugins/prisma';
 */
 export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
-export type FullDbClientContract = Record<string, DbOperations> & {
+export type FullDbClientContract = CrudContract & {
     $on(eventType: any, callback: (event: any) => void): void;
     $use(cb: any): void;
     $disconnect: () => Promise<void>;
@@ -81,7 +81,6 @@ datasource db {
 
 generator js {
     provider = 'prisma-client-js'
-    previewFeatures = ['clientExtensions']
 }
 
 plugin enhancer {
@@ -111,6 +110,8 @@ export type SchemaLoadOptions = {
     dbUrl?: string;
     pulseApiKey?: string;
     getPrismaOnly?: boolean;
+    enhancements?: EnhancementKind[];
+    enhanceOptions?: Partial<EnhancementOptions>;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -283,8 +284,9 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
                     modelMeta,
                     zodSchemas,
                     logPrismaQuery: opt.logPrismaQuery,
-                    transactionTimeout: 10000,
-                    ...options,
+                    transactionTimeout: 1000000,
+                    kinds: opt.enhancements,
+                    ...(options ?? opt.enhanceOptions),
                 }
             ),
         enhanceRaw: enhance,

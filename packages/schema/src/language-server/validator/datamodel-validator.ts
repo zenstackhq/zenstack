@@ -6,14 +6,9 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import {
-    analyzePolicies,
-    getLiteral,
-    getModelFieldsWithBases,
-    getModelIdFields,
-    getModelUniqueFields,
-} from '@zenstackhq/sdk';
+import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
+import { getModelFieldsWithBases } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getUniqueFields } from '../utils';
@@ -26,7 +21,7 @@ import { validateDuplicatedDeclarations } from './utils';
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
         this.validateBaseAbstractModel(dm, accept);
-        validateDuplicatedDeclarations(getModelFieldsWithBases(dm), accept);
+        validateDuplicatedDeclarations(dm, getModelFieldsWithBases(dm), accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
     }
@@ -224,6 +219,11 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         }
 
+        if (field.$container !== contextModel && isDelegateModel(field.$container as DataModel)) {
+            // relation fields inherited from delegate model don't need opposite relation
+            return;
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
@@ -265,7 +265,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         } else if (oppositeFields.length > 1) {
             oppositeFields
-                .filter((x) => !x.$inheritedFrom)
+                .filter((f) => f.$container !== contextModel)
                 .forEach((f) => {
                     if (this.isSelfRelation(f)) {
                         // self relations are partial
@@ -368,12 +368,19 @@ export default class DataModelValidator implements AstValidator<DataModel> {
 
     private validateBaseAbstractModel(model: DataModel, accept: ValidationAcceptor) {
         model.superTypes.forEach((superType, index) => {
-            if (!superType.ref?.isAbstract)
-                accept('error', `Model ${superType.$refText} cannot be extended because it's not abstract`, {
-                    node: model,
-                    property: 'superTypes',
-                    index,
-                });
+            if (
+                !superType.ref?.isAbstract &&
+                !superType.ref?.attributes.some((attr) => attr.decl.ref?.name === '@@delegate')
+            )
+                accept(
+                    'error',
+                    `Model ${superType.$refText} cannot be extended because it's neither abstract nor marked as "@@delegate"`,
+                    {
+                        node: model,
+                        property: 'superTypes',
+                        index,
+                    }
+                );
         });
     }
 }

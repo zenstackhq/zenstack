@@ -85,11 +85,18 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     const model = document.parseResult.value as Model;
 
-    mergeImportsDeclarations(langiumDocuments, model);
+    const imported = mergeImportsDeclarations(langiumDocuments, model);
+    // remove imported documents
+    await services.shared.workspace.DocumentBuilder.update(
+        [],
+        imported.map((m) => m.$document!.uri)
+    );
 
     validationAfterMerge(model);
 
     mergeBaseModel(model, services.references.Linker);
+
+    await relinkAll(model, services);
 
     return model;
 }
@@ -151,6 +158,8 @@ export function mergeImportsDeclarations(documents: LangiumDocuments, model: Mod
     });
 
     model.declarations.push(...importedDeclarations);
+
+    return importedModels;
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
@@ -294,4 +303,21 @@ export function getDefaultSchemaLocation() {
     }
 
     return path.resolve('schema.zmodel');
+}
+
+async function relinkAll(model: Model, services: ZModelServices) {
+    const doc = model.$document!;
+
+    // unlink the document
+    services.references.Linker.unlink(doc);
+
+    // remove current document
+    await services.shared.workspace.DocumentBuilder.update([], [doc.uri]);
+
+    // recreate the document
+    const newDoc = services.shared.workspace.LangiumDocumentFactory.fromModel(model, doc.uri);
+    (model as Mutable<Model>).$document = newDoc;
+
+    // rebuild the document
+    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
 }
