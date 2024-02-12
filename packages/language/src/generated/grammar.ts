@@ -1052,8 +1052,11 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "feature": "name",
             "operator": "=",
             "terminal": {
-              "$type": "Keyword",
-              "value": "sort"
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@62"
+              },
+              "arguments": []
             }
           },
           {
@@ -1065,17 +1068,11 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
             "feature": "value",
             "operator": "=",
             "terminal": {
-              "$type": "Alternatives",
-              "elements": [
-                {
-                  "$type": "Keyword",
-                  "value": "Asc"
-                },
-                {
-                  "$type": "Keyword",
-                  "value": "Desc"
-                }
-              ]
+              "$type": "RuleCall",
+              "rule": {
+                "$ref": "#/rules@8"
+              },
+              "arguments": []
             }
           }
         ]
@@ -1865,43 +1862,16 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
       "$type": "ParserRule",
       "name": "Argument",
       "definition": {
-        "$type": "Group",
-        "elements": [
-          {
-            "$type": "Group",
-            "elements": [
-              {
-                "$type": "Assignment",
-                "feature": "name",
-                "operator": "=",
-                "terminal": {
-                  "$type": "RuleCall",
-                  "rule": {
-                    "$ref": "#/rules@46"
-                  },
-                  "arguments": []
-                }
-              },
-              {
-                "$type": "Keyword",
-                "value": ":"
-              }
-            ],
-            "cardinality": "?"
+        "$type": "Assignment",
+        "feature": "value",
+        "operator": "=",
+        "terminal": {
+          "$type": "RuleCall",
+          "rule": {
+            "$ref": "#/rules@8"
           },
-          {
-            "$type": "Assignment",
-            "feature": "value",
-            "operator": "=",
-            "terminal": {
-              "$type": "RuleCall",
-              "rule": {
-                "$ref": "#/rules@8"
-              },
-              "arguments": []
-            }
-          }
-        ]
+          "arguments": []
+        }
       },
       "definesHiddenTokens": false,
       "entry": false,
@@ -2722,10 +2692,6 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "Keyword",
             "value": "in"
-          },
-          {
-            "$type": "Keyword",
-            "value": "sort"
           },
           {
             "$type": "Keyword",

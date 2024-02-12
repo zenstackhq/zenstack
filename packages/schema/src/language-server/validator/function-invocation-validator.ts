@@ -52,6 +52,7 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                 .with('@default', () => ExpressionContext.DefaultValue)
                 .with(P.union('@@allow', '@@deny', '@allow', '@deny'), () => ExpressionContext.AccessPolicy)
                 .with('@@validate', () => ExpressionContext.ValidationRule)
+                .with('@@index', () => ExpressionContext.Index)
                 .otherwise(() => undefined);
 
             // get the context allowed for the function

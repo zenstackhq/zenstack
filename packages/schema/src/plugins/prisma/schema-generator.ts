@@ -217,6 +217,10 @@ export default class PrismaSchemaGenerator {
         return JSON.stringify(expr.value);
     }
 
+    private exprToText(expr: Expression) {
+        return new ZModelCodeGenerator({ quote: 'double' }).generate(expr);
+    }
+
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
         const generator = prisma.addGenerator(
             decl.name,
@@ -368,7 +372,7 @@ export default class PrismaSchemaGenerator {
                 'FieldReference',
                 new PrismaFieldReference(
                     resolved(node.target).name,
-                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, arg.value))
+                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, this.exprToText(arg.value)))
                 )
             );
         } else if (isInvocationExpr(node)) {
@@ -391,7 +395,7 @@ export default class PrismaSchemaGenerator {
                         throw new PluginError(name, 'Function call argument must be literal or null');
                     });
 
-                return new PrismaFunctionCallArg(arg.name, val);
+                return new PrismaFunctionCallArg(val);
             })
         );
     }
