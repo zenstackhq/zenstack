@@ -78,68 +78,88 @@ function generateQueryHook(
     overrideReturnType?: string,
     overrideInputType?: string,
     overrideTypeParameters?: string[],
-    infinite = false,
-    optimisticUpdate = false
+    supportInfinite = false,
+    supportOptimistic = false
 ) {
-    const capOperation = upperCaseFirst(operation);
-
-    const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
-    const inputType = `Prisma.SelectSubset<TArgs, ${argsType}>`;
-
-    let defaultReturnType = `Prisma.${model}GetPayload<TArgs>`;
-    if (optimisticUpdate) {
-        defaultReturnType += '& { $optimistic?: boolean }';
-    }
-    if (returnArray) {
-        defaultReturnType = `Array<${defaultReturnType}>`;
+    const generateModes: ('' | 'Infinite' | 'Suspense' | 'SuspenseInfinite')[] = [''];
+    if (supportInfinite) {
+        generateModes.push('Infinite');
     }
 
-    const returnType = overrideReturnType ?? defaultReturnType;
-    const optionsType = makeQueryOptions(target, 'TQueryFnData', 'TData', infinite, version);
-
-    const func = sf.addFunction({
-        name: `use${infinite ? 'Infinite' : ''}${capOperation}${model}`,
-        typeParameters: overrideTypeParameters ?? [
-            `TArgs extends ${argsType}`,
-            `TQueryFnData = ${returnType} `,
-            'TData = TQueryFnData',
-            'TError = DefaultError',
-        ],
-        parameters: [
-            {
-                name: optionalInput ? 'args?' : 'args',
-                type: inputType,
-            },
-            {
-                name: 'options?',
-                type: optionsType,
-            },
-            ...(optimisticUpdate
-                ? [
-                      {
-                          name: 'optimisticUpdate',
-                          type: 'boolean',
-                          initializer: 'true',
-                      },
-                  ]
-                : []),
-        ],
-        isExported: true,
-    });
-
-    if (version === 'v5' && infinite && ['react', 'svelte'].includes(target)) {
-        // initialPageParam and getNextPageParam options are required in v5
-        func.addStatements([`options = options ?? { initialPageParam: undefined, getNextPageParam: () => null };`]);
+    if (target === 'react' && version === 'v5') {
+        // react-query v5 supports suspense query
+        generateModes.push('Suspense');
+        if (supportInfinite) {
+            generateModes.push('SuspenseInfinite');
+        }
     }
 
-    func.addStatements([
-        makeGetContext(target),
-        `return ${
-            infinite ? 'useInfiniteModelQuery' : 'useModelQuery'
-        }<TQueryFnData, TData, TError>('${model}', \`\${endpoint}/${lowerCaseFirst(
-            model
-        )}/${operation}\`, args, options, fetch${optimisticUpdate ? ', optimisticUpdate' : ''});`,
-    ]);
+    for (const generateMode of generateModes) {
+        const capOperation = upperCaseFirst(operation);
+
+        const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
+        const inputType = `Prisma.SelectSubset<TArgs, ${argsType}>`;
+
+        const infinite = generateMode.includes('Infinite');
+        const suspense = generateMode.includes('Suspense');
+        const optimistic =
+            supportOptimistic &&
+            // infinite queries are not subject to optimistic updates
+            !infinite;
+
+        let defaultReturnType = `Prisma.${model}GetPayload<TArgs>`;
+        if (optimistic) {
+            defaultReturnType += '& { $optimistic?: boolean }';
+        }
+        if (returnArray) {
+            defaultReturnType = `Array<${defaultReturnType}>`;
+        }
+
+        const returnType = overrideReturnType ?? defaultReturnType;
+        const optionsType = makeQueryOptions(target, 'TQueryFnData', 'TData', infinite, suspense, version);
+
+        const func = sf.addFunction({
+            name: `use${generateMode}${capOperation}${model}`,
+            typeParameters: overrideTypeParameters ?? [
+                `TArgs extends ${argsType}`,
+                `TQueryFnData = ${returnType} `,
+                'TData = TQueryFnData',
+                'TError = DefaultError',
+            ],
+            parameters: [
+                {
+                    name: optionalInput ? 'args?' : 'args',
+                    type: inputType,
+                },
+                {
+                    name: 'options?',
+                    type: optionsType,
+                },
+                ...(optimistic
+                    ? [
+                          {
+                              name: 'optimisticUpdate',
+                              type: 'boolean',
+                              initializer: 'true',
+                          },
+                      ]
+                    : []),
+            ],
+            isExported: true,
+        });
+
+        if (version === 'v5' && infinite && ['react', 'svelte'].includes(target)) {
+            // initialPageParam and getNextPageParam options are required in v5
+            func.addStatements([`options = options ?? { initialPageParam: undefined, getNextPageParam: () => null };`]);
+        }
+
+        func.addStatements([
+            makeGetContext(target),
+            `return use${generateMode}ModelQuery<TQueryFnData, TData, TError>('${model}', \`\${endpoint}/${lowerCaseFirst(
+                model
+            )}/${operation}\`, args, options, fetch${optimistic ? ', optimisticUpdate' : ''});`,
+        ]);
+    }
 }
 
 function generateMutationHook(
@@ -313,23 +333,8 @@ function generateModelHooks(
             undefined,
             undefined,
             undefined,
-            false,
+            true,
             true
-        );
-        // infinite findMany
-        generateQueryHook(
-            target,
-            version,
-            sf,
-            model.name,
-            'findMany',
-            true,
-            true,
-            undefined,
-            undefined,
-            undefined,
-            true,
-            false
         );
     }
 
@@ -565,19 +570,29 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         `type DefaultError = Error;`,
     ];
     switch (target) {
-        case 'react':
+        case 'react': {
+            const suspense =
+                version === 'v5'
+                    ? [
+                          `import { useSuspenseModelQuery, useSuspenseInfiniteModelQuery } from '${runtimeImportBase}/${target}';`,
+                          `import type { UseSuspenseQueryOptions, UseSuspenseInfiniteQueryOptions } from '@tanstack/react-query';`,
+                      ]
+                    : [];
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
+                ...suspense,
             ];
-        case 'vue':
+        }
+        case 'vue': {
             return [
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
-        case 'svelte':
+        }
+        case 'svelte': {
             return [
                 `import { derived } from 'svelte/store';`,
                 `import type { MutationOptions, CreateQueryOptions, CreateInfiniteQueryOptions } from '@tanstack/svelte-query';`,
@@ -587,6 +602,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
             ];
+        }
         default:
             throw new PluginError(name, `Unsupported target: ${target}`);
     }
@@ -597,6 +613,7 @@ function makeQueryOptions(
     returnType: string,
     dataType: string,
     infinite: boolean,
+    suspense: boolean,
     version: TanStackVersion
 ) {
     switch (target) {
@@ -604,8 +621,10 @@ function makeQueryOptions(
             return infinite
                 ? version === 'v4'
                     ? `Omit<UseInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
-                    : `Omit<UseInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>`
-                : `Omit<UseQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
+                    : `Omit<Use${
+                          suspense ? 'Suspense' : ''
+                      }InfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>`
+                : `Omit<Use${suspense ? 'Suspense' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
         case 'vue':
             return `Omit<Use${infinite ? 'Infinite' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
         case 'svelte':
