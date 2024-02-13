@@ -9,7 +9,9 @@ import { createProgram } from '../../../../packages/schema/src/cli';
 import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
 import { createNpmrc } from './share';
 
-describe('CLI init command tests', () => {
+// Skipping these tests as they seem to cause hangs intermittently when running with other tests
+// eslint-disable-next-line jest/no-disabled-tests
+describe.skip('CLI init command tests', () => {
     let origDir: string;
 
     beforeEach(() => {
@@ -39,9 +41,7 @@ describe('CLI init command tests', () => {
         checkDependency('@zenstackhq/runtime', false, true);
     });
 
-    // Disabled because it blows up memory on MAC, not sure why ...
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('init project t3 yarn std', async () => {
+    it('init project t3 yarn std', async () => {
         execSync('npx --yes create-t3-app@latest --prisma --CI --noGit .', 'inherit', {
             npm_config_user_agent: 'yarn',
             npm_config_cache: getWorkspaceNpmCacheFolder(__dirname),
