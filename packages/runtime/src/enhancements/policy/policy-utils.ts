@@ -1277,6 +1277,27 @@ export class PolicyUtil {
     }
 
     /**
+     * Replace content of `target` object with `withObject` in-place.
+     */
+    replace(target: any, withObject: any) {
+        if (!target || typeof target !== 'object' || !withObject || typeof withObject !== 'object') {
+            return;
+        }
+
+        // remove missing keys
+        for (const key of Object.keys(target)) {
+            if (!(key in withObject)) {
+                delete target[key];
+            }
+        }
+
+        // overwrite keys
+        for (const [key, value] of Object.entries(withObject)) {
+            target[key] = value;
+        }
+    }
+
+    /**
      * Picks properties from an object.
      */
     pick<T>(value: T, ...props: (keyof T)[]): Pick<T, (typeof props)[number]> {
