@@ -42,7 +42,6 @@ describe('With Policy: permissions checker test', () => {
         const db = enhance({ id: 'userId-1' });
         // await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
         // await expect(db.post.create({ data: { title: 'abc' } })).resolves.toMatchObject({ authorId: 'userId-1' });
-
         await expect(db.user.check('read', {})).toResolveTruthy();
         await expect(db.user.check('create', { age: { lt: 10 } })).toResolveFalsy();
     });

@@ -57,8 +57,6 @@ import { name } from '..';
 import { isCollectionPredicate } from '../../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, CRUD_OPERATION_KINDS } from '../../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
-// import { type Arith, type Bool } from 'z3-solver';
-// import * as util from 'util';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -79,7 +77,7 @@ export class PolicyGenerator {
         });
 
         sf.addImportDeclaration({
-            namedImports: [{ name: 'type Arith' }, { name: 'type Bool' }, { name: 'init' }, { name: 'Context' }],
+            namedImports: [{ name: 'type Arith' }, { name: 'type Bool' }, { name: 'init' }],
             moduleSpecifier: 'z3-solver',
         });
 
@@ -886,27 +884,60 @@ export class PolicyGenerator {
     ) {
         const statements: (string | WriterFunction)[] = [];
 
+        if (kind === 'create') {
+            statements.push((writer) => {
+                writer.write('return Promise.resolve(false)');
+            });
+            return sourceFile.addFunction({
+                isAsync: true,
+                name: `check_${model.name}_${kind}`,
+                returnType: 'Promise<boolean>',
+                parameters: [
+                    {
+                        name: 'args',
+                        type: 'Record<string, any>',
+                    },
+                    {
+                        name: 'user?',
+                        type: 'any',
+                    },
+                ],
+                statements,
+            });
+        }
         statements.push((writer) => {
             const transformer = new Z3ExpressionTransformer({
                 context: ExpressionContext.AccessPolicy,
             });
             try {
                 writer.writeLine('const { Context, em } = await init();');
-                writer.writeLine('const { Solver, Int, Bool, Or, And } = Context("main");');
+                writer.writeLine('const { Solver, Int, Bool, Or, And, Not } = Context("main");');
                 writer.writeLine('const solver = new Solver();');
 
                 const variables: Record<string, string> = this.generateVariables([...denies, ...allows]);
                 Object.keys(variables).forEach((key) => {
                     writer.writeLine(`const ${key} = ${variables[key]};`);
                 });
+                writer.writeLine(`const _withAuth = !!user?.id;`);
                 writer.writeLine(
                     `const variables = { ${Object.keys(variables)
                         .map((v) => v)
                         .join(', ')} };`
                 );
 
-                // TODO: handle denies statements
-                const allowStmt: string =
+                const denyStmt =
+                    denies.length > 1
+                        ? 'Or(' +
+                          denies
+                              .map((denie) => {
+                                  return transformer.transform(denie);
+                              })
+                              .join(', ') +
+                          ')'
+                        : denies.length === 1
+                        ? transformer.transform(denies[0])
+                        : undefined;
+                const allowStmt =
                     allows.length > 1
                         ? 'Or(' +
                           allows
@@ -917,8 +948,18 @@ export class PolicyGenerator {
                           ')'
                         : allows.length === 1
                         ? transformer.transform(allows[0])
-                        : '';
-                writer.writeLine(`const assertion = ${allowStmt}`);
+                        : undefined;
+                let assertion;
+                if (denyStmt && allowStmt) {
+                    assertion = `And(Not(${denyStmt}), ${allowStmt})`;
+                } else if (denyStmt) {
+                    assertion = `Not(${denyStmt})`;
+                } else if (allowStmt) {
+                    assertion = allowStmt;
+                } else {
+                    assertion = false;
+                }
+                writer.writeLine(`const assertion = ${assertion}`);
                 writer.writeLine(`solver.add(assertion);`);
                 writer.writeLine(`await killThreads(em);`);
                 writer.write(`return (await solver.check()) === "sat";`);
@@ -976,7 +1017,11 @@ export class PolicyGenerator {
         const visit = (node: Expression) => {
             if (isBinaryExpr(node) && typeof (node.right.$type !== 'StringLiteral')) {
                 if (isReferenceExpr(node.left)) {
-                    result[node.left.target?.ref?.name ?? ''] = node.right.$type;
+                    // const variableName = `${lowerCaseFirst(
+                    //     node.left.target.ref?.$container.name ?? ''
+                    // )}${upperCaseFirst(node.left.target?.ref?.name ?? '')}`;
+                    const variableName = `${node.left.target?.ref?.name}`;
+                    result[variableName] = node.right.$type;
                     // visit(node.right);
                     // } else if (isUnaryExpr(node) && node.operator === '!') {
                     //     visit(node.operand);

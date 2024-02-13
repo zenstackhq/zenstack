@@ -162,15 +162,9 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     }
 
     async check(operation: PolicyOperationKind, args: any): Promise<boolean> {
-        console.log("Hi from proxy check's new method");
-        console.log('Args: ', args);
-        console.log('Operation: ', operation);
-        args = await this.preprocessArgs('check', args);
-        // const r = await this.prisma[this.model].check(args);
-        // const r = new Promise<boolean>((resolve) => {
-        //     resolve(true);
-        // });
-        // return r;
+        console.log('Default proxy handler');
+        await this.preprocessArgs('check', args);
+        // check method is handle by the policy enhancer
         return false;
     }
 

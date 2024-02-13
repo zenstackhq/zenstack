@@ -7,6 +7,7 @@ import {
     InvocationExpr,
     isDataModel,
     isEnumField,
+    isNullExpr,
     isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
@@ -19,8 +20,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { match, P } from 'ts-pattern';
 import { ExpressionContext } from './constants';
-import { /* getIdFields, */ getLiteral, isAuthInvocation, isFromStdlib, isFutureExpr } from './utils';
-// import * as util from 'util';
+import { getLiteral, isAuthInvocation, isFromStdlib, isFutureExpr } from './utils';
 
 export class Z3ExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -286,16 +286,12 @@ export class Z3ExpressionTransformer {
         if (isEnumField(expr.target.ref)) {
             return `${expr.target.ref.$container.name}.${expr.target.ref.name}`;
         } else {
-            if (this.options?.isPostGuard) {
-                // if we're processing post-update, any direct field access should be
-                // treated as access to context.preValue, which is entity's value before
-                // the update
-                return `context.preValue?.${expr.target.ref.name}`;
-            } else {
-                return this.options?.fieldReferenceContext
-                    ? `${this.options.fieldReferenceContext}?.${expr.target.ref.name}`
-                    : expr.target.ref.name;
-            }
+            // const formattedName = `${lowerCaseFirst(expr.target.ref.$container.name)}${upperCaseFirst(
+            //     expr.target.ref.name
+            // )}`;
+            return this.options?.fieldReferenceContext
+                ? `${this.options.fieldReferenceContext}?.${expr.target.ref.name}`
+                : expr.target.ref.name;
         }
     }
 
@@ -328,16 +324,40 @@ export class Z3ExpressionTransformer {
 
         let left = this.transform(expr.left, normalizeUndefined);
         let right = this.transform(expr.right, normalizeUndefined);
+        // if (isMemberAccessExpr(expr.left) && !isAuthInvocation(expr.left)) {
+        // left = `args.${left}`;
+        // }
+        // if (isMemberAccessExpr(expr.right) && !isAuthInvocation(expr.right)) {
+        // right = `args.${right}`;
+        // }
+        // if (this.isModelType(expr.left)) {
+        //     left = `(${left}.id ?? null)`;
+        // }
+        // if (this.isModelType(expr.right)) {
+        //     right = `(${right}.id ?? null)`;
+        // }
         if (this.isModelType(expr.left) && this.isModelType(expr.right)) {
-            const leftIsAuthModel = isAuthInvocation(expr.left);
-            const rightIsAuthModel = isAuthInvocation(expr.right);
             // comparison between model type values, map to id comparison
-            left = `(${leftIsAuthModel ? left : `args.${left}`}?.id ?? null)`;
-            right = `(${rightIsAuthModel ? right : `args.${right}`}?.id ?? null)`;
-            // TODO: handle strict equality comparison (===, !==, etc.)
+            left = isAuthInvocation(expr.left)
+                ? `(${left}.id ?? null)`
+                : `((args.${left}?.id || args.${left}Id) ?? null)`;
+            right = isAuthInvocation(expr.right)
+                ? `(${right}.id ?? null)`
+                : `((args.${right}?.id || args.${right}Id) ?? null)`;
+            if ((isAuthInvocation(expr.left) && !isNullExpr(expr.right)) || isAuthInvocation(expr.right)) {
+                // TODO: handle strict equality comparison (===, !==, etc.)
+                return `And(${left} ${expr.operator} ${right}, _withAuth)`;
+            }
             return `(${left} ${expr.operator} ${right})`;
         }
+
         const _default = `(${left} ${expr.operator} ${right})`;
+
+        // if (expr.left.$type === 'ReferenceExpr') {
+        //     left = `${lowerCaseFirst(expr.left.target.ref?.$container.name ?? '')}${upperCaseFirst(
+        //         expr.left.target?.ref?.name ?? ''
+        //     )}`;
+        // }
 
         return (
             match(expr.operator)

@@ -1325,8 +1325,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         args = args ? this.policyUtils.clone(args) : {};
 
         // if (this.shouldLogQuery) {
-        this.logger.info(`[policy] \`check\` ${this.model} operation:\n${operation}`);
-        this.logger.info(`[policy] \`check\` ${this.model} args:\n${formatObject(args)}`);
+        this.logger.info(`[policy] \`check\` ${this.model}\noperation:${operation}\nargs:${formatObject(args)}`);
         // }
 
         return this.policyUtils.checkPermissions(this.model, operation, args, this.policyUtils.user);
