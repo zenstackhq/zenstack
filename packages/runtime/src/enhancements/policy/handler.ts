@@ -263,7 +263,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 // there's no nested write and we've passed input check, proceed with the create directly
 
                 // validate zod schema if any
-                this.validateCreateInputSchema(this.model, args.data);
+                args.data = this.validateCreateInputSchema(this.model, args.data);
 
                 // make a create args only containing data and ID selection
                 const createArgs: any = { data: args.data, select: this.policyUtils.makeIdSelection(this.model) };
@@ -319,12 +319,20 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         // visit the create payload
         const visitor = new NestedWriteVisitor(this.modelMeta, {
             create: async (model, args, context) => {
-                this.validateCreateInputSchema(model, args);
+                const validateResult = this.validateCreateInputSchema(model, args);
+                if (validateResult !== args) {
+                    this.policyUtils.replace(args, validateResult);
+                }
                 pushIdFields(model, context);
             },
 
             createMany: async (model, args, context) => {
-                enumerate(args.data).forEach((item) => this.validateCreateInputSchema(model, item));
+                enumerate(args.data).forEach((item) => {
+                    const r = this.validateCreateInputSchema(model, item);
+                    if (r !== item) {
+                        this.policyUtils.replace(item, r);
+                    }
+                });
                 pushIdFields(model, context);
             },
 
@@ -333,7 +341,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     throw this.policyUtils.validationError(`'where' field is required for connectOrCreate`);
                 }
 
-                this.validateCreateInputSchema(model, args.create);
+                if (args.create) {
+                    args.create = this.validateCreateInputSchema(model, args.create);
+                }
 
                 const existing = await this.policyUtils.checkExistence(db, model, args.where);
                 if (existing) {
@@ -482,6 +492,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     parseResult.error
                 );
             }
+            return parseResult.data;
+        } else {
+            return data;
         }
     }
 
@@ -513,7 +526,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     CrudFailureReason.ACCESS_POLICY_VIOLATION
                 );
             } else if (inputCheck === true) {
-                this.validateCreateInputSchema(this.model, item);
+                const r = this.validateCreateInputSchema(this.model, item);
+                if (r !== item) {
+                    this.policyUtils.replace(item, r);
+                }
             } else if (inputCheck === undefined) {
                 // static policy check is not possible, need to do post-create check
                 needPostCreateCheck = true;

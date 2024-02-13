@@ -2,12 +2,15 @@ import { ZModelGeneratedModule, ZModelGeneratedSharedModule } from '@zenstackhq/
 import {
     DefaultConfigurationProvider,
     DefaultDocumentBuilder,
+    DefaultFuzzyMatcher,
     DefaultIndexManager,
     DefaultLangiumDocumentFactory,
     DefaultLangiumDocuments,
     DefaultLanguageServer,
+    DefaultNodeKindProvider,
     DefaultServiceRegistry,
     DefaultSharedModuleContext,
+    DefaultWorkspaceSymbolProvider,
     LangiumDefaultSharedServices,
     LangiumServices,
     LangiumSharedServices,
@@ -77,6 +80,7 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
 };
 
 // this duplicates createDefaultSharedModule except that a custom WorkspaceManager is used
+// TODO: avoid this duplication
 export function createSharedModule(
     context: DefaultSharedModuleContext
 ): Module<LangiumSharedServices, LangiumDefaultSharedServices> {
@@ -85,6 +89,9 @@ export function createSharedModule(
         lsp: {
             Connection: () => context.connection,
             LanguageServer: (services) => new DefaultLanguageServer(services),
+            WorkspaceSymbolProvider: (services) => new DefaultWorkspaceSymbolProvider(services),
+            NodeKindProvider: () => new DefaultNodeKindProvider(),
+            FuzzyMatcher: () => new DefaultFuzzyMatcher(),
         },
         workspace: {
             LangiumDocuments: (services) => new DefaultLangiumDocuments(services),

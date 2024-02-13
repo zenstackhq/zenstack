@@ -20,7 +20,7 @@
         <key>name</key>
         <string>keyword.control.zmodel</string>
         <key>match</key>
-        <string>\b(Any|Asc|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|Desc|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|Unsupported|abstract|attribute|datasource|enum|extends|false|function|generator|import|in|model|null|plugin|sort|this|true|view)\b</string>
+        <string>\b(Any|BigInt|Boolean|Bytes|ContextType|DateTime|Decimal|FieldReference|Float|Int|Json|Null|Object|String|TransitiveFieldReference|Unsupported|abstract|attribute|datasource|enum|extends|false|function|generator|import|in|model|null|plugin|this|true|view)\b</string>
       </dict>
       <dict>
         <key>name</key>

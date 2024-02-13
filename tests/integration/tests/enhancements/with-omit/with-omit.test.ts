@@ -76,4 +76,84 @@ describe('Omit test', () => {
             expect(e.profile.image).toBeUndefined();
         });
     });
+
+    it('customization', async () => {
+        const { prisma, enhance } = await loadSchema(model, {
+            output: './zen',
+            enhancements: ['omit'],
+        });
+
+        const db = enhance(prisma, { loadPath: './zen' });
+        const r = await db.user.create({
+            include: { profile: true },
+            data: {
+                id: '1',
+                password: 'abc123',
+                profile: { create: { image: 'an image' } },
+            },
+        });
+        expect(r.password).toBeUndefined();
+        expect(r.profile.image).toBeUndefined();
+
+        const db1 = enhance(prisma, { modelMeta: require(path.resolve('./zen/model-meta')).default });
+        const r1 = await db1.user.create({
+            include: { profile: true },
+            data: {
+                id: '2',
+                password: 'abc123',
+                profile: { create: { image: 'an image' } },
+            },
+        });
+        expect(r1.password).toBeUndefined();
+        expect(r1.profile.image).toBeUndefined();
+    });
+
+    it('to-many', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id String @id @default(cuid())
+                posts Post[]
+            
+                @@allow('all', true)
+            }
+            
+            model Post {
+                id String @id @default(cuid())
+                user User @relation(fields: [userId], references: [id])
+                userId String
+                images Image[]
+            
+                @@allow('all', true)
+            }
+
+            model Image {
+                id String @id @default(cuid())
+                post Post @relation(fields: [postId], references: [id])
+                postId String
+                url String @omit
+
+                @@allow('all', true)
+            }
+            `,
+            { enhancements: ['omit'] }
+        );
+
+        const db = enhance();
+        const r = await db.user.create({
+            include: { posts: { include: { images: true } } },
+            data: {
+                posts: {
+                    create: [
+                        { images: { create: { url: 'img1' } } },
+                        { images: { create: [{ url: 'img2' }, { url: 'img3' }] } },
+                    ],
+                },
+            },
+        });
+
+        expect(r.posts[0].images[0].url).toBeUndefined();
+        expect(r.posts[1].images[0].url).toBeUndefined();
+        expect(r.posts[1].images[1].url).toBeUndefined();
+    });
 });

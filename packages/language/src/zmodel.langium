@@ -80,7 +80,7 @@ fragment ReferenceArgList:
     args+=ReferenceArg (',' args+=ReferenceArg)*;
 
 ReferenceArg:
-    name=('sort') ':' value=('Asc' | 'Desc');
+    name=ID ':' value=Expression;
 
 
 ObjectExpr:
@@ -172,7 +172,7 @@ fragment ArgumentList:
     args+=Argument (',' args+=Argument)*;
 
 Argument:
-    (name=RegularID ':')? value=Expression;
+    value=Expression;
 
 // model
 DataModel:
@@ -224,7 +224,7 @@ FunctionParamType:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'sort' | 'view' | 'import';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import';
 
 // attribute
 Attribute:
