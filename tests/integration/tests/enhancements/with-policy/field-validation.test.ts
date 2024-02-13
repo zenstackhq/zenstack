@@ -35,6 +35,8 @@ describe('With Policy: field validation', () => {
                 text3 String @length(min: 3)
                 text4 String @length(max: 5)
                 text5 String? @endsWith('xyz')
+                text6 String? @trim @lower
+                text7 String? @upper
 
                 @@allow('all', true)
             }
@@ -494,5 +496,62 @@ describe('With Policy: field validation', () => {
                 },
             })
         ).toResolveTruthy();
+    });
+
+    it('string transformation', async () => {
+        await db.user.create({
+            data: {
+                id: '1',
+                password: 'abc123!@#',
+                email: 'who@myorg.com',
+                handle: 'user1',
+            },
+        });
+
+        await expect(
+            db.userData.create({
+                data: {
+                    userId: '1',
+                    a: 1,
+                    b: 0,
+                    c: -1,
+                    d: 0,
+                    text1: 'abc123',
+                    text2: 'def',
+                    text3: 'aaa',
+                    text4: 'abcab',
+                    text6: ' AbC ',
+                    text7: 'abc',
+                },
+            })
+        ).resolves.toMatchObject({ text6: 'abc', text7: 'ABC' });
+
+        await expect(
+            db.user.create({
+                data: {
+                    id: '2',
+                    password: 'abc123!@#',
+                    email: 'who@myorg.com',
+                    handle: 'user2',
+                    userData: {
+                        create: {
+                            a: 1,
+                            b: 0,
+                            c: -1,
+                            d: 0,
+                            text1: 'abc123',
+                            text2: 'def',
+                            text3: 'aaa',
+                            text4: 'abcab',
+                            text6: ' AbC ',
+                            text7: 'abc',
+                        },
+                    },
+                },
+                include: { userData: true },
+            })
+        ).resolves.toMatchObject({
+            userData: expect.objectContaining({ text6: 'abc', text7: 'ABC' }),
+        });
     });
 });

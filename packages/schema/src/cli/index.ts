@@ -110,7 +110,6 @@ export function createProgram() {
         .description('Run code generation.')
         .addOption(schemaOption)
         .addOption(new Option('-o, --output <path>', 'default output directory for built-in plugins'))
-        .addOption(configOption)
         .addOption(new Option('--no-default-plugins', 'do not run default plugins'))
         .addOption(new Option('--no-compile', 'do not compile the output of built-in plugins'))
         .addOption(noVersionCheckOption)

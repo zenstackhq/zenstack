@@ -21,6 +21,7 @@ describe('tRPC Routers Generation Tests', () => {
         `${path.join(__dirname, '../../../../../.build/zenstackhq-sdk-' + ver + '.tgz')}`,
         `${path.join(__dirname, '../../../../../.build/zenstackhq-runtime-' + ver + '.tgz')}`,
         `${path.join(__dirname, '../../../../../.build/zenstackhq-trpc-' + ver + '.tgz')}`,
+        `${path.join(__dirname, '../../../../../.build/zenstackhq-server-' + ver + '.tgz')}`,
     ];
     const deps = depPkgs.join(' ');
 

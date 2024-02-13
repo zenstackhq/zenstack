@@ -42,11 +42,18 @@ class OmitHandler extends DefaultPrismaProxyHandler {
                 continue;
             }
 
-            if (fieldInfo.attributes?.find((attr) => attr.name === '@omit')) {
+            const shouldOmit = fieldInfo.attributes?.find((attr) => attr.name === '@omit');
+            if (shouldOmit) {
                 delete entityData[field];
-            } else if (fieldInfo.isDataModel) {
-                // recurse
-                await this.doPostProcess(entityData[field], fieldInfo.type);
+            }
+
+            if (fieldInfo.isDataModel) {
+                const items =
+                    fieldInfo.isArray && Array.isArray(entityData[field]) ? entityData[field] : [entityData[field]];
+                for (const item of items) {
+                    // recurse
+                    await this.doPostProcess(item, fieldInfo.type);
+                }
             }
         }
     }
