@@ -16,6 +16,7 @@
         "typescript": "^4.9.3",
         "zenstack": "file:<root>/packages/schema/dist",
         "zod": "^3.22.4",
-        "decimal.js": "^10.4.2"
+        "decimal.js": "^10.4.2",
+        "z3-solver": "^4.12.5"
     }
 }

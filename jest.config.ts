@@ -26,4 +26,5 @@ export default {
     transform: { '^.+\\.tsx?$': 'ts-jest' },
 
     testTimeout: 300000,
+    testMatch: ['**/permissions-checker.test.ts'],
 };

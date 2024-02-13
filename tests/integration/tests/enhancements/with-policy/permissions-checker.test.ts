@@ -17,19 +17,24 @@ describe('With Policy: permissions checker test', () => {
             `
         model User {
             id String @id
+            age Int
             posts Post[]
 
-            @@allow('all', true)
+            // @@allow('all', true)
+            @@allow('all', age > 18 || age < 60)
 
         }
 
         model Post {
             id String @id @default(uuid())
             title String
+            rating Int
             author User @relation(fields: [authorId], references: [id])
             authorId String @default(auth().id)
 
-            @@allow('all', true)
+            @@allow('all', auth() == author)
+            @@allow('all', title == "test" && rating > 1 )
+
         }
         `
         );
@@ -38,8 +43,7 @@ describe('With Policy: permissions checker test', () => {
         // await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
         // await expect(db.post.create({ data: { title: 'abc' } })).resolves.toMatchObject({ authorId: 'userId-1' });
 
-        // check() policies are generated with fake values for now: true for read, false for create
-        await expect(db.user.check('read', { where: { title: 'abc' } })).toResolveTruthy();
-        await expect(db.user.check('create', { data: { title: 'def' } })).toResolveFalsy();
+        await expect(db.user.check('read', {})).toResolveTruthy();
+        await expect(db.user.check('create', { age: { lt: 10 } })).toResolveFalsy();
     });
 });

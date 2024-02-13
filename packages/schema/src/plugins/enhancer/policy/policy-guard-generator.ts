@@ -35,6 +35,7 @@ import {
     RUNTIME_PACKAGE,
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
+    Z3ExpressionTransformer,
     analyzePolicies,
     getAttributeArg,
     getAuthModel,
@@ -59,6 +60,8 @@ import { name } from '..';
 import { isCollectionPredicate } from '../../../utils/ast-utils';
 import { ALL_OPERATION_KINDS, CRUD_OPERATION_KINDS } from '../../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
+// import { type Arith, type Bool } from 'z3-solver';
+// import * as util from 'util';
 
 /**
  * Generates source file that contains Prisma query guard objects used for injecting database queries
@@ -79,6 +82,11 @@ export class PolicyGenerator {
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
 
+        sf.addImportDeclaration({
+            namedImports: [{ name: 'type Arith' }, { name: 'type Bool' }, { name: 'init' }, { name: 'Context' }],
+            moduleSpecifier: 'z3-solver',
+        });
+
         // import enums
         const prismaImport = getPrismaClientImportSpec(model, output);
         for (const e of model.declarations.filter((d) => isEnum(d) && this.isEnumReferenced(model, d))) {
@@ -88,67 +96,101 @@ export class PolicyGenerator {
             });
         }
 
-        const models = getDataModels(model);
-
-        const policyMap: Record<string, Record<string, string | boolean | object>> = {};
-        for (const model of models) {
-            policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
+        // killThreads function
+        sf.addStatements(`
+        function delay(ms: number): Promise<void> & { cancel(): void };
+        function delay(ms: number, result: Error): Promise<never> & { cancel(): void };
+        function delay<T>(ms: number, result: T): Promise<T> & { cancel(): void };
+        function delay<T>(
+          ms: number,
+          result?: T | Error,
+        ): Promise<T | void> & { cancel(): void } {
+          let handle: any;
+          const promise = new Promise<void | T>(
+            (resolve, reject) =>
+              (handle = setTimeout(() => {
+                if (result instanceof Error) {
+                  reject(result);
+                } else if (result !== undefined) {
+                  resolve(result);
+                }
+                resolve();
+              }, ms)),
+          );
+          return { ...promise, cancel: () => clearTimeout(handle) };
         }
+        
+        function waitWhile(
+          premise: () => boolean,
+          pollMs = 100,
+        ): Promise<void> & { cancel(): void } {
+          let handle: any;
+          const promise = new Promise<void>((resolve) => {
+            handle = setInterval(() => {
+              if (premise()) {
+                clearTimeout(handle);
+                resolve();
+              }
+            }, pollMs);
+          });
+          return { ...promise, cancel: () => clearInterval(handle) };
+        }
+        
+        // exit process: https://github.com/Z3Prover/z3/issues/7070#issuecomment-1871017371
+        export function killThreads(em: any): Promise<void> {
+          em.PThread.terminateAllThreads();
+        
+          // Create a polling lock to wait for threads to return
+          const lockPromise = waitWhile(
+            () => !em.PThread.unusedWorkers.length && !em.PThread.runningWorkers.length,
+          );
+          const delayPromise = delay(
+            5000,
+            new Error('Waiting for threads to be killed timed out'),
+          );
+        
+          return Promise.race([lockPromise, delayPromise]).then(() => {
+            lockPromise.cancel();
+            delayPromise.cancel();
+          });
+        }        
+        `);
 
-        // generate permissions checker
+        // TODO: generate buildAssertion function
         sf.addFunction({
-            name: 'permissionsChecker',
+            name: 'buildAssertion',
             parameters: [
                 {
+                    name: 'variables',
+                    type: 'Record<string, Arith<"main"> | Bool<"main">>',
+                },
+                {
                     name: 'args',
-                    type: 'any',
+                    type: 'Record<string, any> = {}',
                 },
                 {
                     name: 'user?',
-                    type: 'AuthUser',
+                    type: 'any',
+                },
+                {
+                    name: 'fieldStringValueMap',
+                    type: 'Record<string, string> = {}',
                 },
             ],
+            returnType: 'Bool<"main"> | boolean',
             statements: (writer) => {
-                writer.write('return ');
-                writer.inlineBlock(() => {
-                    for (const model of models) {
-                        writer.write(`${lowerCaseFirst(model.name)}:`);
-                        writer.inlineBlock(() => {
-                            for (const kind of CRUD_OPERATION_KINDS) {
-                                // TODO: create real permissions based on model and fields policies
-                                if (kind === 'create') {
-                                    writer.write(`${kind}: false,`);
-                                } else {
-                                    writer.write(`${kind}: true,`);
-                                }
-                            }
-                        });
-                        writer.write(',');
-                    }
-                });
+                writer.writeLine('return true;');
             },
         });
 
-        // writer.block(() => {
-        //     writer.write('guard:');
-        //     writer.inlineBlock(() => {
-        //         for (const [model, map] of Object.entries(policyMap)) {
-        //             writer.write(`${lowerCaseFirst(model)}:`);
-        //             writer.inlineBlock(() => {
-        //                 for (const [op, func] of Object.entries(map)) {
-        //                     if (typeof func === 'object') {
-        //                         writer.write(`${op}: ${JSON.stringify(func)},`);
-        //                     } else {
-        //                         writer.write(`${op}: ${func},`);
-        //                     }
-        //                 }
-        //             });
-        //             writer.write(',');
-        //         }
-        //     });
-        //     writer.writeLine(',');
+        const models = getDataModels(model);
 
-        // });
+        const policyMap: Record<string, Record<string, string | boolean | object>> = {};
+        const permissionMap: Record<string, Record<string, string | boolean | object>> = {};
+        for (const model of models) {
+            policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
+            permissionMap[model.name] = await this.generatePermissionCheckerForModel(model, sf);
+        }
 
         const authSelector = this.generateAuthSelector(models);
 
@@ -190,7 +232,22 @@ export class PolicyGenerator {
                             });
                             writer.writeLine(',');
 
-                            writer.write('permissions: permissionsChecker');
+                            writer.write('permission:');
+                            writer.inlineBlock(() => {
+                                for (const [model, map] of Object.entries(permissionMap)) {
+                                    writer.write(`${lowerCaseFirst(model)}:`);
+                                    writer.inlineBlock(() => {
+                                        for (const [op, func] of Object.entries(map)) {
+                                            if (typeof func === 'object') {
+                                                writer.write(`${op}: ${JSON.stringify(func)},`);
+                                            } else {
+                                                writer.write(`${op}: ${func},`);
+                                            }
+                                        }
+                                    });
+                                    writer.write(',');
+                                }
+                            });
 
                             if (authSelector) {
                                 writer.writeLine(',');
@@ -295,7 +352,6 @@ export class PolicyGenerator {
         } else if (operation === 'postUpdate') {
             result = this.processUpdatePolicies(result, true);
         }
-
         return result;
     }
 
@@ -407,6 +463,21 @@ export class PolicyGenerator {
 
         // generate field update guards
         this.generateUpdateFieldsGuards(model, sourceFile, result);
+
+        return result;
+    }
+
+    private async generatePermissionCheckerForModel(model: DataModel, sourceFile: SourceFile) {
+        const result: Record<string, string | boolean | object> = {};
+
+        for (const kind of CRUD_OPERATION_KINDS) {
+            const denies = this.getPolicyExpressions(model, 'deny', kind);
+            const allows = this.getPolicyExpressions(model, 'allow', kind);
+
+            const checkFunc = this.generatePermissionCheckerFunction(sourceFile, model, kind, allows, denies);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[kind] = checkFunc.getName()!;
+        }
 
         return result;
     }
@@ -832,6 +903,121 @@ export class PolicyGenerator {
         });
 
         return func;
+    }
+
+    private generatePermissionCheckerFunction(
+        sourceFile: SourceFile,
+        model: DataModel,
+        kind: PolicyOperationKind,
+        allows: Expression[],
+        denies: Expression[]
+    ) {
+        const statements: (string | WriterFunction)[] = [];
+
+        statements.push((writer) => {
+            const transformer = new Z3ExpressionTransformer({
+                context: ExpressionContext.AccessPolicy,
+            });
+            try {
+                writer.writeLine('const { Context, em } = await init();');
+                writer.writeLine('const { Solver, Int, Bool, Or, And } = Context("main");');
+                writer.writeLine('const solver = new Solver();');
+
+                const variables: Record<string, string> = this.generateVariables([...denies, ...allows]);
+                Object.keys(variables).forEach((key) => {
+                    writer.writeLine(`const ${key} = ${variables[key]};`);
+                });
+                writer.writeLine(
+                    `const variables = { ${Object.keys(variables)
+                        .map((v) => v)
+                        .join(', ')} };`
+                );
+
+                // TODO: handle denies statements
+                const allowStmt: string =
+                    allows.length > 1
+                        ? 'Or(' +
+                          allows
+                              .map((allow) => {
+                                  return transformer.transform(allow);
+                              })
+                              .join(', ') +
+                          ')'
+                        : allows.length === 1
+                        ? transformer.transform(allows[0])
+                        : '';
+                writer.writeLine(`const assertion = ${allowStmt}`);
+                writer.writeLine(`solver.add(assertion);`);
+                writer.writeLine(`await killThreads(em);`);
+                writer.write(`return (await solver.check()) === "sat";`);
+            } catch (err) {
+                if (err instanceof TypeScriptExpressionTransformerError) {
+                    throw new PluginError(name, err.message);
+                } else {
+                    throw err;
+                }
+            }
+        });
+
+        const func = sourceFile.addFunction({
+            isAsync: true,
+            name: `check_${model.name}_${kind}`,
+            returnType: 'Promise<boolean>',
+            parameters: [
+                {
+                    name: 'args',
+                    type: 'Record<string, any>',
+                },
+                {
+                    name: 'user?',
+                    type: 'any',
+                },
+            ],
+            statements,
+        });
+
+        return func;
+    }
+    generateVariables(expressions: Expression[]): Record<string, string> {
+        const result: Record<string, string> = {};
+        expressions.forEach((expr) => {
+            const variables = this.collectVariablesTypes(expr);
+            Object.keys(variables).forEach((key) => {
+                if (!result[key]) {
+                    switch (variables[key]) {
+                        case 'NumberLiteral':
+                            result[key] = `Int.const("${key}")`;
+                            break;
+                        case 'BooleanLiteral':
+                            result[key] = `Bool.const("${key}")`;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            });
+        });
+        return result;
+    }
+    collectVariablesTypes(expr: Expression): Record<string, Expression['$type']> {
+        const result: Record<string, Expression['$type']> = {};
+        const visit = (node: Expression) => {
+            if (isBinaryExpr(node) && typeof (node.right.$type !== 'StringLiteral')) {
+                if (isReferenceExpr(node.left)) {
+                    result[node.left.target?.ref?.name ?? ''] = node.right.$type;
+                    // visit(node.right);
+                    // } else if (isUnaryExpr(node) && node.operator === '!') {
+                    //     visit(node.operand);
+                } else {
+                    visit(node.left);
+                    visit(node.right);
+                }
+            } else if (isMemberAccessExpr(node)) {
+                visit(node.operand);
+            }
+        };
+        visit(expr);
+        return result;
     }
 
     private generateInputCheckFunction(

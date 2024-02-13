@@ -9,7 +9,7 @@ import {
     HAS_FIELD_LEVEL_POLICY_FLAG,
     PRE_UPDATE_VALUE_SELECTOR,
 } from '../constants';
-import type { AuthUser, CRUDOperationKind, DbOperations, PolicyOperationKind, QueryContext } from '../types';
+import type { CRUDOperationKind, DbOperations, PolicyOperationKind, QueryContext } from '../types';
 
 /**
  * Common options for PrismaClient enhancements
@@ -71,7 +71,11 @@ export type PolicyDef = {
     authSelector?: object;
 
     // permissions checker
-    permissions?: PermissionsChecker;
+    permission?: {
+        [model: string]: {
+            [operation in CRUDOperationKind]: PermissionsChecker;
+        };
+    };
 };
 
 /**
@@ -87,11 +91,4 @@ type AndConditions = { AND: Condition[] };
 type OrConditions = { OR: Condition[] };
 export type Conditions = boolean | AndConditions | OrConditions;
 
-export type PermissionsChecker = (
-    args: any,
-    user?: AuthUser
-) => {
-    [model: string]: {
-        [operation in CRUDOperationKind]: Conditions;
-    };
-};
+export type PermissionsChecker = (args: any, user?: any) => Promise<boolean>;

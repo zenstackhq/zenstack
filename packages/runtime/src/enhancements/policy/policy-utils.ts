@@ -1368,34 +1368,35 @@ export class PolicyUtil {
     /**
      * Checks permissions for the given operation
      */
-    checkPermissions(model: string, operation: CRUDOperationKind, args: any, user: AuthUser | undefined): boolean {
-        console.log(
-            `Checking permissions for: model \`${model}\`, operation \`${operation}\`, args ${formatObject(
-                args
-            )}, user ${formatObject(user)}`
-        );
-        const permissions = this.policy.permissions;
-        if (!permissions) {
-            console.log('No permissions found'.toUpperCase());
-            throw this.unknownError(`unable to load policy permissions for ${model}`);
+    async checkPermissions(
+        model: string,
+        operation: CRUDOperationKind,
+        args: any,
+        user: AuthUser | undefined
+    ): Promise<boolean> {
+        // console.log(
+        //     `Checking permissions for: model \`${model}\`, operation \`${operation}\`, args ${formatObject(
+        //         args
+        //     )}, user ${formatObject(user)}`
+        // );
+        const checkPermission = this.policy.permission?.[model][operation];
+        if (!checkPermission) {
+            throw this.unknownError(`unable to load permission checker for model ${model} operation ${operation}`);
         }
-        let topData = args;
-        switch (operation) {
-            case 'create':
-            case 'update':
-                topData = args.data;
-                break;
-            case 'read':
-            case 'delete':
-                topData = args.where;
-                break;
-        }
-        const conditions = permissions(topData, user)[model][operation];
-        console.log('Conditions: ', conditions);
-        return this.checkConditions(conditions, args);
-        // return new Promise<boolean>((resolve) => {
-        //     resolve(true);
-        // });
+        // let topData = args;
+        // switch (operation) {
+        //     case 'create':
+        //     case 'update':
+        //         topData = args.data;
+        //         break;
+        //     case 'read':
+        //     case 'delete':
+        //         topData = args.where;
+        //         break;
+        // }
+        const result = await checkPermission(args, user);
+        console.log('result: ', result);
+        return result;
     }
 
     private checkCondition(condition: Condition, args: Record<string, unknown>): boolean {

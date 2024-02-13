@@ -8,3 +8,4 @@ export * from './typescript-expression-transformer';
 export * from './utils';
 export * from './validation';
 export * from './zmodel-code-generator';
+export * from './z3-expression-transformer';
