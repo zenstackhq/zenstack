@@ -142,7 +142,7 @@ export class PrismaSchemaGenerator {
         if (options.format === true) {
             try {
                 // run 'prisma format'
-                await execSync(`npx prisma format --schema ${outFile}`);
+                await execSync(`npx prisma format --schema ${outFile}`, { stdio: 'ignore' });
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
