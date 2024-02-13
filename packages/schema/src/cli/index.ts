@@ -81,7 +81,6 @@ export function createProgram() {
         `schema file (with extension ${schemaExtensions}). Defaults to "schema.zmodel" unless specified in package.json.`
     );
 
-    const configOption = new Option('-c, --config [file]', 'config file').hideHelp();
     const pmOption = new Option('-p, --package-manager <pm>', 'package manager to use').choices([
         'npm',
         'yarn',
@@ -99,7 +98,6 @@ export function createProgram() {
     program
         .command('init')
         .description('Initialize an existing project for ZenStack.')
-        .addOption(configOption)
         .addOption(pmOption)
         .addOption(new Option('--prisma <file>', 'location of Prisma schema file to bootstrap from'))
         .addOption(new Option('--tag <tag>', 'the NPM package tag to use when installing dependencies'))
