@@ -9,11 +9,11 @@ import {
 } from '../cross';
 import { CrudContract, DbClientContract } from '../types';
 import { getVersion } from '../version';
-import { EnhancementOptions } from './create-enhancement';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
 
 export class QueryUtils {
-    constructor(private readonly prisma: DbClientContract, private readonly options: EnhancementOptions) {}
+    constructor(private readonly prisma: DbClientContract, private readonly options: InternalEnhancementOptions) {}
 
     getIdFields(model: string) {
         return getIdFields(this.options.modelMeta, model, true);

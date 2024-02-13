@@ -3,7 +3,7 @@
 import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
-import { EnhancementOptions } from './create-enhancement';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { createDeferredPromise } from './policy/promise';
 
 /**
@@ -67,7 +67,7 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     constructor(
         protected readonly prisma: DbClientContract,
         protected readonly model: string,
-        protected readonly options: EnhancementOptions
+        protected readonly options: InternalEnhancementOptions
     ) {}
 
     async findUnique(args: any): Promise<unknown> {

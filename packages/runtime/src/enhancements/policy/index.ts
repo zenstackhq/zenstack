@@ -3,7 +3,7 @@
 import { getIdFields } from '../../cross';
 import { DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
-import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
+import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';
 
@@ -19,7 +19,7 @@ import { PolicyProxyHandler } from './handler';
  */
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,
-    options: EnhancementOptions,
+    options: InternalEnhancementOptions,
     context?: EnhancementContext
 ): DbClient {
     const { modelMeta, policy } = options;

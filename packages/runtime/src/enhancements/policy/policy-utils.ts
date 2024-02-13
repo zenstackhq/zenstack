@@ -19,7 +19,7 @@ import {
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
 import { AuthUser, CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
-import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
+import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
@@ -38,7 +38,7 @@ export class PolicyUtil extends QueryUtils {
 
     constructor(
         private readonly db: DbClientContract,
-        options: EnhancementOptions,
+        options: InternalEnhancementOptions,
         context?: EnhancementContext,
         private readonly shouldLogQuery = false
     ) {
