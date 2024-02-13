@@ -7,15 +7,15 @@ import { AstNode, getDocument, LangiumDocument, LangiumDocuments, Mutable } from
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import semver from 'semver';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
+import { ZModelFormatter } from '../language-server/zmodel-formatter';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
+import { findPackageJson } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
-import { ZModelFormatter } from '../language-server/zmodel-formatter';
-import { TextDocument } from 'vscode-languageserver-textdocument';
-import { getPackageJson } from '../utils/pkg-utils';
 
 // required minimal version of Prisma
 export const requiredPrismaVersion = '4.8.0';
@@ -85,11 +85,18 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     const model = document.parseResult.value as Model;
 
-    mergeImportsDeclarations(langiumDocuments, model);
+    const imported = mergeImportsDeclarations(langiumDocuments, model);
+    // remove imported documents
+    await services.shared.workspace.DocumentBuilder.update(
+        [],
+        imported.map((m) => m.$document!.uri)
+    );
 
     validationAfterMerge(model);
 
     mergeBaseModel(model, services.references.Linker);
+
+    await relinkAll(model, services);
 
     return model;
 }
@@ -151,6 +158,8 @@ export function mergeImportsDeclarations(documents: LangiumDocuments, model: Mod
     });
 
     model.declarations.push(...importedDeclarations);
+
+    return importedModels;
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
@@ -279,13 +288,36 @@ export async function formatDocument(fileName: string) {
 }
 
 export function getDefaultSchemaLocation() {
-    let location = path.resolve('schema.zmodel');
-
     // handle override from package.json
-    const pkgJson = getPackageJson();
-    if (typeof pkgJson?.zenstack?.schema === 'string') {
-        location = path.resolve(pkgJson.zenstack.schema);
+    const pkgJsonPath = findPackageJson();
+    if (pkgJsonPath) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+        if (typeof pkgJson?.zenstack?.schema === 'string') {
+            if (path.isAbsolute(pkgJson.zenstack.schema)) {
+                return pkgJson.zenstack.schema;
+            } else {
+                // resolve relative to package.json
+                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.schema);
+            }
+        }
     }
 
-    return location;
+    return path.resolve('schema.zmodel');
+}
+
+async function relinkAll(model: Model, services: ZModelServices) {
+    const doc = model.$document!;
+
+    // unlink the document
+    services.references.Linker.unlink(doc);
+
+    // remove current document
+    await services.shared.workspace.DocumentBuilder.update([], [doc.uri]);
+
+    // recreate the document
+    const newDoc = services.shared.workspace.LangiumDocumentFactory.fromModel(model, doc.uri);
+    (model as Mutable<Model>).$document = newDoc;
+
+    // rebuild the document
+    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
 }

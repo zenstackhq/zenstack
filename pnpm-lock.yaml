@@ -1,4 +1,4 @@
-lockfileVersion: '6.1'
+lockfileVersion: '6.0'
 
 settings:
   autoInstallPeers: true
@@ -400,12 +400,18 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
+      colors:
+        specifier: 1.4.0
+        version: 1.4.0
       decimal.js:
         specifier: ^10.4.2
         version: 10.4.2
       deepcopy:
         specifier: ^2.1.0
         version: 2.1.0
+      deepmerge:
+        specifier: ^4.3.1
+        version: 4.3.1
       lower-case-first:
         specifier: ^2.0.2
         version: 2.0.2
@@ -489,9 +495,6 @@ importers:
       mixpanel:
         specifier: ^0.17.0
         version: 0.17.0
-      node-machine-id:
-        specifier: ^1.1.12
-        version: 1.1.12
       ora:
         specifier: ^5.4.1
         version: 5.4.1
@@ -11228,10 +11231,6 @@ packages:
   /node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
     dev: true
-
-  /node-machine-id@1.1.12:
-    resolution: {integrity: sha512-QNABxbrPa3qEIfrE6GOJ7BYIuignnJw7iQ2YPbc3Nla1HzRJjXzZOiikfF8m7eAMfichLt3M4VgLOetqgDmgGQ==}
-    dev: false
 
   /node-releases@2.0.12:
     resolution: {integrity: sha512-QzsYKWhXTWx8h1kIvqfnC++o0pEmpRQA/aenALsL2F4pqNVr7YzcdMlDij5WBnwftRbJCNJL/O7zdKaxKPHqgQ==}

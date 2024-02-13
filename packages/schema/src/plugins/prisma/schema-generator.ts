@@ -16,6 +16,7 @@ import {
     GeneratorDecl,
     InvocationExpr,
     isArrayExpr,
+    isDataModel,
     isInvocationExpr,
     isLiteralExpr,
     isNullExpr,
@@ -27,14 +28,17 @@ import {
     StringLiteral,
 } from '@zenstackhq/language/ast';
 import { match } from 'ts-pattern';
+import { getIdFields } from '../../utils/ast-utils';
 
-import { PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
+import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
     getDMMF,
     getLiteral,
     getPrismaVersion,
     isAuthInvocation,
+    isDelegateModel,
+    isIdField,
     PluginError,
     PluginOptions,
     resolved,
@@ -44,15 +48,18 @@ import {
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
 import { streamAst } from 'langium';
+import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
 import stripColor from 'strip-color';
+import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
 import { execSync } from '../../utils/exec-utils';
-import { getPackageJson } from '../../utils/pkg-utils';
+import { findPackageJson } from '../../utils/pkg-utils';
 import {
+    AttributeArgValue,
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
@@ -76,7 +83,7 @@ const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
 /**
  * Generates Prisma schema file
  */
-export default class PrismaSchemaGenerator {
+export class PrismaSchemaGenerator {
     private zModelGenerator: ZModelCodeGenerator = new ZModelCodeGenerator();
 
     private readonly PRELUDE = `//////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,8 +93,13 @@ export default class PrismaSchemaGenerator {
 
 `;
 
+    private mode: 'logical' | 'physical' = 'physical';
+
     async generate(model: Model, options: PluginOptions) {
         const warnings: string[] = [];
+        if (options.mode) {
+            this.mode = options.mode as 'logical' | 'physical';
+        }
 
         const prismaVersion = getPrismaVersion();
         if (prismaVersion && semver.lt(prismaVersion, PRISMA_MINIMUM_VERSION)) {
@@ -113,7 +125,7 @@ export default class PrismaSchemaGenerator {
                     break;
 
                 case GeneratorDecl:
-                    this.generateGenerator(prisma, decl as GeneratorDecl);
+                    this.generateGenerator(prisma, decl as GeneratorDecl, options);
                     break;
             }
         }
@@ -139,14 +151,18 @@ export default class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
+            let generateCmd = `npx prisma generate --schema "${outFile}"`;
+            if (typeof options.generateArgs === 'string') {
+                generateCmd += ` ${options.generateArgs}`;
+            }
             try {
                 // run 'prisma generate'
-                await execSync(`npx prisma generate --schema "${outFile}"`, { stdio: 'ignore' });
+                await execSync(generateCmd, { stdio: 'ignore' });
             } catch {
                 await this.trackPrismaSchemaError(outFile);
                 try {
                     // run 'prisma generate' again with output to the console
-                    await execSync(`npx prisma generate --schema "${outFile}"`);
+                    await execSync(generateCmd);
                 } catch {
                     // noop
                 }
@@ -216,7 +232,7 @@ export default class PrismaSchemaGenerator {
         return JSON.stringify(expr.value);
     }
 
-    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl) {
+    private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl, options: PluginOptions) {
         const generator = prisma.addGenerator(
             decl.name,
             decl.fields.map((f) => ({ name: f.name, text: this.configExprToText(f.value) }))
@@ -258,13 +274,31 @@ export default class PrismaSchemaGenerator {
                     }
                 }
             }
+
+            if (typeof options.overrideClientGenerationPath === 'string') {
+                const output = generator.fields.find((f) => f.name === 'output');
+                if (output) {
+                    output.text = JSON.stringify(options.overrideClientGenerationPath);
+                } else {
+                    generator.fields.push({
+                        name: 'output',
+                        text: JSON.stringify(options.overrideClientGenerationPath),
+                    });
+                }
+            }
         }
     }
 
     private generateModel(prisma: PrismaModel, decl: DataModel) {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
-            this.generateModelField(model, field);
+            if (field.$inheritedFrom) {
+                if (field.$inheritedFrom.isAbstract || this.mode === 'logical' || isIdField(field)) {
+                    this.generateModelField(model, field);
+                }
+            } else {
+                this.generateModelField(model, field);
+            }
         }
 
         for (const attr of decl.attributes.filter((attr) => this.isPrismaAttribute(attr))) {
@@ -277,6 +311,148 @@ export default class PrismaSchemaGenerator {
 
         // user defined comments pass-through
         decl.comments.forEach((c) => model.addComment(c));
+
+        // generate relation fields on base models linking to concrete models
+        this.generateDelegateRelationForBase(model, decl);
+
+        // generate reverse relation fields on concrete models
+        this.generateDelegateRelationForConcrete(model, decl);
+
+        // expand relations on other models that reference delegated models to concrete models
+        this.expandPolymorphicRelations(model, decl);
+    }
+
+    private generateDelegateRelationForBase(model: PrismaDataModel, decl: DataModel) {
+        if (this.mode !== 'physical') {
+            return;
+        }
+
+        if (!isDelegateModel(decl)) {
+            return;
+        }
+
+        // collect concrete models inheriting this model
+        const concreteModels = decl.$container.declarations.filter(
+            (d) => isDataModel(d) && d !== decl && d.superTypes.some((base) => base.ref === decl)
+        );
+
+        // generate an optional relation field in delegate base model to each concrete model
+        concreteModels.forEach((concrete) => {
+            const auxName = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}`;
+            model.addField(auxName, new ModelFieldType(concrete.name, false, true));
+        });
+    }
+
+    private generateDelegateRelationForConcrete(model: PrismaDataModel, concreteDecl: DataModel) {
+        if (this.mode !== 'physical') {
+            return;
+        }
+
+        // generate a relation field for each delegated base model
+
+        const baseModels = concreteDecl.superTypes
+            .map((t) => t.ref)
+            .filter((t): t is DataModel => !!t)
+            .filter((t) => isDelegateModel(t));
+
+        baseModels.forEach((base) => {
+            const idFields = getIdFields(base);
+
+            // add relation fields
+            const relationField = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(base.name)}`;
+            model.addField(relationField, base.name, [
+                new PrismaFieldAttribute('@relation', [
+                    new PrismaAttributeArg(
+                        'fields',
+                        new AttributeArgValue(
+                            'Array',
+                            idFields.map(
+                                (idField) =>
+                                    new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
+                            )
+                        )
+                    ),
+                    new PrismaAttributeArg(
+                        'references',
+                        new AttributeArgValue(
+                            'Array',
+                            idFields.map(
+                                (idField) =>
+                                    new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
+                            )
+                        )
+                    ),
+                    new PrismaAttributeArg(
+                        'onDelete',
+                        new AttributeArgValue('FieldReference', new PrismaFieldReference('Cascade'))
+                    ),
+                    new PrismaAttributeArg(
+                        'onUpdate',
+                        new AttributeArgValue('FieldReference', new PrismaFieldReference('Cascade'))
+                    ),
+                ]),
+            ]);
+        });
+    }
+
+    private expandPolymorphicRelations(model: PrismaDataModel, decl: DataModel) {
+        if (this.mode !== 'logical') {
+            return;
+        }
+
+        // the logical schema needs to expand relations to the delegate models to concrete ones
+
+        // for the given model, find all concrete models that have relation to it,
+        // and generate an auxiliary opposite relation field
+        decl.fields.forEach((f) => {
+            const fieldType = f.type.reference?.ref;
+            if (!isDataModel(fieldType)) {
+                return;
+            }
+
+            // find concrete models that inherit from this field's model type
+            const concreteModels = decl.$container.declarations.filter(
+                (d) => isDataModel(d) && isDescendantOf(d, fieldType)
+            );
+
+            concreteModels.forEach((concrete) => {
+                const relationField = model.addField(
+                    `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}`,
+                    new ModelFieldType(concrete.name, f.type.array, f.type.optional)
+                );
+                const relAttr = getAttribute(f, '@relation');
+                if (relAttr) {
+                    const fieldsArg = relAttr.args.find((arg) => arg.name === 'fields');
+                    if (fieldsArg) {
+                        const idFields = getIdFields(fieldType);
+                        idFields.forEach((idField) => {
+                            model.addField(
+                                `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(concrete.name)}${upperCaseFirst(
+                                    idField.name
+                                )}`,
+                                idField.type.type!
+                            );
+                        });
+
+                        const args = new AttributeArgValue(
+                            'Array',
+                            idFields.map(
+                                (idField) =>
+                                    new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
+                            )
+                        );
+                        relationField.attributes.push(
+                            new PrismaFieldAttribute('@relation', [
+                                new PrismaAttributeArg('fields', args),
+                                new PrismaAttributeArg('references', args),
+                            ])
+                        );
+                    } else {
+                        relationField.attributes.push(this.makeFieldAttribute(relAttr as DataModelFieldAttribute));
+                    }
+                }
+            });
+        });
     }
 
     private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
@@ -305,7 +481,7 @@ export default class PrismaSchemaGenerator {
         }
     }
 
-    private generateModelField(model: PrismaDataModel, field: DataModelField) {
+    private generateModelField(model: PrismaDataModel, field: DataModelField, addToFront = false) {
         const fieldType =
             field.type.type || field.type.reference?.ref?.name || this.getUnsupportedFieldType(field.type);
         if (!fieldType) {
@@ -314,34 +490,42 @@ export default class PrismaSchemaGenerator {
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
-        const attributes = this.getAttributesToGenerate(field);
+        const attributes = field.attributes
+            .filter((attr) => this.isPrismaAttribute(attr))
+            // `@default` with `auth()` is handled outside Prisma
+            .filter((attr) => !this.isDefaultWithAuth(attr))
+            .filter(
+                (attr) =>
+                    // when building physical schema, exclude `@default` for id fields inherited from delegate base
+                    !(
+                        this.mode === 'physical' &&
+                        isIdField(field) &&
+                        this.isInheritedFromDelegate(field) &&
+                        attr.decl.$refText === '@default'
+                    )
+            )
+            .map((attr) => this.makeFieldAttribute(attr));
 
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
 
-        const result = model.addField(field.name, type, attributes, documentations);
+        const result = model.addField(field.name, type, attributes, documentations, addToFront);
 
         // user defined comments pass-through
         field.comments.forEach((c) => result.addComment(c));
     }
 
-    private getAttributesToGenerate(field: DataModelField) {
-        if (this.hasDefaultWithAuth(field)) {
-            return [];
-        }
-        return field.attributes
-            .filter((attr) => this.isPrismaAttribute(attr))
-            .map((attr) => this.makeFieldAttribute(attr));
+    private isInheritedFromDelegate(field: DataModelField) {
+        return field.$inheritedFrom && isDelegateModel(field.$inheritedFrom);
     }
 
-    private hasDefaultWithAuth(field: DataModelField) {
-        const defaultAttr = getAttribute(field, '@default');
-        if (!defaultAttr) {
+    private isDefaultWithAuth(attr: DataModelFieldAttribute) {
+        if (attr.decl.ref?.name !== '@default') {
             return false;
         }
 
-        const expr = defaultAttr.args[0]?.value;
+        const expr = attr.args[0]?.value;
         if (!expr) {
             return false;
         }
@@ -465,16 +649,24 @@ export default class PrismaSchemaGenerator {
     }
 }
 
-export function getDefaultPrismaOutputFile(schemaPath: string) {
-    let result: string | undefined;
+function isDescendantOf(model: DataModel, superModel: DataModel): boolean {
+    return model.superTypes.some((s) => s.ref === superModel || isDescendantOf(s.ref!, superModel));
+}
 
+export function getDefaultPrismaOutputFile(schemaPath: string) {
     // handle override from package.json
-    const pkgJson = getPackageJson();
-    if (typeof pkgJson.zenstack?.prisma === 'string') {
-        result = path.resolve(pkgJson.zenstack.prisma);
-    } else {
-        result = './prisma/schema.prisma';
+    const pkgJsonPath = findPackageJson(path.dirname(schemaPath));
+    if (pkgJsonPath) {
+        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+        if (typeof pkgJson?.zenstack?.prisma === 'string') {
+            if (path.isAbsolute(pkgJson.zenstack.prisma)) {
+                return pkgJson.zenstack.prisma;
+            } else {
+                // resolve relative to package.json
+                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.prisma);
+            }
+        }
     }
 
-    return resolvePath(result, { schemaPath });
+    return resolvePath('./prisma/schema.prisma', { schemaPath });
 }

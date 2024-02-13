@@ -3,7 +3,6 @@ import {
     AttributeParam,
     BuiltinType,
     DataModelAttribute,
-    DataModelField,
     DataModelFieldAttribute,
     Expression,
     ExpressionType,
@@ -21,6 +20,7 @@ import { AstNode, ValidationAcceptor } from 'langium';
  * Checks if the given declarations have duplicated names
  */
 export function validateDuplicatedDeclarations(
+    container: AstNode,
     decls: Array<AstNode & { name: string }>,
     accept: ValidationAcceptor
 ): void {
@@ -34,7 +34,7 @@ export function validateDuplicatedDeclarations(
         if (decls.length > 1) {
             let errorField = decls[1];
             if (isDataModelField(decls[0])) {
-                const nonInheritedFields = decls.filter((x) => !(x as DataModelField).$inheritedFrom);
+                const nonInheritedFields = decls.filter((x) => !(isDataModelField(x) && x.$container !== container));
                 if (nonInheritedFields.length > 0) {
                     errorField = nonInheritedFields.slice(-1)[0];
                 }

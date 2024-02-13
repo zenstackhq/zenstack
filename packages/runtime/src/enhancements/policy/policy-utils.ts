@@ -16,33 +16,19 @@ import {
     PRE_UPDATE_VALUE_SELECTOR,
     PrismaErrorCode,
 } from '../../constants';
-import {
-    enumerate,
-    getFields,
-    getIdFields,
-    getModelFields,
-    resolveField,
-    zip,
-    type FieldInfo,
-    type ModelMeta,
-    type NestedWriteVisitorContext,
-} from '../../cross';
-import { AuthUser, CRUDOperationKind, DbClientContract, DbOperations, PolicyOperationKind } from '../../types';
+import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
+import { AuthUser, CRUDOperationKind, CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
-import type { Condition, Conditions, InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
-import {
-    formatObject,
-    prismaClientKnownRequestError,
-    prismaClientUnknownRequestError,
-    prismaClientValidationError,
-} from '../utils';
-import { Logger } from './logger';
+import { Logger } from '../logger';
+import { QueryUtils } from '../query-utils';
+import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import { formatObject, prismaClientKnownRequestError } from '../utils';
 
 /**
  * Access policy enforcement utilities
  */
-export class PolicyUtil {
+export class PolicyUtil extends QueryUtils {
     private readonly logger: Logger;
     private readonly modelMeta: ModelMeta;
     private readonly policy: PolicyDef;
@@ -56,6 +42,8 @@ export class PolicyUtil {
         context?: EnhancementContext,
         private readonly shouldLogQuery = false
     ) {
+        super(db, options);
+
         this.logger = new Logger(db);
         this.user = context?.user;
 
@@ -248,7 +236,7 @@ export class PolicyUtil {
      * @returns true if operation is unconditionally allowed, false if unconditionally denied,
      * otherwise returns a guard object
      */
-    getAuthGuard(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind, preValue?: any) {
+    getAuthGuard(db: CrudContract, model: string, operation: PolicyOperationKind, preValue?: any) {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
@@ -269,7 +257,7 @@ export class PolicyUtil {
     /**
      * Get field-level read auth guard that overrides the model-level
      */
-    getFieldOverrideReadAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+    getFieldOverrideReadAuthGuard(db: CrudContract, model: string, field: string) {
         const guard = this.requireGuard(model);
 
         const provider = guard[`${FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${field}`];
@@ -289,7 +277,7 @@ export class PolicyUtil {
     /**
      * Get field-level update auth guard
      */
-    getFieldUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+    getFieldUpdateAuthGuard(db: CrudContract, model: string, field: string) {
         const guard = this.requireGuard(model);
 
         const provider = guard[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field}`];
@@ -309,7 +297,7 @@ export class PolicyUtil {
     /**
      * Get field-level update auth guard that overrides the model-level
      */
-    getFieldOverrideUpdateAuthGuard(db: Record<string, DbOperations>, model: string, field: string) {
+    getFieldOverrideUpdateAuthGuard(db: CrudContract, model: string, field: string) {
         const guard = this.requireGuard(model);
 
         const provider = guard[`${FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${field}`];
@@ -365,7 +353,7 @@ export class PolicyUtil {
     /**
      * Injects model auth guard as where clause.
      */
-    injectAuthGuardAsWhere(db: Record<string, DbOperations>, args: any, model: string, operation: PolicyOperationKind) {
+    injectAuthGuardAsWhere(db: CrudContract, args: any, model: string, operation: PolicyOperationKind) {
         let guard = this.getAuthGuard(db, model, operation);
 
         if (operation === 'update' && args) {
@@ -413,7 +401,7 @@ export class PolicyUtil {
     }
 
     private injectGuardForRelationFields(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         model: string,
         payload: any,
         operation: PolicyOperationKind
@@ -437,7 +425,7 @@ export class PolicyUtil {
     }
 
     private injectGuardForToManyField(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         fieldInfo: FieldInfo,
         payload: { some?: any; every?: any; none?: any },
         operation: PolicyOperationKind
@@ -471,7 +459,7 @@ export class PolicyUtil {
     }
 
     private injectGuardForToOneField(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         fieldInfo: FieldInfo,
         payload: { is?: any; isNot?: any } & Record<string, any>,
         operation: PolicyOperationKind
@@ -501,7 +489,7 @@ export class PolicyUtil {
     /**
      * Injects auth guard for read operations.
      */
-    injectForRead(db: Record<string, DbOperations>, model: string, args: any) {
+    injectForRead(db: CrudContract, model: string, args: any) {
         // make select and include visible to the injection
         const injected: any = { select: args.select, include: args.include };
         if (!this.injectAuthGuardAsWhere(db, injected, model, 'read')) {
@@ -539,111 +527,14 @@ export class PolicyUtil {
         return true;
     }
 
-    // flatten unique constraint filters
-    private flattenGeneratedUniqueField(model: string, args: any) {
-        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
-        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
-        if (uniqueConstraints && Object.keys(uniqueConstraints).length > 0) {
-            for (const [field, value] of Object.entries<any>(args)) {
-                if (
-                    uniqueConstraints[field] &&
-                    uniqueConstraints[field].fields.length > 1 &&
-                    typeof value === 'object'
-                ) {
-                    // multi-field unique constraint, flatten it
-                    delete args[field];
-                    if (value) {
-                        for (const [f, v] of Object.entries(value)) {
-                            args[f] = v;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /**
      * Gets unique constraints for the given model.
      */
     getUniqueConstraints(model: string) {
-        return this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)] ?? {};
+        return this.modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
     }
 
-    /**
-     * Builds a reversed query for the given nested path.
-     */
-    buildReversedQuery(context: NestedWriteVisitorContext, forMutationPayload = false, unsafeOperation = false) {
-        let result, currQuery: any;
-        let currField: FieldInfo | undefined;
-
-        for (let i = context.nestingPath.length - 1; i >= 0; i--) {
-            const { field, model, where } = context.nestingPath[i];
-
-            // never modify the original where because it's shared in the structure
-            const visitWhere = { ...where };
-            if (model && where) {
-                // make sure composite unique condition is flattened
-                this.flattenGeneratedUniqueField(model, visitWhere);
-            }
-
-            if (!result) {
-                // first segment (bottom), just use its where clause
-                result = currQuery = { ...visitWhere };
-                currField = field;
-            } else {
-                if (!currField) {
-                    throw this.unknownError(`missing field in nested path`);
-                }
-                if (!currField.backLink) {
-                    throw this.unknownError(`field ${currField.type}.${currField.name} doesn't have a backLink`);
-                }
-
-                const backLinkField = this.getModelField(currField.type, currField.backLink);
-                if (!backLinkField) {
-                    throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
-                }
-
-                if (backLinkField.isArray && !forMutationPayload) {
-                    // many-side of relationship, wrap with "some" query
-                    currQuery[currField.backLink] = { some: { ...visitWhere } };
-                    currQuery = currQuery[currField.backLink].some;
-                } else {
-                    const fkMapping = where && backLinkField.isRelationOwner && backLinkField.foreignKeyMapping;
-
-                    // calculate if we should preserve the relation condition (e.g., { user: { id: 1 } })
-                    const shouldPreserveRelationCondition =
-                        // doing a mutation
-                        forMutationPayload &&
-                        // and it's a safe mutate
-                        !unsafeOperation &&
-                        // and the current segment is the direct parent (the last one is the mutate itself),
-                        // the relation condition should be preserved and will be converted to a "connect" later
-                        i === context.nestingPath.length - 2;
-
-                    if (fkMapping && !shouldPreserveRelationCondition) {
-                        // turn relation condition into foreign key condition, e.g.:
-                        //     { user: { id: 1 } } => { userId: 1 }
-                        for (const [r, fk] of Object.entries<string>(fkMapping)) {
-                            currQuery[fk] = visitWhere[r];
-                        }
-
-                        if (i > 0) {
-                            // prepare for the next segment
-                            currQuery[currField.backLink] = {};
-                        }
-                    } else {
-                        // preserve the original structure
-                        currQuery[currField.backLink] = { ...visitWhere };
-                    }
-                    currQuery = currQuery[currField.backLink];
-                }
-                currField = field;
-            }
-        }
-        return result;
-    }
-
-    private injectNestedReadConditions(db: Record<string, DbOperations>, model: string, args: any): any[] {
+    private injectNestedReadConditions(db: CrudContract, model: string, args: any): any[] {
         const injectTarget = args.select ?? args.include;
         if (!injectTarget) {
             return [];
@@ -736,7 +627,7 @@ export class PolicyUtil {
         model: string,
         uniqueFilter: any,
         operation: PolicyOperationKind,
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         args: any,
         preValue?: any
     ) {
@@ -830,7 +721,7 @@ export class PolicyUtil {
         }
     }
 
-    private getFieldReadGuards(db: Record<string, DbOperations>, model: string, args: { select?: any; include?: any }) {
+    private getFieldReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
         const allFields = Object.values(getFields(this.modelMeta, model));
 
         // all scalar fields by default
@@ -853,7 +744,7 @@ export class PolicyUtil {
         return this.and(...allFieldGuards);
     }
 
-    private getFieldUpdateGuards(db: Record<string, DbOperations>, model: string, args: any) {
+    private getFieldUpdateGuards(db: CrudContract, model: string, args: any) {
         const allFieldGuards = [];
         const allOverrideFieldGuards = [];
 
@@ -912,7 +803,7 @@ export class PolicyUtil {
     /**
      * Tries rejecting a request based on static "false" policy.
      */
-    tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
+    tryReject(db: CrudContract, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(db, model, operation);
         if (this.isFalse(guard)) {
             throw this.deniedByPolicy(model, operation, undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
@@ -922,12 +813,7 @@ export class PolicyUtil {
     /**
      * Checks if a model exists given a unique filter.
      */
-    async checkExistence(
-        db: Record<string, DbOperations>,
-        model: string,
-        uniqueFilter: any,
-        throwIfNotFound = false
-    ): Promise<any> {
+    async checkExistence(db: CrudContract, model: string, uniqueFilter: any, throwIfNotFound = false): Promise<any> {
         uniqueFilter = this.clone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
@@ -948,7 +834,7 @@ export class PolicyUtil {
      * Returns an entity given a unique filter with read policy checked. Reject if not readable.
      */
     async readBack(
-        db: Record<string, DbOperations>,
+        db: CrudContract,
         model: string,
         operation: PolicyOperationKind,
         selectInclude: { select?: any; include?: any },
@@ -1059,7 +945,7 @@ export class PolicyUtil {
     }
 
     private makeAllScalarFieldSelect(model: string): any {
-        const fields = this.modelMeta.fields[lowerCaseFirst(model)];
+        const fields = this.getModelFields(model);
         const result: any = {};
         if (fields) {
             Object.entries(fields).forEach(([k, v]) => {
@@ -1103,16 +989,6 @@ export class PolicyUtil {
         return prismaClientKnownRequestError(this.db, this.prismaModule, `entity not found for model ${model}`, {
             clientVersion: getVersion(),
             code: 'P2025',
-        });
-    }
-
-    validationError(message: string) {
-        return prismaClientValidationError(this.db, this.prismaModule, message);
-    }
-
-    unknownError(message: string) {
-        return prismaClientUnknownRequestError(this.db, this.prismaModule, message, {
-            clientVersion: getVersion(),
         });
     }
 
@@ -1265,22 +1141,6 @@ export class PolicyUtil {
     }
 
     /**
-     * Gets information for all fields of a model.
-     */
-    getModelFields(model: string) {
-        model = lowerCaseFirst(model);
-        return this.modelMeta.fields[model];
-    }
-
-    /**
-     * Gets information for a specific model field.
-     */
-    getModelField(model: string, field: string) {
-        model = lowerCaseFirst(model);
-        return this.modelMeta.fields[model]?.[field];
-    }
-
-    /**
      * Clones an object and makes sure it's not empty.
      */
     clone(value: unknown): any {
@@ -1298,33 +1158,6 @@ export class PolicyUtil {
             }
             return result;
         }, {} as any);
-    }
-
-    /**
-     * Gets "id" fields for a given model.
-     */
-    getIdFields(model: string) {
-        return getIdFields(this.modelMeta, model, true);
-    }
-
-    /**
-     * Gets id field values from an entity.
-     */
-    getEntityIds(model: string, entityData: any) {
-        const idFields = this.getIdFields(model);
-        const result: Record<string, unknown> = {};
-        for (const idField of idFields) {
-            result[idField.name] = entityData[idField.name];
-        }
-        return result;
-    }
-
-    /**
-     * Creates a selection object for id fields for the given model.
-     */
-    makeIdSelection(model: string) {
-        const idFields = this.getIdFields(model);
-        return Object.assign({}, ...idFields.map((f) => ({ [f.name]: true })));
     }
 
     private mergeWhereClause(where: any, extra: any) {
@@ -1397,52 +1230,6 @@ export class PolicyUtil {
         const result = await checkPermission(args, user);
         console.log('result: ', result);
         return result;
-    }
-
-    private checkCondition(condition: Condition, args: Record<string, unknown>): boolean {
-        return 'AND' in condition || 'OR' in condition
-            ? this.checkConditions(condition, args)
-            : this.compare(condition.field, condition.value, condition.operator);
-    }
-
-    private checkConditions(conditions: Conditions, args: Record<string, unknown>): boolean {
-        if (typeof conditions === 'boolean') {
-            return conditions;
-        }
-        if ('AND' in conditions) {
-            return conditions.AND.every((condition) => this.checkCondition(condition, args));
-        }
-        if ('OR' in conditions) {
-            return conditions.OR.some((condition) => this.checkCondition(condition, args));
-        }
-
-        // Neither AND or OR conditions => should not be possible...
-        return false;
-    }
-
-    /**
-     * Compare the given arg with the permission value
-     */
-    private compare(value1: any, value2: any, operator: string): boolean {
-        if (value1 === undefined || value2 === undefined) return false;
-        switch (operator) {
-            case '===':
-                return value1 === value2;
-            case '>':
-                return value1 > value2;
-            case '<':
-                return value1 < value2;
-            case 'in':
-                if (Array.isArray(value2)) {
-                    return value2.includes(value1);
-                } else if (typeof value2 === 'object') {
-                    return value1 in value2;
-                }
-                throw new Error(`Invalid use of 'in' operator.`);
-            // TODO: Add more comparison cases as needed (<=, ...)
-            default:
-                throw new Error(`Unsupported operator: ${operator}`);
-        }
     }
 
     //#endregion

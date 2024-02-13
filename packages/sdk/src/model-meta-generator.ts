@@ -19,11 +19,13 @@ import {
     ExpressionContext,
     getAttribute,
     getAttributeArg,
+    getAttributeArgLiteral,
     getAttributeArgs,
     getAuthModel,
     getDataModels,
     getLiteral,
     hasAttribute,
+    isDelegateModel,
     isAuthInvocation,
     isEnumFieldReference,
     isForeignKeyField,
@@ -57,133 +59,202 @@ function generateModelMetadata(
     options: ModelMetaGeneratorOptions
 ) {
     writer.block(() => {
-        writer.write('fields:');
-        writer.block(() => {
-            for (const model of dataModels) {
-                writer.write(`${lowerCaseFirst(model.name)}:`);
-                writer.block(() => {
-                    for (const f of model.fields) {
-                        const backlink = getBackLink(f);
-                        const fkMapping = generateForeignKeyMapping(f);
-                        writer.write(`${f.name}: {
-                    name: "${f.name}",
-                    type: "${
-                        f.type.reference
-                            ? f.type.reference.$refText
-                            : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                              f.type.type!
-                    }",`);
+        writeModels(sourceFile, writer, dataModels, options);
+        writeDeleteCascade(writer, dataModels);
+        writeAuthModel(writer, dataModels);
+    });
+}
 
-                        if (isIdField(f)) {
-                            writer.write(`
-                    isId: true,`);
-                        }
-
-                        if (isDataModel(f.type.reference?.ref)) {
-                            writer.write(`
-                    isDataModel: true,`);
-                        }
-
-                        if (f.type.array) {
-                            writer.write(`
-                    isArray: true,`);
-                        }
-
-                        if (f.type.optional) {
-                            writer.write(`
-                    isOptional: true,`);
-                        }
-
-                        if (options.generateAttributes) {
-                            const attrs = getFieldAttributes(f);
-                            if (attrs.length > 0) {
-                                writer.write(`
-                    attributes: ${JSON.stringify(attrs)},`);
-                            }
-                        } else {
-                            // only include essential attributes
-                            const attrs = getFieldAttributes(f).filter((attr) =>
-                                ['@default', '@updatedAt'].includes(attr.name)
-                            );
-                            if (attrs.length > 0) {
-                                writer.write(`
-                    attributes: ${JSON.stringify(attrs)},`);
-                            }
-                        }
-
-                        if (backlink) {
-                            writer.write(`
-                    backLink: '${backlink.name}',`);
-                        }
-
-                        if (isRelationOwner(f, backlink)) {
-                            writer.write(`
-                    isRelationOwner: true,`);
-                        }
-
-                        if (isForeignKeyField(f)) {
-                            writer.write(`
-                    isForeignKey: true,`);
-                        }
-
-                        if (fkMapping && Object.keys(fkMapping).length > 0) {
-                            writer.write(`
-                    foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
-                        }
-
-                        const defaultValueProvider = generateDefaultValueProvider(f, sourceFile);
-                        if (defaultValueProvider) {
-                            writer.write(`
-                            defaultValueProvider: ${defaultValueProvider},`);
-                        }
-
-                        if (isAutoIncrement(f)) {
-                            writer.write(`
-                    isAutoIncrement: true,`);
-                        }
-
-                        writer.write(`
-                },`);
-                    }
-                });
-                writer.write(',');
-            }
-        });
-        writer.write(',');
-
-        writer.write('uniqueConstraints:');
-        writer.block(() => {
-            for (const model of dataModels) {
-                writer.write(`${lowerCaseFirst(model.name)}:`);
-                writer.block(() => {
-                    for (const constraint of getUniqueConstraints(model)) {
-                        writer.write(`${constraint.name}: {
-                    name: "${constraint.name}",
-                    fields: ${JSON.stringify(constraint.fields)}
-                },`);
-                    }
-                });
-                writer.write(',');
-            }
-        });
-        writer.write(',');
-
-        writer.write('deleteCascade:');
-        writer.block(() => {
-            for (const model of dataModels) {
-                const cascades = getDeleteCascades(model);
-                if (cascades.length > 0) {
-                    writer.writeLine(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}],`);
+function writeModels(
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    dataModels: DataModel[],
+    options: ModelMetaGeneratorOptions
+) {
+    writer.write('models:');
+    writer.block(() => {
+        for (const model of dataModels) {
+            writer.write(`${lowerCaseFirst(model.name)}:`);
+            writer.block(() => {
+                writer.write(`name: '${model.name}',`);
+                writeBaseTypes(writer, model);
+                writeFields(sourceFile, writer, model, options);
+                writeUniqueConstraints(writer, model);
+                if (options.generateAttributes) {
+                    writeModelAttributes(writer, model);
                 }
-            }
-        });
-        writer.write(',');
-
-        const authModel = getAuthModel(dataModels);
-        if (authModel) {
-            writer.writeLine(`authModel: '${authModel.name}'`);
+                writeDiscriminator(writer, model);
+            });
+            writer.writeLine(',');
         }
     });
+    writer.writeLine(',');
+}
+
+function writeBaseTypes(writer: CodeBlockWriter, model: DataModel) {
+    if (model.superTypes.length > 0) {
+        writer.write('baseTypes: [');
+        writer.write(model.superTypes.map((t) => `'${t.ref?.name}'`).join(', '));
+        writer.write('],');
+    }
+}
+
+function writeAuthModel(writer: CodeBlockWriter, dataModels: DataModel[]) {
+    const authModel = getAuthModel(dataModels);
+    if (authModel) {
+        writer.writeLine(`authModel: '${authModel.name}'`);
+    }
+}
+
+function writeDeleteCascade(writer: CodeBlockWriter, dataModels: DataModel[]) {
+    writer.write('deleteCascade:');
+    writer.block(() => {
+        for (const model of dataModels) {
+            const cascades = getDeleteCascades(model);
+            if (cascades.length > 0) {
+                writer.writeLine(`${lowerCaseFirst(model.name)}: [${cascades.map((n) => `'${n}'`).join(', ')}],`);
+            }
+        }
+    });
+    writer.writeLine(',');
+}
+
+function writeUniqueConstraints(writer: CodeBlockWriter, model: DataModel) {
+    const constraints = getUniqueConstraints(model);
+    if (constraints.length > 0) {
+        writer.write('uniqueConstraints:');
+        writer.block(() => {
+            for (const constraint of constraints) {
+                writer.write(`${constraint.name}: {
+                                name: "${constraint.name}",
+                                fields: ${JSON.stringify(constraint.fields)}
+                            },`);
+            }
+        });
+        writer.write(',');
+    }
+}
+
+function writeModelAttributes(writer: CodeBlockWriter, model: DataModel) {
+    const attrs = getAttributes(model);
+    if (attrs.length > 0) {
+        writer.write(`
+attributes: ${JSON.stringify(attrs)},`);
+    }
+}
+
+function writeDiscriminator(writer: CodeBlockWriter, model: DataModel) {
+    const delegateAttr = getAttribute(model, '@@delegate');
+    if (!delegateAttr) {
+        return;
+    }
+    const discriminator = getAttributeArg(delegateAttr, 'discriminator') as ReferenceExpr;
+    if (!discriminator) {
+        return;
+    }
+    if (discriminator) {
+        writer.write(`discriminator: ${JSON.stringify(discriminator.target.$refText)},`);
+    }
+}
+
+function writeFields(
+    sourceFile: SourceFile,
+    writer: CodeBlockWriter,
+    model: DataModel,
+    options: ModelMetaGeneratorOptions
+) {
+    writer.write('fields:');
+    writer.block(() => {
+        for (const f of model.fields) {
+            const backlink = getBackLink(f);
+            const fkMapping = generateForeignKeyMapping(f);
+            writer.write(`${f.name}: {`);
+
+            writer.write(`
+        name: "${f.name}",
+        type: "${
+            f.type.reference
+                ? f.type.reference.$refText
+                : // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  f.type.type!
+        }",`);
+
+            if (isIdField(f)) {
+                writer.write(`
+        isId: true,`);
+            }
+
+            if (isDataModel(f.type.reference?.ref)) {
+                writer.write(`
+        isDataModel: true,`);
+            }
+
+            if (f.type.array) {
+                writer.write(`
+        isArray: true,`);
+            }
+
+            if (f.type.optional) {
+                writer.write(`
+        isOptional: true,`);
+            }
+
+            if (options.generateAttributes) {
+                const attrs = getAttributes(f);
+                if (attrs.length > 0) {
+                    writer.write(`
+        attributes: ${JSON.stringify(attrs)},`);
+                }
+            } else {
+                // only include essential attributes
+                const attrs = getAttributes(f).filter((attr) => ['@default', '@updatedAt'].includes(attr.name));
+                if (attrs.length > 0) {
+                    writer.write(`
+        attributes: ${JSON.stringify(attrs)},`);
+                }
+            }
+
+            if (backlink) {
+                writer.write(`
+        backLink: '${backlink.name}',`);
+            }
+
+            if (isRelationOwner(f, backlink)) {
+                writer.write(`
+        isRelationOwner: true,`);
+            }
+
+            if (isForeignKeyField(f)) {
+                writer.write(`
+        isForeignKey: true,`);
+            }
+
+            if (fkMapping && Object.keys(fkMapping).length > 0) {
+                writer.write(`
+        foreignKeyMapping: ${JSON.stringify(fkMapping)},`);
+            }
+
+            const defaultValueProvider = generateDefaultValueProvider(f, sourceFile);
+            if (defaultValueProvider) {
+                writer.write(`
+                defaultValueProvider: ${defaultValueProvider},`);
+            }
+
+            if (f.$inheritedFrom && isDelegateModel(f.$inheritedFrom) && !isIdField(f)) {
+                writer.write(`
+        inheritedFrom: ${JSON.stringify(f.$inheritedFrom.name)},`);
+            }
+
+            if (isAutoIncrement(f)) {
+                writer.write(`
+        isAutoIncrement: true,`);
+            }
+
+            writer.write(`
+    },`);
+        }
+    });
+    writer.write(',');
 }
 
 function getBackLink(field: DataModelField) {
@@ -212,13 +283,15 @@ function getBackLink(field: DataModelField) {
 }
 
 function getRelationName(field: DataModelField) {
-    const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === 'relation');
-    const relName = relAttr && relAttr.args?.[0] && getLiteral<string>(relAttr.args?.[0].value);
-    return relName;
+    const relAttr = getAttribute(field, '@relation');
+    if (!relAttr) {
+        return undefined;
+    }
+    return getAttributeArgLiteral(relAttr, 'name');
 }
 
-function getFieldAttributes(field: DataModelField): RuntimeAttribute[] {
-    return field.attributes
+function getAttributes(target: DataModelField | DataModel): RuntimeAttribute[] {
+    return target.attributes
         .map((attr) => {
             const args: Array<{ name?: string; value: unknown }> = [];
             for (const arg of attr.args) {

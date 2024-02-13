@@ -99,6 +99,7 @@ function createAppRouter(
     appRouter.addImportDeclarations([
         {
             namedImports: [
+                'unsetMarker',
                 'type AnyRouter',
                 'type AnyRootConfig',
                 'type CreateRouterInner',
@@ -111,15 +112,12 @@ function createAppRouter(
             moduleSpecifier: '@trpc/server',
         },
         {
-            namedImports: ['type PrismaClient', 'type Prisma'],
+            namedImports: ['type PrismaClient'],
             moduleSpecifier: prismaImport,
         },
-        { defaultImport: 'z', moduleSpecifier: 'zod', isTypeOnly: true },
     ]);
 
     appRouter.addStatements(`
-        ${/** to be used by the other routers without making a bigger commit */ ''}
-        export { PrismaClient } from '${prismaImport}'; 
 
         export type BaseConfig = AnyRootConfig;
 
@@ -129,56 +127,11 @@ function createAppRouter(
             procedures: ProcRouterRecord
         ) => CreateRouterInner<Config, ProcRouterRecord>;
             
-        ${
-            /** this is needed in order to prevent type errors between a procedure and a middleware-extended procedure */ ''
-        }
-        export type ProcBuilder<Config extends BaseConfig> = ProcedureBuilder<{
-            _config: Config;
-            _ctx_out: Config['$types']['ctx'];
-            _input_in: any;
-            _input_out: any;
-            _output_in: any;
-            _output_out: any;
-            _meta: Config['$types']['meta'];
-        }>;
+        export type UnsetMarker = typeof unsetMarker;
 
-        type ExtractParamsFromProcBuilder<Builder extends ProcedureBuilder<any>> =
-            Builder extends ProcedureBuilder<infer P> ? P : never;
-        
-        type FromPromise<P extends Promise<any>> = P extends Promise<infer T>
-            ? T
-            : never;
-          
-        ${/** workaround to avoid creating 'typeof unsetMarker & object' on the procedure output */ ''}
-        type Join<A, B> = A extends symbol ? B : A & B;
-
-        ${
-            /** you can name it whatever you want, but this is to make sure that 
-                the types from the middleware and the procedure are correctly merged */ ''
-        }
-        export type ProcReturns<
-            PType extends ProcedureType,
-            PBuilder extends ProcBuilder<BaseConfig>,
-            ZType extends z.ZodType,
-            PPromise extends Prisma.PrismaPromise<any>
-        > = Procedure<
-                PType,
-                ProcedureParams<
-                    ExtractParamsFromProcBuilder<PBuilder>["_config"],
-                    ExtractParamsFromProcBuilder<PBuilder>["_ctx_out"],
-                    Join<ExtractParamsFromProcBuilder<PBuilder>["_input_in"], z.infer<ZType>>,
-                    Join<ExtractParamsFromProcBuilder<PBuilder>["_input_out"], z.infer<ZType>>,
-                    Join<
-                        ExtractParamsFromProcBuilder<PBuilder>["_output_in"],
-                        FromPromise<PPromise>
-                    >,
-                    Join<
-                        ExtractParamsFromProcBuilder<PBuilder>["_output_out"],
-                        FromPromise<PPromise>
-                    >,
-                    ExtractParamsFromProcBuilder<PBuilder>["_meta"]
-                >
-            >;
+        export type ProcBuilder<Config extends BaseConfig> = ProcedureBuilder<
+            ProcedureParams<Config, any, any, any, UnsetMarker, UnsetMarker, any>
+        >;
 
         export function db(ctx: any) {
             if (!ctx.prisma) {
@@ -193,10 +146,10 @@ function createAppRouter(
 
     appRouter
         .addFunction({
-            name: 'createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>',
+            name: 'createRouter<Config extends BaseConfig>',
             parameters: [
-                { name: 'router', type: 'Router' },
-                { name: 'procedure', type: 'Proc' },
+                { name: 'router', type: 'RouterFactory<Config>' },
+                { name: 'procedure', type: 'ProcBuilder<Config>' },
             ],
             isExported: true,
         })
@@ -225,9 +178,7 @@ function createAppRouter(
                         moduleSpecifier: `./${model}.router`,
                     });
 
-                    writer.writeLine(
-                        `${lowerCaseFirst(model)}: create${model}Router<Router, Proc>(router, procedure),`
-                    );
+                    writer.writeLine(`${lowerCaseFirst(model)}: create${model}Router(router, procedure),`);
                 }
             });
             writer.write(');');
@@ -299,14 +250,7 @@ function generateModelCreateRouter(
 
     modelRouter.addImportDeclarations([
         {
-            namedImports: [
-                'type RouterFactory',
-                'type ProcBuilder',
-                'type BaseConfig',
-                'type ProcReturns',
-                'type PrismaClient',
-                'db',
-            ],
+            namedImports: ['type RouterFactory', 'type ProcBuilder', 'type BaseConfig', 'db'],
             moduleSpecifier: '.',
         },
     ]);
@@ -318,10 +262,10 @@ function generateModelCreateRouter(
     }
 
     const createRouterFunc = modelRouter.addFunction({
-        name: 'createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>',
+        name: 'createRouter<Config extends BaseConfig>',
         parameters: [
-            { name: 'router', type: 'Router' },
-            { name: 'procedure', type: 'Proc' },
+            { name: 'router', type: 'RouterFactory<Config>' },
+            { name: 'procedure', type: 'ProcBuilder<Config>' },
         ],
         isExported: true,
         isDefaultExport: true,

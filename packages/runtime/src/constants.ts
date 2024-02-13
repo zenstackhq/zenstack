@@ -97,3 +97,8 @@ export const FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX = 'updateFieldGuardOverrid
  * Flag that indicates if the model has field-level access control
  */
 export const HAS_FIELD_LEVEL_POLICY_FLAG = 'hasFieldLevelPolicy';
+
+/**
+ * Prefix for auxiliary relation field generated for delegated models
+ */
+export const DELEGATE_AUX_RELATION_PREFIX = 'delegate_aux';

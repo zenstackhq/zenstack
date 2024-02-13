@@ -1,5 +1,5 @@
 import { PluginFunction } from '@zenstackhq/sdk';
-import PrismaSchemaGenerator from './schema-generator';
+import { PrismaSchemaGenerator } from './schema-generator';
 
 export const name = 'Prisma';
 export const description = 'Generating Prisma schema';

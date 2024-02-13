@@ -62,6 +62,14 @@ export type QueryContext = {
     preValue?: any;
 };
 
-export type DbClientContract = Record<string, DbOperations> & {
-    $transaction: <T>(action: (tx: Record<string, DbOperations>) => Promise<T>, options?: unknown) => Promise<T>;
+/**
+ * Prisma contract for CRUD operations.
+ */
+export type CrudContract = Record<string, DbOperations>;
+
+/**
+ * Prisma contract for database client.
+ */
+export type DbClientContract = CrudContract & {
+    $transaction: <T>(action: (tx: CrudContract) => Promise<T>, options?: unknown) => Promise<T>;
 };

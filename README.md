@@ -183,7 +183,18 @@ The following diagram gives a high-level architecture overview of ZenStack.
 
 ## Examples
 
-### Todo SaaS App
+### Schema Samples
+
+The [sample repo](https://github.com/zenstackhq/authz-modeling-samples) includes the following patterns:
+
+-   ACL
+-   RBAC
+-   ABAC
+-   Multi-Tenancy
+
+You can use [this blog post](https://zenstack.dev/blog/model-authz) as an introduction.
+
+### Multi-Tenant Todo App
 
 Check out the [Multi-tenant Todo App](https://zenstack-todo.vercel.app/) for a running example. You can find different implementations below:
 
@@ -212,6 +223,8 @@ Join our [discord server](https://discord.gg/Ykhr738dUe) for chat and updates!
 ## Contributing
 
 If you like ZenStack, join us to make it a better tool! Please use the [Contributing Guide](CONTRIBUTING.md) for details on how to get started, and don't hesitate to join [Discord](https://discord.gg/Ykhr738dUe) to share your thoughts.
+
+Please also consider [sponsoring our work](https://github.com/sponsors/zenstackhq) to speed up the development of ZenStack. Thank you!
 
 ## License
 

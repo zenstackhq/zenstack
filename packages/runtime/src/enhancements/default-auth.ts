@@ -26,17 +26,15 @@ export function withDefaultAuth<DbClient extends object>(
 }
 
 class DefaultAuthHandler extends DefaultPrismaProxyHandler {
-    private readonly db: DbClientContract;
     private readonly userContext: any;
 
     constructor(
         prisma: DbClientContract,
         model: string,
-        private readonly options: EnhancementOptions,
+        options: EnhancementOptions,
         private readonly context?: EnhancementContext
     ) {
-        super(prisma, model);
-        this.db = prisma;
+        super(prisma, model, options);
 
         if (!this.context?.user) {
             throw new Error(`Using \`auth()\` in \`@default\` requires a user context`);

@@ -7,7 +7,7 @@ import {
     type PluginFunction,
 } from '@zenstackhq/sdk';
 import { getDefaultOutputFolder } from '../plugin-utils';
-import { generate as generateEnhancer } from './enhancer';
+import { generate as generateEnhancer } from './enhance';
 import { generate as generateModelMeta } from './model-meta';
 import { generate as generatePolicy } from './policy';
 

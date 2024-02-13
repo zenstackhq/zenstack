@@ -5,8 +5,8 @@ import {
     createQuery,
     useQueryClient,
     type CreateInfiniteQueryOptions,
-    type MutationOptions,
     type CreateQueryOptions,
+    type MutationOptions,
 } from '@tanstack/svelte-query';
 import { ModelMeta } from '@zenstackhq/runtime/cross';
 import { getContext, setContext } from 'svelte';
@@ -55,18 +55,18 @@ export function getHooksContext() {
  * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
-export function useModelQuery<R>(
+export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<CreateQueryOptions<R>, 'queryKey'>,
+    options?: Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
     const reqUrl = makeUrl(url, args);
-    return createQuery<R>({
+    return createQuery<TQueryFnData, TError, TData>({
         queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
-        queryFn: () => fetcher<R, false>(reqUrl, undefined, fetch, false),
+        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
 }
@@ -81,16 +81,17 @@ export function useModelQuery<R>(
  * @param fetch The fetch function to use for sending the HTTP request
  * @returns useQuery hook
  */
-export function useInfiniteModelQuery<R>(
+export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<CreateInfiniteQueryOptions<R>, 'queryKey'>,
+    options?: Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn
 ) {
-    return createInfiniteQuery<R>({
+    return createInfiniteQuery<TQueryFnData, TError, TData>({
         queryKey: getQueryKey(model, url, args, true),
-        queryFn: ({ pageParam }) => fetcher<R, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
+        queryFn: ({ pageParam }) =>
+            fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
         ...options,
     });
 }

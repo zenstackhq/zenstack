@@ -81,7 +81,7 @@ function collectDeleteCascades(model: string, modelMeta: ModelMeta, result: Set<
     }
     visited.add(model);
 
-    const cascades = modelMeta.deleteCascade[lowerCaseFirst(model)];
+    const cascades = modelMeta.deleteCascade?.[lowerCaseFirst(model)];
 
     if (!cascades) {
         return;

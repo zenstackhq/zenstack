@@ -21,8 +21,8 @@ export function withOmit<DbClient extends object>(prisma: DbClient, options: Enh
 }
 
 class OmitHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, private readonly options: EnhancementOptions) {
-        super(prisma, model);
+    constructor(prisma: DbClientContract, model: string, options: EnhancementOptions) {
+        super(prisma, model, options);
     }
 
     // base override
