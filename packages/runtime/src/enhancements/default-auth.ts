@@ -4,7 +4,7 @@
 import deepcopy from 'deepcopy';
 import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields } from '../cross';
 import { DbClientContract } from '../types';
-import { EnhancementContext, EnhancementOptions } from './create-enhancement';
+import { EnhancementContext, InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 
 /**
@@ -14,7 +14,7 @@ import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './prox
  */
 export function withDefaultAuth<DbClient extends object>(
     prisma: DbClient,
-    options: EnhancementOptions,
+    options: InternalEnhancementOptions,
     context?: EnhancementContext
 ): DbClient {
     return makeProxy(
@@ -31,7 +31,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     constructor(
         prisma: DbClientContract,
         model: string,
-        options: EnhancementOptions,
+        options: InternalEnhancementOptions,
         private readonly context?: EnhancementContext
     ) {
         super(prisma, model, options);

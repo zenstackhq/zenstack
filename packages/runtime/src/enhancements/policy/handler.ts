@@ -16,8 +16,8 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { type CrudContract, type DbClientContract, PolicyOperationKind } from '../../types';
-import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
+import { PolicyOperationKind, type CrudContract, type DbClientContract } from '../../types';
+import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
@@ -49,7 +49,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     constructor(
         private readonly prisma: DbClient,
         model: string,
-        private readonly options: EnhancementOptions,
+        private readonly options: InternalEnhancementOptions,
         private readonly context?: EnhancementContext
     ) {
         this.logger = new Logger(prisma);

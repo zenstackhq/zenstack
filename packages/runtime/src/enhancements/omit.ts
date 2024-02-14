@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { enumerate, getModelFields, resolveField, type ModelMeta } from '../cross';
+import { enumerate, getModelFields, resolveField } from '../cross';
 import { DbClientContract } from '../types';
-import { EnhancementOptions } from './create-enhancement';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 
 /**
@@ -11,7 +11,7 @@ import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
  *
  * @private
  */
-export function withOmit<DbClient extends object>(prisma: DbClient, options: EnhancementOptions): DbClient {
+export function withOmit<DbClient extends object>(prisma: DbClient, options: InternalEnhancementOptions): DbClient {
     return makeProxy(
         prisma,
         options.modelMeta,
@@ -21,7 +21,7 @@ export function withOmit<DbClient extends object>(prisma: DbClient, options: Enh
 }
 
 class OmitHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, options: EnhancementOptions) {
+    constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
         super(prisma, model, options);
     }
 

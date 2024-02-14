@@ -15,13 +15,13 @@ import {
     resolveField,
 } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
-import type { EnhancementOptions } from './create-enhancement';
+import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
 import { QueryUtils } from './query-utils';
 import { formatObject, prismaClientValidationError } from './utils';
 
-export function withDelegate<DbClient extends object>(prisma: DbClient, options: EnhancementOptions): DbClient {
+export function withDelegate<DbClient extends object>(prisma: DbClient, options: InternalEnhancementOptions): DbClient {
     return makeProxy(
         prisma,
         options.modelMeta,
@@ -34,7 +34,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private readonly logger: Logger;
     private readonly queryUtils: QueryUtils;
 
-    constructor(prisma: DbClientContract, model: string, options: EnhancementOptions) {
+    constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
         super(prisma, model, options);
         this.logger = new Logger(prisma);
         this.queryUtils = new QueryUtils(prisma, this.options);

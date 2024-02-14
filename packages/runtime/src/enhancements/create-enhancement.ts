@@ -32,40 +32,16 @@ export type TransactionIsolationLevel =
     | 'Snapshot'
     | 'Serializable';
 
-/**
- * Options for {@link createEnhancement}
- */
 export type EnhancementOptions = {
     /**
-     * Policy definition
+     * The kinds of enhancements to apply. By default all enhancements are applied.
      */
-    policy: PolicyDef;
-
-    /**
-     * Model metadata
-     */
-    modelMeta: ModelMeta;
-
-    /**
-     * Zod schemas for validation
-     */
-    zodSchemas?: ZodSchemas;
+    kinds?: EnhancementKind[];
 
     /**
      * Whether to log Prisma query
      */
     logPrismaQuery?: boolean;
-
-    /**
-     * The Node module that contains PrismaClient
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    prismaModule: any;
-
-    /**
-     * The kinds of enhancements to apply. By default all enhancements are applied.
-     */
-    kinds?: EnhancementKind[];
 
     /**
      * Hook for transforming errors before they are thrown to the caller.
@@ -89,6 +65,34 @@ export type EnhancementOptions = {
 };
 
 /**
+ * Options for {@link createEnhancement}
+ *
+ * @private
+ */
+export type InternalEnhancementOptions = EnhancementOptions & {
+    /**
+     * Policy definition
+     */
+    policy: PolicyDef;
+
+    /**
+     * Model metadata
+     */
+    modelMeta: ModelMeta;
+
+    /**
+     * Zod schemas for validation
+     */
+    zodSchemas?: ZodSchemas;
+
+    /**
+     * The Node module that contains PrismaClient
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prismaModule: any;
+};
+
+/**
  * Context for creating enhanced `PrismaClient`
  */
 export type EnhancementContext = {
@@ -103,13 +107,15 @@ let hasDefaultAuth: boolean | undefined = undefined;
  * Gets a Prisma client enhanced with all enhancement behaviors, including access
  * policy, field validation, field omission and password hashing.
  *
+ * @private
+ *
  * @param prisma The Prisma client to enhance.
  * @param context Context.
  * @param options Options.
  */
 export function createEnhancement<DbClient extends object>(
     prisma: DbClient,
-    options: EnhancementOptions,
+    options: InternalEnhancementOptions,
     context?: EnhancementContext
 ) {
     if (!prisma) {

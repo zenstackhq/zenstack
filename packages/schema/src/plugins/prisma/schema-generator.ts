@@ -297,7 +297,14 @@ export class PrismaSchemaGenerator {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             if (field.$inheritedFrom) {
-                if (field.$inheritedFrom.isAbstract || this.mode === 'logical' || isIdField(field)) {
+                if (
+                    // abstract inheritance is always kept
+                    field.$inheritedFrom.isAbstract ||
+                    // logical schema keeps all inherited fields
+                    this.mode === 'logical' ||
+                    // id fields are always kept
+                    isIdField(field)
+                ) {
                     this.generateModelField(model, field);
                 }
             } else {
