@@ -124,10 +124,12 @@ export default class PrismaSchemaGenerator {
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
+        const packageExec = process?.versions?.bun ? 'bunx' : 'npx';
+
         if (options.format === true) {
             try {
                 // run 'prisma format'
-                await execSync(`npx prisma format --schema ${outFile}`);
+                await execSync(`${packageExec} prisma format --schema ${outFile}`);
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
@@ -136,7 +138,7 @@ export default class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
-            let generateCmd = `npx prisma generate --schema "${outFile}"`;
+            let generateCmd = `${packageExec} prisma generate --schema "${outFile}"`;
             if (typeof options.generateArgs === 'string') {
                 generateCmd += ` ${options.generateArgs}`;
             }

@@ -15,13 +15,15 @@ async function runCommand(command: string, options: any) {
         }
     }
 
+    const packageExec = process?.versions?.bun ? 'bunx' : 'npx';
+
     console.log();
     console.log(colors.green('Running ZenStack CLI...'));
-    console.log(colors.underline('$ npx ' + args.join(' ')));
+    console.log(colors.underline(`$ ${packageExec} ` + args.join(' ')));
     console.log();
 
     try {
-        await execa('npx', args, { cwd: getPaths().api.base, shell: true, stdio: 'inherit', cleanup: true });
+        await execa(packageExec, args, { cwd: getPaths().api.base, shell: true, stdio: 'inherit', cleanup: true });
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
         process.exit(e?.exitCode || 1);
