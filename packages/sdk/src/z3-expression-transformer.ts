@@ -5,6 +5,7 @@ import {
     // DataModel,
     Expression,
     InvocationExpr,
+    isBooleanLiteral,
     isDataModel,
     isEnumField,
     isNullExpr,
@@ -61,17 +62,20 @@ export class Z3ExpressionTransformer {
 
     /**
      * Transforms the given expression to a TypeScript expression.
+     * @param inverse if value should be inverted (e.g. for deny conditions)
      * @param normalizeUndefined if undefined values should be normalized to null
      * @returns
      */
-    transform(expr: Expression, normalizeUndefined = true): string {
+    transform(expr: Expression, inverse: boolean, normalizeUndefined = true): string {
         // let assertion = '';
         // let checkStrings: Record<string, string> = {};
         switch (expr.$type) {
             case StringLiteral:
             case NumberLiteral:
-            case BooleanLiteral:
                 return this.literal(expr as LiteralExpr);
+
+            case BooleanLiteral:
+                return this.boolean(expr as BooleanLiteral, inverse);
 
             case ArrayExpr:
                 return this.array(expr as ArrayExpr, normalizeUndefined);
@@ -96,18 +100,19 @@ export class Z3ExpressionTransformer {
 
             case BinaryExpr:
                 // eslint-disable-next-line no-case-declarations
-                const assertion = this.binary(expr as BinaryExpr, normalizeUndefined);
+                const assertion = this.binary(expr as BinaryExpr, inverse, normalizeUndefined);
                 if (['&&', '||'].includes(expr.operator)) return assertion;
                 // eslint-disable-next-line no-case-declarations
                 const checkString =
                     expr.left.$type === 'ReferenceExpr' && expr.right.$type === 'StringLiteral'
                         ? { [expr.left.target.ref?.name ?? '']: expr.right.value }
                         : {};
-                return `And(${assertion}, buildAssertion(variables, args, user, ${JSON.stringify(checkString)}))`;
-            // return `And(${assertion}, buildAssertion(variables, args, user, ${util.formatWithOptions(
-            //     { depth: 1 },
-            //     checkStrings
-            // )}))`;
+                if (Object.keys(checkString).length > 0) {
+                    return `z3.And(${assertion}, buildAssertion(z3, variables, args, user, ${JSON.stringify(
+                        checkString
+                    )}))`;
+                }
+                return assertion;
 
             default:
                 throw new Z3ExpressionTransformerError(`Unsupported expression type: ${expr.$type}`);
@@ -134,9 +139,9 @@ export class Z3ExpressionTransformer {
         } else {
             if (normalizeUndefined) {
                 // normalize field access to null instead of undefined to avoid accidentally use undefined in filter
-                return `(${this.transform(expr.operand, normalizeUndefined)}?.${expr.member.ref.name} ?? null)`;
+                return `(${this.transform(expr.operand, false, normalizeUndefined)}?.${expr.member.ref.name} ?? null)`;
             } else {
-                return `${this.transform(expr.operand, normalizeUndefined)}?.${expr.member.ref.name}`;
+                return `${this.transform(expr.operand, false, normalizeUndefined)}?.${expr.member.ref.name}`;
             }
         }
     }
@@ -178,7 +183,7 @@ export class Z3ExpressionTransformer {
 
     @func('length')
     private _length(args: Expression[]) {
-        const field = this.transform(args[0], false);
+        const field = this.transform(args[0], false, false); // TODO: false for inverse here?
         const min = getLiteral<number>(args[1]);
         const max = getLiteral<number>(args[2]);
         let result: string;
@@ -193,29 +198,36 @@ export class Z3ExpressionTransformer {
     }
 
     @func('contains')
-    private _contains(args: Expression[], normalizeUndefined: boolean) {
-        const field = this.transform(args[0], false);
+    private _contains(args: Expression[], inverse: boolean, normalizeUndefined: boolean) {
+        const field = this.transform(args[0], inverse, false);
         const caseInsensitive = getLiteral<boolean>(args[2]) === true;
-        let result: string;
+        let condition: string;
         if (caseInsensitive) {
-            result = `${field}?.toLowerCase().includes(${this.transform(args[1], normalizeUndefined)}?.toLowerCase())`;
+            condition = `${field}?.toLowerCase().includes(${this.transform(
+                args[1],
+                false,
+                normalizeUndefined
+            )}?.toLowerCase())`;
         } else {
-            result = `${field}?.includes(${this.transform(args[1], normalizeUndefined)})`;
+            condition = `${field}?.includes(${this.transform(args[1], inverse, normalizeUndefined)})`;
         }
+        const result = inverse ? `z3.Not(${condition})` : condition;
         return this.ensureBoolean(result);
     }
 
     @func('startsWith')
-    private _startsWith(args: Expression[], normalizeUndefined: boolean) {
-        const field = this.transform(args[0], false);
-        const result = `${field}?.startsWith(${this.transform(args[1], normalizeUndefined)})`;
+    private _startsWith(args: Expression[], inverse: boolean, normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false, false);
+        const condition = `${field}?.startsWith(${this.transform(args[1], false, normalizeUndefined)})`;
+        const result = inverse ? `z3.Not(${condition})` : condition;
         return this.ensureBoolean(result);
     }
 
     @func('endsWith')
-    private _endsWith(args: Expression[], normalizeUndefined: boolean) {
-        const field = this.transform(args[0], false);
-        const result = `${field}?.endsWith(${this.transform(args[1], normalizeUndefined)})`;
+    private _endsWith(args: Expression[], inverse: boolean, normalizeUndefined: boolean) {
+        const field = this.transform(args[0], false, false);
+        const condition = `${field}?.endsWith(${this.transform(args[1], false, normalizeUndefined)})`;
+        const result = inverse ? `z3.Not(${condition})` : condition;
         return this.ensureBoolean(result);
     }
 
@@ -311,6 +323,13 @@ export class Z3ExpressionTransformer {
         }
     }
 
+    private boolean(expr: BooleanLiteral, inverse: boolean) {
+        if (inverse) {
+            return `z3.Not(${expr.value})`;
+        }
+        return `z3.Bool.val(${expr.value})`;
+    }
+
     private unary(expr: UnaryExpr, normalizeUndefined: boolean): string {
         return `(${expr.operator} ${this.transform(expr.operand, normalizeUndefined)})`;
     }
@@ -319,11 +338,13 @@ export class Z3ExpressionTransformer {
         return isDataModel(expr.$resolvedType?.decl);
     }
 
-    private binary(expr: BinaryExpr, normalizeUndefined: boolean): string {
+    private binary(expr: BinaryExpr, inverse: boolean, normalizeUndefined: boolean): string {
         if (/* expr.left.$type === 'ReferenceExpr' &&  */ expr.right.$type === 'StringLiteral') return 'true';
 
-        let left = this.transform(expr.left, normalizeUndefined);
-        let right = this.transform(expr.right, normalizeUndefined);
+        let left = this.transform(expr.left, inverse, normalizeUndefined);
+        let right = isBooleanLiteral(expr.right)
+            ? expr.right.value
+            : this.transform(expr.right, inverse, normalizeUndefined);
         // if (isMemberAccessExpr(expr.left) && !isAuthInvocation(expr.left)) {
         // left = `args.${left}`;
         // }
@@ -339,16 +360,32 @@ export class Z3ExpressionTransformer {
         if (this.isModelType(expr.left) && this.isModelType(expr.right)) {
             // comparison between model type values, map to id comparison
             left = isAuthInvocation(expr.left)
-                ? `(${left}.id ?? null)`
+                ? `(${left}?.id ?? null)`
                 : `((args.${left}?.id || args.${left}Id) ?? null)`;
             right = isAuthInvocation(expr.right)
                 ? `(${right}.id ?? null)`
                 : `((args.${right}?.id || args.${right}Id) ?? null)`;
-            if ((isAuthInvocation(expr.left) && !isNullExpr(expr.right)) || isAuthInvocation(expr.right)) {
-                // TODO: handle strict equality comparison (===, !==, etc.)
-                return `And(${left} ${expr.operator} ${right}, _withAuth)`;
+            const assertion = `${left} ${expr.operator} ${right}`;
+            if (isAuthInvocation(expr.left)) {
+                const impliedAssertion = `z3.Implies(!!${right}, ${assertion})`;
+                return this.withAuthCheck(expr, impliedAssertion, inverse);
             }
-            return `(${left} ${expr.operator} ${right})`;
+            if (isAuthInvocation(expr.right)) {
+                const impliedAssertion = `z3.Implies(!!${left}, ${assertion})`;
+                return this.withAuthCheck(expr, impliedAssertion, inverse);
+            }
+            // TODO: handle strict equality comparison (===, !==, etc.)
+            return this.withAuthCheck(expr, assertion, inverse);
+        }
+
+        if (isAuthInvocation(expr.left) || isAuthInvocation(expr.right)) {
+            left = isAuthInvocation(expr.left) ? `(${left}?.id ?? null)` : left;
+            right = isAuthInvocation(expr.right) ? `(${right}.id ?? null)` : right;
+            const assertion = `${left} ${expr.operator} ${right}`;
+            if (this.needAuthCheck(expr)) {
+                return this.withAuthCheck(expr, assertion, inverse);
+            }
+            return inverse ? `z3.Not(${assertion})` : assertion;
         }
 
         const _default = `(${left} ${expr.operator} ${right})`;
@@ -361,8 +398,8 @@ export class Z3ExpressionTransformer {
 
         return (
             match(expr.operator)
-                .with('||', () => `Or(${left}, ${right})`)
-                .with('&&', () => `And(${left}, ${right})`)
+                .with('||', () => `z3.Or(${left}, ${right})`)
+                .with('&&', () => `z3.And(${left}, ${right})`)
                 .with('==', () => `${left}.eq(${right})`)
                 .with('!=', () => `${left}.neq(${right})`)
                 .with('<', () => `${left}.lt(${right})`)
@@ -372,8 +409,9 @@ export class Z3ExpressionTransformer {
                 .with(
                     'in',
                     () =>
-                        `(${this.transform(expr.right, false)}?.includes(${this.transform(
+                        `(${this.transform(expr.right, inverse, false)}?.includes(${this.transform(
                             expr.left,
+                            inverse,
                             normalizeUndefined
                         )}) ?? false)`
                 )
@@ -417,4 +455,34 @@ export class Z3ExpressionTransformer {
             .with('^', () => `!((${operand})?.some((_item: any) => ${predicate}))`)
             .exhaustive();
     }
+
+    private needAuthCheck(expr: BinaryExpr) {
+        return (
+            (isAuthInvocation(expr.left) && !(isNullExpr(expr.right) && expr.operator === '==')) ||
+            isAuthInvocation(expr.right)
+        );
+    }
+
+    private withAuthCheck(expr: BinaryExpr, assertion: string, inverse: boolean) {
+        const invertedAssertion = inverse ? `z3.Not(${assertion})` : assertion;
+        if (isAuthInvocation(expr.left) || isAuthInvocation(expr.right)) {
+            return `z3.And(${invertedAssertion}, _withAuth)`;
+        }
+        return invertedAssertion;
+    }
 }
+
+// false :
+// const age = Z3.Int.const('age');
+// const assertion = Z3.And(
+// Z3.Not(age.gt(18)),
+// Z3.Not(age.lt(60))
+// );
+// Z3.solve(assertion);
+
+// true :
+// const age = Z3.Int.const('age');
+// const assertion = Z3.Not(Z3.And(
+// age.gt(18), age.lt(60)
+// ));
+// Z3.solve(assertion);

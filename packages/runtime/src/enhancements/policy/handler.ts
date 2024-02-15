@@ -1319,17 +1319,16 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     //#endregion
 
-    //#region Check (custom method)
+    //#region Check (added method for permissions check)
 
     async check(operation: CRUDOperationKind, args: any): Promise<boolean> {
         args = args ? this.policyUtils.clone(args) : {};
 
-        // if (this.shouldLogQuery) {
-        this.logger.info(`[policy] \`check\` ${this.model}\noperation:${operation}\nargs:${formatObject(args)}`);
-        // }
+        if (this.shouldLogQuery) {
+            this.logger.info(`[policy] \`check\` ${this.model}\noperation:${operation}\nargs:${formatObject(args)}`);
+        }
 
         return this.policyUtils.checkPermissions(this.model, operation, args, this.policyUtils.user);
-        // return this.modelClient.check(operation, args);
     }
 
     //#endregion

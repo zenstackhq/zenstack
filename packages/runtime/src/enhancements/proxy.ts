@@ -162,10 +162,14 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
     }
 
     async check(operation: PolicyOperationKind, args: any): Promise<boolean> {
-        console.log('Default proxy handler');
-        await this.preprocessArgs('check', args);
-        // check method is handle by the policy enhancer
-        return false;
+        args = await this.preprocessArgs('check', args);
+        try {
+            return this.prisma[this.model].check(operation, args);
+        } catch (e) {
+            // FIXME: cannot catch the error `db.model.check is not a function` if policy enhancer is not enabled
+            // I don't understand why it doesn't work with other enhancers extending the default proxy handler (tested with omit enhancer)
+            throw new Error('Policy enhancer must be enabled to use `check` method');
+        }
     }
 
     /**

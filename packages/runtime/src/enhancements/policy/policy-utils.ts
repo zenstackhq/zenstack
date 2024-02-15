@@ -1207,14 +1207,9 @@ export class PolicyUtil extends QueryUtils {
         args: any,
         user: AuthUser | undefined
     ): Promise<boolean> {
-        // console.log(
-        //     `Checking permissions for: model \`${model}\`, operation \`${operation}\`, args ${formatObject(
-        //         args
-        //     )}, user ${formatObject(user)}`
-        // );
         const checkPermission = this.policy.permission?.[model][operation];
         if (!checkPermission) {
-            throw this.unknownError(`unable to load permission checker for model ${model} operation ${operation}`);
+            throw this.unknownError(`unable to load permission checker for model ${model} and operation ${operation}`);
         }
         // let topData = args;
         // switch (operation) {
@@ -1228,7 +1223,6 @@ export class PolicyUtil extends QueryUtils {
         //         break;
         // }
         const result = await checkPermission(args, user);
-        console.log('result: ', result);
         return result;
     }
 

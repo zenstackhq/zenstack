@@ -77,8 +77,13 @@ export class PolicyGenerator {
         });
 
         sf.addImportDeclaration({
-            namedImports: [{ name: 'type Arith' }, { name: 'type Bool' }, { name: 'init' }],
+            namedImports: [{ name: 'type Arith' }, { name: 'type Bool' }, { name: 'type Context' }, { name: 'init' }],
             moduleSpecifier: 'z3-solver',
+        });
+
+        sf.addTypeAlias({
+            name: 'Assertion',
+            type: 'Bool<"main"> | boolean',
         });
 
         // import enums
@@ -150,13 +155,117 @@ export class PolicyGenerator {
         }        
         `);
 
-        // TODO: generate buildAssertion function
+        sf.addStatements(`
+        const processCondition = (
+            variable: any,
+            condition: any, // string conditions are processed as assertions
+            z3: Context<'main'>,
+          ): Bool<'main'>[] => {
+            const assertions: Bool<'main'>[] = [];
+            if (typeof condition === 'undefined' || typeof condition === 'string') {
+              // noop
+              // user properties are not pre-processed so we have to filter them out if string
+            } else if (typeof condition === 'number') {
+              assertions.push(variable.eq(condition));
+            } else if (typeof condition === 'boolean') {
+              assertions.push(variable.eq(condition));
+            } else if ('OR' in condition) {
+              const orCondition = condition;
+              const tempAssertions: Bool<'main'>[] = [];
+              for (const condition of orCondition.OR) {
+                if (typeof condition === 'string') {
+                  // string are pre-processed and transformed as Bool<'main'>
+                  throw 'Invalid OR condition';
+                }
+                tempAssertions.push(...processCondition(variable, condition, z3));
+              }
+              const orAssertion = z3.Or(...tempAssertions);
+              assertions.push(orAssertion);
+            } else if (z3.isBool(variable)) {
+              assertions.push(variable);
+            } else {
+              const tempAssertions: Bool<'main'>[] = [];
+              for (const operator of Object.keys(condition)) {
+                const value = condition[operator];
+                switch (operator) {
+                    case 'eq':
+                        tempAssertions.push(variable.eq(value));
+                        break;
+                    case 'ne':
+                        tempAssertions.push(variable.neq(value));
+                        break;
+                    case 'lt':
+                        tempAssertions.push(variable.lt(value));
+                        break;
+                    case 'le':
+                        tempAssertions.push(variable.le(value));
+                        break;
+                    case 'gt':
+                        tempAssertions.push(variable.gt(value));
+                        break;
+                    case 'ge':
+                        tempAssertions.push(variable.ge(value));
+                        break;
+                    default:
+                        throw new Error('Invalid operator');
+                }
+            }
+            
+          
+              // avoid empty assertions in case of comparison object like { ge: 1, le: 2 }
+              if (tempAssertions.length > 1) {
+                const andAssertion = z3.And(...tempAssertions);
+                assertions.push(andAssertion);
+              } else if (tempAssertions.length === 1) {
+                assertions.push(...tempAssertions);
+              }
+            }
+            return assertions;
+          };
+        `);
+
+        // TODO: handle string and array functions in fieldStringValueMap (in, startsWith, includes, etc.)
+        sf.addFunction({
+            name: 'checkStringCondition',
+            parameters: [
+                {
+                    name: 'args',
+                    type: 'any',
+                },
+                {
+                    name: 'fieldStringValueMap',
+                    type: 'Record<string, string>',
+                },
+            ],
+            returnType: 'boolean',
+            statements: (writer) => {
+                writer.write(`
+                const key = Object.keys(fieldStringValueMap)[0];
+                const condition = args[key];
+                if (typeof condition === 'string') {
+                    return args[key] === fieldStringValueMap[key];
+                }
+                if (typeof condition === 'object' && 'in' in condition) {
+                    return condition.in.some(condition === fieldStringValueMap[key]);
+                }
+                if (typeof condition === 'object' && 'startsWith' in condition) {
+                    return fieldStringValueMap[key].startsWith(condition.startsWith);
+                };
+                return true;
+                `);
+            },
+        });
+
         sf.addFunction({
             name: 'buildAssertion',
             parameters: [
                 {
+                    name: 'z3',
+                    type: 'any',
+                },
+                {
                     name: 'variables',
-                    type: 'Record<string, Arith<"main"> | Bool<"main">>',
+                    type: 'Record<string, Arith<"main"> | Assertion>',
                 },
                 {
                     name: 'args',
@@ -171,9 +280,47 @@ export class PolicyGenerator {
                     type: 'Record<string, string> = {}',
                 },
             ],
-            returnType: 'Bool<"main"> | boolean',
+            returnType: 'Assertion',
             statements: (writer) => {
-                writer.writeLine('return true;');
+                writer.write(`
+                const assertions: Assertion[] = [];
+  if ('OR' in args) {
+    const tempAssertions: Assertion[] = [];
+    for (const arg of args.OR) {
+      tempAssertions.push(buildAssertion(z3, variables, arg, user, fieldStringValueMap));
+    }
+    const orAssertion = z3.Or(...tempAssertions);
+    assertions.push(orAssertion);
+  }
+
+  // handle string conditions
+  // TODO: handle string conditions for user properties
+  const condition = checkStringCondition(args, fieldStringValueMap);
+  if (condition === false) {
+    return z3.Bool.val(false);
+  }
+
+  const tempAssertions: Bool<'main'>[] = [];
+
+  for (const property of Object.keys(args)) {  
+    const condition = args[property];
+    // TODO: handle nested properties
+    const variable = variables[property];
+    if (variable) {
+      tempAssertions.push(...processCondition(variable, condition, z3));
+    }
+  }
+
+  // avoid empty assertions in case of unique value or boolean
+  if (tempAssertions.length > 1) {
+    const andAssertion = z3.And(...tempAssertions);
+    assertions.push(andAssertion);
+  } else if (tempAssertions.length === 1) {
+    assertions.push(...tempAssertions);
+  }
+
+  return z3.And(...assertions);
+                `);
             },
         });
 
@@ -253,7 +400,7 @@ export class PolicyGenerator {
             ],
         });
 
-        sf.addStatements('export default policy');
+        sf.addStatements('export default policy;');
     }
 
     // Generates a { select: ... } object to select `auth()` fields used in policy rules
@@ -884,35 +1031,14 @@ export class PolicyGenerator {
     ) {
         const statements: (string | WriterFunction)[] = [];
 
-        if (kind === 'create') {
-            statements.push((writer) => {
-                writer.write('return Promise.resolve(false)');
-            });
-            return sourceFile.addFunction({
-                isAsync: true,
-                name: `check_${model.name}_${kind}`,
-                returnType: 'Promise<boolean>',
-                parameters: [
-                    {
-                        name: 'args',
-                        type: 'Record<string, any>',
-                    },
-                    {
-                        name: 'user?',
-                        type: 'any',
-                    },
-                ],
-                statements,
-            });
-        }
         statements.push((writer) => {
             const transformer = new Z3ExpressionTransformer({
                 context: ExpressionContext.AccessPolicy,
             });
             try {
                 writer.writeLine('const { Context, em } = await init();');
-                writer.writeLine('const { Solver, Int, Bool, Or, And, Not } = Context("main");');
-                writer.writeLine('const solver = new Solver();');
+                writer.writeLine('const z3 = Context("main");');
+                writer.writeLine('const solver = new z3.Solver();');
 
                 const variables: Record<string, string> = this.generateVariables([...denies, ...allows]);
                 Object.keys(variables).forEach((key) => {
@@ -927,40 +1053,41 @@ export class PolicyGenerator {
 
                 const denyStmt =
                     denies.length > 1
-                        ? 'Or(' +
+                        ? 'z3.Not(z3.Or(' +
                           denies
-                              .map((denie) => {
-                                  return transformer.transform(denie);
+                              .map((deny) => {
+                                  return transformer.transform(deny, false);
                               })
                               .join(', ') +
-                          ')'
+                          '))'
                         : denies.length === 1
-                        ? transformer.transform(denies[0])
+                        ? `z3.Not(${transformer.transform(denies[0], false)})`
                         : undefined;
                 const allowStmt =
                     allows.length > 1
-                        ? 'Or(' +
+                        ? 'z3.Or(' +
                           allows
                               .map((allow) => {
-                                  return transformer.transform(allow);
+                                  return transformer.transform(allow, false);
                               })
                               .join(', ') +
                           ')'
                         : allows.length === 1
-                        ? transformer.transform(allows[0])
+                        ? transformer.transform(allows[0], false)
                         : undefined;
                 let assertion;
                 if (denyStmt && allowStmt) {
-                    assertion = `And(Not(${denyStmt}), ${allowStmt})`;
+                    assertion = `z3.And(${denyStmt}, ${allowStmt})`;
                 } else if (denyStmt) {
-                    assertion = `Not(${denyStmt})`;
+                    assertion = denyStmt;
                 } else if (allowStmt) {
                     assertion = allowStmt;
                 } else {
-                    assertion = false;
+                    assertion = `z3.Bool.val(false)`;
                 }
-                writer.writeLine(`const assertion = ${assertion}`);
-                writer.writeLine(`solver.add(assertion);`);
+                writer.writeLine(`const assertion = ${assertion};`);
+                writer.writeLine(`const assertionFromArgs = buildAssertion(z3, variables, args, user);`);
+                writer.writeLine(`solver.add(z3.And(assertion, assertionFromArgs));`);
                 writer.writeLine(`await killThreads(em);`);
                 writer.write(`return (await solver.check()) === "sat";`);
             } catch (err) {
@@ -999,10 +1126,10 @@ export class PolicyGenerator {
                 if (!result[key]) {
                     switch (variables[key]) {
                         case 'NumberLiteral':
-                            result[key] = `Int.const("${key}")`;
+                            result[key] = `z3.Int.const("${key}")`;
                             break;
                         case 'BooleanLiteral':
-                            result[key] = `Bool.const("${key}")`;
+                            result[key] = `z3.Bool.const("${key}")`;
                             break;
                         default:
                             break;
