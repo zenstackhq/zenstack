@@ -584,7 +584,7 @@ export class PrismaSchemaGenerator {
                 'FieldReference',
                 new PrismaFieldReference(
                     resolved(node.target).name,
-                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, this.exprToText(arg.$container)))
+                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, this.exprToText(arg.value)))
                 )
             );
         } else if (isInvocationExpr(node)) {
