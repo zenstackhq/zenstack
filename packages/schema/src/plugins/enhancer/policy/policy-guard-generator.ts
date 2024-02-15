@@ -981,24 +981,24 @@ export class PolicyGenerator {
                         ? 'z3.Not(z3.Or(' +
                           denies
                               .map((deny) => {
-                                  return transformer.transform(deny, false);
+                                  return transformer.transform(deny);
                               })
                               .join(', ') +
                           '))'
                         : denies.length === 1
-                        ? `z3.Not(${transformer.transform(denies[0], false)})`
+                        ? `z3.Not(${transformer.transform(denies[0])})`
                         : undefined;
                 const allowStmt =
                     allows.length > 1
                         ? 'z3.Or(' +
                           allows
                               .map((allow) => {
-                                  return transformer.transform(allow, false);
+                                  return transformer.transform(allow);
                               })
                               .join(', ') +
                           ')'
                         : allows.length === 1
-                        ? transformer.transform(allows[0], false)
+                        ? transformer.transform(allows[0])
                         : undefined;
                 let assertion;
                 if (denyStmt && allowStmt) {
