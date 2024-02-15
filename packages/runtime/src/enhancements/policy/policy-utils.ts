@@ -24,6 +24,7 @@ import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
+import { init } from 'z3-solver';
 
 /**
  * Access policy enforcement utilities
@@ -1232,19 +1233,57 @@ export class PolicyUtil extends QueryUtils {
         if (!checkPermission) {
             throw this.unknownError(`unable to load permission checker for model ${model} and operation ${operation}`);
         }
-        // let topData = args;
-        // switch (operation) {
-        //     case 'create':
-        //     case 'update':
-        //         topData = args.data;
-        //         break;
-        //     case 'read':
-        //     case 'delete':
-        //         topData = args.where;
-        //         break;
-        // }
-        const result = await checkPermission(args, user);
+        const { Context, em } = await init();
+        const z3 = Context('main');
+        const result = await checkPermission(z3, args, user);
+        await this.killThreads(em);
         return result;
+    }
+
+    private delay(ms: number): Promise<void> & { cancel(): void };
+    private delay(ms: number, result: Error): Promise<never> & { cancel(): void };
+    private delay<T>(ms: number, result: T): Promise<T> & { cancel(): void };
+    private delay<T>(ms: number, result?: T | Error): Promise<T | void> & { cancel(): void } {
+        let handle: any;
+        const promise = new Promise<void | T>(
+            (resolve, reject) =>
+                (handle = setTimeout(() => {
+                    if (result instanceof Error) {
+                        reject(result);
+                    } else if (result !== undefined) {
+                        resolve(result);
+                    }
+                    resolve();
+                }, ms))
+        );
+        return { ...promise, cancel: () => clearTimeout(handle) };
+    }
+
+    private waitWhile(premise: () => boolean, pollMs = 100): Promise<void> & { cancel(): void } {
+        let handle: any;
+        const promise = new Promise<void>((resolve) => {
+            handle = setInterval(() => {
+                if (premise()) {
+                    clearTimeout(handle);
+                    resolve();
+                }
+            }, pollMs);
+        });
+        return { ...promise, cancel: () => clearInterval(handle) };
+    }
+
+    // exit process: https://github.com/Z3Prover/z3/issues/7070#issuecomment-1871017371
+    private killThreads(em: any): Promise<void> {
+        em.PThread.terminateAllThreads();
+
+        // Create a polling lock to wait for threads to return
+        const lockPromise = this.waitWhile(() => !em.PThread.unusedWorkers.length && !em.PThread.runningWorkers.length);
+        const delayPromise = this.delay(5000, new Error('Waiting for threads to be killed timed out'));
+
+        return Promise.race([lockPromise, delayPromise]).then(() => {
+            lockPromise.cancel();
+            delayPromise.cancel();
+        });
     }
 
     //#endregion

@@ -91,4 +91,4 @@ type AndConditions = { AND: Condition[] };
 type OrConditions = { OR: Condition[] };
 export type Conditions = boolean | AndConditions | OrConditions;
 
-export type PermissionsChecker = (args: any, user?: any) => Promise<boolean>;
+export type PermissionsChecker = (z3: any, args: any, user?: any) => Promise<boolean>;

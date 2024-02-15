@@ -76,16 +76,6 @@ export class PolicyGenerator {
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
 
-        sf.addImportDeclaration({
-            namedImports: [{ name: 'type Arith' }, { name: 'type Bool' }, { name: 'type Context' }, { name: 'init' }],
-            moduleSpecifier: 'z3-solver',
-        });
-
-        sf.addTypeAlias({
-            name: 'Assertion',
-            type: 'Bool<"main"> | boolean',
-        });
-
         // import enums
         const prismaImport = getPrismaClientImportSpec(model, output);
         for (const e of model.declarations.filter((d) => isEnum(d) && this.isEnumReferenced(model, d))) {
@@ -95,73 +85,13 @@ export class PolicyGenerator {
             });
         }
 
-        // killThreads function
-        sf.addStatements(`
-        function delay(ms: number): Promise<void> & { cancel(): void };
-        function delay(ms: number, result: Error): Promise<never> & { cancel(): void };
-        function delay<T>(ms: number, result: T): Promise<T> & { cancel(): void };
-        function delay<T>(
-          ms: number,
-          result?: T | Error,
-        ): Promise<T | void> & { cancel(): void } {
-          let handle: any;
-          const promise = new Promise<void | T>(
-            (resolve, reject) =>
-              (handle = setTimeout(() => {
-                if (result instanceof Error) {
-                  reject(result);
-                } else if (result !== undefined) {
-                  resolve(result);
-                }
-                resolve();
-              }, ms)),
-          );
-          return { ...promise, cancel: () => clearTimeout(handle) };
-        }
-        
-        function waitWhile(
-          premise: () => boolean,
-          pollMs = 100,
-        ): Promise<void> & { cancel(): void } {
-          let handle: any;
-          const promise = new Promise<void>((resolve) => {
-            handle = setInterval(() => {
-              if (premise()) {
-                clearTimeout(handle);
-                resolve();
-              }
-            }, pollMs);
-          });
-          return { ...promise, cancel: () => clearInterval(handle) };
-        }
-        
-        // exit process: https://github.com/Z3Prover/z3/issues/7070#issuecomment-1871017371
-        export function killThreads(em: any): Promise<void> {
-          em.PThread.terminateAllThreads();
-        
-          // Create a polling lock to wait for threads to return
-          const lockPromise = waitWhile(
-            () => !em.PThread.unusedWorkers.length && !em.PThread.runningWorkers.length,
-          );
-          const delayPromise = delay(
-            5000,
-            new Error('Waiting for threads to be killed timed out'),
-          );
-        
-          return Promise.race([lockPromise, delayPromise]).then(() => {
-            lockPromise.cancel();
-            delayPromise.cancel();
-          });
-        }        
-        `);
-
         sf.addStatements(`
         const processCondition = (
             variable: any,
             condition: any, // string conditions are processed as assertions
-            z3: Context<'main'>,
-          ): Bool<'main'>[] => {
-            const assertions: Bool<'main'>[] = [];
+            z3: any,
+          ): any[] => {
+            const assertions: any[] = [];
             if (typeof condition === 'undefined' || typeof condition === 'string') {
               // noop
               // user properties are not pre-processed so we have to filter them out if string
@@ -171,10 +101,10 @@ export class PolicyGenerator {
               assertions.push(variable.eq(condition));
             } else if ('OR' in condition) {
               const orCondition = condition;
-              const tempAssertions: Bool<'main'>[] = [];
+              const tempAssertions: any[] = [];
               for (const condition of orCondition.OR) {
                 if (typeof condition === 'string') {
-                  // string are pre-processed and transformed as Bool<'main'>
+                  // string are pre-processed and transformed as any
                   throw 'Invalid OR condition';
                 }
                 tempAssertions.push(...processCondition(variable, condition, z3));
@@ -184,7 +114,7 @@ export class PolicyGenerator {
             } else if (z3.isBool(variable)) {
               assertions.push(variable);
             } else {
-              const tempAssertions: Bool<'main'>[] = [];
+              const tempAssertions: any[] = [];
               for (const operator of Object.keys(condition)) {
                 const value = condition[operator];
                 switch (operator) {
@@ -210,8 +140,6 @@ export class PolicyGenerator {
                         throw new Error('Invalid operator');
                 }
             }
-            
-          
               // avoid empty assertions in case of comparison object like { ge: 1, le: 2 }
               if (tempAssertions.length > 1) {
                 const andAssertion = z3.And(...tempAssertions);
@@ -234,7 +162,7 @@ export class PolicyGenerator {
                 },
                 {
                     name: 'fieldStringValueMap',
-                    type: 'Record<string, string>',
+                    type: 'Record<string, string> = {}',
                 },
             ],
             returnType: 'boolean',
@@ -265,7 +193,7 @@ export class PolicyGenerator {
                 },
                 {
                     name: 'variables',
-                    type: 'Record<string, Arith<"main"> | Assertion>',
+                    type: 'Record<string, any>',
                 },
                 {
                     name: 'args',
@@ -280,12 +208,12 @@ export class PolicyGenerator {
                     type: 'Record<string, string> = {}',
                 },
             ],
-            returnType: 'Assertion',
+            returnType: 'any',
             statements: (writer) => {
                 writer.write(`
-                const assertions: Assertion[] = [];
+                const assertions: any[] = [];
   if ('OR' in args) {
-    const tempAssertions: Assertion[] = [];
+    const tempAssertions: any[] = [];
     for (const arg of args.OR) {
       tempAssertions.push(buildAssertion(z3, variables, arg, user, fieldStringValueMap));
     }
@@ -300,7 +228,7 @@ export class PolicyGenerator {
     return z3.Bool.val(false);
   }
 
-  const tempAssertions: Bool<'main'>[] = [];
+  const tempAssertions: any[] = [];
 
   for (const property of Object.keys(args)) {  
     const condition = args[property];
@@ -1036,8 +964,6 @@ export class PolicyGenerator {
                 context: ExpressionContext.AccessPolicy,
             });
             try {
-                writer.writeLine('const { Context, em } = await init();');
-                writer.writeLine('const z3 = Context("main");');
                 writer.writeLine('const solver = new z3.Solver();');
 
                 const variables: Record<string, string> = this.generateVariables([...denies, ...allows]);
@@ -1088,7 +1014,6 @@ export class PolicyGenerator {
                 writer.writeLine(`const assertion = ${assertion};`);
                 writer.writeLine(`const assertionFromArgs = buildAssertion(z3, variables, args, user);`);
                 writer.writeLine(`solver.add(z3.And(assertion, assertionFromArgs));`);
-                writer.writeLine(`await killThreads(em);`);
                 writer.write(`return (await solver.check()) === "sat";`);
             } catch (err) {
                 if (err instanceof TypeScriptExpressionTransformerError) {
@@ -1104,6 +1029,10 @@ export class PolicyGenerator {
             name: `check_${model.name}_${kind}`,
             returnType: 'Promise<boolean>',
             parameters: [
+                {
+                    name: 'z3',
+                    type: 'any',
+                },
                 {
                     name: 'args',
                     type: 'Record<string, any>',

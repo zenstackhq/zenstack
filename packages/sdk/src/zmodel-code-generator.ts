@@ -267,7 +267,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
 
     @gen(ReferenceArg)
     private _generateReferenceArg(ast: ReferenceArg) {
-        return `${ast.name}:${this.generate(ast.value)}`;
+        return `${ast.name}:${this.generate(ast)}`;
     }
 
     @gen(MemberAccessExpr)
