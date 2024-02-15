@@ -19,7 +19,7 @@ import {
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
 import { AuthUser, CRUDOperationKind, CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
-import type { EnhancementContext, EnhancementOptions } from '../create-enhancement';
+import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
 import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
@@ -38,7 +38,7 @@ export class PolicyUtil extends QueryUtils {
 
     constructor(
         private readonly db: DbClientContract,
-        options: EnhancementOptions,
+        options: InternalEnhancementOptions,
         context?: EnhancementContext,
         private readonly shouldLogQuery = false
     ) {
@@ -1145,6 +1145,27 @@ export class PolicyUtil extends QueryUtils {
      */
     clone(value: unknown): any {
         return value ? deepcopy(value) : {};
+    }
+
+    /**
+     * Replace content of `target` object with `withObject` in-place.
+     */
+    replace(target: any, withObject: any) {
+        if (!target || typeof target !== 'object' || !withObject || typeof withObject !== 'object') {
+            return;
+        }
+
+        // remove missing keys
+        for (const key of Object.keys(target)) {
+            if (!(key in withObject)) {
+                delete target[key];
+            }
+        }
+
+        // overwrite keys
+        for (const [key, value] of Object.entries(withObject)) {
+            target[key] = value;
+        }
     }
 
     /**

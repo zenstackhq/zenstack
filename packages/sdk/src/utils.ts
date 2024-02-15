@@ -383,6 +383,16 @@ export function isDelegateModel(node: AstNode) {
     return isDataModel(node) && hasAttribute(node, '@@delegate');
 }
 
+export function isDiscriminatorField(field: DataModelField) {
+    const model = field.$inheritedFrom ?? field.$container;
+    const delegateAttr = getAttribute(model, '@@delegate');
+    if (!delegateAttr) {
+        return false;
+    }
+    const arg = delegateAttr.args[0]?.value;
+    return isDataModelFieldReference(arg) && arg.target.$refText === field.name;
+}
+
 export function getIdFields(dataModel: DataModel) {
     const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
         f.attributes.some((attr) => attr.decl.$refText === '@id')

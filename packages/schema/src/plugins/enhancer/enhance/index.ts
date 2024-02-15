@@ -95,7 +95,8 @@ async function processClientTypes(model: Model, prismaClientDir: string) {
         removeAuxRelationFields(desc, toRemove, traversal);
         fixDelegateUnionType(desc, delegateModels, toReplaceText, traversal);
         removeCreateFromDelegateInputTypes(desc, delegateModels, toRemove, traversal);
-        removeToplevelCreates(desc, delegateModels, toRemove, traversal);
+        removeDelegateToplevelCreates(desc, delegateModels, toRemove, traversal);
+        removeDiscriminatorFromConcreteInputTypes(desc, delegateModels, toRemove);
     });
 
     toRemove.forEach((n) => n.remove());
@@ -134,7 +135,6 @@ function fixDelegateUnionType(
     delegateModels.forEach(([delegate, concreteModels]) => {
         if (name === `$${delegate.name}Payload`) {
             const discriminator = getDiscriminatorField(delegate);
-            // const discriminator = 'delegateType'; // delegate.fields.find((f) => hasAttribute(f, '@discriminator'));
             if (discriminator) {
                 toReplaceText.push([
                     desc,
@@ -178,7 +178,40 @@ function removeCreateFromDelegateInputTypes(
     });
 }
 
-function removeToplevelCreates(
+function removeDiscriminatorFromConcreteInputTypes(
+    desc: Node,
+    delegateModels: [DataModel, DataModel[]][],
+    toRemove: (PropertySignature | MethodSignature)[]
+) {
+    if (!desc.isKind(SyntaxKind.TypeAliasDeclaration)) {
+        return;
+    }
+
+    const name = desc.getName();
+    delegateModels.forEach(([delegate, concretes]) => {
+        const discriminator = getDiscriminatorField(delegate);
+        if (!discriminator) {
+            return;
+        }
+
+        concretes.forEach((concrete) => {
+            // remove discriminator field from the create/update input of concrete models
+            const regex = new RegExp(`\\${concrete.name}(Unchecked)?(Create|Update).*Input`);
+            if (regex.test(name)) {
+                desc.forEachDescendant((d, innerTraversal) => {
+                    if (d.isKind(SyntaxKind.PropertySignature)) {
+                        if (d.getName() === discriminator.name) {
+                            toRemove.push(d);
+                        }
+                        innerTraversal.skip();
+                    }
+                });
+            }
+        });
+    });
+}
+
+function removeDelegateToplevelCreates(
     desc: Node,
     delegateModels: [DataModel, DataModel[]][],
     toRemove: (PropertySignature | MethodSignature)[],

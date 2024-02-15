@@ -9,7 +9,10 @@
         "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/",
-        "unpublish-preview": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ \"\\$PNPM_PACKAGE_NAME\""
+        "unpublish-preview": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ \"\\$PNPM_PACKAGE_NAME\"",
+        "publish-next": "pnpm --filter \"./packages/**\" -r publish --access public --tag next",
+        "publish-preview-next": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/ --tag next",
+        "unpublish-preview-next": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ --tag next \"\\$PNPM_PACKAGE_NAME\""
     },
     "keywords": [],
     "author": "",

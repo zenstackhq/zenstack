@@ -142,7 +142,7 @@ export class PrismaSchemaGenerator {
         if (options.format === true) {
             try {
                 // run 'prisma format'
-                await execSync(`npx prisma format --schema ${outFile}`);
+                await execSync(`npx prisma format --schema ${outFile}`, { stdio: 'ignore' });
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
@@ -232,6 +232,10 @@ export class PrismaSchemaGenerator {
         return JSON.stringify(expr.value);
     }
 
+    private exprToText(expr: Expression) {
+        return new ZModelCodeGenerator({ quote: 'double' }).generate(expr);
+    }
+
     private generateGenerator(prisma: PrismaModel, decl: GeneratorDecl, options: PluginOptions) {
         const generator = prisma.addGenerator(
             decl.name,
@@ -293,7 +297,14 @@ export class PrismaSchemaGenerator {
         const model = decl.isView ? prisma.addView(decl.name) : prisma.addModel(decl.name);
         for (const field of decl.fields) {
             if (field.$inheritedFrom) {
-                if (field.$inheritedFrom.isAbstract || this.mode === 'logical' || isIdField(field)) {
+                if (
+                    // abstract inheritance is always kept
+                    field.$inheritedFrom.isAbstract ||
+                    // logical schema keeps all inherited fields
+                    this.mode === 'logical' ||
+                    // id fields are always kept
+                    isIdField(field)
+                ) {
                     this.generateModelField(model, field);
                 }
             } else {
@@ -573,7 +584,7 @@ export class PrismaSchemaGenerator {
                 'FieldReference',
                 new PrismaFieldReference(
                     resolved(node.target).name,
-                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, arg.value))
+                    node.args.map((arg) => new PrismaFieldReferenceArg(arg.name, this.exprToText(arg.value)))
                 )
             );
         } else if (isInvocationExpr(node)) {
@@ -596,7 +607,7 @@ export class PrismaSchemaGenerator {
                         throw new PluginError(name, 'Function call argument must be literal or null');
                     });
 
-                return new PrismaFunctionCallArg(arg.name, val);
+                return new PrismaFunctionCallArg(val);
             })
         );
     }

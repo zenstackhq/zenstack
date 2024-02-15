@@ -9,6 +9,7 @@ import { createProgram } from '../../../../packages/schema/src/cli';
 import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
 import { createNpmrc } from './share';
 
+// Skipping these tests as they seem to cause hangs intermittently when running with other tests
 // eslint-disable-next-line jest/no-disabled-tests
 describe.skip('CLI init command tests', () => {
     let origDir: string;

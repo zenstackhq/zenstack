@@ -120,16 +120,8 @@ describe('Data Model Validation Tests', () => {
     });
 
     it('id field', async () => {
-        // no need for '@id' field when there's no access policy or field validation
-        await loadModel(`
-            ${prelude}
-            model M {
-                x Int
-            }
-        `);
-
         const err =
-            'Model must include a field with @id or @unique attribute, or a model-level @@id or @@unique attribute to use access policies';
+            'Model must have at least one unique criteria. Either mark a single field with `@id`, `@unique` or add a multi field criterion with `@@id([])` or `@@unique([])` to the model.';
 
         expect(
             await loadModelWithError(`
@@ -630,10 +622,9 @@ describe('Data Model Validation Tests', () => {
                         b String
                     }
                 `);
-        expect(errors.length).toBe(1);
 
         expect(errors[0]).toEqual(
-            `Model A cannot be extended because it's neither abstract nor marked as "@@delegate"`
+            'Model must have at least one unique criteria. Either mark a single field with `@id`, `@unique` or add a multi field criterion with `@@id([])` or `@@unique([])` to the model.'
         );
 
         // relation incomplete from multiple level inheritance

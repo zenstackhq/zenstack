@@ -3,9 +3,9 @@
 
 import { hash } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
-import { NestedWriteVisitor, type ModelMeta, type PrismaWriteActionType } from '../cross';
+import { NestedWriteVisitor, type PrismaWriteActionType } from '../cross';
 import { DbClientContract } from '../types';
-import { EnhancementOptions } from './create-enhancement';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
 
 /**
@@ -13,7 +13,10 @@ import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './prox
  *
  * @private
  */
-export function withPassword<DbClient extends object = any>(prisma: DbClient, options: EnhancementOptions): DbClient {
+export function withPassword<DbClient extends object = any>(
+    prisma: DbClient,
+    options: InternalEnhancementOptions
+): DbClient {
     return makeProxy(
         prisma,
         options.modelMeta,
@@ -23,7 +26,7 @@ export function withPassword<DbClient extends object = any>(prisma: DbClient, op
 }
 
 class PasswordHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, options: EnhancementOptions) {
+    constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
         super(prisma, model, options);
     }
 
