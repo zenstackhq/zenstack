@@ -104,7 +104,7 @@ export class PolicyGenerator {
               const tempAssertions: any[] = [];
               for (const condition of orCondition.OR) {
                 if (typeof condition === 'string') {
-                  // string are pre-processed and transformed as any
+                  // string are pre-processed and transformed as Assertion
                   throw 'Invalid OR condition';
                 }
                 tempAssertions.push(...processCondition(variable, condition, z3));
@@ -140,7 +140,6 @@ export class PolicyGenerator {
                         throw new Error('Invalid operator');
                 }
             }
-              // avoid empty assertions in case of comparison object like { ge: 1, le: 2 }
               if (tempAssertions.length > 1) {
                 const andAssertion = z3.And(...tempAssertions);
                 assertions.push(andAssertion);

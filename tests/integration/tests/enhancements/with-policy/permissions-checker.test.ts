@@ -18,7 +18,10 @@ describe('With Policy: permissions checker test', () => {
         model User {
             id String @id
             age Int
+            email String @unique
+            role String @default("user")
             posts Post[]
+            comments Comment[]
 
             // @@allow('all', true)
             @@allow('create,read', age > 18 && age < 60)
@@ -34,8 +37,10 @@ describe('With Policy: permissions checker test', () => {
             id String @id @default(uuid())
             title String
             rating Int
-            author User @relation(fields: [authorId], references: [id])
             authorId String @default("userId-1")
+            author User @relation(fields: [authorId], references: [id])
+            comments Comment[]
+
 
             @@allow('create,read', auth() == author && title == "Title" && rating > 1)
             
@@ -43,6 +48,19 @@ describe('With Policy: permissions checker test', () => {
             @@allow('update', rating > 5)
             
             @@deny('delete', auth() == null)
+        }
+
+        model Comment {
+            id String @id @default(uuid())
+            content String
+            postId String
+            post Post @relation(fields: [postId], references: [id])
+            authorId String
+            author User @relation(fields: [authorId], references: [id])
+
+            @@deny('read', auth().age > 18 && auth().age < 60)
+            @@allow('create', auth().role == "editor")
+            @@allow('delete', auth().id == author.id)
         }
         `
         );
@@ -77,5 +95,9 @@ describe('With Policy: permissions checker test', () => {
         await expect(authDb.post.check('update', { rating: 8 })).toResolveFalsy();
         await expect(db.post.check('delete', {})).toResolveFalsy();
         await expect(authDb.post.check('delete', {})).toResolveTruthy();
+
+        await expect(db.comment.check('delete', {})).toResolveFalsy();
+        await expect(authDb.comment.check('delete', {})).toResolveTruthy();
+        await expect(authDb.comment.check('delete', { author: { id: 'invalid' } })).toResolveFalsy();
     });
 });

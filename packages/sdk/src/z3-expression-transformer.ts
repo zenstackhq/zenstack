@@ -8,6 +8,7 @@ import {
     isBooleanLiteral,
     isDataModel,
     isEnumField,
+    isMemberAccessExpr,
     isNullExpr,
     isThisExpr,
     LiteralExpr,
@@ -331,7 +332,9 @@ export class Z3ExpressionTransformer {
         if (/* expr.left.$type === 'ReferenceExpr' &&  */ expr.right.$type === 'StringLiteral') return 'true';
 
         let left = this.transform(expr.left, normalizeUndefined);
-        let right = isBooleanLiteral(expr.right) ? expr.right.value : this.transform(expr.right, normalizeUndefined);
+        let right = isBooleanLiteral(expr.right)
+            ? `${expr.right.value}`
+            : this.transform(expr.right, normalizeUndefined);
         // if (isMemberAccessExpr(expr.left) && !isAuthInvocation(expr.left)) {
         // left = `args.${left}`;
         // }
@@ -352,17 +355,17 @@ export class Z3ExpressionTransformer {
             right = isAuthInvocation(expr.right)
                 ? `(${right}.id ?? null)`
                 : `((args.${right}?.id || args.${right}Id) ?? null)`;
-            const assertion = `${left} ${expr.operator} ${right}`;
-            if (isAuthInvocation(expr.left)) {
-                const impliedAssertion = `z3.Implies(!!${right}, ${assertion})`;
-                return this.withAuthCheck(expr, impliedAssertion);
+            let assertion = `${left} ${expr.operator} ${right}`;
+
+            // only args values need implies
+            if (isAuthInvocation(expr.left) && (isMemberAccessExpr(expr.right) || this.isModelType(expr.right))) {
+                assertion = `z3.Implies(!!${right}, ${assertion})`;
             }
-            if (isAuthInvocation(expr.right)) {
-                const impliedAssertion = `z3.Implies(!!${left}, ${assertion})`;
-                return this.withAuthCheck(expr, impliedAssertion);
+            if (isAuthInvocation(expr.right) && (isMemberAccessExpr(expr.left) || this.isModelType(expr.left))) {
+                assertion = `z3.Implies(!!${left}, ${assertion})`;
             }
             // TODO: handle strict equality comparison (===, !==, etc.)
-            return this.withAuthCheck(expr, assertion);
+            return this.withAuth(expr, assertion);
         }
 
         if (isAuthInvocation(expr.left) || isAuthInvocation(expr.right)) {
@@ -370,9 +373,27 @@ export class Z3ExpressionTransformer {
             right = isAuthInvocation(expr.right) ? `(${right}.id ?? null)` : right;
             const assertion = `${left} ${expr.operator} ${right}`;
             if (this.needAuthCheck(expr)) {
-                return this.withAuthCheck(expr, assertion);
+                return this.withAuth(expr, assertion);
             }
             return assertion;
+        }
+
+        // auth().string compared to string argument
+        // TODO: for other type we could want to add a constraint to the auth model => we have to create a variable for it
+        if (this.isAuthComparison(left, right)) {
+            left =
+                isMemberAccessExpr(expr.left) && !this.isAuthMemberAccessExpr(expr.left, left) ? `args.${left}` : left;
+            right =
+                isMemberAccessExpr(expr.right) && !this.isAuthMemberAccessExpr(expr.right, right)
+                    ? `args.${right}`
+                    : right;
+            let assertion = `${left} ${expr.operator} ${right}`;
+            if (this.isAuthMemberAccessExpr(expr.left, left)) {
+                assertion = `z3.Implies(!!${right}, ${assertion})`;
+            } else if (this.isAuthMemberAccessExpr(expr.right, right)) {
+                assertion = `z3.Implies(!!${left}, ${assertion})`;
+            }
+            return this.withAuth(expr, assertion, true);
         }
 
         const _default = `(${left} ${expr.operator} ${right})`;
@@ -449,12 +470,28 @@ export class Z3ExpressionTransformer {
         );
     }
 
-    private withAuthCheck(expr: BinaryExpr, assertion: string) {
-        if (isAuthInvocation(expr.left) || isAuthInvocation(expr.right)) {
+    private withAuth(expr: BinaryExpr, assertion: string, forceAuth = false) {
+        if (this.needAuthCheck(expr) || forceAuth) {
             return `z3.And(${assertion}, _withAuth)`;
         }
         return assertion;
     }
+
+    // private isAuthProperty(expr: Expression) {
+    //     return isMemberAccessExpr(expr) && expr.member.ref?.$container.name === 'User'; // TODO: how to get auth model name?
+    // }
+
+    private isAuthMemberAccessExpr(expr: Expression, transformedExpr: string) {
+        return isMemberAccessExpr(expr) && transformedExpr.startsWith('user?.');
+    }
+
+    private isAuthComparison(left: string, right: string) {
+        return left.startsWith('user?.') || right.startsWith('user?.');
+    }
+
+    // private getModelFromMemberAccess(expr: MemberAccessExpr) {
+    // return expr.member.;
+    // }
 }
 
 // false :
