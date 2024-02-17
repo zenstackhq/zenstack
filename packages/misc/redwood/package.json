@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/redwood",
     "displayName": "ZenStack RedwoodJS Integration",
-    "version": "1.8.2",
+    "version": "1.9.0",
     "description": "CLI and runtime for integrating ZenStack with RedwoodJS projects.",
     "repository": {
         "type": "git",

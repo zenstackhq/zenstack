@@ -6,7 +6,7 @@ import {
     isStringLiteral,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { analyzePolicies, getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
+import { getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
@@ -34,23 +34,19 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         const modelUniqueFields = getModelUniqueFields(dm);
 
         if (
+            !dm.isAbstract &&
             idFields.length === 0 &&
             modelLevelIds.length === 0 &&
             uniqueFields.length === 0 &&
             modelUniqueFields.length === 0
         ) {
-            const { allows, denies, hasFieldValidation } = analyzePolicies(dm);
-            if (allows.length > 0 || denies.length > 0 || hasFieldValidation) {
-                // TODO: relax this requirement to require only @unique fields
-                // when access policies or field valdaition is used, require an @id field
-                accept(
-                    'error',
-                    'Model must include a field with @id or @unique attribute, or a model-level @@id or @@unique attribute to use access policies',
-                    {
-                        node: dm,
-                    }
-                );
-            }
+            accept(
+                'error',
+                'Model must have at least one unique criteria. Either mark a single field with `@id`, `@unique` or add a multi field criterion with `@@id([])` or `@@unique([])` to the model.',
+                {
+                    node: dm,
+                }
+            );
         } else if (idFields.length > 0 && modelLevelIds.length > 0) {
             accept('error', 'Model cannot have both field-level @id and model-level @@id attributes', {
                 node: dm,

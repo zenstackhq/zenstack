@@ -61,7 +61,7 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
         if (isDataModelAttribute(context.node) || isDataModelFieldAttribute(context.node)) {
             const completions = this.getCompletionFromHint(context.node);
             if (completions) {
-                completions.forEach(acceptor);
+                completions.forEach((c) => acceptor(context, c));
                 return;
             }
         }
@@ -131,7 +131,7 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
             return;
         }
 
-        const customAcceptor = (item: CompletionValueItem) => {
+        const customAcceptor = (context: CompletionContext, item: CompletionValueItem) => {
             // attributes starting with @@@ are for internal use only
             if (item.insertText?.startsWith('@@@') || item.label?.startsWith('@@@')) {
                 return;
@@ -156,7 +156,7 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
                     return;
                 }
             }
-            acceptor(item);
+            acceptor(context, item);
         };
 
         super.completionForCrossReference(context, crossRef, customAcceptor);
@@ -168,11 +168,11 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
         keyword: any,
         acceptor: CompletionAcceptor
     ): MaybePromise<void> {
-        const customAcceptor = (item: CompletionValueItem) => {
+        const customAcceptor = (context: CompletionContext, item: CompletionValueItem) => {
             if (!this.filterKeywordForContext(context, keyword.value)) {
                 return;
             }
-            acceptor(item);
+            acceptor(context, item);
         };
         super.completionForKeyword(context, keyword, customAcceptor);
     }

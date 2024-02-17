@@ -49,6 +49,7 @@ export interface ZModelCodeOptions {
     binaryExprNumberOfSpaces: number;
     unaryExprNumberOfSpaces: number;
     indent: number;
+    quote: 'single' | 'double';
 }
 
 // a registry of generation handlers marked with @gen
@@ -75,6 +76,7 @@ export class ZModelCodeGenerator {
             binaryExprNumberOfSpaces: options?.binaryExprNumberOfSpaces ?? 1,
             unaryExprNumberOfSpaces: options?.unaryExprNumberOfSpaces ?? 0,
             indent: options?.indent ?? 4,
+            quote: options?.quote ?? 'single',
         };
     }
 
@@ -224,7 +226,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
 
     @gen(StringLiteral)
     private _generateLiteralExpr(ast: LiteralExpr) {
-        return `'${ast.value}'`;
+        return this.options.quote === 'single' ? `'${ast.value}'` : `"${ast.value}"`;
     }
 
     @gen(NumberLiteral)
@@ -265,7 +267,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
 
     @gen(ReferenceArg)
     private _generateReferenceArg(ast: ReferenceArg) {
-        return `${ast.name}:${ast.value}`;
+        return `${ast.name}:${this.generate(ast.value)}`;
     }
 
     @gen(MemberAccessExpr)
@@ -321,7 +323,7 @@ ${ast.fields.map((x) => this.indent + this.generate(x)).join('\n')}${
     }
 
     private argument(ast: Argument) {
-        return `${ast.name ? ast.name + ': ' : ''}${this.generate(ast.value)}`;
+        return this.generate(ast.value);
     }
 
     private get binaryExprSpace() {

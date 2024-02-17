@@ -105,4 +105,52 @@ describe('Omit test', () => {
         expect(r1.password).toBeUndefined();
         expect(r1.profile.image).toBeUndefined();
     });
+
+    it('to-many', async () => {
+        const { withOmit } = await loadSchema(
+            `
+            model User {
+                id String @id @default(cuid())
+                posts Post[]
+            
+                @@allow('all', true)
+            }
+            
+            model Post {
+                id String @id @default(cuid())
+                user User @relation(fields: [userId], references: [id])
+                userId String
+                images Image[]
+            
+                @@allow('all', true)
+            }
+
+            model Image {
+                id String @id @default(cuid())
+                post Post @relation(fields: [postId], references: [id])
+                postId String
+                url String @omit
+
+                @@allow('all', true)
+            }
+            `
+        );
+
+        const db = withOmit();
+        const r = await db.user.create({
+            include: { posts: { include: { images: true } } },
+            data: {
+                posts: {
+                    create: [
+                        { images: { create: { url: 'img1' } } },
+                        { images: { create: [{ url: 'img2' }, { url: 'img3' }] } },
+                    ],
+                },
+            },
+        });
+
+        expect(r.posts[0].images[0].url).toBeUndefined();
+        expect(r.posts[1].images[0].url).toBeUndefined();
+        expect(r.posts[1].images[1].url).toBeUndefined();
+    });
 });

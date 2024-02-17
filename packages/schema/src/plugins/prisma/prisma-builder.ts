@@ -288,7 +288,7 @@ export class FieldReference {
 }
 
 export class FieldReferenceArg {
-    constructor(public name: 'sort', public value: 'Asc' | 'Desc') {}
+    constructor(public name: string, public value: string) {}
 
     toString(): string {
         return `${this.name}: ${this.value}`;
@@ -304,10 +304,10 @@ export class FunctionCall {
 }
 
 export class FunctionCallArg {
-    constructor(public name: string | undefined, public value: string) {}
+    constructor(public value: string) {}
 
     toString(): string {
-        return this.name ? `${this.name}: ${this.value}` : this.value;
+        return this.value;
     }
 }
 

@@ -395,7 +395,7 @@ async function generateModelSchema(model: DataModel, project: Project, output: s
         ////////////////////////////////////////////////
 
         // schema for validating prisma create input (all fields optional)
-        let prismaCreateSchema = makePartial('baseSchema');
+        let prismaCreateSchema = makePassthrough(makePartial('baseSchema'));
         if (refineFuncName) {
             prismaCreateSchema = `${refineFuncName}(${prismaCreateSchema})`;
         }
@@ -500,4 +500,8 @@ function makeOmit(schema: string, fields: string[]) {
 
 function makeMerge(schema1: string, schema2: string): string {
     return `${schema1}.merge(${schema2})`;
+}
+
+function makePassthrough(schema: string) {
+    return `${schema}.passthrough()`;
 }

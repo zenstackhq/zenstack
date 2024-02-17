@@ -224,7 +224,6 @@ describe('Parsing Tests', () => {
         expect(((model.attributes[1].args[0].value as ArrayExpr).items[0] as ReferenceExpr).args[0]).toEqual(
             expect.objectContaining({
                 name: 'sort',
-                value: 'Asc',
             })
         );
 
@@ -232,7 +231,6 @@ describe('Parsing Tests', () => {
         expect((model.attributes[2].args[0].value as ReferenceExpr).args[0]).toEqual(
             expect.objectContaining({
                 name: 'sort',
-                value: 'Desc',
             })
         );
     });
