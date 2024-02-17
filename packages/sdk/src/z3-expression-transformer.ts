@@ -293,7 +293,7 @@ export class Z3ExpressionTransformer {
     }
 
     private null() {
-        return 'null';
+        return 'undefined';
     }
 
     private array(expr: ArrayExpr) {
