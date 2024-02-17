@@ -11,7 +11,7 @@ import { inspect } from 'util';
  */
 export async function repl(projectPath: string, options: { prismaClient?: string; debug?: boolean; table?: boolean }) {
     if (!process?.stdout?.isTTY && process?.versions?.bun) {
-        console.error('REPL is only available in TTY mode, please use npm/npx to run the command in this context instead of bun/bunx.');
+        console.error('REPL on Bun is only available in a TTY terminal at this time. Please use npm/npx to run the command in this context instead of bun/bunx.');
         return;
     }
 
