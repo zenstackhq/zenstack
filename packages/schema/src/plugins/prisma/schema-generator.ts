@@ -124,12 +124,12 @@ export default class PrismaSchemaGenerator {
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
-        const packageExec = process?.versions?.bun ? 'bunx' : 'npx';
+        const packageManager = process?.versions?.bun ? 'bunx' : 'npx';
 
         if (options.format === true) {
             try {
                 // run 'prisma format'
-                await execSync(`${packageExec} prisma format --schema ${outFile}`);
+                await execSync(`${packageManager} prisma format --schema ${outFile}`);
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
@@ -138,7 +138,7 @@ export default class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
-            let generateCmd = `${packageExec} prisma generate --schema "${outFile}"`;
+            let generateCmd = `${packageManager} prisma generate --schema "${outFile}"`;
             if (typeof options.generateArgs === 'string') {
                 generateCmd += ` ${options.generateArgs}`;
             }
