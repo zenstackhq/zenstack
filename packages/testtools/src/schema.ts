@@ -189,23 +189,20 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         }
     }
 
-    const packageManager = process?.versions?.bun ? 'bun' : 'npm';
-    const packageExec = packageManager === 'bun' ? 'bunx' : 'npx';
-
-    run(`${packageManager} install`);
+    run('npm install');
 
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
 
     if (opt.customSchemaFilePath) {
-        run(`${packageExec} zenstack generate --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
+        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
             NODE_PATH: './node_modules',
         });
     } else {
-        run(`${packageExec} zenstack generate --no-dependency-check${outputArg}`, { NODE_PATH: './node_modules' });
+        run(`npx zenstack generate --no-dependency-check${outputArg}`, { NODE_PATH: './node_modules' });
     }
 
     if (opt.pushDb) {
-        run(`${packageExec} prisma db push`);
+        run('npx prisma db push');
     }
 
     if (opt.pulseApiKey) {
@@ -236,7 +233,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     if (opt.compile) {
         console.log('Compiling...');
-        run(`${packageExec} tsc --init`);
+        run('npx tsc --init');
 
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
@@ -245,7 +242,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
         };
         fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
-        run(`${packageExec} tsc --project tsconfig.json`);
+        run('npx tsc --project tsconfig.json');
     }
 
     if (options?.getPrismaOnly) {
