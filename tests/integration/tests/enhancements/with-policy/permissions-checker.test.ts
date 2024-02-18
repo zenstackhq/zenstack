@@ -37,12 +37,14 @@ describe('With Policy: permissions checker test', () => {
             id String @id @default(uuid())
             title String
             rating Int
+            published Boolean @default(false)
             authorId String @default("userId-1")
             author User @relation(fields: [authorId], references: [id])
             comments Comment[]
 
 
             @@allow('create,read', auth() == author && title == "Title" && rating > 1)
+            @@deny('read', !published || published == false)
             
             @@deny('update', rating < 10)
             @@allow('update', rating > 5)
@@ -95,6 +97,8 @@ describe('With Policy: permissions checker test', () => {
         await expect(authDb.post.check('update', { rating: 8 })).toResolveFalsy();
         await expect(db.post.check('delete', {})).toResolveFalsy();
         await expect(authDb.post.check('delete', {})).toResolveTruthy();
+        await expect(authDb.post.check('read', { published: true })).toResolveTruthy();
+        await expect(authDb.post.check('read', { published: false })).toResolveFalsy();
 
         await expect(db.comment.check('delete', {})).toResolveFalsy();
         await expect(authDb.comment.check('delete', {})).toResolveTruthy();

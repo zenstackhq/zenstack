@@ -5,6 +5,7 @@ import {
     Expression,
     Model,
     isBinaryExpr,
+    isUnaryExpr,
     isDataModel,
     isDataModelField,
     isEnum,
@@ -1070,7 +1071,10 @@ export class PolicyGenerator {
     collectVariablesTypes(expr: Expression): Record<string, Expression['$type']> {
         const result: Record<string, Expression['$type']> = {};
         const visit = (node: Expression) => {
-            if (isBinaryExpr(node) && typeof (node.right.$type !== 'StringLiteral')) {
+            if (isReferenceExpr(node)) {
+                const variableName = node.target.ref?.name ?? 'unknown';
+                result[variableName] = 'BooleanLiteral';
+            } else if (isBinaryExpr(node) && typeof (node.right.$type !== 'StringLiteral')) {
                 if (isReferenceExpr(node.left)) {
                     // const variableName = `${lowerCaseFirst(
                     //     node.left.target.ref?.$container.name ?? ''
@@ -1084,7 +1088,7 @@ export class PolicyGenerator {
                     visit(node.left);
                     visit(node.right);
                 }
-            } else if (isMemberAccessExpr(node)) {
+            } else if (isMemberAccessExpr(node) || isUnaryExpr(node)) {
                 visit(node.operand);
             }
         };

@@ -313,7 +313,10 @@ export class Z3ExpressionTransformer {
     }
 
     private unary(expr: UnaryExpr): string {
-        return `(${expr.operator} ${this.transform(expr.operand)})`;
+        if (expr.operator !== '!') {
+            throw new Z3ExpressionTransformerError(`Unsupported unary operator: ${expr.operator}`);
+        }
+        return `z3.Not(${this.transform(expr.operand)})`;
     }
 
     private isModelType(expr: Expression) {
