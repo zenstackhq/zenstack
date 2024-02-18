@@ -211,43 +211,48 @@ export class PolicyGenerator {
             returnType: 'any',
             statements: (writer) => {
                 writer.write(`
-                const assertions: any[] = [];
-  if ('OR' in args) {
-    const tempAssertions: any[] = [];
-    for (const arg of args.OR) {
-      tempAssertions.push(buildAssertion(z3, variables, arg, user, fieldStringValueMap));
-    }
-    const orAssertion = z3.Or(...tempAssertions);
-    assertions.push(orAssertion);
-  }
+                    const processedVariables = Object.keys(variables).reduce((acc, key) => {
+                        const newKey = key.replace(/^_/, '');
+                        acc[newKey] = variables[key];
+                        return acc;
+                    }, {} as Record<string, any>);
+                    const assertions: any[] = [];
+                    if ('OR' in args) {
+                        const tempAssertions: any[] = [];
+                        for (const arg of args.OR) {
+                            tempAssertions.push(buildAssertion(z3, processedVariables, arg, user, fieldStringValueMap));
+                        }
+                        const orAssertion = z3.Or(...tempAssertions);
+                        assertions.push(orAssertion);
+                    }
 
-  // handle string conditions
-  // TODO: handle string conditions for user properties
-  const condition = checkStringCondition(args, fieldStringValueMap);
-  if (condition === false) {
-    return z3.Bool.val(false);
-  }
+                    // handle string conditions
+                    // TODO: handle string conditions for user properties
+                    const condition = checkStringCondition(args, fieldStringValueMap);
+                    if (condition === false) {
+                    return z3.Bool.val(false);
+                    }
 
-  const tempAssertions: any[] = [];
+                    const tempAssertions: any[] = [];
 
-  for (const property of Object.keys(args)) {  
-    const condition = args[property];
-    // TODO: handle nested properties
-    const variable = variables[property];
-    if (variable) {
-      tempAssertions.push(...processCondition(variable, condition, z3));
-    }
-  }
+                    for (const property of Object.keys(args)) {  
+                    const condition = args[property];
+                    // TODO: handle nested properties
+                    const variable = processedVariables[property];
+                    if (variable) {
+                        tempAssertions.push(...processCondition(variable, condition, z3));
+                    }
+                    }
 
-  // avoid empty assertions in case of unique value or boolean
-  if (tempAssertions.length > 1) {
-    const andAssertion = z3.And(...tempAssertions);
-    assertions.push(andAssertion);
-  } else if (tempAssertions.length === 1) {
-    assertions.push(...tempAssertions);
-  }
+                    // avoid empty assertions in case of unique value or boolean
+                    if (tempAssertions.length > 1) {
+                    const andAssertion = z3.And(...tempAssertions);
+                    assertions.push(andAssertion);
+                    } else if (tempAssertions.length === 1) {
+                    assertions.push(...tempAssertions);
+                    }
 
-  return z3.And(...assertions);
+                    return z3.And(...assertions);
                 `);
             },
         });
@@ -1052,17 +1057,15 @@ export class PolicyGenerator {
         expressions.forEach((expr) => {
             const variables = this.collectVariablesTypes(expr);
             Object.keys(variables).forEach((key) => {
-                if (!result[key]) {
-                    switch (variables[key]) {
-                        case 'NumberLiteral':
-                            result[key] = `z3.Int.const("${key}")`;
-                            break;
-                        case 'BooleanLiteral':
-                            result[key] = `z3.Bool.const("${key}")`;
-                            break;
-                        default:
-                            break;
-                    }
+                switch (variables[key]) {
+                    case 'NumberLiteral':
+                        result[`_${key}`] = `z3.Int.const("${key}")`;
+                        break;
+                    case 'BooleanLiteral':
+                        result[`_${key}`] = `z3.Bool.const("${key}")`;
+                        break;
+                    default:
+                        break;
                 }
             });
         });

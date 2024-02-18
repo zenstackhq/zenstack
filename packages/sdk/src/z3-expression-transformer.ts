@@ -286,9 +286,7 @@ export class Z3ExpressionTransformer {
             // const formattedName = `${lowerCaseFirst(expr.target.ref.$container.name)}${upperCaseFirst(
             //     expr.target.ref.name
             // )}`;
-            return this.options?.fieldReferenceContext
-                ? `${this.options.fieldReferenceContext}?.${expr.target.ref.name}`
-                : expr.target.ref.name;
+            return `_${expr.target.ref.name}`;
         }
     }
 
@@ -342,8 +340,12 @@ export class Z3ExpressionTransformer {
         // }
         if (this.isModelType(expr.left) && this.isModelType(expr.right)) {
             // comparison between model type values, map to id comparison
-            left = isAuthInvocation(expr.left) ? `(${left}?.id)` : `((args.${left}?.id || args.${left}Id))`;
-            right = isAuthInvocation(expr.right) ? `(${right}.id)` : `((args.${right}?.id || args.${right}Id))`;
+            left = isAuthInvocation(expr.left)
+                ? `(${left}?.id)`
+                : `((${this.withArgs(left)}?.id || ${this.withArgs(left)}Id))`;
+            right = isAuthInvocation(expr.right)
+                ? `(${right}.id)`
+                : `((${this.withArgs(right)}?.id || ${this.withArgs(right)}Id))`;
             let assertion = `${left} ${expr.operator} ${right}`;
 
             // only args values need implies
@@ -371,10 +373,12 @@ export class Z3ExpressionTransformer {
         // TODO: for other type we could want to add a constraint to the auth model => we have to create a variable for it
         if (this.isAuthComparison(left, right)) {
             left =
-                isMemberAccessExpr(expr.left) && !this.isAuthMemberAccessExpr(expr.left, left) ? `args.${left}` : left;
+                isMemberAccessExpr(expr.left) && !this.isAuthMemberAccessExpr(expr.left, left)
+                    ? `${this.withArgs(left)}`
+                    : left;
             right =
                 isMemberAccessExpr(expr.right) && !this.isAuthMemberAccessExpr(expr.right, right)
-                    ? `args.${right}`
+                    ? `${this.withArgs(right)}`
                     : right;
             let assertion = `${left} ${expr.operator} ${right}`;
             if (this.isAuthMemberAccessExpr(expr.left, left)) {
@@ -457,6 +461,13 @@ export class Z3ExpressionTransformer {
             return `z3.And(${assertion}, _withAuth)`;
         }
         return assertion;
+    }
+
+    private withArgs(str: string) {
+        if (str.startsWith('_')) {
+            str = str.substring(1);
+        }
+        return `args.${str}`;
     }
 
     // private isAuthProperty(expr: Expression) {
