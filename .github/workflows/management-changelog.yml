@@ -78,8 +78,8 @@ jobs:
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
-          config-file: '.github/releases/release-main-config.json'
-          manifest-file: '.github/releases/.release-manifest.json'
+          config-file: '.github/release/release-main-config.json'
+          manifest-file: '.github/release/.release-manifest.json'
           target-branch: ${{ github.ref_name == 'develop' && 'main' || github.ref_name }}
           include-component-in-tag: true
       
