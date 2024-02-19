@@ -5,6 +5,7 @@ import {
     isDataModel,
     isStringLiteral,
     ReferenceExpr,
+    isEnum,
 } from '@zenstackhq/language/ast';
 import { getLiteral, getModelIdFields, getModelUniqueFields } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
@@ -61,8 +62,13 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 if (idField.type.optional) {
                     accept('error', 'Field with @id attribute must not be optional', { node: idField });
                 }
-                if (idField.type.array || !idField.type.type || !SCALAR_TYPES.includes(idField.type.type)) {
-                    accept('error', 'Field with @id attribute must be of scalar type', { node: idField });
+
+                const isArray = idField.type.array;
+                const isScalar = SCALAR_TYPES.includes(idField.type.type as typeof SCALAR_TYPES[number])
+                const isValidType = isScalar || isEnum(idField.type.reference?.ref)
+
+                if (isArray || !isValidType) {
+                    accept('error', 'Field with @id attribute must be of scalar or enum type', { node: idField });
                 }
             });
         }

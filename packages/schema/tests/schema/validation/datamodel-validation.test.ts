@@ -1,4 +1,4 @@
-import { loadModel, loadModelWithError } from '../../utils';
+import { loadModel, safelyLoadModel, errorLike } from '../../utils';
 
 describe('Data Model Validation Tests', () => {
     const prelude = `
@@ -9,20 +9,20 @@ describe('Data Model Validation Tests', () => {
     `;
 
     it('duplicated fields', async () => {
-        expect(
-            await loadModelWithError(`
-                ${prelude}
-                model M {
-                    id String @id
-                    x Int
-                    x String
-                }
+        const result = await safelyLoadModel(`
+            ${ prelude }
+            model M {
+                id String @id
+                x Int
+                x String
+            }
         `)
-        ).toContain('Duplicated declaration name "x"');
+
+        expect(result).toMatchObject(errorLike('Duplicated declaration name "x"'));
     });
 
     it('scalar types', async () => {
-        await loadModel(`
+        const result = await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
@@ -38,33 +38,36 @@ describe('Data Model Validation Tests', () => {
                 i Bytes
             }
         `);
+        expect(result).toMatchObject({ status: 'fulfilled' });
     });
 
     it('Unsupported type valid arg', async () => {
-        await loadModel(`
+        const result = await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
                 a Unsupported('foo')
             }
         `);
+
+        expect(result).toMatchObject({ status: 'fulfilled' });
     });
 
     it('Unsupported type invalid arg', async () => {
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
                 a Unsupported(123)
             }
         `)
-        ).toContain('Unsupported type argument must be a string literal');
+        ).toMatchObject(errorLike('Unsupported type argument must be a string literal'));
     });
 
     it('Unsupported type used in expression', async () => {
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
@@ -72,208 +75,258 @@ describe('Data Model Validation Tests', () => {
                 @@allow('all', a == 'a')
             }
         `)
-        ).toContain('Field of "Unsupported" type cannot be used in expressions');
+        ).toMatchObject(errorLike('Field of "Unsupported" type cannot be used in expressions'));
     });
 
     it('mix array and optional', async () => {
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
                 x Int[]?
             }
         `)
-        ).toContain('Optional lists are not supported. Use either `Type[]` or `Type?`');
+        ).toMatchObject(errorLike('Optional lists are not supported. Use either `Type[]` or `Type?`'));
     });
 
     it('unresolved field type', async () => {
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
                 x Integer
             }
         `)
-        ).toContain(`Could not resolve reference to TypeDeclaration named 'Integer'.`);
+        ).toMatchObject(errorLike(`Could not resolve reference to TypeDeclaration named 'Integer'.`));
 
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
                 x Integer[]
             }
         `)
-        ).toContain(`Could not resolve reference to TypeDeclaration named 'Integer'.`);
+        ).toMatchObject(errorLike(`Could not resolve reference to TypeDeclaration named 'Integer'.`));
 
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model M {
                 id String @id
                 x Integer?
             }
         `)
-        ).toContain(`Could not resolve reference to TypeDeclaration named 'Integer'.`);
+        ).toMatchObject(errorLike(`Could not resolve reference to TypeDeclaration named 'Integer'.`));
     });
 
-    it('id field', async () => {
+    describe('id field', () => {
         const err =
             'Model must have at least one unique criteria. Either mark a single field with `@id`, `@unique` or add a multi field criterion with `@@id([])` or `@@unique([])` to the model.';
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int
-                @@allow('all', x > 0)
-            }
-        `)
-        ).toContain(err);
+        it('should error when there are no unique fields', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int
+                    @@allow('all', x > 0)
+                }
+            `)
+            expect(result).toMatchObject(errorLike(err));
+        })
 
-        // @unique used as id
-        await loadModel(`
-            ${prelude}
-            model M {
-                id Int @unique
-                x Int
-                @@allow('all', x > 0)
-            }
-        `);
+        it('should should use @unique when there is no @id', async () => {
+            const result = await safelyLoadModel(`
+                ${prelude}
+                model M {
+                    id Int @unique
+                    x Int
+                    @@allow('all', x > 0)
+                }
+            `);
+            expect(result).toMatchObject({ status: 'fulfilled' });
+        })
 
         // @@unique used as id
-        await loadModel(`
-               ${prelude}
+        it('should suceed when @@unique used as id', async () => {
+            const result = await safelyLoadModel(`
+               ${ prelude }
                model M {
                    x Int
                    @@unique([x])
                    @@allow('all', x > 0)
                }
            `);
+            expect(result).toMatchObject({ status: 'fulfilled' });
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int
-                @@deny('all', x <= 0)
-            }
-        `)
-        ).toContain(err);
+        it('should succeed when @id is an enum type', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                enum E {
+                    A
+                    B
+                }
+                model M {
+                    id E @id
+                }
+            `);
+            expect(result).toMatchObject({ status: 'fulfilled' });
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int @gt(0)
-            }
-        `)
-        ).toContain(err);
+        it('should succeed when @@id is an enum type', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                enum E {
+                    A
+                    B
+                }
+                model M {
+                    x Int
+                    y E
+                    @@id([x, y])
+                }
+            `);
+            expect(result).toMatchObject({ status: 'fulfilled' });
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int @id
-                y Int @id
-            }
-        `)
-        ).toContain(`Model can include at most one field with @id attribute`);
+        it('should error when there are no id fields, even when denying access', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int
+                    @@deny('all', x <= 0)
+                }
+            `) 
+            
+            expect(result).toMatchObject(errorLike(err));
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int @id
-                y Int
-                @@id([x, y])
-            }
-        `)
-        ).toContain(`Model cannot have both field-level @id and model-level @@id attributes`);
+        it('should error when there are not id fields, without access restrictions', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int @gt(0)
+                }
+            `) 
+            
+            expect(result).toMatchObject(errorLike(err));
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int? @id
-            }
-        `)
-        ).toContain(`Field with @id attribute must not be optional`);
+        it('should error when there is more than one field marked as @id', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int @id
+                    y Int @id
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Model can include at most one field with @id attribute`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int?
-                @@id([x])
-            }
-        `)
-        ).toContain(`Field with @id attribute must not be optional`);
+        it('should error when both @id and @@id are used', async  () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int @id
+                    y Int
+                    @@id([x, y])
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Model cannot have both field-level @id and model-level @@id attributes`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int[] @id
-            }
-        `)
-        ).toContain(`Field with @id attribute must be of scalar type`);
+        it('should error when @id used on optional field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int? @id
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must not be optional`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Int[]
-                @@id([x])
-            }
-        `)
-        ).toContain(`Field with @id attribute must be of scalar type`);
+        it('should error when @@id used on optional field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int?
+                    @@id([x])
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must not be optional`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Json @id
-            }
-        `)
-        ).toContain(`Field with @id attribute must be of scalar type`);
+        it('should error when @id used on list field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int[] @id
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                x Json
-                @@id([x])
-            }
-        `)
-        ).toContain(`Field with @id attribute must be of scalar type`);
+        it('should error when @@id used on list field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Int[]
+                    @@id([x])
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model Id {
-                id String @id
-            }
-            model M {
-                myId Id @id
-            }
-        `)
-        ).toContain(`Field with @id attribute must be of scalar type`);
+        it('should error when @id used on a Json field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Json @id
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
 
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model Id {
-                id String @id
-            }
-            model M {
-                myId Id
-                @@id([myId])
-            }
-        `)
-        ).toContain(`Field with @id attribute must be of scalar type`);
+        it('should error when @@id used on a Json field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model M {
+                    x Json
+                    @@id([x])
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
+
+        it('should error when @id used on a reference field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model Id {
+                    id String @id
+                }
+                model M {
+                    myId Id @id
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
+
+        it('should error when @@id used on a reference field', async () => {
+            const result = await safelyLoadModel(`
+                ${ prelude }
+                model Id {
+                    id String @id
+                }
+                model M {
+                    myId Id
+                    @@id([myId])
+                }
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
     });
 
     it('relation', async () => {
@@ -326,7 +379,7 @@ describe('Data Model Validation Tests', () => {
 
         // one-to-one incomplete
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -337,11 +390,11 @@ describe('Data Model Validation Tests', () => {
                 id String @id
             }
         `)
-        ).toContain(`The relation field "b" on model "A" is missing an opposite relation field on model "B"`);
+        ).toMatchObject(errorLike(`The relation field "b" on model "A" is missing an opposite relation field on model "B"`));
 
         // one-to-one ambiguous
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -354,11 +407,11 @@ describe('Data Model Validation Tests', () => {
                 a1 A
             }
         `)
-        ).toContain(`Fields "a", "a1" on model "B" refer to the same relation to model "A"`);
+        ).toMatchObject(errorLike(`Fields "a", "a1" on model "B" refer to the same relation to model "A"`));
 
         // fields or references missing
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -371,11 +424,11 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(`Both "fields" and "references" must be provided`);
+        ).toMatchObject(errorLike(`Both "fields" and "references" must be provided`));
 
         // one-to-one inconsistent attribute
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -388,11 +441,11 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(`"fields" and "references" must be provided only on one side of relation field`);
+        ).toMatchObject(errorLike(`"fields" and "references" must be provided only on one side of relation field`));
 
         // references mismatch
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 myId Int @id
@@ -405,11 +458,11 @@ describe('Data Model Validation Tests', () => {
                 aId String @unique
             }
         `)
-        ).toContain(`values of "references" and "fields" must have the same type`);
+        ).toMatchObject(errorLike(`values of "references" and "fields" must have the same type`));
 
         // "fields" and "references" typing consistency
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id Int @id
@@ -422,11 +475,11 @@ describe('Data Model Validation Tests', () => {
                 aId String @unique
             }
         `)
-        ).toContain(`values of "references" and "fields" must have the same type`);
+        ).toMatchObject(errorLike(`values of "references" and "fields" must have the same type`));
 
         // one-to-one missing @unique
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -439,13 +492,11 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(
-            `Field "aId" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
-        );
+        ).toMatchObject(errorLike(`Field "aId" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`));
 
         // missing @relation
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -457,13 +508,11 @@ describe('Data Model Validation Tests', () => {
                 a A
             }
         `)
-        ).toContain(
-            `Field for one side of relation must carry @relation attribute with both "fields" and "references" fields`
-        );
+        ).toMatchObject(errorLike(`Field for one side of relation must carry @relation attribute with both "fields" and "references" fields`));
 
         // wrong relation owner field type
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -476,11 +525,11 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toContain(`Relation field needs to be list or optional`);
+        ).toMatchObject(errorLike(`Relation field needs to be list or optional`));
 
         // unresolved field
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
             ${prelude}
             model A {
                 id String @id
@@ -492,7 +541,7 @@ describe('Data Model Validation Tests', () => {
                 a A @relation(fields: [aId], references: [id])
             }
         `)
-        ).toContain(`Could not resolve reference to ReferenceTarget named 'aId'.`);
+        ).toMatchObject(errorLike(`Could not resolve reference to ReferenceTarget named 'aId'.`));
 
         // enum as foreign key
         await loadModel(`
@@ -607,7 +656,7 @@ describe('Data Model Validation Tests', () => {
     });
 
     it('abstract base type', async () => {
-        const errors = await loadModelWithError(`
+        const errors = await safelyLoadModel(`
                     ${prelude}
 
                     abstract model Base {
@@ -623,11 +672,11 @@ describe('Data Model Validation Tests', () => {
                     }
                 `);
 
-        expect(errors).toContain(`Model A cannot be extended because it's not abstract`);
+        expect(errors).toMatchObject(errorLike(`Model A cannot be extended because it's not abstract`));
 
         // relation incomplete from multiple level inheritance
         expect(
-            await loadModelWithError(`
+            await safelyLoadModel(`
                 ${prelude}
                   model User {
                     id Int @id @default(autoincrement())
@@ -647,6 +696,6 @@ describe('Data Model Validation Tests', () => {
                     a String
                   }
             `)
-        ).toContain(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`);
+        ).toMatchObject(errorLike(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`));
     });
 });
