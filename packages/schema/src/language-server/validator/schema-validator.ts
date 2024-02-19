@@ -54,7 +54,7 @@ export default class SchemaValidator implements AstValidator<Model> {
             const importedModel = resolveImport(this.documents, imp);
             const importPath = imp.path.endsWith('.zmodel') ? imp.path : `${imp.path}.zmodel`;
             if (!importedModel) {
-                accept('error', `Cannot find model file ${importPath}.zmodel`, { node: imp });
+                accept('error', `Cannot find model file ${importPath}`, { node: imp });
             }
         });
     }
