@@ -22,7 +22,7 @@
     },
     "packages/plugins/swr": {
       "package-name": "@zenstackhq/swr",
-      "component": "SWR Plugin"
+      "component": "SWR_Plugin"
     },
     "packages/plugins/tanstack-query": {
       "package-name": "@zenstackhq/tanstack-query",
