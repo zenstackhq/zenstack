@@ -61,7 +61,7 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: UseQueryOptions<TQueryFnData, TError, TData>,
+    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
@@ -87,7 +87,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: UseInfiniteQueryOptions<TQueryFnData, TError, TData>,
+    options?: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn
 ) {
     return useInfiniteQuery<TQueryFnData, TError, TData>({
