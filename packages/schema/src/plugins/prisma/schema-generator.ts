@@ -47,7 +47,7 @@ import stripColor from 'strip-color';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
-import { execSync } from '../../utils/exec-utils';
+import { execPackage } from '../../utils/exec-utils';
 import { findPackageJson } from '../../utils/pkg-utils';
 import {
     ModelFieldType,
@@ -127,7 +127,7 @@ export default class PrismaSchemaGenerator {
         if (options.format === true) {
             try {
                 // run 'prisma format'
-                await execSync(`npx prisma format --schema ${outFile}`);
+                await execPackage(`prisma format --schema ${outFile}`);
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
@@ -136,18 +136,18 @@ export default class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
-            let generateCmd = `npx prisma generate --schema "${outFile}"`;
+            let generateCmd = `prisma generate --schema "${outFile}"`;
             if (typeof options.generateArgs === 'string') {
                 generateCmd += ` ${options.generateArgs}`;
             }
             try {
                 // run 'prisma generate'
-                await execSync(generateCmd, 'ignore');
+                await execPackage(generateCmd, 'ignore');
             } catch {
                 await this.trackPrismaSchemaError(outFile);
                 try {
                     // run 'prisma generate' again with output to the console
-                    await execSync(generateCmd);
+                    await execPackage(generateCmd);
                 } catch {
                     // noop
                 }
