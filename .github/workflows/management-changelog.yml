@@ -1,0 +1,103 @@
+###
+# @format
+# -----
+# Project: zenstack-monorepo
+# File: management-changelog.yml
+# Path: \.github\workflows\management-changelog.yml
+# Created Date: Monday, February 19th 2024
+# Author: Jonathan Stevens, jonathan@resnovas.com
+# Github: https://github.com/TGTGamer
+# -----
+# Contributing: Please read through our contributing guidelines.
+# Included are directions for opening issues, coding standards,
+# and notes on development. These can be found at
+# https://github.com/zenstack-monorepo/blob/develop/CONTRIBUTING.md
+# -----
+# Code of Conduct: This project abides by the Contributor Covenant, v2.0
+# Please interact in ways that contribute to an open, welcoming, diverse,
+# inclusive, and healthy community. Our Code of Conduct can be found at
+# https://github.com/zenstack-monorepo/blob/develop/CODE_OF_CONDUCT.md
+# -----
+# Copyright (c) 2024 ZenstackHQ - All Rights Reserved
+# LICENSE: MIT License (MIT)
+# -----
+# This program has been provided under confidence of the copyright holder and
+# is licensed for copying, distribution and modification under the terms
+# of the MIT License (MIT) published as the License,
+# or (at your option) any later version of this license.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MIT License for more details.
+# You should have received a copy of the MIT License
+# along with this program. If not, please write to: jonathan@resnovas.com,
+# or see https://opensource.org/licenses/MIT
+# -----
+# DELETING THIS NOTICE AUTOMATICALLY VOIDS YOUR LICENSE
+###
+
+
+
+on:
+  push:
+    branches:
+    - main # Your main branch
+    - dev # Your development branch
+    - release/* # Your releases branch
+    # - v2 # Your current v2 branch - disabled for now because I don't know if you want to have this tag on this branch or not -_- 
+    # TODO: Rename your V2 brach to release/v2 for proper versioning if you intend to use a Release branch method
+
+permissions:
+  contents: read
+
+name: Management - Release Workflow
+
+jobs:
+  release:
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+    runs-on: ubuntu-latest
+    steps:
+      # Harden-Runner provides runtime security for GitHub-hosted and self-hosted environments.
+      - name: Harden Runner
+        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
+        with:
+          egress-policy: audit
+
+      # This tells you useful infomation about the workflow, but it's not required (hence commented out) - it's just nice to have
+      # - name: Workflow Telemetry
+      #   uses: catchpoint/workflow-telemetry-action@6705383eabd01833acfe8412ec697384830e1455 # v1.8.7
+      #   with: 
+      #     comment_on_pr: false
+      #     theme: dark
+      #     proc_trace_sys_enable: true
+      
+      - uses: google-github-actions/release-please-action@v4
+        id: release
+        with:
+          config-file: '.github/releases/release-main-config.json'
+          manifest-file: '.github/releases/.release-manifest.json'
+          target-branch: ${{ github.ref_name == 'develop' && 'main' || github.ref_name }}
+          include-component-in-tag: true
+      
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          node-version: 12
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: pnpm i # Install using pnpm
+        if: ${{ steps.release.outputs.release_created }}
+
+      - run: pnpm publish-all # Publish using pre-defined pnpm script
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        
+        
