@@ -53,11 +53,13 @@ on:
       - main
       - develop
       - release/*
+      - v2
   pull_request:
     branches: 
       - main
       - develop
       - release/*
+      - v2
   schedule:
     - cron: '41 3 * * 5'
 
