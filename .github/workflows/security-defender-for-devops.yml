@@ -63,11 +63,13 @@ on:
       - main
       - develop
       - release/*
+      - v2
   pull_request:
     branches: 
       - main
       - develop
       - release/*
+      - v2
   schedule:
     - cron: '34 12 * * 0'
 
