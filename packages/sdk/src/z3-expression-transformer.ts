@@ -326,6 +326,12 @@ export class Z3ExpressionTransformer {
 
         let left = this.transform(expr.left);
         let right = isBooleanLiteral(expr.right) ? `${expr.right.value}` : this.transform(expr.right);
+
+        // TODO: improve handling of null expressions
+        if (isNullExpr(expr.right)) {
+            return `${this.withArgs(left)} ${expr.operator} ${right}`;
+        }
+
         // if (isMemberAccessExpr(expr.left) && !isAuthInvocation(expr.left)) {
         // left = `args.${left}`;
         // }
@@ -344,7 +350,7 @@ export class Z3ExpressionTransformer {
                 ? `(${left}?.id)`
                 : `((${this.withArgs(left)}?.id || ${this.withArgs(left)}Id))`;
             right = isAuthInvocation(expr.right)
-                ? `(${right}.id)`
+                ? `(${right}?.id)`
                 : `((${this.withArgs(right)}?.id || ${this.withArgs(right)}Id))`;
             let assertion = `${left} ${expr.operator} ${right}`;
 
