@@ -390,7 +390,7 @@ attribute @updatedAt() @@@targetField([DateTimeField]) @@@prisma
 /**
  * Add full text index (MySQL only).
  */
-attribute @@fulltext(_ fields: FieldReference[]) @@@prisma
+attribute @@fulltext(_ fields: FieldReference[], map: String?) @@@prisma
 
 
 // String type modifiers
@@ -479,7 +479,7 @@ attribute @db.Bytes() @@@targetField([BytesField]) @@@prisma
 attribute @db.ByteA() @@@targetField([BytesField]) @@@prisma
 attribute @db.LongBlob() @@@targetField([BytesField]) @@@prisma
 attribute @db.Binary() @@@targetField([BytesField]) @@@prisma
-attribute @db.VarBinary() @@@targetField([BytesField]) @@@prisma
+attribute @db.VarBinary(_ x: Int?) @@@targetField([BytesField]) @@@prisma
 attribute @db.TinyBlob() @@@targetField([BytesField]) @@@prisma
 attribute @db.Blob() @@@targetField([BytesField]) @@@prisma
 attribute @db.MediumBlob() @@@targetField([BytesField]) @@@prisma
