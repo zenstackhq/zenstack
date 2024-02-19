@@ -4,6 +4,8 @@ import {
     Enum,
     Expression,
     Model,
+    isBinaryExpr,
+    isUnaryExpr,
     isDataModel,
     isDataModelField,
     isEnum,
@@ -31,6 +33,7 @@ import {
     RUNTIME_PACKAGE,
     TypeScriptExpressionTransformer,
     TypeScriptExpressionTransformerError,
+    Z3ExpressionTransformer,
     analyzePolicies,
     getAttributeArg,
     getAuthModel,
@@ -53,7 +56,7 @@ import path from 'path';
 import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { name } from '..';
 import { isCollectionPredicate } from '../../../utils/ast-utils';
-import { ALL_OPERATION_KINDS } from '../../plugin-utils';
+import { ALL_OPERATION_KINDS, CRUD_OPERATION_KINDS } from '../../plugin-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -83,11 +86,184 @@ export class PolicyGenerator {
             });
         }
 
+        sf.addStatements(`
+        const processCondition = (
+            variable: any,
+            condition: any, // string conditions are processed as assertions
+            z3: any,
+          ): any[] => {
+            const assertions: any[] = [];
+            if (typeof condition === 'undefined' || typeof condition === 'string') {
+              // noop
+              // user properties are not pre-processed so we have to filter them out if string
+            } else if (typeof condition === 'number') {
+              assertions.push(variable.eq(condition));
+            } else if (typeof condition === 'boolean') {
+              assertions.push(variable.eq(condition));
+            } else if ('OR' in condition) {
+              const orCondition = condition;
+              const tempAssertions: any[] = [];
+              for (const condition of orCondition.OR) {
+                if (typeof condition === 'string') {
+                  // string are pre-processed and transformed as Assertion
+                  throw 'Invalid OR condition';
+                }
+                tempAssertions.push(...processCondition(variable, condition, z3));
+              }
+              const orAssertion = z3.Or(...tempAssertions);
+              assertions.push(orAssertion);
+            } else if (z3.isBool(variable)) {
+              assertions.push(variable);
+            } else {
+              const tempAssertions: any[] = [];
+              for (const operator of Object.keys(condition)) {
+                const value = condition[operator];
+                switch (operator) {
+                    case 'eq':
+                        tempAssertions.push(variable.eq(value));
+                        break;
+                    case 'ne':
+                        tempAssertions.push(variable.neq(value));
+                        break;
+                    case 'lt':
+                        tempAssertions.push(variable.lt(value));
+                        break;
+                    case 'le':
+                        tempAssertions.push(variable.le(value));
+                        break;
+                    case 'gt':
+                        tempAssertions.push(variable.gt(value));
+                        break;
+                    case 'ge':
+                        tempAssertions.push(variable.ge(value));
+                        break;
+                    default:
+                        throw new Error('Invalid operator');
+                }
+            }
+              if (tempAssertions.length > 1) {
+                const andAssertion = z3.And(...tempAssertions);
+                assertions.push(andAssertion);
+              } else if (tempAssertions.length === 1) {
+                assertions.push(...tempAssertions);
+              }
+            }
+            return assertions;
+          };
+        `);
+
+        // TODO: handle string and array functions in fieldStringValueMap (in, startsWith, includes, etc.)
+        sf.addFunction({
+            name: 'checkStringCondition',
+            parameters: [
+                {
+                    name: 'args',
+                    type: 'any',
+                },
+                {
+                    name: 'fieldStringValueMap',
+                    type: 'Record<string, string> = {}',
+                },
+            ],
+            returnType: 'boolean',
+            statements: (writer) => {
+                writer.write(`
+                const key = Object.keys(fieldStringValueMap)[0];
+                const condition = args[key];
+                if (typeof condition === 'string') {
+                    return args[key] === fieldStringValueMap[key];
+                }
+                if (typeof condition === 'object' && 'in' in condition) {
+                    return condition.in.some(condition === fieldStringValueMap[key]);
+                }
+                if (typeof condition === 'object' && 'startsWith' in condition) {
+                    return fieldStringValueMap[key].startsWith(condition.startsWith);
+                };
+                return true;
+                `);
+            },
+        });
+
+        sf.addFunction({
+            name: 'buildAssertion',
+            parameters: [
+                {
+                    name: 'z3',
+                    type: 'any',
+                },
+                {
+                    name: 'variables',
+                    type: 'Record<string, any>',
+                },
+                {
+                    name: 'args',
+                    type: 'Record<string, any> = {}',
+                },
+                {
+                    name: 'user?',
+                    type: 'any',
+                },
+                {
+                    name: 'fieldStringValueMap',
+                    type: 'Record<string, string> = {}',
+                },
+            ],
+            returnType: 'any',
+            statements: (writer) => {
+                writer.write(`
+                    const processedVariables = Object.keys(variables).reduce((acc, key) => {
+                        const newKey = key.replace(/^_/, '');
+                        acc[newKey] = variables[key];
+                        return acc;
+                    }, {} as Record<string, any>);
+                    const assertions: any[] = [];
+                    if ('OR' in args) {
+                        const tempAssertions: any[] = [];
+                        for (const arg of args.OR) {
+                            tempAssertions.push(buildAssertion(z3, processedVariables, arg, user, fieldStringValueMap));
+                        }
+                        const orAssertion = z3.Or(...tempAssertions);
+                        assertions.push(orAssertion);
+                    }
+
+                    // handle string conditions
+                    // TODO: handle string conditions for user properties
+                    const condition = checkStringCondition(args, fieldStringValueMap);
+                    if (condition === false) {
+                    return z3.Bool.val(false);
+                    }
+
+                    const tempAssertions: any[] = [];
+
+                    for (const property of Object.keys(args)) {  
+                    const condition = args[property];
+                    // TODO: handle nested properties
+                    const variable = processedVariables[property];
+                    if (variable) {
+                        tempAssertions.push(...processCondition(variable, condition, z3));
+                    }
+                    }
+
+                    // avoid empty assertions in case of unique value or boolean
+                    if (tempAssertions.length > 1) {
+                    const andAssertion = z3.And(...tempAssertions);
+                    assertions.push(andAssertion);
+                    } else if (tempAssertions.length === 1) {
+                    assertions.push(...tempAssertions);
+                    }
+
+                    return z3.And(...assertions);
+                `);
+            },
+        });
+
         const models = getDataModels(model);
 
         const policyMap: Record<string, Record<string, string | boolean | object>> = {};
+        const permissionMap: Record<string, Record<string, string | boolean | object>> = {};
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
+            permissionMap[model.name] = await this.generatePermissionCheckerForModel(model, sf);
         }
 
         const authSelector = this.generateAuthSelector(models);
@@ -128,6 +304,24 @@ export class PolicyGenerator {
                                     writer.writeLine(',');
                                 }
                             });
+                            writer.writeLine(',');
+
+                            writer.write('permission:');
+                            writer.inlineBlock(() => {
+                                for (const [model, map] of Object.entries(permissionMap)) {
+                                    writer.write(`${lowerCaseFirst(model)}:`);
+                                    writer.inlineBlock(() => {
+                                        for (const [op, func] of Object.entries(map)) {
+                                            if (typeof func === 'object') {
+                                                writer.write(`${op}: ${JSON.stringify(func)},`);
+                                            } else {
+                                                writer.write(`${op}: ${func},`);
+                                            }
+                                        }
+                                    });
+                                    writer.write(',');
+                                }
+                            });
 
                             if (authSelector) {
                                 writer.writeLine(',');
@@ -139,7 +333,7 @@ export class PolicyGenerator {
             ],
         });
 
-        sf.addStatements('export default policy');
+        sf.addStatements('export default policy;');
     }
 
     // Generates a { select: ... } object to select `auth()` fields used in policy rules
@@ -232,7 +426,6 @@ export class PolicyGenerator {
         } else if (operation === 'postUpdate') {
             result = this.processUpdatePolicies(result, true);
         }
-
         return result;
     }
 
@@ -320,6 +513,21 @@ export class PolicyGenerator {
 
         // generate field update guards
         this.generateUpdateFieldsGuards(model, sourceFile, result);
+
+        return result;
+    }
+
+    private async generatePermissionCheckerForModel(model: DataModel, sourceFile: SourceFile) {
+        const result: Record<string, string | boolean | object> = {};
+
+        for (const kind of CRUD_OPERATION_KINDS) {
+            const denies = this.getPolicyExpressions(model, 'deny', kind);
+            const allows = this.getPolicyExpressions(model, 'allow', kind);
+
+            const checkFunc = this.generatePermissionCheckerFunction(sourceFile, model, kind, allows, denies);
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            result[kind] = checkFunc.getName()!;
+        }
 
         return result;
     }
@@ -745,6 +953,150 @@ export class PolicyGenerator {
         });
 
         return func;
+    }
+
+    private generatePermissionCheckerFunction(
+        sourceFile: SourceFile,
+        model: DataModel,
+        kind: PolicyOperationKind,
+        allows: Expression[],
+        denies: Expression[]
+    ) {
+        const statements: (string | WriterFunction)[] = [];
+
+        statements.push((writer) => {
+            const transformer = new Z3ExpressionTransformer({
+                context: ExpressionContext.AccessPolicy,
+            });
+            try {
+                writer.writeLine('const solver = new z3.Solver();');
+
+                const variables: Record<string, string> = this.generateVariables([...denies, ...allows]);
+                Object.keys(variables).forEach((key) => {
+                    writer.writeLine(`const ${key} = ${variables[key]};`);
+                });
+                writer.writeLine(`const _withAuth = !!user?.id;`);
+                writer.writeLine(
+                    `const variables = { ${Object.keys(variables)
+                        .map((v) => v)
+                        .join(', ')} };`
+                );
+
+                const denyStmt =
+                    denies.length > 1
+                        ? 'z3.Not(z3.Or(' +
+                          denies
+                              .map((deny) => {
+                                  return transformer.transform(deny);
+                              })
+                              .join(', ') +
+                          '))'
+                        : denies.length === 1
+                        ? `z3.Not(${transformer.transform(denies[0])})`
+                        : undefined;
+                const allowStmt =
+                    allows.length > 1
+                        ? 'z3.Or(' +
+                          allows
+                              .map((allow) => {
+                                  return transformer.transform(allow);
+                              })
+                              .join(', ') +
+                          ')'
+                        : allows.length === 1
+                        ? transformer.transform(allows[0])
+                        : undefined;
+                let assertion;
+                if (denyStmt && allowStmt) {
+                    assertion = `z3.And(${denyStmt}, ${allowStmt})`;
+                } else if (denyStmt) {
+                    assertion = denyStmt;
+                } else if (allowStmt) {
+                    assertion = allowStmt;
+                } else {
+                    assertion = `z3.Bool.val(false)`;
+                }
+                writer.writeLine(`const assertion = ${assertion};`);
+                writer.writeLine(`const assertionFromArgs = buildAssertion(z3, variables, args, user);`);
+                writer.writeLine(`solver.add(z3.And(assertion, assertionFromArgs));`);
+                writer.write(`return (await solver.check()) === "sat";`);
+            } catch (err) {
+                if (err instanceof TypeScriptExpressionTransformerError) {
+                    throw new PluginError(name, err.message);
+                } else {
+                    throw err;
+                }
+            }
+        });
+
+        const func = sourceFile.addFunction({
+            isAsync: true,
+            name: `check_${model.name}_${kind}`,
+            returnType: 'Promise<boolean>',
+            parameters: [
+                {
+                    name: 'z3',
+                    type: 'any',
+                },
+                {
+                    name: 'args',
+                    type: 'Record<string, any>',
+                },
+                {
+                    name: 'user?',
+                    type: 'any',
+                },
+            ],
+            statements,
+        });
+
+        return func;
+    }
+    generateVariables(expressions: Expression[]): Record<string, string> {
+        const result: Record<string, string> = {};
+        expressions.forEach((expr) => {
+            const variables = this.collectVariablesTypes(expr);
+            Object.keys(variables).forEach((key) => {
+                switch (variables[key]) {
+                    case 'NumberLiteral':
+                        result[`_${key}`] = `z3.Int.const("${key}")`;
+                        break;
+                    case 'BooleanLiteral':
+                        result[`_${key}`] = `z3.Bool.const("${key}")`;
+                        break;
+                    default:
+                        break;
+                }
+            });
+        });
+        return result;
+    }
+    collectVariablesTypes(expr: Expression): Record<string, Expression['$type']> {
+        const result: Record<string, Expression['$type']> = {};
+        const visit = (node: Expression) => {
+            if (isReferenceExpr(node)) {
+                const variableName = node.target.ref?.name ?? 'unknown';
+                result[variableName] = 'BooleanLiteral';
+            } else if (isBinaryExpr(node) && typeof (node.right.$type !== 'StringLiteral')) {
+                if (isReferenceExpr(node.left)) {
+                    // const variableName = `${lowerCaseFirst(
+                    //     node.left.target.ref?.$container.name ?? ''
+                    // )}${upperCaseFirst(node.left.target?.ref?.name ?? '')}`;
+                    const variableName = `${node.left.target?.ref?.name}`;
+                    result[variableName] = node.right.$type;
+                    // visit(node.right);
+                    // } else if (isUnaryExpr(node) && node.operator === '!') {
+                    //     visit(node.operand);
+                } else {
+                    visit(node.left);
+                    visit(node.right);
+                }
+            } else if (isMemberAccessExpr(node) || isUnaryExpr(node)) {
+                visit(node.operand);
+            }
+        };
+        visit(expr);
+        return result;
     }
 
     private generateInputCheckFunction(

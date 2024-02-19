@@ -9,7 +9,7 @@ import {
     HAS_FIELD_LEVEL_POLICY_FLAG,
     PRE_UPDATE_VALUE_SELECTOR,
 } from '../constants';
-import type { CrudContract, PolicyOperationKind, QueryContext } from '../types';
+import type { CRUDOperationKind, CrudContract, PolicyOperationKind, QueryContext } from '../types';
 
 /**
  * Common options for PrismaClient enhancements
@@ -69,6 +69,13 @@ export type PolicyDef = {
 
     // a { select: ... } object for fetching `auth()` fields needed for policy evaluation
     authSelector?: object;
+
+    // permissions checker
+    permission?: {
+        [model: string]: {
+            [operation in CRUDOperationKind]: PermissionsChecker;
+        };
+    };
 };
 
 /**
@@ -78,3 +85,10 @@ export type ZodSchemas = {
     models: Record<string, z.ZodSchema>;
     input?: Record<string, Record<string, z.ZodSchema>>;
 };
+
+export type Condition = { field: any; operator: string; value: any } | AndConditions | OrConditions;
+type AndConditions = { AND: Condition[] };
+type OrConditions = { OR: Condition[] };
+export type Conditions = boolean | AndConditions | OrConditions;
+
+export type PermissionsChecker = (z3: any, args: any, user?: any) => Promise<boolean>;

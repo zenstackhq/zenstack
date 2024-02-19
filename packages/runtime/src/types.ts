@@ -22,6 +22,7 @@ export interface DbOperations {
     groupBy(args: unknown): Promise<any>;
     count(args?: unknown): Promise<any>;
     subscribe(args?: unknown): Promise<any>;
+    check(operation: PolicyOperationKind, args?: unknown): Promise<boolean>;
     fields: Record<string, any>;
 }
 
@@ -34,6 +35,11 @@ export type PolicyKind = 'allow' | 'deny';
  * Kinds of operations controlled by access policies
  */
 export type PolicyOperationKind = 'create' | 'update' | 'postUpdate' | 'read' | 'delete';
+
+/**
+ * Kinds of operations controlled by access policies
+ */
+export type CRUDOperationKind = 'create' | 'update' | 'read' | 'delete';
 
 /**
  * Current login user info
