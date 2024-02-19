@@ -352,6 +352,7 @@ describe('Attribute tests', () => {
                 _longBlob Bytes @db.LongBlob
                 _binary Bytes @db.Binary
                 _varBinary Bytes @db.VarBinary
+                _varBinarySized Bytes @db.VarBinary(100)
                 _tinyBlob Bytes @db.TinyBlob
                 _blob Bytes @db.Blob
                 _mediumBlob Bytes @db.MediumBlob
