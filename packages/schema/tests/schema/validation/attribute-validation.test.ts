@@ -227,6 +227,25 @@ describe('Attribute tests', () => {
         `);
 
         await loadModel(`
+            ${ prelude }
+            model A {
+                id String @id
+                x String
+                y String
+                z String
+                @@fulltext([x, y, z])
+            }
+
+            model B {
+                id String @id
+                x String
+                y String
+                z String
+                @@fulltext([x, y, z], map: "n")
+            }
+        `);
+
+        await loadModel(`
             ${prelude}
             model A {
                 id String @id
