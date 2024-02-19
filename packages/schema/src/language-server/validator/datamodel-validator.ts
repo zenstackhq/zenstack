@@ -61,8 +61,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 if (idField.type.optional) {
                     accept('error', 'Field with @id attribute must not be optional', { node: idField });
                 }
-                if (idField.type.array || !idField.type.type || !SCALAR_TYPES.includes(idField.type.type)) {
-                    accept('error', 'Field with @id attribute must be of scalar type', { node: idField });
+
+                const isArray = idField.type.array;
+                const isReference = !idField.type.type;
+                const isEnum = isReference && idField.type.reference?.ref?.$type === 'Enum'
+                const isScalar = SCALAR_TYPES.includes(idField.type.type as typeof SCALAR_TYPES[number])
+                const isValidType = isScalar || isEnum
+
+                if (isArray || !isValidType) {
+                    accept('error', 'Field with @id attribute must be of scalar or enum type', { node: idField });
                 }
             });
         }
