@@ -12,13 +12,13 @@ on:
   push:
     branches: 
       - main
-      - develop
+      - dev
       - release/*
       - v2
   pull_request:
     branches: 
       - main
-      - develop
+      - dev
       - release/*
       - v2
 
