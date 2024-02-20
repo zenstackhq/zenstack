@@ -35,14 +35,19 @@ export type FullDbClientContract = Record<string, DbOperations> & {
 };
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
-    const start = Date.now();
-    execSync(cmd, {
-        stdio: 'pipe',
-        encoding: 'utf-8',
-        env: { ...process.env, DO_NOT_TRACK: '1', ...env },
-        cwd,
-    });
-    console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
+    try {
+        const start = Date.now();
+        execSync(cmd, {
+            stdio: 'pipe',
+            encoding: 'utf-8',
+            env: { ...process.env, DO_NOT_TRACK: '1', ...env },
+            cwd,
+        });
+        console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
+    } catch (err) {
+        console.error('Command failed:', cmd, err);
+        throw err;
+    }
 }
 
 function normalizePath(p: string) {
@@ -86,17 +91,17 @@ generator js {
 
 plugin meta {
     provider = '@core/model-meta'
-    preserveTsFiles = true
+    // preserveTsFiles = true
 }
 
 plugin policy {
     provider = '@core/access-policy'
-    preserveTsFiles = true
+    // preserveTsFiles = true
 }
 
 plugin zod {
     provider = '@core/zod'
-    preserveTsFiles = true
+    // preserveTsFiles = true
     modelOnly = ${!options.fullZod}
 }
 `;
@@ -138,20 +143,17 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
-    const root = getWorkspaceRoot(__dirname);
+    const workspaceRoot = getWorkspaceRoot(__dirname);
 
-    if (!root) {
+    if (!workspaceRoot) {
         throw new Error('Could not find workspace root');
     }
 
-    const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });
-    fs.writeFileSync(path.join(projectRoot, 'package.json'), pkgContent.replaceAll('<root>', root));
-
-    const npmrcContent = fs.readFileSync(path.join(__dirname, '.npmrc.template'), { encoding: 'utf-8' });
-    fs.writeFileSync(path.join(projectRoot, '.npmrc'), npmrcContent.replaceAll('<root>', root));
-
     console.log('Workdir:', projectRoot);
     process.chdir(projectRoot);
+
+    // copy project structure from scaffold (prepared by test-setup.ts)
+    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectRoot, { recursive: true, force: true });
 
     let zmodelPath = path.join(projectRoot, 'schema.zmodel');
 
@@ -189,16 +191,16 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         }
     }
 
-    run('npm install');
-
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
 
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
+        run(`npx zenstack generate --schema --no-version-check ${zmodelPath} --no-dependency-check${outputArg}`, {
             NODE_PATH: './node_modules',
         });
     } else {
-        run(`npx zenstack generate --no-dependency-check${outputArg}`, { NODE_PATH: './node_modules' });
+        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}`, {
+            NODE_PATH: './node_modules',
+        });
     }
 
     if (opt.pushDb) {
