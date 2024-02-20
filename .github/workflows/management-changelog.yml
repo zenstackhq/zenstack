@@ -1,40 +1,3 @@
-###
-# @format
-# -----
-# Project: zenstack-monorepo
-# File: management-changelog.yml
-# Path: \.github\workflows\management-changelog.yml
-# Created Date: Monday, February 19th 2024
-# Author: Jonathan Stevens, jonathan@resnovas.com
-# Github: https://github.com/TGTGamer
-# -----
-# Contributing: Please read through our contributing guidelines.
-# Included are directions for opening issues, coding standards,
-# and notes on development. These can be found at
-# https://github.com/zenstack-monorepo/blob/develop/CONTRIBUTING.md
-# -----
-# Code of Conduct: This project abides by the Contributor Covenant, v2.0
-# Please interact in ways that contribute to an open, welcoming, diverse,
-# inclusive, and healthy community. Our Code of Conduct can be found at
-# https://github.com/zenstack-monorepo/blob/develop/CODE_OF_CONDUCT.md
-# -----
-# Copyright (c) 2024 ZenstackHQ - All Rights Reserved
-# LICENSE: MIT License (MIT)
-# -----
-# This program has been provided under confidence of the copyright holder and
-# is licensed for copying, distribution and modification under the terms
-# of the MIT License (MIT) published as the License,
-# or (at your option) any later version of this license.
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# MIT License for more details.
-# You should have received a copy of the MIT License
-# along with this program. If not, please write to: jonathan@resnovas.com,
-# or see https://opensource.org/licenses/MIT
-# -----
-# DELETING THIS NOTICE AUTOMATICALLY VOIDS YOUR LICENSE
-###
 
 
 
@@ -80,7 +43,7 @@ jobs:
         with:
           config-file: '.github/release/release-main-config.json'
           manifest-file: '.github/release/.release-manifest.json'
-          target-branch: ${{ github.ref_name == 'develop' && 'main' || github.ref_name }}
+          target-branch: ${{ github.ref_name == 'dev' && 'main' || github.ref_name }}
           include-component-in-tag: true
       
       - uses: actions/checkout@v4
