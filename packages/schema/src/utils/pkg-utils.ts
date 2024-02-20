@@ -129,7 +129,7 @@ export function findPackageJson(searchPath?: string) {
 }
 
 export function getPackageJson(searchPath?: string) {
-    const pkgJsonPath = findPackageJson(searchPath);
+    const pkgJsonPath = findUp(['package.json'], searchPath ?? process.cwd());
     if (pkgJsonPath) {
         return JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
     } else {
