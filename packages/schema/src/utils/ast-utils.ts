@@ -18,6 +18,7 @@ import {
 import { isFromStdlib } from '@zenstackhq/sdk';
 import { AstNode, getDocument, LangiumDocuments, Mutable } from 'langium';
 import { URI, Utils } from 'vscode-uri';
+import { findNodeModulesFile } from './pkg-utils';
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(
@@ -94,15 +95,23 @@ export function getDataModelFieldReference(expr: Expression): DataModelField | u
 }
 
 export function resolveImportUri(imp: ModelImport): URI | undefined {
-    if (imp.path === undefined || imp.path.length === 0) {
-        return undefined;
+    if (!imp.path) return undefined; // This will return true if imp.path is undefined, null, or an empty string ("").
+    
+    if (!imp.path.endsWith('.zmodel')) {
+        imp.path += '.zmodel';
     }
+
+    if (
+        !imp.path.startsWith('.') // Respect relative paths
+        && !imp.path.startsWith('/') // Respect absolute paths (Unix)
+        && !/^[a-zA-Z]:\\/.test(imp.path) // Respect absolute paths (Windows)
+    ) {
+        imp.path = findNodeModulesFile(imp.path) ?? '';
+        if (!imp.path) return undefined; // If the path is empty, return undefined
+    } 
+
     const dirUri = Utils.dirname(getDocument(imp).uri);
-    let grammarPath = imp.path;
-    if (!grammarPath.endsWith('.zmodel')) {
-        grammarPath += '.zmodel';
-    }
-    return Utils.resolvePath(dirUri, grammarPath);
+    return Utils.resolvePath(dirUri, imp.path);
 }
 
 export function resolveTransitiveImports(documents: LangiumDocuments, model: Model): Model[] {
