@@ -8,7 +8,6 @@ export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
  * A type named FindUp that takes a type parameter e which extends boolean. 
  * If e extends true, it returns a union type of string[] or undefined. 
  * If e does not extend true, it returns a union type of string or undefined.
- * @author Jonathan Stevens (TGTGamer)
  *
  * @export
  * @template e A type parameter that extends boolean
@@ -19,7 +18,6 @@ export type FindUp<e extends boolean> = e extends true ? string[] | undefined : 
  * Optionally return a single path or multiple paths. 
  * If multiple allowed, return all paths found. 
  * If no paths are found, return undefined.
- * @author Jonathan Stevens (TGTGamer)
  *
  * @export
  * @template [e=false]
