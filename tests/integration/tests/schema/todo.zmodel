@@ -14,7 +14,7 @@ generator js {
 
 plugin zod {
     provider = '@core/zod'
-    preserveTsFiles = true
+    // preserveTsFiles = true
 }
 
 /*
