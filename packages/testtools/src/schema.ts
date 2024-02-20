@@ -35,14 +35,23 @@ export type FullDbClientContract = CrudContract & {
 };
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
-    // const start = Date.now();
-    execSync(cmd, {
-        stdio: 'pipe',
-        encoding: 'utf-8',
-        env: { ...process.env, DO_NOT_TRACK: '1', ...env },
-        cwd,
-    });
-    // console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
+    try {
+        const start = Date.now();
+        execSync(cmd, {
+            stdio: 'pipe',
+            encoding: 'utf-8',
+            env: { ...process.env, DO_NOT_TRACK: '1', ...env },
+            cwd,
+        });
+        console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
+    } catch (err) {
+        console.error('Command failed:', cmd, err);
+        throw err;
+    }
+}
+
+export function installPackage(pkg: string, dev = false) {
+    run(`npm install ${dev ? '-D' : ''} --no-audit --no-fund ${pkg}`);
 }
 
 function normalizePath(p: string) {
@@ -90,7 +99,7 @@ plugin enhancer {
 
 plugin zod {
     provider = '@core/zod'
-    preserveTsFiles = true
+    // preserveTsFiles = true
     modelOnly = ${!options.fullZod}
 }
 `;
@@ -134,20 +143,28 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
 
-    const root = getWorkspaceRoot(__dirname);
+    const workspaceRoot = getWorkspaceRoot(__dirname);
 
-    if (!root) {
+    if (!workspaceRoot) {
         throw new Error('Could not find workspace root');
     }
 
-    const pkgContent = fs.readFileSync(path.join(__dirname, 'package.template.json'), { encoding: 'utf-8' });
-    fs.writeFileSync(path.join(projectRoot, 'package.json'), pkgContent.replaceAll('<root>', root));
-
-    const npmrcContent = fs.readFileSync(path.join(__dirname, '.npmrc.template'), { encoding: 'utf-8' });
-    fs.writeFileSync(path.join(projectRoot, '.npmrc'), npmrcContent.replaceAll('<root>', root));
-
     console.log('Workdir:', projectRoot);
     process.chdir(projectRoot);
+
+    // copy project structure from scaffold (prepared by test-setup.ts)
+    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectRoot, { recursive: true, force: true });
+
+    // install local deps
+    const localInstallDeps = [
+        'packages/schema/dist',
+        'packages/runtime/dist',
+        'packages/plugins/swr/dist',
+        'packages/plugins/trpc/dist',
+        'packages/plugins/openapi/dist',
+    ];
+
+    run(`npm i --no-audit --no-fund ${localInstallDeps.map((d) => path.join(workspaceRoot, d)).join(' ')}`);
 
     let zmodelPath = path.join(projectRoot, 'schema.zmodel');
 
@@ -185,16 +202,16 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         }
     }
 
-    run('npm install');
-
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
 
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
+        run(`npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
             NODE_PATH: './node_modules',
         });
     } else {
-        run(`npx zenstack generate --no-dependency-check${outputArg}`, { NODE_PATH: './node_modules' });
+        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}`, {
+            NODE_PATH: './node_modules',
+        });
     }
 
     if (opt.pushDb) {
@@ -205,10 +222,10 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         opt.extraDependencies?.push('@prisma/extension-pulse');
     }
 
-    opt.extraDependencies?.forEach((dep) => {
-        console.log(`Installing dependency ${dep}`);
-        run(`npm install ${dep}`);
-    });
+    if (opt.extraDependencies) {
+        console.log(`Installing dependency ${opt.extraDependencies.join(' ')}`);
+        installPackage(opt.extraDependencies.join(' '));
+    }
 
     opt.copyDependencies?.forEach((dep) => {
         const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
