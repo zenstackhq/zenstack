@@ -50,6 +50,10 @@ export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     }
 }
 
+export function installPackage(pkg: string, dev = false) {
+    run(`npm install ${dev ? '-D' : ''} --no-audit --no-fund ${pkg}`);
+}
+
 function normalizePath(p: string) {
     return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
@@ -155,6 +159,17 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     // copy project structure from scaffold (prepared by test-setup.ts)
     fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectRoot, { recursive: true, force: true });
 
+    // install local deps
+    const localInstallDeps = [
+        'packages/schema/dist',
+        'packages/runtime/dist',
+        'packages/plugins/swr/dist',
+        'packages/plugins/trpc/dist',
+        'packages/plugins/openapi/dist',
+    ];
+
+    run(`npm i --no-audit --no-fund ${localInstallDeps.map((d) => path.join(workspaceRoot, d)).join(' ')}`);
+
     let zmodelPath = path.join(projectRoot, 'schema.zmodel');
 
     const files = schema.split(FILE_SPLITTER);
@@ -194,7 +209,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
 
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --schema --no-version-check ${zmodelPath} --no-dependency-check${outputArg}`, {
+        run(`npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
             NODE_PATH: './node_modules',
         });
     } else {
@@ -211,10 +226,10 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         opt.extraDependencies?.push('@prisma/extension-pulse');
     }
 
-    opt.extraDependencies?.forEach((dep) => {
-        console.log(`Installing dependency ${dep}`);
-        run(`npm install ${dep}`);
-    });
+    if (opt.extraDependencies) {
+        console.log(`Installing dependency ${opt.extraDependencies.join(' ')}`);
+        installPackage(opt.extraDependencies.join(' '));
+    }
 
     opt.copyDependencies?.forEach((dep) => {
         const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
