@@ -1,20 +1,42 @@
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import { execSync } from './exec-utils';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
-function findUp(names: string[], cwd: string): string | undefined {
-    let dir = cwd;
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-        const target = names.find((name) => fs.existsSync(path.join(dir, name)));
-        if (target) return target;
-
-        const up = path.resolve(dir, '..');
-        if (up === dir) return undefined; // it'll fail anyway
-        dir = up;
-    }
+/**
+ * A type named FindUp that takes a type parameter e which extends boolean. 
+ * If e extends true, it returns a union type of string[] or undefined. 
+ * If e does not extend true, it returns a union type of string or undefined.
+ * @author Jonathan Stevens (TGTGamer)
+ *
+ * @export
+ * @template e A type parameter that extends boolean
+ */
+export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined
+/**
+ * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path. 
+ * Optionally return a single path or multiple paths. 
+ * If multiple allowed, return all paths found. 
+ * If no paths are found, return undefined.
+ * @author Jonathan Stevens (TGTGamer)
+ *
+ * @export
+ * @template [e=false]
+ * @param names An array of strings representing names to search for within the directory
+ * @param cwd A string representing the current working directory
+ * @param [multiple=false as e] A boolean flag indicating whether to search for multiple levels. Useful for finding node_modules directories...
+ * @param [result=[]] An array of strings representing the accumulated results used in multiple results
+ * @returns Path(s) to a specific file or folder within the directory or parent directories
+ */
+export function findUp<e extends boolean = false>(names: string[], cwd: string = process.cwd(), multiple: e = false as e, result: string[] = []): FindUp<e> {
+    if (!names.some((name) => !!name)) return undefined;
+    const target = names.find((name) => fs.existsSync(path.join(cwd, name)));
+    if (multiple == false && target) return path.join(cwd, target) as FindUp<e>;
+    if (target) result.push(path.join(cwd, target));
+    const up = path.resolve(cwd, '..');
+    if (up === cwd) return (multiple && result.length > 0 ? result : undefined) as FindUp<e>; // it'll fail anyway
+    return findUp(names, up, multiple, result);
 }
 
 function getPackageManager(projectPath = '.'): PackageManagers {
