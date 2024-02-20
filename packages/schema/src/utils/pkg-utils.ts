@@ -107,6 +107,11 @@ export function ensurePackage(
     }
 }
 
+/**
+ * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided. 
+ * It iterates through the directory structure going one level up at a time until it finds a package.json file. If no package.json file is found, it returns undefined.
+ * @deprecated Use findUp instead @see findUp
+ */
 export function findPackageJson(searchPath?: string) {
     let currDir = searchPath ?? process.cwd();
     while (currDir) {
