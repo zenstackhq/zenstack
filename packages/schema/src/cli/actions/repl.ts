@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import colors from 'colors';
 import path from 'path';
-import prettyRepl from 'pretty-repl';
 import { inspect } from 'util';
 
 // inspired by: https://github.com/Kinjalrk2k/prisma-console
@@ -11,6 +10,13 @@ import { inspect } from 'util';
  * CLI action for starting a REPL session
  */
 export async function repl(projectPath: string, options: { prismaClient?: string; debug?: boolean; table?: boolean }) {
+    if (!process?.stdout?.isTTY && process?.versions?.bun) {
+        console.error('REPL on Bun is only available in a TTY terminal at this time. Please use npm/npx to run the command in this context instead of bun/bunx.');
+        return;
+    }
+
+    const prettyRepl = await import('pretty-repl')
+
     console.log('Welcome to ZenStack REPL. See help with the ".help" command.');
     console.log('Global variables:');
     console.log(`    ${colors.blue('db')} to access enhanced PrismaClient`);

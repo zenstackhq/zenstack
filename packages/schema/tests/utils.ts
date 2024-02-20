@@ -7,9 +7,21 @@ import { URI } from 'vscode-uri';
 import { createZModelServices } from '../src/language-server/zmodel-module';
 import { mergeBaseModel } from '../src/utils/ast-utils';
 
-export class SchemaLoadingError extends Error {
-    constructor(public readonly errors: string[]) {
-        super('Schema error:\n' + errors.join('\n'));
+type Errorish = Error | { message: string; stack?: string } | string;
+
+export class SchemaLoadingError<Errors extends Errorish[] = Errorish[]> extends Error {
+    cause: Errors
+    constructor(public readonly errors: Errors) {
+        const stack = errors.find((e): e is typeof e & { stack: string } => typeof e === 'object' && 'stack' in e)?.stack;            
+        const message = errors.map((e) => (typeof e === 'string' ? e : e.message)).join('\n');
+
+        super(`Schema error:\n${ message }`);
+
+        if (stack) {
+            const shiftedStack = stack.split('\n').slice(1).join('\n');
+            this.stack = shiftedStack
+        }
+        this.cause = errors
     }
 }
 
@@ -23,11 +35,11 @@ export async function loadModel(content: string, validate = true, verbose = true
     const doc = shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(docPath));
 
     if (doc.parseResult.lexerErrors.length > 0) {
-        throw new SchemaLoadingError(doc.parseResult.lexerErrors.map((e) => e.message));
+        throw new SchemaLoadingError(doc.parseResult.lexerErrors);
     }
 
     if (doc.parseResult.parserErrors.length > 0) {
-        throw new SchemaLoadingError(doc.parseResult.parserErrors.map((e) => e.message));
+        throw new SchemaLoadingError(doc.parseResult.parserErrors);
     }
 
     await shared.workspace.DocumentBuilder.build([stdLib, doc], {
@@ -46,7 +58,7 @@ export async function loadModel(content: string, validate = true, verbose = true
                 );
             }
         }
-        throw new SchemaLoadingError(validationErrors.map((e) => e.message));
+        throw new SchemaLoadingError(validationErrors);
     }
 
     const model = (await doc.parseResult.value) as Model;
@@ -65,7 +77,19 @@ export async function loadModelWithError(content: string, verbose = false) {
         if (!(err instanceof SchemaLoadingError)) {
             throw err;
         }
-        return (err as SchemaLoadingError).errors;
+        return (err as SchemaLoadingError).message;
     }
     throw new Error('No error is thrown');
 }
+
+export async function safelyLoadModel(content: string, validate = true, verbose = false) {
+    const [ result ] = await Promise.allSettled([ loadModel(content, validate, verbose) ]);
+
+    return result
+}
+
+export const errorLike = (msg: string) => ({
+    reason: {
+        message: expect.stringContaining(msg)
+    },
+})

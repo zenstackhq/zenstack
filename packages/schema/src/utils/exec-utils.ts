@@ -8,3 +8,11 @@ export function execSync(cmd: string, options?: Omit<ExecSyncOptions, 'env'> & {
     const mergedEnv = env ? { ...process.env, ...env } : undefined;
     _exec(cmd, { encoding: 'utf-8', stdio: options?.stdio ?? 'inherit', env: mergedEnv, ...restOptions });
 }
+
+/**
+ * Utility for running package commands through npx/bunx
+ */
+export function execPackage(cmd: string, options?: Omit<ExecSyncOptions, 'env'> & { env?: Record<string, string> }): void {
+    const packageManager = process?.versions?.bun ? 'bunx' : 'npx';
+    execSync(`${packageManager} ${cmd}`, options)
+}
