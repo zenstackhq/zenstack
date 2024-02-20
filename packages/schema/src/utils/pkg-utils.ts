@@ -5,8 +5,8 @@ import { execSync } from './exec-utils';
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
 /**
- * A type named FindUp that takes a type parameter e which extends boolean. 
- * If e extends true, it returns a union type of string[] or undefined. 
+ * A type named FindUp that takes a type parameter e which extends boolean.
+ * If e extends true, it returns a union type of string[] or undefined.
  * If e does not extend true, it returns a union type of string or undefined.
  *
  * @export
@@ -14,9 +14,9 @@ export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
  */
 export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined
 /**
- * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path. 
- * Optionally return a single path or multiple paths. 
- * If multiple allowed, return all paths found. 
+ * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path.
+ * Optionally return a single path or multiple paths.
+ * If multiple allowed, return all paths found.
  * If no paths are found, return undefined.
  *
  * @export
@@ -106,7 +106,7 @@ export function ensurePackage(
 }
 
 /**
- * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided. 
+ * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided.
  * It iterates through the directory structure going one level up at a time until it finds a package.json file. If no package.json file is found, it returns undefined.
  * @deprecated Use findUp instead @see findUp
  */
