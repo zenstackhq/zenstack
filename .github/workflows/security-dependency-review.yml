@@ -31,4 +31,5 @@ jobs:
           token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
 
       - name: 'Dependency Review'
++       uses: actions/dependency-review-action@v2.5.1
         uses: actions/dependency-review-action@0efb1d1d84fc9633afcdaad14c485cbbc90ef46c # v2.5.1 

@@ -63,7 +63,7 @@ jobs:
             6.0.x
 
       - name: Run Microsoft Security DevOps
-        uses: microsoft/security-devops-action@e94440350ed10e2806d47cd0d7504a2c51abdbe9 # v1.6.0
+        uses: microsoft/security-devops-action@v1.6.0
         id: msdo
 
       - name: Upload results to Security tab
