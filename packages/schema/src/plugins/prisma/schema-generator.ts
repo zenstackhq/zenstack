@@ -142,7 +142,7 @@ export class PrismaSchemaGenerator {
         if (options.format === true) {
             try {
                 // run 'prisma format'
-                await execPackage(`prisma format --schema ${outFile}`, {stdio: 'ignore'});
+                await execPackage(`prisma format --schema ${outFile}`, { stdio: 'ignore' });
             } catch {
                 warnings.push(`Failed to format Prisma schema file`);
             }
@@ -157,7 +157,7 @@ export class PrismaSchemaGenerator {
             }
             try {
                 // run 'prisma generate'
-                await execPackage(generateCmd, {stdio: 'ignore'});
+                await execPackage(generateCmd, { stdio: 'ignore' });
             } catch {
                 await this.trackPrismaSchemaError(outFile);
                 try {
