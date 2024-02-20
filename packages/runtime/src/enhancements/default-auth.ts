@@ -92,7 +92,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
 
     private getDefaultValueFromAuth(fieldInfo: FieldInfo) {
         if (!this.userContext) {
-            throw new Error(`Using \`auth()\` in \`@default\` requires a user context`);
+            throw new Error(`Evaluating default value of field \`${fieldInfo.name}\` requires a user context`);
         }
         return fieldInfo.defaultValueProvider?.(this.userContext);
     }

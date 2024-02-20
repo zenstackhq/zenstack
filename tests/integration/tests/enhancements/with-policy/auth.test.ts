@@ -522,7 +522,7 @@ describe('With Policy: auth() test', () => {
             author User @relation(fields: [authorId], references: [id])
             authorId String @default(auth().id)
 
-            @@allow('all', auth().id != null)
+            @@allow('all', true)
         }
         `
         );
@@ -530,7 +530,7 @@ describe('With Policy: auth() test', () => {
         const db = enhance();
         await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
         await expect(db.post.create({ data: { title: 'title' } })).rejects.toThrow(
-            'Using `auth()` in `@default` requires a user context'
+            'Evaluating default value of field `authorId` requires a user context'
         );
         await expect(db.post.findMany({})).toResolveTruthy();
     });
