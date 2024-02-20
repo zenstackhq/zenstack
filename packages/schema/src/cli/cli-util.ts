@@ -13,7 +13,7 @@ import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/cons
 import { ZModelFormatter } from '../language-server/zmodel-formatter';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
 import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
-import { findPackageJson } from '../utils/pkg-utils';
+import { findUp } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
 
@@ -280,7 +280,7 @@ export async function formatDocument(fileName: string) {
 
 export function getDefaultSchemaLocation() {
     // handle override from package.json
-    const pkgJsonPath = findPackageJson();
+    const pkgJsonPath = findUp(['package.json']);
     if (pkgJsonPath) {
         const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
         if (typeof pkgJson?.zenstack?.schema === 'string') {
