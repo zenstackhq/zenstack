@@ -1,40 +1,52 @@
 {
     "packages": {
         ".": {
-            "package-name": "ZenStack"
+            "package-name": "zenstack-monorepo",
+            "component": "Monorepo"
         },
         "packages/ide/jetbrains": {
-            "package-name": "jetbrains"
+            "package-name": "jetbrains",
+            "component": "JetBrains_IDE"
         },
         "packages/language": {
-            "package-name": "@zenstackhq/language"
+            "package-name": "@zenstackhq/language",
+            "component": "Language"
         },
         "packages/misc/redwood": {
-            "package-name": "@zenstackhq/redwood"
+            "package-name": "@zenstackhq/redwood",
+            "component": "Redwood"
         },
         "packages/plugins/openapi": {
-            "package-name": "@zenstackhq/openapi"
+            "package-name": "@zenstackhq/openapi",
+            "component": "OpenAPI_Plugin"
         },
         "packages/plugins/swr": {
-            "package-name": "@zenstackhq/swr"
+            "package-name": "@zenstackhq/swr",
+            "component": "SWR_Plugin"
         },
         "packages/plugins/tanstack-query": {
-            "package-name": "@zenstackhq/tanstack-query"
+            "package-name": "@zenstackhq/tanstack-query",
+            "component": "Tanstack_Query_Plugin"
         },
         "packages/plugins/trpc": {
-            "package-name": "@zenstackhq/trpc"
+            "package-name": "@zenstackhq/trpc",
+            "component": "tRPC_Plugin"
         },
         "packages/runtime": {
-            "package-name": "@zenstackhq/runtime"
+            "package-name": "@zenstackhq/runtime",
+            "component": "Runtime"
         },
         "packages/sdk": {
-            "package-name": "@zenstackhq/sdk"
+            "package-name": "@zenstackhq/sdk",
+            "component": "SDK"
         },
         "packages/server": {
-            "package-name": "@zenstackhq/server"
+            "package-name": "@zenstackhq/server",
+            "component": "Server"
         },
         "packages/testtools": {
-            "package-name": "@zenstackhq/testtools"
+            "package-name": "@zenstackhq/testtools",
+            "component": "Test_Tools"
         }
     },
     "last-release-sha": "7b453f7745cad73fc81e7884faf473aecda99556",
