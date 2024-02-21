@@ -1,4 +1,3 @@
-
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
 # separate terms of service, privacy policy, and support
@@ -10,66 +9,66 @@
 name: Security - OSSAR
 
 on:
-  merge_group:
-  push:
-    branches: 
-      - main
-      - dev
-      - release/*
-      - v2
-  pull_request:
-    branches: 
-      - main
-      - dev
-      - release/*
-      - v2
-  schedule:
-    - cron: '41 3 * * 5'
+    merge_group:
+    push:
+        branches:
+            - main
+            - dev
+            - release/*
+            - v2
+    pull_request:
+        branches:
+            - main
+            - dev
+            - release/*
+            - v2
+    schedule:
+        - cron: '41 3 * * 5'
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  OSSAR-Scan:
-    runs-on: windows-latest
-    permissions:
-      contents: read # for actions/checkout to fetch code
-      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    OSSAR-Scan:
+        runs-on: windows-latest
+        permissions:
+            contents: read # for actions/checkout to fetch code
+            security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+            actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
 
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-        with:
-          egress-policy: audit
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@v2.6.1
+              with:
+                  egress-policy: audit
 
-      - name: Workflow Telemetry
-        uses: catchpoint/workflow-telemetry-action@6705383eabd01833acfe8412ec697384830e1455 # v1.8.7
-        with: 
-          github_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
-          comment_on_pr: false
-          theme: dark
-          proc_trace_sys_enable: true
+            - name: Workflow Telemetry
+              uses: catchpoint/workflow-telemetry-action@v1.8.7
+              with:
+                  github_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+                  comment_on_pr: false
+                  theme: dark
+                  proc_trace_sys_enable: true
 
-      # checks out the repository
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+            # checks out the repository
+            - uses: actions/checkout@v4
+              with:
+                  submodules: 'recursive'
+                  token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
 
-      - uses: actions/setup-dotnet@3447fd6a9f9e57506b15f895c5b76d3b197dc7c2 # v3.2.0
-        with:
-          dotnet-version: |
-            5.0.x
-            6.0.x
+            - uses: actions/setup-dotnet@v3.2.0
+              with:
+                  dotnet-version: |
+                      5.0.x
+                      6.0.x
 
-      # Run open source static analysis tools
-      - name: Run OSSAR
-        uses: github/ossar-action@v1
-        id: ossar
+            # Run open source static analysis tools
+            - name: Run OSSAR
+              uses: github/ossar-action@v1
+              id: ossar
 
-        # Upload results to the Security tab
-      - name: Upload OSSAR results
-        uses: github/codeql-action/upload-sarif@1500a131381b66de0c52ac28abb13cd79f4b7ecc # v2.22.12
-        with:
-          sarif_file: ${{ steps.ossar.outputs.sarifFile }}
+              # Upload results to the Security tab
+            - name: Upload OSSAR results
+              uses: github/codeql-action/upload-sarif@v2.22.12
+              with:
+                  sarif_file: ${{ steps.ossar.outputs.sarifFile }}

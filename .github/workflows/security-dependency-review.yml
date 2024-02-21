@@ -1,4 +1,3 @@
-
 # Dependency Review Action
 #
 # This Action will scan dependency manifest files that change as part of a Pull Request,
@@ -8,28 +7,27 @@
 #
 # Source repository: https://github.com/actions/dependency-review-action
 name: Security - Dependency Review
-on: 
-  merge_group:
-  pull_request:
+on:
+    merge_group:
+    pull_request:
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  dependency-review:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-        with:
-          egress-policy: audit
+    dependency-review:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@v2.6.1
+              with:
+                  egress-policy: audit
 
-      # checks out the repository
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+            # checks out the repository
+            - uses: actions/checkout@v4
+              with:
+                  submodules: 'recursive'
+                  token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
 
-      - name: 'Dependency Review'
-+       uses: actions/dependency-review-action@v2.5.1
-        uses: actions/dependency-review-action@0efb1d1d84fc9633afcdaad14c485cbbc90ef46c # v2.5.1 
+            - name: 'Dependency Review'
+              uses: actions/dependency-review-action@v2.5.1
