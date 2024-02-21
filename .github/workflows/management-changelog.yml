@@ -34,6 +34,9 @@ jobs:
                   include-component-in-tag: false
                   target-branch: ${{ github.ref_name == 'dev' && 'main' || github.ref_name }}
 
+            - uses: actions/checkout@v4
+              if: ${{ steps.release.outputs.release_created }}
+
             - uses: pnpm/action-setup@v2
               if: ${{ steps.release.outputs.release_created }}
               with:
