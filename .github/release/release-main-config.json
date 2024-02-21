@@ -2,7 +2,8 @@
     "packages": {
         ".": {
             "package-name": "zenstack-monorepo",
-            "component": "Monorepo"
+            "component": "Monorepo",
+            "exclude-paths": ["tests", ".github"]
         },
         "packages/ide/jetbrains": {
             "package-name": "jetbrains",
