@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/language",
-    "version": "2.0.0-alpha.1",
+    "version": "2.0.0-alpha.2",
     "displayName": "ZenStack modeling language compiler",
     "description": "ZenStack modeling language compiler",
     "homepage": "https://zenstack.dev",
@@ -23,7 +23,7 @@
         "plist2": "^1.1.3"
     },
     "dependencies": {
-       "langium": "1.3.1"
+        "langium": "1.3.1"
     },
     "contributes": {
         "languages": [
