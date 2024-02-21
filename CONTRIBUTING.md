@@ -35,6 +35,14 @@ I want to think you first for considering contributing to ZenStack 🙏🏻. It'
     pnpm build
     ```
 
+1. Scaffold the project used for testing
+
+    ```bash
+    pnpm test-scaffold
+    ```
+
+    You only need to run this command once.
+
 1. Run tests
 
     ```bash

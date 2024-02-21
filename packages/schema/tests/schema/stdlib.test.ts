@@ -24,7 +24,7 @@ describe('Stdlib Tests', () => {
                     }`
                 );
             }
-            throw new SchemaLoadingError(validationErrors.map((e) => e.message));
+            throw new SchemaLoadingError(validationErrors);
         }
     });
 });

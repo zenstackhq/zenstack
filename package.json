@@ -5,8 +5,9 @@
     "scripts": {
         "build": "pnpm -r build",
         "lint": "pnpm -r lint",
-        "test": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
-        "test-ci": "ZENSTACK_TEST=1 pnpm -r run test --silent --forceExit",
+        "test": "ZENSTACK_TEST=1 pnpm -r --parallel run test --silent --forceExit",
+        "test-ci": "ZENSTACK_TEST=1 pnpm -r --parallel run test --silent --forceExit",
+        "test-scaffold": "tsx script/test-scaffold.ts",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/",
         "unpublish-preview": "pnpm --recursive --shell-mode exec -- npm unpublish -f --registry https://preview.registry.zenstack.dev/ \"\\$PNPM_PACKAGE_NAME\"",
@@ -33,6 +34,7 @@
         "ts-jest": "^29.1.1",
         "ts-node": "^10.9.1",
         "tsup": "^8.0.1",
+        "tsx": "^4.7.1",
         "typescript": "^5.3.2"
     }
 }

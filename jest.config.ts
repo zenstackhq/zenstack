@@ -3,15 +3,19 @@
  * https://jestjs.io/docs/configuration
  */
 
+import path from 'path';
+
 export default {
     // Automatically clear mock calls, instances, contexts and results before every test
     clearMocks: true,
+
+    globalSetup: path.join(__dirname, './test-setup.ts'),
 
     // Indicates whether the coverage information should be collected while executing the test
     collectCoverage: true,
 
     // The directory where Jest should output its coverage files
-    coverageDirectory: 'tests/coverage',
+    coverageDirectory: path.join(__dirname, '.test/coverage'),
 
     // An array of regexp pattern strings used to skip coverage collection
     coveragePathIgnorePatterns: ['/node_modules/', '/tests/'],

@@ -1,18 +1,21 @@
-import { loadModel, loadModelWithError } from '../../utils';
+import { loadModel, loadModelWithError, safelyLoadModel } from '../../utils';
 
 describe('Datasource Validation Tests', () => {
     it('missing fields', async () => {
-        expect(
-            await loadModelWithError(`
+        const result = await safelyLoadModel(`
                 datasource db {
                 }
-        `)
-        ).toEqual(
-            expect.arrayContaining([
-                'datasource must include a "provider" field',
-                'datasource must include a "url" field',
-            ])
-        );
+        `);
+
+        expect(result).toMatchObject({
+            status: 'rejected',
+            reason: {
+                cause: [
+                    { message: 'datasource must include a "provider" field' },
+                    { message: 'datasource must include a "url" field' },
+                ]
+            }
+        })
     });
 
     it('dup fields', async () => {
@@ -41,7 +44,7 @@ describe('Datasource Validation Tests', () => {
                     provider = 'abc'
                 }
         `)
-        ).toContainEqual(expect.stringContaining('Provider "abc" is not supported'));
+        ).toContain('Provider "abc" is not supported');
     });
 
     it('invalid url value', async () => {
