@@ -31,6 +31,7 @@ jobs:
               with:
                   config-file: '.github/release/release-main-config.json'
                   manifest-file: '.github/release/.release-manifest.json'
+                  include-component-in-tag: false
                   target-branch: ${{ github.ref_name == 'dev' && 'main' || github.ref_name }}
 
             - uses: actions/checkout@v4
