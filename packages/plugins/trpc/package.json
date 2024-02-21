@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "2.0.0-alpha.1",
+    "version": "2.1.0-alpha.1",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -20,7 +20,9 @@
         "directory": "dist",
         "linkDirectory": true
     },
-    "keywords": ["trpc"],
+    "keywords": [
+        "trpc"
+    ],
     "author": "ZenStack Team",
     "license": "MIT",
     "dependencies": {
