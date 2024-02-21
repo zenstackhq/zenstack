@@ -3,7 +3,7 @@
     "packages/ide/jetbrains": "2.0.0-alpha.1",
     "packages/language": "2.0.0-alpha.1",
     "packages/misc/redwood": "2.0.0-alpha.1",
-    "packages/plugins/openapi": "2.0.0-alpha.1",
+    "packages/plugins/openapi": "2.1.0-alpha.1",
     "packages/plugins/swr": "2.0.0-alpha.1",
     "packages/plugins/tanstack-query": "2.0.0-alpha.1",
     "packages/plugins/trpc": "2.0.0-alpha.1",
