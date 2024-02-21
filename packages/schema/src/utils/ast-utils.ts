@@ -106,8 +106,7 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
         && !imp.path.startsWith('/') // Respect absolute paths (Unix)
         && !/^[a-zA-Z]:\\/.test(imp.path) // Respect absolute paths (Windows)
     ) {
-        imp.path = findNodeModulesFile(imp.path) ?? '';
-        if (!imp.path) return undefined; // If the path is empty, return undefined
+        imp.path = findNodeModulesFile(imp.path) ?? imp.path;
     } 
 
     const dirUri = Utils.dirname(getDocument(imp).uri);
