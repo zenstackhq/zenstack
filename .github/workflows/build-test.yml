@@ -8,22 +8,22 @@ env:
     DO_NOT_TRACK: '1'
 
 on:
-  merge_group:
-  push:
-    branches: 
-      - main
-      - dev
-      - release/*
-      - v2
-  pull_request:
-    branches: 
-      - main
-      - dev
-      - release/*
-      - v2
+    merge_group:
+    push:
+        branches:
+            - main
+            - dev
+            - release/*
+            - v2
+    pull_request:
+        branches:
+            - main
+            - dev
+            - release/*
+            - v2
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
     build-test:

@@ -1,81 +1,77 @@
-
-
-
 # This workflow uses actions that are not certified by GitHub. They are provided
 # by a third-party and are governed by separate terms of service, privacy
 # policy, and support documentation.
 
 name: Security - Scorecard supply-chain security
 on:
-  # For Branch-Protection check. Only the default branch is supported. See
-  # https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection
-  branch_protection_rule:
-  # To guarantee Maintained check is occasionally updated. See
-  # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
-  schedule:
-    - cron: '21 9 * * 6'
-  push:
-    branches:  
-    - main
-    - dev
+    # For Branch-Protection check. Only the default branch is supported. See
+    # https://github.com/ossf/scorecard/blob/main/docs/checks.md#branch-protection
+    branch_protection_rule:
+    # To guarantee Maintained check is occasionally updated. See
+    # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
+    schedule:
+        - cron: '21 9 * * 6'
+    push:
+        branches:
+            - main
+            - dev
 
 # Declare default permissions as read only.
-permissions: 
- contents: read
+permissions:
+    contents: read
 
 jobs:
-  analysis:
-    name: Scorecard analysis
-    runs-on: ubuntu-latest
-    permissions:
-      # Needed to upload the results to code-scanning dashboard.
-      security-events: write
-      # Needed to publish results and get a badge (see publish_results below).
-      id-token: write
-      # Uncomment the permissions below if installing in a private repository.
-      # contents: read
-      # actions: read
+    analysis:
+        name: Scorecard analysis
+        runs-on: ubuntu-latest
+        permissions:
+            # Needed to upload the results to code-scanning dashboard.
+            security-events: write
+            # Needed to publish results and get a badge (see publish_results below).
+            id-token: write
+            # Uncomment the permissions below if installing in a private repository.
+            # contents: read
+            # actions: read
 
-    steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895 # v2.6.1
-        with:
-          egress-policy: audit
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@v2.6.1
+              with:
+                  egress-policy: audit
 
-      - name: Workflow Telemetry
-        uses: catchpoint/workflow-telemetry-action@6705383eabd01833acfe8412ec697384830e1455 # v1.8.7
-        with: 
-          github_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
-          comment_on_pr: false
-          theme: dark
-          proc_trace_sys_enable: true
+            - name: Workflow Telemetry
+              uses: catchpoint/workflow-telemetry-action@v1.8.7
+              with:
+                  github_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+                  comment_on_pr: false
+                  theme: dark
+                  proc_trace_sys_enable: true
 
-      # checks out the repository
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-          token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+            # checks out the repository
+            - uses: actions/checkout@v4
+              with:
+                  submodules: 'recursive'
+                  token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
 
-      - name: "Run analysis"
-+       uses: ossf/scorecard-action@v2.1.2
-        uses: ossf/scorecard-action@e38b1902ae4f44df626f11ba0734b14fb91f8f86 # v2.1.2
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          repo_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
-          publish_results: true
+            - name: 'Run analysis'
+              uses: ossf/scorecard-action@v2.1.2
+              with:
+                  results_file: results.sarif
+                  results_format: sarif
+                  repo_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+                  publish_results: true
 
-      # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
-      # format to the repository Actions tab.
-      - name: "Upload artifact"
-        uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
-        with:
-          name: SARIF file
-          path: results.sarif
-          retention-days: 5
+            # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
+            # format to the repository Actions tab.
+            - name: 'Upload artifact'
+              uses: actions/upload-artifact@v3.1.0
+              with:
+                  name: SARIF file
+                  path: results.sarif
+                  retention-days: 5
 
-      # Upload the results to GitHub's code scanning dashboard.
-      - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@17573ee1cc1b9d061760f3a006fc4aac4f944fd5 # v2.2.4
-        with:
-          sarif_file: results.sarif
+            # Upload the results to GitHub's code scanning dashboard.
+            - name: 'Upload to code-scanning'
+              uses: github/codeql-action/upload-sarif@v2.2.4
+              with:
+                  sarif_file: results.sarif
