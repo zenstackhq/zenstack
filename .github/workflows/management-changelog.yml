@@ -26,21 +26,12 @@ jobs:
               with:
                   egress-policy: audit
 
-            # This tells you useful infomation about the workflow, but it's not required (hence commented out) - it's just nice to have
-            # - name: Workflow Telemetry
-            #   uses: catchpoint/workflow-telemetry-action@v1.8.7
-            #   with:
-            #     comment_on_pr: false
-            #     theme: dark
-            #     proc_trace_sys_enable: true
-
             - uses: google-github-actions/release-please-action@v4
               id: release
               with:
                   config-file: '.github/release/release-main-config.json'
                   manifest-file: '.github/release/.release-manifest.json'
                   target-branch: ${{ github.ref_name == 'dev' && 'main' || github.ref_name }}
-                  include-component-in-tag: true
 
             - uses: actions/checkout@v4
               if: ${{ steps.release.outputs.release_created }}
