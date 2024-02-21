@@ -1,5 +1,5 @@
 {
-    ".": "2.0.0-alpha.1",
+    ".": "2.1.0-alpha.1",
     "packages/ide/jetbrains": "2.0.0-alpha.1",
     "packages/language": "2.0.0-alpha.1",
     "packages/misc/redwood": "2.0.0-alpha.1",
