@@ -15,7 +15,7 @@ import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './prox
 export function withDefaultAuth<DbClient extends object>(
     prisma: DbClient,
     options: InternalEnhancementOptions,
-    context?: EnhancementContext
+    context: EnhancementContext = {}
 ): DbClient {
     return makeProxy(
         prisma,
@@ -32,13 +32,9 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
         prisma: DbClientContract,
         model: string,
         options: InternalEnhancementOptions,
-        private readonly context?: EnhancementContext
+        private readonly context: EnhancementContext
     ) {
         super(prisma, model, options);
-
-        if (!this.context?.user) {
-            throw new Error(`Using \`auth()\` in \`@default\` requires a user context`);
-        }
 
         this.userContext = this.context.user;
     }
@@ -95,6 +91,9 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     }
 
     private getDefaultValueFromAuth(fieldInfo: FieldInfo) {
+        if (!this.userContext) {
+            throw new Error(`Evaluating default value of field \`${fieldInfo.name}\` requires a user context`);
+        }
         return fieldInfo.defaultValueProvider?.(this.userContext);
     }
 }

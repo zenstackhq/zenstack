@@ -505,4 +505,33 @@ describe('With Policy: auth() test', () => {
             ])
         );
     });
+
+    it('Default auth() without user context', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id
+            posts Post[]
+
+            @@allow('all', true)
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            author User @relation(fields: [authorId], references: [id])
+            authorId String @default(auth().id)
+
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance();
+        await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
+        await expect(db.post.create({ data: { title: 'title' } })).rejects.toThrow(
+            'Evaluating default value of field `authorId` requires a user context'
+        );
+        await expect(db.post.findMany({})).toResolveTruthy();
+    });
 });
