@@ -9,7 +9,7 @@ export default {
     // Automatically clear mock calls, instances, contexts and results before every test
     clearMocks: true,
 
-    globalSetup: path.join(__dirname, './script/test-setup.ts'),
+    globalSetup: path.join(__dirname, './script/test-global-setup.ts'),
 
     setupFiles: [path.join(__dirname, './script/set-test-env.ts')],
 
