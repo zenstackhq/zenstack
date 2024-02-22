@@ -48,7 +48,7 @@ import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import telemetry from '../../telemetry';
 import { execPackage } from '../../utils/exec-utils';
-import { findPackageJson } from '../../utils/pkg-utils';
+import { findUp } from '../../utils/pkg-utils';
 import {
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
@@ -450,7 +450,7 @@ export default class PrismaSchemaGenerator {
 
 export function getDefaultPrismaOutputFile(schemaPath: string) {
     // handle override from package.json
-    const pkgJsonPath = findPackageJson(path.dirname(schemaPath));
+    const pkgJsonPath = findUp(['package.json'], path.dirname(schemaPath));
     if (pkgJsonPath) {
         const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
         if (typeof pkgJson?.zenstack?.prisma === 'string') {
