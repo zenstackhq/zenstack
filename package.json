@@ -5,8 +5,8 @@
     "scripts": {
         "build": "pnpm -r build",
         "lint": "pnpm -r lint",
-        "test": "ZENSTACK_TEST=1 pnpm -r --parallel run test --silent --forceExit",
-        "test-ci": "ZENSTACK_TEST=1 pnpm -r --parallel run test --silent --forceExit",
+        "test": "pnpm -r --parallel run test --silent --forceExit",
+        "test-ci": "pnpm -r --parallel run test --silent --forceExit",
         "test-scaffold": "tsx script/test-scaffold.ts",
         "publish-all": "pnpm --filter \"./packages/**\" -r publish --access public",
         "publish-preview": "pnpm --filter \"./packages/**\" -r publish --force --registry https://preview.registry.zenstack.dev/",

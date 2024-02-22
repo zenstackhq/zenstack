@@ -73,7 +73,7 @@
         "bundle": "rimraf bundle && pnpm lint --max-warnings=0 && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
-        "test": "ZENSTACK_TEST=1 jest",
+        "test": "jest",
         "prepublishOnly": "pnpm build",
         "postinstall": "node bin/post-install.js"
     },
