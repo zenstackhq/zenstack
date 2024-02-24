@@ -319,13 +319,28 @@ export class PolicyUtil {
     /**
      * Checks if the given model has a policy guard for the given operation.
      */
-    hasAuthGuard(model: string, operation: PolicyOperationKind): boolean {
+    hasAuthGuard(model: string, operation: PolicyOperationKind) {
         const guard = this.policy.guard[lowerCaseFirst(model)];
         if (!guard) {
             return false;
         }
         const provider = guard[operation];
         return typeof provider !== 'boolean' || provider !== true;
+    }
+
+    /**
+     * Checks if the given model has any field-level override policy guard for the given operation.
+     */
+    hasOverrideAuthGuard(model: string, operation: PolicyOperationKind) {
+        const guard = this.requireGuard(model);
+        switch (operation) {
+            case 'read':
+                return Object.keys(guard).some((k) => k.startsWith(FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX));
+            case 'update':
+                return Object.keys(guard).some((k) => k.startsWith(FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX));
+            default:
+                return false;
+        }
     }
 
     /**
@@ -731,7 +746,7 @@ export class PolicyUtil {
         preValue?: any
     ) {
         let guard = this.getAuthGuard(db, model, operation, preValue);
-        if (this.isFalse(guard)) {
+        if (this.isFalse(guard) && !this.hasOverrideAuthGuard(model, operation)) {
             throw this.deniedByPolicy(
                 model,
                 operation,
@@ -904,7 +919,7 @@ export class PolicyUtil {
      */
     tryReject(db: Record<string, DbOperations>, model: string, operation: PolicyOperationKind) {
         const guard = this.getAuthGuard(db, model, operation);
-        if (this.isFalse(guard)) {
+        if (this.isFalse(guard) && !this.hasOverrideAuthGuard(model, operation)) {
             throw this.deniedByPolicy(model, operation, undefined, CrudFailureReason.ACCESS_POLICY_VIOLATION);
         }
     }
