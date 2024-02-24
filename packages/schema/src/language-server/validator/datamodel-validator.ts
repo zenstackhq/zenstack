@@ -64,8 +64,8 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 }
 
                 const isArray = idField.type.array;
-                const isScalar = SCALAR_TYPES.includes(idField.type.type as typeof SCALAR_TYPES[number])
-                const isValidType = isScalar || isEnum(idField.type.reference?.ref)
+                const isScalar = SCALAR_TYPES.includes(idField.type.type as (typeof SCALAR_TYPES)[number]);
+                const isValidType = isScalar || isEnum(idField.type.reference?.ref);
 
                 if (isArray || !isValidType) {
                     accept('error', 'Field with @id attribute must be of scalar or enum type', { node: idField });
@@ -121,7 +121,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 fields = (arg.value as ArrayExpr).items as ReferenceExpr[];
                 if (fields.length === 0) {
                     if (accept) {
-                        accept('error', `"fields" value cannot be emtpy`, {
+                        accept('error', `"fields" value cannot be empty`, {
                             node: arg,
                         });
                     }
@@ -131,7 +131,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 references = (arg.value as ArrayExpr).items as ReferenceExpr[];
                 if (references.length === 0) {
                     if (accept) {
-                        accept('error', `"references" value cannot be emtpy`, {
+                        accept('error', `"references" value cannot be empty`, {
                             node: arg,
                         });
                     }
@@ -148,6 +148,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 if (accept) {
                     accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
                 }
+                valid = false;
             }
         } else {
             // validate "fields" and "references" typing consistency
@@ -157,14 +158,28 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 }
             } else {
                 for (let i = 0; i < fields.length; i++) {
+                    if (!field.type.optional && fields[i].$resolvedType?.nullable) {
+                        // if relation is not optional, then fk field must not be nullable
+                        if (accept) {
+                            accept(
+                                'error',
+                                `relation "${field.name}" is not optional, but field "${fields[i].target.$refText}" is optional`,
+                                { node: fields[i].target.ref! }
+                            );
+                        }
+                        valid = false;
+                    }
+
                     if (!fields[i].$resolvedType) {
                         if (accept) {
                             accept('error', `field reference is unresolved`, { node: fields[i] });
+                            valid = false;
                         }
                     }
                     if (!references[i].$resolvedType) {
                         if (accept) {
                             accept('error', `field reference is unresolved`, { node: references[i] });
+                            valid = false;
                         }
                     }
 
@@ -176,6 +191,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                             accept('error', `values of "references" and "fields" must have the same type`, {
                                 node: relAttr,
                             });
+                            valid = false;
                         }
                     }
                 }
