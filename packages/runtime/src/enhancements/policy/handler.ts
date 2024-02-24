@@ -467,7 +467,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     // Validates the given create payload against Zod schema if any
     private validateCreateInputSchema(model: string, data: any) {
         const schema = this.utils.getZodSchema(model, 'create');
-        if (schema) {
+        if (schema && data) {
             const parseResult = schema.safeParse(data);
             if (!parseResult.success) {
                 throw this.utils.deniedByPolicy(
@@ -496,11 +496,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         args = this.utils.clone(args);
 
-        // do static input validation and check if post-create checks are needed
+        // go through create items, statically check input to determine if post-create
+        // check is needed, and also validate zod schema
         let needPostCreateCheck = false;
         for (const item of enumerate(args.data)) {
+            const validationResult = this.validateCreateInputSchema(this.model, item);
+            if (validationResult !== item) {
+                this.utils.replace(item, validationResult);
+            }
+
             const inputCheck = this.utils.checkInputGuard(this.model, item, 'create');
             if (inputCheck === false) {
+                // unconditionally deny
                 throw this.utils.deniedByPolicy(
                     this.model,
                     'create',
@@ -508,14 +515,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     CrudFailureReason.ACCESS_POLICY_VIOLATION
                 );
             } else if (inputCheck === true) {
-                const r = this.validateCreateInputSchema(this.model, item);
-                if (r !== item) {
-                    this.utils.replace(item, r);
-                }
+                // unconditionally allow
             } else if (inputCheck === undefined) {
                 // static policy check is not possible, need to do post-create check
                 needPostCreateCheck = true;
-                break;
             }
         }
 
@@ -786,7 +789,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
                 // check if the update actually writes to this model
                 let thisModelUpdate = false;
-                const updatePayload: any = (args as any).data ?? args;
+                const updatePayload = (args as any).data ?? args;
+
+                const validatedPayload = this.validateUpdateInputSchema(model, updatePayload);
+                if (validatedPayload !== updatePayload) {
+                    this.utils.replace(updatePayload, validatedPayload);
+                }
+
                 if (updatePayload) {
                     for (const key of Object.keys(updatePayload)) {
                         const field = resolveField(this.modelMeta, model, key);
@@ -857,6 +866,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     );
                 }
 
+                args.data = this.validateUpdateInputSchema(model, args.data);
+
                 const updateGuard = this.utils.getAuthGuard(db, model, 'update');
                 if (this.utils.isTrue(updateGuard) || this.utils.isFalse(updateGuard)) {
                     // injects simple auth guard into where clause
@@ -917,7 +928,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await _registerPostUpdateCheck(model, uniqueFilter);
 
                     // convert upsert to update
-                    context.parent.update = { where: args.where, data: args.update };
+                    context.parent.update = {
+                        where: args.where,
+                        data: this.validateUpdateInputSchema(model, args.update),
+                    };
                     delete context.parent.upsert;
 
                     // continue visiting the new payload
@@ -1016,6 +1030,37 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return { result, postWriteChecks };
     }
 
+    // Validates the given update payload against Zod schema if any
+    private validateUpdateInputSchema(model: string, data: any) {
+        const schema = this.utils.getZodSchema(model, 'update');
+        if (schema && data) {
+            // update payload can contain non-literal fields, like:
+            //   { x: { increment: 1 } }
+            // we should only validate literal fields
+
+            const literalData = Object.entries(data).reduce<any>(
+                (acc, [k, v]) => ({ ...acc, ...(typeof v !== 'object' ? { [k]: v } : {}) }),
+                {}
+            );
+
+            const parseResult = schema.safeParse(literalData);
+            if (!parseResult.success) {
+                throw this.utils.deniedByPolicy(
+                    model,
+                    'update',
+                    `input failed validation: ${fromZodError(parseResult.error)}`,
+                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                    parseResult.error
+                );
+            }
+
+            // schema may have transformed field values, use it to overwrite the original data
+            return { ...data, ...parseResult.data };
+        } else {
+            return data;
+        }
+    }
+
     private isUnsafeMutate(model: string, args: any) {
         if (!args) {
             return false;
@@ -1045,6 +1090,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         args = this.utils.clone(args);
         this.utils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'update');
+
+        args.data = this.validateUpdateInputSchema(this.model, args.data);
 
         if (this.utils.hasAuthGuard(this.model, 'postUpdate') || this.utils.getZodSchema(this.model)) {
             // use a transaction to do post-update checks
