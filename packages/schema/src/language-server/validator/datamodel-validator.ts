@@ -148,7 +148,6 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                 if (accept) {
                     accept('error', `Both "fields" and "references" must be provided`, { node: relAttr });
                 }
-                valid = false;
             }
         } else {
             // validate "fields" and "references" typing consistency
@@ -167,19 +166,16 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                                 { node: fields[i].target.ref! }
                             );
                         }
-                        valid = false;
                     }
 
                     if (!fields[i].$resolvedType) {
                         if (accept) {
                             accept('error', `field reference is unresolved`, { node: fields[i] });
-                            valid = false;
                         }
                     }
                     if (!references[i].$resolvedType) {
                         if (accept) {
                             accept('error', `field reference is unresolved`, { node: references[i] });
-                            valid = false;
                         }
                     }
 
@@ -191,7 +187,6 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                             accept('error', `values of "references" and "fields" must have the same type`, {
                                 node: relAttr,
                             });
-                            valid = false;
                         }
                     }
                 }
