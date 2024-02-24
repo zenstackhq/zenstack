@@ -45,7 +45,7 @@ describe('With Policy: field validation', () => {
                 id String @id @default(cuid())
                 user User  @relation(fields: [userId], references: [id])
                 userId String
-                slug String @regex("^[0-9a-zA-Z]{4,16}$")
+                slug String @regex("^[0-9a-zA-Z]{4,16}$") @lower
 
                 @@allow('all', true)
             }
@@ -508,50 +508,104 @@ describe('With Policy: field validation', () => {
             },
         });
 
-        await expect(
-            db.userData.create({
-                data: {
-                    userId: '1',
-                    a: 1,
-                    b: 0,
-                    c: -1,
-                    d: 0,
-                    text1: 'abc123',
-                    text2: 'def',
-                    text3: 'aaa',
-                    text4: 'abcab',
-                    text6: ' AbC ',
-                    text7: 'abc',
-                },
-            })
-        ).resolves.toMatchObject({ text6: 'abc', text7: 'ABC' });
+        let ud = await db.userData.create({
+            data: {
+                userId: '1',
+                a: 1,
+                b: 0,
+                c: -1,
+                d: 0,
+                text1: 'abc123',
+                text2: 'def',
+                text3: 'aaa',
+                text4: 'abcab',
+                text6: ' AbC ',
+                text7: 'abc',
+            },
+        });
+        expect(ud).toMatchObject({ text6: 'abc', text7: 'ABC' });
 
-        await expect(
-            db.user.create({
-                data: {
-                    id: '2',
-                    password: 'abc123!@#',
-                    email: 'who@myorg.com',
-                    handle: 'user2',
-                    userData: {
-                        create: {
-                            a: 1,
-                            b: 0,
-                            c: -1,
-                            d: 0,
-                            text1: 'abc123',
-                            text2: 'def',
-                            text3: 'aaa',
-                            text4: 'abcab',
-                            text6: ' AbC ',
-                            text7: 'abc',
-                        },
+        ud = await db.userData.update({
+            where: { id: ud.id },
+            data: {
+                text4: 'xyz',
+                text6: ' bCD ',
+                text7: 'bcd',
+            },
+        });
+        expect(ud).toMatchObject({ text4: 'xyz', text6: 'bcd', text7: 'BCD' });
+
+        let u = await db.user.create({
+            data: {
+                id: '2',
+                password: 'abc123!@#',
+                email: 'who@myorg.com',
+                handle: 'user2',
+                userData: {
+                    create: {
+                        a: 1,
+                        b: 0,
+                        c: -1,
+                        d: 0,
+                        text1: 'abc123',
+                        text2: 'def',
+                        text3: 'aaa',
+                        text4: 'abcab',
+                        text6: ' AbC ',
+                        text7: 'abc',
                     },
                 },
-                include: { userData: true },
-            })
-        ).resolves.toMatchObject({
-            userData: expect.objectContaining({ text6: 'abc', text7: 'ABC' }),
+            },
+            include: { userData: true },
         });
+        expect(u.userData).toMatchObject({
+            text6: 'abc',
+            text7: 'ABC',
+        });
+
+        u = await db.user.update({
+            where: { id: u.id },
+            data: {
+                userData: {
+                    update: {
+                        data: { text4: 'xyz', text6: ' bCD ', text7: 'bcd' },
+                    },
+                },
+            },
+            include: { userData: true },
+        });
+        expect(u.userData).toMatchObject({ text4: 'xyz', text6: 'bcd', text7: 'BCD' });
+
+        // upsert create
+        u = await db.user.update({
+            where: { id: u.id },
+            data: {
+                tasks: {
+                    upsert: {
+                        where: { id: 'unknown' },
+                        create: { slug: 'SLUG1' },
+                        update: {},
+                    },
+                },
+            },
+            include: { tasks: true },
+        });
+        expect(u.tasks[0]).toMatchObject({ slug: 'slug1' });
+
+        // upsert update
+        u = await db.user.update({
+            where: { id: u.id },
+            data: {
+                tasks: {
+                    upsert: {
+                        where: { id: u.tasks[0].id },
+                        create: {},
+                        update: { slug: 'SLUG2' },
+                    },
+                },
+            },
+            include: { tasks: true },
+        });
+        expect(u.tasks[0]).toMatchObject({ slug: 'slug2' });
     });
 });
