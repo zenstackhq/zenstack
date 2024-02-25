@@ -10,7 +10,7 @@ describe('Data Model Validation Tests', () => {
 
     it('duplicated fields', async () => {
         const result = await safelyLoadModel(`
-            ${prelude}
+            ${ prelude }
             model M {
                 id String @id
                 x Int
@@ -128,7 +128,7 @@ describe('Data Model Validation Tests', () => {
 
         it('should error when there are no unique fields', async () => {
             const result = await safelyLoadModel(`
-                ${prelude}
+                ${ prelude }
                 model M {
                     x Int
                     @@allow('all', x > 0)

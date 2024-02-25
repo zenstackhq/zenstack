@@ -144,12 +144,15 @@ describe('With Policy: refactor tests', () => {
         // read back check
         await expect(
             anonDb.user.create({
-                data: { id: 1, email: 'user1@zenstack.dev' },
+                data: { id: 1, email: 'User1@zenstack.dev' },
             })
         ).rejects.toThrow(/not allowed to be read back/);
 
         // success
-        await expect(user1Db.user.findUnique({ where: { id: 1 } })).toResolveTruthy();
+        await expect(user1Db.user.findUnique({ where: { id: 1 } })).resolves.toMatchObject({
+            // email to lower
+            email: 'user1@zenstack.dev',
+        });
 
         // nested creation failure
         await expect(
@@ -202,7 +205,7 @@ describe('With Policy: refactor tests', () => {
                     posts: {
                         create: {
                             id: 2,
-                            title: 'Post 2',
+                            title: ' Post 2 ',
                             published: true,
                             comments: {
                                 create: {
@@ -213,8 +216,14 @@ describe('With Policy: refactor tests', () => {
                         },
                     },
                 },
+                include: { posts: true },
             })
-        ).toResolveTruthy();
+        ).resolves.toMatchObject({
+            posts: expect.arrayContaining([
+                // title is trimmed
+                expect.objectContaining({ title: 'Post 2' }),
+            ]),
+        });
 
         // create with connect: posts
         await expect(
@@ -389,7 +398,7 @@ describe('With Policy: refactor tests', () => {
                             data: [
                                 { id: 7, title: 'Post 7.1' },
                                 { id: 7, title: 'Post 7.2' },
-                                { id: 8, title: 'Post 8' },
+                                { id: 8, title: ' Post 8 ' },
                             ],
                             skipDuplicates: true,
                         },
@@ -400,7 +409,10 @@ describe('With Policy: refactor tests', () => {
         // success
         await expect(adminDb.user.findUnique({ where: { id: 7 } })).toResolveTruthy();
         await expect(adminDb.post.findUnique({ where: { id: 7 } })).toResolveTruthy();
-        await expect(adminDb.post.findUnique({ where: { id: 8 } })).toResolveTruthy();
+        await expect(adminDb.post.findUnique({ where: { id: 8 } })).resolves.toMatchObject({
+            // title is trimmed
+            title: 'Post 8',
+        });
     });
 
     it('createMany', async () => {
@@ -412,11 +424,18 @@ describe('With Policy: refactor tests', () => {
         await expect(
             user1Db.post.createMany({
                 data: [
-                    { id: 1, title: 'Post 1', authorId: 1 },
+                    { id: 1, title: ' Post 1 ', authorId: 1 },
                     { id: 2, title: 'Post 2', authorId: 1 },
                 ],
             })
-        ).resolves.toMatchObject({ count: 2 });
+        ).toResolveTruthy();
+
+        await expect(user1Db.post.findMany()).resolves.toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ title: 'Post 1' }), // title is trimmed
+                expect.objectContaining({ title: 'Post 2' }),
+            ])
+        );
 
         // unique constraint violation
         await expect(
@@ -502,8 +521,8 @@ describe('With Policy: refactor tests', () => {
             user2Db.user.update({ where: { id: 1 }, data: { email: 'user2@zenstack.dev' } })
         ).toBeRejectedByPolicy();
         await expect(
-            adminDb.user.update({ where: { id: 1 }, data: { email: 'user1-nice@zenstack.dev' } })
-        ).toResolveTruthy();
+            adminDb.user.update({ where: { id: 1 }, data: { email: 'User1-nice@zenstack.dev' } })
+        ).resolves.toMatchObject({ email: 'user1-nice@zenstack.dev' });
 
         // update nested profile
         await expect(
@@ -561,9 +580,10 @@ describe('With Policy: refactor tests', () => {
         await expect(
             user1Db.user.update({
                 where: { id: 1 },
-                data: { posts: { update: { where: { id: 1 }, data: { published: false } } } },
+                data: { posts: { update: { where: { id: 1 }, data: { title: ' New ', published: false } } } },
+                include: { posts: true },
             })
-        ).toResolveTruthy();
+        ).resolves.toMatchObject({ posts: expect.arrayContaining([expect.objectContaining({ title: 'New' })]) });
 
         // update nested comment prevent update of toplevel
         await expect(
@@ -588,23 +608,24 @@ describe('With Policy: refactor tests', () => {
         await expect(adminDb.comment.findFirst({ where: { content: 'Comment 2 updated' } })).toResolveFalsy();
 
         // update with create
-        await expect(
-            user1Db.user.update({
-                where: { id: 1 },
-                data: {
-                    posts: {
-                        create: {
-                            id: 3,
-                            title: 'Post 3',
-                            published: true,
-                            comments: {
-                                create: { author: { connect: { id: 1 } }, content: 'Comment 3' },
-                            },
+        const r1 = await user1Db.user.update({
+            where: { id: 1 },
+            data: {
+                posts: {
+                    create: {
+                        id: 3,
+                        title: 'Post 3',
+                        published: true,
+                        comments: {
+                            create: { author: { connect: { id: 1 } }, content: ' Comment 3 ' },
                         },
                     },
                 },
-            })
-        ).toResolveTruthy();
+            },
+            include: { posts: { include: { comments: true } } },
+        });
+        expect(r1.posts[r1.posts.length - 1].comments[0].content).toEqual('Comment 3');
+
         await expect(
             user1Db.user.update({
                 where: { id: 1 },
@@ -636,7 +657,7 @@ describe('With Policy: refactor tests', () => {
                     posts: {
                         createMany: {
                             data: [
-                                { id: 4, title: 'Post 4' },
+                                { id: 4, title: ' Post 4 ' },
                                 { id: 5, title: 'Post 5' },
                             ],
                         },
@@ -644,6 +665,7 @@ describe('With Policy: refactor tests', () => {
                 },
             })
         ).toResolveTruthy();
+        await expect(user1Db.post.findUnique({ where: { id: 4 } })).resolves.toMatchObject({ title: 'Post 4' });
         await expect(
             user1Db.user.update({
                 include: { posts: true },
@@ -723,12 +745,13 @@ describe('With Policy: refactor tests', () => {
                     posts: {
                         update: {
                             where: { id: 1 },
-                            data: { title: 'Post1-1' },
+                            data: { title: ' Post1-1' },
                         },
                     },
                 },
             })
         ).toResolveTruthy();
+        await expect(user1Db.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ title: 'Post1-1' });
         await expect(
             user1Db.user.update({
                 where: { id: 1 },
@@ -799,14 +822,14 @@ describe('With Policy: refactor tests', () => {
                     posts: {
                         upsert: {
                             where: { id: 1 },
-                            update: { title: 'Post 1-1' }, // update
+                            update: { title: ' Post 2' }, // update
                             create: { id: 7, title: 'Post 1' },
                         },
                     },
                 },
             })
         ).toResolveTruthy();
-        await expect(user1Db.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ title: 'Post 1-1' });
+        await expect(user1Db.post.findUnique({ where: { id: 1 } })).resolves.toMatchObject({ title: 'Post 2' });
         await expect(
             user1Db.user.update({
                 where: { id: 1 },
@@ -815,7 +838,7 @@ describe('With Policy: refactor tests', () => {
                         upsert: {
                             where: { id: 7 },
                             update: { title: 'Post 7-1' },
-                            create: { id: 7, title: 'Post 7' }, // create
+                            create: { id: 7, title: ' Post 7' }, // create
                         },
                     },
                 },
@@ -1094,9 +1117,10 @@ describe('With Policy: refactor tests', () => {
         ).toBeRejectedByPolicy();
         await expect(
             user1Db.post.updateMany({
-                data: { title: 'My post' },
+                data: { title: ' My post' },
             })
         ).resolves.toMatchObject({ count: 2 });
+        await expect(user1Db.post.findFirst()).resolves.toMatchObject({ title: 'My post' });
     });
 
     it('delete single', async () => {
