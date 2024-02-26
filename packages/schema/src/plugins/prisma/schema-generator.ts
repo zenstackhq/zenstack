@@ -456,6 +456,11 @@ export class PrismaSchemaGenerator {
                             new PrismaFieldAttribute('@relation', [
                                 new PrismaAttributeArg('fields', args),
                                 new PrismaAttributeArg('references', args),
+                                // generate a `map` argument for foreign key constraint disambiguation
+                                new PrismaAttributeArg(
+                                    'map',
+                                    new PrismaAttributeArgValue('String', `${relationField.name}_fk`)
+                                ),
                             ])
                         );
                     } else {
