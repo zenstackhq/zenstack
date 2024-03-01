@@ -216,7 +216,7 @@ function generateMutationHook(
             {
                 name: `_mutation`,
                 initializer: `
-                    useModelMutation<${argsType}, ${
+                    useModelMutation<${argsType}, DefaultError, ${
                     overrideReturnType ?? model
                 }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
@@ -565,9 +565,9 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
         `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
-        `import type { PickEnumerable, CheckSelect } from '${runtimeImportBase}';`,
+        `import type { PickEnumerable, CheckSelect, QueryError } from '${runtimeImportBase}';`,
         `import metadata from './__model_meta';`,
-        `type DefaultError = Error;`,
+        `type DefaultError = QueryError;`,
     ];
     switch (target) {
         case 'react': {
