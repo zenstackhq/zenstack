@@ -20,6 +20,7 @@ model Post {
     author User? @relation(fields: [authorId], references: [id])
     authorId String?
     published Boolean @default(false)
+    publishedAt DateTime?
     viewCount Int @default(0)
 
     @@allow('all', author == auth())
