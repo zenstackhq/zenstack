@@ -503,6 +503,50 @@ describe('Zod plugin tests', () => {
         ).toBeFalsy();
     });
 
+    it('does date coercion', async () => {
+        const { zodSchemas } = await loadSchema(
+            `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+    
+        plugin zod {
+            provider = "@core/zod"
+        }        
+
+        model Model {
+            id Int @id @default(autoincrement())
+            dt DateTime
+        }
+        `,
+            { addPrelude: false, pushDb: false }
+        );
+        const schemas = zodSchemas.models;
+
+        expect(
+            schemas.ModelCreateSchema.safeParse({
+                dt: new Date(),
+            }).success
+        ).toBeTruthy();
+
+        expect(
+            schemas.ModelCreateSchema.safeParse({
+                dt: '2023-01-01T00:00:00.000Z',
+            }).success
+        ).toBeTruthy();
+
+        expect(
+            schemas.ModelCreateSchema.safeParse({
+                dt: '2023-13-01',
+            }).success
+        ).toBeFalsy();
+    });
+
     it('generate for selected models full', async () => {
         const { projectDir } = await loadSchema(
             `
