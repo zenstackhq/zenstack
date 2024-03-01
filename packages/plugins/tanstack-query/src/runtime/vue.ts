@@ -174,5 +174,5 @@ export function useModelMutation<
             );
         }
     }
-    return useMutation(finalOptions);
+    return useMutation<Result, TError, TArgs>(finalOptions);
 }

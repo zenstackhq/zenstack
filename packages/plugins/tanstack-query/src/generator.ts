@@ -643,11 +643,11 @@ function makeQueryOptions(
 function makeMutationOptions(target: string, returnType: string, argsType: string) {
     switch (target) {
         case 'react':
-            return `UseMutationOptions<${returnType}, unknown, ${argsType}>`;
+            return `UseMutationOptions<${returnType}, DefaultError, ${argsType}>`;
         case 'vue':
-            return `UseMutationOptions<${returnType}, unknown, ${argsType}, unknown>`;
+            return `UseMutationOptions<${returnType}, DefaultError, ${argsType}, unknown>`;
         case 'svelte':
-            return `MutationOptions<${returnType}, unknown, ${argsType}>`;
+            return `MutationOptions<${returnType}, DefaultError, ${argsType}>`;
         default:
             throw new PluginError(name, `Unsupported target: ${target}`);
     }
