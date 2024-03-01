@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+    UseSuspenseInfiniteQueryOptions,
+    UseSuspenseQueryOptions,
     useInfiniteQuery,
     useMutation,
     useQuery,
@@ -10,14 +12,11 @@ import {
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
-    UseSuspenseInfiniteQueryOptions,
-    UseSuspenseQueryOptions,
 } from '@tanstack/react-query-v5';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
 import { createContext, useContext } from 'react';
 import {
     DEFAULT_QUERY_ENDPOINT,
-    FetchFn,
     fetcher,
     getQueryKey,
     makeUrl,
@@ -25,6 +24,7 @@ import {
     setupInvalidation,
     setupOptimisticUpdate,
     type APIContext,
+    type FetchFn,
 } from '../runtime/common';
 
 /**
@@ -167,12 +167,18 @@ export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param checkReadBack Whether to check for read back errors and return undefined if found.
  * @param optimisticUpdate Whether to enable automatic optimistic update
  */
-export function useModelMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function useModelMutation<
+    TArgs,
+    TError,
+    R = any,
+    C extends boolean = boolean,
+    Result = C extends true ? R | undefined : R
+>(
     model: string,
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<UseMutationOptions<Result, unknown, T>, 'mutationFn'>,
+    options?: Omit<UseMutationOptions<Result, TError, TArgs>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C,
