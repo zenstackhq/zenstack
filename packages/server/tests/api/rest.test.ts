@@ -40,10 +40,11 @@ describe('REST server tests', () => {
         id Int @id @default(autoincrement())
         createdAt DateTime @default (now())
         updatedAt DateTime @updatedAt
-        title String
+        title String @length(1, 10)
         author User? @relation(fields: [authorId], references: [myId])
         authorId String?
         published Boolean @default(false)
+        publishedAt DateTime?
         viewCount Int @default(0)
         comments Comment[]
         setting Setting?
@@ -1293,6 +1294,49 @@ describe('REST server tests', () => {
                     });
                 });
 
+                it('creates an item with date coercion', async () => {
+                    const r = await handler({
+                        method: 'post',
+                        path: '/post',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'post',
+                                attributes: {
+                                    id: 1,
+                                    title: 'Post1',
+                                    published: true,
+                                    publishedAt: '2024-03-02T05:00:00.000Z',
+                                },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(201);
+                });
+
+                it('creates an item with zod violation', async () => {
+                    const r = await handler({
+                        method: 'post',
+                        path: '/post',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'post',
+                                attributes: {
+                                    id: 1,
+                                    title: 'a very very long long title',
+                                },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(400);
+                    expect(r.body.errors[0].code).toBe('invalid-payload');
+                });
+
                 it('creates an item with collection relations', async () => {
                     await prisma.post.create({
                         data: { id: 1, title: 'Post1' },
@@ -1584,6 +1628,50 @@ describe('REST server tests', () => {
                             },
                         ],
                     });
+                });
+
+                it('update an item with date coercion', async () => {
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: '/post/1',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'post',
+                                attributes: {
+                                    published: true,
+                                    publishedAt: '2024-03-02T05:00:00.000Z',
+                                },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(200);
+                });
+
+                it('update an item with zod violation', async () => {
+                    await prisma.post.create({ data: { id: 1, title: 'Post1' } });
+
+                    const r = await handler({
+                        method: 'put',
+                        path: '/post/1',
+                        query: {},
+                        requestBody: {
+                            data: {
+                                type: 'post',
+                                attributes: {
+                                    publishedAt: '2024-13-01',
+                                },
+                            },
+                        },
+                        prisma,
+                    });
+
+                    expect(r.status).toBe(400);
+                    expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
                 it('update a single relation', async () => {

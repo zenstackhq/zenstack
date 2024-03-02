@@ -14,13 +14,13 @@ import { inject, provide } from 'vue';
 import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
-    FetchFn,
     fetcher,
     getQueryKey,
     makeUrl,
     marshal,
     setupInvalidation,
     setupOptimisticUpdate,
+    type FetchFn,
 } from './common';
 
 export { APIContext as RequestHandlerContext } from './common';
@@ -61,7 +61,7 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: UseQueryOptions<TQueryFnData, TError, TData>,
+    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
@@ -87,7 +87,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: UseInfiniteQueryOptions<TQueryFnData, TError, TData>,
+    options?: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
     fetch?: FetchFn
 ) {
     return useInfiniteQuery<TQueryFnData, TError, TData>({
@@ -113,12 +113,18 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useMutation hooks
  */
-export function useModelMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function useModelMutation<
+    TArgs,
+    TError,
+    R = any,
+    C extends boolean = boolean,
+    Result = C extends true ? R | undefined : R
+>(
     model: string,
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<UseMutationOptions<Result, unknown, T, unknown>, 'mutationFn'>,
+    options?: Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C,
@@ -168,5 +174,5 @@ export function useModelMutation<T, R = any, C extends boolean = boolean, Result
             );
         }
     }
-    return useMutation<Result, unknown, T>(finalOptions);
+    return useMutation<Result, TError, TArgs>(finalOptions);
 }

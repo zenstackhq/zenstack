@@ -5,7 +5,7 @@ enum Role {
 
 model User {
     id Int @id @default(autoincrement())
-    email String @unique @email
+    email String @unique @email @lower
     role Role @default(USER)
     profile Profile?
     posts Post[]
@@ -52,7 +52,7 @@ model Image {
 
 model Post {
     id Int @id @default(autoincrement())
-    title String @length(1, 8)
+    title String @length(1, 8) @trim
     published Boolean @default(false)
     comments Comment[]
     author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -67,7 +67,7 @@ model Post {
 
 model Comment {
     id Int @id @default(autoincrement())
-    content String
+    content String @trim
 
     author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
     authorId Int

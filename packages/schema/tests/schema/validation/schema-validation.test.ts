@@ -39,6 +39,20 @@ describe('Toplevel Schema Validation Tests', () => {
         ).toContain('Cannot find model file models/abc.zmodel');
     });
 
+    it('not existing import with extension', async () => {
+        expect(
+            await loadModelWithError(`
+                import 'models/abc.zmodel'
+                datasource db1 {
+                    provider = 'postgresql'
+                    url = env('DATABASE_URL')
+                }
+
+                model X {id String @id }
+        `)
+        ).toContain('Cannot find model file models/abc.zmodel');
+    })
+
     it('multiple auth models', async () => {
         expect(
             await loadModelWithError(`

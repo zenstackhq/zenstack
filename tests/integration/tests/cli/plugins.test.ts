@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /// <reference types="@types/jest" />
 
-import { getWorkspaceNpmCacheFolder, run } from '@zenstackhq/testtools';
+import { getWorkspaceNpmCacheFolder, installPackage, run } from '@zenstackhq/testtools';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as tmp from 'tmp';
@@ -94,8 +94,8 @@ describe('CLI Plugins Tests', () => {
 
         switch (pm) {
             case 'npm':
-                run('npm install ' + deps);
-                run('npm install -D ' + devDeps);
+                installPackage(deps);
+                installPackage(devDeps, true);
                 break;
             // case 'yarn':
             //     run('yarn add ' + deps);

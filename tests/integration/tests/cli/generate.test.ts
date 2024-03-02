@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /// <reference types="@types/jest" />
 
+import { installPackage } from '@zenstackhq/testtools';
 import * as fs from 'fs';
 import path from 'path';
 import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
-import { execSync } from '../../../../packages/schema/src/utils/exec-utils';
 import { createNpmrc } from './share';
 
 describe('CLI generate command tests', () => {
@@ -43,8 +43,8 @@ model Post {
         // set up project
         fs.writeFileSync('package.json', JSON.stringify({ name: 'my app', version: '1.0.0' }));
         createNpmrc();
-        execSync('npm install prisma @prisma/client zod');
-        execSync(`npm install ${path.join(__dirname, '../../../../packages/runtime/dist')}`);
+        installPackage('prisma @prisma/client zod');
+        installPackage(path.join(__dirname, '../../../../packages/runtime/dist'));
 
         // set up schema
         fs.writeFileSync('schema.zmodel', MODEL, 'utf-8');
