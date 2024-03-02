@@ -12,7 +12,6 @@ import type { ModelMeta } from '@zenstackhq/runtime/cross';
 import { createContext, useContext } from 'react';
 import {
     DEFAULT_QUERY_ENDPOINT,
-    FetchFn,
     fetcher,
     getQueryKey,
     makeUrl,
@@ -20,6 +19,7 @@ import {
     setupInvalidation,
     setupOptimisticUpdate,
     type APIContext,
+    type FetchFn,
 } from './common';
 
 /**
@@ -110,12 +110,18 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useMutation hooks
  */
-export function useModelMutation<T, R = any, C extends boolean = boolean, Result = C extends true ? R | undefined : R>(
+export function useModelMutation<
+    TArgs,
+    TError,
+    R = any,
+    C extends boolean = boolean,
+    Result = C extends true ? R | undefined : R
+>(
     model: string,
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<UseMutationOptions<Result, unknown, T>, 'mutationFn'>,
+    options?: Omit<UseMutationOptions<Result, TError, TArgs>, 'mutationFn'>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C,
