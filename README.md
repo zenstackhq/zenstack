@@ -224,7 +224,35 @@ Join our [discord server](https://discord.gg/Ykhr738dUe) for chat and updates!
 
 If you like ZenStack, join us to make it a better tool! Please use the [Contributing Guide](CONTRIBUTING.md) for details on how to get started, and don't hesitate to join [Discord](https://discord.gg/Ykhr738dUe) to share your thoughts.
 
-Please also consider [sponsoring our work](https://github.com/sponsors/zenstackhq) to speed up the development of ZenStack. Thank you!
+Please also consider [sponsoring our work](https://github.com/sponsors/zenstackhq) to speed up the development. Your contribution will be 100% used as a bounty reward to encourage community members to help fix bugs, add features, and improve documentation.
+
+## Sponsors
+
+Thank you for your support!
+
+<table>
+  <tr>
+   <td align="center"><a href="https://github.com/j0hannr"><img src="https://avatars.githubusercontent.com/u/52762073?v=4" width="100" style="border-radius:50%" alt="Johann Rohn"/><br />Johann Rohn</a></td>
+
+   <td align="center"><a href="https://github.com/baenie"><img src="https://avatars.githubusercontent.com/u/58309104?v=4" width="100" style="border-radius:50%" alt="Benjamin Zecirovic"/><br />Benjamin Zecirovic</a></td>
+  </tr>
+</table>
+
+## Contributors
+
+Thanks to all the contributors who have helped make ZenStack better!
+
+#### Source
+
+<a href="https://github.com/zenstackhq/zenstack/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=zenstackhq/zenstack" />
+</a>
+
+#### Docs
+
+<a href="https://github.com/zenstackhq/zenstack-docs/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=zenstackhq/zenstack-docs" />
+</a>
 
 ## License
 
