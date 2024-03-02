@@ -26,6 +26,21 @@ export const QUERY_KEY_PREFIX = 'zenstack';
 export type FetchFn = (url: string, options?: RequestInit) => Promise<Response>;
 
 /**
+ * Type for query and mutation errors.
+ */
+export type QueryError = Error & {
+    /**
+     * Additional error information.
+     */
+    info?: unknown;
+
+    /**
+     * HTTP status code.
+     */
+    status?: number;
+};
+
+/**
  * Context type for configuring the hooks.
  */
 export type APIContext = {
@@ -64,9 +79,7 @@ export async function fetcher<R, C extends boolean>(
             // policy doesn't allow mutation result to be read back, just return undefined
             return undefined as any;
         }
-        const error: Error & { info?: unknown; status?: number } = new Error(
-            'An error occurred while fetching the data.'
-        );
+        const error: QueryError = new Error('An error occurred while fetching the data.');
         error.info = errData.error;
         error.status = res.status;
         throw error;

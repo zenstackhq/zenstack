@@ -172,7 +172,7 @@ function makeZodSchema(field: DataModelField) {
                 schema = 'z.boolean()';
                 break;
             case 'DateTime':
-                schema = 'z.date()';
+                schema = 'z.coerce.date()';
                 break;
             case 'Bytes':
                 schema = 'z.union([z.string(), z.instanceof(Uint8Array)])';
