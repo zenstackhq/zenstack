@@ -49,7 +49,7 @@ describe('Prisma generator test', () => {
             }
         `);
 
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -90,7 +90,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -128,7 +128,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -162,7 +162,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -194,7 +194,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -230,7 +230,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -270,7 +270,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -321,7 +321,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -357,7 +357,7 @@ describe('Prisma generator test', () => {
         }
     `);
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -380,7 +380,7 @@ describe('Prisma generator test', () => {
         const model = await loadDocument(path.join(__dirname, './zmodel/schema.zmodel'));
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -430,7 +430,7 @@ describe('Prisma generator test', () => {
     `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -461,7 +461,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -496,7 +496,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',

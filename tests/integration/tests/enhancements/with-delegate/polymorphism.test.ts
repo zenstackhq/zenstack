@@ -1,5 +1,7 @@
-import { loadSchema } from '@zenstackhq/testtools';
 import { PrismaErrorCode } from '@zenstackhq/runtime';
+import { loadSchema, run } from '@zenstackhq/testtools';
+import fs from 'fs';
+import path from 'path';
 
 describe('Polymorphism Test', () => {
     const schema = `
@@ -1011,5 +1013,78 @@ model Gallery {
         expect(() => db.ratedVideo.groupBy({ having: { rating: { gt: 0 }, viewCount: { gt: 0 } } })).toThrow(
             'groupBy with fields from base type is not supported yet'
         );
+    });
+
+    it('typescript compilation', async () => {
+        const { projectDir } = await loadSchema(schema, { enhancements: ['delegate'] });
+        const src = `
+        import { PrismaClient } from '@prisma/client';
+        import { enhance } from '.zenstack/enhance';
+        
+        const prisma = new PrismaClient();
+        
+        async function main() {
+            await prisma.user.deleteMany();
+            const db = enhance(prisma);
+        
+            const user1 = await db.user.create({ data: { } });
+        
+            await db.ratedVideo.create({
+                data: {
+                    owner: { connect: { id: user1.id } },
+                    duration: 100,
+                    url: 'abc',
+                    rating: 10,
+                },
+            });
+        
+            await db.image.create({
+                data: {
+                    owner: { connect: { id: user1.id } },
+                    format: 'webp',
+                },
+            });
+        
+            const video = await db.video.findFirst({ include: { owner: true } });
+            console.log(video?.duration);
+            console.log(video?.viewCount);
+        
+            const asset = await db.asset.findFirstOrThrow();
+            console.log(asset.assetType);
+            console.log(asset.viewCount);
+        
+            if (asset.assetType === 'Video') {
+                console.log('Video: duration', asset.duration);
+            } else {
+                console.log('Image: format', asset.format);
+            }
+        }
+        
+        main()
+            .then(async () => {
+                await prisma.$disconnect();
+            })
+            .catch(async (e) => {
+                console.error(e);
+                await prisma.$disconnect();
+                process.exit(1);
+        });        
+        `;
+
+        fs.writeFileSync(path.join(projectDir, 'script.ts'), src);
+        fs.writeFileSync(
+            path.join(projectDir, 'tsconfig.json'),
+            JSON.stringify({
+                compilerOptions: {
+                    outDir: 'dist',
+                    strict: true,
+                    lib: ['esnext'],
+                    esModuleInterop: true,
+                },
+            })
+        );
+
+        run('npm i -D @types/node', undefined, projectDir);
+        run('npx tsc --noEmit --skipLibCheck script.ts', undefined, projectDir);
     });
 });

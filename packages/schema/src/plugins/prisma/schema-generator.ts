@@ -17,6 +17,7 @@ import {
     InvocationExpr,
     isArrayExpr,
     isDataModel,
+    isDataSource,
     isInvocationExpr,
     isLiteralExpr,
     isNullExpr,
@@ -79,6 +80,7 @@ import {
 
 const MODEL_PASSTHROUGH_ATTR = '@@prisma.passthrough';
 const FIELD_PASSTHROUGH_ATTR = '@prisma.passthrough';
+const PROVIDERS_SUPPORTING_NAMED_CONSTRAINTS = ['postgresql', 'mysql', 'cockroachdb'];
 
 /**
  * Generates Prisma schema file
@@ -95,7 +97,9 @@ export class PrismaSchemaGenerator {
 
     private mode: 'logical' | 'physical' = 'physical';
 
-    async generate(model: Model, options: PluginOptions) {
+    constructor(private readonly zmodel: Model) {}
+
+    async generate(options: PluginOptions) {
         const warnings: string[] = [];
         if (options.mode) {
             this.mode = options.mode as 'logical' | 'physical';
@@ -110,7 +114,7 @@ export class PrismaSchemaGenerator {
 
         const prisma = new PrismaModel();
 
-        for (const decl of model.declarations) {
+        for (const decl of this.zmodel.declarations) {
             switch (decl.$type) {
                 case DataSource:
                     this.generateDataSource(prisma, decl as DataSource);
@@ -151,7 +155,7 @@ export class PrismaSchemaGenerator {
         const generateClient = options.generateClient !== false;
 
         if (generateClient) {
-            let generateCmd = `prisma generate --schema "${outFile}"`;
+            let generateCmd = `prisma generate --schema "${outFile}"${this.mode === 'logical' ? ' --no-engine' : ''}`;
             if (typeof options.generateArgs === 'string') {
                 generateCmd += ` ${options.generateArgs}`;
             }
@@ -452,23 +456,44 @@ export class PrismaSchemaGenerator {
                                     new AttributeArgValue('FieldReference', new PrismaFieldReference(idField.name))
                             )
                         );
-                        relationField.attributes.push(
-                            new PrismaFieldAttribute('@relation', [
-                                new PrismaAttributeArg('fields', args),
-                                new PrismaAttributeArg('references', args),
+
+                        const addedRel = new PrismaFieldAttribute('@relation', [
+                            new PrismaAttributeArg('fields', args),
+                            new PrismaAttributeArg('references', args),
+                        ]);
+
+                        if (this.supportNamedConstraints) {
+                            addedRel.args.push(
                                 // generate a `map` argument for foreign key constraint disambiguation
                                 new PrismaAttributeArg(
                                     'map',
                                     new PrismaAttributeArgValue('String', `${relationField.name}_fk`)
-                                ),
-                            ])
-                        );
+                                )
+                            );
+                        }
+
+                        relationField.attributes.push(addedRel);
                     } else {
                         relationField.attributes.push(this.makeFieldAttribute(relAttr as DataModelFieldAttribute));
                     }
                 }
             });
         });
+    }
+
+    private get supportNamedConstraints() {
+        const ds = this.zmodel.declarations.find(isDataSource);
+        if (!ds) {
+            return false;
+        }
+
+        const provider = ds.fields.find((f) => f.name === 'provider');
+        if (!provider) {
+            return false;
+        }
+
+        const value = getStringLiteral(provider.value);
+        return value && PROVIDERS_SUPPORTING_NAMED_CONSTRAINTS.includes(value);
     }
 
     private isPrismaAttribute(attr: DataModelAttribute | DataModelFieldAttribute) {
