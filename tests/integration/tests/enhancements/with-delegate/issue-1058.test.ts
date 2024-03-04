@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
-describe('Regression tests', () => {
-    it('FK Constraint Ambiguity', async () => {
+describe('Regression for issue 1058', () => {
+    it('test', async () => {
         const schema = `
         model User {
           id String @id @default(cuid())
