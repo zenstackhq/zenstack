@@ -1,10 +1,11 @@
 on:
     push:
-        branches:
-            - main # Your main branch
-            - dev # Your development branch
-            - release/* # Your releases branch
-            - v2 # Temp V2 integration branch
+        branches: []
+        # branches:
+        #     - main # Your main branch
+        #     - dev # Your development branch
+        #     - release/* # Your releases branch
+        #     - v2 # Temp V2 integration branch
 
 permissions:
     contents: read
