@@ -1,4 +1,19 @@
-# 0.5.0 (2022-12-15)
+# Changelog
+
+## [2.0.0-alpha.2](https://github.com/zenstackhq/zenstack/compare/v2.0.0-alpha.1...v2.0.0-alpha.2) (2024-03-04)
+
+
+### Bug Fixes
+
+* default auth without user context ([#1015](https://github.com/zenstackhq/zenstack/issues/1015)) ([e5b5a0f](https://github.com/zenstackhq/zenstack/commit/e5b5a0fee34e46bee5557229f6f5894629c6ad96))
+* foreign key constraint ambiguity in generated delegate prisma schema ([#1060](https://github.com/zenstackhq/zenstack/issues/1060)) ([ca2a314](https://github.com/zenstackhq/zenstack/commit/ca2a314a927053703e4dbc76542499159b8bf6a8))
+
+
+### Performance Improvements
+
+* improve polymorphism code generation speed ([#1073](https://github.com/zenstackhq/zenstack/issues/1073)) ([5b103ba](https://github.com/zenstackhq/zenstack/commit/5b103badea7876b7dfc1da91c26eca3213ddd413))
+
+## 0.5.0 (2022-12-15)
 
 ### Features
 
@@ -12,7 +27,7 @@
 
 -   Next-auth adapter and helper are moved to a separate package `@zenstackhq/next-auth`.
 
-# 0.4.0 (2022-12-01)
+## 0.4.0 (2022-12-01)
 
 ### Features
 
@@ -50,7 +65,7 @@
 
     Use @zenstackhq/runtime/types for type definitions shared between client and server, @zenstackhq/runtime/client for client-specific libaries (like React hooks), and @zenstackhq/runtime/server for server-specific libraries.
 
-# 0.3.0 (2022-11-08)
+## 0.3.0 (2022-11-08)
 
 ### Features
 
@@ -70,7 +85,7 @@
 
 -   Better overall documentation
 
-# 0.2.0 (2022-10-29)
+## 0.2.0 (2022-10-29)
 
 ### Features
 

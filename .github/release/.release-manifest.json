@@ -1,5 +1,5 @@
 {
-    ".": "2.0.0-alpha.1",
+    ".": "2.0.0-alpha.2",
     "packages/ide/jetbrains": "2.0.0-alpha.2",
     "packages/language": "2.0.0-alpha.2",
     "packages/misc/redwood": "2.0.0-alpha.2",
@@ -7,7 +7,7 @@
     "packages/plugins/swr": "2.0.0-alpha.2",
     "packages/plugins/tanstack-query": "2.0.0-alpha.2",
     "packages/plugins/trpc": "2.0.0-alpha.2",
-    "packages/runtime": "2.0.0-alpha.2",
+    "packages/runtime": "2.0.0-alpha.3",
     "packages/sdk": "2.0.0-alpha.2",
     "packages/server": "2.0.0-alpha.2",
     "packages/testtools": "2.0.0-alpha.2"
