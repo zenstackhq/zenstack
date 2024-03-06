@@ -235,6 +235,41 @@ describe('Polymorphism Test', () => {
         expect(imgAsset.owner).toMatchObject(user);
     });
 
+    it('order by base fields', async () => {
+        const { db, user } = await setup();
+
+        await expect(
+            db.video.findMany({
+                orderBy: { viewCount: 'desc' },
+            })
+        ).resolves.toHaveLength(1);
+
+        await expect(
+            db.ratedVideo.findMany({
+                orderBy: { duration: 'asc' },
+            })
+        ).resolves.toHaveLength(1);
+
+        await expect(
+            db.user.findMany({
+                orderBy: { assets: { _count: 'desc' } },
+            })
+        ).resolves.toHaveLength(1);
+
+        await expect(
+            db.user.findUnique({
+                where: { id: user.id },
+                include: {
+                    ratedVideos: {
+                        orderBy: {
+                            viewCount: 'desc',
+                        },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+    });
+
     it('update simple', async () => {
         const { db, videoWithOwner: video } = await setup();
 
