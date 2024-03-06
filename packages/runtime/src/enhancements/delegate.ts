@@ -77,6 +77,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         this.injectWhereHierarchy(model, args?.where);
         this.injectSelectIncludeHierarchy(model, args);
 
+        if (args.orderBy) {
+            // `orderBy` may contain fields from base types
+            args.orderBy = this.buildWhereHierarchy(this.model, args.orderBy);
+        }
+
         if (this.options.logPrismaQuery) {
             this.logger.info(`[delegate] \`${method}\` ${this.getModelName(model)}: ${formatObject(args)}`);
         }
@@ -126,19 +131,19 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         });
     }
 
-    private buildWhereHierarchy(where: any) {
+    private buildWhereHierarchy(model: string, where: any) {
         if (!where) {
             return undefined;
         }
 
         where = deepcopy(where);
         Object.entries(where).forEach(([field, value]) => {
-            const fieldInfo = resolveField(this.options.modelMeta, this.model, field);
+            const fieldInfo = resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo?.inheritedFrom) {
                 return;
             }
 
-            let base = this.getBaseModel(this.model);
+            let base = this.getBaseModel(model);
             let target = where;
 
             while (base) {
@@ -173,12 +178,17 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         for (const kind of ['select', 'include'] as const) {
             if (args[kind] && typeof args[kind] === 'object') {
-                for (const [field, value] of Object.entries(args[kind])) {
-                    if (value !== undefined) {
+                for (const [field, value] of Object.entries<any>(args[kind])) {
+                    const fieldInfo = resolveField(this.options.modelMeta, model, field);
+                    if (fieldInfo && value !== undefined) {
+                        if (value?.orderBy) {
+                            // `orderBy` may contain fields from base types
+                            value.orderBy = this.buildWhereHierarchy(fieldInfo.type, value.orderBy);
+                        }
+
                         if (this.injectBaseFieldSelect(model, field, value, args, kind)) {
                             delete args[kind][field];
                         } else {
-                            const fieldInfo = resolveField(this.options.modelMeta, model, field);
                             if (fieldInfo && this.isDelegateOrDescendantOfDelegate(fieldInfo.type)) {
                                 let nextValue = value;
                                 if (nextValue === true) {
@@ -847,15 +857,15 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = deepcopy(args);
 
         if (args.cursor) {
-            args.cursor = this.buildWhereHierarchy(args.cursor);
+            args.cursor = this.buildWhereHierarchy(this.model, args.cursor);
         }
 
         if (args.orderBy) {
-            args.orderBy = this.buildWhereHierarchy(args.orderBy);
+            args.orderBy = this.buildWhereHierarchy(this.model, args.orderBy);
         }
 
         if (args.where) {
-            args.where = this.buildWhereHierarchy(args.where);
+            args.where = this.buildWhereHierarchy(this.model, args.where);
         }
 
         if (this.options.logPrismaQuery) {
@@ -875,11 +885,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = deepcopy(args);
 
         if (args?.cursor) {
-            args.cursor = this.buildWhereHierarchy(args.cursor);
+            args.cursor = this.buildWhereHierarchy(this.model, args.cursor);
         }
 
         if (args?.where) {
-            args.where = this.buildWhereHierarchy(args.where);
+            args.where = this.buildWhereHierarchy(this.model, args.where);
         }
 
         if (this.options.logPrismaQuery) {
@@ -915,7 +925,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         args = deepcopy(args);
 
         if (args.where) {
-            args.where = this.buildWhereHierarchy(args.where);
+            args.where = this.buildWhereHierarchy(this.model, args.where);
         }
 
         if (this.options.logPrismaQuery) {
