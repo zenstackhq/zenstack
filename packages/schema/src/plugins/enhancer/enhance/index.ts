@@ -39,9 +39,7 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
         // schema contains delegate models, need to generate a logical prisma schema
         const result = await generateLogicalPrisma(model, options, outDir);
 
-        // record the logical prisma client dir and dmmf, they'll be used when running
-        // other plugins
-        logicalPrismaClientDir = result.prismaClientDir;
+        logicalPrismaClientDir = './.logical-prisma-client';
         dmmf = result.dmmf;
 
         // create a reexport of the logical prisma client
@@ -126,18 +124,8 @@ async function generateLogicalPrisma(model: Model, options: PluginOptions, outDi
     // make a bunch of typing fixes to the generated prisma client
     await processClientTypes(model, path.join(outDir, prismaClientOutDir));
 
-    let prismaClientDir = prismaClientOutDir;
-    if (options.output) {
-        // process user-provided output path
-        const prismaClientDirAbs = path.resolve(outDir, prismaClientOutDir);
-
-        // translate to a path relative to the zmodel schema
-        prismaClientDir = path.relative(path.dirname(options.schemaPath), prismaClientDirAbs);
-    }
-
     return {
         prismaSchema: logicalPrismaFile,
-        prismaClientDir,
         // load the dmmf of the logical prisma schema
         dmmf: await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) }),
     };

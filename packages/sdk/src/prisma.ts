@@ -26,8 +26,14 @@ export function getPrismaClientImportSpec(importingFromDir: string, options: Plu
     // resolve absolute path based on the zmodel file location
     const resolvedPrismaClientOutput = path.resolve(path.dirname(options.schemaPath), options.prismaClientPath);
 
+    // translate to path relative to the importing context directory
+    let result = path.relative(importingFromDir, resolvedPrismaClientOutput);
+
+    // remove leading `node_modules` (which may be provided by the user)
+    result = result.replace(/^([./\\]*)?node_modules\//, '');
+
     // compute prisma client absolute output dir relative to the importing file
-    return normalizePath(path.relative(importingFromDir, resolvedPrismaClientOutput));
+    return normalizePath(result);
 }
 
 function normalizePath(p: string) {

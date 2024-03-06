@@ -285,7 +285,7 @@ export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaP
     if (path.isAbsolute(_path)) {
         return _path;
     } else {
-        return path.join(path.dirname(options.schemaPath), _path);
+        return path.resolve(path.dirname(options.schemaPath), _path);
     }
 }
 
