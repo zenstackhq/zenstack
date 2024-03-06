@@ -34,9 +34,24 @@ import {
     TypeScriptExpressionTransformer,
 } from '.';
 
+/**
+ * Options for generating model metadata
+ */
 export type ModelMetaGeneratorOptions = {
+    /**
+     * Output directory
+     */
     output: string;
+
+    /**
+     * Whether to generate all attributes
+     */
     generateAttributes: boolean;
+
+    /**
+     * Whether to preserve the pre-compilation TypeScript files
+     */
+    preserveTsFiles?: boolean;
 };
 
 export async function generate(project: Project, models: DataModel[], options: ModelMetaGeneratorOptions) {
@@ -49,6 +64,11 @@ export async function generate(project: Project, models: DataModel[], options: M
         ],
     });
     sf.addStatements('export default metadata;');
+
+    if (options.preserveTsFiles) {
+        await sf.save();
+    }
+
     return sf;
 }
 

@@ -89,7 +89,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
         }
 
-        return this.warnings;
+        return { warnings: this.warnings };
     }
 
     private generatePaths(components: OAPI.ComponentsObject): OAPI.PathsObject {

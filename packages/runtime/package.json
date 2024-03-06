@@ -46,6 +46,9 @@
             "import": "./cross/index.mjs",
             "require": "./cross/index.js",
             "default": "./cross/index.js"
+        },
+        "./prisma": {
+            "types": "./prisma.d.ts"
         }
     },
     "publishConfig": {

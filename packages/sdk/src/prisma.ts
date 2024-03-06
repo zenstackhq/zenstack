@@ -3,62 +3,37 @@
 import type { DMMF } from '@prisma/generator-helper';
 import path from 'path';
 import * as semver from 'semver';
-import { GeneratorDecl, Model, Plugin, isGeneratorDecl, isPlugin } from './ast';
-import { getLiteral } from './utils';
+import { RUNTIME_PACKAGE } from './constants';
+import type { PluginOptions } from './types';
 
 /**
- * Given a ZModel and an import context directory, compute the import spec for the Prisma Client.
+ * Given an import context directory and plugin options, compute the import spec for the Prisma Client.
  */
-export function getPrismaClientImportSpec(model: Model, importingFromDir: string) {
-    const generator = model.declarations.find(
-        (d) =>
-            isGeneratorDecl(d) &&
-            d.fields.some((f) => f.name === 'provider' && getLiteral(f.value) === 'prisma-client-js')
-    ) as GeneratorDecl;
-
-    const clientOutputField = generator?.fields.find((f) => f.name === 'output');
-    const clientOutput = getLiteral(clientOutputField?.value);
-
-    if (!clientOutput) {
-        // no user-declared Prisma Client output location
+export function getPrismaClientImportSpec(importingFromDir: string, options: PluginOptions) {
+    if (!options.prismaClientPath || options.prismaClientPath === '@prisma/client') {
         return '@prisma/client';
     }
 
-    if (path.isAbsolute(clientOutput)) {
+    if (options.prismaClientPath.startsWith(RUNTIME_PACKAGE)) {
+        return options.prismaClientPath;
+    }
+
+    if (path.isAbsolute(options.prismaClientPath)) {
         // absolute path
-        return clientOutput;
+        return options.prismaClientPath;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const zmodelDir = path.dirname(model.$document!.uri.fsPath);
+    // resolve absolute path based on the zmodel file location
+    const resolvedPrismaClientOutput = path.resolve(path.dirname(options.schemaPath), options.prismaClientPath);
 
-    // compute prisma schema absolute output path
-    let prismaSchemaOutputDir = path.resolve(zmodelDir, './prisma');
-    const prismaPlugin = model.declarations.find(
-        (d) => isPlugin(d) && d.fields.some((f) => f.name === 'provider' && getLiteral(f.value) === '@core/prisma')
-    ) as Plugin;
-    if (prismaPlugin) {
-        const output = getLiteral(prismaPlugin.fields.find((f) => f.name === 'output')?.value);
-        if (output) {
-            if (path.isAbsolute(output)) {
-                // absolute prisma schema output path
-                prismaSchemaOutputDir = path.dirname(output);
-            } else {
-                prismaSchemaOutputDir = path.dirname(path.resolve(zmodelDir, output));
-            }
-        }
-    }
+    // translate to path relative to the importing context directory
+    let result = path.relative(importingFromDir, resolvedPrismaClientOutput);
 
-    // resolve the prisma client output path, which is relative to the prisma schema
-    const resolvedPrismaClientOutput = path.resolve(prismaSchemaOutputDir, clientOutput);
-
-    // DEBUG:
-    // console.log('PRISMA SCHEMA PATH:', prismaSchemaOutputDir);
-    // console.log('PRISMA CLIENT PATH:', resolvedPrismaClientOutput);
-    // console.log('IMPORTING PATH:', importingFromDir);
+    // remove leading `node_modules` (which may be provided by the user)
+    result = result.replace(/^([./\\]*)?node_modules\//, '');
 
     // compute prisma client absolute output dir relative to the importing file
-    return normalizePath(path.relative(importingFromDir, resolvedPrismaClientOutput));
+    return normalizePath(result);
 }
 
 function normalizePath(p: string) {

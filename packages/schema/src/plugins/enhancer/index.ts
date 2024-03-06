@@ -1,11 +1,5 @@
-import {
-    PluginError,
-    createProject,
-    emitProject,
-    resolvePath,
-    saveProject,
-    type PluginFunction,
-} from '@zenstackhq/sdk';
+import { PluginError, createProject, resolvePath, type PluginFunction, RUNTIME_PACKAGE } from '@zenstackhq/sdk';
+import path from 'path';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import { generate as generateEnhancer } from './enhance';
 import { generate as generateModelMeta } from './model-meta';
@@ -15,34 +9,33 @@ export const name = 'Prisma Enhancer';
 export const description = 'Generating PrismaClient enhancer';
 
 const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
-    let ourDir = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
-    if (!ourDir) {
+    let outDir = options.output ? (options.output as string) : getDefaultOutputFolder(globalOptions);
+    if (!outDir) {
         throw new PluginError(name, `Unable to determine output path, not running plugin`);
     }
-    ourDir = resolvePath(ourDir, options);
+    outDir = resolvePath(outDir, options);
 
-    const project = createProject();
+    const project = globalOptions?.tsProject ?? createProject();
 
-    await generateModelMeta(model, options, project, ourDir);
-    await generatePolicy(model, options, project, ourDir);
-    await generateEnhancer(model, options, project, ourDir);
+    await generateModelMeta(model, options, project, outDir);
+    await generatePolicy(model, options, project, outDir);
+    const { dmmf } = await generateEnhancer(model, options, project, outDir);
 
-    let shouldCompile = true;
-    if (typeof options.compile === 'boolean') {
-        // explicit override
-        shouldCompile = options.compile;
-    } else if (globalOptions) {
-        // from CLI or config file
-        shouldCompile = globalOptions.compile;
+    let prismaClientPath: string | undefined;
+    if (dmmf) {
+        // a logical client is generated
+        if (typeof options.output === 'string') {
+            // get the absolute path of the logical prisma client
+            const prismaClientPathAbs = path.resolve(options.output, 'prisma');
+
+            // resolve it relative to the schema path
+            prismaClientPath = path.relative(path.dirname(options.schemaPath), prismaClientPathAbs);
+        } else {
+            prismaClientPath = `${RUNTIME_PACKAGE}/prisma`;
+        }
     }
 
-    if (!shouldCompile || options.preserveTsFiles === true) {
-        await saveProject(project);
-    }
-
-    if (shouldCompile) {
-        await emitProject(project);
-    }
+    return { dmmf, warnings: [], prismaClientPath };
 };
 
 export default run;

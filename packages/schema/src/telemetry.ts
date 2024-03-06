@@ -111,18 +111,18 @@ export class Telemetry {
         }
     }
 
-    async trackSpan(
+    async trackSpan<T>(
         startEvent: TelemetryEvents,
         completeEvent: TelemetryEvents,
         errorEvent: TelemetryEvents,
         properties: Record<string, unknown>,
-        action: () => Promise<unknown> | void
+        action: () => Promise<T> | T
     ) {
         this.track(startEvent, properties);
         const start = Date.now();
         let success = true;
         try {
-            await Promise.resolve(action());
+            return await action();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             this.track(errorEvent, {

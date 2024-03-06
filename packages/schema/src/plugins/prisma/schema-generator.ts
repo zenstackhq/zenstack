@@ -34,7 +34,6 @@ import { getIdFields } from '../../utils/ast-utils';
 import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
-    getDMMF,
     getLiteral,
     getPrismaVersion,
     isAuthInvocation,
@@ -43,7 +42,6 @@ import {
     PluginError,
     PluginOptions,
     resolved,
-    resolvePath,
     ZModelCodeGenerator,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
@@ -52,13 +50,10 @@ import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
-import stripColor from 'strip-color';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
-import telemetry from '../../telemetry';
 import { execPackage } from '../../utils/exec-utils';
-import { findUp } from '../../utils/pkg-utils';
 import {
     AttributeArgValue,
     ModelFieldType,
@@ -100,6 +95,11 @@ export class PrismaSchemaGenerator {
     constructor(private readonly zmodel: Model) {}
 
     async generate(options: PluginOptions) {
+        if (!options.output) {
+            throw new PluginError(name, 'Output file is not specified');
+        }
+
+        const outFile = options.output as string;
         const warnings: string[] = [];
         if (options.mode) {
             this.mode = options.mode as 'logical' | 'physical';
@@ -134,10 +134,6 @@ export class PrismaSchemaGenerator {
             }
         }
 
-        const outFile = options.output
-            ? resolvePath(options.output as string, options)
-            : getDefaultPrismaOutputFile(options.schemaPath);
-
         if (!fs.existsSync(path.dirname(outFile))) {
             fs.mkdirSync(path.dirname(outFile), { recursive: true });
         }
@@ -152,40 +148,7 @@ export class PrismaSchemaGenerator {
             }
         }
 
-        const generateClient = options.generateClient !== false;
-
-        if (generateClient) {
-            let generateCmd = `prisma generate --schema "${outFile}"${this.mode === 'logical' ? ' --no-engine' : ''}`;
-            if (typeof options.generateArgs === 'string') {
-                generateCmd += ` ${options.generateArgs}`;
-            }
-            try {
-                // run 'prisma generate'
-                await execPackage(generateCmd, { stdio: 'ignore' });
-            } catch {
-                await this.trackPrismaSchemaError(outFile);
-                try {
-                    // run 'prisma generate' again with output to the console
-                    await execPackage(generateCmd);
-                } catch {
-                    // noop
-                }
-                throw new PluginError(name, `Failed to run "prisma generate"`);
-            }
-        }
-
         return warnings;
-    }
-
-    private async trackPrismaSchemaError(schema: string) {
-        try {
-            await getDMMF({ datamodel: fs.readFileSync(schema, 'utf-8') });
-        } catch (err) {
-            if (err instanceof Error) {
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
-                telemetry.track('prisma:error', { command: 'generate', message: stripColor(err.message) });
-            }
-        }
     }
 
     private generateDataSource(prisma: PrismaModel, dataSource: DataSource) {
@@ -692,22 +655,4 @@ export class PrismaSchemaGenerator {
 
 function isDescendantOf(model: DataModel, superModel: DataModel): boolean {
     return model.superTypes.some((s) => s.ref === superModel || isDescendantOf(s.ref!, superModel));
-}
-
-export function getDefaultPrismaOutputFile(schemaPath: string) {
-    // handle override from package.json
-    const pkgJsonPath = findUp(['package.json'], path.dirname(schemaPath));
-    if (pkgJsonPath) {
-        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
-        if (typeof pkgJson?.zenstack?.prisma === 'string') {
-            if (path.isAbsolute(pkgJson.zenstack.prisma)) {
-                return pkgJson.zenstack.prisma;
-            } else {
-                // resolve relative to package.json
-                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.prisma);
-            }
-        }
-    }
-
-    return resolvePath('./prisma/schema.prisma', { schemaPath });
 }

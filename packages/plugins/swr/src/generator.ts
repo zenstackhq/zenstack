@@ -49,11 +49,11 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
             return;
         }
-        generateModelHooks(project, outDir, dataModel, mapping, legacyMutations);
+        generateModelHooks(project, outDir, dataModel, mapping, legacyMutations, options);
     });
 
     await saveProject(project);
-    return warnings;
+    return { warnings };
 }
 
 function generateModelHooks(
@@ -61,14 +61,15 @@ function generateModelHooks(
     outDir: string,
     model: DataModel,
     mapping: DMMF.ModelMapping,
-    legacyMutations: boolean
+    legacyMutations: boolean,
+    options: PluginOptions
 ) {
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
     sf.addStatements('/* eslint-disable */');
 
-    const prismaImport = getPrismaClientImportSpec(model.$container, outDir);
+    const prismaImport = getPrismaClientImportSpec(outDir, options);
     sf.addImportDeclaration({
         namedImports: ['Prisma'],
         isTypeOnly: true,

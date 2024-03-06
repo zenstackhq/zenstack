@@ -253,7 +253,10 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         const tsconfig = json.parse(fs.readFileSync(path.join(projectRoot, './tsconfig.json'), 'utf-8'));
         tsconfig.compilerOptions.paths = {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
+            '.zenstack/prisma': ['./node_modules/.zenstack/prisma.d.ts'],
         };
+        tsconfig.include = ['**/*.ts'];
+        tsconfig.exclude = ['node_modules'];
         fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
     }
@@ -335,12 +338,17 @@ export async function loadZModelAndDmmf(
     const model = await loadDocument(modelFile);
 
     const { name: prismaFile } = tmp.fileSync({ postfix: '.prisma' });
-    await prismaPlugin(model, {
-        provider: '@core/plugin',
-        schemaPath: modelFile,
-        output: prismaFile,
-        generateClient: false,
-    });
+    await prismaPlugin(
+        model,
+        {
+            provider: '@core/plugin',
+            schemaPath: modelFile,
+            output: prismaFile,
+            generateClient: false,
+        },
+        undefined,
+        undefined
+    );
 
     const prismaContent = fs.readFileSync(prismaFile, { encoding: 'utf-8' });
 

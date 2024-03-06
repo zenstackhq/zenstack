@@ -72,7 +72,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         generateModelActions,
         generateClientHelpers,
         model,
-        zodSchemasImport
+        zodSchemasImport,
+        options
     );
     createHelper(outDir);
 
@@ -86,7 +87,8 @@ function createAppRouter(
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
     zmodel: Model,
-    zodSchemasImport: string
+    zodSchemasImport: string,
+    options: PluginOptions
 ) {
     const indexFile = path.resolve(outDir, 'routers', `index.ts`);
     const appRouter = project.createSourceFile(indexFile, undefined, {
@@ -95,7 +97,7 @@ function createAppRouter(
 
     appRouter.addStatements('/* eslint-disable */');
 
-    const prismaImport = getPrismaClientImportSpec(zmodel, path.dirname(indexFile));
+    const prismaImport = getPrismaClientImportSpec(path.dirname(indexFile), options);
     appRouter.addImportDeclarations([
         {
             namedImports: [
@@ -169,8 +171,8 @@ function createAppRouter(
                         outDir,
                         generateModelActions,
                         generateClientHelpers,
-                        zmodel,
-                        zodSchemasImport
+                        zodSchemasImport,
+                        options
                     );
 
                     appRouter.addImportDeclaration({
@@ -239,8 +241,8 @@ function generateModelCreateRouter(
     outputDir: string,
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    zmodel: Model,
-    zodSchemasImport: string
+    zodSchemasImport: string,
+    options: PluginOptions
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -258,7 +260,7 @@ function generateModelCreateRouter(
     generateRouterSchemaImport(modelRouter, zodSchemasImport);
     generateHelperImport(modelRouter);
     if (generateClientHelpers) {
-        generateRouterTypingImports(modelRouter, zmodel);
+        generateRouterTypingImports(modelRouter, options);
     }
 
     const createRouterFunc = modelRouter.addFunction({
