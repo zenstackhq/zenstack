@@ -76,7 +76,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
         }
 
-        return this.warnings;
+        return { warnings: this.warnings };
     }
 
     private generatePaths(): OAPI.PathsObject {

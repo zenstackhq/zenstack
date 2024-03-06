@@ -1,12 +1,16 @@
+import type { DMMF } from '@prisma/generator-helper';
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     getAttribute,
     getDataModels,
+    getDMMF,
     getPrismaClientImportSpec,
     isDelegateModel,
+    PluginError,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, isDataModel, isReferenceExpr, type Model } from '@zenstackhq/sdk/ast';
+import fs from 'fs';
 import path from 'path';
 import {
     FunctionDeclarationStructure,
@@ -19,31 +23,52 @@ import {
     TypeAliasDeclaration,
     VariableStatement,
 } from 'ts-morph';
+import { name } from '..';
+import { execPackage } from '../../../utils/exec-utils';
+import { trackPrismaSchemaError } from '../../prisma';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
 
 export async function generate(model: Model, options: PluginOptions, project: Project, outDir: string) {
-    const outFile = path.join(outDir, 'enhance.ts');
     let logicalPrismaClientDir: string | undefined;
+    let dmmf: DMMF.Document | undefined;
 
     if (hasDelegateModel(model)) {
-        logicalPrismaClientDir = await generateLogicalPrisma(model, options, outDir);
+        // schema contains delegate models, need to generate a logical prisma schema
+        const result = await generateLogicalPrisma(model, options, outDir);
+
+        // record the logical prisma client dir and dmmf, they'll be used when running
+        // other plugins
+        logicalPrismaClientDir = result.prismaClientDir;
+        dmmf = result.dmmf;
+
+        // create a reexport of the logical prisma client
+        const prismaDts = project.createSourceFile(
+            path.join(outDir, 'prisma.d.ts'),
+            `export type * from '${logicalPrismaClientDir}/index-fixed';`,
+            { overwrite: true }
+        );
+        await saveSourceFile(prismaDts, options);
+    } else {
+        // just reexport the prisma client
+        const prismaDts = project.createSourceFile(
+            path.join(outDir, 'prisma.d.ts'),
+            `export type * from '${getPrismaClientImportSpec(outDir, options)}';`,
+            { overwrite: true }
+        );
+        await saveSourceFile(prismaDts, options);
     }
 
-    project.createSourceFile(
-        outFile,
+    const enhanceTs = project.createSourceFile(
+        path.join(outDir, 'enhance.ts'),
         `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas } from '@zenstackhq/runtime';
 import modelMeta from './model-meta';
 import policy from './policy';
 ${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
-import { Prisma } from '${getPrismaClientImportSpec(model, outDir)}';
-${
-    logicalPrismaClientDir
-        ? `import type { PrismaClient as EnhancedPrismaClient } from '${logicalPrismaClientDir}/index-fixed';`
-        : ''
-}
+import { Prisma } from '${getPrismaClientImportSpec(outDir, options)}';
+${logicalPrismaClientDir ? `import { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';` : ``}
 
 export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext, options?: EnhancementOptions) {
     return createEnhancement(prisma, {
@@ -52,11 +77,15 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
         zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
         prismaModule: Prisma,
         ...options
-    }, context)${logicalPrismaClientDir ? ' as EnhancedPrismaClient' : ''};
+    }, context)${logicalPrismaClientDir ? ' as PrismaClient' : ''};
 }
 `,
         { overwrite: true }
     );
+
+    await saveSourceFile(enhanceTs, options);
+
+    return { dmmf };
 }
 
 function hasDelegateModel(model: Model) {
@@ -68,19 +97,50 @@ function hasDelegateModel(model: Model) {
 
 async function generateLogicalPrisma(model: Model, options: PluginOptions, outDir: string) {
     const prismaGenerator = new PrismaSchemaGenerator(model);
-    const prismaClientOutDir = './.delegate';
+    const prismaClientOutDir = './.logical-prisma-client';
+    const logicalPrismaFile = path.join(outDir, 'logical.prisma');
     await prismaGenerator.generate({
         provider: '@internal', // doesn't matter
         schemaPath: options.schemaPath,
-        output: path.join(outDir, 'delegate.prisma'),
+        output: logicalPrismaFile,
         overrideClientGenerationPath: prismaClientOutDir,
         mode: 'logical',
     });
 
+    // generate the prisma client
+    const generateCmd = `prisma generate --schema "${logicalPrismaFile}" --no-engine`;
+    try {
+        // run 'prisma generate'
+        await execPackage(generateCmd, { stdio: 'ignore' });
+    } catch {
+        await trackPrismaSchemaError(logicalPrismaFile);
+        try {
+            // run 'prisma generate' again with output to the console
+            await execPackage(generateCmd);
+        } catch {
+            // noop
+        }
+        throw new PluginError(name, `Failed to run "prisma generate"`);
+    }
+
     // make a bunch of typing fixes to the generated prisma client
     await processClientTypes(model, path.join(outDir, prismaClientOutDir));
 
-    return prismaClientOutDir;
+    let prismaClientDir = prismaClientOutDir;
+    if (options.output) {
+        // process user-provided output path
+        const prismaClientDirAbs = path.resolve(outDir, prismaClientOutDir);
+
+        // translate to a path relative to the zmodel schema
+        prismaClientDir = path.relative(path.dirname(options.schemaPath), prismaClientDirAbs);
+    }
+
+    return {
+        prismaSchema: logicalPrismaFile,
+        prismaClientDir,
+        // load the dmmf of the logical prisma schema
+        dmmf: await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) }),
+    };
 }
 
 async function processClientTypes(model: Model, prismaClientDir: string) {
@@ -106,8 +166,7 @@ async function processClientTypes(model: Model, prismaClientDir: string) {
     });
     transform(sf, sfNew, delegateInfo);
     sfNew.formatText();
-
-    await project.save();
+    await sfNew.save();
 }
 
 function transform(sf: SourceFile, sfNew: SourceFile, delegateModels: DelegateInfo) {
@@ -351,4 +410,10 @@ function getDiscriminatorFieldsRecursively(delegate: DataModel, result: DataMode
         }
     }
     return result;
+}
+
+async function saveSourceFile(sf: SourceFile, options: PluginOptions) {
+    if (options.preserveTsFiles) {
+        await sf.save();
+    }
 }

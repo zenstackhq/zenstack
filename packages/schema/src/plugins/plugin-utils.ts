@@ -55,6 +55,9 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                         types: './zod/objects/index.d.ts',
                         default: './zod/objects/index.js',
                     },
+                    './prisma': {
+                        types: './prisma.d.ts',
+                    },
                 },
             };
             fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify(pkgJson, undefined, 4));

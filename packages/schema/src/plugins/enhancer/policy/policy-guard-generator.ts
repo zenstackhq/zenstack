@@ -60,7 +60,7 @@ import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
  * Generates source file that contains Prisma query guard objects used for injecting database queries
  */
 export class PolicyGenerator {
-    async generate(project: Project, model: Model, _options: PluginOptions, output: string) {
+    async generate(project: Project, model: Model, options: PluginOptions, output: string) {
         const sf = project.createSourceFile(path.join(output, 'policy.ts'), undefined, { overwrite: true });
         sf.addStatements('/* eslint-disable */');
 
@@ -75,7 +75,7 @@ export class PolicyGenerator {
         });
 
         // import enums
-        const prismaImport = getPrismaClientImportSpec(model, output);
+        const prismaImport = getPrismaClientImportSpec(output, options);
         for (const e of model.declarations.filter((d) => isEnum(d) && this.isEnumReferenced(model, d))) {
             sf.addImportDeclaration({
                 namedImports: [{ name: e.name }],
@@ -140,6 +140,12 @@ export class PolicyGenerator {
         });
 
         sf.addStatements('export default policy');
+
+        // save ts files if requested explicitly or the user provided
+        const preserveTsFiles = options.preserveTsFiles === true || !!options.output;
+        if (preserveTsFiles) {
+            await sf.save();
+        }
     }
 
     // Generates a { select: ... } object to select `auth()` fields used in policy rules
