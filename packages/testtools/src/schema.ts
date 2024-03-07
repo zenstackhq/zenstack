@@ -2,7 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import type { AuthUser, CrudContract, EnhancementKind, EnhancementOptions } from '@zenstackhq/runtime';
+import {
+    DEFAULT_RUNTIME_LOAD_PATH,
+    type AuthUser,
+    type CrudContract,
+    type EnhancementKind,
+    type EnhancementOptions,
+} from '@zenstackhq/runtime';
 import { getDMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -284,7 +290,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         ? path.isAbsolute(opt.output)
             ? opt.output
             : path.join(projectRoot, opt.output)
-        : path.join(projectRoot, 'node_modules', '.zenstack');
+        : path.join(projectRoot, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
 
     const policy = require(path.join(outputPath, 'policy')).default;
     const modelMeta = require(path.join(outputPath, 'model-meta')).default;

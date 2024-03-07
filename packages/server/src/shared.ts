@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import type { ModelMeta, PolicyDef, ZodSchemas } from '@zenstackhq/runtime';
+import { DEFAULT_RUNTIME_LOAD_PATH, type ModelMeta, type PolicyDef, type ZodSchemas } from '@zenstackhq/runtime';
 import path from 'path';
 import { AdapterBaseOptions } from './types';
 
@@ -39,7 +39,8 @@ export function getDefaultModelMeta(loadPath: string | undefined): ModelMeta {
         if (process.env.ZENSTACK_TEST === '1' && !loadPath) {
             try {
                 // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'model-meta')).default;
+                return require(path.join(process.cwd(), 'node_modules', DEFAULT_RUNTIME_LOAD_PATH, 'model-meta'))
+                    .default;
             } catch {
                 throw new Error('Model meta cannot be loaded. Please make sure "zenstack generate" has been run.');
             }
@@ -66,7 +67,7 @@ export function getDefaultPolicy(loadPath: string | undefined): PolicyDef {
         if (process.env.ZENSTACK_TEST === '1' && !loadPath) {
             try {
                 // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'policy')).default;
+                return require(path.join(process.cwd(), 'node_modules', DEFAULT_RUNTIME_LOAD_PATH, 'policy')).default;
             } catch {
                 throw new Error(
                     'Policy definition cannot be loaded from default location. Please make sure "zenstack generate" has been run.'
@@ -97,7 +98,7 @@ export function getDefaultZodSchemas(loadPath: string | undefined): ZodSchemas |
         if (process.env.ZENSTACK_TEST === '1' && !loadPath) {
             try {
                 // special handling for running as tests, try resolving relative to CWD
-                return require(path.join(process.cwd(), 'node_modules', '.zenstack', 'zod'));
+                return require(path.join(process.cwd(), 'node_modules', DEFAULT_RUNTIME_LOAD_PATH, 'zod'));
             } catch {
                 return undefined;
             }
