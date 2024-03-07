@@ -1,22 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from './exec-utils';
+import { match } from 'ts-pattern';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
 /**
- * A type named FindUp that takes a type parameter e which extends boolean. 
- * If e extends true, it returns a union type of string[] or undefined. 
+ * A type named FindUp that takes a type parameter e which extends boolean.
+ * If e extends true, it returns a union type of string[] or undefined.
  * If e does not extend true, it returns a union type of string or undefined.
  *
  * @export
  * @template e A type parameter that extends boolean
  */
-export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined
+export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined;
 /**
- * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path. 
- * Optionally return a single path or multiple paths. 
- * If multiple allowed, return all paths found. 
+ * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path.
+ * Optionally return a single path or multiple paths.
+ * If multiple allowed, return all paths found.
  * If no paths are found, return undefined.
  *
  * @export
@@ -27,7 +28,12 @@ export type FindUp<e extends boolean> = e extends true ? string[] | undefined : 
  * @param [result=[]] An array of strings representing the accumulated results used in multiple results
  * @returns Path(s) to a specific file or folder within the directory or parent directories
  */
-export function findUp<e extends boolean = false>(names: string[], cwd: string = process.cwd(), multiple: e = false as e, result: string[] = []): FindUp<e> {
+export function findUp<e extends boolean = false>(
+    names: string[],
+    cwd: string = process.cwd(),
+    multiple: e = false as e,
+    result: string[] = []
+): FindUp<e> {
     if (!names.some((name) => !!name)) return undefined;
     const target = names.find((name) => fs.existsSync(path.join(cwd, name)));
     if (multiple == false && target) return path.join(cwd, target) as FindUp<e>;
@@ -37,23 +43,22 @@ export function findUp<e extends boolean = false>(names: string[], cwd: string =
     return findUp(names, up, multiple, result);
 }
 
-function getPackageManager(projectPath = '.'): PackageManagers {
-    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], projectPath);
+export function getPackageManager(searchStartPath = '.') {
+    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], searchStartPath);
 
     if (!lockFile) {
         // default use npm
-        return 'npm';
+        return { packageManager: 'npm', lockFile: undefined, projectRoot: searchStartPath };
     }
 
-    switch (path.basename(lockFile)) {
-        case 'yarn.lock':
-            return 'yarn';
-        case 'pnpm-lock.yaml':
-            return 'pnpm';
-        default:
-            return 'npm';
-    }
+    const packageManager = match(path.basename(lockFile))
+        .with('yarn.lock', () => 'yarn')
+        .with('pnpm-lock.yaml', () => 'pnpm')
+        .otherwise(() => 'npm');
+
+    return { packageManager, lockFile, projectRoot: path.dirname(lockFile) };
 }
+
 export function installPackage(
     pkg: string,
     dev: boolean,
@@ -106,7 +111,7 @@ export function ensurePackage(
 }
 
 /**
- * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided. 
+ * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided.
  * It iterates through the directory structure going one level up at a time until it finds a package.json file. If no package.json file is found, it returns undefined.
  * @deprecated Use findUp instead @see findUp
  */
