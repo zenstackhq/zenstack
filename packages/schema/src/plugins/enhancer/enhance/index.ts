@@ -49,7 +49,7 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
             `export type * from '${logicalPrismaClientDir}/index-fixed';`,
             { overwrite: true }
         );
-        await saveSourceFile(prismaDts, options);
+        await prismaDts.save();
     } else {
         // just reexport the prisma client
         const prismaDts = project.createSourceFile(
@@ -57,7 +57,7 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
             `export type * from '${getPrismaClientImportSpec(outDir, options)}';`,
             { overwrite: true }
         );
-        await saveSourceFile(prismaDts, options);
+        await prismaDts.save();
     }
 
     const enhanceTs = project.createSourceFile(
