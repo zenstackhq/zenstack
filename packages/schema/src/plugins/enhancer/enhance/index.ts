@@ -36,7 +36,9 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
     let logicalPrismaClientDir: string | undefined;
     let dmmf: DMMF.Document | undefined;
 
-    if (needsLogicalClient(model)) {
+    const withLogicalClient = needsLogicalClient(model);
+
+    if (withLogicalClient) {
         // schema contains delegate models, need to generate a logical prisma schema
         const result = await generateLogicalPrisma(model, options, outDir);
 
@@ -67,16 +69,18 @@ import modelMeta from './model-meta';
 import policy from './policy';
 ${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
 import { Prisma } from '${getPrismaClientImportSpec(outDir, options)}';
-${logicalPrismaClientDir ? `import { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';` : ``}
+${withLogicalClient ? `import { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';` : ``}
 
-export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext, options?: EnhancementOptions) {
+export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext, options?: EnhancementOptions)${
+            withLogicalClient ? ': PrismaClient' : ''
+        } {
     return createEnhancement(prisma, {
         modelMeta,
         policy,
         zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
         prismaModule: Prisma,
         ...options
-    }, context)${logicalPrismaClientDir ? ' as PrismaClient' : ''};
+    }, context)${withLogicalClient ? ' as PrismaClient' : ''};
 }
 `,
         { overwrite: true }
