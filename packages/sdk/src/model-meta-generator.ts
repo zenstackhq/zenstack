@@ -32,6 +32,7 @@ import {
     isIdField,
     resolved,
     TypeScriptExpressionTransformer,
+    getRelationField,
 } from '.';
 
 /**
@@ -247,6 +248,11 @@ function writeFields(
             if (isForeignKeyField(f)) {
                 writer.write(`
         isForeignKey: true,`);
+                const relationField = getRelationField(f);
+                if (relationField) {
+                    writer.write(`
+        relationField: '${relationField.name}',`);
+                }
             }
 
             if (fkMapping && Object.keys(fkMapping).length > 0) {
@@ -408,7 +414,6 @@ function generateForeignKeyMapping(field: DataModelField) {
     const fieldNames = fields.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
     const referenceNames = references.items.map((item) => (isReferenceExpr(item) ? item.target.$refText : undefined));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: Record<string, string> = {};
     referenceNames.forEach((name, i) => {
         if (name) {

@@ -21,7 +21,7 @@ import type { EnhancementContext, InternalEnhancementOptions } from '../create-e
 import { Logger } from '../logger';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
-import { formatObject, prismaClientValidationError } from '../utils';
+import { formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
 import { PolicyUtil } from './policy-utils';
 import { createDeferredPromise } from './promise';
 
@@ -691,7 +691,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 // operations. E.g.:
                 //     - safe: { data: { user: { connect: { id: 1 }} } }
                 //     - unsafe: { data: { userId: 1 } }
-                const unsafe = this.isUnsafeMutate(model, args);
+                const unsafe = isUnsafeMutate(model, args, this.modelMeta);
 
                 // handles the connection to upstream entity
                 const reversedQuery = this.policyUtils.buildReversedQuery(context, true, unsafe);
@@ -1081,23 +1081,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         } else {
             return data;
         }
-    }
-
-    private isUnsafeMutate(model: string, args: any) {
-        if (!args) {
-            return false;
-        }
-        for (const k of Object.keys(args)) {
-            const field = resolveField(this.modelMeta, model, k);
-            if (field && (this.isAutoIncrementIdField(field) || field.isForeignKey)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private isAutoIncrementIdField(field: FieldInfo) {
-        return field.isId && field.isAutoIncrement;
     }
 
     async updateMany(args: any) {

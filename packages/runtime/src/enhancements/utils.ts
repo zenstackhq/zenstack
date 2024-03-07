@@ -1,4 +1,5 @@
 import * as util from 'util';
+import { FieldInfo, ModelMeta, resolveField } from '..';
 import type { DbClientContract } from '../types';
 
 /**
@@ -21,4 +22,22 @@ export function prismaClientKnownRequestError(prisma: DbClientContract, prismaMo
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function prismaClientUnknownRequestError(prismaModule: any, ...args: unknown[]): Error {
     throw new prismaModule.PrismaClientUnknownRequestError(...args);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isUnsafeMutate(model: string, args: any, modelMeta: ModelMeta) {
+    if (!args) {
+        return false;
+    }
+    for (const k of Object.keys(args)) {
+        const field = resolveField(modelMeta, model, k);
+        if (field && (isAutoIncrementIdField(field) || field.isForeignKey)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+export function isAutoIncrementIdField(field: FieldInfo) {
+    return field.isId && field.isAutoIncrement;
 }

@@ -75,7 +75,14 @@ export type FieldInfo = {
     isForeignKey?: boolean;
 
     /**
-     * Mapping from foreign key field names to relation field names
+     * If the field is a foreign key field, the field name of the corresponding relation field.
+     * Only available on foreign key fields.
+     */
+    relationField?: string;
+
+    /**
+     * Mapping from foreign key field names to relation field names.
+     * Only available on relation fields.
      */
     foreignKeyMapping?: Record<string, string>;
 

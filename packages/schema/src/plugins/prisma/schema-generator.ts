@@ -34,11 +34,12 @@ import { getIdFields } from '../../utils/ast-utils';
 import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
+    getForeignKeyFields,
     getLiteral,
     getPrismaVersion,
-    isAuthInvocation,
     isDelegateModel,
     isIdField,
+    isRelationshipField,
     PluginError,
     PluginOptions,
     resolved,
@@ -46,7 +47,6 @@ import {
 } from '@zenstackhq/sdk';
 import fs from 'fs';
 import { writeFile } from 'fs/promises';
-import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
@@ -54,6 +54,7 @@ import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import { execPackage } from '../../utils/exec-utils';
+import { isDefaultWithAuth } from '../enhancer/enhancer-utils';
 import {
     AttributeArgValue,
     ModelFieldType,
@@ -494,10 +495,27 @@ export class PrismaSchemaGenerator {
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
+        if (this.mode === 'logical') {
+            if (field.attributes.some((attr) => isDefaultWithAuth(attr))) {
+                // field has `@default` with `auth()`, it should be set optional, and the
+                // default value setting is handled outside Prisma
+                type.optional = true;
+            }
+
+            if (isRelationshipField(field)) {
+                // if foreign key field has `@default` with `auth()`, the relation
+                // field should be set optional
+                const foreignKeyFields = getForeignKeyFields(field);
+                if (foreignKeyFields.some((fkField) => fkField.attributes.some((attr) => isDefaultWithAuth(attr)))) {
+                    type.optional = true;
+                }
+            }
+        }
+
         const attributes = field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))
             // `@default` with `auth()` is handled outside Prisma
-            .filter((attr) => !this.isDefaultWithAuth(attr))
+            .filter((attr) => !isDefaultWithAuth(attr))
             .filter(
                 (attr) =>
                     // when building physical schema, exclude `@default` for id fields inherited from delegate base
@@ -522,20 +540,6 @@ export class PrismaSchemaGenerator {
 
     private isInheritedFromDelegate(field: DataModelField) {
         return field.$inheritedFrom && isDelegateModel(field.$inheritedFrom);
-    }
-
-    private isDefaultWithAuth(attr: DataModelFieldAttribute) {
-        if (attr.decl.ref?.name !== '@default') {
-            return false;
-        }
-
-        const expr = attr.args[0]?.value;
-        if (!expr) {
-            return false;
-        }
-
-        // find `auth()` in default value expression
-        return streamAst(expr).some(isAuthInvocation);
     }
 
     private makeFieldAttribute(attr: DataModelFieldAttribute) {
