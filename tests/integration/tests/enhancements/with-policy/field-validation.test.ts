@@ -609,3 +609,157 @@ describe('With Policy: field validation', () => {
         expect(u.tasks[0]).toMatchObject({ slug: 'slug2' });
     });
 });
+
+describe('With Policy: model-level validation', () => {
+    it('create', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x > 0)
+            @@validate(x >= y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 0, y: 0 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
+    });
+
+    it('update', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x >= y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+    });
+
+    it('int optionality', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int?
+
+            @@validate(x > 0)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 0 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('boolean optionality', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Boolean?
+
+            @@validate(x)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: false } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: true } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('optionality with comparison', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int?
+            y Int?
+
+            @@validate(x > y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: { y: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('optionality with complex expression', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int?
+            y Int?
+
+            @@validate(y > 1 && x > y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { y: 1 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { y: 2 } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 3, y: 2 } })).toResolveTruthy();
+    });
+
+    it('optionality with negation', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Boolean?
+
+            @@validate(!x)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: true } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: false } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('update implied optionality', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x > y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { id: 1, x: 2, y: 1 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { y: 1 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: {} })).toResolveTruthy();
+    });
+});
