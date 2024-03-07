@@ -17,7 +17,7 @@ import {
     ThisExpr,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { ExpressionContext, getLiteral, isFromStdlib, isFutureExpr } from '@zenstackhq/sdk';
+import { ExpressionContext, getLiteral, isDataModelFieldReference, isFromStdlib, isFutureExpr } from '@zenstackhq/sdk';
 import { match, P } from 'ts-pattern';
 import { getIdFields } from './ast-utils';
 
@@ -258,7 +258,13 @@ export class TypeScriptExpressionTransformer {
     }
 
     private ensureBoolean(expr: string) {
-        return `(${expr} ?? false)`;
+        if (this.options.context === ExpressionContext.ValidationRule) {
+            // all fields are optional in a validation context, so we treat undefined
+            // as boolean true
+            return `(${expr} ?? true)`;
+        } else {
+            return `(${expr} ?? false)`;
+        }
     }
 
     // #endregion
@@ -300,8 +306,18 @@ export class TypeScriptExpressionTransformer {
         }
     }
 
-    private unary(expr: UnaryExpr, normalizeUndefined: boolean): string {
-        return `(${expr.operator} ${this.transform(expr.operand, normalizeUndefined)})`;
+    private unary(expr: UnaryExpr, normalizeUndefined: boolean) {
+        const operand = this.transform(expr.operand, normalizeUndefined);
+        let result = `(${expr.operator} ${operand})`;
+        if (
+            expr.operator === '!' &&
+            this.options.context === ExpressionContext.ValidationRule &&
+            isDataModelFieldReference(expr.operand)
+        ) {
+            // in a validation context, we treat unary involving undefined as boolean true
+            result = `(${operand} !== undefined ? (${result}): true)`;
+        }
+        return result;
     }
 
     private isModelType(expr: Expression) {
@@ -316,16 +332,24 @@ export class TypeScriptExpressionTransformer {
             left = `(${left}?.id ?? null)`;
             right = `(${right}?.id ?? null)`;
         }
-        const _default = `(${left} ${expr.operator} ${right})`;
+
+        let _default = `(${left} ${expr.operator} ${right})`;
+
+        if (this.options.context === ExpressionContext.ValidationRule) {
+            // in a validation context, we treat binary involving undefined as boolean true
+            if (isDataModelFieldReference(expr.left)) {
+                _default = `(${left} !== undefined ? (${_default}): true)`;
+            }
+            if (isDataModelFieldReference(expr.right)) {
+                _default = `(${right} !== undefined ? (${_default}): true)`;
+            }
+        }
 
         return match(expr.operator)
-            .with(
-                'in',
-                () =>
-                    `(${this.transform(expr.right, false)}?.includes(${this.transform(
-                        expr.left,
-                        normalizeUndefined
-                    )}) ?? false)`
+            .with('in', () =>
+                this.ensureBoolean(
+                    `${this.transform(expr.right, false)}?.includes(${this.transform(expr.left, normalizeUndefined)})`
+                )
             )
             .with(P.union('==', '!='), () => {
                 if (isThisExpr(expr.left) || isThisExpr(expr.right)) {
@@ -363,8 +387,8 @@ export class TypeScriptExpressionTransformer {
         const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
 
         return match(operator)
-            .with('?', () => `!!((${operand})?.some((_item: any) => ${predicate}))`)
-            .with('!', () => `!!((${operand})?.every((_item: any) => ${predicate}))`)
+            .with('?', () => this.ensureBoolean(`(${operand})?.some((_item: any) => ${predicate})`))
+            .with('!', () => this.ensureBoolean(`(${operand})?.every((_item: any) => ${predicate})`))
             .with('^', () => `!((${operand})?.some((_item: any) => ${predicate}))`)
             .exhaustive();
     }

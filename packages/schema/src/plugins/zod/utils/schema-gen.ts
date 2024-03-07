@@ -4,6 +4,7 @@ import {
     getAttributeArg,
     getAttributeArgLiteral,
     getLiteral,
+    isDataModelFieldReference,
     isFromStdlib,
 } from '@zenstackhq/sdk';
 import {
@@ -205,10 +206,17 @@ export function makeValidationRefinements(model: DataModel) {
             const message = messageArg ? `, { message: ${JSON.stringify(messageArg)} }` : '';
 
             try {
-                const expr = new TypeScriptExpressionTransformer({
+                let expr = new TypeScriptExpressionTransformer({
                     context: ExpressionContext.ValidationRule,
                     fieldReferenceContext: 'value',
                 }).transform(valueArg);
+
+                if (isDataModelFieldReference(valueArg)) {
+                    // if the expression is a simple field reference, treat undefined
+                    // as true since the all fields are optional in validation context
+                    expr = `${expr} ?? true`;
+                }
+
                 return `.refine((value: any) => ${expr}${message})`;
             } catch (err) {
                 if (err instanceof TypeScriptExpressionTransformerError) {

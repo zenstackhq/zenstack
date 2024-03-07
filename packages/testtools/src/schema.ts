@@ -105,7 +105,7 @@ plugin policy {
 
 plugin zod {
     provider = '@core/zod'
-    // preserveTsFiles = true
+    preserveTsFiles = true
     modelOnly = ${!options.fullZod}
 }
 `;
