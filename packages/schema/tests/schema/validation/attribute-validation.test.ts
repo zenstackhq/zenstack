@@ -227,7 +227,7 @@ describe('Attribute tests', () => {
         `);
 
         await loadModel(`
-            ${ prelude }
+            ${prelude}
             model A {
                 id String @id
                 x String
@@ -1051,21 +1051,6 @@ describe('Attribute tests', () => {
         }
     `);
 
-        // expect(
-        //     await loadModelWithError(`
-        //     ${prelude}
-
-        //     model User {
-        //         id String @id
-        //         name String
-        //     }
-        //     model B {
-        //         id String @id
-        //         userData String @default(auth())
-        //     }
-        // `)
-        // ).toContain("Value is not assignable to parameter");
-
         expect(
             await loadModelWithError(`
             ${prelude}
@@ -1185,15 +1170,6 @@ describe('Attribute tests', () => {
     });
 
     it('incorrect function expression context', async () => {
-        // expect(
-        //     await loadModelWithError(`
-        //     ${prelude}
-        //     model M {
-        //         id String @id @default(auth())
-        //     }
-        // `)
-        // ).toContain('function "auth" is not allowed in the current context: DefaultValue');
-
         expect(
             await loadModelWithError(`
             ${prelude}

@@ -534,4 +534,87 @@ describe('With Policy: auth() test', () => {
         );
         await expect(db.post.findMany({})).toResolveTruthy();
     });
+
+    it('Default auth() field optionality', async () => {
+        await loadSchema(
+            `
+        model User {
+            id String @id
+            posts Post[]
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            author User @relation(fields: [authorId], references: [id])
+            authorId String @default(auth().id)
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                        import { PrismaClient } from '@prisma/client';
+                        import { enhance } from '.zenstack/enhance';
+
+                        const prisma = new PrismaClient();
+                        const db = enhance(prisma, { user: { id: 'user1' } });
+
+                        // "author" and "authorId" are optional
+                        db.post.create({ data: { title: 'abc' } });
+`,
+                    },
+                ],
+            }
+        );
+    });
+
+    it('Default auth() safe unsafe mix', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model User {
+            id String @id
+            posts Post[]
+
+            @@allow('all', true)
+        }
+
+        model Post {
+            id String @id @default(uuid())
+            title String
+            author User @relation(fields: [authorId], references: [id])
+            authorId String @default(auth().id)
+
+            stats Stats  @relation(fields: [statsId], references: [id])
+            statsId String @unique
+
+            @@allow('all', true)
+        }
+
+        model Stats {
+            id String @id @default(uuid())
+            viewCount Int @default(0)
+            post Post?
+
+            @@allow('all', true)
+
+        }
+        `
+        );
+
+        const db = enhance({ id: 'userId-1' });
+        await db.user.create({ data: { id: 'userId-1' } });
+
+        // safe
+        await db.stats.create({ data: { id: 'stats-1', viewCount: 10 } });
+        await expect(db.post.create({ data: { title: 'title', statsId: 'stats-1' } })).toResolveTruthy();
+
+        // unsafe
+        await db.stats.create({ data: { id: 'stats-2', viewCount: 10 } });
+        await expect(
+            db.post.create({ data: { title: 'title', stats: { connect: { id: 'stats-2' } } } })
+        ).toResolveTruthy();
+    });
 });

@@ -121,6 +121,7 @@ export type SchemaLoadOptions = {
     getPrismaOnly?: boolean;
     enhancements?: EnhancementKind[];
     enhanceOptions?: Partial<EnhancementOptions>;
+    extraSourceFiles?: { name: string; content: string }[];
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -246,6 +247,11 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     if (opt.compile) {
         console.log('Compiling...');
+
+        opt.extraSourceFiles?.forEach(({ name, content }) => {
+            fs.writeFileSync(path.join(projectRoot, name), content);
+        });
+
         run('npx tsc --init');
 
         // add generated '.zenstack/zod' folder to typescript's search path,

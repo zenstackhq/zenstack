@@ -2,10 +2,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepcopy from 'deepcopy';
-import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields } from '../cross';
+import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields, requireField } from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
+import { isUnsafeMutate } from './utils';
 
 /**
  * Gets an enhanced Prisma client that supports `@default(auth())` attribute.
@@ -68,7 +69,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                 const authDefaultValue = this.getDefaultValueFromAuth(fieldInfo);
                 if (authDefaultValue !== undefined) {
                     // set field value extracted from `auth()`
-                    data[fieldInfo.name] = authDefaultValue;
+                    this.setAuthDefaultValue(fieldInfo, model, data, authDefaultValue);
                 }
             }
         };
@@ -88,6 +89,47 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
 
         await visitor.visit(model, action, newArgs);
         return newArgs;
+    }
+
+    private setAuthDefaultValue(fieldInfo: FieldInfo, model: string, data: any, authDefaultValue: unknown) {
+        if (fieldInfo.isForeignKey && !isUnsafeMutate(model, data, this.options.modelMeta)) {
+            // if the field is a fk, and the create payload is not unsafe, we need to translate
+            // the fk field setting to a `connect` of the corresponding relation field
+            const relFieldName = fieldInfo.relationField;
+            if (!relFieldName) {
+                throw new Error(
+                    `Field \`${fieldInfo.name}\` is a foreign key field but no corresponding relation field is found`
+                );
+            }
+            const relationField = requireField(this.options.modelMeta, model, relFieldName);
+
+            // construct a `{ connect: { ... } }` payload
+            let connect = data[relationField.name]?.connect;
+            if (!connect) {
+                connect = {};
+                data[relationField.name] = { connect };
+            }
+
+            // sets the opposite fk field to value `authDefaultValue`
+            const oppositeFkFieldName = this.getOppositeFkFieldName(relationField, fieldInfo);
+            if (!oppositeFkFieldName) {
+                throw new Error(
+                    `Cannot find opposite foreign key field for \`${fieldInfo.name}\` in relation field \`${relFieldName}\``
+                );
+            }
+            connect[oppositeFkFieldName] = authDefaultValue;
+        } else {
+            // set default value directly
+            data[fieldInfo.name] = authDefaultValue;
+        }
+    }
+
+    private getOppositeFkFieldName(relationField: FieldInfo, fieldInfo: FieldInfo) {
+        if (!relationField.foreignKeyMapping) {
+            return undefined;
+        }
+        const entry = Object.entries(relationField.foreignKeyMapping).find(([, v]) => v === fieldInfo.name);
+        return entry?.[0];
     }
 
     private getDefaultValueFromAuth(fieldInfo: FieldInfo) {

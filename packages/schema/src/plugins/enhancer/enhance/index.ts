@@ -27,6 +27,7 @@ import { name } from '..';
 import { execPackage } from '../../../utils/exec-utils';
 import { trackPrismaSchemaError } from '../../prisma';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
+import { isDefaultWithAuth } from '../enhancer-utils';
 
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
@@ -35,7 +36,7 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
     let logicalPrismaClientDir: string | undefined;
     let dmmf: DMMF.Document | undefined;
 
-    if (hasDelegateModel(model)) {
+    if (needsLogicalClient(model)) {
         // schema contains delegate models, need to generate a logical prisma schema
         const result = await generateLogicalPrisma(model, options, outDir);
 
@@ -86,10 +87,20 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
     return { dmmf };
 }
 
+function needsLogicalClient(model: Model) {
+    return hasDelegateModel(model) || hasAuthInDefault(model);
+}
+
 function hasDelegateModel(model: Model) {
     const dataModels = getDataModels(model);
     return dataModels.some(
         (dm) => isDelegateModel(dm) && dataModels.some((sub) => sub.superTypes.some((base) => base.ref === dm))
+    );
+}
+
+function hasAuthInDefault(model: Model) {
+    return getDataModels(model).some((dm) =>
+        dm.fields.some((f) => f.attributes.some((attr) => isDefaultWithAuth(attr)))
     );
 }
 
@@ -152,12 +163,19 @@ async function processClientTypes(model: Model, prismaClientDir: string) {
     const sfNew = project.createSourceFile(path.join(prismaClientDir, 'index-fixed.d.ts'), undefined, {
         overwrite: true,
     });
-    transform(sf, sfNew, delegateInfo);
-    sfNew.formatText();
+
+    if (delegateInfo.length > 0) {
+        // transform types for delegated models
+        transformDelegate(sf, sfNew, delegateInfo);
+        sfNew.formatText();
+    } else {
+        // just copy
+        sfNew.replaceWithText(sf.getFullText());
+    }
     await sfNew.save();
 }
 
-function transform(sf: SourceFile, sfNew: SourceFile, delegateModels: DelegateInfo) {
+function transformDelegate(sf: SourceFile, sfNew: SourceFile, delegateModels: DelegateInfo) {
     // copy toplevel imports
     sfNew.addImportDeclarations(sf.getImportDeclarations().map((n) => n.getStructure()));
 

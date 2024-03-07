@@ -281,6 +281,45 @@ export function isForeignKeyField(field: DataModelField) {
     });
 }
 
+/**
+ * Gets the foreign key fields of the given relation field.
+ */
+export function getForeignKeyFields(relationField: DataModelField) {
+    if (!isRelationshipField(relationField)) {
+        return [];
+    }
+
+    const relAttr = relationField.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (relAttr) {
+        // find "fields" arg
+        const fieldsArg = getAttributeArg(relAttr, 'fields');
+        if (fieldsArg && isArrayExpr(fieldsArg)) {
+            return fieldsArg.items
+                .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+                .map((item) => item.target.ref as DataModelField);
+        }
+    }
+
+    return [];
+}
+
+/**
+ * Gets the relation field of the given foreign key field.
+ */
+export function getRelationField(fkField: DataModelField) {
+    const model = fkField.$container as DataModel;
+    return model.fields.find((f) => {
+        const relAttr = f.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+        if (relAttr) {
+            const fieldsArg = getAttributeArg(relAttr, 'fields');
+            if (fieldsArg && isArrayExpr(fieldsArg)) {
+                return fieldsArg.items.some((item) => isReferenceExpr(item) && item.target.ref === fkField);
+            }
+        }
+        return false;
+    });
+}
+
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;
