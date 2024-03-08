@@ -2,7 +2,7 @@ import { loadSchema } from '@zenstackhq/testtools';
 
 describe('issue 1078', () => {
     it('regression', async () => {
-        const { prisma, enhance } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model Counter {
                 id String @id
@@ -12,21 +12,25 @@ describe('issue 1078', () => {
               
                 @@validate(value >= 0)
                 @@allow('all', true)
-              }
+            }
             `
         );
 
         const db = enhance();
 
-        const counter = await db.counter.create({
-            data: { id: '1', name: 'It should create', value: 1 },
-        });
+        await expect(
+            db.counter.create({
+                data: { id: '1', name: 'It should create', value: 1 },
+            })
+        ).toResolveTruthy();
 
         //! This query fails validation
-        const updated = await db.counter.update({
-            where: { id: '1' },
-            data: { name: 'It should update' },
-        });
+        await expect(
+            db.counter.update({
+                where: { id: '1' },
+                data: { name: 'It should update' },
+            })
+        ).toResolveTruthy();
     });
 
     it('read', async () => {
@@ -37,8 +41,7 @@ describe('issue 1078', () => {
                 title String @allow('read', true, true)
                 content String
             }
-            `,
-            { logPrismaQuery: true }
+            `
         );
 
         const db = enhance();
