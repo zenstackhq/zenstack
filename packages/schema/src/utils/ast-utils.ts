@@ -157,11 +157,24 @@ export function isCollectionPredicate(node: AstNode): node is BinaryExpr {
     return isBinaryExpr(node) && ['?', '!', '^'].includes(node.operator);
 }
 
-
 export function getContainingDataModel(node: Expression): DataModel | undefined {
     let curr: AstNode | undefined = node.$container;
     while (curr) {
         if (isDataModel(curr)) {
+            return curr;
+        }
+        curr = curr.$container;
+    }
+    return undefined;
+}
+
+/**
+ * Walk upward from the current AST node to find the first node that satisfies the predicate.
+ */
+export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean): AstNode | undefined {
+    let curr: AstNode | undefined = node;
+    while (curr) {
+        if (predicate(curr)) {
             return curr;
         }
         curr = curr.$container;

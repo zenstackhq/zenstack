@@ -7,6 +7,7 @@ import {
     InvocationExpr,
     isDataModel,
     isEnumField,
+    isNullExpr,
     isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
@@ -168,13 +169,13 @@ export class TypeScriptExpressionTransformer {
         const max = getLiteral<number>(args[2]);
         let result: string;
         if (min === undefined) {
-            result = `(${field}?.length > 0)`;
+            result = this.ensureBooleanTernary(field, `${field}?.length > 0`);
         } else if (max === undefined) {
-            result = `(${field}?.length >= ${min})`;
+            result = this.ensureBooleanTernary(field, `${field}?.length >= ${min}`);
         } else {
-            result = `(${field}?.length >= ${min} && ${field}?.length <= ${max})`;
+            result = this.ensureBooleanTernary(field, `${field}?.length >= ${min} && ${field}?.length <= ${max}`);
         }
-        return this.ensureBoolean(result);
+        return result;
     }
 
     @func('contains')
@@ -208,25 +209,25 @@ export class TypeScriptExpressionTransformer {
     private _regex(args: Expression[]) {
         const field = this.transform(args[0], false);
         const pattern = getLiteral<string>(args[1]);
-        return `new RegExp(${JSON.stringify(pattern)}).test(${field})`;
+        return this.ensureBoolean(`${field}?.match(new RegExp(${JSON.stringify(pattern)}))`);
     }
 
     @func('email')
     private _email(args: Expression[]) {
         const field = this.transform(args[0], false);
-        return `z.string().email().safeParse(${field}).success`;
+        return this.ensureBooleanTernary(field, `z.string().email().safeParse(${field}).success`);
     }
 
     @func('datetime')
     private _datetime(args: Expression[]) {
         const field = this.transform(args[0], false);
-        return `z.string().datetime({ offset: true }).safeParse(${field}).success`;
+        return this.ensureBooleanTernary(field, `z.string().datetime({ offset: true }).safeParse(${field}).success`);
     }
 
     @func('url')
     private _url(args: Expression[]) {
         const field = this.transform(args[0], false);
-        return `z.string().url().safeParse(${field}).success`;
+        return this.ensureBooleanTernary(field, `z.string().url().safeParse(${field}).success`);
     }
 
     @func('has')
@@ -239,22 +240,25 @@ export class TypeScriptExpressionTransformer {
     @func('hasEvery')
     private _hasEvery(args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
-        const result = `${this.transform(args[1], normalizeUndefined)}?.every((item) => ${field}?.includes(item))`;
-        return this.ensureBoolean(result);
+        return this.ensureBooleanTernary(
+            field,
+            `${this.transform(args[1], normalizeUndefined)}?.every((item) => ${field}?.includes(item))`
+        );
     }
 
     @func('hasSome')
     private _hasSome(args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
-        const result = `${this.transform(args[1], normalizeUndefined)}?.some((item) => ${field}?.includes(item))`;
-        return this.ensureBoolean(result);
+        return this.ensureBooleanTernary(
+            field,
+            `${this.transform(args[1], normalizeUndefined)}?.some((item) => ${field}?.includes(item))`
+        );
     }
 
     @func('isEmpty')
     private _isEmpty(args: Expression[]) {
         const field = this.transform(args[0], false);
-        const result = `(!${field} || ${field}?.length === 0)`;
-        return this.ensureBoolean(result);
+        return `(!${field} || ${field}?.length === 0)`;
     }
 
     private ensureBoolean(expr: string) {
@@ -263,7 +267,17 @@ export class TypeScriptExpressionTransformer {
             // as boolean true
             return `(${expr} ?? true)`;
         } else {
-            return `(${expr} ?? false)`;
+            return `((${expr}) ?? false)`;
+        }
+    }
+
+    private ensureBooleanTernary(predicate: string, value: string) {
+        if (this.options.context === ExpressionContext.ValidationRule) {
+            // all fields are optional in a validation context, so we treat undefined
+            // as boolean true
+            return `((${predicate}) !== undefined ? (${value}): true)`;
+        } else {
+            return `((${predicate}) !== undefined ? (${value}): false)`;
         }
     }
 
@@ -315,7 +329,7 @@ export class TypeScriptExpressionTransformer {
             isDataModelFieldReference(expr.operand)
         ) {
             // in a validation context, we treat unary involving undefined as boolean true
-            result = `(${operand} !== undefined ? (${result}): true)`;
+            result = this.ensureBooleanTernary(operand, result);
         }
         return result;
     }
@@ -336,21 +350,39 @@ export class TypeScriptExpressionTransformer {
         let _default = `(${left} ${expr.operator} ${right})`;
 
         if (this.options.context === ExpressionContext.ValidationRule) {
-            // in a validation context, we treat binary involving undefined as boolean true
-            if (isDataModelFieldReference(expr.left)) {
-                _default = `(${left} !== undefined ? (${_default}): true)`;
-            }
-            if (isDataModelFieldReference(expr.right)) {
-                _default = `(${right} !== undefined ? (${_default}): true)`;
+            const nullComparison = this.extractNullComparison(expr);
+            if (nullComparison) {
+                // null comparison covers both null and undefined
+                const { fieldRef } = nullComparison;
+                const field = this.transform(fieldRef, normalizeUndefined);
+                if (expr.operator === '==') {
+                    _default = `(${field} === null || ${field} === undefined)`;
+                } else if (expr.operator === '!=') {
+                    _default = `(${field} !== null && ${field} !== undefined)`;
+                }
+            } else {
+                // for other comparisons, in a validation context,
+                // we treat binary involving undefined as boolean true
+                if (isDataModelFieldReference(expr.left)) {
+                    _default = this.ensureBooleanTernary(left, _default);
+                }
+                if (isDataModelFieldReference(expr.right)) {
+                    _default = this.ensureBooleanTernary(right, _default);
+                }
             }
         }
 
         return match(expr.operator)
-            .with('in', () =>
-                this.ensureBoolean(
-                    `${this.transform(expr.right, false)}?.includes(${this.transform(expr.left, normalizeUndefined)})`
-                )
-            )
+            .with('in', () => {
+                const left = `${this.transform(expr.left, normalizeUndefined)}`;
+                let result = this.ensureBoolean(`${this.transform(expr.right, false)}?.includes(${left})`);
+
+                if (this.options.context === ExpressionContext.ValidationRule) {
+                    // in a validation context, we treat binary involving undefined as boolean true
+                    result = this.ensureBooleanTernary(left, result);
+                }
+                return result;
+            })
             .with(P.union('==', '!='), () => {
                 if (isThisExpr(expr.left) || isThisExpr(expr.right)) {
                     // map equality comparison with `this` to id comparison
@@ -374,6 +406,20 @@ export class TypeScriptExpressionTransformer {
             })
             .with(P.union('?', '!', '^'), (op) => this.collectionPredicate(expr, op, normalizeUndefined))
             .otherwise(() => _default);
+    }
+
+    private extractNullComparison(expr: BinaryExpr) {
+        if (expr.operator !== '==' && expr.operator !== '!=') {
+            return undefined;
+        }
+
+        if (isDataModelFieldReference(expr.left) && isNullExpr(expr.right)) {
+            return { fieldRef: expr.left, nullExpr: expr.right };
+        } else if (isDataModelFieldReference(expr.right) && isNullExpr(expr.left)) {
+            return { fieldRef: expr.right, nullExpr: expr.left };
+        } else {
+            return undefined;
+        }
     }
 
     private collectionPredicate(expr: BinaryExpr, operator: '?' | '!' | '^', normalizeUndefined: boolean) {
