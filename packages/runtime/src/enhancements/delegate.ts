@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import deepcopy from 'deepcopy';
-import deepmerge from 'deepmerge';
+import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import { DELEGATE_AUX_RELATION_PREFIX } from '../constants';
 import {
@@ -11,7 +11,6 @@ import {
     getIdFields,
     getModelInfo,
     isDelegateModel,
-    requireField,
     resolveField,
 } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
@@ -204,7 +203,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
 
         if (!args.select) {
+            // include base models upwards
             this.injectBaseIncludeRecursively(model, args);
+
+            // include sub models downwards
+            this.injectConcreteIncludeRecursively(model, args);
         }
     }
 
@@ -232,6 +235,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         if (!selectInclude.select) {
             this.injectBaseIncludeRecursively(model, selectInclude);
+            this.injectConcreteIncludeRecursively(model, selectInclude);
         }
         return selectInclude;
     }
@@ -300,6 +304,30 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             selectInclude.include = { [baseRelationName]: {}, ...selectInclude.include };
         }
         this.injectBaseIncludeRecursively(base.name, selectInclude.include[baseRelationName]);
+    }
+
+    private injectConcreteIncludeRecursively(model: string, selectInclude: any) {
+        const modelInfo = getModelInfo(this.options.modelMeta, model);
+        if (!modelInfo) {
+            return;
+        }
+
+        // get sub models of this model
+        const subModels = Object.values(this.options.modelMeta.models).filter((m) =>
+            m.baseTypes?.includes(modelInfo.name)
+        );
+
+        for (const subModel of subModels) {
+            // include sub model relation field
+            const subRelationName = this.makeAuxRelationName(subModel);
+            if (selectInclude.select) {
+                selectInclude.include = { [subRelationName]: {}, ...selectInclude.select };
+                delete selectInclude.select;
+            } else {
+                selectInclude.include = { [subRelationName]: {}, ...selectInclude.include };
+            }
+            this.injectConcreteIncludeRecursively(subModel.name, selectInclude.include[subRelationName]);
+        }
     }
 
     // #endregion
@@ -1038,6 +1066,31 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return entity;
         }
 
+        const upMerged = this.assembleUp(model, entity);
+        const downMerged = this.assembleDown(model, entity);
+
+        // https://www.npmjs.com/package/deepmerge#arraymerge-example-combine-arrays
+        const combineMerge = (target: any[], source: any[], options: ArrayMergeOptions) => {
+            const destination = target.slice();
+            source.forEach((item, index) => {
+                if (typeof destination[index] === 'undefined') {
+                    destination[index] = options.cloneUnlessOtherwiseSpecified(item, options);
+                } else if (options.isMergeableObject(item)) {
+                    destination[index] = deepmerge(target[index], item, options);
+                } else if (target.indexOf(item) === -1) {
+                    destination.push(item);
+                }
+            });
+            return destination;
+        };
+
+        const result = deepmerge(upMerged, downMerged, {
+            arrayMerge: combineMerge,
+        });
+        return result;
+    }
+
+    private assembleUp(model: string, entity: any) {
         const result: any = {};
         const base = this.getBaseModel(model);
 
@@ -1046,7 +1099,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             const baseRelationName = this.makeAuxRelationName(base);
             const baseData = entity[baseRelationName];
             if (baseData && typeof baseData === 'object') {
-                const baseAssembled = this.assembleHierarchy(base.name, baseData);
+                const baseAssembled = this.assembleUp(base.name, baseData);
                 Object.assign(result, baseAssembled);
             }
         }
@@ -1063,9 +1116,9 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 const fieldValue = entity[field.name];
                 if (field.isDataModel) {
                     if (Array.isArray(fieldValue)) {
-                        result[field.name] = fieldValue.map((item) => this.assembleHierarchy(field.type, item));
+                        result[field.name] = fieldValue.map((item) => this.assembleUp(field.type, item));
                     } else {
-                        result[field.name] = this.assembleHierarchy(field.type, fieldValue);
+                        result[field.name] = this.assembleUp(field.type, fieldValue);
                     }
                 } else {
                     result[field.name] = fieldValue;
@@ -1076,66 +1129,39 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         return result;
     }
 
-    // #endregion
-
-    // #region backup
-
-    private transformWhereHierarchy(where: any, contextModel: ModelInfo, forModel: ModelInfo) {
-        if (!where || typeof where !== 'object') {
-            return where;
-        }
-
-        let curr: ModelInfo | undefined = contextModel;
-        const inheritStack: ModelInfo[] = [];
-        while (curr) {
-            inheritStack.unshift(curr);
-            curr = this.getBaseModel(curr.name);
-        }
-
-        let result: any = {};
-        for (const [key, value] of Object.entries(where)) {
-            const fieldInfo = requireField(this.options.modelMeta, contextModel.name, key);
-            const fieldHierarchy = this.transformFieldHierarchy(fieldInfo, value, contextModel, forModel, inheritStack);
-            result = deepmerge(result, fieldHierarchy);
-        }
-
-        return result;
-    }
-
-    private transformFieldHierarchy(
-        fieldInfo: FieldInfo,
-        value: unknown,
-        contextModel: ModelInfo,
-        forModel: ModelInfo,
-        inheritStack: ModelInfo[]
-    ): any {
-        const fieldModel = fieldInfo.inheritedFrom ? this.getModelInfo(fieldInfo.inheritedFrom) : contextModel;
-        if (fieldModel === forModel) {
-            return { [fieldInfo.name]: value };
-        }
-
-        const fieldModelPos = inheritStack.findIndex((m) => m === fieldModel);
-        const forModelPos = inheritStack.findIndex((m) => m === forModel);
+    private assembleDown(model: string, entity: any) {
         const result: any = {};
-        let curr = result;
+        const modelInfo = getModelInfo(this.options.modelMeta, model, true);
 
-        if (fieldModelPos > forModelPos) {
-            // walk down hierarchy
-            for (let i = forModelPos + 1; i <= fieldModelPos; i++) {
-                const rel = this.makeAuxRelationName(inheritStack[i]);
-                curr[rel] = {};
-                curr = curr[rel];
-            }
-        } else {
-            // walk up hierarchy
-            for (let i = forModelPos - 1; i >= fieldModelPos; i--) {
-                const rel = this.makeAuxRelationName(inheritStack[i]);
-                curr[rel] = {};
-                curr = curr[rel];
+        if (modelInfo.discriminator) {
+            // model is a delegate, merge sub model fields
+            const subModelName = entity[modelInfo.discriminator];
+            if (subModelName) {
+                const subModel = getModelInfo(this.options.modelMeta, subModelName, true);
+                const subRelationName = this.makeAuxRelationName(subModel);
+                const subData = entity[subRelationName];
+                if (subData && typeof subData === 'object') {
+                    const subAssembled = this.assembleDown(subModel.name, subData);
+                    Object.assign(result, subAssembled);
+                }
             }
         }
 
-        curr[fieldInfo.name] = value;
+        for (const field of Object.values(modelInfo.fields)) {
+            if (field.name in entity) {
+                const fieldValue = entity[field.name];
+                if (field.isDataModel) {
+                    if (Array.isArray(fieldValue)) {
+                        result[field.name] = fieldValue.map((item) => this.assembleDown(field.type, item));
+                    } else {
+                        result[field.name] = this.assembleDown(field.type, fieldValue);
+                    }
+                } else {
+                    result[field.name] = fieldValue;
+                }
+            }
+        }
+
         return result;
     }
 
