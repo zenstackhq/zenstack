@@ -44,7 +44,6 @@ import {
     PluginError,
     PluginOptions,
     resolved,
-    resolvePath,
     ZModelCodeGenerator,
 } from '@zenstackhq/sdk';
 import fs from 'fs';
@@ -56,7 +55,6 @@ import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getStringLiteral } from '../../language-server/validator/utils';
 import { execPackage } from '../../utils/exec-utils';
-import { findUp } from '../../utils/pkg-utils';
 import { isDefaultWithAuth } from '../enhancer/enhancer-utils';
 import {
     AttributeArgValue,
@@ -716,22 +714,4 @@ export class PrismaSchemaGenerator {
 
 function isDescendantOf(model: DataModel, superModel: DataModel): boolean {
     return model.superTypes.some((s) => s.ref === superModel || isDescendantOf(s.ref!, superModel));
-}
-
-export function getDefaultPrismaOutputFile(schemaPath: string) {
-    // handle override from package.json
-    const pkgJsonPath = findUp(['package.json'], path.dirname(schemaPath));
-    if (pkgJsonPath) {
-        const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
-        if (typeof pkgJson?.zenstack?.prisma === 'string') {
-            if (path.isAbsolute(pkgJson.zenstack.prisma)) {
-                return pkgJson.zenstack.prisma;
-            } else {
-                // resolve relative to package.json
-                return path.resolve(path.dirname(pkgJsonPath), pkgJson.zenstack.prisma);
-            }
-        }
-    }
-
-    return resolvePath('./prisma/schema.prisma', { schemaPath });
 }
