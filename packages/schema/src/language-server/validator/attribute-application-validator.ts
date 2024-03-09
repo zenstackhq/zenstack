@@ -15,7 +15,7 @@ import {
     isEnum,
     isReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isFutureExpr, isRelationshipField, resolved } from '@zenstackhq/sdk';
+import { isDataModelFieldReference, isFutureExpr, isRelationshipField, resolved } from '@zenstackhq/sdk';
 import { ValidationAcceptor, streamAst } from 'langium';
 import pluralize from 'pluralize';
 import { AstValidator } from '../types';
@@ -148,6 +148,19 @@ export default class AttributeApplicationValidator implements AstValidator<Attri
                     { node: attr }
                 );
             }
+        }
+    }
+
+    @check('@@validate')
+    private _checkValidate(attr: AttributeApplication, accept: ValidationAcceptor) {
+        const condition = attr.args[0]?.value;
+        if (
+            condition &&
+            streamAst(condition).some(
+                (node) => isDataModelFieldReference(node) && isDataModel(node.$resolvedType?.decl)
+            )
+        ) {
+            accept('error', `\`@@validate\` condition cannot use relation fields`, { node: condition });
         }
     }
 

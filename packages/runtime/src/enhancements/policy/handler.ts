@@ -357,17 +357,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                         }
                     }
 
-                    if (context.parent.connect) {
-                        // if the payload parent already has a "connect" clause, merge it
-                        if (Array.isArray(context.parent.connect)) {
-                            context.parent.connect.push(args.where);
-                        } else {
-                            context.parent.connect = [context.parent.connect, args.where];
-                        }
-                    } else {
-                        // otherwise, create a new "connect" clause
-                        context.parent.connect = args.where;
-                    }
+                    this.mergeToParent(context.parent, 'connect', args.where);
                     // record the key of connected entities so we can avoid validating them later
                     connectedEntities.add(getEntityKey(model, existing));
                 } else {
@@ -375,11 +365,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     pushIdFields(model, context);
 
                     // create a new "create" clause at the parent level
-                    context.parent.create = args.create;
+                    this.mergeToParent(context.parent, 'create', args.create);
                 }
 
                 // remove the connectOrCreate clause
-                delete context.parent['connectOrCreate'];
+                this.removeFromParent(context.parent, 'connectOrCreate', args);
 
                 // return false to prevent visiting the nested payload
                 return false;
@@ -917,7 +907,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 await _create(model, args, context);
 
                 // remove it from the update payload
-                delete context.parent.create;
+                this.removeFromParent(context.parent, 'create', args);
 
                 // don't visit payload
                 return false;
@@ -950,14 +940,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await _registerPostUpdateCheck(model, uniqueFilter);
 
                     // convert upsert to update
-                    context.parent.update = {
+                    const convertedUpdate = {
                         where: args.where,
                         data: this.validateUpdateInputSchema(model, args.update),
                     };
-                    delete context.parent.upsert;
+                    this.mergeToParent(context.parent, 'update', convertedUpdate);
+                    this.removeFromParent(context.parent, 'upsert', args);
 
                     // continue visiting the new payload
-                    return context.parent.update;
+                    return convertedUpdate;
                 } else {
                     // create case
 
@@ -965,7 +956,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await _create(model, args.create, context);
 
                     // remove it from the update payload
-                    delete context.parent.upsert;
+                    this.removeFromParent(context.parent, 'upsert', args);
 
                     // don't visit payload
                     return false;
@@ -1386,6 +1377,32 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     private requireBackLink(fieldInfo: FieldInfo) {
         invariant(fieldInfo.backLink, `back link not found for field ${fieldInfo.name}`);
         return requireField(this.modelMeta, fieldInfo.type, fieldInfo.backLink);
+    }
+
+    private mergeToParent(parent: any, key: string, value: any) {
+        if (parent[key]) {
+            if (Array.isArray(parent[key])) {
+                parent[key].push(value);
+            } else {
+                parent[key] = [parent[key], value];
+            }
+        } else {
+            parent[key] = value;
+        }
+    }
+
+    private removeFromParent(parent: any, key: string, data: any) {
+        if (parent[key] === data) {
+            delete parent[key];
+        } else if (Array.isArray(parent[key])) {
+            const idx = parent[key].indexOf(data);
+            if (idx >= 0) {
+                parent[key].splice(idx, 1);
+                if (parent[key].length === 0) {
+                    delete parent[key];
+                }
+            }
+        }
     }
 
     //#endregion

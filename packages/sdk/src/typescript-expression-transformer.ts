@@ -5,9 +5,6 @@ import {
     DataModel,
     Expression,
     InvocationExpr,
-    isDataModel,
-    isEnumField,
-    isThisExpr,
     LiteralExpr,
     MemberAccessExpr,
     NullExpr,
@@ -16,10 +13,16 @@ import {
     StringLiteral,
     ThisExpr,
     UnaryExpr,
+    isArrayExpr,
+    isDataModel,
+    isEnumField,
+    isLiteralExpr,
+    isNullExpr,
+    isThisExpr,
 } from '@zenstackhq/language/ast';
-import { match, P } from 'ts-pattern';
+import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
-import { getIdFields, getLiteral, isFromStdlib, isFutureExpr } from './utils';
+import { getIdFields, getLiteral, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
     constructor(message: string) {
@@ -168,13 +171,17 @@ export class TypeScriptExpressionTransformer {
         const max = getLiteral<number>(args[2]);
         let result: string;
         if (min === undefined) {
-            result = `(${field}?.length > 0)`;
+            result = this.ensureBooleanTernary(args[0], field, `${field}?.length > 0`);
         } else if (max === undefined) {
-            result = `(${field}?.length >= ${min})`;
+            result = this.ensureBooleanTernary(args[0], field, `${field}?.length >= ${min}`);
         } else {
-            result = `(${field}?.length >= ${min} && ${field}?.length <= ${max})`;
+            result = this.ensureBooleanTernary(
+                args[0],
+                field,
+                `${field}?.length >= ${min} && ${field}?.length <= ${max}`
+            );
         }
-        return this.ensureBoolean(result);
+        return result;
     }
 
     @func('contains')
@@ -208,25 +215,29 @@ export class TypeScriptExpressionTransformer {
     private _regex(args: Expression[]) {
         const field = this.transform(args[0], false);
         const pattern = getLiteral<string>(args[1]);
-        return `new RegExp(${JSON.stringify(pattern)}).test(${field})`;
+        return this.ensureBooleanTernary(args[0], field, `new RegExp(${JSON.stringify(pattern)}).test(${field})`);
     }
 
     @func('email')
     private _email(args: Expression[]) {
         const field = this.transform(args[0], false);
-        return `z.string().email().safeParse(${field}).success`;
+        return this.ensureBooleanTernary(args[0], field, `z.string().email().safeParse(${field}).success`);
     }
 
     @func('datetime')
     private _datetime(args: Expression[]) {
         const field = this.transform(args[0], false);
-        return `z.string().datetime({ offset: true }).safeParse(${field}).success`;
+        return this.ensureBooleanTernary(
+            args[0],
+            field,
+            `z.string().datetime({ offset: true }).safeParse(${field}).success`
+        );
     }
 
     @func('url')
     private _url(args: Expression[]) {
         const field = this.transform(args[0], false);
-        return `z.string().url().safeParse(${field}).success`;
+        return this.ensureBooleanTernary(args[0], field, `z.string().url().safeParse(${field}).success`);
     }
 
     @func('has')
@@ -239,26 +250,52 @@ export class TypeScriptExpressionTransformer {
     @func('hasEvery')
     private _hasEvery(args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
-        const result = `${this.transform(args[1], normalizeUndefined)}?.every((item) => ${field}?.includes(item))`;
-        return this.ensureBoolean(result);
+        return this.ensureBooleanTernary(
+            args[0],
+            field,
+            `${this.transform(args[1], normalizeUndefined)}?.every((item) => ${field}?.includes(item))`
+        );
     }
 
     @func('hasSome')
     private _hasSome(args: Expression[], normalizeUndefined: boolean) {
         const field = this.transform(args[0], false);
-        const result = `${this.transform(args[1], normalizeUndefined)}?.some((item) => ${field}?.includes(item))`;
-        return this.ensureBoolean(result);
+        return this.ensureBooleanTernary(
+            args[0],
+            field,
+            `${this.transform(args[1], normalizeUndefined)}?.some((item) => ${field}?.includes(item))`
+        );
     }
 
     @func('isEmpty')
     private _isEmpty(args: Expression[]) {
         const field = this.transform(args[0], false);
-        const result = `(!${field} || ${field}?.length === 0)`;
-        return this.ensureBoolean(result);
+        return `(!${field} || ${field}?.length === 0)`;
     }
 
     private ensureBoolean(expr: string) {
-        return `(${expr} ?? false)`;
+        if (this.options.context === ExpressionContext.ValidationRule) {
+            // all fields are optional in a validation context, so we treat undefined
+            // as boolean true
+            return `(${expr} ?? true)`;
+        } else {
+            return `((${expr}) ?? false)`;
+        }
+    }
+
+    private ensureBooleanTernary(predicate: Expression, transformedPredicate: string, value: string) {
+        if (isLiteralExpr(predicate) || isArrayExpr(predicate)) {
+            // these are never undefined
+            return value;
+        }
+
+        if (this.options.context === ExpressionContext.ValidationRule) {
+            // all fields are optional in a validation context, so we treat undefined
+            // as boolean true
+            return `((${transformedPredicate}) !== undefined ? (${value}): true)`;
+        } else {
+            return `((${transformedPredicate}) !== undefined ? (${value}): false)`;
+        }
     }
 
     // #endregion
@@ -300,8 +337,18 @@ export class TypeScriptExpressionTransformer {
         }
     }
 
-    private unary(expr: UnaryExpr, normalizeUndefined: boolean): string {
-        return `(${expr.operator} ${this.transform(expr.operand, normalizeUndefined)})`;
+    private unary(expr: UnaryExpr, normalizeUndefined: boolean) {
+        const operand = this.transform(expr.operand, normalizeUndefined);
+        let result = `(${expr.operator} ${operand})`;
+        if (
+            expr.operator === '!' &&
+            this.options.context === ExpressionContext.ValidationRule &&
+            isDataModelFieldReference(expr.operand)
+        ) {
+            // in a validation context, we treat unary involving undefined as boolean true
+            result = this.ensureBooleanTernary(expr.operand, operand, result);
+        }
+        return result;
     }
 
     private isModelType(expr: Expression) {
@@ -316,17 +363,49 @@ export class TypeScriptExpressionTransformer {
             left = `(${left}?.id ?? null)`;
             right = `(${right}?.id ?? null)`;
         }
-        const _default = `(${left} ${expr.operator} ${right})`;
+
+        let _default = `(${left} ${expr.operator} ${right})`;
+
+        if (this.options.context === ExpressionContext.ValidationRule) {
+            const nullComparison = this.extractNullComparison(expr);
+            if (nullComparison) {
+                // null comparison covers both null and undefined
+                const { fieldRef } = nullComparison;
+                const field = this.transform(fieldRef, normalizeUndefined);
+                if (expr.operator === '==') {
+                    _default = `(${field} === null || ${field} === undefined)`;
+                } else if (expr.operator === '!=') {
+                    _default = `(${field} !== null && ${field} !== undefined)`;
+                }
+            } else {
+                // for other comparisons, in a validation context,
+                // we treat binary involving undefined as boolean true
+                if (isDataModelFieldReference(expr.left)) {
+                    _default = this.ensureBooleanTernary(expr.left, left, _default);
+                }
+                if (isDataModelFieldReference(expr.right)) {
+                    _default = this.ensureBooleanTernary(expr.right, right, _default);
+                }
+            }
+        }
 
         return match(expr.operator)
-            .with(
-                'in',
-                () =>
-                    `(${this.transform(expr.right, false)}?.includes(${this.transform(
+            .with('in', () => {
+                const left = `${this.transform(expr.left, normalizeUndefined)}`;
+                const right = `${this.transform(expr.right, false)}`;
+                let result = `${right}?.includes(${left})`;
+                if (this.options.context === ExpressionContext.ValidationRule) {
+                    // in a validation context, we treat binary involving undefined as boolean true
+                    result = this.ensureBooleanTernary(
                         expr.left,
-                        normalizeUndefined
-                    )}) ?? false)`
-            )
+                        left,
+                        this.ensureBooleanTernary(expr.right, right, result)
+                    );
+                } else {
+                    result = this.ensureBoolean(result);
+                }
+                return result;
+            })
             .with(P.union('==', '!='), () => {
                 if (isThisExpr(expr.left) || isThisExpr(expr.right)) {
                     // map equality comparison with `this` to id comparison
@@ -352,6 +431,20 @@ export class TypeScriptExpressionTransformer {
             .otherwise(() => _default);
     }
 
+    private extractNullComparison(expr: BinaryExpr) {
+        if (expr.operator !== '==' && expr.operator !== '!=') {
+            return undefined;
+        }
+
+        if (isDataModelFieldReference(expr.left) && isNullExpr(expr.right)) {
+            return { fieldRef: expr.left, nullExpr: expr.right };
+        } else if (isDataModelFieldReference(expr.right) && isNullExpr(expr.left)) {
+            return { fieldRef: expr.right, nullExpr: expr.left };
+        } else {
+            return undefined;
+        }
+    }
+
     private collectionPredicate(expr: BinaryExpr, operator: '?' | '!' | '^', normalizeUndefined: boolean) {
         const operand = this.transform(expr.left, normalizeUndefined);
         const innerTransformer = new TypeScriptExpressionTransformer({
@@ -363,8 +456,8 @@ export class TypeScriptExpressionTransformer {
         const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
 
         return match(operator)
-            .with('?', () => `!!((${operand})?.some((_item: any) => ${predicate}))`)
-            .with('!', () => `!!((${operand})?.every((_item: any) => ${predicate}))`)
+            .with('?', () => this.ensureBoolean(`(${operand})?.some((_item: any) => ${predicate})`))
+            .with('!', () => this.ensureBoolean(`(${operand})?.every((_item: any) => ${predicate})`))
             .with('^', () => `!((${operand})?.some((_item: any) => ${predicate}))`)
             .exhaustive();
     }

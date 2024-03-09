@@ -10,7 +10,7 @@ describe('Data Model Validation Tests', () => {
 
     it('duplicated fields', async () => {
         const result = await safelyLoadModel(`
-            ${ prelude }
+            ${prelude}
             model M {
                 id String @id
                 x Int
@@ -128,7 +128,7 @@ describe('Data Model Validation Tests', () => {
 
         it('should error when there are no unique fields', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int
                     @@allow('all', x > 0)
@@ -199,100 +199,102 @@ describe('Data Model Validation Tests', () => {
                     x Int
                     @@deny('all', x <= 0)
                 }
-            `) 
-            
+            `);
+
             expect(result).toMatchObject(errorLike(err));
-        })
+        });
 
         it('should error when there are not id fields, without access restrictions', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int @gt(0)
                 }
-            `) 
-            
+            `);
+
             expect(result).toMatchObject(errorLike(err));
-        })
+        });
 
         it('should error when there is more than one field marked as @id', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int @id
                     y Int @id
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Model can include at most one field with @id attribute`))
-        })
+            `);
+            expect(result).toMatchObject(errorLike(`Model can include at most one field with @id attribute`));
+        });
 
-        it('should error when both @id and @@id are used', async  () => {
+        it('should error when both @id and @@id are used', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int @id
                     y Int
                     @@id([x, y])
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Model cannot have both field-level @id and model-level @@id attributes`))
-        })
+            `);
+            expect(result).toMatchObject(
+                errorLike(`Model cannot have both field-level @id and model-level @@id attributes`)
+            );
+        });
 
         it('should error when @id used on optional field', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int? @id
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must not be optional`))
-        })
+            `);
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must not be optional`));
+        });
 
         it('should error when @@id used on optional field', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int?
                     @@id([x])
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must not be optional`))
-        })
+            `);
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must not be optional`));
+        });
 
         it('should error when @id used on list field', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int[] @id
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
-        })
+            `);
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`));
+        });
 
         it('should error when @@id used on list field', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Int[]
                     @@id([x])
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
-        })
+            `);
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`));
+        });
 
         it('should error when @id used on a Json field', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Json @id
                 }
-            `)
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
-        })
+            `);
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`));
+        });
 
         it('should error when @@id used on a Json field', async () => {
             const result = await safelyLoadModel(`
-                ${ prelude }
+                ${prelude}
                 model M {
                     x Json
                     @@id([x])

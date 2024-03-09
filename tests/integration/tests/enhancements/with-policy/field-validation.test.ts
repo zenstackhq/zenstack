@@ -1,5 +1,5 @@
 import { CrudFailureReason, isPrismaClientKnownRequestError } from '@zenstackhq/runtime';
-import { FullDbClientContract, loadSchema, run } from '@zenstackhq/testtools';
+import { FullDbClientContract, createPostgresDb, dropPostgresDb, loadSchema, run } from '@zenstackhq/testtools';
 
 describe('With Policy: field validation', () => {
     let db: FullDbClientContract;
@@ -607,5 +607,334 @@ describe('With Policy: field validation', () => {
             include: { tasks: true },
         });
         expect(u.tasks[0]).toMatchObject({ slug: 'slug2' });
+    });
+});
+
+describe('With Policy: model-level validation', () => {
+    it('create', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x > 0)
+            @@validate(x >= y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 0, y: 0 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
+    });
+
+    it('update', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x >= y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+    });
+
+    it('int optionality', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int?
+
+            @@validate(x > 0)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 0 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('boolean optionality', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Boolean?
+
+            @@validate(x)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: false } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: true } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('optionality with binary', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int?
+            y Int?
+
+            @@validate(x > y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: { y: 1 } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('optionality with in operator lhs', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x String?
+
+            @@validate(x in ['foo', 'bar'])
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: 'hello' } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 'foo' } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('optionality with in operator rhs', async () => {
+        let prisma;
+        try {
+            const dbUrl = await createPostgresDb('field-validation-in-operator');
+            const r = await loadSchema(
+                `
+        model Model {
+            id Int @id @default(autoincrement())
+            x String[]
+
+            @@validate('foo' in x)
+            @@allow('all', true)
+        }
+        `,
+                {
+                    provider: 'postgresql',
+                    dbUrl,
+                }
+            );
+
+            const db = r.enhance();
+            prisma = r.prisma;
+
+            await expect(db.model.create({ data: { x: ['hello'] } })).toBeRejectedByPolicy();
+            await expect(db.model.create({ data: { x: ['foo', 'bar'] } })).toResolveTruthy();
+            await expect(db.model.create({ data: {} })).toResolveTruthy();
+        } finally {
+            await prisma.$disconnect();
+            await dropPostgresDb('field-validation-in-operator');
+        }
+    });
+
+    it('optionality with complex expression', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int?
+            y Int?
+
+            @@validate(y > 1 && x > y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { y: 1 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { y: 2 } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+        await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: 3, y: 2 } })).toResolveTruthy();
+    });
+
+    it('optionality with negation', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Boolean?
+
+            @@validate(!x)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { x: true } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { x: false } })).toResolveTruthy();
+        await expect(db.model.create({ data: {} })).toResolveTruthy();
+    });
+
+    it('update implied optionality', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x > y)
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { id: 1, x: 2, y: 1 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { y: 1 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: {} })).toResolveTruthy();
+    });
+
+    it('optionality with scalar functions', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            s String
+            e String
+            u String
+            d String
+
+            @@validate(
+                length(s, 1, 5) && 
+                contains(s, 'b') && 
+                startsWith(s, 'a') && 
+                endsWith(s, 'c') &&
+                regex(s, '^[0-9a-zA-Z]*$'),
+                'invalid s')
+            @@validate(email(e), 'invalid e')
+            @@validate(url(u), 'invalid u')
+            @@validate(datetime(d), 'invalid d')
+
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(
+            db.model.create({
+                data: {
+                    id: 1,
+                    s: 'a1b2c',
+                    e: 'a@bcd.com',
+                    u: 'https://www.zenstack.dev',
+                    d: '2024-01-01T00:00:00.000Z',
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(db.model.update({ where: { id: 1 }, data: {} })).toResolveTruthy();
+
+        await expect(db.model.update({ where: { id: 1 }, data: { s: 'a2b3c' } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { s: 'c2b3c' } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { s: 'a1b2c3' } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { s: 'aaccc' } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { s: 'a1b2d' } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { s: 'a1-3c' } })).toBeRejectedByPolicy();
+
+        await expect(db.model.update({ where: { id: 1 }, data: { e: 'b@def.com' } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { e: 'xyz' } })).toBeRejectedByPolicy();
+
+        await expect(db.model.update({ where: { id: 1 }, data: { u: 'https://zenstack.dev/docs' } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { u: 'xyz' } })).toBeRejectedByPolicy();
+
+        await expect(db.model.update({ where: { id: 1 }, data: { d: '2025-01-01T00:00:00.000Z' } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { d: 'xyz' } })).toBeRejectedByPolicy();
+    });
+
+    it('optionality with array functions', async () => {
+        let prisma;
+        try {
+            const dbUrl = await createPostgresDb('field-validation-array-funcs');
+            const r = await loadSchema(
+                `
+        model Model {
+            id Int @id @default(autoincrement())
+            x String[]
+            y Int[]
+
+            @@validate(
+                has(x, 'a') &&
+                hasEvery(x, ['a', 'b']) &&
+                hasSome(x, ['x', 'y']) &&
+                (y == null || !isEmpty(y))
+            )
+
+            @@allow('all', true)
+        }
+        `,
+                {
+                    provider: 'postgresql',
+                    dbUrl,
+                }
+            );
+
+            const db = r.enhance();
+            prisma = r.prisma;
+
+            await expect(db.model.create({ data: { id: 1, x: ['a', 'b', 'x'], y: [1] } })).toResolveTruthy();
+            await expect(db.model.update({ where: { id: 1 }, data: {} })).toResolveTruthy();
+            await expect(db.model.update({ where: { id: 1 }, data: { x: ['b', 'x'] } })).toBeRejectedByPolicy();
+            await expect(db.model.update({ where: { id: 1 }, data: { x: ['a', 'b'] } })).toBeRejectedByPolicy();
+            await expect(db.model.update({ where: { id: 1 }, data: { y: [] } })).toBeRejectedByPolicy();
+        } finally {
+            await prisma.$disconnect();
+            await dropPostgresDb('field-validation-array-funcs');
+        }
+    });
+
+    it('null comparison', async () => {
+        const { enhance } = await loadSchema(`
+        model Model {
+            id Int @id @default(autoincrement())
+            x Int
+            y Int
+
+            @@validate(x == null || !(x <= 0))
+            @@validate(y != null && !(y > 1))
+
+            @@allow('all', true)
+        }
+        `);
+
+        const db = enhance();
+
+        await expect(db.model.create({ data: { id: 1, x: 1 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { id: 1, x: 1, y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { id: 1, x: 0, y: 0 } })).toBeRejectedByPolicy();
+        await expect(db.model.create({ data: { id: 1, x: 1, y: 0 } })).toResolveTruthy();
+
+        await expect(db.model.update({ where: { id: 1 }, data: {} })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { y: 2 } })).toBeRejectedByPolicy();
+        await expect(db.model.update({ where: { id: 1 }, data: { y: 1 } })).toResolveTruthy();
+        await expect(db.model.update({ where: { id: 1 }, data: { x: 2, y: 1 } })).toResolveTruthy();
     });
 });

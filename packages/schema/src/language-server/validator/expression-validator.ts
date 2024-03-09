@@ -1,8 +1,10 @@
 import {
+    AstNode,
     BinaryExpr,
     Expression,
     ExpressionType,
     isDataModel,
+    isDataModelAttribute,
     isDataModelField,
     isEnum,
     isLiteralExpr,
@@ -12,7 +14,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { isAuthInvocation, isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
 import { ValidationAcceptor } from 'langium';
-import { getContainingDataModel, isCollectionPredicate } from '../../utils/ast-utils';
+import { findUpAst, getContainingDataModel, isCollectionPredicate } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
 
@@ -123,6 +125,17 @@ export default class ExpressionValidator implements AstValidator<Expression> {
 
             case '==':
             case '!=': {
+                if (this.isInValidationContext(expr)) {
+                    // in validation context, all fields are optional, so we should allow
+                    // comparing any field against null
+                    if (
+                        (isDataModelFieldReference(expr.left) && isNullExpr(expr.right)) ||
+                        (isDataModelFieldReference(expr.right) && isNullExpr(expr.left))
+                    ) {
+                        return;
+                    }
+                }
+
                 if (!!expr.left.$resolvedType?.array !== !!expr.right.$resolvedType?.array) {
                     accept('error', 'incompatible operand types', { node: expr });
                     break;
@@ -209,6 +222,10 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 break;
             }
         }
+    }
+
+    private isInValidationContext(node: AstNode) {
+        return findUpAst(node, (n) => isDataModelAttribute(n) && n.decl.$refText === '@@validate');
     }
 
     private isNotModelFieldExpr(expr: Expression) {

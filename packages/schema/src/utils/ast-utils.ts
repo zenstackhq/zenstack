@@ -229,3 +229,17 @@ export function getRecursiveBases(dataModel: DataModel, includeDelegate = true):
     });
     return result;
 }
+
+/**
+ * Walk upward from the current AST node to find the first node that satisfies the predicate.
+ */
+export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean): AstNode | undefined {
+    let curr: AstNode | undefined = node;
+    while (curr) {
+        if (predicate(curr)) {
+            return curr;
+        }
+        curr = curr.$container;
+    }
+    return undefined;
+}
