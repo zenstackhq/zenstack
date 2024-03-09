@@ -16,7 +16,7 @@ import {
     ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isFromStdlib } from '@zenstackhq/sdk';
+import { isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     copyAstNode,
@@ -207,19 +207,22 @@ export function getContainingDataModel(node: Expression): DataModel | undefined 
     return undefined;
 }
 
-export function getModelFieldsWithBases(model: DataModel) {
+export function getModelFieldsWithBases(model: DataModel, includeDelegate = true) {
     if (model.$baseMerged) {
         return model.fields;
     } else {
-        return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
+        return [...model.fields, ...getRecursiveBases(model, includeDelegate).flatMap((base) => base.fields)];
     }
 }
 
-export function getRecursiveBases(dataModel: DataModel): DataModel[] {
+export function getRecursiveBases(dataModel: DataModel, includeDelegate = true): DataModel[] {
     const result: DataModel[] = [];
     dataModel.superTypes.forEach((superType) => {
         const baseDecl = superType.ref;
         if (baseDecl) {
+            if (!includeDelegate && isDelegateModel(baseDecl)) {
+                return;
+            }
             result.push(baseDecl);
             result.push(...getRecursiveBases(baseDecl));
         }
