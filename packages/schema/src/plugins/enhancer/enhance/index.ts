@@ -133,7 +133,7 @@ async function generateLogicalPrisma(model: Model, options: PluginOptions, outDi
         } catch {
             // noop
         }
-        throw new PluginError(name, `Failed to run "prisma generate"`);
+        throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
     }
 
     // make a bunch of typing fixes to the generated prisma client

@@ -241,7 +241,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
         const oppositeModel = field.type.reference!.ref! as DataModel;
 
         // Use name because the current document might be updated
-        let oppositeFields = getModelFieldsWithBases(oppositeModel).filter(
+        let oppositeFields = getModelFieldsWithBases(oppositeModel, false).filter(
             (f) => f.type.reference?.ref?.name === contextModel.name
         );
         oppositeFields = oppositeFields.filter((f) => {

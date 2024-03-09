@@ -34,6 +34,7 @@ import { getIdFields } from '../../utils/ast-utils';
 import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
 import {
     getAttribute,
+    getAttributeArg,
     getForeignKeyFields,
     getLiteral,
     getPrismaVersion,
@@ -299,6 +300,9 @@ export class PrismaSchemaGenerator {
 
         // expand relations on other models that reference delegated models to concrete models
         this.expandPolymorphicRelations(model, decl);
+
+        // name relations inherited from delegate base models for disambiguation
+        this.nameRelationsInheritedFromDelegate(model, decl);
     }
 
     private generateDelegateRelationForBase(model: PrismaDataModel, decl: DataModel) {
@@ -422,6 +426,8 @@ export class PrismaSchemaGenerator {
                         );
 
                         const addedRel = new PrismaFieldAttribute('@relation', [
+                            // use field name as relation name for disambiguation
+                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', relationField.name)),
                             new PrismaAttributeArg('fields', args),
                             new PrismaAttributeArg('references', args),
                         ]);
@@ -440,8 +446,57 @@ export class PrismaSchemaGenerator {
                     } else {
                         relationField.attributes.push(this.makeFieldAttribute(relAttr as DataModelFieldAttribute));
                     }
+                } else {
+                    relationField.attributes.push(
+                        new PrismaFieldAttribute('@relation', [
+                            // use field name as relation name for disambiguation
+                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', relationField.name)),
+                        ])
+                    );
                 }
             });
+        });
+    }
+
+    private nameRelationsInheritedFromDelegate(model: PrismaDataModel, decl: DataModel) {
+        if (this.mode !== 'logical') {
+            return;
+        }
+
+        // the logical schema needs to name relations inherited from delegate base models for disambiguation
+
+        decl.fields.forEach((f) => {
+            if (!f.$inheritedFrom || !isDelegateModel(f.$inheritedFrom) || !isDataModel(f.type.reference?.ref)) {
+                return;
+            }
+
+            const prismaField = model.fields.find((field) => field.name === f.name);
+            if (!prismaField) {
+                return;
+            }
+
+            const relAttr = getAttribute(f, '@relation');
+            const relName = `${DELEGATE_AUX_RELATION_PREFIX}_${lowerCaseFirst(decl.name)}`;
+
+            if (relAttr) {
+                const nameArg = getAttributeArg(relAttr, 'name');
+                if (!nameArg) {
+                    const prismaRelAttr = prismaField.attributes.find(
+                        (attr) => (attr as PrismaFieldAttribute).name === '@relation'
+                    ) as PrismaFieldAttribute;
+                    if (prismaRelAttr) {
+                        prismaRelAttr.args.unshift(
+                            new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName))
+                        );
+                    }
+                }
+            } else {
+                prismaField.attributes.push(
+                    new PrismaFieldAttribute('@relation', [
+                        new PrismaAttributeArg(undefined, new AttributeArgValue('String', relName)),
+                    ])
+                );
+            }
         });
     }
 
