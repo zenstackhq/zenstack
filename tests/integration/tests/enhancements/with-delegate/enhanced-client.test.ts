@@ -201,24 +201,22 @@ describe('Polymorphism Test', () => {
 
         let video = await db.video.findFirst({ where: { duration: r.duration }, include: { owner: true } });
         expect(video).toMatchObject({
-            id: video.id,
-            createdAt: r.createdAt,
-            viewCount: r.viewCount,
-            url: r.url,
-            duration: r.duration,
+            ...r,
             assetType: 'Video',
             videoType: 'RatedVideo',
         });
-        expect(video.rating).toBeUndefined();
         expect(video.owner).toMatchObject(user);
 
         const asset = await db.asset.findFirst({ where: { viewCount: r.viewCount }, include: { owner: true } });
-        expect(asset).toMatchObject({ id: r.id, createdAt: r.createdAt, assetType: 'Video', viewCount: r.viewCount });
-        expect(asset.url).toBeUndefined();
-        expect(asset.duration).toBeUndefined();
-        expect(asset.rating).toBeUndefined();
-        expect(asset.videoType).toBeUndefined();
-        expect(asset.owner).toMatchObject(user);
+        expect(asset).toMatchObject({
+            ...r,
+            assetType: 'Video',
+            videoType: 'RatedVideo',
+            owner: expect.objectContaining(user),
+        });
+
+        const userWithAssets = await db.user.findUnique({ where: { id: user.id }, include: { assets: true } });
+        expect(userWithAssets.assets[0]).toMatchObject(r);
 
         const image = await db.image.create({
             data: { owner: { connect: { id: 1 } }, viewCount: 1, format: 'png' },
@@ -230,9 +228,9 @@ describe('Polymorphism Test', () => {
             createdAt: image.createdAt,
             assetType: 'Image',
             viewCount: image.viewCount,
+            format: 'png',
+            owner: expect.objectContaining(user),
         });
-        expect(imgAsset.format).toBeUndefined();
-        expect(imgAsset.owner).toMatchObject(user);
     });
 
     it('order by base fields', async () => {
