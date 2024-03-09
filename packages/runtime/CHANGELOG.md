@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.0-alpha.3](https://github.com/zenstackhq/zenstack/compare/v2.0.0-alpha.2...v2.0.0-alpha.3) (2024-03-09)
+
+
+### Bug Fixes
+
+* clean up generation of logical prisma client ([#1082](https://github.com/zenstackhq/zenstack/issues/1082)) ([6e7993a](https://github.com/zenstackhq/zenstack/commit/6e7993afa8dde03ae12c44f198bcca04724dbc92))
+* default auth without user context ([#1015](https://github.com/zenstackhq/zenstack/issues/1015)) ([e5b5a0f](https://github.com/zenstackhq/zenstack/commit/e5b5a0fee34e46bee5557229f6f5894629c6ad96))
+* more robust calculation of default location for code generation ([#1095](https://github.com/zenstackhq/zenstack/issues/1095)) ([d11d4ba](https://github.com/zenstackhq/zenstack/commit/d11d4bade318d5a17d1a5e3860292352e25cc813))
+* **policy:** properly handle array-form of upsert payload ([#1101](https://github.com/zenstackhq/zenstack/issues/1101)) ([e7e1873](https://github.com/zenstackhq/zenstack/commit/e7e1873744ac2d48e118ae48b23e10723d16db44))
+* **polymorphism:** support `orderBy` with base fields ([#1086](https://github.com/zenstackhq/zenstack/issues/1086)) ([2e81a08](https://github.com/zenstackhq/zenstack/commit/2e81a089a1b57ebf61d25fc49300fa22f0cda06b))
+* prisma.d.ts is not properly saved ([#1090](https://github.com/zenstackhq/zenstack/issues/1090)) ([d3629be](https://github.com/zenstackhq/zenstack/commit/d3629bef459afc11c16461fb18621d2f77ac35cc))
+* several issues with using `auth()` in `[@default](https://github.com/default)` ([#1088](https://github.com/zenstackhq/zenstack/issues/1088)) ([36e515e](https://github.com/zenstackhq/zenstack/commit/36e515e485c580657b9edbfc52014f3542abfb96))
+* should not reject "update" when there's only field-level override but no model-level policy ([#1052](https://github.com/zenstackhq/zenstack/issues/1052)) ([912c831](https://github.com/zenstackhq/zenstack/commit/912c83176a57ae2e2397c0aab68c0299a6115025))
+* validate zod schema before update operation is executed ([#1051](https://github.com/zenstackhq/zenstack/issues/1051)) ([9db52db](https://github.com/zenstackhq/zenstack/commit/9db52dbb77650d7c99380308803b7b4b4b7ae42d))
+
 ## [2.0.0-alpha.2](https://github.com/zenstackhq/zenstack/compare/v2.0.0-alpha.1...v2.0.0-alpha.2) (2024-02-21)
 
 
