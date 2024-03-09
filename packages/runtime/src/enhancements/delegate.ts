@@ -235,6 +235,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         if (!selectInclude.select) {
             this.injectBaseIncludeRecursively(model, selectInclude);
+            this.injectConcreteIncludeRecursively(model, selectInclude);
         }
         return selectInclude;
     }
