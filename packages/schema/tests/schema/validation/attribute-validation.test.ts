@@ -227,7 +227,7 @@ describe('Attribute tests', () => {
         `);
 
         await loadModel(`
-            ${ prelude }
+            ${prelude}
             model A {
                 id String @id
                 x String
@@ -927,17 +927,6 @@ describe('Attribute tests', () => {
                 @@validate(hasSome(es, [E1]))
                 @@validate(hasEvery(es, [E1]))
                 @@validate(isEmpty(es))
-
-                @@validate(n.e in [E1, E2])
-                @@validate(n.i in [1, 2])
-                @@validate(contains(n.s, 'a'))
-                @@validate(contains(n.s, 'a', true))
-                @@validate(startsWith(n.s, 'a'))
-                @@validate(endsWith(n.s, 'a'))
-                @@validate(has(n.es, E1))
-                @@validate(hasSome(n.es, [E1]))
-                @@validate(hasEvery(n.es, [E1]))
-                @@validate(isEmpty(n.es))
             }
         `);
 
@@ -1000,22 +989,6 @@ describe('Attribute tests', () => {
         expect(
             await loadModelWithError(`
             ${prelude}
-            model N { 
-                id String @id 
-                m M @relation(fields: [mId], references: [id])
-                mId String
-            }
-            model M {
-                id String @id
-                n N?
-                @@validate(n in [1])
-            }
-        `)
-        ).toContain('left operand of "in" must be of scalar type');
-
-        expect(
-            await loadModelWithError(`
-            ${prelude}
             model M {
                 id String @id
                 x Int
@@ -1034,6 +1007,24 @@ describe('Attribute tests', () => {
             }
         `)
         ).toContain('argument is not assignable to parameter');
+
+        expect(
+            await loadModelWithError(`
+            ${prelude}
+            model M {
+                id String @id
+                n N?
+                @@validate(n.value > 0)
+            }
+
+            model N {
+                id String @id
+                value Int
+                m M @relation(fields: [mId], references: [id])
+                mId String @unique
+            }
+        `)
+        ).toContain('`@@validate` condition cannot use relation fields');
     });
 
     it('auth function check', async () => {
