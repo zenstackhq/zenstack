@@ -375,10 +375,11 @@ export class TypeScriptExpressionTransformer {
         return match(expr.operator)
             .with('in', () => {
                 const left = `${this.transform(expr.left, normalizeUndefined)}`;
-                let result = `${this.transform(expr.right, false)}?.includes(${left})`;
+                const right = `${this.transform(expr.right, false)}`;
+                let result = `${right}?.includes(${left})`;
                 if (this.options.context === ExpressionContext.ValidationRule) {
                     // in a validation context, we treat binary involving undefined as boolean true
-                    result = this.ensureBooleanTernary(left, result);
+                    result = this.ensureBooleanTernary(left, this.ensureBooleanTernary(right, result));
                 } else {
                     result = this.ensureBoolean(result);
                 }
