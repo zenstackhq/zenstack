@@ -1178,7 +1178,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user?.roles?.includes(Role.ADMIN)??false)?{AND:[]}:{OR:[]}`,
+            `((user?.roles?.includes(Role.ADMIN))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1205,7 +1205,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user?.email?.includes('test')??false)?{AND:[]}:{OR:[]}`,
+            `((user?.email?.includes('test'))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1218,7 +1218,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user?.email?.toLowerCase().includes('test'?.toLowerCase())??false)?{AND:[]}:{OR:[]}`,
+            `((user?.email?.toLowerCase().includes('test'?.toLowerCase()))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1231,7 +1231,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user?.email?.startsWith('test')??false)?{AND:[]}:{OR:[]}`,
+            `((user?.email?.startsWith('test'))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1244,7 +1244,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user?.email?.endsWith('test')??false)?{AND:[]}:{OR:[]}`,
+            `((user?.email?.endsWith('test'))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1257,7 +1257,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `(user?.roles?.includes(Role.ADMIN)??false)?{AND:[]}:{OR:[]}`,
+            `((user?.roles?.includes(Role.ADMIN))??false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1270,7 +1270,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))??false)?{AND:[]}:{OR:[]}`,
+            `((user?.roles)!==undefined?([Role.ADMIN,Role.USER]?.every((item)=>user?.roles?.includes(item))):false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1283,7 +1283,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))??false)?{AND:[]}:{OR:[]}`,
+            `((user?.roles)!==undefined?([Role.USER,Role.ADMIN]?.some((item)=>user?.roles?.includes(item))):false)?{AND:[]}:{OR:[]}`,
             userInit
         );
 
@@ -1296,7 +1296,7 @@ describe('Expression Writer Tests', () => {
             }
             `,
             (model) => model.attributes[0].args[1].value,
-            `((!user?.roles||user?.roles?.length===0)??false)?{AND:[]}:{OR:[]}`,
+            `(!user?.roles||user?.roles?.length===0)?{AND:[]}:{OR:[]}`,
             userInit
         );
     });

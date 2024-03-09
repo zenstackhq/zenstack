@@ -4,7 +4,7 @@
 import type { FieldInfo, ModelMeta } from './model-meta';
 import { resolveField } from './model-meta';
 import { MaybePromise, PrismaWriteActionType, PrismaWriteActions } from './types';
-import { enumerate, getModelFields } from './utils';
+import { getModelFields } from './utils';
 
 type NestingPathItem = { field?: FieldInfo; model: string; where: any; unique: boolean };
 
@@ -155,7 +155,7 @@ export class NestedWriteVisitor {
         // visit payload
         switch (action) {
             case 'create':
-                for (const item of enumerate(data)) {
+                for (const item of this.enumerateReverse(data)) {
                     const newContext = pushNewContext(field, model, {});
                     let callbackResult: any;
                     if (this.callback.create) {
@@ -183,7 +183,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'connectOrCreate':
-                for (const item of enumerate(data)) {
+                for (const item of this.enumerateReverse(data)) {
                     const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.connectOrCreate) {
@@ -198,7 +198,7 @@ export class NestedWriteVisitor {
 
             case 'connect':
                 if (this.callback.connect) {
-                    for (const item of enumerate(data)) {
+                    for (const item of this.enumerateReverse(data)) {
                         const newContext = pushNewContext(field, model, item, true);
                         await this.callback.connect(model, item, newContext);
                     }
@@ -210,7 +210,7 @@ export class NestedWriteVisitor {
                 //   if relation is to-many, the payload is a unique filter object
                 //   if relation is to-one, the payload can only be boolean `true`
                 if (this.callback.disconnect) {
-                    for (const item of enumerate(data)) {
+                    for (const item of this.enumerateReverse(data)) {
                         const newContext = pushNewContext(field, model, item, typeof item === 'object');
                         await this.callback.disconnect(model, item, newContext);
                     }
@@ -219,7 +219,7 @@ export class NestedWriteVisitor {
 
             case 'set':
                 if (this.callback.set) {
-                    for (const item of enumerate(data)) {
+                    for (const item of this.enumerateReverse(data)) {
                         const newContext = pushNewContext(field, model, item, true);
                         await this.callback.set(model, item, newContext);
                     }
@@ -227,7 +227,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'update':
-                for (const item of enumerate(data)) {
+                for (const item of this.enumerateReverse(data)) {
                     const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.update) {
@@ -246,7 +246,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'updateMany':
-                for (const item of enumerate(data)) {
+                for (const item of this.enumerateReverse(data)) {
                     const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.updateMany) {
@@ -260,7 +260,7 @@ export class NestedWriteVisitor {
                 break;
 
             case 'upsert': {
-                for (const item of enumerate(data)) {
+                for (const item of this.enumerateReverse(data)) {
                     const newContext = pushNewContext(field, model, item.where);
                     let callbackResult: any;
                     if (this.callback.upsert) {
@@ -280,7 +280,7 @@ export class NestedWriteVisitor {
 
             case 'delete': {
                 if (this.callback.delete) {
-                    for (const item of enumerate(data)) {
+                    for (const item of this.enumerateReverse(data)) {
                         const newContext = pushNewContext(field, model, toplevel ? item.where : item);
                         await this.callback.delete(model, item, newContext);
                     }
@@ -290,7 +290,7 @@ export class NestedWriteVisitor {
 
             case 'deleteMany':
                 if (this.callback.deleteMany) {
-                    for (const item of enumerate(data)) {
+                    for (const item of this.enumerateReverse(data)) {
                         const newContext = pushNewContext(field, model, toplevel ? item.where : item);
                         await this.callback.deleteMany(model, item, newContext);
                     }
@@ -336,6 +336,18 @@ export class NestedWriteVisitor {
                     });
                 }
             }
+        }
+    }
+
+    // enumerate a (possible) array in reverse order, so that the enumeration
+    // callback can safely delete the current item
+    private *enumerateReverse(data: any) {
+        if (Array.isArray(data)) {
+            for (let i = data.length - 1; i >= 0; i--) {
+                yield data[i];
+            }
+        } else {
+            yield data;
         }
     }
 }

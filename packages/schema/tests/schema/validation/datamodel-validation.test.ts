@@ -160,11 +160,11 @@ describe('Data Model Validation Tests', () => {
                }
            `);
             expect(result).toMatchObject({ status: 'fulfilled' });
-        });
+        })
 
         it('should succeed when @id is an enum type', async () => {
             const result = await safelyLoadModel(`
-                ${prelude}
+                ${ prelude }
                 enum E {
                     A
                     B
@@ -174,11 +174,11 @@ describe('Data Model Validation Tests', () => {
                 }
             `);
             expect(result).toMatchObject({ status: 'fulfilled' });
-        });
+        })
 
         it('should succeed when @@id is an enum type', async () => {
             const result = await safelyLoadModel(`
-                ${prelude}
+                ${ prelude }
                 enum E {
                     A
                     B
@@ -190,11 +190,11 @@ describe('Data Model Validation Tests', () => {
                 }
             `);
             expect(result).toMatchObject({ status: 'fulfilled' });
-        });
+        })
 
         it('should error when there are no id fields, even when denying access', async () => {
             const result = await safelyLoadModel(`
-                ${prelude}
+                ${ prelude }
                 model M {
                     x Int
                     @@deny('all', x <= 0)
@@ -297,26 +297,26 @@ describe('Data Model Validation Tests', () => {
                     x Json
                     @@id([x])
                 }
-            `);
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`));
-        });
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
 
         it('should error when @id used on a reference field', async () => {
             const result = await safelyLoadModel(`
-                ${prelude}
+                ${ prelude }
                 model Id {
                     id String @id
                 }
                 model M {
                     myId Id @id
                 }
-            `);
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`));
-        });
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
 
         it('should error when @@id used on a reference field', async () => {
             const result = await safelyLoadModel(`
-                ${prelude}
+                ${ prelude }
                 model Id {
                     id String @id
                 }
@@ -324,9 +324,9 @@ describe('Data Model Validation Tests', () => {
                     myId Id
                     @@id([myId])
                 }
-            `);
-            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`));
-        });
+            `)
+            expect(result).toMatchObject(errorLike(`Field with @id attribute must be of scalar or enum type`))
+        })
     });
 
     it('relation', async () => {
@@ -390,9 +390,7 @@ describe('Data Model Validation Tests', () => {
                 id String @id
             }
         `)
-        ).toMatchObject(
-            errorLike(`The relation field "b" on model "A" is missing an opposite relation field on model "B"`)
-        );
+        ).toMatchObject(errorLike(`The relation field "b" on model "A" is missing an opposite relation field on model "B"`));
 
         // one-to-one ambiguous
         expect(
@@ -494,11 +492,7 @@ describe('Data Model Validation Tests', () => {
                 aId String
             }
         `)
-        ).toMatchObject(
-            errorLike(
-                `Field "aId" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
-            )
-        );
+        ).toMatchObject(errorLike(`Field "aId" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`));
 
         // missing @relation
         expect(
@@ -514,11 +508,7 @@ describe('Data Model Validation Tests', () => {
                 a A
             }
         `)
-        ).toMatchObject(
-            errorLike(
-                `Field for one side of relation must carry @relation attribute with both "fields" and "references" fields`
-            )
-        );
+        ).toMatchObject(errorLike(`Field for one side of relation must carry @relation attribute with both "fields" and "references" fields`));
 
         // wrong relation owner field type
         expect(
@@ -682,9 +672,7 @@ describe('Data Model Validation Tests', () => {
                     }
                 `);
 
-        expect(errors).toMatchObject(
-            errorLike(`Model A cannot be extended because it's neither abstract nor marked as "@@delegate"`)
-        );
+        expect(errors).toMatchObject(errorLike(`Model A cannot be extended because it's not abstract`));
 
         // relation incomplete from multiple level inheritance
         expect(
@@ -708,8 +696,6 @@ describe('Data Model Validation Tests', () => {
                     a String
                   }
             `)
-        ).toMatchObject(
-            errorLike(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`)
-        );
+        ).toMatchObject(errorLike(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`));
     });
 });
