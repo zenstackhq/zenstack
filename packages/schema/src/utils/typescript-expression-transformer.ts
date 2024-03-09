@@ -209,7 +209,7 @@ export class TypeScriptExpressionTransformer {
     private _regex(args: Expression[]) {
         const field = this.transform(args[0], false);
         const pattern = getLiteral<string>(args[1]);
-        return this.ensureBoolean(`${field}?.match(new RegExp(${JSON.stringify(pattern)}))`);
+        return this.ensureBooleanTernary(field, `new RegExp(${JSON.stringify(pattern)}).test(${field})`);
     }
 
     @func('email')
@@ -375,11 +375,12 @@ export class TypeScriptExpressionTransformer {
         return match(expr.operator)
             .with('in', () => {
                 const left = `${this.transform(expr.left, normalizeUndefined)}`;
-                let result = this.ensureBoolean(`${this.transform(expr.right, false)}?.includes(${left})`);
-
+                let result = `${this.transform(expr.right, false)}?.includes(${left})`;
                 if (this.options.context === ExpressionContext.ValidationRule) {
                     // in a validation context, we treat binary involving undefined as boolean true
                     result = this.ensureBooleanTernary(left, result);
+                } else {
+                    result = this.ensureBoolean(result);
                 }
                 return result;
             })
