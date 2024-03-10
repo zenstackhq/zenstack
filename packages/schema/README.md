@@ -17,13 +17,13 @@ This VS Code extension provides code editing helpers for authoring ZenStack's sc
 
 -   [Home](https://zenstack.dev)
 -   [Documentation](https://zenstack.dev/docs)
--   [Community chat](https://go.zenstack.dev/chat)
+-   [Community chat](https://discord.gg/Ykhr738dUe)
 -   [Twitter](https://twitter.com/zenstackhq)
 -   [Blog](https://dev.to/zenstack)
 
 ## Community
 
-Join our [discord server](https://go.zenstack.dev/chat) for chat and updates!
+Join our [discord server](https://discord.gg/Ykhr738dUe) for chat and updates!
 
 ## License
 
