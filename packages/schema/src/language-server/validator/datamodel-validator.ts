@@ -22,6 +22,7 @@ import { validateDuplicatedDeclarations } from './utils';
 export default class DataModelValidator implements AstValidator<DataModel> {
     validate(dm: DataModel, accept: ValidationAcceptor): void {
         this.validateBaseAbstractModel(dm, accept);
+        this.validateBaseDelegateModel(dm, accept);
         validateDuplicatedDeclarations(dm, getModelFieldsWithBases(dm), accept);
         this.validateAttributes(dm, accept);
         this.validateFields(dm, accept);
@@ -395,6 +396,15 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     }
                 );
         });
+    }
+
+    private validateBaseDelegateModel(model: DataModel, accept: ValidationAcceptor) {
+        if (model.superTypes.filter((base) => base.ref && isDelegateModel(base.ref)).length > 1) {
+            accept('error', 'Extending from multiple delegate models is not supported', {
+                node: model,
+                property: 'superTypes',
+            });
+        }
     }
 }
 
