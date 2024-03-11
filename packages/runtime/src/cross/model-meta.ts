@@ -118,7 +118,7 @@ export type ModelInfo = {
     name: string;
 
     /**
-     * Base types
+     * Base types (not including abstract base models).
      */
     baseTypes?: string[];
 
