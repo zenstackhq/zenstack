@@ -5,7 +5,6 @@ import { isDelegateModel, type ModelMeta } from '../cross';
 import type { AuthUser } from '../types';
 import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
-import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
 import { withPolicy } from './policy';
@@ -129,9 +128,6 @@ export function createEnhancement<DbClient extends object>(
             `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVer}".`
         );
     }
-
-    const logger = new Logger(prisma);
-    logger.info(`Enabled ZenStack enhancements: ${options.kinds?.join(', ')}`);
 
     let result = prisma;
 
