@@ -1,4 +1,27 @@
-# 0.5.0 (2022-12-15)
+# Changelog
+
+## [2.0.0-alpha.2](https://github.com/zenstackhq/zenstack/compare/v2.0.0-alpha.1...v2.0.0-alpha.2) (2024-03-11)
+
+
+### Bug Fixes
+
+* clean up generation of logical prisma client ([#1082](https://github.com/zenstackhq/zenstack/issues/1082)) ([6e7993a](https://github.com/zenstackhq/zenstack/commit/6e7993afa8dde03ae12c44f198bcca04724dbc92))
+* default auth without user context ([#1015](https://github.com/zenstackhq/zenstack/issues/1015)) ([e5b5a0f](https://github.com/zenstackhq/zenstack/commit/e5b5a0fee34e46bee5557229f6f5894629c6ad96))
+* foreign key constraint ambiguity in generated delegate prisma schema ([#1060](https://github.com/zenstackhq/zenstack/issues/1060)) ([ca2a314](https://github.com/zenstackhq/zenstack/commit/ca2a314a927053703e4dbc76542499159b8bf6a8))
+* more robust calculation of default location for code generation ([#1095](https://github.com/zenstackhq/zenstack/issues/1095)) ([d11d4ba](https://github.com/zenstackhq/zenstack/commit/d11d4bade318d5a17d1a5e3860292352e25cc813))
+* **polymorphism:** include submodel relations when reading a concrete model ([#1112](https://github.com/zenstackhq/zenstack/issues/1112)) ([557163f](https://github.com/zenstackhq/zenstack/commit/557163f789527aa64627b16fb718da3068dd0052))
+* **polymorphism:** relation name disambiguation ([#1107](https://github.com/zenstackhq/zenstack/issues/1107)) ([9f9d277](https://github.com/zenstackhq/zenstack/commit/9f9d27704c2eecbbbd69e841ece6b1d4d22040f6))
+* **polymorphism:** support `orderBy` with base fields ([#1086](https://github.com/zenstackhq/zenstack/issues/1086)) ([2e81a08](https://github.com/zenstackhq/zenstack/commit/2e81a089a1b57ebf61d25fc49300fa22f0cda06b))
+* **polymorphism:** wrong query result when selecting "_count" ([8be5b35](https://github.com/zenstackhq/zenstack/commit/8be5b35d5692cfae8be6a68d94471b8030814207)), closes [#1123](https://github.com/zenstackhq/zenstack/issues/1123)
+* prisma.d.ts is not properly saved ([#1090](https://github.com/zenstackhq/zenstack/issues/1090)) ([d3629be](https://github.com/zenstackhq/zenstack/commit/d3629bef459afc11c16461fb18621d2f77ac35cc))
+* several issues with using `auth()` in `[@default](https://github.com/default)` ([#1088](https://github.com/zenstackhq/zenstack/issues/1088)) ([36e515e](https://github.com/zenstackhq/zenstack/commit/36e515e485c580657b9edbfc52014f3542abfb96))
+
+
+### Performance Improvements
+
+* improve polymorphism code generation speed ([#1073](https://github.com/zenstackhq/zenstack/issues/1073)) ([5b103ba](https://github.com/zenstackhq/zenstack/commit/5b103badea7876b7dfc1da91c26eca3213ddd413))
+
+## 0.5.0 (2022-12-15)
 
 ### Features
 
@@ -12,7 +35,7 @@
 
 -   Next-auth adapter and helper are moved to a separate package `@zenstackhq/next-auth`.
 
-# 0.4.0 (2022-12-01)
+## 0.4.0 (2022-12-01)
 
 ### Features
 
@@ -50,7 +73,7 @@
 
     Use @zenstackhq/runtime/types for type definitions shared between client and server, @zenstackhq/runtime/client for client-specific libaries (like React hooks), and @zenstackhq/runtime/server for server-specific libraries.
 
-# 0.3.0 (2022-11-08)
+## 0.3.0 (2022-11-08)
 
 ### Features
 
@@ -70,7 +93,7 @@
 
 -   Better overall documentation
 
-# 0.2.0 (2022-10-29)
+## 0.2.0 (2022-10-29)
 
 ### Features
 
