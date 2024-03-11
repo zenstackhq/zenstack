@@ -1106,23 +1106,31 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         const modelInfo = getModelInfo(this.options.modelMeta, model, true);
 
-        for (const field of Object.values(modelInfo.fields)) {
+        for (const [key, value] of Object.entries(entity)) {
+            if (key.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
+                continue;
+            }
+
+            const field = modelInfo.fields[key];
+            if (!field) {
+                // not a field, could be `_count`, `_sum`, etc.
+                result[key] = value;
+                continue;
+            }
+
             if (field.inheritedFrom) {
                 // already merged from base
                 continue;
             }
 
-            if (field.name in entity) {
-                const fieldValue = entity[field.name];
-                if (field.isDataModel) {
-                    if (Array.isArray(fieldValue)) {
-                        result[field.name] = fieldValue.map((item) => this.assembleUp(field.type, item));
-                    } else {
-                        result[field.name] = this.assembleUp(field.type, fieldValue);
-                    }
+            if (field.isDataModel) {
+                if (Array.isArray(value)) {
+                    result[field.name] = value.map((item) => this.assembleUp(field.type, item));
                 } else {
-                    result[field.name] = fieldValue;
+                    result[field.name] = this.assembleUp(field.type, value);
                 }
+            } else {
+                result[field.name] = value;
             }
         }
 
@@ -1147,18 +1155,26 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
         }
 
-        for (const field of Object.values(modelInfo.fields)) {
-            if (field.name in entity) {
-                const fieldValue = entity[field.name];
-                if (field.isDataModel) {
-                    if (Array.isArray(fieldValue)) {
-                        result[field.name] = fieldValue.map((item) => this.assembleDown(field.type, item));
-                    } else {
-                        result[field.name] = this.assembleDown(field.type, fieldValue);
-                    }
+        for (const [key, value] of Object.entries(entity)) {
+            if (key.startsWith(DELEGATE_AUX_RELATION_PREFIX)) {
+                continue;
+            }
+
+            const field = modelInfo.fields[key];
+            if (!field) {
+                // not a field, could be `_count`, `_sum`, etc.
+                result[key] = value;
+                continue;
+            }
+
+            if (field.isDataModel) {
+                if (Array.isArray(value)) {
+                    result[field.name] = value.map((item) => this.assembleDown(field.type, item));
                 } else {
-                    result[field.name] = fieldValue;
+                    result[field.name] = this.assembleDown(field.type, value);
                 }
+            } else {
+                result[field.name] = value;
             }
         }
 
