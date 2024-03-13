@@ -219,11 +219,14 @@ export function isIdField(field: DataModelField) {
         return true;
     }
 
+    // NOTE: we have to use name to match fields because the fields
+    // may be inherited from an abstract base and have cloned identities
+
     const model = field.$container as DataModel;
 
     // model-level @@id attribute with a list of fields
     const modelLevelIds = getModelIdFields(model);
-    if (modelLevelIds.includes(field)) {
+    if (modelLevelIds.map((f) => f.name).includes(field.name)) {
         return true;
     }
 
@@ -235,12 +238,12 @@ export function isIdField(field: DataModelField) {
     // then, the first field with @unique can be used as id
     const firstUniqueField = model.fields.find((f) => hasAttribute(f, '@unique'));
     if (firstUniqueField) {
-        return firstUniqueField === field;
+        return firstUniqueField.name === field.name;
     }
 
     // last, the first model level @@unique can be used as id
     const modelLevelUnique = getModelUniqueFields(model);
-    if (modelLevelUnique.includes(field)) {
+    if (modelLevelUnique.map((f) => f.name).includes(field.name)) {
         return true;
     }
 
