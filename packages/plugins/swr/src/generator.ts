@@ -12,10 +12,9 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';
-import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
 import semver from 'semver';
-import { FunctionDeclaration, OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
+import type { OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 
@@ -25,14 +24,6 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
     const project = createProject();
     const warnings: string[] = [];
-
-    if (options.useSuperJson !== undefined) {
-        warnings.push(
-            'The option "useSuperJson" is deprecated. The generated hooks always use superjson for serialization.'
-        );
-    }
-
-    const legacyMutations = options.legacyMutations !== false;
 
     const models = getDataModels(model);
 
@@ -49,7 +40,7 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
             return;
         }
-        generateModelHooks(project, outDir, dataModel, mapping, legacyMutations, options);
+        generateModelHooks(project, outDir, dataModel, mapping, options);
     });
 
     await saveProject(project);
@@ -61,7 +52,6 @@ function generateModelHooks(
     outDir: string,
     model: DataModel,
     mapping: DMMF.ModelMapping,
-    legacyMutations: boolean,
     options: PluginOptions
 ) {
     const fileName = paramCase(model.name);
@@ -84,31 +74,19 @@ function generateModelHooks(
     const modelNameCap = upperCaseFirst(model.name);
     const prismaVersion = getPrismaVersion();
 
-    const useMutation = legacyMutations
-        ? sf.addFunction({
-              name: `useMutate${model.name}`,
-              isExported: true,
-              statements: [
-                  'const { endpoint, fetch } = useHooksContext();',
-                  `const invalidate = request.useInvalidation('${model.name}', metadata);`,
-              ],
-              docs: ['@deprecated Use mutation hooks (useCreateXXX, useUpdateXXX, etc.) instead.'],
-          })
-        : undefined;
-
     const mutationFuncs: string[] = [];
 
     // create is somehow named "createOne" in the DMMF
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.create || (mapping as any).createOne) {
         const argsType = `Prisma.${model.name}CreateArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'POST', 'create', argsType, false));
+        mutationFuncs.push(generateMutation(sf, model, 'POST', 'create', argsType, false));
     }
 
     // createMany
     if (mapping.createMany) {
         const argsType = `Prisma.${model.name}CreateManyArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'POST', 'createMany', argsType, true));
+        mutationFuncs.push(generateMutation(sf, model, 'POST', 'createMany', argsType, true));
     }
 
     // findMany
@@ -147,13 +125,13 @@ function generateModelHooks(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.update || (mapping as any).updateOne) {
         const argsType = `Prisma.${model.name}UpdateArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'PUT', 'update', argsType, false));
+        mutationFuncs.push(generateMutation(sf, model, 'PUT', 'update', argsType, false));
     }
 
     // updateMany
     if (mapping.updateMany) {
         const argsType = `Prisma.${model.name}UpdateManyArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'PUT', 'updateMany', argsType, true));
+        mutationFuncs.push(generateMutation(sf, model, 'PUT', 'updateMany', argsType, true));
     }
 
     // upsert
@@ -161,7 +139,7 @@ function generateModelHooks(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.upsert || (mapping as any).upsertOne) {
         const argsType = `Prisma.${model.name}UpsertArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'POST', 'upsert', argsType, false));
+        mutationFuncs.push(generateMutation(sf, model, 'POST', 'upsert', argsType, false));
     }
 
     // del
@@ -169,13 +147,13 @@ function generateModelHooks(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (mapping.delete || (mapping as any).deleteOne) {
         const argsType = `Prisma.${model.name}DeleteArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'DELETE', 'delete', argsType, false));
+        mutationFuncs.push(generateMutation(sf, model, 'DELETE', 'delete', argsType, false));
     }
 
     // deleteMany
     if (mapping.deleteMany) {
         const argsType = `Prisma.${model.name}DeleteManyArgs`;
-        mutationFuncs.push(generateMutation(sf, useMutation, model, 'DELETE', 'deleteMany', argsType, true));
+        mutationFuncs.push(generateMutation(sf, model, 'DELETE', 'deleteMany', argsType, true));
     }
 
     // aggregate
@@ -267,8 +245,6 @@ function generateModelHooks(
         const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`;
         generateQueryHook(sf, model, 'count', argsType, inputType, returnType);
     }
-
-    useMutation?.addStatements(`return { ${mutationFuncs.join(', ')} };`);
 }
 
 function makeOptimistic(returnType: string) {
@@ -329,7 +305,6 @@ function generateQueryHook(
 
 function generateMutation(
     sf: SourceFile,
-    useMutateModelFunc: FunctionDeclaration | undefined,
     model: DataModel,
     method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
     operation: string,
@@ -342,29 +317,7 @@ function generateMutation(
     const returnType = batchResult ? 'Prisma.BatchPayload' : `Prisma.${model.name}GetPayload<${argsType}> | undefined`;
     const genericInputType = `Prisma.SelectSubset<T, ${argsType}>`;
 
-    const modelRouteName = lowerCaseFirst(model.name);
     const funcName = `${operation}${model.name}`;
-
-    if (useMutateModelFunc) {
-        // generate async mutation function (legacy)
-        const mutationFunc = useMutateModelFunc.addFunction({
-            name: funcName,
-            isAsync: true,
-            typeParameters: [`T extends ${argsType}`],
-            parameters: [
-                {
-                    name: 'args',
-                    type: genericInputType,
-                },
-            ],
-        });
-        mutationFunc.addJsDoc(`@deprecated Use \`use${upperCaseFirst(operation)}${model.name}\` hook instead.`);
-        mutationFunc
-            .addBody()
-            .addStatements([
-                `return await request.mutationRequest<${returnType}, ${checkReadBack}>('${method}', \`\${endpoint}/${modelRouteName}/${operation}\`, args, invalidate, fetch, ${checkReadBack});`,
-            ]);
-    }
 
     // generate mutation hook
     sf.addFunction({
