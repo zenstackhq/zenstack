@@ -714,4 +714,28 @@ describe('Data Model Validation Tests', () => {
             errorLike(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`)
         );
     });
+
+    it('delegate base type', async () => {
+        const errors = await safelyLoadModel(`
+                    ${prelude}
+
+                    model Base1 {
+                        id String @id
+                        type String
+                        @@delegate(type)
+                    }
+
+                    model Base2 {
+                        id String @id
+                        type String
+                        @@delegate(type)
+                    }
+
+                    model A extends Base1,Base2 {
+                        a String
+                    }
+                `);
+
+        expect(errors).toMatchObject(errorLike(`Extending from multiple delegate models is not supported`));
+    });
 });
