@@ -1,19 +1,13 @@
 import { createPostgresDb, dropPostgresDb, loadSchema } from '@zenstackhq/testtools';
 
 describe('Regression for issue 1129', () => {
-    let dbUrl: string;
-
-    beforeAll(async () => {
-        dbUrl = await createPostgresDb('regression-issue-1229');
-    });
-
-    afterAll(async () => {
-        await dropPostgresDb('regression-issue-1229');
-    });
-
     it('regression', async () => {
-        const { enhance } = await loadSchema(
-            `
+        let prisma;
+        const dbUrl = await createPostgresDb('regression-issue-1129');
+
+        try {
+            const r = await loadSchema(
+                `
             model Relation1 {
               id String @id @default(cuid())
               field1 String
@@ -43,44 +37,51 @@ describe('Regression for issue 1129', () => {
               @@allow('all', true)
             }
             `,
-            { provider: 'postgresql', dbUrl }
-        );
+                { provider: 'postgresql', dbUrl }
+            );
 
-        const db = enhance();
+            prisma = r.prisma;
+            const db = r.enhance();
 
-        await db.$transaction(async (tx: any) => {
-            await tx.relation2.createMany({
-                data: [
-                    {
-                        id: 'relation2Id1',
-                        field2: 'field2Value1',
-                    },
-                    {
-                        id: 'relation2Id2',
-                        field2: 'field2Value2',
-                    },
-                ],
-            });
+            await db.$transaction(async (tx: any) => {
+                await tx.relation2.createMany({
+                    data: [
+                        {
+                            id: 'relation2Id1',
+                            field2: 'field2Value1',
+                        },
+                        {
+                            id: 'relation2Id2',
+                            field2: 'field2Value2',
+                        },
+                    ],
+                });
 
-            await tx.relation1.create({
-                data: {
-                    field1: 'field1Value',
-                    concrete: {
-                        createMany: {
-                            data: [
-                                {
-                                    concreteField: 'concreteFieldValue1',
-                                    relation2Id: 'relation2Id1',
-                                },
-                                {
-                                    concreteField: 'concreteFieldValue2',
-                                    relation2Id: 'relation2Id2',
-                                },
-                            ],
+                await tx.relation1.create({
+                    data: {
+                        field1: 'field1Value',
+                        concrete: {
+                            createMany: {
+                                data: [
+                                    {
+                                        concreteField: 'concreteFieldValue1',
+                                        relation2Id: 'relation2Id1',
+                                    },
+                                    {
+                                        concreteField: 'concreteFieldValue2',
+                                        relation2Id: 'relation2Id2',
+                                    },
+                                ],
+                            },
                         },
                     },
-                },
+                });
             });
-        });
+        } finally {
+            if (prisma) {
+                await prisma.$disconnect();
+            }
+            await dropPostgresDb('regression-issue-1129');
+        }
     });
 });
