@@ -16,7 +16,7 @@
     <a href="https://twitter.com/zenstackhq">
         <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fzenstackhq%2Fzenstack">
     </a>
-    <a href="https://go.zenstack.dev/chat">
+    <a href="https://discord.gg/Ykhr738dUe">
         <img src="https://img.shields.io/discord/1035538056146595961">
     </a>
     <a href="https://github.com/zenstackhq/zenstack/blob/main/LICENSE">
@@ -142,7 +142,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 
 -   [Home](https://zenstack.dev)
 -   [Documentation](https://zenstack.dev/docs)
--   [Community chat](https://go.zenstack.dev/chat)
+-   [Community chat](https://discord.gg/Ykhr738dUe)
 -   [Twitter](https://twitter.com/zenstackhq)
 -   [Blog](https://zenstack.dev/blog)
 
@@ -162,7 +162,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [SWR](https://github.com/vercel/swr) and [TanStack Query](https://github.com/TanStack/query) hooks generator
 -   OpenAPI specification generator
 -   [tRPC](https://trpc.io) router generator
--   🙋🏻 [Request for a plugin](https://go.zenstack.dev/chat)
+-   🙋🏻 [Request for a plugin](https://discord.gg/Ykhr738dUe)
 
 ### Framework adapters
 
@@ -171,7 +171,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [SvelteKit](https://zenstack.dev/docs/reference/server-adapters/sveltekit)
 -   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
 -   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
--   🙋🏻 [Request for an adapter](https://go.zenstack.dev/chat)
+-   🙋🏻 [Request for an adapter](https://discord.gg/Ykhr738dUe)
 
 ### Prisma schema extensions
 
@@ -179,7 +179,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [Multi-file schema and model inheritance](https://zenstack.dev/docs/guides/multiple-schema)
 -   Strong-typed JSON field (coming soon)
 -   Polymorphism (future)
--   🙋🏻 [Request for an extension](https://go.zenstack.dev/chat)
+-   🙋🏻 [Request for an extension](https://discord.gg/Ykhr738dUe)
 
 ## Examples
 
