@@ -311,7 +311,7 @@ export class ZodSchemaGenerator {
                 writer.writeLine(`import { Decimal } from 'decimal.js';`);
             }
 
-            // base schema
+            // base schema - including all scalar fields, with optionality following the schema
             writer.write(`const baseSchema = z.object(`);
             writer.inlineBlock(() => {
                 scalarFields.forEach((field) => {
@@ -325,11 +325,11 @@ export class ZodSchemaGenerator {
             let relationSchema: string | undefined;
             let fkSchema: string | undefined;
 
-            if (relations.length > 0 || fkFields.length > 0) {
+            if (relations.length > 0) {
                 relationSchema = 'relationSchema';
                 writer.write(`const ${relationSchema} = z.object(`);
                 writer.inlineBlock(() => {
-                    [...relations, ...fkFields].forEach((field) => {
+                    [...relations].forEach((field) => {
                         writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
                     });
                 });
@@ -353,21 +353,23 @@ export class ZodSchemaGenerator {
             if (refinements.length > 0) {
                 refineFuncName = `refine${upperCaseFirst(model.name)}`;
                 writer.writeLine(
-                    `export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
+                    `
+/**
+ * Schema refinement function for applying \`@@validate\` rules.
+ */
+export function ${refineFuncName}<T, D extends z.ZodTypeDef>(schema: z.ZodType<T, D, T>) { return schema${refinements.join(
                         '\n'
-                    )}; }`
+                    )};
+}
+`
                 );
             }
 
             ////////////////////////////////////////////////
             // 1. Model schema
             ////////////////////////////////////////////////
-            const fieldsWithoutDefault = scalarFields.filter((f) => !getFieldSchemaDefault(f));
-            // mark fields without default value as optional
-            let modelSchema = this.makePartial(
-                'baseSchema',
-                fieldsWithoutDefault.length < scalarFields.length ? fieldsWithoutDefault.map((f) => f.name) : undefined
-            );
+
+            let modelSchema = 'baseSchema';
 
             // omit fields
             const fieldsToOmit = scalarFields.filter((field) => hasAttribute(field, '@omit'));
@@ -378,23 +380,46 @@ export class ZodSchemaGenerator {
                 );
             }
 
-            if (relationSchema) {
-                // export schema with only scalar fields
-                const modelScalarSchema = `${upperCaseFirst(model.name)}ScalarSchema`;
-                writer.writeLine(`export const ${modelScalarSchema} = ${modelSchema};`);
-                modelSchema = modelScalarSchema;
+            // export schema with only scalar fields: `[Model]ScalarSchema`
+            const modelScalarSchema = `${upperCaseFirst(model.name)}ScalarSchema`;
+            writer.writeLine(`
+/**
+ * \`${model.name}\` schema excluding foreign keys and relations.
+ */
+export const ${modelScalarSchema} = ${modelSchema};
+`);
+            modelSchema = modelScalarSchema;
 
-                // merge relations
+            // merge fk fields
+            if (fkSchema) {
+                modelSchema = this.makeMerge(modelSchema, fkSchema);
+            }
+
+            // merge relation fields (all optional)
+            if (relationSchema) {
                 modelSchema = this.makeMerge(modelSchema, this.makePartial(relationSchema));
             }
 
             // refine
             if (refineFuncName) {
+                // export a schema without refinement for extensibility: `[Model]WithoutRefineSchema`
                 const noRefineSchema = `${upperCaseFirst(model.name)}WithoutRefineSchema`;
-                writer.writeLine(`export const ${noRefineSchema} = ${modelSchema};`);
+                writer.writeLine(`
+/**
+ * \`${model.name}\` schema prior to calling \`.refine()\` for extensibility.
+ */
+export const ${noRefineSchema} = ${modelSchema};
+`);
                 modelSchema = `${refineFuncName}(${noRefineSchema})`;
             }
-            writer.writeLine(`export const ${upperCaseFirst(model.name)}Schema = ${modelSchema};`);
+
+            // export the final model schema: `[Model]Schema`
+            writer.writeLine(`
+/**
+ * \`${model.name}\` schema including all fields (scalar, foreign key, and relations) and validations.
+ */
+export const ${upperCaseFirst(model.name)}Schema = ${modelSchema};
+`);
 
             ////////////////////////////////////////////////
             // 2. Prisma create & update
@@ -405,7 +430,13 @@ export class ZodSchemaGenerator {
             if (refineFuncName) {
                 prismaCreateSchema = `${refineFuncName}(${prismaCreateSchema})`;
             }
-            writer.writeLine(`export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSchema};`);
+            writer.writeLine(`
+/**
+ * Schema used for validating Prisma create input. For internal use only.
+ * @private
+ */
+export const ${upperCaseFirst(model.name)}PrismaCreateSchema = ${prismaCreateSchema};
+`);
 
             // schema for validating prisma update input (all fields optional)
             // note numeric fields can be simple update or atomic operations
@@ -424,15 +455,26 @@ export class ZodSchemaGenerator {
             if (refineFuncName) {
                 prismaUpdateSchema = `${refineFuncName}(${prismaUpdateSchema})`;
             }
-            writer.writeLine(`export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSchema};`);
+            writer.writeLine(
+                `
+/**
+ * Schema used for validating Prisma update input. For internal use only.
+ * @private
+ */
+export const ${upperCaseFirst(model.name)}PrismaUpdateSchema = ${prismaUpdateSchema};
+`
+            );
 
             ////////////////////////////////////////////////
             // 3. Create schema
             ////////////////////////////////////////////////
+
             let createSchema = 'baseSchema';
             const fieldsWithDefault = scalarFields.filter(
                 (field) => hasAttribute(field, '@default') || hasAttribute(field, '@updatedAt') || field.type.array
             );
+
+            // mark fields with default as optional
             if (fieldsWithDefault.length > 0) {
                 createSchema = this.makePartial(
                     createSchema,
@@ -440,45 +482,82 @@ export class ZodSchemaGenerator {
                 );
             }
 
-            if (fkSchema) {
-                // export schema with only scalar fields
-                const createScalarSchema = `${upperCaseFirst(model.name)}CreateScalarSchema`;
-                writer.writeLine(`export const ${createScalarSchema} = ${createSchema};`);
+            // export schema with only scalar fields: `[Model]CreateScalarSchema`
+            const createScalarSchema = `${upperCaseFirst(model.name)}CreateScalarSchema`;
+            writer.writeLine(`
+/**
+ * \`${model.name}\` schema for create operations excluding foreign keys and relations.
+ */
+export const ${createScalarSchema} = ${createSchema};
+`);
 
+            if (fkSchema) {
                 // merge fk fields
                 createSchema = this.makeMerge(createScalarSchema, fkSchema);
             }
 
             if (refineFuncName) {
-                // export a schema without refinement for extensibility
+                // export a schema without refinement for extensibility: `[Model]CreateWithoutRefineSchema`
                 const noRefineSchema = `${upperCaseFirst(model.name)}CreateWithoutRefineSchema`;
-                writer.writeLine(`export const ${noRefineSchema} = ${createSchema};`);
+                writer.writeLine(`
+/**
+ * \`${model.name}\` schema for create operations prior to calling \`.refine()\` for extensibility.
+ */
+export const ${noRefineSchema} = ${createSchema};
+`);
                 createSchema = `${refineFuncName}(${noRefineSchema})`;
             }
-            writer.writeLine(`export const ${upperCaseFirst(model.name)}CreateSchema = ${createSchema};`);
+
+            // export the final create schema: `[Model]CreateSchema`
+            writer.writeLine(`
+/**
+ * \`${model.name}\` schema for create operations including scalar fields, foreign key fields, and validations.
+ */
+export const ${upperCaseFirst(model.name)}CreateSchema = ${createSchema};
+`);
 
             ////////////////////////////////////////////////
             // 3. Update schema
             ////////////////////////////////////////////////
+
+            // for update all fields are optional
             let updateSchema = this.makePartial('baseSchema');
 
-            if (fkSchema) {
-                // export schema with only scalar fields
-                const updateScalarSchema = `${upperCaseFirst(model.name)}UpdateScalarSchema`;
-                writer.writeLine(`export const ${updateScalarSchema} = ${updateSchema};`);
-                updateSchema = updateScalarSchema;
+            // export schema with only scalar fields: `[Model]UpdateScalarSchema`
+            const updateScalarSchema = `${upperCaseFirst(model.name)}UpdateScalarSchema`;
+            writer.writeLine(`
+/**
+ * \`${model.name}\` schema for update operations excluding foreign keys and relations.
+ */
+export const ${updateScalarSchema} = ${updateSchema};
+`);
 
+            updateSchema = updateScalarSchema;
+
+            if (fkSchema) {
                 // merge fk fields
                 updateSchema = this.makeMerge(updateSchema, this.makePartial(fkSchema));
             }
 
             if (refineFuncName) {
-                // export a schema without refinement for extensibility
+                // export a schema without refinement for extensibility: `[Model]UpdateWithoutRefineSchema`
                 const noRefineSchema = `${upperCaseFirst(model.name)}UpdateWithoutRefineSchema`;
-                writer.writeLine(`export const ${noRefineSchema} = ${updateSchema};`);
+                writer.writeLine(`
+/**
+ * \`${model.name}\` schema for update operations prior to calling \`.refine()\` for extensibility.
+ */
+export const ${noRefineSchema} = ${updateSchema};
+`);
                 updateSchema = `${refineFuncName}(${noRefineSchema})`;
             }
-            writer.writeLine(`export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};`);
+
+            // export the final update schema: `[Model]UpdateSchema`
+            writer.writeLine(`
+/**
+ * \`${model.name}\` schema for update operations including scalar fields, foreign key fields, and validations.
+ */
+export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
+`);
         });
 
         return schemaName;

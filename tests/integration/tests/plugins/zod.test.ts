@@ -45,6 +45,9 @@ describe('Zod plugin tests', () => {
             password String @omit
             role Role @default(USER)
             posts Post[]
+            age Int?
+
+            @@validate(length(password, 6, 20))
         }
         
         model Post {
@@ -61,8 +64,14 @@ describe('Zod plugin tests', () => {
             { addPrelude: false, pushDb: false }
         );
         const schemas = zodSchemas.models;
+        expect(schemas.UserScalarSchema).toBeTruthy();
+        expect(schemas.UserWithoutRefineSchema).toBeTruthy();
         expect(schemas.UserSchema).toBeTruthy();
+        expect(schemas.UserCreateScalarSchema).toBeTruthy();
+        expect(schemas.UserCreateWithoutRefineSchema).toBeTruthy();
         expect(schemas.UserCreateSchema).toBeTruthy();
+        expect(schemas.UserUpdateScalarSchema).toBeTruthy();
+        expect(schemas.UserUpdateWithoutRefineSchema).toBeTruthy();
         expect(schemas.UserUpdateSchema).toBeTruthy();
         expect(schemas.UserPrismaCreateSchema).toBeTruthy();
         expect(schemas.UserPrismaUpdateSchema).toBeTruthy();
@@ -74,6 +83,16 @@ describe('Zod plugin tests', () => {
         expect(schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev' }).success).toBeFalsy();
         expect(
             schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', password: 'abc123' }).success
+        ).toBeTruthy();
+        expect(
+            schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN', password: 'abc' }).success
+        ).toBeFalsy();
+        expect(
+            schemas.UserCreateWithoutRefineSchema.safeParse({
+                email: 'abc@zenstack.dev',
+                role: 'ADMIN',
+                password: 'abc',
+            }).success
         ).toBeTruthy();
         expect(
             schemas.UserCreateSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN', password: 'abc123' }).success
@@ -90,6 +109,8 @@ describe('Zod plugin tests', () => {
         expect(schemas.UserUpdateSchema.safeParse({}).success).toBeTruthy();
         expect(schemas.UserUpdateSchema.safeParse({ email: 'abc@def.com' }).success).toBeFalsy();
         expect(schemas.UserUpdateSchema.safeParse({ email: 'def@zenstack.dev' }).success).toBeTruthy();
+        expect(schemas.UserUpdateSchema.safeParse({ password: 'pas' }).success).toBeFalsy();
+        expect(schemas.UserUpdateWithoutRefineSchema.safeParse({ password: 'pas' }).success).toBeTruthy();
         expect(schemas.UserUpdateSchema.safeParse({ password: 'password456' }).success).toBeTruthy();
 
         // update unchecked
@@ -98,7 +119,25 @@ describe('Zod plugin tests', () => {
         ).toBeTruthy();
 
         // model schema
-        expect(schemas.UserSchema.safeParse({ email: 'abc@zenstack.dev', role: 'ADMIN' }).success).toBeTruthy();
+
+        // missing fields
+        expect(
+            schemas.UserSchema.safeParse({
+                id: 1,
+                email: 'abc@zenstack.dev',
+            }).success
+        ).toBeFalsy();
+
+        expect(
+            schemas.UserSchema.safeParse({
+                id: 1,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                email: 'abc@zenstack.dev',
+                role: 'ADMIN',
+            }).success
+        ).toBeTruthy();
+
         // without omitted field
         expect(
             schemas.UserSchema.safeParse({
@@ -109,6 +148,19 @@ describe('Zod plugin tests', () => {
                 updatedAt: new Date(),
             }).success
         ).toBeTruthy();
+
+        // with optional field
+        expect(
+            schemas.UserSchema.safeParse({
+                id: 1,
+                email: 'abc@zenstack.dev',
+                role: 'ADMIN',
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                age: 18,
+            }).success
+        ).toBeTruthy();
+
         // with omitted field
         const withPwd = schemas.UserSchema.safeParse({
             id: 1,
