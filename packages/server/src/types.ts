@@ -58,11 +58,4 @@ export interface AdapterBaseOptions {
      * Defaults to RPC-style API handler created with `/api/rpc`.
      */
     handler?: HandleRequestFn;
-
-    /**
-     * Whether to use superjson for serialization/deserialization. Defaults to `false`.
-     *
-     * @deprecated Not needed anymore and will be removed in a future release.
-     */
-    useSuperJson?: boolean;
 }
