@@ -71,7 +71,7 @@ describe('CLI Plugins Tests', () => {
             'zod@3.21.1',
             'react',
             'swr',
-            '@tanstack/react-query@^4.0.0',
+            '@tanstack/react-query@^5.0.0',
             '@trpc/server',
             '@prisma/client@^4.0.0',
             `${path.join(__dirname, '../../../../.build/zenstackhq-language-' + ver + '.tgz')}`,
