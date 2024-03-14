@@ -80,13 +80,6 @@ export type QueryOptions<Result, Error = unknown> = {
     disabled?: boolean;
 
     /**
-     * @deprecated Use `fallbackData` instead
-     *
-     * Equivalent to @see SWRConfiguration.fallbackData
-     */
-    initialData?: Result;
-
-    /**
      * Whether to enable automatic optimistic update. Defaults to `true`.
      */
     optimisticUpdate?: boolean;
@@ -100,13 +93,6 @@ export type InfiniteQueryOptions<Result, Error = unknown> = {
      * Disable data fetching
      */
     disabled?: boolean;
-
-    /**
-     * @deprecated Use `fallbackData` instead
-     *
-     * Equivalent to @see SWRInfiniteConfiguration.fallbackData
-     */
-    initialData?: Result[];
 } & Omit<SWRInfiniteConfiguration<Result, Error, SWRInfiniteFetcher<Result>>, 'fetcher'>;
 
 const QUERY_KEY_PREFIX = 'zenstack:query';
@@ -189,10 +175,7 @@ export function useModelQuery<Result, Error = unknown>(
         ? null
         : getQueryKey(model, operation, args, false, options?.optimisticUpdate !== false);
     const url = makeUrl(`${endpoint}/${lowerCaseFirst(model)}/${operation}`, args);
-    return useSWR<Result, Error>(key, () => fetcher<Result, false>(url, undefined, fetch, false), {
-        ...options,
-        fallbackData: options?.initialData ?? options?.fallbackData,
-    });
+    return useSWR<Result, Error>(key, () => fetcher<Result, false>(url, undefined, fetch, false), options);
 }
 
 /**
@@ -239,10 +222,7 @@ export function useInfiniteModelQuery<Args, Result, Error = unknown>(
                 throw new Error('Invalid query key: ' + key);
             }
         },
-        {
-            ...options,
-            fallbackData: options?.initialData ?? options?.fallbackData,
-        }
+        options
     );
 }
 
