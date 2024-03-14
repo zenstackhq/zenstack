@@ -14,7 +14,7 @@ import { getQueryKey } from '../src/runtime/common';
 import { RequestHandlerContext, useModelMutation, useModelQuery } from '../src/runtime/react';
 import { modelMeta } from './test-model-meta';
 
-describe('Tanstack Query React Hooks Test', () => {
+describe('Tanstack Query React Hooks V4 Test', () => {
     function createWrapper() {
         const queryClient = new QueryClient();
         const Provider = RequestHandlerContext.Provider;
@@ -162,7 +162,7 @@ describe('Tanstack Query React Hooks Test', () => {
             .persist();
 
         const { result } = renderHook(
-            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, undefined, undefined, true),
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, { optimisticUpdate: true }),
             {
                 wrapper,
             }
@@ -185,11 +185,8 @@ describe('Tanstack Query React Hooks Test', () => {
                     'POST',
                     makeUrl('User', 'create'),
                     modelMeta,
-                    undefined,
-                    undefined,
-                    false,
-                    undefined,
-                    true
+                    { optimisticUpdate: true, invalidateQueries: false },
+                    undefined
                 ),
             {
                 wrapper,
@@ -199,7 +196,7 @@ describe('Tanstack Query React Hooks Test', () => {
         act(() => mutationResult.current.mutate({ data: { name: 'foo' } }));
 
         await waitFor(() => {
-            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined, false, true));
+            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
             expect(cacheData).toHaveLength(1);
             expect(cacheData[0].$optimistic).toBe(true);
             expect(cacheData[0].id).toBeTruthy();
@@ -221,7 +218,7 @@ describe('Tanstack Query React Hooks Test', () => {
             .persist();
 
         const { result } = renderHook(
-            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, undefined, undefined, true),
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, { optimisticUpdate: true }),
             {
                 wrapper,
             }
@@ -244,11 +241,8 @@ describe('Tanstack Query React Hooks Test', () => {
                     'POST',
                     makeUrl('User', 'createMany'),
                     modelMeta,
-                    undefined,
-                    undefined,
-                    false,
-                    undefined,
-                    true
+                    { optimisticUpdate: true, invalidateQueries: false },
+                    undefined
                 ),
             {
                 wrapper,
@@ -258,7 +252,7 @@ describe('Tanstack Query React Hooks Test', () => {
         act(() => mutationResult.current.mutate({ data: [{ name: 'foo' }, { name: 'bar' }] }));
 
         await waitFor(() => {
-            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined, false, true));
+            const cacheData: any = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
             expect(cacheData).toHaveLength(2);
         });
     });
@@ -322,7 +316,7 @@ describe('Tanstack Query React Hooks Test', () => {
             .persist();
 
         const { result } = renderHook(
-            () => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs, undefined, undefined, true),
+            () => useModelQuery('User', makeUrl('User', 'findUnique'), queryArgs, { optimisticUpdate: true }),
             {
                 wrapper,
             }
@@ -345,11 +339,8 @@ describe('Tanstack Query React Hooks Test', () => {
                     'PUT',
                     makeUrl('User', 'update'),
                     modelMeta,
-                    undefined,
-                    undefined,
-                    false,
-                    undefined,
-                    true
+                    { optimisticUpdate: true, invalidateQueries: false },
+                    undefined
                 ),
             {
                 wrapper,
@@ -359,7 +350,7 @@ describe('Tanstack Query React Hooks Test', () => {
         act(() => mutationResult.current.mutate({ ...queryArgs, data: { name: 'bar' } }));
 
         await waitFor(() => {
-            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs, false, true));
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs));
             expect(cacheData).toMatchObject({ name: 'bar', $optimistic: true });
         });
     });
@@ -421,7 +412,7 @@ describe('Tanstack Query React Hooks Test', () => {
             .persist();
 
         const { result } = renderHook(
-            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, undefined, undefined, true),
+            () => useModelQuery('User', makeUrl('User', 'findMany'), undefined, { optimisticUpdate: true }),
             {
                 wrapper,
             }
@@ -444,11 +435,8 @@ describe('Tanstack Query React Hooks Test', () => {
                     'DELETE',
                     makeUrl('User', 'delete'),
                     modelMeta,
-                    undefined,
-                    undefined,
-                    false,
-                    undefined,
-                    true
+                    { optimisticUpdate: true, invalidateQueries: false },
+                    undefined
                 ),
             {
                 wrapper,
@@ -458,7 +446,7 @@ describe('Tanstack Query React Hooks Test', () => {
         act(() => mutationResult.current.mutate({ where: { id: '1' } }));
 
         await waitFor(() => {
-            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined, false, true));
+            const cacheData = queryClient.getQueryData(getQueryKey('User', 'findMany', undefined));
             expect(cacheData).toHaveLength(0);
         });
     });

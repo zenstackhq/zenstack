@@ -282,6 +282,9 @@ importers:
       ts-morph:
         specifier: ^16.0.0
         version: 16.0.0
+      ts-pattern:
+        specifier: ^4.3.0
+        version: 4.3.0
       upper-case-first:
         specifier: ^2.0.2
         version: 2.0.2

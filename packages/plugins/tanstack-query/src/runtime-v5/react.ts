@@ -24,6 +24,8 @@ import {
     setupInvalidation,
     setupOptimisticUpdate,
     type APIContext,
+    type ExtraMutationOptions,
+    type ExtraQueryOptions,
     type FetchFn,
 } from '../runtime/common';
 
@@ -56,20 +58,21 @@ export const Provider = RequestHandlerContext.Provider;
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The react-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
-    fetch?: FetchFn,
-    optimisticUpdate = false
+    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
     return useQuery({
-        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
+        queryKey: getQueryKey(model, url, args, {
+            infinite: false,
+            optimisticUpdate: options?.optimisticUpdate !== false,
+        }),
         queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
@@ -83,20 +86,21 @@ export function useModelQuery<TQueryFnData, TData, TError>(
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The react-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useSuspenseQuery hook
  */
 export function useSuspenseModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<UseSuspenseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
-    fetch?: FetchFn,
-    optimisticUpdate = false
+    options?: Omit<UseSuspenseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
     return useSuspenseQuery({
-        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
+        queryKey: getQueryKey(model, url, args, {
+            infinite: false,
+            optimisticUpdate: options?.optimisticUpdate !== false,
+        }),
         queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
@@ -120,7 +124,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     return useInfiniteQuery({
-        queryKey: getQueryKey(model, url, args, true),
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
@@ -146,7 +150,7 @@ export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     return useSuspenseInfiniteQuery({
-        queryKey: getQueryKey(model, url, args, true),
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
@@ -163,9 +167,7 @@ export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param modelMeta The model metadata.
  * @param options The react-query options.
  * @param fetch The fetch function to use for sending the HTTP request
- * @param invalidateQueries Whether to invalidate queries after mutation.
  * @param checkReadBack Whether to check for read back errors and return undefined if found.
- * @param optimisticUpdate Whether to enable automatic optimistic update
  */
 export function useModelMutation<
     TArgs,
@@ -178,11 +180,9 @@ export function useModelMutation<
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<UseMutationOptions<Result, TError, TArgs>, 'mutationFn'>,
+    options?: Omit<UseMutationOptions<Result, TError, TArgs>, 'mutationFn'> & ExtraMutationOptions,
     fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C,
-    optimisticUpdate = false
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -201,6 +201,8 @@ export function useModelMutation<
 
     const finalOptions = { ...options, mutationFn };
     const operation = url.split('/').pop();
+    const invalidateQueries = options?.invalidateQueries !== false;
+    const optimisticUpdate = !!options?.optimisticUpdate;
 
     if (operation) {
         const { logging } = useContext(RequestHandlerContext);

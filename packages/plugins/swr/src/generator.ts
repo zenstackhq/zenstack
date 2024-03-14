@@ -66,7 +66,7 @@ function generateModelHooks(
         moduleSpecifier: prismaImport,
     });
     sf.addStatements([
-        `import { type GetNextArgs, type QueryOptions, type InfiniteQueryOptions, type MutationOptions, type PickEnumerable, useHooksContext } from '@zenstackhq/swr/runtime';`,
+        `import { type GetNextArgs, type QueryOptions, type InfiniteQueryOptions, type MutationOptions, type PickEnumerable } from '@zenstackhq/swr/runtime';`,
         `import metadata from './__model_meta';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);

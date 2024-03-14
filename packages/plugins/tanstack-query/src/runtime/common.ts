@@ -41,6 +41,31 @@ export type QueryError = Error & {
 };
 
 /**
+ * Extra mutation options.
+ */
+export type ExtraMutationOptions = {
+    /**
+     * Whether to automatically invalidate queries potentially affected by the mutation. Defaults to `true`.
+     */
+    invalidateQueries?: boolean;
+
+    /**
+     * Whether to optimistically update queries potentially affected by the mutation. Defaults to `false`.
+     */
+    optimisticUpdate?: boolean;
+};
+
+/**
+ * Extra query options.
+ */
+export type ExtraQueryOptions = {
+    /**
+     * Whether to opt-in to optimistic updates for this query. Defaults to `true`.
+     */
+    optimisticUpdate?: boolean;
+};
+
+/**
  * Context type for configuring the hooks.
  */
 export type APIContext = {
@@ -110,21 +135,24 @@ type QueryKey = [
  * @param model Model name.
  * @param urlOrOperation Prisma operation (e.g, `findMany`) or request URL. If it's a URL, the last path segment will be used as the operation name.
  * @param args Prisma query arguments.
- * @param infinite Whether the query is infinite.
- * @param optimisticUpdate Whether the query is optimistically updated.
+ * @param options Query options, including `infinite` indicating if it's an infinite query (defaults to false), and `optimisticUpdate` indicating if optimistic updates are enabled (defaults to true).
  * @returns Query key
  */
 export function getQueryKey(
     model: string,
     urlOrOperation: string,
     args: unknown,
-    infinite = false,
-    optimisticUpdate = false
+    options: { infinite: boolean; optimisticUpdate: boolean } = { infinite: false, optimisticUpdate: true }
 ): QueryKey {
     if (!urlOrOperation) {
         throw new Error('Invalid urlOrOperation');
     }
     const operation = urlOrOperation.split('/').pop();
+
+    const infinite = options.infinite;
+    // infinite query doesn't support optimistic updates
+    const optimisticUpdate = options.infinite ? false : options.optimisticUpdate;
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return [QUERY_KEY_PREFIX, model, operation!, args, { infinite, optimisticUpdate }];
 }

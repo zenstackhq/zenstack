@@ -53,6 +53,7 @@ plugin tanstack {
     provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
     target = 'react'
+    version = 'v4'
 }
 
 ${sharedModel}
@@ -74,7 +75,6 @@ plugin tanstack {
     provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
     target = 'react'
-    version = 'v5'
 }
 
 ${sharedModel}
@@ -96,6 +96,7 @@ plugin tanstack {
     provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
     target = 'vue'
+    version = 'v4'
 }
 
 ${sharedModel}
@@ -117,7 +118,6 @@ plugin tanstack {
     provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
     target = 'vue'
-    version = 'v5'
 }
 
 ${sharedModel}
@@ -139,6 +139,7 @@ plugin tanstack {
     provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
     target = 'svelte'
+    version = 'v4'
 }
 
 ${sharedModel}
@@ -160,7 +161,6 @@ plugin tanstack {
     provider = '${path.resolve(__dirname, '../dist')}'
     output = '$projectRoot/hooks'
     target = 'svelte'
-    version = 'v5'
 }
 
 ${sharedModel}
