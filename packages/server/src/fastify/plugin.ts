@@ -32,11 +32,6 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     const { modelMeta, zodSchemas } = loadAssets(options);
 
     const requestHandler = options.handler ?? RPCApiHandler();
-    if (options.useSuperJson !== undefined) {
-        console.warn(
-            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
-        );
-    }
 
     fastify.all(`${prefix}/*`, async (request, reply) => {
         const prisma = (await options.getPrisma(request, reply)) as DbClientContract;

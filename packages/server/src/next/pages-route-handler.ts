@@ -18,11 +18,6 @@ export default function factory(
     const { modelMeta, zodSchemas } = loadAssets(options);
 
     const requestHandler = options.handler || RPCAPIHandler();
-    if (options.useSuperJson !== undefined) {
-        console.warn(
-            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
-        );
-    }
 
     return async (req: NextApiRequest, res: NextApiResponse) => {
         const prisma = (await options.getPrisma(req, res)) as DbClientContract;
