@@ -20,6 +20,8 @@ import {
     marshal,
     setupInvalidation,
     setupOptimisticUpdate,
+    type ExtraMutationOptions,
+    type ExtraQueryOptions,
     type FetchFn,
 } from './common';
 
@@ -54,20 +56,21 @@ export function getHooksContext() {
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The vue-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
-    fetch?: FetchFn,
-    optimisticUpdate = false
+    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
     return useQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
+        queryKey: getQueryKey(model, url, args, {
+            infinite: false,
+            optimisticUpdate: options?.optimisticUpdate !== false,
+        }),
         queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
@@ -91,7 +94,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     return useInfiniteQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, true),
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
@@ -108,9 +111,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param url The request URL.
  * @param options The vue-query options.
  * @param fetch The fetch function to use for sending the HTTP request
- * @param invalidateQueries Whether to invalidate queries after mutation.
  * @param checkReadBack Whether to check for read back errors and return undefined if found.
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useMutation hooks
  */
 export function useModelMutation<
@@ -124,11 +125,9 @@ export function useModelMutation<
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>,
+    options?: Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'> & ExtraMutationOptions,
     fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C,
-    optimisticUpdate = false
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -148,6 +147,9 @@ export function useModelMutation<
     // TODO: figure out the typing problem
     const finalOptions: any = { ...options, mutationFn };
     const operation = url.split('/').pop();
+    const invalidateQueries = options?.invalidateQueries !== false;
+    const optimisticUpdate = !!options?.optimisticUpdate;
+
     if (operation) {
         const { logging } = getHooksContext();
         if (invalidateQueries) {
