@@ -13,10 +13,10 @@ describe('Regression: issue 886', () => {
             `
         );
 
-        const r = zodSchemas.models.ModelSchema.parse({});
+        const r = zodSchemas.models.ModelSchema.parse({ id: 1 });
         expect(r.a).toBe(100);
         expect(r.b).toBe('');
         expect(r.c).toBeInstanceOf(Date);
-        expect(r.id).toBeUndefined();
+        expect(r.id).toBe(1);
     });
 });
