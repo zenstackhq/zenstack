@@ -23,7 +23,7 @@ import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
 import removeDir from './utils/removeDir';
-import { getFieldSchemaDefault, makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
+import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
 export class ZodSchemaGenerator {
     private readonly sourceFiles: SourceFile[] = [];
