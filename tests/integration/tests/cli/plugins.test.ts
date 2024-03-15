@@ -116,6 +116,7 @@ describe('CLI Plugins Tests', () => {
                     strict: true,
                     lib: ['esnext', 'dom'],
                     esModuleInterop: true,
+                    skipLibCheck: true,
                 },
             })
         );
