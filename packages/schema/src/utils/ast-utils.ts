@@ -19,6 +19,7 @@ import { isFromStdlib } from '@zenstackhq/sdk';
 import { AstNode, getDocument, LangiumDocuments, Mutable } from 'langium';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
+import {isAbsolute} from 'node:path'
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(
@@ -96,18 +97,17 @@ export function getDataModelFieldReference(expr: Expression): DataModelField | u
 
 export function resolveImportUri(imp: ModelImport): URI | undefined {
     if (!imp.path) return undefined; // This will return true if imp.path is undefined, null, or an empty string ("").
-    
+
     if (!imp.path.endsWith('.zmodel')) {
         imp.path += '.zmodel';
     }
 
     if (
         !imp.path.startsWith('.') // Respect relative paths
-        && !imp.path.startsWith('/') // Respect absolute paths (Unix)
-        && !/^[a-zA-Z]:\\/.test(imp.path) // Respect absolute paths (Windows)
+        && !isAbsolute(imp.path) // Respect Absolute paths
     ) {
         imp.path = findNodeModulesFile(imp.path) ?? imp.path;
-    } 
+    }
 
     const dirUri = Utils.dirname(getDocument(imp).uri);
     return Utils.resolvePath(dirUri, imp.path);
