@@ -1,7 +1,7 @@
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
-describe('With Policy: auth() test', () => {
+describe('auth() runtime test', () => {
     let origDir: string;
 
     beforeAll(async () => {
@@ -616,5 +616,173 @@ describe('With Policy: auth() test', () => {
         await expect(
             db.post.create({ data: { title: 'title', stats: { connect: { id: 'stats-2' } } } })
         ).toResolveTruthy();
+    });
+});
+
+describe('auth() compile-time test', () => {
+    it('default enhanced typing', async () => {
+        await loadSchema(
+            `
+        model User {
+            id1 Int
+            id2 Int
+            age Int
+
+            @@id([id1, id2])
+            @@allow('all', true)
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { id1: 1, id2: 2 } });
+                `,
+                    },
+                ],
+            }
+        );
+    });
+
+    it('custom auth model', async () => {
+        await loadSchema(
+            `
+        model Foo {
+            id Int @id
+            age Int
+
+            @@auth
+            @@allow('all', true)
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { id: 1 } });
+                `,
+                    },
+                ],
+            }
+        );
+    });
+
+    it('auth() selection', async () => {
+        await loadSchema(
+            `
+        model User {
+            id Int @id
+            age Int
+            email String
+
+            @@allow('all', auth().age > 0)
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { id: 1, age: 10 } });
+                `,
+                    },
+                ],
+            }
+        );
+    });
+
+    it('auth() to-one relation selection', async () => {
+        await loadSchema(
+            `
+        model User {
+            id Int @id
+            email String
+            profile Profile?
+
+            @@allow('all', auth().profile.age > 0 && auth().profile.job.level > 0)
+        }
+
+        model Profile {
+            id Int @id
+            job Job?
+            age Int
+            user User @relation(fields: [userId], references: [id])
+            userId Int @unique
+        }
+
+        model Job {
+            id Int @id
+            level Int
+            profile Profile @relation(fields: [profileId], references: [id])
+            profileId Int @unique
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { id: 1, profile: { age: 1, job: { level: 10 } } } });
+                `,
+                    },
+                ],
+            }
+        );
+    });
+
+    it('auth() to-many relation selection', async () => {
+        await loadSchema(
+            `
+        model User {
+            id Int @id
+            email String
+            posts Post[]
+
+            @@allow('all', auth().posts?[viewCount > 0] && auth().posts?[comments?[level > 0]])
+        }
+
+        model Post {
+            id Int @id
+            viewCount Int
+            comments Comment[]
+            user User @relation(fields: [userId], references: [id])
+            userId Int
+        }
+
+        model Comment {
+            id Int @id
+            level Int
+            post Post @relation(fields: [postId], references: [id])
+            postId Int
+        }
+        `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                import { enhance } from ".zenstack/enhance";
+                import { PrismaClient } from '@prisma/client';
+                enhance(new PrismaClient(), { user: { id: 1, posts: [ { viewCount: 1, comments: [ { level: 1 } ] } ] } });
+                `,
+                    },
+                ],
+            }
+        );
     });
 });

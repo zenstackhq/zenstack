@@ -2,6 +2,7 @@ import type { DMMF } from '@prisma/generator-helper';
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
     getAttribute,
+    getAuthModel,
     getDataModels,
     getDMMF,
     getPrismaClientImportSpec,
@@ -28,6 +29,7 @@ import { execPackage } from '../../../utils/exec-utils';
 import { trackPrismaSchemaError } from '../../prisma';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 import { isDefaultWithAuth } from '../enhancer-utils';
+import { generateAuthType } from './auth-type-generator';
 
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
@@ -62,16 +64,26 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
         await prismaDts.save();
     }
 
+    const authModel = getAuthModel(model.declarations.filter(isDataModel));
+    const authTypes = authModel ? generateAuthType(model, authModel) : '';
+    const authTypeParam = authModel ? `auth.${authModel.name}` : 'AuthUser';
+
     const enhanceTs = project.createSourceFile(
         path.join(outDir, 'enhance.ts'),
-        `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas } from '@zenstackhq/runtime';
+        `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
 import modelMeta from './model-meta';
 import policy from './policy';
-${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
 import { Prisma } from '${getPrismaClientImportSpec(outDir, options)}';
-${withLogicalClient ? `import { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';` : ``}
+${
+    withLogicalClient
+        ? `import type * as _P, { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';`
+        : `import type * as _P from '@prisma/client';`
+}
+${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
 
-export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext, options?: EnhancementOptions)${
+${authTypes}
+
+export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions)${
             withLogicalClient ? ': PrismaClient' : ''
         } {
     return createEnhancement(prisma, {
