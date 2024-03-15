@@ -41,6 +41,46 @@ export type QueryError = Error & {
 };
 
 /**
+ * Result of optimistic data provider.
+ */
+export type OptimisticDataProviderResult = {
+    /**
+     * Kind of the result.
+     *   - Update: use the `data` field to update the query cache.
+     *   - Skip: skip the optimistic update for this query.
+     *   - ProceedDefault: proceed with the default optimistic update.
+     */
+    kind: 'Update' | 'Skip' | 'ProceedDefault';
+
+    /**
+     * Data to update the query cache. Only applicable if `kind` is 'Update'.
+     *
+     * If the data is an object with fields updated, it should have a `$optimistic`
+     * field set to `true`. If it's an array and an element object is created or updated,
+     * the element should have a `$optimistic` field set to `true`.
+     */
+    data?: any;
+};
+
+/**
+ * Optimistic data provider.
+ *
+ * @param args Arguments.
+ * @param args.queryModel The model of the query.
+ * @param args.queryOperation The operation of the query, `findMany`, `count`, etc.
+ * @param args.queryArgs The arguments of the query.
+ * @param args.currentData The current cache data for the query.
+ * @param args.mutationArgs The arguments of the mutation.
+ */
+export type OptimisticDataProvider = (args: {
+    queryModel: string;
+    queryOperation: string;
+    queryArgs: any;
+    currentData: any;
+    mutationArgs: any;
+}) => OptimisticDataProviderResult | Promise<OptimisticDataProviderResult>;
+
+/**
  * Extra mutation options.
  */
 export type ExtraMutationOptions = {
@@ -53,6 +93,11 @@ export type ExtraMutationOptions = {
      * Whether to optimistically update queries potentially affected by the mutation. Defaults to `false`.
      */
     optimisticUpdate?: boolean;
+
+    /**
+     * A callback for computing optimistic update data for each query cache entry.
+     */
+    optimisticDataProvider?: OptimisticDataProvider;
 };
 
 /**
@@ -274,11 +319,14 @@ type QueryCache = {
 
 type SetCacheFunc = (queryKey: readonly unknown[], data: unknown) => void;
 
+/**
+ * Sets up optimistic update and invalidation (after settled) for a mutation.
+ */
 export function setupOptimisticUpdate(
     model: string,
     operation: string,
     modelMeta: ModelMeta,
-    options: MutationOptions,
+    options: MutationOptions & ExtraMutationOptions,
     queryCache: QueryCache,
     setCache: SetCacheFunc,
     invalidate?: InvalidateFunc,
@@ -294,6 +342,7 @@ export function setupOptimisticUpdate(
             model,
             operation as PrismaWriteActionType,
             variables,
+            options,
             modelMeta,
             queryCache,
             setCache,
@@ -324,6 +373,7 @@ async function optimisticUpdate(
     mutationModel: string,
     mutationOp: string,
     mutationArgs: any,
+    options: MutationOptions & ExtraMutationOptions,
     modelMeta: ModelMeta,
     queryCache: QueryCache,
     setCache: SetCacheFunc,
@@ -342,7 +392,7 @@ async function optimisticUpdate(
             continue;
         }
 
-        const [_, queryModel, queryOp, _queryArgs, { optimisticUpdate }] = queryKey as QueryKey;
+        const [_, queryModel, queryOperation, queryArgs, { optimisticUpdate }] = queryKey as QueryKey;
         if (!optimisticUpdate) {
             if (logging) {
                 console.log(`Skipping optimistic update for ${JSON.stringify(queryKey)} due to opt-out`);
@@ -350,9 +400,35 @@ async function optimisticUpdate(
             continue;
         }
 
+        if (options.optimisticDataProvider) {
+            const providerResult = await options.optimisticDataProvider({
+                queryModel,
+                queryOperation,
+                queryArgs,
+                currentData: data,
+                mutationArgs,
+            });
+
+            if (providerResult?.kind === 'Skip') {
+                // skip
+                if (logging) {
+                    console.log(`Skipping optimistic update for ${JSON.stringify(queryKey)} due to provider`);
+                }
+                continue;
+            } else if (providerResult?.kind === 'Update') {
+                // update cache
+                if (logging) {
+                    console.log(`Optimistically updating query ${JSON.stringify(queryKey)} due to provider`);
+                }
+                setCache(queryKey, providerResult.data);
+                continue;
+            }
+        }
+
+        // proceed with default optimistic update
         const mutatedData = await applyMutation(
             queryModel,
-            queryOp,
+            queryOperation,
             data,
             mutationModel,
             mutationOp as PrismaWriteActionType,
