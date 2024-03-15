@@ -647,7 +647,8 @@ describe('Tanstack Query React Hooks V5 Test', () => {
             .reply(200, () => {
                 console.log('Not mutating data');
                 return { data: null };
-            });
+            })
+            .persist();
 
         const { result: mutationResult1 } = renderHook(
             () =>
@@ -669,7 +670,7 @@ describe('Tanstack Query React Hooks V5 Test', () => {
 
         act(() => mutationResult1.current.mutate({ data: { name: 'foo' } }));
 
-        // check should not update
+        // cache should not update
         await waitFor(() => {
             const cacheData: any = queryClient.getQueryData(
                 getQueryKey('User', 'findMany', undefined, { infinite: false, optimisticUpdate: true })

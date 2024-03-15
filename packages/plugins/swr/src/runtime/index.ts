@@ -108,6 +108,46 @@ type QueryKey = {
 };
 
 /**
+ * Result of optimistic data provider.
+ */
+export type OptimisticDataProviderResult = {
+    /**
+     * Kind of the result.
+     *   - Update: use the `data` field to update the query cache.
+     *   - Skip: skip the optimistic update for this query.
+     *   - ProceedDefault: proceed with the default optimistic update.
+     */
+    kind: 'Update' | 'Skip' | 'ProceedDefault';
+
+    /**
+     * Data to update the query cache. Only applicable if `kind` is 'Update'.
+     *
+     * If the data is an object with fields updated, it should have a `$optimistic`
+     * field set to `true`. If it's an array and an element object is created or updated,
+     * the element should have a `$optimistic` field set to `true`.
+     */
+    data?: any;
+};
+
+/**
+ * Optimistic data provider.
+ *
+ * @param args Arguments.
+ * @param args.queryModel The model of the query.
+ * @param args.queryOperation The operation of the query, `findMany`, `count`, etc.
+ * @param args.queryArgs The arguments of the query.
+ * @param args.currentData The current cache data for the query.
+ * @param args.mutationArgs The arguments of the mutation.
+ */
+export type OptimisticDataProvider = (args: {
+    queryModel: string;
+    queryOperation: string;
+    queryArgs: any;
+    currentData: any;
+    mutationArgs: any;
+}) => OptimisticDataProviderResult | Promise<OptimisticDataProviderResult>;
+
+/**
  * Mutation options.
  */
 export type MutationOptions<Result, Error, Args> = {
@@ -115,6 +155,11 @@ export type MutationOptions<Result, Error, Args> = {
      * Whether to automatically optimistic-update queries potentially impacted. Defaults to `false`.
      */
     optimisticUpdate?: boolean;
+
+    /**
+     * A callback for computing optimistic update data for each query cache entry.
+     */
+    optimisticDataProvider?: OptimisticDataProvider;
 } & Omit<SWRMutationConfiguration<Result, Error, string, Args>, 'fetcher'>;
 
 /**
@@ -242,7 +287,7 @@ export function useModelMutation<Args, Result, CheckReadBack extends boolean = b
         getMutationKey(model, operation),
         (_key, { arg }: { arg: any }) => {
             if (options?.optimisticUpdate) {
-                optimisticUpdate(model, operation, arg, modelMeta, cache, mutate, logging);
+                optimisticUpdate(model, operation, arg, options, modelMeta, cache, mutate, logging);
             }
             const url = `${endpoint}/${lowerCaseFirst(model)}/${operation}`;
             return mutationRequest(method, url, arg, invalidate, fetch, checkReadBack);
@@ -410,6 +455,7 @@ async function optimisticUpdate(
     mutationModel: string,
     mutationOp: string,
     mutationArgs: any,
+    options: MutationOptions<any, any, any> | undefined,
     modelMeta: ModelMeta,
     cache: Cache,
     mutator: ScopedMutator,
@@ -430,14 +476,37 @@ async function optimisticUpdate(
         }
 
         const cacheValue = cache.get(key);
-        if (!cacheValue) {
-            continue;
-        }
-
-        if (cacheValue.error) {
+        if (cacheValue?.error) {
             if (logging) {
                 console.warn(`Skipping optimistic update for ${key} due to error:`, cacheValue.error);
             }
+            continue;
+        }
+
+        if (options?.optimisticDataProvider) {
+            const providerResult = await options.optimisticDataProvider({
+                queryModel: parsedKey.model,
+                queryOperation: parsedKey.operation,
+                queryArgs: parsedKey.args,
+                currentData: cacheValue?.data,
+                mutationArgs,
+            });
+
+            if (providerResult?.kind === 'Skip') {
+                if (logging) {
+                    console.log(`Skipping optimistic update for ${key} due to custom provider`);
+                }
+                continue;
+            } else if (providerResult?.kind === 'Update') {
+                if (logging) {
+                    console.log(`Optimistically updating query ${JSON.stringify(key)} due to provider`);
+                }
+                optimisticPromises.push(mutator(key, providerResult.data, { revalidate: false }));
+                continue;
+            }
+        }
+
+        if (!cacheValue) {
             continue;
         }
 
