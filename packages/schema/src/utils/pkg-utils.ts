@@ -38,14 +38,13 @@ export function findUp<e extends boolean = false>(names: string[], cwd: string =
 }
 
 /**
- * A function that finds a file within the node_modules directory by the provided name. 
- * It first searches for the node_modules directory using the findUp function, and if not found, returns undefined. 
- * It then splits the provided name into folder and file parts. 
- * It finds the location of the folder in the node_modules directory by checking for its existence. 
- * If the folder is not found, it returns undefined. 
- * It then constructs the file location by joining the folder location and the file name with a '.zmodel' extension if the file does not already have an extension. 
+ * A function that finds a file within the node_modules directory by the provided name.
+ * It first searches for the node_modules directory using the findUp function, and if not found, returns undefined.
+ * It then splits the provided name into folder and file parts.
+ * It finds the location of the folder in the node_modules directory by checking for its existence.
+ * If the folder is not found, it returns undefined.
+ * It then constructs the file location by joining the folder location and the file name with a '.zmodel' extension if the file does not already have an extension.
  * Returns the file location if it exists, otherwise returns undefined.
- * @author Jonathan Stevens (TGTGamer)
  *
  * @export
  * @param name A string representing the name of the file to find in the node_modules folder
@@ -53,14 +52,14 @@ export function findUp<e extends boolean = false>(names: string[], cwd: string =
  */
 export function findNodeModulesFile(name: string, cwd: string = process.cwd()) {
     if (!name) return undefined;
-    const nodeModules = findUp(['node_modules'], cwd, true);
-    if (!nodeModules) return undefined;
-    const split = name.split('/')
-    const folder = split.slice(0, -1).join('/');
-    const folderLocation = nodeModules.find((dir) =>fs.existsSync(path.join(dir, folder)));
-    if (!folderLocation) return undefined;
-    const fileLocation = path.join(folderLocation, name);
-    return fs.existsSync(fileLocation) ? fileLocation : undefined;
+    try {
+        // Use require.resolve to find the module/file. The paths option allows specifying the directory to start from.
+        const resolvedPath = require.resolve(name, { paths: [cwd] })
+        return resolvedPath
+    } catch (error) {
+        // If require.resolve fails to find the module/file, it will throw an error.
+        return undefined
+    }
 }
 
 function getPackageManager(projectPath = '.'): PackageManagers {
