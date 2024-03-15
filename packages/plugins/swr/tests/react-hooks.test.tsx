@@ -656,4 +656,100 @@ describe('SWR React Hooks Test', () => {
             expect(cacheData?.data).toHaveLength(0);
         });
     });
+
+    it('optimistic create with custom provider', async () => {
+        const data: any[] = [];
+
+        nock(makeUrl('User', 'findMany'))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Querying data:', JSON.stringify(data));
+                return { data };
+            })
+            .persist();
+
+        const { result } = renderHook(() => useModelQuery('User', 'findMany'), { wrapper });
+        await waitFor(() => {
+            expect(result.current.data).toHaveLength(0);
+        });
+
+        nock(makeUrl('User', 'create'))
+            .post(/.*/)
+            .reply(200, () => {
+                console.log('Not mutating data');
+                return { data: null };
+            })
+            .persist();
+
+        const { result: useMutateResult1 } = renderHook(
+            () =>
+                useModelMutation('User', 'POST', 'create', modelMeta, {
+                    optimisticUpdate: true,
+                    revalidate: false,
+                    optimisticDataProvider: ({ queryModel, queryOperation }) => {
+                        if (queryModel === 'User' && queryOperation === 'findMany') {
+                            return { kind: 'Skip' };
+                        } else {
+                            return { kind: 'ProceedDefault' };
+                        }
+                    },
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        await waitFor(async () => {
+            const { trigger } = useMutateResult1.current;
+            const r = await trigger({ data: { name: 'foo' } });
+            console.log('Mutate result:', r);
+        });
+
+        const { result: cacheResult1 } = renderHook(() => useSWRConfig());
+        // cache should not update
+        await waitFor(() => {
+            const cache = cacheResult1.current.cache;
+            const cacheData = cache.get(getQueryKey('User', 'findMany'));
+            expect(cacheData?.data).toHaveLength(0);
+        });
+
+        const { result: useMutateResult2 } = renderHook(
+            () =>
+                useModelMutation('User', 'POST', 'create', modelMeta, {
+                    optimisticUpdate: true,
+                    revalidate: false,
+                    optimisticDataProvider: ({ queryModel, queryOperation, currentData, mutationArgs }) => {
+                        if (queryModel === 'User' && queryOperation === 'findMany') {
+                            return {
+                                kind: 'Update',
+                                data: [
+                                    ...currentData,
+                                    { id: 100, name: mutationArgs.data.name + 'hooray', $optimistic: true },
+                                ],
+                            };
+                        } else {
+                            return { kind: 'ProceedDefault' };
+                        }
+                    },
+                }),
+            {
+                wrapper,
+            }
+        );
+
+        await waitFor(async () => {
+            const { trigger } = useMutateResult2.current;
+            const r = await trigger({ data: { name: 'foo' } });
+            console.log('Mutate result:', r);
+        });
+
+        const { result: cacheResult } = renderHook(() => useSWRConfig());
+        // cache should update
+        await waitFor(() => {
+            const cache = cacheResult.current.cache;
+            const cacheData = cache.get(getQueryKey('User', 'findMany'));
+            expect(cacheData?.data).toHaveLength(1);
+            expect(cacheData?.data[0].name).toBe('foohooray');
+        });
+    });
 });
