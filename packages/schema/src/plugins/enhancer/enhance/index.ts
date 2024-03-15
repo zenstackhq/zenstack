@@ -64,7 +64,7 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
         await prismaDts.save();
     }
 
-    const authModel = getAuthModel(model.declarations.filter(isDataModel));
+    const authModel = getAuthModel(getDataModels(model));
     const authTypes = authModel ? generateAuthType(model, authModel) : '';
     const authTypeParam = authModel ? `auth.${authModel.name}` : 'AuthUser';
 
@@ -76,8 +76,12 @@ import policy from './policy';
 import { Prisma } from '${getPrismaClientImportSpec(outDir, options)}';
 ${
     withLogicalClient
-        ? `import type * as _P, { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';`
-        : `import type * as _P from '@prisma/client';`
+        ? `import type * as _P from '${logicalPrismaClientDir}/index-fixed';
+import { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+`
+        : `import type * as _P from '@prisma/client';
+import { type PrismaClient } from '@prisma/client';
+`
 }
 ${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
 
