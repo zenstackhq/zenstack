@@ -35,7 +35,7 @@ import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
 import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
 
 /**
- * Gets data models that are not ignored
+ * Gets data models in the ZModel schema.
  */
 export function getDataModels(model: Model, includeIgnored = false) {
     const r = model.declarations.filter((d): d is DataModel => isDataModel(d));

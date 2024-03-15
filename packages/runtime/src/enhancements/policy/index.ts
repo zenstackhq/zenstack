@@ -4,6 +4,7 @@ import { getIdFields } from '../../cross';
 import { DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
 import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
+import { Logger } from '../logger';
 import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';
 
@@ -44,7 +45,8 @@ export function withPolicy<DbClient extends object>(
         if (authSelector) {
             Object.keys(authSelector).forEach((f) => {
                 if (!(f in userContext)) {
-                    console.warn(`User context does not have field "${f}" used in policy rules`);
+                    const logger = new Logger(prisma);
+                    logger.warn(`User context does not have field "${f}" used in policy rules`);
                 }
             });
         }

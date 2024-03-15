@@ -94,8 +94,8 @@ export type InternalEnhancementOptions = EnhancementOptions & {
 /**
  * Context for creating enhanced `PrismaClient`
  */
-export type EnhancementContext = {
-    user?: AuthUser;
+export type EnhancementContext<User extends AuthUser = AuthUser> = {
+    user?: User;
 };
 
 let hasPassword: boolean | undefined = undefined;

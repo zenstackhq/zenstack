@@ -251,12 +251,16 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
 
+    opt.extraSourceFiles?.forEach(({ name, content }) => {
+        fs.writeFileSync(path.join(projectRoot, name), content);
+    });
+
+    if (opt.extraSourceFiles && opt.extraSourceFiles.length > 0 && !opt.compile) {
+        console.warn('`extraSourceFiles` is true but `compile` is false.');
+    }
+
     if (opt.compile) {
         console.log('Compiling...');
-
-        opt.extraSourceFiles?.forEach(({ name, content }) => {
-            fs.writeFileSync(path.join(projectRoot, name), content);
-        });
 
         run('npx tsc --init');
 
