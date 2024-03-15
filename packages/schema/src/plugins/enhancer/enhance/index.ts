@@ -67,20 +67,21 @@ export async function generate(model: Model, options: PluginOptions, project: Pr
     const authModel = getAuthModel(getDataModels(model));
     const authTypes = authModel ? generateAuthType(model, authModel) : '';
     const authTypeParam = authModel ? `auth.${authModel.name}` : 'AuthUser';
+    const prismaImport = getPrismaClientImportSpec(outDir, options);
 
     const enhanceTs = project.createSourceFile(
         path.join(outDir, 'enhance.ts'),
         `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
 import modelMeta from './model-meta';
 import policy from './policy';
-import { Prisma } from '${getPrismaClientImportSpec(outDir, options)}';
+import { Prisma } from '${prismaImport}';
 ${
     withLogicalClient
         ? `import type * as _P from '${logicalPrismaClientDir}/index-fixed';
-import { type PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+import type { PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
 `
-        : `import type * as _P from '@prisma/client';
-import { type PrismaClient } from '@prisma/client';
+        : `import type * as _P from '${prismaImport}';
+import type { PrismaClient } from '${prismaImport}';
 `
 }
 ${options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
