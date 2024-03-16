@@ -1,7 +1,7 @@
-import { PluginError, createProject, resolvePath, type PluginFunction, RUNTIME_PACKAGE } from '@zenstackhq/sdk';
+import { PluginError, RUNTIME_PACKAGE, createProject, resolvePath, type PluginFunction } from '@zenstackhq/sdk';
 import path from 'path';
 import { getDefaultOutputFolder } from '../plugin-utils';
-import { generate as generateEnhancer } from './enhance';
+import { EnhancerGenerator } from './enhance';
 import { generate as generateModelMeta } from './model-meta';
 import { generate as generatePolicy } from './policy';
 
@@ -19,7 +19,7 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
 
     await generateModelMeta(model, options, project, outDir);
     await generatePolicy(model, options, project, outDir);
-    const { dmmf } = await generateEnhancer(model, options, project, outDir);
+    const { dmmf } = await new EnhancerGenerator(model, options, project, outDir).generate();
 
     let prismaClientPath: string | undefined;
     if (dmmf) {

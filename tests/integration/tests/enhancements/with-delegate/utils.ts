@@ -45,3 +45,31 @@ model Gallery {
     images Image[]
 }
 `;
+
+export const POLYMORPHIC_MANY_TO_MANY_SCHEMA = `
+model User {
+    id Int @id @default(autoincrement())
+    level Int @default(0)
+    assets Asset[]
+
+    @@allow('all', true)
+}
+
+model Asset {
+    id Int @id @default(autoincrement())
+    viewCount Int @default(0)
+    users User[]
+    assetType String
+    
+    @@delegate(assetType)
+    @@allow('all', true)
+}
+
+model Video extends Asset {
+    duration Int
+}
+
+model Image extends Asset {
+    format String
+}
+`;
