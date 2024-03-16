@@ -5,8 +5,8 @@ import { execSync } from './exec-utils';
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
 /**
- * A type named FindUp that takes a type parameter e which extends boolean. 
- * If e extends true, it returns a union type of string[] or undefined. 
+ * A type named FindUp that takes a type parameter e which extends boolean.
+ * If e extends true, it returns a union type of string[] or undefined.
  * If e does not extend true, it returns a union type of string or undefined.
  *
  * @export
@@ -14,9 +14,9 @@ export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
  */
 export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined
 /**
- * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path. 
- * Optionally return a single path or multiple paths. 
- * If multiple allowed, return all paths found. 
+ * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path.
+ * Optionally return a single path or multiple paths.
+ * If multiple allowed, return all paths found.
  * If no paths are found, return undefined.
  *
  * @export
@@ -35,6 +35,30 @@ export function findUp<e extends boolean = false>(names: string[], cwd: string =
     const up = path.resolve(cwd, '..');
     if (up === cwd) return (multiple && result.length > 0 ? result : undefined) as FindUp<e>; // it'll fail anyway
     return findUp(names, up, multiple, result);
+}
+
+
+/**
+ * Find a Node module/file given its name in a specific directory, with a fallback to the current working directory.
+ * If the name is empty, return undefined.
+ * Try to resolve the module/file using require.resolve with the specified directory as the starting point.
+ * Return the resolved path if successful, otherwise return undefined.
+ *
+ * @export
+ * @param {string} name The name of the module/file to find
+ * @param {string} [cwd=process.cwd()]
+ * @returns {*} Finds a specified module or file using require.resolve starting from a specified directory path, or the current working directory if not provided.
+ */
+export function findNodeModulesFile(name: string, cwd: string = process.cwd()) {
+    if (!name) return undefined;
+    try {
+        // Use require.resolve to find the module/file. The paths option allows specifying the directory to start from.
+        const resolvedPath = require.resolve(name, { paths: [cwd] })
+        return resolvedPath
+    } catch (error) {
+        // If require.resolve fails to find the module/file, it will throw an error.
+        return undefined
+    }
 }
 
 function getPackageManager(projectPath = '.'): PackageManagers {
@@ -106,7 +130,7 @@ export function ensurePackage(
 }
 
 /**
- * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided. 
+ * A function that searches for the nearest package.json file starting from the provided search path or the current working directory if no search path is provided.
  * It iterates through the directory structure going one level up at a time until it finds a package.json file. If no package.json file is found, it returns undefined.
  * @deprecated Use findUp instead @see findUp
  */
