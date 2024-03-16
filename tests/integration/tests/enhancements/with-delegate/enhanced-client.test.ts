@@ -2,7 +2,7 @@ import { PrismaErrorCode } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import fs from 'fs';
 import path from 'path';
-import { POLYMORPHIC_SCHEMA } from './utils';
+import { POLYMORPHIC_MANY_TO_MANY_SCHEMA, POLYMORPHIC_SCHEMA } from './utils';
 
 describe('Polymorphism Test', () => {
     const schema = POLYMORPHIC_SCHEMA;
@@ -1000,6 +1000,42 @@ describe('Polymorphism Test', () => {
         );
         expect(() => db.ratedVideo.groupBy({ having: { rating: { gt: 0 }, viewCount: { gt: 0 } } })).toThrow(
             'groupBy with fields from base type is not supported yet'
+        );
+    });
+
+    it('many to many', async () => {
+        const { enhance } = await loadSchema(POLYMORPHIC_MANY_TO_MANY_SCHEMA);
+        const db = enhance();
+
+        const video = await db.video.create({ data: { viewCount: 1, duration: 100 } });
+        const image = await db.image.create({ data: { viewCount: 2, format: 'png' } });
+
+        await expect(
+            db.user.create({
+                data: {
+                    id: 1,
+                    level: 10,
+                    assets: {
+                        connect: [{ id: video.id }, { id: image.id }],
+                    },
+                },
+                include: { assets: true },
+            })
+        ).resolves.toMatchObject({
+            id: 1,
+            level: 10,
+            assets: expect.arrayContaining([video, image]),
+        });
+
+        await expect(db.user.findUnique({ where: { id: 1 }, include: { assets: true } })).resolves.toMatchObject({
+            id: 1,
+            assets: expect.arrayContaining([video, image]),
+        });
+        await expect(db.asset.findUnique({ where: { id: video.id }, include: { users: true } })).resolves.toMatchObject(
+            {
+                id: video.id,
+                users: expect.arrayContaining([{ id: 1, level: 10 }]),
+            }
         );
     });
 
