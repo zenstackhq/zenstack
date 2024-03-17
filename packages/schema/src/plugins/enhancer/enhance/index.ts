@@ -56,10 +56,9 @@ export class EnhancerGenerator {
         let logicalPrismaClientDir: string | undefined;
         let dmmf: DMMF.Document | undefined;
 
-        const withLogicalClient = this.needsLogicalClient();
         const prismaImport = getPrismaClientImportSpec(this.outDir, this.options);
 
-        if (withLogicalClient) {
+        if (this.needsLogicalClient()) {
             // schema contains delegate models, need to generate a logical prisma schema
             const result = await this.generateLogicalPrisma();
 
@@ -90,22 +89,67 @@ export class EnhancerGenerator {
         const enhanceTs = this.project.createSourceFile(
             path.join(this.outDir, 'enhance.ts'),
             `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
-    import modelMeta from './model-meta';
-    import policy from './policy';
-    import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
-    import type { InternalArgs, TypeMapDef, TypeMapCbDef, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
-    ${
-        withLogicalClient
-            ? `import type * as _P from '${logicalPrismaClientDir}/index-fixed';
-    import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
-    `
-            : `import type * as _P from '${prismaImport}';
-    import type { Prisma, PrismaClient } from '${prismaImport}';
-    `
+import modelMeta from './model-meta';
+import policy from './policy';
+${this.options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
+
+${
+    logicalPrismaClientDir
+        ? this.createLogicalPrismaImports(prismaImport, logicalPrismaClientDir)
+        : this.createSimplePrismaImports(prismaImport)
+}
+
+${authTypes}
+
+${
+    logicalPrismaClientDir
+        ? this.createLogicalPrismaEnhanceFunction(authTypeParam)
+        : this.createSimplePrismaEnhanceFunction(authTypeParam)
+}
+    `,
+            { overwrite: true }
+        );
+
+        await this.saveSourceFile(enhanceTs);
+
+        return { dmmf };
     }
-    ${this.options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
-    
-    ${authTypes}
+
+    private createSimplePrismaImports(prismaImport: string) {
+        return `import { Prisma } from '${prismaImport}';
+import type * as _P from '${prismaImport}';
+        `;
+    }
+
+    private createSimplePrismaEnhanceFunction(authTypeParam: string) {
+        return `
+export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions) {
+    return createEnhancement(prisma, {
+        modelMeta,
+        policy,
+        zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
+        prismaModule: Prisma,
+        ...options
+    }, context);
+}         
+            `;
+    }
+
+    private createLogicalPrismaImports(prismaImport: string, logicalPrismaClientDir: string) {
+        return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
+import type {
+    InternalArgs,
+    TypeMapDef,
+    TypeMapCbDef,
+    DynamicClientExtensionThis,
+} from '${prismaImport}/runtime/library';
+import type * as _P from '${logicalPrismaClientDir}/index-fixed';
+import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+`;
+    }
+
+    private createLogicalPrismaEnhanceFunction(authTypeParam: string) {
+        return `
 // overload for plain PrismaClient
 export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
     prisma: _PrismaClient<any, any, ExtArgs>,
@@ -125,13 +169,7 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         ...options
     }, context);
 }
-    `,
-            { overwrite: true }
-        );
-
-        await this.saveSourceFile(enhanceTs);
-
-        return { dmmf };
+`;
     }
 
     private needsLogicalClient() {
