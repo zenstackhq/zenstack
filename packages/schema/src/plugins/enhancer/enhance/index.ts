@@ -92,31 +92,39 @@ export class EnhancerGenerator {
             `import { createEnhancement, type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
     import modelMeta from './model-meta';
     import policy from './policy';
-    import { Prisma } from '${prismaImport}';
+    import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
+    import type { InternalArgs, TypeMapDef, TypeMapCbDef, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
     ${
         withLogicalClient
             ? `import type * as _P from '${logicalPrismaClientDir}/index-fixed';
-    import type { PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
+    import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
     `
             : `import type * as _P from '${prismaImport}';
-    import type { PrismaClient } from '${prismaImport}';
+    import type { Prisma, PrismaClient } from '${prismaImport}';
     `
     }
     ${this.options.withZodSchemas ? "import * as zodSchemas from './zod';" : 'const zodSchemas = undefined;'}
     
     ${authTypes}
+// overload for plain PrismaClient
+export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
+    prisma: _PrismaClient<any, any, ExtArgs>,
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): PrismaClient;
     
-    export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions)${
-                withLogicalClient ? ': PrismaClient' : ''
-            } {
-        return createEnhancement(prisma, {
-            modelMeta,
-            policy,
-            zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
-            prismaModule: Prisma,
-            ...options
-        }, context)${withLogicalClient ? ' as PrismaClient' : ''};
-    }
+// overload for extended PrismaClient
+export function enhance<TypeMap extends TypeMapDef, TypeMapCb extends TypeMapCbDef, ExtArgs extends Record<string, any> & InternalArgs>(
+    prisma: DynamicClientExtensionThis<TypeMap, TypeMapCb, ExtArgs>,
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs>;
+
+export function enhance(prisma: any, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): any {
+    return createEnhancement(prisma, {
+        modelMeta,
+        policy,
+        zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
+        prismaModule: _Prisma,
+        ...options
+    }, context);
+}
     `,
             { overwrite: true }
         );

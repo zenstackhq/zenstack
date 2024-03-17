@@ -1,7 +1,5 @@
 import { PrismaErrorCode } from '@zenstackhq/runtime';
-import { loadSchema, run } from '@zenstackhq/testtools';
-import fs from 'fs';
-import path from 'path';
+import { loadSchema } from '@zenstackhq/testtools';
 import { POLYMORPHIC_MANY_TO_MANY_SCHEMA, POLYMORPHIC_SCHEMA } from './utils';
 
 describe('Polymorphism Test', () => {
@@ -1039,8 +1037,7 @@ describe('Polymorphism Test', () => {
         );
     });
 
-    it('typescript compilation', async () => {
-        const { projectDir } = await loadSchema(schema, { enhancements: ['delegate'] });
+    it('typescript compilation plain prisma', async () => {
         const src = `
         import { PrismaClient } from '@prisma/client';
         import { enhance } from '.zenstack/enhance';
@@ -1048,7 +1045,6 @@ describe('Polymorphism Test', () => {
         const prisma = new PrismaClient();
         
         async function main() {
-            await prisma.user.deleteMany();
             const db = enhance(prisma);
         
             const user1 = await db.user.create({ data: { } });
@@ -1084,31 +1080,82 @@ describe('Polymorphism Test', () => {
             }
         }
         
-        main()
-            .then(async () => {
-                await prisma.$disconnect();
-            })
-            .catch(async (e) => {
-                console.error(e);
-                await prisma.$disconnect();
-                process.exit(1);
-        });        
+        main();     
         `;
-
-        fs.writeFileSync(path.join(projectDir, 'script.ts'), src);
-        fs.writeFileSync(
-            path.join(projectDir, 'tsconfig.json'),
-            JSON.stringify({
-                compilerOptions: {
-                    outDir: 'dist',
-                    strict: true,
-                    lib: ['esnext'],
-                    esModuleInterop: true,
+        await loadSchema(schema, {
+            compile: true,
+            enhancements: ['delegate'],
+            extraSourceFiles: [
+                {
+                    name: 'main.ts',
+                    content: src,
                 },
-            })
-        );
+            ],
+        });
+    });
 
-        run('npm i -D @types/node', undefined, projectDir);
-        run('npx tsc --noEmit --skipLibCheck script.ts', undefined, projectDir);
+    it('typescript compilation extended prisma', async () => {
+        const src = `
+        import { PrismaClient } from '@prisma/client';
+        import { enhance } from '.zenstack/enhance';
+        
+        const prisma = new PrismaClient().$extends({
+            model: {
+                user: {
+                    async signUp() {
+                        return prisma.user.create({ data: {} });
+                    },
+                },
+            },
+        });
+        
+        async function main() {
+            const db = enhance(prisma);
+        
+            const user1 = await db.user.signUp();
+        
+            await db.ratedVideo.create({
+                data: {
+                    owner: { connect: { id: user1.id } },
+                    duration: 100,
+                    url: 'abc',
+                    rating: 10,
+                },
+            });
+        
+            await db.image.create({
+                data: {
+                    owner: { connect: { id: user1.id } },
+                    format: 'webp',
+                },
+            });
+        
+            const video = await db.video.findFirst({ include: { owner: true } });
+            console.log(video?.duration);
+            console.log(video?.viewCount);
+        
+            const asset = await db.asset.findFirstOrThrow();
+            console.log(asset.assetType);
+            console.log(asset.viewCount);
+        
+            if (asset.assetType === 'Video') {
+                console.log('Video: duration', asset.duration);
+            } else {
+                console.log('Image: format', asset.format);
+            }
+        }
+        
+        main();     
+        `;
+        await loadSchema(schema, {
+            compile: true,
+            enhancements: ['delegate'],
+            extraSourceFiles: [
+                {
+                    name: 'main.ts',
+                    content: src,
+                },
+            ],
+        });
     });
 });
