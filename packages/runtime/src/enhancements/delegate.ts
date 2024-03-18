@@ -390,7 +390,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         return this.queryUtils.transaction(this.prisma, async (tx) => {
             const r = await Promise.all(
                 enumerate(args.data).map(async (item) => {
-                    return this.doCreate(tx, this.model, item);
+                    return this.doCreate(tx, this.model, { data: item });
                 })
             );
 

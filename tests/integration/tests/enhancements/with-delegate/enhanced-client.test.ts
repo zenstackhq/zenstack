@@ -121,6 +121,43 @@ describe('Polymorphism Test', () => {
         ).resolves.toMatchObject({ owner: { id: 2 } });
     });
 
+    it('create many polymorphic model', async () => {
+        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const db = enhance();
+
+        await expect(
+            db.ratedVideo.createMany({ data: { viewCount: 1, duration: 100, url: 'xyz', rating: 100 } })
+        ).resolves.toMatchObject({ count: 1 });
+
+        await expect(
+            db.ratedVideo.createMany({
+                data: [
+                    { viewCount: 2, duration: 200, url: 'xyz', rating: 100 },
+                    { viewCount: 3, duration: 300, url: 'xyz', rating: 100 },
+                ],
+            })
+        ).resolves.toMatchObject({ count: 2 });
+    });
+
+    it('create many polymorphic relation', async () => {
+        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const db = enhance();
+
+        const video1 = await db.ratedVideo.create({
+            data: { viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
+        await expect(
+            db.user.createMany({ data: { id: 1, assets: { connect: { id: video1.id } } } })
+        ).resolves.toMatchObject({ count: 1 });
+
+        const video2 = await db.ratedVideo.create({
+            data: { viewCount: 1, duration: 100, url: 'xyz', rating: 100 },
+        });
+        await expect(
+            db.user.createMany({ data: [{ id: 2, assets: { connect: { id: video2.id } } }, { id: 3 }] })
+        ).resolves.toMatchObject({ count: 2 });
+    });
+
     it('read with concrete', async () => {
         const { db, user, video } = await setup();
 
