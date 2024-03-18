@@ -10,7 +10,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup.config.ts && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup.config.ts && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination ../../../../.build",
         "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup.config.ts --watch\"",
         "lint": "eslint src --ext ts",
         "test": "jest",
