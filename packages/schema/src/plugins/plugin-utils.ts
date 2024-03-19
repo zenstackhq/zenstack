@@ -3,7 +3,6 @@ import { PluginGlobalOptions } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
 import { PluginRunnerOptions } from '../cli/plugin-runner';
-import { getPackageManager } from '../utils/pkg-utils';
 
 export const ALL_OPERATION_KINDS: PolicyOperationKind[] = ['create', 'update', 'postUpdate', 'read', 'delete'];
 
@@ -82,27 +81,17 @@ export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
         return path.join(process.cwd(), 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
     }
 
-    const { projectRoot } = getPackageManager(__dirname);
-    if (fs.existsSync(path.join(projectRoot, 'node_modules'))) {
-        // use the located node_modules folder
-        return path.join(projectRoot, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
-    } else {
-        // unable to locate a node_modules folder, fallback to where the runtime
-        // package resides
+    // find the real runtime module path, it might be a symlink in pnpm
+    let runtimeModulePath = require.resolve('@zenstackhq/runtime');
 
-        // find the real runtime module path, it might be a symlink in pnpm
-        let runtimeModulePath = require.resolve('@zenstackhq/runtime');
-
-        if (runtimeModulePath) {
-            // start with the parent folder of @zenstackhq, supposed to be a node_modules folder
-            while (!runtimeModulePath.endsWith('@zenstackhq') && runtimeModulePath !== '/') {
-                runtimeModulePath = path.join(runtimeModulePath, '..');
-            }
-            runtimeModulePath = path.join(runtimeModulePath, '..');
-        }
-        const modulesFolder = getNodeModulesFolder(runtimeModulePath);
-        return modulesFolder ? path.join(modulesFolder, DEFAULT_RUNTIME_LOAD_PATH) : undefined;
+    // start with the parent folder of @zenstackhq, supposed to be a node_modules folder
+    while (!runtimeModulePath.endsWith('@zenstackhq') && runtimeModulePath !== '/') {
+        runtimeModulePath = path.join(runtimeModulePath, '..');
     }
+    runtimeModulePath = path.join(runtimeModulePath, '..');
+
+    const modulesFolder = getNodeModulesFolder(runtimeModulePath);
+    return modulesFolder ? path.join(modulesFolder, DEFAULT_RUNTIME_LOAD_PATH) : undefined;
 }
 
 /**
