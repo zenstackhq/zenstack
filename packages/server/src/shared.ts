@@ -33,7 +33,11 @@ export function getDefaultModelMeta(loadPath: string | undefined): ModelMeta {
             const toLoad = path.resolve(loadPath, 'model-meta');
             return require(toLoad).default;
         } else {
-            return require('.zenstack/model-meta').default;
+            // model-meta should be resolved relative to the runtime
+            const metaPath = require.resolve('.zenstack/model-meta', {
+                paths: [require.resolve('@zenstackhq/runtime')],
+            });
+            return require(metaPath).default;
         }
     } catch {
         if (process.env.ZENSTACK_TEST === '1' && !loadPath) {
@@ -61,7 +65,11 @@ export function getDefaultPolicy(loadPath: string | undefined): PolicyDef {
             const toLoad = path.resolve(loadPath, 'policy');
             return require(toLoad).default;
         } else {
-            return require('.zenstack/policy').default;
+            // policy should be resolved relative to the runtime
+            const policyPath = require.resolve('.zenstack/policy', {
+                paths: [require.resolve('@zenstackhq/runtime')],
+            });
+            return require(policyPath).default;
         }
     } catch {
         if (process.env.ZENSTACK_TEST === '1' && !loadPath) {
@@ -92,7 +100,11 @@ export function getDefaultZodSchemas(loadPath: string | undefined): ZodSchemas |
             const toLoad = path.resolve(loadPath, 'zod');
             return require(toLoad);
         } else {
-            return require('.zenstack/zod');
+            // policy should be resolved relative to the runtime
+            const zodPath = require.resolve('.zenstack/zod', {
+                paths: [require.resolve('@zenstackhq/runtime')],
+            });
+            return require(zodPath);
         }
     } catch {
         if (process.env.ZENSTACK_TEST === '1' && !loadPath) {
