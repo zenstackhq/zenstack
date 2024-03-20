@@ -734,7 +734,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         ) => {
             for (const item of enumerate(args.data)) {
                 if (args.skipDuplicates) {
-                    if (await this.hasDuplicatedUniqueConstraint(model, item, db)) {
+                    // get a reversed query to include fields inherited from upstream mutation,
+                    // it'll be merged with the create payload for unique constraint checking
+                    const reversedQuery = this.utils.buildReversedQuery(context);
+                    if (await this.hasDuplicatedUniqueConstraint(model, { ...reversedQuery, ...item }, db)) {
                         if (this.shouldLogQuery) {
                             this.logger.info(`[policy] \`createMany\` skipping duplicate ${formatObject(item)}`);
                         }
