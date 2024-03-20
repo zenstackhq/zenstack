@@ -52,6 +52,8 @@ describe('With Policy:deep nested', () => {
         m2 M2? @relation(fields: [m2Id], references: [id], onDelete: Cascade)
         m2Id Int?
 
+        @@unique([m2Id, value])
+
         @@allow('read', true)
         @@allow('create', value > 20)
         @@allow('update', value > 21)
@@ -164,7 +166,7 @@ describe('With Policy:deep nested', () => {
                             m4: {
                                 create: [
                                     { id: 'm4-1', value: 22 },
-                                    { id: 'm4-2', value: 22 },
+                                    { id: 'm4-2', value: 23 },
                                 ],
                             },
                         },
@@ -190,11 +192,11 @@ describe('With Policy:deep nested', () => {
                             connectOrCreate: [
                                 {
                                     where: { id: 'm4-2' },
-                                    create: { id: 'm4-new', value: 22 },
+                                    create: { id: 'm4-new', value: 24 },
                                 },
                                 {
                                     where: { id: 'm4-3' },
-                                    create: { id: 'm4-3', value: 23 },
+                                    create: { id: 'm4-3', value: 25 },
                                 },
                             ],
                         },
@@ -327,7 +329,7 @@ describe('With Policy:deep nested', () => {
         await db.m4.create({
             data: {
                 id: 'm4-3',
-                value: 23,
+                value: 24,
             },
         });
         const r = await db.m1.update({
@@ -446,6 +448,19 @@ describe('With Policy:deep nested', () => {
                 myId: '1',
                 m2: {
                     create: {
+                        id: 1,
+                        value: 2,
+                    },
+                },
+            },
+        });
+
+        await db.m1.create({
+            data: {
+                myId: '2',
+                m2: {
+                    create: {
+                        id: 2,
                         value: 2,
                     },
                 },
@@ -483,9 +498,9 @@ describe('With Policy:deep nested', () => {
                             createMany: {
                                 skipDuplicates: true,
                                 data: [
-                                    { id: 'm4-1', value: 21 },
-                                    { id: 'm4-1', value: 211 },
-                                    { id: 'm4-2', value: 22 },
+                                    { id: 'm4-1', value: 21 }, // should be created
+                                    { id: 'm4-1', value: 211 }, // should be skipped
+                                    { id: 'm4-2', value: 22 }, // should be created
                                 ],
                             },
                         },
@@ -494,6 +509,29 @@ describe('With Policy:deep nested', () => {
             },
         });
         await expect(db.m4.findMany()).resolves.toHaveLength(2);
+
+        // createMany skip duplicate with compound unique involving fk
+        await db.m1.update({
+            where: { myId: '2' },
+            data: {
+                m2: {
+                    update: {
+                        m4: {
+                            createMany: {
+                                skipDuplicates: true,
+                                data: [
+                                    { id: 'm4-3', value: 21 }, // should be created
+                                    { id: 'm4-4', value: 21 }, // should be skipped
+                                ],
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        const allM4 = await db.m4.findMany({ select: { value: true } });
+        await expect(allM4).toHaveLength(3);
+        await expect(allM4).toEqual(expect.arrayContaining([{ value: 21 }, { value: 21 }, { value: 22 }]));
 
         // updateMany, filtered out by policy
         await db.m1.update({
@@ -556,7 +594,7 @@ describe('With Policy:deep nested', () => {
                 },
             },
         });
-        await expect(db.m4.findMany()).resolves.toHaveLength(2);
+        await expect(db.m4.findMany()).resolves.toHaveLength(3);
 
         // deleteMany, success
         await db.m1.update({
@@ -573,7 +611,7 @@ describe('With Policy:deep nested', () => {
                 },
             },
         });
-        await expect(db.m4.findMany()).resolves.toHaveLength(1);
+        await expect(db.m4.findMany()).resolves.toHaveLength(2);
     });
 
     it('delete', async () => {

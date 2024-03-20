@@ -537,7 +537,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         let createResult = await Promise.all(
             enumerate(args.data).map(async (item) => {
                 if (args.skipDuplicates) {
-                    if (await this.hasDuplicatedUniqueConstraint(model, item, db)) {
+                    if (await this.hasDuplicatedUniqueConstraint(model, item, undefined, db)) {
                         if (this.shouldLogQuery) {
                             this.logger.info(`[policy] \`createMany\` skipping duplicate ${formatObject(item)}`);
                         }
@@ -565,23 +565,82 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         };
     }
 
-    private async hasDuplicatedUniqueConstraint(model: string, createData: any, db: Record<string, DbOperations>) {
+    private async hasDuplicatedUniqueConstraint(
+        model: string,
+        createData: any,
+        upstreamQuery: any,
+        db: Record<string, DbOperations>
+    ) {
         // check unique constraint conflicts
         // we can't rely on try/catch/ignore constraint violation error: https://github.com/prisma/prisma/issues/20496
         // TODO: for simple cases we should be able to translate it to an `upsert` with empty `update` payload
 
         // for each unique constraint, check if the input item has all fields set, and if so, check if
         // an entity already exists, and ignore accordingly
+
         const uniqueConstraints = this.utils.getUniqueConstraints(model);
+
         for (const constraint of Object.values(uniqueConstraints)) {
-            if (constraint.fields.every((f) => createData[f] !== undefined)) {
-                const uniqueFilter = constraint.fields.reduce((acc, f) => ({ ...acc, [f]: createData[f] }), {});
+            // the unique filter used to check existence
+            const uniqueFilter: any = {};
+
+            // unique constraint fields not covered yet
+            const remainingConstraintFields = new Set<string>(constraint.fields);
+
+            // collect constraint fields from the create data
+            for (const [k, v] of Object.entries<any>(createData)) {
+                if (v === undefined) {
+                    continue;
+                }
+
+                if (remainingConstraintFields.has(k)) {
+                    uniqueFilter[k] = v;
+                    remainingConstraintFields.delete(k);
+                }
+            }
+
+            // collect constraint fields from the upstream query
+            if (upstreamQuery) {
+                for (const [k, v] of Object.entries<any>(upstreamQuery)) {
+                    if (v === undefined) {
+                        continue;
+                    }
+
+                    if (remainingConstraintFields.has(k)) {
+                        uniqueFilter[k] = v;
+                        remainingConstraintFields.delete(k);
+                        continue;
+                    }
+
+                    // check if the upstream query contains a relation field which covers
+                    // a foreign key field constraint
+
+                    const fieldInfo = requireField(this.modelMeta, model, k);
+                    if (!fieldInfo.isDataModel) {
+                        // only care about relation fields
+                        continue;
+                    }
+
+                    // merge the upstream query into the unique filter
+                    uniqueFilter[k] = v;
+
+                    // mark the corresponding foreign key fields as covered
+                    const fkMapping = fieldInfo.foreignKeyMapping ?? {};
+                    for (const fk of Object.values(fkMapping)) {
+                        remainingConstraintFields.delete(fk);
+                    }
+                }
+            }
+
+            if (remainingConstraintFields.size === 0) {
+                // all constraint fields set, check existence
                 const existing = await this.utils.checkExistence(db, model, uniqueFilter);
                 if (existing) {
                     return true;
                 }
             }
         }
+
         return false;
     }
 
@@ -737,8 +796,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 if (args.skipDuplicates) {
                     // get a reversed query to include fields inherited from upstream mutation,
                     // it'll be merged with the create payload for unique constraint checking
-                    const reversedQuery = this.utils.buildReversedQuery(context);
-                    if (await this.hasDuplicatedUniqueConstraint(model, { ...reversedQuery, ...item }, db)) {
+                    const upstreamQuery = this.utils.buildReversedQuery(context);
+                    if (await this.hasDuplicatedUniqueConstraint(model, item, upstreamQuery, db)) {
                         if (this.shouldLogQuery) {
                             this.logger.info(`[policy] \`createMany\` skipping duplicate ${formatObject(item)}`);
                         }
