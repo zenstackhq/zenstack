@@ -5,6 +5,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
+import type { EnhancementOptions } from '..';
 import {
     CrudFailureReason,
     FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
@@ -48,6 +49,7 @@ export class PolicyUtil {
 
     constructor(
         private readonly db: DbClientContract,
+        private readonly options: EnhancementOptions | undefined,
         private readonly modelMeta: ModelMeta,
         private readonly policy: PolicyDef,
         private readonly zodSchemas: ZodSchemas | undefined,
@@ -1098,24 +1100,25 @@ export class PolicyUtil {
 
         return prismaClientKnownRequestError(
             this.db,
+            this.options,
             `denied by policy: ${model} entities failed '${operation}' check${extra ? ', ' + extra : ''}`,
             args
         );
     }
 
     notFound(model: string) {
-        return prismaClientKnownRequestError(this.db, `entity not found for model ${model}`, {
+        return prismaClientKnownRequestError(this.db, this.options, `entity not found for model ${model}`, {
             clientVersion: getVersion(),
             code: 'P2025',
         });
     }
 
     validationError(message: string) {
-        return prismaClientValidationError(this.db, message);
+        return prismaClientValidationError(this.db, this.options, message);
     }
 
     unknownError(message: string) {
-        return prismaClientUnknownRequestError(this.db, message, {
+        return prismaClientUnknownRequestError(this.db, this.options, message, {
             clientVersion: getVersion(),
         });
     }

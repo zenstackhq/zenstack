@@ -19,6 +19,13 @@ export interface CommonEnhancementOptions {
      * Path for loading CLI-generated code
      */
     loadPath?: string;
+
+    /**
+     * The `Prisma` module generated together with `PrismaClient`. You only need to
+     * pass it when you specified a custom `PrismaClient` output path. The module can
+     * be loaded like: `import { Prisma } from '<your PrismaClient output path>';`.
+     */
+    prismaModule?: any;
 }
 
 /**

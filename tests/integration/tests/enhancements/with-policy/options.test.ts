@@ -1,4 +1,4 @@
-import { withPolicy } from '@zenstackhq/runtime';
+import { enhance } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
@@ -20,17 +20,48 @@ describe('Password test', () => {
             id String @id @default(cuid())
             x Int
         
+            @@allow('read', true)
             @@allow('create', x > 0)
         }`,
             { getPrismaOnly: true, output: './zen' }
         );
 
-        const db = withPolicy(prisma, undefined, { loadPath: './zen' });
+        const db = enhance(prisma, undefined, { loadPath: './zen' });
         await expect(
             db.foo.create({
                 data: { x: 0 },
             })
         ).toBeRejectedByPolicy();
+        await expect(
+            db.foo.create({
+                data: { x: 1 },
+            })
+        ).toResolveTruthy();
+    });
+
+    it('prisma module', async () => {
+        const { prisma, Prisma, modelMeta, policy } = await loadSchema(
+            `
+        model Foo {
+            id String @id @default(cuid())
+            x Int
+        
+            @@allow('read', true)
+            @@allow('create', x > 0)
+        }`
+        );
+
+        const db = enhance(prisma, undefined, { modelMeta, policy, prismaModule: Prisma });
+        await expect(
+            db.foo.create({
+                data: { x: 0 },
+            })
+        ).toBeRejectedByPolicy();
+        await expect(
+            db.foo.create({
+                data: { x: 1 },
+            })
+        ).toResolveTruthy();
     });
 
     it('overrides', async () => {
@@ -45,7 +76,7 @@ describe('Password test', () => {
             { getPrismaOnly: true, output: './zen' }
         );
 
-        const db = withPolicy(prisma, undefined, {
+        const db = enhance(prisma, undefined, {
             modelMeta: require(path.resolve('./zen/model-meta')).default,
             policy: require(path.resolve('./zen/policy')).default,
         });

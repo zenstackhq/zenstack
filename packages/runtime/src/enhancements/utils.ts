@@ -3,6 +3,7 @@
 import path from 'path';
 import * as util from 'util';
 import type { DbClientContract } from '../types';
+import type { EnhancementOptions } from './enhance';
 
 /**
  * Formats an object for pretty printing.
@@ -53,25 +54,37 @@ function loadPrismaModule(prisma: any) {
     }
 }
 
-export function prismaClientValidationError(prisma: DbClientContract, message: string) {
+export function prismaClientValidationError(
+    prisma: DbClientContract,
+    options: EnhancementOptions | undefined,
+    message: string
+) {
     if (!_PrismaClientValidationError) {
-        const _prisma = loadPrismaModule(prisma);
+        const _prisma = options?.prismaModule ?? loadPrismaModule(prisma);
         _PrismaClientValidationError = _prisma.PrismaClientValidationError;
     }
     throw new _PrismaClientValidationError(message, { clientVersion: prisma._clientVersion });
 }
 
-export function prismaClientKnownRequestError(prisma: DbClientContract, ...args: unknown[]) {
+export function prismaClientKnownRequestError(
+    prisma: DbClientContract,
+    options: EnhancementOptions | undefined,
+    ...args: unknown[]
+) {
     if (!_PrismaClientKnownRequestError) {
-        const _prisma = loadPrismaModule(prisma);
+        const _prisma = options?.prismaModule ?? loadPrismaModule(prisma);
         _PrismaClientKnownRequestError = _prisma.PrismaClientKnownRequestError;
     }
     return new _PrismaClientKnownRequestError(...args);
 }
 
-export function prismaClientUnknownRequestError(prisma: DbClientContract, ...args: unknown[]) {
+export function prismaClientUnknownRequestError(
+    prisma: DbClientContract,
+    options: EnhancementOptions | undefined,
+    ...args: unknown[]
+) {
     if (!_PrismaClientUnknownRequestError) {
-        const _prisma = loadPrismaModule(prisma);
+        const _prisma = options?.prismaModule ?? loadPrismaModule(prisma);
         _PrismaClientUnknownRequestError = _prisma.PrismaClientUnknownRequestError;
     }
     throw new _PrismaClientUnknownRequestError(...args);
