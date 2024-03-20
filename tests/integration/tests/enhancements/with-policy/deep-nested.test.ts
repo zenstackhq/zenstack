@@ -166,7 +166,7 @@ describe('With Policy:deep nested', () => {
                             m4: {
                                 create: [
                                     { id: 'm4-1', value: 22 },
-                                    { id: 'm4-2', value: 22 },
+                                    { id: 'm4-2', value: 23 },
                                 ],
                             },
                         },
@@ -192,11 +192,11 @@ describe('With Policy:deep nested', () => {
                             connectOrCreate: [
                                 {
                                     where: { id: 'm4-2' },
-                                    create: { id: 'm4-new', value: 22 },
+                                    create: { id: 'm4-new', value: 24 },
                                 },
                                 {
                                     where: { id: 'm4-3' },
-                                    create: { id: 'm4-3', value: 23 },
+                                    create: { id: 'm4-3', value: 25 },
                                 },
                             ],
                         },
@@ -329,7 +329,7 @@ describe('With Policy:deep nested', () => {
         await db.m4.create({
             data: {
                 id: 'm4-3',
-                value: 23,
+                value: 24,
             },
         });
         const r = await db.m1.update({
