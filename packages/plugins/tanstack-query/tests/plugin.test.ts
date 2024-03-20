@@ -1,6 +1,6 @@
 /// <reference types="@types/jest" />
 
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadSchema, normalizePath } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('Tanstack Query Plugin Tests', () => {
@@ -50,7 +50,7 @@ model Foo {
         await loadSchema(
             `
 plugin tanstack {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'react'
 }
@@ -71,7 +71,7 @@ ${sharedModel}
         await loadSchema(
             `
 plugin tanstack {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'react'
     version = 'v5'
@@ -93,7 +93,7 @@ ${sharedModel}
         await loadSchema(
             `
 plugin tanstack {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'vue'
 }
@@ -114,7 +114,7 @@ ${sharedModel}
         await loadSchema(
             `
 plugin tanstack {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'vue'
     version = 'v5'
@@ -136,7 +136,7 @@ ${sharedModel}
         await loadSchema(
             `
 plugin tanstack {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'svelte'
 }
@@ -157,7 +157,7 @@ ${sharedModel}
         await loadSchema(
             `
 plugin tanstack {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
     target = 'svelte'
     version = 'v5'

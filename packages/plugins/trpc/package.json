@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/trpc",
     "displayName": "ZenStack plugin for tRPC",
-    "version": "1.11.0",
+    "version": "1.11.1",
     "description": "ZenStack plugin for tRPC",
     "main": "index.js",
     "repository": {
@@ -10,7 +10,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE 'res/**/*' dist && pnpm pack dist --pack-destination '../../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE 'res/**/*' dist && pnpm pack dist --pack-destination ../../../../.build",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "test": "jest",

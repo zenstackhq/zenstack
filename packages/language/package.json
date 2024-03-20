@@ -1,6 +1,6 @@
 {
     "name": "@zenstackhq/language",
-    "version": "1.11.0",
+    "version": "1.11.1",
     "displayName": "ZenStack modeling language compiler",
     "description": "ZenStack modeling language compiler",
     "homepage": "https://zenstack.dev",
@@ -9,7 +9,7 @@
         "generate": "langium generate && npx ts-node script/generate-plist.ts",
         "watch": "concurrently \"langium generate --watch\" \"tsc --watch\"",
         "lint": "eslint src --ext ts",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && pnpm generate && tsc && copyfiles -F ./README.md ./LICENSE ./package.json 'syntaxes/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && pnpm generate && tsc && copyfiles -F ./README.md ./LICENSE ./package.json 'syntaxes/**/*' dist && pnpm pack dist --pack-destination ../../../.build",
         "prepublishOnly": "pnpm build"
     },
     "publishConfig": {

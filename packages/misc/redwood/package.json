@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/redwood",
     "displayName": "ZenStack RedwoodJS Integration",
-    "version": "1.11.0",
+    "version": "1.11.1",
     "description": "CLI and runtime for integrating ZenStack with RedwoodJS projects.",
     "repository": {
         "type": "git",
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && pnpm pack dist --pack-destination ../../../.build",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
