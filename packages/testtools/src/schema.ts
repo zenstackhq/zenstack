@@ -24,6 +24,8 @@ import prismaPlugin from 'zenstack/plugins/prisma';
 */
 export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
+tmp.setGracefulCleanup();
+
 export type FullDbClientContract = Record<string, DbOperations> & {
     $on(eventType: any, callback: (event: any) => void): void;
     $use(cb: any): void;
