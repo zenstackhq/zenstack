@@ -4,19 +4,21 @@
 import OpenAPIParser from '@readme/openapi-parser';
 import { getLiteral, getObjectLiteral } from '@zenstackhq/sdk';
 import { Model, Plugin, isPlugin } from '@zenstackhq/sdk/ast';
-import { loadZModelAndDmmf } from '@zenstackhq/testtools';
+import { loadZModelAndDmmf, normalizePath } from '@zenstackhq/testtools';
 import fs from 'fs';
 import path from 'path';
 import * as tmp from 'tmp';
 import YAML from 'yaml';
 import generate from '../src';
 
+tmp.setGracefulCleanup();
+
 describe('Open API Plugin RESTful Tests', () => {
     it('run plugin', async () => {
         for (const specVersion of ['3.0.0', '3.1.0']) {
             const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     specVersion = '${specVersion}'
 }
 
@@ -114,7 +116,7 @@ model Bar {
     it('options', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     specVersion = '3.0.0'
     title = 'My Awesome API'
     version = '1.0.0'
@@ -151,7 +153,7 @@ model User {
     it('security schemes valid', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     securitySchemes = { 
         myBasic: { type: 'http', scheme: 'basic' },
         myBearer: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -198,7 +200,7 @@ model Post {
     it('security model level override', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     securitySchemes = { 
         myBasic: { type: 'http', scheme: 'basic' }
     }
@@ -230,7 +232,7 @@ model User {
     it('security schemes invalid', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     securitySchemes = { 
         myBasic: { type: 'invalid', scheme: 'basic' }
     }
@@ -251,7 +253,7 @@ model User {
     it('ignored model used as relation', async () => {
         const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
 }
 
 model User {
@@ -284,7 +286,7 @@ model Post {
         for (const specVersion of ['3.0.0', '3.1.0']) {
             const { model, dmmf, modelFile } = await loadZModelAndDmmf(`
 plugin openapi {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     specVersion = '${specVersion}'
 }
 

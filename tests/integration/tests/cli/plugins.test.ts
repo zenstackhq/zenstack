@@ -7,6 +7,8 @@ import * as path from 'path';
 import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
 
+tmp.setGracefulCleanup();
+
 describe('CLI Plugins Tests', () => {
     let origDir: string;
 

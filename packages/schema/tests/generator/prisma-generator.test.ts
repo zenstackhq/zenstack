@@ -9,6 +9,8 @@ import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator
 import { execSync } from '../../src/utils/exec-utils';
 import { loadModel } from '../utils';
 
+tmp.setGracefulCleanup();
+
 describe('Prisma generator test', () => {
     let origDir: string;
 

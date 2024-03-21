@@ -30,6 +30,8 @@ import prismaPlugin from 'zenstack/plugins/prisma';
 */
 export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
+tmp.setGracefulCleanup();
+
 export type FullDbClientContract = CrudContract & {
     $on(eventType: any, callback: (event: any) => void): void;
     $use(cb: any): void;
@@ -60,7 +62,7 @@ export function installPackage(pkg: string, dev = false) {
     run(`npm install ${dev ? '-D' : ''} --no-audit --no-fund ${pkg}`);
 }
 
-function normalizePath(p: string) {
+export function normalizePath(p: string) {
     return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
 
@@ -177,6 +179,9 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     const files = schema.split(FILE_SPLITTER);
 
+    // Use this one to replace $projectRoot placeholder in the schema file
+    const normalizedProjectRoot = normalizePath(projectRoot);
+
     if (files.length > 1) {
         // multiple files
         files.forEach((file, index) => {
@@ -193,12 +198,12 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
                 }
             }
 
-            fileContent = fileContent.replaceAll('$projectRoot', projectRoot);
+            fileContent = fileContent.replaceAll('$projectRoot', normalizedProjectRoot);
             const filePath = path.join(projectRoot, fileName);
             fs.writeFileSync(filePath, fileContent);
         });
     } else {
-        schema = schema.replaceAll('$projectRoot', projectRoot);
+        schema = schema.replaceAll('$projectRoot', normalizedProjectRoot);
         const content = opt.addPrelude ? `${makePrelude(opt)}\n${schema}` : schema;
         if (opt.customSchemaFilePath) {
             zmodelPath = path.join(projectRoot, opt.customSchemaFilePath);

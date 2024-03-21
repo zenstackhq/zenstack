@@ -6,6 +6,8 @@ import { Project, VariableDeclarationKind } from 'ts-morph';
 import { ExpressionWriter } from '../../src/plugins/enhancer/policy/expression-writer';
 import { loadModel } from '../utils';
 
+tmp.setGracefulCleanup();
+
 describe('Expression Writer Tests', () => {
     it('boolean literal', async () => {
         await check(

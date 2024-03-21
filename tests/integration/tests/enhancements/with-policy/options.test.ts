@@ -9,6 +9,7 @@ describe('Password test', () => {
             id String @id @default(cuid())
             x Int
         
+            @@allow('read', true)
             @@allow('create', x > 0)
         }`,
             { getPrismaOnly: true, output: './zen' }
@@ -21,6 +22,11 @@ describe('Password test', () => {
                 data: { x: 0 },
             })
         ).toBeRejectedByPolicy();
+        await expect(
+            db.foo.create({
+                data: { x: 1 },
+            })
+        ).toResolveTruthy();
     });
 
     it('overrides', async () => {

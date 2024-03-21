@@ -1,6 +1,6 @@
 /// <reference types="@types/jest" />
 
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadSchema, normalizePath } from '@zenstackhq/testtools';
 import path from 'path';
 
 describe('SWR Plugin Tests', () => {
@@ -50,7 +50,7 @@ model Foo {
         await loadSchema(
             `
 plugin swr {
-    provider = '${path.resolve(__dirname, '../dist')}'
+    provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
     output = '$projectRoot/hooks'
 }
 
@@ -60,7 +60,7 @@ ${sharedModel}
                 provider: 'postgresql',
                 pushDb: false,
                 extraDependencies: [
-                    path.resolve(__dirname, '../dist'),
+                    `${normalizePath(path.join(__dirname, '../dist'))}`,
                     'react@18.2.0',
                     '@types/react@18.2.0',
                     'swr@^2',
