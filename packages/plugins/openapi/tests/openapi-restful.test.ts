@@ -11,6 +11,8 @@ import * as tmp from 'tmp';
 import YAML from 'yaml';
 import generate from '../src';
 
+tmp.setGracefulCleanup();
+
 describe('Open API Plugin RESTful Tests', () => {
     it('run plugin', async () => {
         for (const specVersion of ['3.0.0', '3.1.0']) {

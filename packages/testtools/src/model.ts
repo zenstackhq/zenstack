@@ -7,6 +7,8 @@ import { URI } from 'vscode-uri';
 import { createZModelServices } from 'zenstack/language-server/zmodel-module';
 import { mergeBaseModel } from 'zenstack/utils/ast-utils';
 
+tmp.setGracefulCleanup();
+
 export class SchemaLoadingError extends Error {
     constructor(public readonly errors: string[]) {
         super('Schema error:\n' + errors.join('\n'));
