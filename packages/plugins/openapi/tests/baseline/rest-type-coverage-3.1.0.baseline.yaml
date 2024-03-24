@@ -343,8 +343,14 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
             security: []
-    '/foo/{id}':
+    /foo/{id}:
         get:
             operationId: fetch-Foo
             description: Fetch a "Foo" resource
@@ -404,6 +410,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
             security: []
         patch:
             operationId: update-Foo-patch
@@ -432,6 +444,12 @@ paths:
                                 $ref: '#/components/schemas/_errorResponse'
                 '404':
                     description: Resource is not found
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
                     content:
                         application/vnd.api+json:
                             schema:

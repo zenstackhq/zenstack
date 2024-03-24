@@ -1333,7 +1333,7 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(400);
+                    expect(r.status).toBe(422);
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
@@ -1670,7 +1670,7 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(400);
+                    expect(r.status).toBe(422);
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
@@ -1940,7 +1940,7 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(400);
+                    expect(r.status).toBe(422);
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                     expect(r.body.errors[0].reason).toBe(CrudFailureReason.DATA_VALIDATION_VIOLATION);
                     expect(r.body.errors[0].zodErrors).toBeTruthy();

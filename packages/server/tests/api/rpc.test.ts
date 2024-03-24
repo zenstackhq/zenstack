@@ -176,7 +176,7 @@ describe('RPC API Handler Tests', () => {
             path: '/post/findUnique',
             prisma,
         });
-        expect(r.status).toBe(400);
+        expect(r.status).toBe(422);
         expect(r.error.message).toContain('Validation error');
         expect(r.error.message).toContain('where');
 
@@ -187,9 +187,20 @@ describe('RPC API Handler Tests', () => {
             prisma,
             zodSchemas,
         });
-        expect(r.status).toBe(400);
+        expect(r.status).toBe(422);
         expect(r.error.message).toContain('Validation error');
         expect(r.error.message).toContain('data');
+
+        r = await handleRequest({
+            method: 'post',
+            path: '/user/create',
+            requestBody: { data: { email: 'hello' } },
+            prisma: enhance(),
+            zodSchemas,
+        });
+        expect(r.status).toBe(422);
+        expect(r.error.message).toContain('Validation error');
+        expect(r.error.message).toContain('email');
     });
 
     it('invalid path or args', async () => {

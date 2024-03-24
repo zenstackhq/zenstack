@@ -217,6 +217,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             responses: {
                 '201': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
+                '422': this.validationError(),
             },
             security: resourceMeta?.security ?? policies.create === true ? [] : undefined,
         };
@@ -292,6 +293,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '200': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
                 '404': this.notFound(),
+                '422': this.validationError(),
             },
             security: resourceMeta?.security ?? policies.update === true ? [] : undefined,
         };
@@ -948,6 +950,17 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private forbidden() {
         return {
             description: 'Request is forbidden',
+            content: {
+                'application/vnd.api+json': {
+                    schema: this.ref('_errorResponse'),
+                },
+            },
+        };
+    }
+
+    private validationError() {
+        return {
+            description: 'Request is unprocessable due to validation errors',
             content: {
                 'application/vnd.api+json': {
                     schema: this.ref('_errorResponse'),
