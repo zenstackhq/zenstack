@@ -167,6 +167,10 @@ class RequestHandler extends APIHandlerBase {
             status: 403,
             title: 'Operation is forbidden',
         },
+        validationError: {
+            status: 422,
+            title: 'Operation is unprocessable due to validation errors',
+        },
         unknownError: {
             status: 400,
             title: 'Unknown error',
@@ -699,7 +703,7 @@ class RequestHandler extends APIHandlerBase {
                         error: this.makeError(
                             'invalidPayload',
                             fromZodError(parsed.error).message,
-                            undefined,
+                            422,
                             CrudFailureReason.DATA_VALIDATION_VIOLATION,
                             parsed.error
                         ),
@@ -1577,13 +1581,17 @@ class RequestHandler extends APIHandlerBase {
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
             if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
-                return this.makeError(
-                    'forbidden',
-                    undefined,
-                    403,
-                    err.meta?.reason as string,
-                    err.meta?.zodErrors as ZodError
-                );
+                if (err.meta?.reason === CrudFailureReason.DATA_VALIDATION_VIOLATION) {
+                    return this.makeError(
+                        'validationError',
+                        undefined,
+                        422,
+                        err.meta?.reason as string,
+                        err.meta?.zodErrors as ZodError
+                    );
+                } else {
+                    return this.makeError('forbidden', undefined, 403, err.meta?.reason as string);
+                }
             } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');
             } else {

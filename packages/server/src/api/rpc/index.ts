@@ -130,7 +130,7 @@ class RequestHandler extends APIHandlerBase {
 
         const { error, zodErrors, data: parsedArgs } = await this.processRequestPayload(args, model, dbOp, zodSchemas);
         if (error) {
-            return { status: 400, body: this.makeError(error, CrudFailureReason.DATA_VALIDATION_VIOLATION, zodErrors) };
+            return { status: 422, body: this.makeError(error, CrudFailureReason.DATA_VALIDATION_VIOLATION, zodErrors) };
         }
 
         try {
@@ -155,7 +155,14 @@ class RequestHandler extends APIHandlerBase {
             return { status: resCode, body: response };
         } catch (err) {
             if (isPrismaClientKnownRequestError(err)) {
-                const status = ERROR_STATUS_MAPPING[err.code] ?? 400;
+                let status: number;
+
+                if (err.meta?.reason === CrudFailureReason.DATA_VALIDATION_VIOLATION) {
+                    // data validation error
+                    status = 422;
+                } else {
+                    status = ERROR_STATUS_MAPPING[err.code] ?? 400;
+                }
 
                 const { error } = this.makeError(
                     err.message,

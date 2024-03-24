@@ -3734,6 +3734,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -3773,6 +3779,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -3812,6 +3824,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -3861,6 +3879,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -3912,6 +3936,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -3961,6 +3991,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4000,6 +4036,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4039,6 +4081,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4081,6 +4129,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4120,6 +4174,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4171,6 +4231,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4220,6 +4286,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4271,6 +4343,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4320,6 +4398,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4359,6 +4443,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4398,6 +4488,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4447,6 +4543,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4498,6 +4600,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4547,6 +4655,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4586,6 +4700,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4625,6 +4745,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4664,6 +4790,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4713,6 +4845,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4764,6 +4902,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4813,6 +4957,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4864,6 +5014,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4913,6 +5069,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4952,6 +5114,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4991,6 +5159,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5040,6 +5214,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5089,6 +5269,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5128,6 +5314,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5167,6 +5359,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5206,6 +5404,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5255,6 +5459,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5306,6 +5516,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5355,6 +5571,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5406,6 +5628,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query

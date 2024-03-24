@@ -516,6 +516,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         },
                         description: 'Request is forbidden',
                     },
+                    '422': {
+                        content: {
+                            'application/json': {
+                                schema: this.ref('_Error'),
+                            },
+                        },
+                        description: 'Request is unprocessable due to validation errors',
+                    },
                 },
             };
 
