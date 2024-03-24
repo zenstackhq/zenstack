@@ -28,9 +28,9 @@ import {
     Mutable,
     Reference,
 } from 'langium';
+import { isAbsolute } from 'node:path';
 import { URI, Utils } from 'vscode-uri';
 import { findNodeModulesFile } from './pkg-utils';
-import {isAbsolute} from 'node:path'
 
 export function extractDataModelsWithAllowRules(model: Model): DataModel[] {
     return model.declarations.filter(
@@ -68,6 +68,8 @@ export function mergeBaseModel(model: Model, linker: Linker) {
                 .filter((attr) => !attr.$inheritedFrom)
                 // don't inherit `@@delegate` attribute
                 .filter((attr) => attr.decl.$refText !== '@@delegate')
+                // don't inherit `@@map` attribute
+                .filter((attr) => attr.decl.$refText !== '@@map')
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
         }
@@ -142,8 +144,8 @@ export function resolveImportUri(imp: ModelImport): URI | undefined {
     }
 
     if (
-        !imp.path.startsWith('.') // Respect relative paths
-        && !isAbsolute(imp.path) // Respect Absolute paths
+        !imp.path.startsWith('.') && // Respect relative paths
+        !isAbsolute(imp.path) // Respect Absolute paths
     ) {
         imp.path = findNodeModulesFile(imp.path) ?? imp.path;
     }
