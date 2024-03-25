@@ -600,7 +600,7 @@ model User {
     // can be created by anyone, even not logged in
     @@allow('create', true)
     // can be read by users in the same organization
-    @@allow('read', orgs?[members?[auth() == this]])
+    @@allow('read', orgs?[members?[auth().id == id]])
     // full access by oneself
     @@allow('all', auth() == this)
 }
