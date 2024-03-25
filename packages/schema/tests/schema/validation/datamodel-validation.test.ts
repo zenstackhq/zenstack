@@ -78,6 +78,29 @@ describe('Data Model Validation Tests', () => {
         ).toMatchObject(errorLike('Field of "Unsupported" type cannot be used in expressions'));
     });
 
+    it('Using `this` in collection predicate', async () => {
+        expect(
+            await safelyLoadModel(`
+            ${prelude}
+            model User {
+                id String @id
+                members User[]
+                @@allow('all', members?[this == auth()])
+            }
+        `)
+        ).toMatchObject(errorLike('using `this` in collection predicate is not supported'));
+
+        expect(
+            await loadModel(`
+        model User {
+            id String @id
+            members User[]
+            @@allow('all', members?[id == auth().id])
+        }
+        `)
+        ).toBeTruthy();
+    });
+
     it('mix array and optional', async () => {
         expect(
             await safelyLoadModel(`
