@@ -68,6 +68,7 @@
         "./next/pages-route-handler": "./next/pages-route-handler.js",
         "./sveltekit": "./sveltekit/index.js",
         "./nuxt": "./nuxt/index.js",
+        "./nestjs": "./nestjs/index.js",
         "./types": "./types.js"
     }
 }
