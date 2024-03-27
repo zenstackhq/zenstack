@@ -1,1 +1,1 @@
-export { ZenStackModule } from './zenstack.module';
+export * from './zenstack.module';
