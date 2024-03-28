@@ -11,7 +11,7 @@ import {
     type UseQueryOptions,
 } from '@tanstack/vue-query';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
-import { computed, inject, provide, toValue, type MaybeRef } from 'vue';
+import { computed, inject, provide, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
@@ -61,8 +61,10 @@ export function getHooksContext() {
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
-    args?: MaybeRef<unknown>,
-    options?: MaybeRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
+    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>
+        | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
@@ -93,8 +95,10 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
-    args?: MaybeRef<unknown>,
-    options?: MaybeRef<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
+    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>
+        | ComputedRef<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
     // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
@@ -136,7 +140,9 @@ export function useModelMutation<
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: MaybeRef<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>
+        | ComputedRef<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C,
