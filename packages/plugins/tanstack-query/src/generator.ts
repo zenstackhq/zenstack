@@ -98,7 +98,7 @@ function generateQueryHook(
         const capOperation = upperCaseFirst(operation);
 
         const argsType = overrideInputType ?? `Prisma.${model}${capOperation}Args`;
-        const inputType = `Prisma.SelectSubset<TArgs, ${argsType}>`;
+        const inputType = makeQueryArgsType(target, argsType);
 
         const infinite = generateMode.includes('Infinite');
         const suspense = generateMode.includes('Suspense');
@@ -587,6 +587,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
         }
         case 'vue': {
             return [
+                `import { type MaybeRef } from 'vue';`,
                 `import type { UseMutationOptions, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/vue-query';`,
                 `import { getHooksContext } from '${runtimeImportBase}/${target}';`,
                 ...shared,
@@ -608,6 +609,15 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     }
 }
 
+function makeQueryArgsType(target: string, argsType: string) {
+    const type = `Prisma.SelectSubset<TArgs, ${argsType}>`;
+    if (target === 'vue') {
+        return `MaybeRef<${type}>`;
+    } else {
+        return type;
+    }
+}
+
 function makeQueryOptions(
     target: string,
     returnType: string,
@@ -626,7 +636,9 @@ function makeQueryOptions(
                       }InfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>`
                 : `Omit<Use${suspense ? 'Suspense' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
         case 'vue':
-            return `Omit<Use${infinite ? 'Infinite' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
+            return `MaybeRef<Omit<Use${
+                infinite ? 'Infinite' : ''
+            }QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`;
         case 'svelte':
             return infinite
                 ? version === 'v4'
@@ -645,7 +657,7 @@ function makeMutationOptions(target: string, returnType: string, argsType: strin
         case 'react':
             return `UseMutationOptions<${returnType}, DefaultError, ${argsType}>`;
         case 'vue':
-            return `UseMutationOptions<${returnType}, DefaultError, ${argsType}, unknown>`;
+            return `MaybeRef<UseMutationOptions<${returnType}, DefaultError, ${argsType}, unknown>>`;
         case 'svelte':
             return `MutationOptions<${returnType}, DefaultError, ${argsType}>`;
         default:
