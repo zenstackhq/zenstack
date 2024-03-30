@@ -224,7 +224,7 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
         if (model) {
             const authModel = getAuthModel(getDataModels(model, true));
             if (authModel) {
-                return this.createScopeForNodes(authModel.fields, globalScope);
+                return this.createScopeForModel(authModel, globalScope);
             }
         }
         return EMPTY_SCOPE;

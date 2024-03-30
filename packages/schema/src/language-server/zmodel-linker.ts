@@ -97,8 +97,7 @@ export class ZModelLinker extends DefaultLinker {
         container: AstNode,
         property: string,
         document: LangiumDocument,
-        extraScopes: ScopeProvider[],
-        onlyFromExtraScopes = false
+        extraScopes: ScopeProvider[]
     ) {
         if (this.resolveFromScopeProviders(container, property, document, extraScopes)) {
             return;
@@ -106,17 +105,7 @@ export class ZModelLinker extends DefaultLinker {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const reference: DefaultReference = (container as any)[property];
-
-        if (onlyFromExtraScopes) {
-            // if reference is not resolved from explicit scope providers and automatic linking is not allowed,
-            // we should explicitly create a linking error
-            reference._ref = this.createLinkingError({ reference, container, property });
-
-            // Add the reference to the document's array of references
-            document.references.push(reference);
-        } else {
-            this.doLink({ reference, container, property }, document);
-        }
+        this.doLink({ reference, container, property }, document);
     }
 
     //#endregion
