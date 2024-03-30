@@ -326,16 +326,16 @@ async function relinkAll(model: Model, services: ZModelServices) {
     services.shared.workspace.LangiumDocuments.addDocument(newDoc);
 
     // rebuild the document
-    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
+    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'none' });
 
     // the new linking pass shouldn't have any errors, panic if any
     const errors = newDoc.diagnostics?.filter((d) => d.severity === 1);
     if (errors && errors.length > 0) {
-        console.error(colors.red('Unexpected errors occurred. Please report a bug.'));
+        console.error(colors.red('Unexpected linking errors occurred. Please report a bug.'));
         errors.forEach((e) => {
             console.error(colors.red(`\t- ${e.message}`));
         });
-        throw new CliError('Unexpected errors occurred. Please report a bug.');
+        throw new CliError('Unexpected linking errors occurred. Please report a bug.');
     }
 
     return newDoc.parseResult.value as Model;
