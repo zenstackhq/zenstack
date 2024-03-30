@@ -51,6 +51,18 @@ describe('Policy: field-level policy', () => {
         r = await db.model.findUnique({ where: { id: 1 } });
         expect(r.y).toBeUndefined();
 
+        r = await db.user.findUnique({ where: { id: 1 }, select: { models: true } });
+        expect(r.models[0].y).toBeUndefined();
+
+        r = await db.user.findUnique({ where: { id: 1 }, select: { models: { select: { y: true } } } });
+        expect(r.models[0].y).toBeUndefined();
+
+        r = await db.user.findUnique({ where: { id: 1 } }).models();
+        expect(r[0].y).toBeUndefined();
+
+        r = await db.user.findUnique({ where: { id: 1 } }).models({ select: { y: true } });
+        expect(r[0].y).toBeUndefined();
+
         r = await db.model.findUnique({ select: { x: true }, where: { id: 1 } });
         expect(r.x).toEqual(0);
         expect(r.y).toBeUndefined();
@@ -81,6 +93,21 @@ describe('Policy: field-level policy', () => {
 
         r = await db.model.findUnique({ where: { id: 2 } });
         expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+
+        r = await db.user.findUnique({ where: { id: 1 }, select: { models: { where: { id: 2 } } } });
+        expect(r.models[0]).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+
+        r = await db.user.findUnique({
+            where: { id: 1 },
+            select: { models: { where: { id: 2 }, select: { y: true } } },
+        });
+        expect(r.models[0]).toEqual(expect.objectContaining({ y: 0 }));
+
+        r = await db.user.findUnique({ where: { id: 1 } }).models({ where: { id: 2 } });
+        expect(r[0]).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+
+        r = await db.user.findUnique({ where: { id: 1 } }).models({ where: { id: 2 }, select: { y: true } });
+        expect(r[0]).toEqual(expect.objectContaining({ y: 0 }));
 
         r = await db.model.findUnique({ select: { x: true }, where: { id: 2 } });
         expect(r.x).toEqual(1);
