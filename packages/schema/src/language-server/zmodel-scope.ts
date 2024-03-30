@@ -108,7 +108,7 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                 // allow plugin models
                 des.documentUri.path.endsWith(PLUGIN_MODULE_NAME) ||
                 // allow imported documents
-                importedUris.some((importedUri) => (des.documentUri, importedUri))
+                importedUris.some((importedUri) => equalURI(des.documentUri, importedUri))
         );
         return new StreamScope(importedElements);
     }

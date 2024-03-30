@@ -56,7 +56,7 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     const importedDocuments = importedURIs.map((uri) => langiumDocuments.getOrCreateDocument(uri));
 
-    // build the document together with standard library and plugin modules
+    // build the document together with standard library, plugin modules, and imported documents
     await services.shared.workspace.DocumentBuilder.build(
         [stdLib, ...pluginDocuments, document, ...importedDocuments],
         {
@@ -85,7 +85,9 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     const model = document.parseResult.value as Model;
 
+    // merge all declarations into the main document
     const imported = mergeImportsDeclarations(langiumDocuments, model);
+
     // remove imported documents
     await services.shared.workspace.DocumentBuilder.update(
         [],
@@ -94,11 +96,13 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     validationAfterMerge(model);
 
+    // merge fields and attributes from base models
     mergeBaseModel(model, services.references.Linker);
 
-    await relinkAll(model, services);
+    // finally relink all references
+    const relinkedModel = await relinkAll(model, services);
 
-    return model;
+    return relinkedModel;
 }
 
 // check global unique thing after merge imports
@@ -152,12 +156,15 @@ export function mergeImportsDeclarations(documents: LangiumDocuments, model: Mod
 
     importedDeclarations.forEach((d) => {
         const mutable = d as Mutable<AstNode>;
-        // The plugin might use $container to access the model
+        // Plugins might use $container to access the model
         // need to make sure it is always resolved to the main model
         mutable.$container = model;
     });
 
     model.declarations.push(...importedDeclarations);
+
+    // remove import directives
+    model.imports = [];
 
     return importedModels;
 }
@@ -314,10 +321,12 @@ async function relinkAll(model: Model, services: ZModelServices) {
     // remove current document
     await services.shared.workspace.DocumentBuilder.update([], [doc.uri]);
 
-    // recreate the document
+    // recreate and load the document
     const newDoc = services.shared.workspace.LangiumDocumentFactory.fromModel(model, doc.uri);
-    (model as Mutable<Model>).$document = newDoc;
+    services.shared.workspace.LangiumDocuments.addDocument(newDoc);
 
     // rebuild the document
     await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
+
+    return newDoc.parseResult.value as Model;
 }
