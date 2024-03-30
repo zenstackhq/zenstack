@@ -83,3 +83,5 @@ const factory = (options: MiddlewareOptions): Handler => {
 };
 
 export default factory;
+
+export { factory as ZenStackMiddleware };

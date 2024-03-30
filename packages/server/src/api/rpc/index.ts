@@ -290,3 +290,5 @@ export default function makeHandler() {
     const handler = new RequestHandler();
     return handler.handleRequest.bind(handler);
 }
+
+export { makeHandler as RPCApiHandler };
