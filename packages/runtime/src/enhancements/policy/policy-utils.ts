@@ -897,16 +897,21 @@ export class PolicyUtil extends QueryUtils {
      * @returns
      */
     injectReadCheckSelect(model: string, args: any) {
-        if (!this.hasFieldLevelPolicy(model)) {
-            return;
+        if (this.hasFieldLevelPolicy(model)) {
+            // recursively inject selection for fields needed for field-level read checks
+            const readFieldSelect = this.getReadFieldSelect(model);
+            if (readFieldSelect) {
+                this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
+            }
         }
 
-        const readFieldSelect = this.getReadFieldSelect(model);
-        if (!readFieldSelect) {
-            return;
+        // recurse into relation fields
+        for (const [k, v] of Object.entries<any>(args.select ?? args.include ?? {})) {
+            const field = resolveField(this.modelMeta, model, k);
+            if (field?.isDataModel && v && typeof v === 'object') {
+                this.injectReadCheckSelect(field.type, v);
+            }
         }
-
-        this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
     }
 
     private doInjectReadCheckSelect(model: string, args: any, input: any) {
