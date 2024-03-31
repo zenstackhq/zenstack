@@ -5,7 +5,7 @@ import { CrudFailureReason, type ZodSchemas } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
-import RPCAPIHandler from '../../src/api/rpc';
+import { RPCApiHandler } from '../../src/api';
 import { schema } from '../utils';
 
 describe('RPC API Handler Tests', () => {
@@ -408,7 +408,7 @@ describe('RPC API Handler Tests', () => {
     });
 
     function makeHandler(zodSchemas?: ZodSchemas) {
-        const _handler = RPCAPIHandler();
+        const _handler = RPCApiHandler();
         return async (args: any) => {
             const r = await _handler({ ...args, url: new URL(`http://localhost/${args.path}`), modelMeta, zodSchemas });
             return {
