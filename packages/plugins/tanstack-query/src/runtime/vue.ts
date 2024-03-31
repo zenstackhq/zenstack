@@ -5,12 +5,13 @@ import {
     useMutation,
     useQuery,
     useQueryClient,
+    type QueryKey,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
     type UseQueryOptions,
 } from '@tanstack/vue-query';
 import type { ModelMeta } from '@zenstackhq/runtime/cross';
-import { inject, provide } from 'vue';
+import { computed, inject, provide, toValue, type ComputedRef, type MaybeRefOrGetter } from 'vue';
 import {
     APIContext,
     DEFAULT_QUERY_ENDPOINT,
@@ -60,17 +61,25 @@ export function getHooksContext() {
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
-    args?: unknown,
-    options?: Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
+    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>
+        | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
     fetch?: FetchFn,
     optimisticUpdate = false
 ) {
-    const reqUrl = makeUrl(url, args);
-    return useQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
-        queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
-        ...options,
+    const queryOptions = computed(() => {
+        return {
+            queryKey: getQueryKey(model, url, toValue(args), false, optimisticUpdate),
+            queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
+                const [_prefix, _model, _op, args] = queryKey;
+                const reqUrl = makeUrl(url, toValue(args));
+                return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
+            },
+            ...toValue(options),
+        };
     });
+    return useQuery<TQueryFnData, TError, TData>(queryOptions);
 }
 
 /**
@@ -86,17 +95,24 @@ export function useModelQuery<TQueryFnData, TData, TError>(
 export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
-    args?: unknown,
-    options?: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
+    args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>
+        | ComputedRef<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
-    return useInfiniteQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, true),
-        queryFn: ({ pageParam }) => {
-            return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
+    // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
+    const queryOptions: any = computed(() => ({
+        queryKey: getQueryKey(model, url, toValue(args), true),
+        queryFn: ({ queryKey, pageParam }: { queryKey: QueryKey; pageParam?: unknown }) => {
+            const [_prefix, _model, _op, args] = queryKey;
+            const reqUrl = makeUrl(url, pageParam ?? toValue(args));
+            return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
         },
-        ...options,
-    });
+        ...toValue(options),
+    }));
+
+    return useInfiniteQuery<TQueryFnData, TError, TData>(queryOptions);
 }
 
 /**
@@ -124,7 +140,9 @@ export function useModelMutation<
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>,
+    options?:
+        | MaybeRefOrGetter<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>
+        | ComputedRef<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>,
     fetch?: FetchFn,
     invalidateQueries = true,
     checkReadBack?: C,
@@ -146,7 +164,7 @@ export function useModelMutation<
     };
 
     // TODO: figure out the typing problem
-    const finalOptions: any = { ...options, mutationFn };
+    const finalOptions: any = computed(() => ({ ...toValue(options), mutationFn }));
     const operation = url.split('/').pop();
     if (operation) {
         const { logging } = getHooksContext();
@@ -155,7 +173,7 @@ export function useModelMutation<
                 model,
                 operation,
                 modelMeta,
-                finalOptions,
+                toValue(finalOptions),
                 (predicate) => queryClient.invalidateQueries({ predicate }),
                 logging
             );
@@ -166,7 +184,7 @@ export function useModelMutation<
                 model,
                 operation,
                 modelMeta,
-                finalOptions,
+                toValue(finalOptions),
                 queryClient.getQueryCache().getAll(),
                 (queryKey, data) => queryClient.setQueryData<unknown>(queryKey, data),
                 invalidateQueries ? (predicate) => queryClient.invalidateQueries({ predicate }) : undefined,

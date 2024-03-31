@@ -8,6 +8,8 @@ import { loadDocument } from '../../src/cli/cli-util';
 import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';
 
+tmp.setGracefulCleanup();
+
 describe('Prisma generator test', () => {
     it('datasource coverage', async () => {
         const model = await loadModel(`

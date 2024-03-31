@@ -8,6 +8,8 @@ import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
 import { createNpmrc } from './share';
 
+tmp.setGracefulCleanup();
+
 describe('CLI generate command tests', () => {
     let origDir: string;
     const MODEL = `

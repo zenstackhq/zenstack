@@ -5,6 +5,8 @@ import * as fs from 'fs';
 import * as tmp from 'tmp';
 import { createProgram } from '../../../../packages/schema/src/cli';
 
+tmp.setGracefulCleanup();
+
 describe('CLI Config Tests', () => {
     let origDir: string;
 
