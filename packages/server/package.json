@@ -59,6 +59,7 @@
     },
     "exports": {
         "./package.json": "./package.json",
+        "./api": "./api/index.js",
         "./api/rest": "./api/rest/index.js",
         "./api/rpc": "./api/rpc/index.js",
         "./express": "./express/index.js",

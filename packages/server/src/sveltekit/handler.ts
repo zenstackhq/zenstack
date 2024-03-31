@@ -83,3 +83,5 @@ export default function createHandler(options: HandlerOptions): Handle {
         return resolve(event);
     };
 }
+
+export { createHandler as SvelteKitHandler };

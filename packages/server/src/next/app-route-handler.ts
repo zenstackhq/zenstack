@@ -3,7 +3,7 @@
 import { DbClientContract } from '@zenstackhq/runtime';
 import { NextRequest, NextResponse } from 'next/server';
 import { AppRouteRequestHandlerOptions } from '.';
-import RPCAPIHandler from '../api/rpc';
+import { RPCApiHandler } from '../api';
 import { loadAssets } from '../shared';
 
 type Context = { params: { path: string[] } };
@@ -19,7 +19,7 @@ export default function factory(
 ): (req: NextRequest, context: Context) => Promise<NextResponse> {
     const { modelMeta, zodSchemas } = loadAssets(options);
 
-    const requestHandler = options.handler || RPCAPIHandler();
+    const requestHandler = options.handler || RPCApiHandler();
 
     return async (req: NextRequest, context: Context) => {
         const prisma = (await options.getPrisma(req)) as DbClientContract;

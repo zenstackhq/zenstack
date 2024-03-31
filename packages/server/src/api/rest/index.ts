@@ -1664,3 +1664,5 @@ export default function makeHandler(options: Options) {
     const handler = new RequestHandler(options);
     return handler.handleRequest.bind(handler);
 }
+
+export { makeHandler as RestApiHandler };

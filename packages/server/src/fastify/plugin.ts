@@ -62,4 +62,8 @@ const pluginHandler: FastifyPluginCallback<PluginOptions> = (fastify, options, d
     done();
 };
 
-export default fp(pluginHandler);
+const plugin = fp(pluginHandler);
+
+export default plugin;
+
+export { plugin as ZenStackFastifyPlugin };
