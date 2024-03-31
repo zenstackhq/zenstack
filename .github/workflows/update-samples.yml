@@ -16,6 +16,7 @@ jobs:
                         'zenstackhq/sample-todo-nextjs-tanstack',
                         'zenstackhq/sample-todo-trpc',
                         'zenstackhq/sample-todo-sveltekit',
+                        'zenstackhq/sample-todo-nuxt',
                     ]
 
         steps:
