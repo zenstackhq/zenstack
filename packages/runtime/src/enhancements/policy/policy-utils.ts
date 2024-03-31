@@ -1235,5 +1235,16 @@ export class PolicyUtil extends QueryUtils {
         return guard;
     }
 
+    /**
+     * Given an entity data, returns an object only containing id fields.
+     */
+    getIdFieldValues(model: string, data: any) {
+        if (!data) {
+            return undefined;
+        }
+        const idFields = this.getIdFields(model);
+        return Object.fromEntries(idFields.map((f) => [f.name, data[f.name]]));
+    }
+
     //#endregion
 }
