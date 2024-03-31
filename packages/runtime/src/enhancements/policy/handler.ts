@@ -126,12 +126,6 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         );
     }
 
-    private addFluentSelect(args: any, field: string, fluentArgs: any) {
-        // overwrite include/select with the fluent field
-        delete args.include;
-        args.select = { [field]: fluentArgs ?? true };
-    }
-
     private async doFind(args: any, actionName: FindOperations, handleRejection: () => any) {
         const origArgs = args;
         const _args = this.policyUtils.clone(args);
@@ -364,7 +358,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             const key = getEntityKey(model, scalarData);
             // only check if entity is created, not connected
             if (!connectedEntities.has(key) && !postCreateChecks.has(key)) {
-                postCreateChecks.set(key, { model, operation: 'create', uniqueFilter: scalarData });
+                const idFields = this.policyUtils.getIdFieldValues(model, scalarData);
+                postCreateChecks.set(key, { model, operation: 'create', uniqueFilter: idFields });
             }
         });
 
