@@ -208,7 +208,7 @@ Check out the [Multi-tenant Todo App](https://zenstack-todo.vercel.app/) for a r
 ### Blog App
 
 -   [Next.js 13 + Pages Route + SWR](https://github.com/zenstackhq/docs-tutorial-nextjs)
--   [Next.js 13 + App Route + SWR](https://github.com/zenstackhq/docs-tutorial-nextjs-app-dir)
+-   [Next.js 13 + App Route + ReactQuery](https://github.com/zenstackhq/docs-tutorial-nextjs-app-dir)
 -   [Next.js 13 + App Route + tRPC](https://github.com/zenstackhq/sample-blog-nextjs-app-trpc)
 -   [Nuxt V3 + TanStack Query](https://github.com/zenstackhq/docs-tutorial-nuxt)
 -   [SvelteKit](https://github.com/zenstackhq/docs-tutorial-sveltekit)
