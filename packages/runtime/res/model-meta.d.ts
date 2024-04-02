@@ -1,1 +1,1 @@
-export * '.zenstack/model-meta';
+export * from '.zenstack/model-meta';
