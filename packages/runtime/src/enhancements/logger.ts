@@ -16,7 +16,7 @@ export class Logger {
             if (typeof this.emitter.eventNames === 'function') {
                 // Node.js
                 this.eventNames = this.emitter.eventNames();
-            } else if ('events' in this.emitter) {
+            } else if ('events' in this.emitter && this.emitter.events && typeof this.emitter.events === 'object') {
                 // edge runtime
                 this.eventNames = Object.keys((this.emitter as any).events);
             } else {
