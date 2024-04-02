@@ -102,6 +102,11 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
                 schema += `.toUpperCase()`;
                 break;
             }
+            case '@readonly': {
+                const text = getAttrLiteralArg<string>(attr, 'text');
+                schema += `.literal("${text}")`;
+                break;
+            }
             case '@datetime': {
                 schema += `.datetime({ offset: true${message ? ', message: ' + JSON.stringify(message) : ''} })`;
                 break;
