@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from '.';
-import $Schema from '@zenstackhq/runtime/zod/input';
+import * as $Schema from '@zenstackhq/runtime/zod/input';
 import { checkRead, checkMutate } from '../helper';
 import type { Prisma } from '@prisma/client';
 import type {
