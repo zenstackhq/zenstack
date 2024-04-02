@@ -134,6 +134,10 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
                 }
                 break;
             }
+            case '@db.Uuid': {
+                    schema += '.uuid()';
+                break;
+            }
         }
     }
 
