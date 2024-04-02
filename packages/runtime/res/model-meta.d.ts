@@ -1,0 +1,1 @@
+export * '.zenstack/model-meta';

@@ -1,10 +1,10 @@
-import colors from 'colors';
 import semver from 'semver';
 import { PRISMA_MINIMUM_VERSION } from '../constants';
 import { isDelegateModel, type ModelMeta } from '../cross';
 import type { AuthUser } from '../types';
 import { withDefaultAuth } from './default-auth';
 import { withDelegate } from './delegate';
+import { Logger } from './logger';
 import { withOmit } from './omit';
 import { withPassword } from './password';
 import { withPolicy } from './policy';
@@ -151,10 +151,9 @@ export function createEnhancement<DbClient extends object>(
     // and `updateMany` to plain `delete` and `update`
     if (Object.values(options.modelMeta.models).some((model) => isDelegateModel(options.modelMeta, model.name))) {
         if (!kinds.includes('delegate')) {
-            console.warn(
-                colors.yellow(
-                    'Your ZModel contains delegate models but "delegate" enhancement kind is not enabled. This may result in unexpected behavior.'
-                )
+            const logger = new Logger(prisma);
+            logger.warn(
+                'Your ZModel contains delegate models but "delegate" enhancement kind is not enabled. This may result in unexpected behavior.'
             );
         } else {
             result = withDelegate(result, options);

@@ -36,9 +36,9 @@ export interface AdapterBaseOptions {
     logger?: LoggerConfig;
 
     /**
-     * Model metadata. By default loaded from the standard output location
-     * of the `@zenstackhq/model-meta` plugin. You can pass it in explicitly
-     * if you configured the plugin to output to a different location.
+     * Model metadata. By default loaded from the `node_module/.zenstack/model-meta`
+     * module. You can pass it in explicitly if you configured ZenStack to output to
+     * a different location.
      */
     modelMeta?: ModelMeta;
 
@@ -47,11 +47,6 @@ export interface AdapterBaseOptions {
      * (need to enable `@core/zod` plugin in schema.zmodel) or omit to disable input validation.
      */
     zodSchemas?: ZodSchemas | boolean;
-
-    /**
-     * Path to load model metadata and zod schemas from. Defaults to `node_modules/.zenstack`.
-     */
-    loadPath?: string;
 
     /**
      * Api request handler function. Can be created using `@zenstackhq/server/api/rest` or `@zenstackhq/server/api/rpc` factory functions.

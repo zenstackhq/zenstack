@@ -13,7 +13,15 @@ export class Logger {
         const engine = (this.prisma as any)._engine;
         this.emitter = engine ? (engine.logEmitter as EventEmitter) : undefined;
         if (this.emitter) {
-            this.eventNames = this.emitter.eventNames();
+            if (typeof this.emitter.eventNames === 'function') {
+                // Node.js
+                this.eventNames = this.emitter.eventNames();
+            } else if ('events' in this.emitter) {
+                // edge runtime
+                this.eventNames = Object.keys((this.emitter as any).events);
+            } else {
+                this.eventNames = [];
+            }
         }
     }
 

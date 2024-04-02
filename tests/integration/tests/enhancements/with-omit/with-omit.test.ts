@@ -83,7 +83,7 @@ describe('Omit test', () => {
             enhancements: ['omit'],
         });
 
-        const db = enhance(prisma, { loadPath: './zen' });
+        const db = enhance(prisma);
         const r = await db.user.create({
             include: { profile: true },
             data: {

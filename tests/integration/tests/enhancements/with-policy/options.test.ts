@@ -16,7 +16,7 @@ describe('Password test', () => {
         );
 
         const enhance = require(path.join(projectDir, 'zen/enhance')).enhance;
-        const db = enhance(prisma, { loadPath: './zen' });
+        const db = enhance(prisma);
         await expect(
             db.foo.create({
                 data: { x: 0 },

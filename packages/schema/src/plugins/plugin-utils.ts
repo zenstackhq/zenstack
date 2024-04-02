@@ -28,7 +28,10 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
  */
 export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
     const output = options.output ? path.resolve(options.output) : getDefaultOutputFolder();
-    if (output && !fs.existsSync(output)) {
+    if (output) {
+        if (fs.existsSync(output)) {
+            fs.rmSync(output, { recursive: true });
+        }
         fs.mkdirSync(output, { recursive: true });
         if (!options.output) {
             const pkgJson = {
@@ -55,11 +58,21 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                         types: './zod/objects/index.d.ts',
                         default: './zod/objects/index.js',
                     },
+                    './model-meta': {
+                        types: './model-meta.d.ts',
+                        default: './model-meta.js',
+                    },
                     './prisma': {
                         types: './prisma.d.ts',
                     },
                 },
             };
+
+            for (const zodFolder of ['models', 'input', 'objects']) {
+                fs.mkdirSync(path.join(output, 'zod', zodFolder), { recursive: true });
+                fs.writeFileSync(path.join(output, 'zod', zodFolder, 'index.js'), '');
+            }
+
             fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify(pkgJson, undefined, 4));
         }
     }

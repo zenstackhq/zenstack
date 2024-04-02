@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { hash } from 'bcryptjs';
+import { hashSync } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
 import { NestedWriteVisitor, type PrismaWriteActionType } from '../cross';
 import { DbClientContract } from '../types';
@@ -53,7 +53,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
                     if (!salt) {
                         salt = DEFAULT_PASSWORD_SALT_LENGTH;
                     }
-                    context.parent[field.name] = await hash(data, salt);
+                    context.parent[field.name] = hashSync(data, salt);
                 }
             },
         });
