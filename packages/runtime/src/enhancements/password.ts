@@ -30,7 +30,7 @@ export function withPassword<DbClient extends object = any>(
 // eslint-disable-next-line no-var
 declare var EdgeRuntime: any;
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const hashFunc = typeof EdgeRuntime === 'string' ? require('bcryptjs').hashSync : require('bcrypt').hash;
+const hashFunc = typeof EdgeRuntime === 'string' ? require('bcryptjs').hashSync : require('bcryptjs').hash;
 
 class PasswordHandler extends DefaultPrismaProxyHandler {
     constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
