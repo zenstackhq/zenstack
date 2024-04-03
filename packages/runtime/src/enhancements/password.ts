@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { hashSync } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
 import { NestedWriteVisitor, type PrismaWriteActionType } from '../cross';
 import { DbClientContract } from '../types';
@@ -24,6 +23,14 @@ export function withPassword<DbClient extends object = any>(
         'password'
     );
 }
+
+// `bcryptjs.hash` is good for performance but it doesn't work in edge runtime,
+// so we fall back to `bcrypt.hash` in that case.
+
+// eslint-disable-next-line no-var
+declare var EdgeRuntime: any;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const hashFunc = typeof EdgeRuntime === 'string' ? require('bcryptjs').hashSync : require('bcrypt').hash;
 
 class PasswordHandler extends DefaultPrismaProxyHandler {
     constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
@@ -53,7 +60,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
                     if (!salt) {
                         salt = DEFAULT_PASSWORD_SALT_LENGTH;
                     }
-                    context.parent[field.name] = hashSync(data, salt);
+                    context.parent[field.name] = await hashFunc(data, salt);
                 }
             },
         });
