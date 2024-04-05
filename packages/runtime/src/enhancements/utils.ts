@@ -1,11 +1,13 @@
+import safeJsonStringify from 'safe-json-stringify';
 import { FieldInfo, ModelMeta, resolveField } from '..';
 import type { DbClientContract } from '../types';
 
 /**
  * Formats an object for pretty printing.
  */
-export function formatObject(value: unknown) {
-    return JSON.stringify(value, undefined, 2);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatObject(value: any, multiLine = true) {
+    return multiLine ? safeJsonStringify(value, undefined, 2) : safeJsonStringify(value);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

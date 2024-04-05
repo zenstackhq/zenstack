@@ -651,7 +651,7 @@ export class PolicyUtil extends QueryUtils {
             throw this.deniedByPolicy(
                 model,
                 operation,
-                `entity ${JSON.stringify(uniqueFilter)} failed policy check`,
+                `entity ${formatObject(uniqueFilter, false)} failed policy check`,
                 CrudFailureReason.ACCESS_POLICY_VIOLATION
             );
         }
@@ -664,7 +664,7 @@ export class PolicyUtil extends QueryUtils {
                 throw this.deniedByPolicy(
                     model,
                     'update',
-                    `entity ${JSON.stringify(uniqueFilter)} failed update policy check for field "${
+                    `entity ${formatObject(uniqueFilter, false)} failed update policy check for field "${
                         fieldUpdateGuard.rejectedByField
                     }"`,
                     CrudFailureReason.ACCESS_POLICY_VIOLATION
@@ -712,7 +712,7 @@ export class PolicyUtil extends QueryUtils {
             throw this.deniedByPolicy(
                 model,
                 operation,
-                `entity ${JSON.stringify(uniqueFilter)} failed policy check`,
+                `entity ${formatObject(uniqueFilter, false)} failed policy check`,
                 CrudFailureReason.ACCESS_POLICY_VIOLATION
             );
         }
