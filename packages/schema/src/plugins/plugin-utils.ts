@@ -68,6 +68,8 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                 },
             };
 
+            // create stubs for zod exports to make bundlers that statically
+            // analyze imports (like Next.js) happy
             for (const zodFolder of ['models', 'input', 'objects']) {
                 fs.mkdirSync(path.join(output, 'zod', zodFolder), { recursive: true });
                 fs.writeFileSync(path.join(output, 'zod', zodFolder, 'index.js'), '');

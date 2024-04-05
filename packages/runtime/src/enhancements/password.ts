@@ -24,7 +24,7 @@ export function withPassword<DbClient extends object = any>(
     );
 }
 
-// `bcryptjs.hash` is good for performance but it doesn't work in edge runtime,
+// `bcryptjs.hash` is good for performance but it doesn't work in vercel edge runtime,
 // so we fall back to `bcrypt.hash` in that case.
 
 // eslint-disable-next-line no-var
