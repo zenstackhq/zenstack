@@ -728,7 +728,7 @@ export class PolicyUtil extends QueryUtils {
                 throw this.deniedByPolicy(
                     model,
                     operation,
-                    `entities ${JSON.stringify(uniqueFilter)} failed validation: [${error}]`,
+                    `entities ${formatObject(uniqueFilter, false)} failed validation: [${error}]`,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION,
                     parseResult.error
                 );
