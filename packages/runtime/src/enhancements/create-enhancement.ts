@@ -98,10 +98,6 @@ export type EnhancementContext<User extends AuthUser = AuthUser> = {
     user?: User;
 };
 
-let hasPassword: boolean | undefined = undefined;
-let hasOmit: boolean | undefined = undefined;
-let hasDefaultAuth: boolean | undefined = undefined;
-
 /**
  * Gets a Prisma client enhanced with all enhancement behaviors, including access
  * policy, field validation, field omission and password hashing.
@@ -129,23 +125,15 @@ export function createEnhancement<DbClient extends object>(
         );
     }
 
-    let result = prisma;
-
-    if (
-        process.env.ZENSTACK_TEST === '1' || // avoid caching in tests
-        hasPassword === undefined ||
-        hasOmit === undefined ||
-        hasDefaultAuth === undefined
-    ) {
-        const allFields = Object.values(options.modelMeta.models).flatMap((modelInfo) =>
-            Object.values(modelInfo.fields)
-        );
-        hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
-        hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
-        hasDefaultAuth = allFields.some((field) => field.defaultValueProvider);
-    }
+    // TODO: move the detection logic into each enhancement
+    // TODO: how to properly cache the detection result?
+    const allFields = Object.values(options.modelMeta.models).flatMap((modelInfo) => Object.values(modelInfo.fields));
+    const hasPassword = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@password'));
+    const hasOmit = allFields.some((field) => field.attributes?.some((attr) => attr.name === '@omit'));
+    const hasDefaultAuth = allFields.some((field) => field.defaultValueProvider);
 
     const kinds = options.kinds ?? ALL_ENHANCEMENTS;
+    let result = prisma;
 
     // delegate proxy needs to be wrapped inside policy proxy, since it may translate `deleteMany`
     // and `updateMany` to plain `delete` and `update`

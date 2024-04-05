@@ -1,4 +1,3 @@
-import * as util from 'util';
 import { FieldInfo, ModelMeta, resolveField } from '..';
 import type { DbClientContract } from '../types';
 
@@ -6,7 +5,7 @@ import type { DbClientContract } from '../types';
  * Formats an object for pretty printing.
  */
 export function formatObject(value: unknown) {
-    return util.formatWithOptions({ depth: 20 }, value);
+    return JSON.stringify(value, undefined, 2);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
