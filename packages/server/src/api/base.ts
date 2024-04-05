@@ -59,7 +59,7 @@ export abstract class APIHandlerBase {
 
     constructor() {
         try {
-            this.defaultModelMeta = getDefaultModelMeta(undefined);
+            this.defaultModelMeta = getDefaultModelMeta();
         } catch {
             // noop
         }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
@@ -8,6 +9,7 @@ import request from 'supertest';
 import RESTAPIHandler from '../../src/api/rest';
 import { ZenStackMiddleware } from '../../src/express';
 import { makeUrl, schema } from '../utils';
+import path from 'path';
 
 describe('Express adapter tests - rpc handler', () => {
     it('run plugin regular json', async () => {
@@ -86,11 +88,18 @@ describe('Express adapter tests - rpc handler', () => {
     });
 
     it('custom load path', async () => {
-        const { prisma } = await loadSchema(schema, { output: './zen' });
+        const { prisma, projectDir } = await loadSchema(schema, { output: './zen' });
 
         const app = express();
         app.use(bodyParser.json());
-        app.use('/api', ZenStackMiddleware({ getPrisma: () => prisma, loadPath: './zen', zodSchemas: true }));
+        app.use(
+            '/api',
+            ZenStackMiddleware({
+                getPrisma: () => prisma,
+                modelMeta: require(path.join(projectDir, './zen/model-meta')).default,
+                zodSchemas: require(path.join(projectDir, './zen/zod')),
+            })
+        );
 
         const r = await request(app)
             .post('/api/user/create')

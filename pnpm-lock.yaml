@@ -406,9 +406,6 @@ importers:
       change-case:
         specifier: ^4.1.2
         version: 4.1.2
-      colors:
-        specifier: 1.4.0
-        version: 1.4.0
       decimal.js:
         specifier: ^10.4.2
         version: 10.4.2
@@ -424,6 +421,9 @@ importers:
       pluralize:
         specifier: ^8.0.0
         version: 8.0.0
+      safe-json-stringify:
+        specifier: ^1.2.0
+        version: 1.2.0
       semver:
         specifier: ^7.5.2
         version: 7.5.4
@@ -455,6 +455,9 @@ importers:
       '@types/pluralize':
         specifier: ^0.0.29
         version: 0.0.29
+      '@types/safe-json-stringify':
+        specifier: ^1.1.5
+        version: 1.1.5
       '@types/semver':
         specifier: ^7.3.13
         version: 7.5.0
@@ -5029,7 +5032,7 @@ packages:
   /@types/graceful-fs@4.1.6:
     resolution: {integrity: sha512-Sig0SNORX9fdW+bQuTEovKj3uHcUL6LQKbCrrqb1X7J6/ReAbhCXRAhc+SMejhLELFj2QcyuxmUooZ4bt5ReSw==}
     dependencies:
-      '@types/node': 18.0.0
+      '@types/node': 20.10.2
     dev: true
 
   /@types/http-errors@2.0.1:
@@ -5183,6 +5186,10 @@ packages:
   /@types/retry@0.12.0:
     resolution: {integrity: sha512-wWKOClTTiizcZhXnPY4wikVAwmdYHp8q6DmC+EJUzAMsycb7HB32Kh9RN4+0gExjmPmZSAQjgURXIGATPegAvA==}
     dev: false
+
+  /@types/safe-json-stringify@1.1.5:
+    resolution: {integrity: sha512-wQ1unJoajjDOP7bkg7FHOYelVp6BSsuBIFSvifNKeiMHegXWa6vddoqM/dHTVkX8bn9fJcor4Hukff9AtFybcA==}
+    dev: true
 
   /@types/scheduler@0.16.3:
     resolution: {integrity: sha512-5cJ8CB4yAx7BH1oMvdU0Jh9lrEXyPkar6F9G/ERswkCuvP4KQZfZkSjcMbAICCpQTN4OuZn8tz0HiKv9TGZgrQ==}
@@ -13588,6 +13595,10 @@ packages:
 
   /safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+
+  /safe-json-stringify@1.2.0:
+    resolution: {integrity: sha512-gH8eh2nZudPQO6TytOvbxnuhYBOvDBBLW52tz5q6X58lJcd/tkmqFR+5Z9adS8aJtURSXWThWy/xJtJwixErvg==}
+    dev: false
 
   /safe-regex-test@1.0.0:
     resolution: {integrity: sha512-JBUUzyOgEwXQY1NuPtvcj/qcBDbDmEvWufhlnXZIm75DEHp+afM1r1ujJpJsV/gSM4t59tpDyPi1sd6ZaPFfsA==}

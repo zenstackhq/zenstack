@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 import { loadSchema } from '@zenstackhq/testtools';
-import { SvelteKitHandler } from '../../src/sveltekit';
-import { schema, makeUrl } from '../utils';
 import 'isomorphic-fetch';
+import path from 'path';
 import superjson from 'superjson';
 import Rest from '../../src/api/rest';
+import { SvelteKitHandler } from '../../src/sveltekit';
+import { makeUrl, schema } from '../utils';
 
 describe('SvelteKit adapter tests - rpc handler', () => {
     it('run hooks regular json', async () => {
@@ -80,13 +82,13 @@ describe('SvelteKit adapter tests - rpc handler', () => {
     });
 
     it('custom load path', async () => {
-        const { prisma } = await loadSchema(schema, { output: './zen' });
+        const { prisma, projectDir } = await loadSchema(schema, { output: './zen' });
 
         const handler = SvelteKitHandler({
             prefix: '/api',
             getPrisma: () => prisma,
-            zodSchemas: true,
-            loadPath: './zen',
+            modelMeta: require(path.join(projectDir, './zen/model-meta')).default,
+            zodSchemas: require(path.join(projectDir, './zen/zod')),
         });
 
         const r = await handler(

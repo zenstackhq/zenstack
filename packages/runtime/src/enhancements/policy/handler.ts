@@ -712,7 +712,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                         };
 
                         // fetch the upstream entity
-                        if (this.logger.enabled('info')) {
+                        if (this.shouldLogQuery) {
                             this.logger.info(
                                 `[policy] \`findUniqueOrThrow\` ${model}: looking up upstream entity of ${
                                     backLinkField.type

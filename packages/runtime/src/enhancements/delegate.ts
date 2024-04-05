@@ -657,9 +657,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                         where: entity,
                         ...updatePayload,
                     };
-                    this.logger.info(
-                        `[delegate] \`updateMany\` update: ${this.getModelName(model)}: ${formatObject(updateArgs)}`
-                    );
+                    if (this.options.logPrismaQuery) {
+                        this.logger.info(
+                            `[delegate] \`updateMany\` update: ${this.getModelName(model)}: ${formatObject(updateArgs)}`
+                        );
+                    }
                     return db[model].update(updateArgs);
                 })
             );
