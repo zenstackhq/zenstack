@@ -100,6 +100,10 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
                 schema += `.toUpperCase()`;
                 break;
             }
+            case '@db.Uuid': {
+                schema += `.uuid()`;
+                break;
+            }
             case '@datetime': {
                 schema += `.datetime({ offset: true${message ? ', message: ' + JSON.stringify(message) : ''} })`;
                 break;

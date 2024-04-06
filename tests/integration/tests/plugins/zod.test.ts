@@ -2,6 +2,7 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
+import { randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -287,6 +288,7 @@ describe('Zod plugin tests', () => {
             o Int? @lt(1, 'must be less than 1')
             p Int? @lte(1, 'must be less than or equal to 1')
             q Int[]
+            r String? @db.Uuid
         }
         `;
 
@@ -347,6 +349,9 @@ describe('Zod plugin tests', () => {
 
         expect(schema.safeParse({ q: [1] }).success).toBeTruthy();
         expect(schema.safeParse({ q: ['abc'] }).success).toBeFalsy();
+
+        expect(schema.safeParse({ r: 'abc' }).success).toBeFalsy();
+        expect(schema.safeParse({ r: randomUUID() }).success).toBeTruthy();
     });
 
     it('refinement scalar fields', async () => {
