@@ -674,8 +674,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1
       ts-japi:
-        specifier: ^1.8.0
-        version: 1.8.0
+        specifier: ^1.10.1
+        version: 1.10.1
       upper-case-first:
         specifier: ^2.0.2
         version: 2.0.2
@@ -14608,8 +14608,8 @@ packages:
     resolution: {integrity: sha512-Y/arvbn+rrz3JCKl9C4kVNfTfSm2/mEp5FSz5EsZSANGPSlQrpRI5M4PKF+mJnE52jOO90PnPSc3Ur3bTQw0gA==}
     dev: true
 
-  /ts-japi@1.8.0:
-    resolution: {integrity: sha512-77cNpz1CMJsImcikE7gnihMKOME4c/prCaruBmr7yMRHGnmEt1llFyJbuokXCaEmm0hERPv2VlzTyZ+pb43leg==}
+  /ts-japi@1.10.1:
+    resolution: {integrity: sha512-03frHSZma1Bj5lxunZqqZTBmNjV1sdzLb60gGJ7O3viPS7g/rjF52tozZPy2iRnHazjj5I4r53mG4hmO8XeAyw==}
     engines: {node: '>=10'}
     dev: false
 
