@@ -1121,7 +1121,7 @@ class RequestHandler extends APIHandlerBase {
             throw new Error(`serializer not found for model ${model}`);
         }
 
-        // serialize to JSON:API strcuture
+        // serialize to JSON:API structure
         const serialized = await serializer.serialize(items, options);
 
         // convert the serialization result to plain object otherwise SuperJSON won't work

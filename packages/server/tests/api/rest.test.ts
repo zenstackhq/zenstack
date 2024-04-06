@@ -1014,7 +1014,7 @@ describe('REST server tests', () => {
                         query: { include: 'posts.comments' },
                         prisma,
                     });
-                    expect(r.body.included).toHaveLength(3);
+                    expect(r.body.included).toHaveLength(4);
                     expect(r.body.included[2]).toMatchObject({
                         type: 'comment',
                         attributes: { content: 'Comment1' },
@@ -1027,7 +1027,7 @@ describe('REST server tests', () => {
                         query: { include: 'posts.comments,profile' },
                         prisma,
                     });
-                    expect(r.body.included).toHaveLength(4);
+                    expect(r.body.included).toHaveLength(5);
                     const profile = r.body.included.find((item: any) => item.type === 'profile');
                     expect(profile).toMatchObject({
                         type: 'profile',
