@@ -92,7 +92,15 @@ export class ZodSchemaGenerator {
 
         await this.generateModelSchemas(output, excludeModels);
 
-        if (this.options.modelOnly !== true) {
+        if (this.options.modelOnly) {
+            // generate stub for object and input schemas, so the exports from '@zenstackhq/runtime/zod' are available
+            this.sourceFiles.push(
+                this.project.createSourceFile(path.join(output, 'objects', 'index.ts'), '', { overwrite: true })
+            );
+            this.sourceFiles.push(
+                this.project.createSourceFile(path.join(output, 'input', 'index.ts'), '', { overwrite: true })
+            );
+        } else {
             // detailed object schemas referenced from input schemas
             Transformer.provider = dataSourceProvider;
             addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
