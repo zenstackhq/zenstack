@@ -3,7 +3,7 @@ import { getDataModels, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import getLatestVersion from 'get-latest-version';
-import { AstNode, getDocument, LangiumDocument, LangiumDocuments, Mutable } from 'langium';
+import { getDocument, LangiumDocument, LangiumDocuments, linkContentToContainer } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import semver from 'semver';
@@ -153,18 +153,13 @@ export function mergeImportsDeclarations(documents: LangiumDocuments, model: Mod
     const importedModels = resolveTransitiveImports(documents, model);
 
     const importedDeclarations = importedModels.flatMap((m) => m.declarations);
-
-    importedDeclarations.forEach((d) => {
-        const mutable = d as Mutable<AstNode>;
-        // Plugins might use $container to access the model
-        // need to make sure it is always resolved to the main model
-        mutable.$container = model;
-    });
-
     model.declarations.push(...importedDeclarations);
 
     // remove import directives
     model.imports = [];
+
+    // fix $containerIndex
+    linkContentToContainer(model);
 
     return importedModels;
 }
