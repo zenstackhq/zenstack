@@ -14,12 +14,12 @@ import type { PolicyDef, ZodSchemas } from './types';
 /**
  * Kinds of enhancements to `PrismaClient`
  */
-export type EnhancementKind = 'password' | 'omit' | 'policy' | 'delegate';
+export type EnhancementKind = 'password' | 'omit' | 'policy' | 'validation' | 'delegate';
 
 /**
  * All enhancement kinds
  */
-const ALL_ENHANCEMENTS = ['password', 'omit', 'policy', 'delegate'];
+const ALL_ENHANCEMENTS: EnhancementKind[] = ['password', 'omit', 'policy', 'validation', 'delegate'];
 
 /**
  * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
@@ -148,10 +148,10 @@ export function createEnhancement<DbClient extends object>(
         }
     }
 
-    // policy proxy
-    if (kinds.includes('policy')) {
+    // 'policy' and 'validation' enhancements are both enabled by `withPolicy`
+    if (kinds.includes('policy') || kinds.includes('validation')) {
         result = withPolicy(result, options, context);
-        if (hasDefaultAuth) {
+        if (kinds.includes('policy') && hasDefaultAuth) {
             // @default(auth()) proxy
             result = withDefaultAuth(result, options, context);
         }
