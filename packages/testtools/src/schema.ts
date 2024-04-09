@@ -130,6 +130,7 @@ export type SchemaLoadOptions = {
     enhancements?: EnhancementKind[];
     enhanceOptions?: Partial<EnhancementOptions>;
     extraSourceFiles?: { name: string; content: string }[];
+    projectDir?: string;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -150,7 +151,11 @@ export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoa
 export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const opt = { ...defaultOptions, ...options };
 
-    const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
+    let projectDir = opt.projectDir;
+    if (!projectDir) {
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        projectDir = r.name;
+    }
 
     const workspaceRoot = getWorkspaceRoot(__dirname);
 
@@ -158,11 +163,11 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         throw new Error('Could not find workspace root');
     }
 
-    console.log('Workdir:', projectRoot);
-    process.chdir(projectRoot);
+    console.log('Workdir:', projectDir);
+    process.chdir(projectDir);
 
     // copy project structure from scaffold (prepared by test-setup.ts)
-    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectRoot, { recursive: true, force: true });
+    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectDir, { recursive: true, force: true });
 
     // install local deps
     const localInstallDeps = [
@@ -175,12 +180,12 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     run(`npm i --no-audit --no-fund ${localInstallDeps.map((d) => path.join(workspaceRoot, d)).join(' ')}`);
 
-    let zmodelPath = path.join(projectRoot, 'schema.zmodel');
+    let zmodelPath = path.join(projectDir, 'schema.zmodel');
 
     const files = schema.split(FILE_SPLITTER);
 
     // Use this one to replace $projectRoot placeholder in the schema file
-    const normalizedProjectRoot = normalizePath(projectRoot);
+    const normalizedProjectRoot = normalizePath(projectDir);
 
     if (files.length > 1) {
         // multiple files
@@ -191,7 +196,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             let fileContent = file.substring(firstLine + 1);
             if (index === 0) {
                 // The first file is the main schema file
-                zmodelPath = path.join(projectRoot, fileName);
+                zmodelPath = path.join(projectDir, fileName);
                 if (opt.addPrelude) {
                     // plugin need to be added after import statement
                     fileContent = `${fileContent}\n${makePrelude(opt)}`;
@@ -199,14 +204,14 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             }
 
             fileContent = fileContent.replaceAll('$projectRoot', normalizedProjectRoot);
-            const filePath = path.join(projectRoot, fileName);
+            const filePath = path.join(projectDir, fileName);
             fs.writeFileSync(filePath, fileContent);
         });
     } else {
         schema = schema.replaceAll('$projectRoot', normalizedProjectRoot);
         const content = opt.addPrelude ? `${makePrelude(opt)}\n${schema}` : schema;
         if (opt.customSchemaFilePath) {
-            zmodelPath = path.join(projectRoot, opt.customSchemaFilePath);
+            zmodelPath = path.join(projectDir, opt.customSchemaFilePath);
             fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
             fs.writeFileSync(zmodelPath, content);
         } else {
@@ -241,23 +246,23 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     opt.copyDependencies?.forEach((dep) => {
         const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
-        fs.cpSync(dep, path.join(projectRoot, 'node_modules', pkgJson.name), { recursive: true, force: true });
+        fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
     });
 
-    const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
+    const PrismaClient = require(path.join(projectDir, 'node_modules/.prisma/client')).PrismaClient;
     let prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
 
-    const prismaModule = require(path.join(projectRoot, 'node_modules/@prisma/client')).Prisma;
+    const prismaModule = require(path.join(projectDir, 'node_modules/@prisma/client')).Prisma;
 
     if (opt.pulseApiKey) {
-        const withPulse = require(path.join(projectRoot, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
+        const withPulse = require(path.join(projectDir, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
 
     opt.extraSourceFiles?.forEach(({ name, content }) => {
-        fs.writeFileSync(path.join(projectRoot, name), content);
+        fs.writeFileSync(path.join(projectDir, name), content);
     });
 
     if (opt.extraSourceFiles && opt.extraSourceFiles.length > 0 && !opt.compile) {
@@ -271,14 +276,14 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
-        const tsconfig = json.parse(fs.readFileSync(path.join(projectRoot, './tsconfig.json'), 'utf-8'));
+        const tsconfig = json.parse(fs.readFileSync(path.join(projectDir, './tsconfig.json'), 'utf-8'));
         tsconfig.compilerOptions.paths = {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
             '.zenstack/prisma': ['./node_modules/.zenstack/prisma.d.ts'],
         };
         tsconfig.include = ['**/*.ts'];
         tsconfig.exclude = ['node_modules'];
-        fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
+        fs.writeFileSync(path.join(projectDir, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
     }
 
@@ -286,7 +291,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         return {
             prisma,
             prismaModule,
-            projectDir: projectRoot,
+            projectDir,
             enhance: undefined as any,
             enhanceRaw: undefined as any,
             policy: undefined as any,
@@ -298,8 +303,8 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const outputPath = opt.output
         ? path.isAbsolute(opt.output)
             ? opt.output
-            : path.join(projectRoot, opt.output)
-        : path.join(projectRoot, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
+            : path.join(projectDir, opt.output)
+        : path.join(projectDir, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
 
     const policy = require(path.join(outputPath, 'policy')).default;
     const modelMeta = require(path.join(outputPath, 'model-meta')).default;
@@ -314,7 +319,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const enhance = require(path.join(outputPath, 'enhance')).enhance;
 
     return {
-        projectDir: projectRoot,
+        projectDir: projectDir,
         prisma,
         enhance: (user?: AuthUser, options?: EnhancementOptions): FullDbClientContract =>
             enhance(

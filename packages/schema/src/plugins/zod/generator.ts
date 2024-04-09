@@ -2,6 +2,7 @@ import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import {
     PluginGlobalOptions,
     PluginOptions,
+    ensureEmptyDir,
     getDataModels,
     getLiteral,
     getPrismaClientImportSpec,
@@ -14,7 +15,6 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, DataSource, EnumField, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
-import { promises as fs } from 'fs';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import type { SourceFile } from 'ts-morph';
@@ -22,7 +22,6 @@ import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import Transformer from './transformer';
-import removeDir from './utils/removeDir';
 import { makeFieldSchema, makeValidationRefinements } from './utils/schema-gen';
 
 export class ZodSchemaGenerator {
@@ -52,7 +51,8 @@ export class ZodSchemaGenerator {
             }
         }
         output = resolvePath(output, this.options);
-        await this.handleGeneratorOutputValue(output);
+        ensureEmptyDir(output);
+        Transformer.setOutputPath(output);
 
         // calculate the models to be excluded
         const excludeModels = this.getExcludedModels();
@@ -181,15 +181,6 @@ export class ZodSchemaGenerator {
         } else {
             return [];
         }
-    }
-
-    private async handleGeneratorOutputValue(output: string) {
-        // create the output directory and delete contents that might exist from a previous run
-        await fs.mkdir(output, { recursive: true });
-        const isRemoveContentsOnly = true;
-        await removeDir(output, isRemoveContentsOnly);
-
-        Transformer.setOutputPath(output);
     }
 
     private async generateCommonSchemas(output: string) {

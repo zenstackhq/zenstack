@@ -2,6 +2,7 @@ import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginOptions,
     createProject,
+    ensureEmptyDir,
     generateModelMeta,
     getDataModels,
     getPrismaClientImportSpec,
@@ -21,6 +22,7 @@ import { name } from '.';
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
     let outDir = requireOption<string>(options, 'output', name);
     outDir = resolvePath(outDir, options);
+    ensureEmptyDir(outDir);
 
     const project = createProject();
     const warnings: string[] = [];

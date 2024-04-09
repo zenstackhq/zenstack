@@ -30,6 +30,7 @@ import {
     Reference,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import fs from 'node:fs';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
 import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
@@ -482,4 +483,19 @@ export function getRecursiveBases(dataModel: DataModel): DataModel[] {
         }
     });
     return result;
+}
+
+export function ensureEmptyDir(dir: string) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+        return;
+    }
+
+    const stats = fs.statSync(dir);
+    if (stats.isDirectory()) {
+        fs.rmSync(dir, { recursive: true });
+        fs.mkdirSync(dir, { recursive: true });
+    } else {
+        throw new Error(`Path "${dir}" already exists and is not a directory`);
+    }
 }

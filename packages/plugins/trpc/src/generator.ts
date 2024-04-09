@@ -4,6 +4,7 @@ import {
     PluginError,
     PluginOptions,
     RUNTIME_PACKAGE,
+    ensureEmptyDir,
     getPrismaClientImportSpec,
     parseOptionAsStrings,
     requireOption,
@@ -27,12 +28,8 @@ import {
     resolveModelsComments,
 } from './helpers';
 import { project } from './project';
-import removeDir from './utils/removeDir';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output', name);
-    outDir = resolvePath(outDir, options);
-
     // resolve "generateModels" option
     const generateModels = parseOptionAsStrings(options, 'generateModels', name);
 
@@ -49,8 +46,9 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         throw new PluginError(name, `Option "zodSchemasImport" must be a string`);
     }
 
-    await fs.promises.mkdir(outDir, { recursive: true });
-    await removeDir(outDir, true);
+    let outDir = requireOption<string>(options, 'output', name);
+    outDir = resolvePath(outDir, options);
+    ensureEmptyDir(outDir);
 
     const prismaClientDmmf = dmmf;
 
