@@ -24,6 +24,7 @@ import {
     getContainerOfType,
     getDocument,
     LangiumDocuments,
+    linkContentToContainer,
     Linker,
     Mutable,
     Reference,
@@ -72,6 +73,9 @@ export function mergeBaseModel(model: Model, linker: Linker) {
                 .filter((attr) => attr.decl.$refText !== '@@map')
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
+
+            // fix $containerIndex
+            linkContentToContainer(dataModel);
         }
 
         dataModel.$baseMerged = true;
@@ -89,8 +93,6 @@ function cloneAst<T extends InheritableNode>(
 ): Mutable<T> {
     const clone = copyAstNode(node, buildReference) as Mutable<T>;
     clone.$container = newContainer;
-    clone.$containerProperty = node.$containerProperty;
-    clone.$containerIndex = node.$containerIndex;
     clone.$inheritedFrom = node.$inheritedFrom ?? getContainerOfType(node, isDataModel);
     return clone;
 }
