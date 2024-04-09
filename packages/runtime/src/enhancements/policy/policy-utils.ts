@@ -230,6 +230,25 @@ export class PolicyUtil extends QueryUtils {
 
     //# Auth guard
 
+    private readonly FULLY_OPEN_AUTH_GUARD = {
+        create: true,
+        read: true,
+        update: true,
+        delete: true,
+        postUpdate: true,
+        create_input: true,
+        update_input: true,
+    };
+
+    private getModelAuthGuard(model: string): PolicyDef['guard']['string'] {
+        if (this.options.kinds && !this.options.kinds.includes('policy')) {
+            // policy enhancement not enabled, return an fully open guard
+            return this.FULLY_OPEN_AUTH_GUARD;
+        } else {
+            return this.policy.guard[lowerCaseFirst(model)];
+        }
+    }
+
     /**
      * Gets pregenerated authorization guard object for a given model and operation.
      *
@@ -237,7 +256,7 @@ export class PolicyUtil extends QueryUtils {
      * otherwise returns a guard object
      */
     getAuthGuard(db: CrudContract, model: string, operation: PolicyOperationKind, preValue?: any) {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -318,7 +337,7 @@ export class PolicyUtil extends QueryUtils {
      * Checks if the given model has a policy guard for the given operation.
      */
     hasAuthGuard(model: string, operation: PolicyOperationKind) {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             return false;
         }
@@ -347,7 +366,7 @@ export class PolicyUtil extends QueryUtils {
      * @returns boolean if static analysis is enough to determine the result, undefined if not
      */
     checkInputGuard(model: string, args: any, operation: 'create'): boolean | undefined {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             return undefined;
         }
@@ -1020,7 +1039,7 @@ export class PolicyUtil extends QueryUtils {
      * Gets field selection for fetching pre-update entity values for the given model.
      */
     getPreValueSelect(model: string): object | undefined {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -1028,7 +1047,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private getReadFieldSelect(model: string): object | undefined {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -1036,7 +1055,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private checkReadField(model: string, field: string, entity: any) {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -1053,7 +1072,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private hasFieldLevelPolicy(model: string) {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
@@ -1228,7 +1247,7 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private requireGuard(model: string) {
-        const guard = this.policy.guard[lowerCaseFirst(model)];
+        const guard = this.getModelAuthGuard(model);
         if (!guard) {
             throw this.unknownError(`unable to load policy guard for ${model}`);
         }
