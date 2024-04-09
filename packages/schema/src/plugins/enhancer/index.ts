@@ -1,11 +1,4 @@
-import {
-    PluginError,
-    RUNTIME_PACKAGE,
-    createProject,
-    ensureEmptyDir,
-    resolvePath,
-    type PluginFunction,
-} from '@zenstackhq/sdk';
+import { PluginError, RUNTIME_PACKAGE, createProject, resolvePath, type PluginFunction } from '@zenstackhq/sdk';
 import path from 'path';
 import { getDefaultOutputFolder } from '../plugin-utils';
 import { EnhancerGenerator } from './enhance';
@@ -21,7 +14,6 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
         throw new PluginError(name, `Unable to determine output path, not running plugin`);
     }
     outDir = resolvePath(outDir, options);
-    ensureEmptyDir(outDir);
 
     const project = globalOptions?.tsProject ?? createProject();
 
