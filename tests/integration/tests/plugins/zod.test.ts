@@ -5,6 +5,7 @@ import { loadSchema } from '@zenstackhq/testtools';
 import { randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import tmp from 'tmp';
 
 describe('Zod plugin tests', () => {
     let origDir: string;
@@ -725,5 +726,74 @@ describe('Zod plugin tests', () => {
         expect(fs.existsSync(path.join(projectDir, 'zod/models/User.schema.js'))).toBeFalsy();
         expect(fs.existsSync(path.join(projectDir, 'zod/models/Foo.schema.js'))).toBeFalsy();
         expect(fs.existsSync(path.join(projectDir, 'zod/models/Bar.schema.js'))).toBeFalsy();
+    });
+
+    it('clear output', async () => {
+        const { name: projectDir } = tmp.dirSync();
+        fs.mkdirSync(path.join(projectDir, 'zod'), { recursive: true });
+        fs.writeFileSync(path.join(projectDir, 'zod', 'test.txt'), 'hello');
+
+        await loadSchema(
+            `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+    
+        plugin zod {
+            provider = "@core/zod"
+            output = "$projectRoot/zod"
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique @email @endsWith('@zenstack.dev')
+            password String @omit
+        }
+        `,
+            { addPrelude: false, pushDb: false, projectDir }
+        );
+
+        expect(fs.existsSync(path.join(projectDir, 'zod', 'test.txt'))).toBeFalsy();
+    });
+
+    it('existing output as file', async () => {
+        const { name: projectDir } = tmp.dirSync();
+        fs.writeFileSync(path.join(projectDir, 'zod'), 'hello');
+
+        await expect(
+            loadSchema(
+                `
+        datasource db {
+            provider = 'postgresql'
+            url = env('DATABASE_URL')
+        }
+        
+        generator js {
+            provider = 'prisma-client-js'
+        }
+    
+        plugin zod {
+            provider = "@core/zod"
+            output = "$projectRoot/zod"
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique @email @endsWith('@zenstack.dev')
+            password String @omit
+        }
+        `,
+                { addPrelude: false, pushDb: false, projectDir }
+            )
+        ).rejects.toThrow('already exists and is not a directory');
     });
 });

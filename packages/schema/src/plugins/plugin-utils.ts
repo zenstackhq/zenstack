@@ -1,5 +1,5 @@
 import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind } from '@zenstackhq/runtime';
-import { PluginGlobalOptions } from '@zenstackhq/sdk';
+import { PluginGlobalOptions, ensureEmptyDir } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
 import { PluginRunnerOptions } from '../cli/plugin-runner';
@@ -29,10 +29,7 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
 export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
     const output = options.output ? path.resolve(options.output) : getDefaultOutputFolder();
     if (output) {
-        if (fs.existsSync(output)) {
-            fs.rmSync(output, { recursive: true });
-        }
-        fs.mkdirSync(output, { recursive: true });
+        ensureEmptyDir(output);
         if (!options.output) {
             const pkgJson = {
                 name: '.zenstack',

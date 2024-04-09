@@ -3,6 +3,7 @@ import {
     PluginError,
     PluginOptions,
     createProject,
+    ensureEmptyDir,
     generateModelMeta,
     getDataModels,
     getPrismaClientImportSpec,
@@ -26,9 +27,6 @@ type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output', name);
-    outDir = resolvePath(outDir, options);
-
     const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
@@ -42,6 +40,10 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
     if (version !== 'v4' && version !== 'v5') {
         throw new PluginError(name, `Unsupported version "${version}": use "v4" or "v5"`);
     }
+
+    let outDir = requireOption<string>(options, 'output', name);
+    outDir = resolvePath(outDir, options);
+    ensureEmptyDir(outDir);
 
     await generateModelMeta(project, models, {
         output: path.join(outDir, '__model_meta.ts'),
