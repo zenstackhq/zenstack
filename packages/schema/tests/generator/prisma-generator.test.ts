@@ -139,8 +139,7 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
-        // "nanoid()" is only available in later versions of Prisma
-        await getDMMF({ datamodel: content }, '5.0.0');
+        await getDMMF({ datamodel: content });
 
         expect(content).toContain('@default(nanoid(6))');
         expect(content).toContain('@default(nanoid())');
