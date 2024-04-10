@@ -79,7 +79,7 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "@prisma/client": "^5.0.0"
+        "@prisma/client": "5.0.0 - 5.12.x"
     },
     "author": {
         "name": "ZenStack Team"
