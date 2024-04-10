@@ -25,13 +25,13 @@ const run: PluginFunction = async (model, options, _dmmf, globalOptions) => {
     if (dmmf) {
         // a logical client is generated
         if (typeof options.output === 'string') {
-            // get the absolute path of the logical prisma client
-            const prismaClientPathAbs = path.resolve(options.output, 'prisma');
+            // get the absolute path of the prisma client types
+            const prismaClientPathAbs = path.resolve(options.output, 'models');
 
             // resolve it relative to the schema path
             prismaClientPath = path.relative(path.dirname(options.schemaPath), prismaClientPathAbs);
         } else {
-            prismaClientPath = `${RUNTIME_PACKAGE}/prisma`;
+            prismaClientPath = `${RUNTIME_PACKAGE}/models`;
         }
     }
 
