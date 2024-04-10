@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 import type { DMMF } from '@prisma/generator-helper';
+import { getDMMF as _getDMMF, type GetDMMFOptions } from '@prisma/internals';
 import path from 'path';
-import * as semver from 'semver';
 import { RUNTIME_PACKAGE } from './constants';
 import type { PluginOptions } from './types';
 
@@ -40,27 +40,11 @@ function normalizePath(p: string) {
     return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
 
-export type GetDMMFOptions = {
-    datamodel?: string;
-    cwd?: string;
-    prismaPath?: string;
-    datamodelPath?: string;
-    retry?: number;
-    previewFeatures?: string[];
-};
-
 /**
- * Loads Prisma DMMF with appropriate version
+ * Loads Prisma DMMF
  */
-export function getDMMF(options: GetDMMFOptions, defaultPrismaVersion?: string): Promise<DMMF.Document> {
-    const prismaVersion = getPrismaVersion() ?? defaultPrismaVersion;
-    if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-        const _getDMMF = require('@prisma/internals-v5').getDMMF;
-        return _getDMMF(options);
-    } else {
-        const _getDMMF = require('@prisma/internals').getDMMF;
-        return _getDMMF(options);
-    }
+export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
+    return _getDMMF(options);
 }
 
 /**
