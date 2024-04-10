@@ -279,7 +279,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         const tsconfig = json.parse(fs.readFileSync(path.join(projectDir, './tsconfig.json'), 'utf-8'));
         tsconfig.compilerOptions.paths = {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
-            '.zenstack/prisma': ['./node_modules/.zenstack/prisma.d.ts'],
+            '.zenstack/models': ['./node_modules/.zenstack/models.d.ts'],
         };
         tsconfig.include = ['**/*.ts'];
         tsconfig.exclude = ['node_modules'];

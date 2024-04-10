@@ -67,7 +67,7 @@ export class EnhancerGenerator {
 
             // create a reexport of the logical prisma client
             const prismaDts = this.project.createSourceFile(
-                path.join(this.outDir, 'prisma.d.ts'),
+                path.join(this.outDir, 'models.d.ts'),
                 `export type * from '${logicalPrismaClientDir}/index-fixed';`,
                 { overwrite: true }
             );
@@ -75,7 +75,7 @@ export class EnhancerGenerator {
         } else {
             // just reexport the prisma client
             const prismaDts = this.project.createSourceFile(
-                path.join(this.outDir, 'prisma.d.ts'),
+                path.join(this.outDir, 'models.d.ts'),
                 `export type * from '${prismaImport}';`,
                 { overwrite: true }
             );

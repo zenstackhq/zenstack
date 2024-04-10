@@ -59,8 +59,8 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                         types: './model-meta.d.ts',
                         default: './model-meta.js',
                     },
-                    './prisma': {
-                        types: './prisma.d.ts',
+                    './models': {
+                        types: './models.d.ts',
                     },
                 },
             };
