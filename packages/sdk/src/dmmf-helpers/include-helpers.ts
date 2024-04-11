@@ -1,5 +1,5 @@
-import type { DMMF } from '@prisma/generator-helper';
-import { checkIsModelRelationField, checkModelHasModelRelation, checkModelHasManyModelRelation } from './model-helpers';
+import type { DMMF } from '../types';
+import { checkIsModelRelationField, checkModelHasManyModelRelation, checkModelHasModelRelation } from './model-helpers';
 
 export function addMissingInputObjectTypesForInclude(inputObjectTypes: DMMF.InputType[], models: DMMF.Model[]) {
     // generate input object types necessary to support ModelInclude with relation support
@@ -52,7 +52,7 @@ function generateModelIncludeInputObjectTypes(models: DMMF.Model[]) {
 
         const shouldAddCountField = hasManyRelationToAnotherModel;
         if (shouldAddCountField) {
-            const inputTypes: DMMF.SchemaArgInputType[] = [{ isList: false, type: 'Boolean', location: 'scalar' }];
+            const inputTypes: DMMF.InputTypeRef[] = [{ isList: false, type: 'Boolean', location: 'scalar' }];
             inputTypes.push({
                 isList: false,
                 type: `${modelName}CountOutputTypeArgs`,

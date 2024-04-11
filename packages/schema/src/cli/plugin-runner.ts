@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
-import type { DMMF } from '@prisma/generator-helper';
 import { isPlugin, Model, Plugin } from '@zenstackhq/language/ast';
 import {
     createProject,
@@ -12,6 +11,7 @@ import {
     PluginError,
     resolvePath,
     saveProject,
+    type DMMF,
     type OptionValue,
     type PluginDeclaredOptions,
     type PluginFunction,

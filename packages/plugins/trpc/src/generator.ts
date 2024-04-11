@@ -1,8 +1,6 @@
-import type { DMMF } from '@prisma/generator-helper';
 import {
     CrudFailureReason,
     PluginError,
-    PluginOptions,
     RUNTIME_PACKAGE,
     ensureEmptyDir,
     getPrismaClientImportSpec,
@@ -10,6 +8,8 @@ import {
     requireOption,
     resolvePath,
     saveProject,
+    type DMMF,
+    type PluginOptions,
 } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import fs from 'fs';

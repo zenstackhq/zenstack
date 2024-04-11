@@ -1,10 +1,8 @@
-import { ConnectorType, DMMF } from '@prisma/generator-helper';
 import {
     PluginGlobalOptions,
     PluginOptions,
     ensureEmptyDir,
     getDataModels,
-    getLiteral,
     getPrismaClientImportSpec,
     hasAttribute,
     isEnumFieldReference,
@@ -12,8 +10,9 @@ import {
     isFromStdlib,
     parseOptionAsStrings,
     resolvePath,
+    type DMMF,
 } from '@zenstackhq/sdk';
-import { DataModel, DataSource, EnumField, Model, isDataModel, isDataSource, isEnum } from '@zenstackhq/sdk/ast';
+import { DataModel, EnumField, Model, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
 import { streamAllContents } from 'langium';
 import path from 'path';
@@ -84,12 +83,6 @@ export class ZodSchemaGenerator {
             prismaClientDmmf.schema.enumTypes.model ?? []
         );
 
-        const dataSource = this.model.declarations.find((d): d is DataSource => isDataSource(d));
-
-        const dataSourceProvider = getLiteral<string>(
-            dataSource?.fields.find((f) => f.name === 'provider')?.value
-        ) as ConnectorType;
-
         await this.generateModelSchemas(output, excludeModels);
 
         if (this.options.modelOnly) {
@@ -102,7 +95,6 @@ export class ZodSchemaGenerator {
             );
         } else {
             // detailed object schemas referenced from input schemas
-            Transformer.provider = dataSourceProvider;
             addMissingInputObjectTypes(inputObjectTypes, outputObjectTypes, models);
             const aggregateOperationSupport = resolveAggregateOperationSupport(inputObjectTypes);
             await this.generateObjectSchemas(inputObjectTypes, output);

@@ -1,7 +1,6 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import type { DMMF } from '@prisma/generator-helper';
-import { analyzePolicies, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
+import { analyzePolicies, PluginError, requireOption, resolvePath, type DMMF } from '@zenstackhq/sdk';
 import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -773,10 +772,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     outputType = this.prismaTypeToOpenAPIType(field.outputType.type, !!field.isNullable);
                     break;
                 case 'outputObjectTypes':
-                    outputType = this.prismaTypeToOpenAPIType(
-                        typeof field.outputType.type === 'string' ? field.outputType.type : field.outputType.type.name,
-                        !!field.isNullable
-                    );
+                    outputType = this.prismaTypeToOpenAPIType(field.outputType.type, !!field.isNullable);
                     break;
             }
             field.outputType;
@@ -805,7 +801,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
     }
 
-    private prismaTypeToOpenAPIType(type: DMMF.ArgType, nullable: boolean): OAPI.ReferenceObject | OAPI.SchemaObject {
+    private prismaTypeToOpenAPIType(type: string, nullable: boolean): OAPI.ReferenceObject | OAPI.SchemaObject {
         const result = match(type)
             .with('String', () => ({ type: 'string' }))
             .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' }))

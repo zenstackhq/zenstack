@@ -93,3 +93,5 @@ export class PluginError extends Error {
         super(message);
     }
 }
+
+export type { DMMF } from '@prisma/generator-helper';

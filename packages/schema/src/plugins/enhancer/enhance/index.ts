@@ -1,23 +1,23 @@
-import type { DMMF } from '@prisma/generator-helper';
 import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
 import {
+    PluginError,
     getAttribute,
     getAttributeArg,
     getAuthModel,
-    getDataModels,
     getDMMF,
+    getDataModels,
     getPrismaClientImportSpec,
     isDelegateModel,
-    PluginError,
+    type DMMF,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
     DataModel,
     DataModelField,
+    ReferenceExpr,
     isArrayExpr,
     isDataModel,
     isReferenceExpr,
-    ReferenceExpr,
     type Model,
 } from '@zenstackhq/sdk/ast';
 import fs from 'fs';

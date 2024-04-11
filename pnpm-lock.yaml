@@ -122,9 +122,6 @@ importers:
 
   packages/plugins/openapi:
     dependencies:
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../../runtime/dist
@@ -190,9 +187,6 @@ importers:
 
   packages/plugins/swr:
     dependencies:
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../../runtime/dist
@@ -252,9 +246,6 @@ importers:
 
   packages/plugins/tanstack-query:
     dependencies:
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
       '@zenstackhq/runtime':
         specifier: workspace:*
         version: link:../../runtime/dist
@@ -347,9 +338,6 @@ importers:
 
   packages/plugins/trpc:
     dependencies:
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
       '@zenstackhq/sdk':
         specifier: workspace:*
         version: link:../../sdk/dist
@@ -477,9 +465,6 @@ importers:
       '@paralleldrive/cuid2':
         specifier: ^2.2.0
         version: 2.2.0
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../language/dist
@@ -624,10 +609,10 @@ importers:
   packages/sdk:
     dependencies:
       '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
+        specifier: 5.7.0
+        version: 5.7.0
       '@prisma/internals':
-        specifier: ^5.0.0
+        specifier: 5.7.0
         version: 5.7.0
       '@zenstackhq/language':
         specifier: workspace:*
@@ -753,9 +738,6 @@ importers:
 
   packages/testtools:
     dependencies:
-      '@prisma/generator-helper':
-        specifier: ^5.0.0
-        version: 5.0.0
       '@zenstackhq/language':
         specifier: workspace:*
         version: link:../language/dist
@@ -3844,16 +3826,6 @@ packages:
         optional: true
     dev: true
 
-  /@prisma/debug@5.0.0:
-    resolution: {integrity: sha512-3q/M/KqlQ01/HJXifU/zCNOHkoTWu24kGelMF/IBrRxm7njPqTTbwfnT1dh4JK+nuWM5/Dg1Lv00u2c0l7AHxg==}
-    dependencies:
-      '@types/debug': 4.1.8
-      debug: 4.3.4
-      strip-ansi: 6.0.1
-    transitivePeerDependencies:
-      - supports-color
-    dev: false
-
   /@prisma/debug@5.12.0:
     resolution: {integrity: sha512-wK3fQLxPLMqf5riT5ZIhl8NffPSzFUwtzFX5CH7z/oI9Swmo9UhQlUgZABIVgdXSJ5OAlmRcDZtDKaMApIl8sg==}
 
@@ -3900,17 +3872,6 @@ packages:
       '@prisma/debug': 5.7.0
       '@prisma/engines-version': 5.7.0-41.79fb5193cf0a8fdbef536e4b4a159cad677ab1b9
       '@prisma/get-platform': 5.7.0
-    dev: false
-
-  /@prisma/generator-helper@5.0.0:
-    resolution: {integrity: sha512-pufQ1mhoH6WzKNtzL79HZDoW4Ql3Lf8QEKVmBoW8e3Tdb50bxpYBYue5LBqp9vNW1xd1pgZO53cNiRfLX2d4Zg==}
-    dependencies:
-      '@prisma/debug': 5.0.0
-      '@types/cross-spawn': 6.0.2
-      cross-spawn: 7.0.3
-      kleur: 4.1.5
-    transitivePeerDependencies:
-      - supports-color
     dev: false
 
   /@prisma/generator-helper@5.7.0:
@@ -4756,18 +4717,6 @@ packages:
     resolution: {integrity: sha512-t73xJJrvdTjXrn4jLS9VSGRbz0nUY3cl2DMGDU48lKl+HR9dbbjW2A9r3g40VA++mQpy6uuHg33gy7du2BKpog==}
     dev: true
 
-  /@types/cross-spawn@6.0.2:
-    resolution: {integrity: sha512-KuwNhp3eza+Rhu8IFI5HUXRP0LIhqH5cAjubUvGXXthh4YYBuP2ntwEX+Cz8GJoZUHlKo247wPWOfA9LYEq4cw==}
-    dependencies:
-      '@types/node': 18.0.0
-    dev: false
-
-  /@types/debug@4.1.8:
-    resolution: {integrity: sha512-/vPO1EPOs306Cvhwv7KfVfYvOJqA/S/AXjaHQiJboCZzcNDb+TIJFN9/2C9DZ//ijSKWioNyUxD792QmDJ+HKQ==}
-    dependencies:
-      '@types/ms': 0.7.31
-    dev: false
-
   /@types/estree@1.0.1:
     resolution: {integrity: sha512-LG4opVs2ANWZ1TJoKc937iMmNstM/d0ae1vNbnBvBhqCSezgVUOzcLCqbI5elV8Vy6WKwKjaqR+zO9VKirBBCA==}
     dev: true
@@ -4879,10 +4828,6 @@ packages:
   /@types/minimist@1.2.2:
     resolution: {integrity: sha512-jhuKLIRrhvCPLqwPcx6INqmKeiA5EWrsCOPhrlFSrbrmU4ZMPjj5Ul/oLCMDO98XRUIwVm78xICz4EPCektzeQ==}
     dev: true
-
-  /@types/ms@0.7.31:
-    resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
-    dev: false
 
   /@types/node@12.20.55:
     resolution: {integrity: sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==}
@@ -10318,6 +10263,7 @@ packages:
   /kleur@4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
+    dev: true
 
   /klona@2.0.6:
     resolution: {integrity: sha512-dhG34DXATL5hSxJbIexCft8FChFXtmskoZYnoPWjXQuebWYCNkVeV3KkGegCK9CP1oswI/vQibS2GY7Em/sJJA==}
