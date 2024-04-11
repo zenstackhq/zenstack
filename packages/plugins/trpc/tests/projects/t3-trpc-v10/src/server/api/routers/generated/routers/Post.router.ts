@@ -23,6 +23,10 @@ export default function createRouter<Config extends BaseConfig>(
             .input($Schema.PostInputSchema.aggregate)
             .query(({ ctx, input }) => checkRead(db(ctx).post.aggregate(input as any))),
 
+        createMany: procedure
+            .input($Schema.PostInputSchema.createMany)
+            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.createMany(input as any))),
+
         create: procedure
             .input($Schema.PostInputSchema.create)
             .mutation(async ({ ctx, input }) => checkMutate(db(ctx).post.create(input as any))),
@@ -87,6 +91,29 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             input: Omit<Prisma.Subset<T, Prisma.PostAggregateArgs>, 'cursor'>,
             opts?: UseTRPCInfiniteQueryOptions<string, T, Prisma.GetPostAggregateType<T>, Error>,
         ) => UseTRPCInfiniteQueryResult<Prisma.GetPostAggregateType<T>, TRPCClientErrorLike<AppRouter>>;
+    };
+    createMany: {
+        useMutation: <T extends Prisma.PostCreateManyArgs>(
+            opts?: UseTRPCMutationOptions<
+                Prisma.PostCreateManyArgs,
+                TRPCClientErrorLike<AppRouter>,
+                Prisma.BatchPayload,
+                Context
+            >,
+        ) => Omit<
+            UseTRPCMutationResult<
+                Prisma.BatchPayload,
+                TRPCClientErrorLike<AppRouter>,
+                Prisma.SelectSubset<T, Prisma.PostCreateManyArgs>,
+                Context
+            >,
+            'mutateAsync'
+        > & {
+            mutateAsync: <T extends Prisma.PostCreateManyArgs>(
+                variables: T,
+                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>,
+            ) => Promise<Prisma.BatchPayload>;
+        };
     };
     create: {
         useMutation: <T extends Prisma.PostCreateArgs>(
