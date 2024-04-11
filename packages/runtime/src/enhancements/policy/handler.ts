@@ -641,16 +641,25 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         const postWriteChecks: PostWriteCheckRecord[] = [];
 
         // registers a post-update check task
-        const _registerPostUpdateCheck = async (model: string, uniqueFilter: any) => {
+        const _registerPostUpdateCheck = async (
+            model: string,
+            preUpdateLookupFilter: any,
+            postUpdateLookupFilter: any
+        ) => {
             // both "post-update" rules and Zod schemas require a post-update check
             if (this.policyUtils.hasAuthGuard(model, 'postUpdate') || this.policyUtils.getZodSchema(model)) {
                 // select pre-update field values
                 let preValue: any;
                 const preValueSelect = this.policyUtils.getPreValueSelect(model);
                 if (preValueSelect && Object.keys(preValueSelect).length > 0) {
-                    preValue = await db[model].findFirst({ where: uniqueFilter, select: preValueSelect });
+                    preValue = await db[model].findFirst({ where: preUpdateLookupFilter, select: preValueSelect });
                 }
-                postWriteChecks.push({ model, operation: 'postUpdate', uniqueFilter, preValue });
+                postWriteChecks.push({
+                    model,
+                    operation: 'postUpdate',
+                    uniqueFilter: postUpdateLookupFilter,
+                    preValue,
+                });
             }
         };
 
@@ -777,7 +786,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await this.policyUtils.checkPolicyForUnique(model, args, 'update', db, checkArgs);
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, args);
+                    await _registerPostUpdateCheck(model, args, args);
                 }
             }
         };
@@ -824,7 +833,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'update', db, args);
 
                     // handles the case where id fields are updated
-                    const ids = this.policyUtils.clone(existing);
+                    const postUpdateIds = this.policyUtils.clone(existing);
                     for (const key of Object.keys(existing)) {
                         const updateValue = (args as any).data ? (args as any).data[key] : (args as any)[key];
                         if (
@@ -832,12 +841,12 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                             typeof updateValue === 'number' ||
                             typeof updateValue === 'bigint'
                         ) {
-                            ids[key] = updateValue;
+                            postUpdateIds[key] = updateValue;
                         }
                     }
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, ids);
+                    await _registerPostUpdateCheck(model, existing, postUpdateIds);
                 }
             },
 
@@ -929,7 +938,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'update', db, args);
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, uniqueFilter);
+                    await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
 
                     // convert upsert to update
                     const convertedUpdate = {

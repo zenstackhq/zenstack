@@ -549,13 +549,19 @@ export class PolicyGenerator {
         // visit a reference or member access expression to build a
         // selection path
         const visit = (node: Expression): string[] | undefined => {
+            if (isThisExpr(node)) {
+                return [];
+            }
+
             if (isReferenceExpr(node)) {
                 const target = resolved(node.target);
                 if (isDataModelField(target)) {
                     // a field selection, it's a terminal
                     return [target.name];
                 }
-            } else if (isMemberAccessExpr(node)) {
+            }
+
+            if (isMemberAccessExpr(node)) {
                 if (forAuthContext && isAuthInvocation(node.operand)) {
                     return [node.member.$refText];
                 }
@@ -571,6 +577,7 @@ export class PolicyGenerator {
                     return [...inner, node.member.$refText];
                 }
             }
+
             return undefined;
         };
 
