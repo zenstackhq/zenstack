@@ -6,7 +6,6 @@ import {
     Enum,
     Expression,
     Model,
-    isBinaryExpr,
     isDataModel,
     isDataModelField,
     isEnum,
@@ -15,7 +14,6 @@ import {
     isMemberAccessExpr,
     isReferenceExpr,
     isThisExpr,
-    isUnaryExpr,
 } from '@zenstackhq/language/ast';
 import {
     FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
