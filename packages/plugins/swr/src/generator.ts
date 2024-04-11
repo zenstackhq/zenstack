@@ -1,4 +1,3 @@
-import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginOptions,
     createProject,
@@ -10,6 +9,7 @@ import {
     requireOption,
     resolvePath,
     saveProject,
+    type DMMF,
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
 import { paramCase } from 'change-case';

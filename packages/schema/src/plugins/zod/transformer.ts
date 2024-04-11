@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import type { DMMF, DMMF as PrismaDMMF } from '@prisma/generator-helper';
-import { getPrismaClientImportSpec, getPrismaVersion, type PluginOptions } from '@zenstackhq/sdk';
+import {
+    getPrismaClientImportSpec,
+    getPrismaVersion,
+    type PluginOptions,
+    type DMMF as PrismaDMMF,
+} from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { indentString } from '@zenstackhq/sdk/utils';
 import path from 'path';
@@ -21,12 +25,11 @@ export default class Transformer {
 
     static enumNames: string[] = [];
     static rawOpsMap: { [name: string]: string } = {};
-    static provider: string;
     private static outputPath = './generated';
     private hasJson = false;
     private hasDecimal = false;
     private project: Project;
-    private inputObjectTypes: DMMF.InputType[];
+    private inputObjectTypes: PrismaDMMF.InputType[];
     public sourceFiles: SourceFile[] = [];
 
     constructor(params: TransformerParams) {
@@ -187,7 +190,7 @@ export default class Transformer {
     wrapWithZodValidators(
         mainValidators: string | string[],
         field: PrismaDMMF.SchemaArg,
-        inputType: PrismaDMMF.SchemaArgInputType
+        inputType: PrismaDMMF.InputTypeRef
     ) {
         let line = '';
 
@@ -217,11 +220,7 @@ export default class Transformer {
         this.schemaImports.add(upperCaseFirst(name));
     }
 
-    generatePrismaStringLine(
-        field: PrismaDMMF.SchemaArg,
-        inputType: PrismaDMMF.SchemaArgInputType,
-        inputsLength: number
-    ) {
+    generatePrismaStringLine(field: PrismaDMMF.SchemaArg, inputType: PrismaDMMF.InputTypeRef, inputsLength: number) {
         const isEnum = inputType.location === 'enumTypes';
 
         const { isModelQueryType, modelName, queryName } = this.checkIsModelQueryType(inputType.type as string);

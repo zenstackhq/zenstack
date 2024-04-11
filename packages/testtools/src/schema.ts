@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
 import {
     DEFAULT_RUNTIME_LOAD_PATH,
@@ -9,7 +8,7 @@ import {
     type EnhancementKind,
     type EnhancementOptions,
 } from '@zenstackhq/runtime';
-import { getDMMF } from '@zenstackhq/sdk';
+import { getDMMF, type DMMF } from '@zenstackhq/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import json from 'json5';

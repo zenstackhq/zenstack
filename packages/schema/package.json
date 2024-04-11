@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
-    "version": "2.0.0-beta.9",
+    "version": "2.0.0-beta.10",
     "author": {
         "name": "ZenStack Team"
     },
@@ -79,7 +79,6 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
-        "@prisma/generator-helper": "^5.0.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",

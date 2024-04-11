@@ -1,5 +1,11 @@
-import type { DMMF } from '@prisma/generator-helper';
-import { PluginError, PluginOptions, PluginResult, getDataModels, hasAttribute } from '@zenstackhq/sdk';
+import {
+    PluginError,
+    getDataModels,
+    hasAttribute,
+    type DMMF,
+    type PluginOptions,
+    type PluginResult,
+} from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import semver from 'semver';

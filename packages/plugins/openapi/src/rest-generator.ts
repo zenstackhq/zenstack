@@ -1,6 +1,5 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import type { DMMF } from '@prisma/generator-helper';
 import {
     analyzePolicies,
     getDataModels,
@@ -10,6 +9,7 @@ import {
     isRelationshipField,
     requireOption,
     resolvePath,
+    type DMMF,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import fs from 'fs';
