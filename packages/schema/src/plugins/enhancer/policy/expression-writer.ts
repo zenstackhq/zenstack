@@ -75,6 +75,8 @@ export class ExpressionWriter {
         this.plainExprBuilder = new TypeScriptExpressionTransformer({
             context: ExpressionContext.AccessPolicy,
             isPostGuard: this.isPostGuard,
+            // in post-guard context, `this` references pre-update value
+            thisExprContext: this.isPostGuard ? 'context.preValue' : undefined,
         });
     }
 

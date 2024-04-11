@@ -112,9 +112,7 @@ export class TypeScriptExpressionTransformer {
             throw new TypeScriptExpressionTransformerError(`Unresolved MemberAccessExpr`);
         }
 
-        if (isThisExpr(expr.operand)) {
-            return expr.member.ref.name;
-        } else if (isFutureExpr(expr.operand)) {
+        if (isFutureExpr(expr.operand)) {
             if (this.options?.isPostGuard !== true) {
                 throw new TypeScriptExpressionTransformerError(`future() is only supported in postUpdate rules`);
             }
