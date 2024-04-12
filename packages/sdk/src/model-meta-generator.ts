@@ -206,7 +206,7 @@ function getBackLink(field: DataModelField) {
 }
 
 function getRelationName(field: DataModelField) {
-    const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === 'relation');
+    const relAttr = field.attributes.find((attr) => attr.decl.ref?.name === '@relation');
     const relName = relAttr && relAttr.args?.[0] && getLiteral<string>(relAttr.args?.[0].value);
     return relName;
 }
