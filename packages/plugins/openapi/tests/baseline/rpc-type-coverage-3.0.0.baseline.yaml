@@ -2017,7 +2017,15 @@ components:
                 - data
             properties:
                 data:
-                    $ref: '#/components/schemas/FooCreateManyInput'
+                    oneOf:
+                        - $ref: '#/components/schemas/FooCreateManyInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/FooCreateManyInput'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
                 meta:
                     $ref: '#/components/schemas/_Meta'
         FooFindUniqueArgs:

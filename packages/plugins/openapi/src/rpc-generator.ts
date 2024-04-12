@@ -176,7 +176,15 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         type: 'object',
                         required: ['data'],
                         properties: {
-                            data: this.ref(`${modelName}CreateManyInput`),
+                            data: this.oneOf(
+                                this.ref(`${modelName}CreateManyInput`),
+                                this.array(this.ref(`${modelName}CreateManyInput`))
+                            ),
+                            skipDuplicates: {
+                                type: 'boolean',
+                                description:
+                                    'Do not insert records with unique fields or ID fields that already exist.',
+                            },
                             meta: this.ref('_Meta'),
                         },
                     },
