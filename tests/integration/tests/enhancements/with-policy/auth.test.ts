@@ -417,10 +417,11 @@ describe('auth() runtime test', () => {
     });
 
     it('Default auth() with foreign key', async () => {
-        const { enhance, modelMeta } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
         model User {
             id String @id
+            email String @unique
             posts Post[]
 
             @@allow('all', true)
@@ -435,12 +436,27 @@ describe('auth() runtime test', () => {
 
             @@allow('all', true)
         }
-        `
+        `,
+            { logPrismaQuery: true }
         );
 
+        await prisma.user.create({ data: { id: 'userId-1', email: 'user1@abc.com' } });
+        await prisma.user.create({ data: { id: 'userId-2', email: 'user2@abc.com' } });
+
         const db = enhance({ id: 'userId-1' });
-        await expect(db.user.create({ data: { id: 'userId-1' } })).toResolveTruthy();
-        await expect(db.post.create({ data: { title: 'abc' } })).resolves.toMatchObject({ authorId: 'userId-1' });
+
+        // default auth effective
+        await expect(db.post.create({ data: { title: 'post1' } })).resolves.toMatchObject({ authorId: 'userId-1' });
+
+        // default auth ineffective due to explicit connect
+        await expect(
+            db.post.create({ data: { title: 'post2', author: { connect: { email: 'user1@abc.com' } } } })
+        ).resolves.toMatchObject({ authorId: 'userId-1' });
+
+        // default auth ineffective due to explicit connect
+        await expect(
+            db.post.create({ data: { title: 'post3', author: { connect: { email: 'user2@abc.com' } } } })
+        ).resolves.toMatchObject({ authorId: 'userId-2' });
     });
 
     it('Default auth() with nested user context value', async () => {

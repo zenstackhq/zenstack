@@ -92,6 +92,11 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     }
 
     private setAuthDefaultValue(fieldInfo: FieldInfo, model: string, data: any, authDefaultValue: unknown) {
+        if (fieldInfo.isForeignKey && fieldInfo.relationField && fieldInfo.relationField in data) {
+            // if the field is a fk, and the relation field is already set, we should not override it
+            return;
+        }
+
         if (fieldInfo.isForeignKey && !isUnsafeMutate(model, data, this.options.modelMeta)) {
             // if the field is a fk, and the create payload is not unsafe, we need to translate
             // the fk field setting to a `connect` of the corresponding relation field
