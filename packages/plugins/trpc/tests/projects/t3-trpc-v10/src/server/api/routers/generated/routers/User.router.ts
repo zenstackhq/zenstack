@@ -12,8 +12,6 @@ export default function createRouter<Config extends BaseConfig>(router: RouterFa
 
         aggregate: procedure.input($Schema.UserInputSchema.aggregate).query(({ ctx, input }) => checkRead(db(ctx).user.aggregate(input as any))),
 
-        createMany: procedure.input($Schema.UserInputSchema.createMany).mutation(async ({ ctx, input }) => checkMutate(db(ctx).user.createMany(input as any))),
-
         create: procedure.input($Schema.UserInputSchema.create).mutation(async ({ ctx, input }) => checkMutate(db(ctx).user.create(input as any))),
 
         deleteMany: procedure.input($Schema.UserInputSchema.deleteMany).mutation(async ({ ctx, input }) => checkMutate(db(ctx).user.deleteMany(input as any))),
@@ -62,43 +60,6 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             TRPCClientErrorLike<AppRouter>
         >;
 
-    };
-    createMany: {
-
-        useMutation: <T extends Prisma.UserCreateManyArgs>(opts?: UseTRPCMutationOptions<
-            Prisma.UserCreateManyArgs,
-            TRPCClientErrorLike<AppRouter>,
-            Prisma.BatchPayload,
-            Context
-        >,) =>
-            Omit<UseTRPCMutationResult<Prisma.BatchPayload, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserCreateManyArgs>, Context>, 'mutateAsync'> & {
-                mutateAsync:
-                <T extends Prisma.UserCreateManyArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
-            };
-
-    };
-    createMany: {
-        useMutation: <T extends Prisma.UserCreateManyArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.UserCreateManyArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.BatchPayload,
-                Context
-            >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.BatchPayload,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.UserCreateManyArgs>,
-                Context
-            >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.UserCreateManyArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>,
-            ) => Promise<Prisma.BatchPayload>;
-        };
     };
     create: {
 
