@@ -587,23 +587,6 @@ export class PrismaSchemaGenerator {
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
-        if (this.mode === 'logical') {
-            if (field.attributes.some((attr) => isDefaultWithAuth(attr))) {
-                // field has `@default` with `auth()`, it should be set optional, and the
-                // default value setting is handled outside Prisma
-                type.optional = true;
-            }
-
-            if (isRelationshipField(field)) {
-                // if foreign key field has `@default` with `auth()`, the relation
-                // field should be set optional
-                const foreignKeyFields = getForeignKeyFields(field);
-                if (foreignKeyFields.some((fkField) => fkField.attributes.some((attr) => isDefaultWithAuth(attr)))) {
-                    type.optional = true;
-                }
-            }
-        }
-
         const attributes = field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))
             // `@default` with `auth()` is handled outside Prisma
