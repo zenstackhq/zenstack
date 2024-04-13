@@ -436,8 +436,7 @@ describe('auth() runtime test', () => {
 
             @@allow('all', true)
         }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         await prisma.user.create({ data: { id: 'userId-1', email: 'user1@abc.com' } });
