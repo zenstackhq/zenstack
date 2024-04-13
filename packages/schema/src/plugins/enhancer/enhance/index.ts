@@ -245,6 +245,8 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
                 ]);
             });
 
+        // transform index.d.ts and save it into a new file (better perf than in-line editing)
+
         const sfNew = project.createSourceFile(path.join(prismaClientDir, 'index-fixed.d.ts'), undefined, {
             overwrite: true,
         });

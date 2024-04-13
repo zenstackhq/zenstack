@@ -28,7 +28,7 @@ import {
     NumberLiteral,
     StringLiteral,
 } from '@zenstackhq/language/ast';
-import { match } from 'ts-pattern';
+import { match, P } from 'ts-pattern';
 import { getIdFields } from '../../utils/ast-utils';
 
 import { DELEGATE_AUX_RELATION_PREFIX, PRISMA_MINIMUM_VERSION } from '@zenstackhq/runtime';
@@ -36,12 +36,10 @@ import {
     getAttribute,
     getAttributeArg,
     getAttributeArgLiteral,
-    getForeignKeyFields,
     getLiteral,
     getPrismaVersion,
     isDelegateModel,
     isIdField,
-    isRelationshipField,
     PluginError,
     PluginOptions,
     resolved,
@@ -59,6 +57,7 @@ import { execPackage } from '../../utils/exec-utils';
 import { isDefaultWithAuth } from '../enhancer/enhancer-utils';
 import {
     AttributeArgValue,
+    ModelField,
     ModelFieldType,
     AttributeArg as PrismaAttributeArg,
     AttributeArgValue as PrismaAttributeArgValue,
@@ -587,23 +586,6 @@ export class PrismaSchemaGenerator {
 
         const type = new ModelFieldType(fieldType, field.type.array, field.type.optional);
 
-        if (this.mode === 'logical') {
-            if (field.attributes.some((attr) => isDefaultWithAuth(attr))) {
-                // field has `@default` with `auth()`, it should be set optional, and the
-                // default value setting is handled outside Prisma
-                type.optional = true;
-            }
-
-            if (isRelationshipField(field)) {
-                // if foreign key field has `@default` with `auth()`, the relation
-                // field should be set optional
-                const foreignKeyFields = getForeignKeyFields(field);
-                if (foreignKeyFields.some((fkField) => fkField.attributes.some((attr) => isDefaultWithAuth(attr)))) {
-                    type.optional = true;
-                }
-            }
-        }
-
         const attributes = field.attributes
             .filter((attr) => this.isPrismaAttribute(attr))
             // `@default` with `auth()` is handled outside Prisma
@@ -626,8 +608,33 @@ export class PrismaSchemaGenerator {
 
         const result = model.addField(field.name, type, attributes, documentations, addToFront);
 
+        if (this.mode === 'logical') {
+            if (field.attributes.some((attr) => isDefaultWithAuth(attr))) {
+                // field has `@default` with `auth()`, turn it into a dummy default value, and the
+                // real default value setting is handled outside Prisma
+                this.setDummyDefault(result, field);
+            }
+        }
+
         // user defined comments pass-through
         field.comments.forEach((c) => result.addComment(c));
+    }
+
+    private setDummyDefault(result: ModelField, field: DataModelField) {
+        const dummyDefaultValue = match(field.type.type)
+            .with('String', () => new AttributeArgValue('String', ''))
+            .with(P.union('Int', 'BigInt', 'Float', 'Decimal'), () => new AttributeArgValue('Number', '0'))
+            .with('Boolean', () => new AttributeArgValue('Boolean', 'false'))
+            .with('DateTime', () => new AttributeArgValue('FunctionCall', new PrismaFunctionCall('now')))
+            .with('Json', () => new AttributeArgValue('String', '{}'))
+            .with('Bytes', () => new AttributeArgValue('String', ''))
+            .otherwise(() => {
+                throw new PluginError(name, `Unsupported field type with default value: ${field.type.type}`);
+            });
+
+        result.attributes.push(
+            new PrismaFieldAttribute('@default', [new PrismaAttributeArg(undefined, dummyDefaultValue)])
+        );
     }
 
     private isInheritedFromDelegate(field: DataModelField) {
