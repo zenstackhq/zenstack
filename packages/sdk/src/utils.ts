@@ -176,39 +176,51 @@ export function isDataModelFieldReference(node: AstNode): node is ReferenceExpr 
 }
 
 /**
- * Gets `@@id` fields declared at the data model level
+ * Gets `@@id` fields declared at the data model level (including search in base models)
  */
 export function getModelIdFields(model: DataModel) {
-    const idAttr = model.attributes.find((attr) => attr.decl.$refText === '@@id');
-    if (!idAttr) {
-        return [];
-    }
-    const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
-    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
-        return [];
+    const modelsToCheck = model.$baseMerged ? [model] : [model, ...getRecursiveBases(model)];
+
+    for (const modelToCheck of modelsToCheck) {
+        const idAttr = modelToCheck.attributes.find((attr) => attr.decl.$refText === '@@id');
+        if (!idAttr) {
+            continue;
+        }
+        const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+        if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+            continue;
+        }
+
+        return fieldsArg.value.items
+            .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+            .map((item) => resolved(item.target) as DataModelField);
     }
 
-    return fieldsArg.value.items
-        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
-        .map((item) => resolved(item.target) as DataModelField);
+    return [];
 }
 
 /**
- * Gets `@@unique` fields declared at the data model level
+ * Gets `@@unique` fields declared at the data model level (including search in base models)
  */
 export function getModelUniqueFields(model: DataModel) {
-    const uniqueAttr = model.attributes.find((attr) => attr.decl.$refText === '@@unique');
-    if (!uniqueAttr) {
-        return [];
-    }
-    const fieldsArg = uniqueAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
-    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
-        return [];
+    const modelsToCheck = model.$baseMerged ? [model] : [model, ...getRecursiveBases(model)];
+
+    for (const modelToCheck of modelsToCheck) {
+        const uniqueAttr = modelToCheck.attributes.find((attr) => attr.decl.$refText === '@@unique');
+        if (!uniqueAttr) {
+            continue;
+        }
+        const fieldsArg = uniqueAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+        if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+            continue;
+        }
+
+        return fieldsArg.value.items
+            .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+            .map((item) => resolved(item.target) as DataModelField);
     }
 
-    return fieldsArg.value.items
-        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
-        .map((item) => resolved(item.target) as DataModelField);
+    return [];
 }
 
 /**
