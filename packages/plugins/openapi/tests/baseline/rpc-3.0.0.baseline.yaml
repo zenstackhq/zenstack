@@ -3275,7 +3275,15 @@ components:
                 - data
             properties:
                 data:
-                    $ref: '#/components/schemas/UserCreateManyInput'
+                    oneOf:
+                        - $ref: '#/components/schemas/UserCreateManyInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/UserCreateManyInput'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
                 meta:
                     $ref: '#/components/schemas/_Meta'
         UserFindUniqueArgs:
@@ -3455,7 +3463,15 @@ components:
                 - data
             properties:
                 data:
-                    $ref: '#/components/schemas/ProfileCreateManyInput'
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileCreateManyInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileCreateManyInput'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
                 meta:
                     $ref: '#/components/schemas/_Meta'
         ProfileFindUniqueArgs:
@@ -3635,7 +3651,15 @@ components:
                 - data
             properties:
                 data:
-                    $ref: '#/components/schemas/Post_ItemCreateManyInput'
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemCreateManyInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemCreateManyInput'
+                skipDuplicates:
+                    type: boolean
+                    description: Do not insert records with unique fields or ID fields that already
+                        exist.
                 meta:
                     $ref: '#/components/schemas/_Meta'
         Post_ItemFindUniqueArgs:
