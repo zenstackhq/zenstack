@@ -1,6 +1,7 @@
 import {
     BinaryExpr,
     DataModel,
+    DataModelAttribute,
     DataModelField,
     Expression,
     InheritableNode,
@@ -63,14 +64,7 @@ export function mergeBaseModel(model: Model, linker: Linker) {
                 .concat(dataModel.fields);
 
             dataModel.attributes = bases
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                .flatMap((base) => base.attributes)
-                // don't inherit skip-level attributes
-                .filter((attr) => !attr.$inheritedFrom)
-                // don't inherit `@@delegate` attribute
-                .filter((attr) => attr.decl.$refText !== '@@delegate')
-                // don't inherit `@@map` attribute
-                .filter((attr) => attr.decl.$refText !== '@@map')
+                .flatMap((base) => base.attributes.filter((attr) => filterBaseAttribute(base, attr)))
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
 
@@ -83,6 +77,29 @@ export function mergeBaseModel(model: Model, linker: Linker) {
 
     // remove abstract models
     model.declarations = model.declarations.filter((x) => !(isDataModel(x) && x.isAbstract));
+}
+
+function filterBaseAttribute(base: DataModel, attr: DataModelAttribute) {
+    if (attr.$inheritedFrom) {
+        // don't inherit from skip-level base
+        return false;
+    }
+
+    // uninheritable attributes for all inheritance
+    const uninheritableAttributes = ['@@delegate', '@@map'];
+
+    // uninheritable attributes for delegate inheritance (they reference fields from the base)
+    const uninheritableFromDelegateAttributes = ['@@unique', '@@index', '@@fulltext'];
+
+    if (uninheritableAttributes.includes(attr.decl.$refText)) {
+        return false;
+    }
+
+    if (isDelegateModel(base) && uninheritableFromDelegateAttributes.includes(attr.decl.$refText)) {
+        return false;
+    }
+
+    return true;
 }
 
 // deep clone an AST, relink references, and set its container

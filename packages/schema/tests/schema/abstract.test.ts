@@ -61,4 +61,24 @@ describe('Abstract Schema Tests', () => {
           
         `);
     });
+
+    it('multiple id fields from base', async () => {
+        await loadModel(`
+        abstract model Base {
+            id1 String
+            id2 String
+            value String
+            
+            @@id([id1, id2])
+        }
+
+        model Item1 extends Base {
+            x String
+        }
+
+        model Item2 extends Base {
+            y String
+        }        
+        `);
+    });
 });
