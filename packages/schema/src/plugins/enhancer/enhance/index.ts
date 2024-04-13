@@ -6,9 +6,7 @@ import {
     getAuthModel,
     getDMMF,
     getDataModels,
-    getForeignKeyFields,
     getPrismaClientImportSpec,
-    hasAttribute,
     isDelegateModel,
     type DMMF,
     type PluginOptions,
@@ -252,12 +250,19 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         const sfNew = project.createSourceFile(path.join(prismaClientDir, 'index-fixed.d.ts'), undefined, {
             overwrite: true,
         });
-        this.transform(sf, sfNew, delegateInfo);
-        sfNew.formatText();
+
+        if (delegateInfo.length > 0) {
+            // transform types for delegated models
+            this.transformDelegate(sf, sfNew, delegateInfo);
+            sfNew.formatText();
+        } else {
+            // just copy
+            sfNew.replaceWithText(sf.getFullText());
+        }
         await sfNew.save();
     }
 
-    private transform(sf: SourceFile, sfNew: SourceFile, delegateInfo: DelegateInfo) {
+    private transformDelegate(sf: SourceFile, sfNew: SourceFile, delegateInfo: DelegateInfo) {
         // copy toplevel imports
         sfNew.addImportDeclarations(sf.getImportDeclarations().map((n) => n.getStructure()));
 
@@ -376,72 +381,20 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         // remove aux fields
         source = this.removeAuxFieldsFromTypeAlias(typeAlias, source);
 
-        if (delegateInfo.length > 0) {
-            // remove discriminator field from concrete input types
-            source = this.removeDiscriminatorFromConcreteInput(typeAlias, delegateInfo, source);
+        // remove discriminator field from concrete input types
+        source = this.removeDiscriminatorFromConcreteInput(typeAlias, delegateInfo, source);
 
-            // remove create/connectOrCreate/upsert fields from delegate's input types
-            source = this.removeCreateFromDelegateInput(typeAlias, delegateInfo, source);
+        // remove create/connectOrCreate/upsert fields from delegate's input types
+        source = this.removeCreateFromDelegateInput(typeAlias, delegateInfo, source);
 
-            // remove delegate fields from nested mutation input types
-            source = this.removeDelegateFieldsFromNestedMutationInput(typeAlias, delegateInfo, source);
+        // remove delegate fields from nested mutation input types
+        source = this.removeDelegateFieldsFromNestedMutationInput(typeAlias, delegateInfo, source);
 
-            // fix delegate payload union type
-            source = this.fixDelegatePayloadType(typeAlias, delegateInfo, source);
-        }
-
-        // fix the optionality of input args for fields with `auth()` in `@default`
-        source = this.fixFieldsWithDefaultAuth(typeAlias, source);
+        // fix delegate payload union type
+        source = this.fixDelegatePayloadType(typeAlias, delegateInfo, source);
 
         structure.type = source;
         return structure;
-    }
-
-    private fixFieldsWithDefaultAuth(typeAlias: TypeAliasDeclaration, source: string) {
-        const modelsWithDefaultAuth = this.model.declarations.filter(
-            (d): d is DataModel =>
-                isDataModel(d) && d.fields.some((f) => !f.type.optional && f.attributes.some(isDefaultWithAuth))
-        );
-        if (modelsWithDefaultAuth.length === 0) {
-            return source;
-        }
-
-        // set fields optional for create input types
-        const typeName = typeAlias.getName();
-        const createInputRegex = new RegExp(
-            `(${modelsWithDefaultAuth.map((model) => model.name).join('|')})(Unchecked)?Create.*Input`
-        );
-        const match = typeName.match(createInputRegex);
-        if (!match) {
-            return source;
-        }
-
-        const model = modelsWithDefaultAuth.find((model) => model.name === match[1]);
-        if (!model) {
-            return source;
-        }
-
-        const fieldsWithDefaultAuth = model.fields.filter(
-            (f) => !f.type.optional && f.attributes.some(isDefaultWithAuth)
-        );
-        fieldsWithDefaultAuth.forEach((field) => {
-            // mark the field optional
-            const fieldDef = this.findNamedProperty(typeAlias, field.name);
-            if (fieldDef) {
-                source = source.replace(`${field.name}:`, `${field.name}?:`);
-            }
-        });
-
-        const relationFields = model.fields.filter((f) => !f.type.optional && hasAttribute(f, '@relation'));
-        relationFields.forEach((field) => {
-            // if the relation field's all fk fields are optional or have default value, make the relation optional
-            const fkFields = getForeignKeyFields(field);
-            if (fkFields.every((fk) => fk.type.optional || hasAttribute(fk, '@default'))) {
-                source = source.replace(`${field.name}:`, `${field.name}?:`);
-            }
-        });
-
-        return source;
     }
 
     private fixDelegatePayloadType(typeAlias: TypeAliasDeclaration, delegateInfo: DelegateInfo, source: string) {
