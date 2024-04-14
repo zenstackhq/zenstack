@@ -36,12 +36,16 @@ describe('Prisma generator test', () => {
                 directUrl = env("DATABASE_URL")
                 shadowDatabaseUrl = env("DATABASE_URL")
                 extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
-                schemas    = ["auth", "public"]
+                schemas = ["auth", "public"]
             }
 
             generator client {
                 provider        = "prisma-client-js"
                 previewFeatures = ["multiSchema", "postgresqlExtensions"]
+            }
+
+            plugin prisma {
+                provider = '@core/prisma'
             }
 
             model User {
@@ -56,6 +60,7 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: 'schema.prisma',
+            format: false,
         });
 
         const content = fs.readFileSync('schema.prisma', 'utf-8');
@@ -97,6 +102,7 @@ describe('Prisma generator test', () => {
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            format: false,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -328,6 +334,7 @@ describe('Prisma generator test', () => {
             schemaPath: 'schema.zmodel',
             output: name,
             generateClient: false,
+            format: false,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
