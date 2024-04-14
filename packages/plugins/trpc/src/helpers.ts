@@ -1,4 +1,5 @@
-import { PluginError, getPrismaClientImportSpec, type DMMF, type PluginOptions } from '@zenstackhq/sdk';
+import { PluginError, type PluginOptions } from '@zenstackhq/sdk';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';

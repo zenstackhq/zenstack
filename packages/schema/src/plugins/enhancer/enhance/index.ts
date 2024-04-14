@@ -4,11 +4,8 @@ import {
     getAttribute,
     getAttributeArg,
     getAuthModel,
-    getDMMF,
     getDataModels,
-    getPrismaClientImportSpec,
     isDelegateModel,
-    type DMMF,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import {
@@ -20,6 +17,7 @@ import {
     isReferenceExpr,
     type Model,
 } from '@zenstackhq/sdk/ast';
+import { getDMMF, getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import path from 'path';
 import {

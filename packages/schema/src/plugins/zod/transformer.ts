@@ -1,14 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import {
-    getPrismaClientImportSpec,
-    getPrismaVersion,
-    type PluginOptions,
-    type DMMF as PrismaDMMF,
-} from '@zenstackhq/sdk';
+import { type PluginOptions } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
+import { getPrismaClientImportSpec, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import { indentString } from '@zenstackhq/sdk/utils';
 import path from 'path';
-import * as semver from 'semver';
 import type { Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { AggregateOperationSupport, TransformerParams } from './types';
@@ -568,10 +563,6 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
 
             const aggregateOperations = [];
 
-            // DMMF messed up the model name casing used in the aggregate operations,
-            // AND the casing behavior varies from version to version -_-||
-            const prismaVersion = getPrismaVersion();
-
             if (this.aggregateOperationSupport[modelName]?.count) {
                 imports.push(
                     `import { ${modelName}CountAggregateInputObjectSchema } from '../objects/${modelName}CountAggregateInput.schema'`
@@ -629,12 +620,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     ', '
                 )} }),`;
 
-                // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
-                if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-                    operations.push(['groupBy', origModelName]);
-                } else {
-                    operations.push(['groupBy', modelName]);
-                }
+                operations.push(['groupBy', origModelName]);
             }
 
             // count

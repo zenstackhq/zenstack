@@ -28,6 +28,7 @@ import {
     NumberLiteral,
     StringLiteral,
 } from '@zenstackhq/language/ast';
+import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
 import { match, P } from 'ts-pattern';
 import { getIdFields } from '../../utils/ast-utils';
 
@@ -37,7 +38,6 @@ import {
     getAttributeArg,
     getAttributeArgLiteral,
     getLiteral,
-    getPrismaVersion,
     isDelegateModel,
     isIdField,
     PluginError,
@@ -222,20 +222,6 @@ export class PrismaSchemaGenerator {
 
                 if (!Array.isArray(previewFeatures)) {
                     throw new PluginError(name, 'option "previewFeatures" must be an array');
-                }
-
-                if (semver.lt(prismaVersion, '5.0.0')) {
-                    // extendedWhereUnique feature is opt-in pre V5
-                    if (!previewFeatures.includes('extendedWhereUnique')) {
-                        previewFeatures.push('extendedWhereUnique');
-                    }
-                }
-
-                if (semver.lt(prismaVersion, '5.0.0')) {
-                    // fieldReference feature is opt-in pre V5
-                    if (!previewFeatures.includes('fieldReference')) {
-                        previewFeatures.push('fieldReference');
-                    }
                 }
 
                 if (previewFeatures.length > 0) {

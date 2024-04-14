@@ -1,5 +1,5 @@
 import { createId } from '@paralleldrive/cuid2';
-import { getPrismaVersion } from '@zenstackhq/sdk';
+import { getPrismaVersion } from '@zenstackhq/sdk/prisma';
 import exitHook from 'async-exit-hook';
 import { CommanderError } from 'commander';
 import { init, Mixpanel } from 'mixpanel';

@@ -1,5 +1,5 @@
 import { upperCaseFirst } from 'upper-case-first';
-import type { DMMF } from '../types';
+import type { DMMF } from '../prisma';
 import { AggregateOperationSupport } from './types';
 
 const isAggregateOutputType = (name: string) => /(?:Count|Avg|Sum|Min|Max)AggregateOutputType$/.test(name);

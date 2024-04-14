@@ -37,7 +37,6 @@ import {
     getDataModels,
     getIdFields,
     getLiteral,
-    getPrismaClientImportSpec,
     hasAttribute,
     hasValidationAttributes,
     isAuthInvocation,
@@ -47,6 +46,7 @@ import {
     isFutureExpr,
     resolved,
 } from '@zenstackhq/sdk';
+import { getPrismaClientImportSpec } from '@zenstackhq/sdk/prisma';
 import { streamAllContents, streamAst, streamContents } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';

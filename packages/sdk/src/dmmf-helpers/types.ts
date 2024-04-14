@@ -1,4 +1,4 @@
-import type { DMMF } from '../types';
+import type { DMMF } from '../prisma';
 
 export type TransformerParams = {
     enumTypes?: DMMF.SchemaEnum[];

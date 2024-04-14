@@ -1,12 +1,6 @@
-import {
-    PluginError,
-    getDataModels,
-    hasAttribute,
-    type DMMF,
-    type PluginOptions,
-    type PluginResult,
-} from '@zenstackhq/sdk';
+import { PluginError, getDataModels, hasAttribute, type PluginOptions, type PluginResult } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
+import type { DMMF } from '@zenstackhq/sdk/prisma';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import semver from 'semver';
 import { fromZodError } from 'zod-validation-error';

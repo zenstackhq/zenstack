@@ -1,4 +1,4 @@
-import type { DMMF as PrismaDMMF } from '@zenstackhq/sdk';
+import type { DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import { Project } from 'ts-morph';
 
 export type TransformerParams = {

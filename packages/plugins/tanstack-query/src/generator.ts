@@ -5,18 +5,15 @@ import {
     ensureEmptyDir,
     generateModelMeta,
     getDataModels,
-    getPrismaClientImportSpec,
-    getPrismaVersion,
     requireOption,
     resolvePath,
     saveProject,
-    type DMMF,
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import semver from 'semver';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
 import { match } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
@@ -274,7 +271,6 @@ function generateModelHooks(
     options: PluginOptions
 ) {
     const modelNameCap = upperCaseFirst(model.name);
-    const prismaVersion = getPrismaVersion();
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
@@ -401,11 +397,7 @@ function generateModelHooks(
 
     // groupBy
     if (mapping.groupBy) {
-        let useName = modelNameCap;
-        // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
-        if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-            useName = model.name;
-        }
+        const useName = model.name;
 
         const returnType = `{} extends InputErrors ? 
         Array<PickEnumerable<Prisma.${modelNameCap}GroupByOutputType, TArgs['by']> &
