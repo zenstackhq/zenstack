@@ -141,7 +141,7 @@ export class PrismaSchemaGenerator {
         }
         await writeFile(outFile, this.PRELUDE + prisma.toString());
 
-        if (options.format === true) {
+        if (options.format !== false) {
             try {
                 // run 'prisma format'
                 await execPackage(`prisma format --schema ${outFile}`, { stdio: 'ignore' });
