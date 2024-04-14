@@ -44,6 +44,10 @@
         "./prisma": {
             "types": "./prisma.d.ts",
             "default": "./prisma.js"
+        },
+        "./dmmf-helpers": {
+            "types": "./dmmf-helpers/index.d.ts",
+            "default": "./dmmf-helpers/index.js"
         }
     }
 }
