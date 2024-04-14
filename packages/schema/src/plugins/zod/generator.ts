@@ -3,17 +3,16 @@ import {
     PluginOptions,
     ensureEmptyDir,
     getDataModels,
-    getPrismaClientImportSpec,
     hasAttribute,
     isEnumFieldReference,
     isForeignKeyField,
     isFromStdlib,
     parseOptionAsStrings,
     resolvePath,
-    type DMMF,
 } from '@zenstackhq/sdk';
 import { DataModel, EnumField, Model, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import type { SourceFile } from 'ts-morph';

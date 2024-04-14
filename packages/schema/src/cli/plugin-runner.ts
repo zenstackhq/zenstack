@@ -11,12 +11,12 @@ import {
     PluginError,
     resolvePath,
     saveProject,
-    type DMMF,
     type OptionValue,
     type PluginDeclaredOptions,
     type PluginFunction,
     type PluginResult,
 } from '@zenstackhq/sdk';
+import { type DMMF } from '@zenstackhq/sdk/prisma';
 import colors from 'colors';
 import ora from 'ora';
 import path from 'path';

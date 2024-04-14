@@ -1,4 +1,4 @@
-import { getDMMF } from '@zenstackhq/sdk';
+import { getDMMF } from '@zenstackhq/sdk/prisma';
 import {
     AttributeArg,
     AttributeArgValue,

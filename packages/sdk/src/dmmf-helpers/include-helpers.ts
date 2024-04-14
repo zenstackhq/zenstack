@@ -1,4 +1,4 @@
-import type { DMMF } from '../types';
+import type { DMMF } from '../prisma';
 import { checkIsModelRelationField, checkModelHasManyModelRelation, checkModelHasModelRelation } from './model-helpers';
 
 export function addMissingInputObjectTypesForInclude(inputObjectTypes: DMMF.InputType[], models: DMMF.Model[]) {

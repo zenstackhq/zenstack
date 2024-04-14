@@ -1,6 +1,6 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import { analyzePolicies, PluginError, requireOption, resolvePath, type DMMF } from '@zenstackhq/sdk';
+import { analyzePolicies, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
 import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
     addMissingInputObjectTypesForAggregate,
@@ -10,6 +10,7 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
+import type { DMMF } from '@zenstackhq/sdk/prisma';
 import * as fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';

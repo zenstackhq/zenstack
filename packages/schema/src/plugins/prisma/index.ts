@@ -1,5 +1,6 @@
-import { PluginError, PluginFunction, getDMMF, getLiteral, resolvePath } from '@zenstackhq/sdk';
+import { PluginError, PluginFunction, getLiteral, resolvePath } from '@zenstackhq/sdk';
 import { GeneratorDecl, isGeneratorDecl } from '@zenstackhq/sdk/ast';
+import { getDMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import path from 'path';
 import stripColor from 'strip-color';

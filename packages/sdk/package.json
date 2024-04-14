@@ -31,5 +31,23 @@
     },
     "devDependencies": {
         "@types/semver": "^7.3.13"
+    },
+    "exports": {
+        ".": {
+            "types": "./index.d.ts",
+            "default": "./index.js"
+        },
+        "./ast": {
+            "types": "./ast.d.ts",
+            "default": "./ast.js"
+        },
+        "./prisma": {
+            "types": "./prisma.d.ts",
+            "default": "./prisma.js"
+        },
+        "./dmmf-helpers": {
+            "types": "./dmmf-helpers/index.d.ts",
+            "default": "./dmmf-helpers/index.js"
+        }
     }
 }

@@ -3,15 +3,14 @@ import {
     PluginError,
     RUNTIME_PACKAGE,
     ensureEmptyDir,
-    getPrismaClientImportSpec,
     parseOptionAsStrings,
     requireOption,
     resolvePath,
     saveProject,
-    type DMMF,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';

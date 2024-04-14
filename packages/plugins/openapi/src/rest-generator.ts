@@ -9,9 +9,9 @@ import {
     isRelationshipField,
     requireOption,
     resolvePath,
-    type DMMF,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
+import type { DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';

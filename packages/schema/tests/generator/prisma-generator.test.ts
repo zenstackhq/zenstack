@@ -1,6 +1,6 @@
 /// <reference types="@types/jest" />
 
-import { getDMMF } from '@zenstackhq/sdk';
+import { getDMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import path from 'path';
 import tmp from 'tmp';

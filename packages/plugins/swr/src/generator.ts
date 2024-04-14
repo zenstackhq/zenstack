@@ -4,17 +4,14 @@ import {
     ensureEmptyDir,
     generateModelMeta,
     getDataModels,
-    getPrismaClientImportSpec,
-    getPrismaVersion,
     requireOption,
     resolvePath,
     saveProject,
-    type DMMF,
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
 import path from 'path';
-import semver from 'semver';
 import type { OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
@@ -74,7 +71,6 @@ function generateModelHooks(
     ]);
 
     const modelNameCap = upperCaseFirst(model.name);
-    const prismaVersion = getPrismaVersion();
 
     const mutationFuncs: string[] = [];
 
@@ -168,11 +164,7 @@ function generateModelHooks(
 
     // groupBy
     if (mapping.groupBy) {
-        let useName = modelNameCap;
-        if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-            // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
-            useName = model.name;
-        }
+        const useName = model.name;
         const typeParameters = [
             `T extends Prisma.${useName}GroupByArgs`,
             `HasSelectOrTake extends Prisma.Or<Prisma.Extends<'skip', Prisma.Keys<T>>, Prisma.Extends<'take', Prisma.Keys<T>>>`,

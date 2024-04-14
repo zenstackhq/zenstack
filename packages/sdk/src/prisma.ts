@@ -70,3 +70,5 @@ export function getPrismaVersion(): string | undefined {
         }
     }
 }
+
+export type { DMMF } from '@prisma/generator-helper';
