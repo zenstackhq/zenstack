@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { type PluginOptions } from '@zenstackhq/sdk';
+import { indentString, type PluginOptions } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { getPrismaClientImportSpec, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
-import { indentString } from '@zenstackhq/sdk/utils';
 import path from 'path';
 import type { Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
