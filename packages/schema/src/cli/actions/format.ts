@@ -6,9 +6,16 @@ import ora from 'ora';
 import { CliError } from '../cli-error';
 import { formatDocument, getDefaultSchemaLocation } from '../cli-util';
 
-export async function format(_projectPath: string, options: { schema: string }) {
+type Options = {
+    schema: string;
+    prismaStyle?: boolean;
+};
+
+export async function format(_projectPath: string, options: Options) {
     const version = getVersion();
     console.log(colors.bold(`⌛️ ZenStack CLI v${version}`));
+
+    console.log(options.prismaStyle);
 
     const schemaFile = options.schema ?? getDefaultSchemaLocation();
     if (!fs.existsSync(schemaFile)) {
@@ -18,7 +25,7 @@ export async function format(_projectPath: string, options: { schema: string }) 
 
     const spinner = ora(`Formatting ${schemaFile}`).start();
     try {
-        const formattedDoc = await formatDocument(schemaFile);
+        const formattedDoc = await formatDocument(schemaFile, options.prismaStyle);
         await writeFile(schemaFile, formattedDoc);
         spinner.succeed();
     } catch (e) {

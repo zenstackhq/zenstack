@@ -266,7 +266,7 @@ export async function checkNewVersion() {
     }
 }
 
-export async function formatDocument(fileName: string) {
+export async function formatDocument(fileName: string, isPrismaStyle = true) {
     const services = createZModelServices(NodeFileSystem).ZModel;
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
@@ -278,6 +278,8 @@ export async function formatDocument(fileName: string) {
     const document = langiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
 
     const formatter = services.lsp.Formatter as ZModelFormatter;
+
+    formatter.setPrismaStyle(isPrismaStyle);
 
     const identifier = { uri: document.uri.toString() };
     const options = formatter.getFormatOptions() ?? {
