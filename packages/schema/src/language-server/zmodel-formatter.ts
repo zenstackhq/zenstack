@@ -1,11 +1,28 @@
-import { AbstractFormatter, AstNode, Formatting, LangiumDocument } from 'langium';
+import {
+    AbstractFormatter,
+    AstNode,
+    ConfigurationProvider,
+    Formatting,
+    LangiumDocument,
+    LangiumServices,
+    MaybePromise,
+} from 'langium';
 
 import * as ast from '@zenstackhq/language/ast';
-import { FormattingOptions, Range, TextEdit } from 'vscode-languageserver';
+import { DocumentFormattingParams, FormattingOptions, TextEdit } from 'vscode-languageserver';
+import { ZModelLanguageMetaData } from '@zenstackhq/language/generated/module';
 
 export class ZModelFormatter extends AbstractFormatter {
     private formatOptions?: FormattingOptions;
     private isPrismaStyle = true;
+
+    protected readonly configurationProvider: ConfigurationProvider;
+
+    constructor(services: LangiumServices) {
+        super();
+        this.configurationProvider = services.shared.workspace.ConfigurationProvider;
+    }
+
     protected format(node: AstNode): void {
         const formatter = this.getNodeFormatter(node);
 
@@ -55,13 +72,24 @@ export class ZModelFormatter extends AbstractFormatter {
         }
     }
 
-    protected override doDocumentFormat(
+    override formatDocument(
         document: LangiumDocument<AstNode>,
-        options: FormattingOptions,
-        range?: Range | undefined
-    ): TextEdit[] {
-        this.formatOptions = options;
-        return super.doDocumentFormat(document, options, range);
+        params: DocumentFormattingParams
+    ): MaybePromise<TextEdit[]> {
+        this.formatOptions = params.options;
+
+        this.configurationProvider.getConfiguration(ZModelLanguageMetaData.languageId, 'format').then((config) => {
+            // in the CLI case, the config is undefined
+            if (config) {
+                if (config.usePrismaStyle === false) {
+                    this.setPrismaStyle(false);
+                } else {
+                    this.setPrismaStyle(true);
+                }
+            }
+        });
+
+        return super.formatDocument(document, params);
     }
 
     public getFormatOptions(): FormattingOptions | undefined {
