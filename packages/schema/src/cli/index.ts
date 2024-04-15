@@ -128,6 +128,7 @@ export function createProgram() {
         .command('format')
         .description('Format a ZenStack schema file.')
         .addOption(schemaOption)
+        .option('--no-prisma-style', 'do not use prisma style')
         .action(formatAction);
 
     // make sure config is loaded before actions run
