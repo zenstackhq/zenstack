@@ -15,8 +15,6 @@ export async function format(_projectPath: string, options: Options) {
     const version = getVersion();
     console.log(colors.bold(`⌛️ ZenStack CLI v${version}`));
 
-    console.log(options.prismaStyle);
-
     const schemaFile = options.schema ?? getDefaultSchemaLocation();
     if (!fs.existsSync(schemaFile)) {
         console.error(colors.red(`File ${schemaFile} does not exist.`));
