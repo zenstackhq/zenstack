@@ -1,4 +1,4 @@
-import { getIdFields, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
+import { getIdFields, hasAttribute, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
 import {
     DataModel,
     DataModelField,
@@ -73,7 +73,9 @@ export function generateAuthType(model: Model, authModel: DataModel) {
                         addAddField(exprType.name, memberDecl.name, fieldType, memberDecl.type.array);
                     } else {
                         // member is a scalar
-                        addPickField(exprType.name, node.member.$refText);
+                        if (!isIgnoredField(node.member.ref)) {
+                            addPickField(exprType.name, node.member.$refText);
+                        }
                     }
                 }
             }
@@ -87,8 +89,10 @@ export function generateAuthType(model: Model, authModel: DataModel) {
                     ensureType(fieldType.name);
                     addAddField(fieldDecl.$container.name, node.target.$refText, fieldType.name, fieldDecl.type.array);
                 } else {
-                    // field is a scalar
-                    addPickField(fieldDecl.$container.name, node.target.$refText);
+                    if (!isIgnoredField(fieldDecl)) {
+                        // field is a scalar
+                        addPickField(fieldDecl.$container.name, node.target.$refText);
+                    }
                 }
             }
         });
@@ -97,8 +101,8 @@ export function generateAuthType(model: Model, authModel: DataModel) {
     // generate:
     // `
     // namespace auth {
-    //   export type User = WithRequired<Partial<_P.User>, 'id'> & { profile: Profile; };
-    //   export type Profile = WithRequired<Partial<_P.Profile>, 'age'>;
+    //   export type User = WithRequired<Partial<_P.User>, 'id'> & { profile: Profile; } & Record<string, unknown>;
+    //   export type Profile = WithRequired<Partial<_P.Profile>, 'age'> & Record<string, unknown>;
     // }
     // `
 
@@ -109,7 +113,9 @@ ${Array.from(types.entries())
         let result = `Partial<_P.${model}>`;
 
         if (fields.pickFields.length > 0) {
-            result = `WithRequired<${result}, ${fields.pickFields.map((f) => `'${f}'`).join('|')}>`;
+            result = `WithRequired<${result}, ${fields.pickFields
+                .map((f) => `'${f}'`)
+                .join('|')}> & Record<string, unknown>`;
         }
 
         if (fields.addFields.length > 0) {
@@ -138,4 +144,8 @@ function isAuthAccess(node: AstNode): node is Expression {
     }
 
     return false;
+}
+
+function isIgnoredField(field: DataModelField | undefined) {
+    return !!(field && hasAttribute(field, '@ignore'));
 }
