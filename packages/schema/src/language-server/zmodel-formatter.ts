@@ -79,10 +79,13 @@ export class ZModelFormatter extends AbstractFormatter {
         this.formatOptions = params.options;
 
         this.configurationProvider.getConfiguration(ZModelLanguageMetaData.languageId, 'format').then((config) => {
-            if (config.usePrismaStyle === false) {
-                this.setPrismaStyle(false);
-            } else {
-                this.setPrismaStyle(true);
+            // in the CLI case, the config is undefined
+            if (config) {
+                if (config.usePrismaStyle === false) {
+                    this.setPrismaStyle(false);
+                } else {
+                    this.setPrismaStyle(true);
+                }
             }
         });
 
