@@ -55,7 +55,17 @@
                 "scopeName": "source.zmodel",
                 "path": "./bundle/syntaxes/zmodel.tmLanguage.json"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "ZenStack",
+            "properties": {
+              "zmodel.format.usePrismaStyle": {
+                "type": "boolean",
+                "default": true,
+                "description": "Use Prisma style indentation."
+              }
+            }
+          }
     },
     "activationEvents": [
         "onLanguage:zmodel"
