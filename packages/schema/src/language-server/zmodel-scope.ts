@@ -144,9 +144,9 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
                 return EMPTY_SCOPE;
             })
             .when(isMemberAccessExpr, (operand) => {
-                // operand is a member access, it must be resolved to a
+                // operand is a member access, it must be resolved to a non-array data model type
                 const ref = operand.member.ref;
-                if (isDataModelField(ref)) {
+                if (isDataModelField(ref) && !ref.type.array) {
                     const targetModel = ref.type.reference?.ref;
                     return this.createScopeForModel(targetModel, globalScope);
                 }

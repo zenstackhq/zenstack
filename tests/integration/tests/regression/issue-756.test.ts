@@ -28,6 +28,6 @@ describe('Regression: issue 756', () => {
           }
         `
             )
-        ).toContain('expression cannot be resolved');
+        ).toContain(`Could not resolve reference to DataModelField named 'authorId'.`);
     });
 });
