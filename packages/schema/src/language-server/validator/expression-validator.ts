@@ -10,6 +10,7 @@ import {
     isLiteralExpr,
     isMemberAccessExpr,
     isNullExpr,
+    isReferenceExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
 import { isAuthInvocation, isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
@@ -33,9 +34,21 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     { node: expr }
                 );
             } else {
-                accept('error', 'expression cannot be resolved', {
-                    node: expr,
+                const hasReferenceResolutionError = streamAst(expr).some((node) => {
+                    if (isMemberAccessExpr(node)) {
+                        return !!node.member.error;
+                    }
+                    if (isReferenceExpr(node)) {
+                        return !!node.target.error;
+                    }
+                    return false;
                 });
+                if (!hasReferenceResolutionError) {
+                    // report silent errors not involving linker errors
+                    accept('error', 'Expression cannot be resolved', {
+                        node: expr,
+                    });
+                }
             }
         }
 

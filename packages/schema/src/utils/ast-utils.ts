@@ -216,9 +216,13 @@ export function resolveImport(documents: LangiumDocuments, imp: ModelImport): Mo
     return undefined;
 }
 
-export function getAllDeclarationsFromImports(documents: LangiumDocuments, model: Model) {
+export function getAllDeclarationsIncludingImports(documents: LangiumDocuments, model: Model) {
     const imports = resolveTransitiveImports(documents, model);
     return model.declarations.concat(...imports.map((imp) => imp.declarations));
+}
+
+export function getAllDataModelsIncludingImports(documents: LangiumDocuments, model: Model) {
+    return getAllDeclarationsIncludingImports(documents, model).filter(isDataModel);
 }
 
 export function isCollectionPredicate(node: AstNode): node is BinaryExpr {

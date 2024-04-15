@@ -64,23 +64,30 @@ export async function loadDocument(fileName: string): Promise<Model> {
         }
     );
 
-    const validationErrors = langiumDocuments.all
-        .flatMap((d) => d.diagnostics ?? [])
-        .filter((e) => e.severity === 1)
+    const diagnostics = langiumDocuments.all
+        .flatMap((doc) => (doc.diagnostics ?? []).map((diag) => ({ doc, diag })))
+        .filter(({ diag }) => diag.severity === 1 || diag.severity === 2)
         .toArray();
 
-    if (validationErrors.length > 0) {
-        console.error(colors.red('Validation errors:'));
-        for (const validationError of validationErrors) {
-            console.error(
-                colors.red(
-                    `line ${validationError.range.start.line + 1}: ${
-                        validationError.message
-                    } [${document.textDocument.getText(validationError.range)}]`
-                )
-            );
+    let hasErrors = false;
+
+    if (diagnostics.length > 0) {
+        for (const { doc, diag } of diagnostics) {
+            const message = `${path.relative(process.cwd(), doc.uri.fsPath)}:${diag.range.start.line + 1}:${
+                diag.range.start.character + 1
+            } - ${diag.message}`;
+
+            if (diag.severity === 1) {
+                console.error(colors.red(message));
+                hasErrors = true;
+            } else {
+                console.warn(colors.yellow(message));
+            }
         }
-        throw new CliError('schema validation errors');
+
+        if (hasErrors) {
+            throw new CliError('Schema contains validation errors');
+        }
     }
 
     const model = document.parseResult.value as Model;

@@ -1,7 +1,7 @@
 import { Model, isDataModel, isDataSource } from '@zenstackhq/language/ast';
 import { hasAttribute } from '@zenstackhq/sdk';
 import { LangiumDocuments, ValidationAcceptor } from 'langium';
-import { getAllDeclarationsFromImports, resolveImport, resolveTransitiveImports } from '../../utils/ast-utils';
+import { getAllDeclarationsIncludingImports, resolveImport, resolveTransitiveImports } from '../../utils/ast-utils';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../constants';
 import { AstValidator } from '../types';
 import { validateDuplicatedDeclarations } from './utils';
@@ -43,7 +43,7 @@ export default class SchemaValidator implements AstValidator<Model> {
     }
 
     private validateDataSources(model: Model, accept: ValidationAcceptor) {
-        const dataSources = getAllDeclarationsFromImports(this.documents, model).filter((d) => isDataSource(d));
+        const dataSources = getAllDeclarationsIncludingImports(this.documents, model).filter((d) => isDataSource(d));
         if (dataSources.length > 1) {
             accept('error', 'Multiple datasource declarations are not allowed', { node: dataSources[1] });
         }

@@ -36,9 +36,9 @@ import {
     isStringLiteral,
 } from '@zenstackhq/language/ast';
 import {
+    getAuthModel,
     getContainingModel,
     getModelFieldsWithBases,
-    hasAttribute,
     isAuthInvocation,
     isFutureExpr,
 } from '@zenstackhq/sdk';
@@ -58,7 +58,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllDeclarationsFromImports, getContainingDataModel } from '../utils/ast-utils';
+import { getAllDataModelsIncludingImports, getContainingDataModel } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -287,14 +287,8 @@ export class ZModelLinker extends DefaultLinker {
                 const model = getContainingModel(node);
 
                 if (model) {
-                    let authModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
-                        return isDataModel(d) && hasAttribute(d, '@@auth');
-                    });
-                    if (!authModel) {
-                        authModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
-                            return isDataModel(d) && d.name === 'User';
-                        });
-                    }
+                    const allDataModels = getAllDataModelsIncludingImports(this.langiumDocuments(), model);
+                    const authModel = getAuthModel(allDataModels);
                     if (authModel) {
                         node.$resolvedType = { decl: authModel, nullable: true };
                     }
