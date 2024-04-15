@@ -26,7 +26,7 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.56.0"
+        "vscode": "^1.63.0"
     },
     "categories": [
         "Programming Languages"
@@ -76,6 +76,7 @@
     "main": "./bundle/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
+        "vscode:prerelease": "vsce publish --no-dependencies --pre-release",
         "vscode:prepublish": "pnpm bundle",
         "vscode:package": "pnpm bundle && vsce package --no-dependencies",
         "clean": "rimraf dist",
