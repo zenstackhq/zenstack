@@ -10,13 +10,7 @@ import {
     isReferenceExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
-import {
-    getAuthModel,
-    getDataModels,
-    getModelFieldsWithBases,
-    getRecursiveBases,
-    isAuthInvocation,
-} from '@zenstackhq/sdk';
+import { getAuthModel, getModelFieldsWithBases, getRecursiveBases, isAuthInvocation } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -37,7 +31,12 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { isCollectionPredicate, isFutureInvocation, resolveImportUri } from '../utils/ast-utils';
+import {
+    getAllDataModelsIncludingImports,
+    isCollectionPredicate,
+    isFutureInvocation,
+    resolveImportUri,
+} from '../utils/ast-utils';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from './constants';
 
 /**
@@ -88,7 +87,7 @@ export class ZModelScopeComputation extends DefaultScopeComputation {
 }
 
 export class ZModelScopeProvider extends DefaultScopeProvider {
-    constructor(services: LangiumServices) {
+    constructor(private readonly services: LangiumServices) {
         super(services);
     }
 
@@ -222,7 +221,11 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
     private createScopeForAuthModel(node: AstNode, globalScope: Scope) {
         const model = getContainerOfType(node, isModel);
         if (model) {
-            const authModel = getAuthModel(getDataModels(model, true));
+            const allDataModels = getAllDataModelsIncludingImports(
+                this.services.shared.workspace.LangiumDocuments,
+                model
+            );
+            const authModel = getAuthModel(allDataModels);
             if (authModel) {
                 return this.createScopeForModel(authModel, globalScope);
             }

@@ -1081,7 +1081,7 @@ describe('Attribute tests', () => {
                 @@allow('all', auth().email != null)
             }
         `)
-        ).toContain(`expression cannot be resolved`);
+        ).toContain(`Could not resolve reference to DataModelField named 'email'.`);
     });
 
     it('collection predicate expression check', async () => {
