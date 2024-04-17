@@ -83,7 +83,7 @@ function createAppRouter(
     hiddenModels: string[],
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    zmodel: Model,
+    _zmodel: Model,
     zodSchemasImport: string,
     options: PluginOptions
 ) {

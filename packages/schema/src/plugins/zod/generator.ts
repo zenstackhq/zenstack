@@ -305,7 +305,7 @@ export class ZodSchemaGenerator {
             writer.write(`const baseSchema = z.object(`);
             writer.inlineBlock(() => {
                 scalarFields.forEach((field) => {
-                    writer.writeLine(`${field.name}: ${makeFieldSchema(field, true)},`);
+                    writer.writeLine(`${field.name}: ${makeFieldSchema(field)},`);
                 });
             });
             writer.writeLine(');');

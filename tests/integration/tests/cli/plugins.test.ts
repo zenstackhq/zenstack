@@ -26,10 +26,10 @@ describe('CLI Plugins Tests', () => {
 
     const PACKAGE_MANAGERS = ['npm' /*, 'pnpm', 'pnpm-workspace'*/] as const;
 
-    function zenstackGenerate(pm: (typeof PACKAGE_MANAGERS)[number]) {
+    function zenstackGenerate(pm: (typeof PACKAGE_MANAGERS)[number], output?: string) {
         switch (pm) {
             case 'npm':
-                run(`ZENSTACK_TEST=0 npx zenstack generate`);
+                run(`ZENSTACK_TEST=0 npx zenstack generate${output ? ' --output ' + output : ''}`);
                 break;
             // case 'pnpm':
             // case 'pnpm-workspace':
@@ -270,6 +270,40 @@ ${BASE_MODEL}
 
             // generate
             zenstackGenerate(pm);
+
+            // compile
+            run('npx tsc');
+        }
+    });
+
+    it('all plugins custom core output path', async () => {
+        for (const pm of PACKAGE_MANAGERS) {
+            console.log('[PACKAGE MANAGER]', pm);
+            await initProject(pm);
+
+            let schemaContent = `
+generator client {
+    provider = "prisma-client-js"
+}
+
+${BASE_MODEL}
+        `;
+            for (const plugin of plugins) {
+                if (!plugin.includes('trp')) {
+                    schemaContent += `\n${plugin}`;
+                }
+            }
+
+            schemaContent += `plugin trpc {
+                provider = '@zenstackhq/trpc'
+                output = 'lib/trpc'
+                zodSchemasImport = '../../../zen/zod'
+            }`;
+
+            fs.writeFileSync('schema.zmodel', schemaContent);
+
+            // generate
+            zenstackGenerate(pm, './zen');
 
             // compile
             run('npx tsc');

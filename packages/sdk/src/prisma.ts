@@ -2,6 +2,7 @@
 
 import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF as _getDMMF, type GetDMMFOptions } from '@prisma/internals';
+import { DEFAULT_RUNTIME_LOAD_PATH } from '@zenstackhq/runtime';
 import path from 'path';
 import { RUNTIME_PACKAGE } from './constants';
 import type { PluginOptions } from './types';
@@ -14,7 +15,10 @@ export function getPrismaClientImportSpec(importingFromDir: string, options: Plu
         return '@prisma/client';
     }
 
-    if (options.prismaClientPath.startsWith(RUNTIME_PACKAGE)) {
+    if (
+        options.prismaClientPath.startsWith(RUNTIME_PACKAGE) ||
+        options.prismaClientPath.startsWith(DEFAULT_RUNTIME_LOAD_PATH)
+    ) {
         return options.prismaClientPath;
     }
 
