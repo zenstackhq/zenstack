@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "2.0.0-beta.14",
+    "version": "2.0.0-beta.15",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -18,21 +18,31 @@
     "types": "index.d.ts",
     "exports": {
         ".": {
+            "types": "./index.d.ts",
             "default": "./index.js"
         },
-        "./package.json": {
-            "default": "./package.json"
+        "./edge": {
+            "types": "./edge.d.ts",
+            "default": "./edge.js"
+        },
+        "./enhancements": {
+            "types": "./enhancements/index.d.ts",
+            "default": "./enhancements/index.js"
         },
         "./zod": {
+            "types": "./zod/index.d.ts",
             "default": "./zod/index.js"
         },
         "./zod/input": {
+            "types": "./zod/input.d.ts",
             "default": "./zod/input.js"
         },
         "./zod/models": {
+            "types": "./zod/models.d.ts",
             "default": "./zod/models.js"
         },
         "./zod/objects": {
+            "types": "./zod/objects.d.ts",
             "default": "./zod/objects.js"
         },
         "./browser": {
@@ -53,6 +63,9 @@
         },
         "./models": {
             "types": "./models.d.ts"
+        },
+        "./package.json": {
+            "default": "./package.json"
         }
     },
     "publishConfig": {
