@@ -1224,11 +1224,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         const { result, error } = await this.transaction(async (tx) => {
             const { where, create, update, ...rest } = args;
-            const existing = await this.utils.checkExistence(tx, this.model, args.where);
+            const existing = await this.utils.checkExistence(tx, this.model, where);
 
             if (existing) {
                 // update case
-                const { result, postWriteChecks } = await this.doUpdate({ where, data: update, ...rest }, tx);
+                const { result, postWriteChecks } = await this.doUpdate({ where: existing, data: update, ...rest }, tx);
                 await this.runPostWriteChecks(postWriteChecks, tx);
                 return this.utils.readBack(tx, this.model, 'update', args, result);
             } else {
