@@ -569,6 +569,27 @@ export class PolicyUtil {
         }
     }
 
+    composeCompoundUniqueField(model: string, fieldData: any) {
+        const uniqueConstraints = this.modelMeta.uniqueConstraints?.[lowerCaseFirst(model)];
+        if (!uniqueConstraints) {
+            return fieldData;
+        }
+
+        // e.g.:  { a: '1', b: '1' } => { a_b: { a: '1', b: '1' } }
+        const result: any = this.clone(fieldData);
+        for (const [name, constraint] of Object.entries(uniqueConstraints)) {
+            if (constraint.fields.length > 1 && constraint.fields.every((f) => fieldData[f] !== undefined)) {
+                // multi-field unique constraint, compose it
+                result[name] = constraint.fields.reduce<any>(
+                    (prev, field) => ({ ...prev, [field]: fieldData[field] }),
+                    {}
+                );
+                constraint.fields.forEach((f) => delete result[f]);
+            }
+        }
+        return result;
+    }
+
     /**
      * Gets unique constraints for the given model.
      */
@@ -642,6 +663,15 @@ export class PolicyUtil {
                         // preserve the original structure
                         currQuery[currField.backLink] = { ...visitWhere };
                     }
+
+                    if (forMutationPayload && currQuery[currField.backLink]) {
+                        // reconstruct compound unique field
+                        currQuery[currField.backLink] = this.composeCompoundUniqueField(
+                            backLinkField.type,
+                            currQuery[currField.backLink]
+                        );
+                    }
+
                     currQuery = currQuery[currField.backLink];
                 }
                 currField = field;

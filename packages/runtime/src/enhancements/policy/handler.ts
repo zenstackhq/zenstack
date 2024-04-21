@@ -420,7 +420,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         });
 
         // return only the ids of the top-level entity
-        const ids = this.utils.getEntityIds(this.model, result);
+        const ids = this.utils.getEntityIds(model, result);
         return { result: ids, postWriteChecks: [...postCreateChecks.values()] };
     }
 
@@ -792,8 +792,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
 
             // proceed with the create and collect post-create checks
-            const { postWriteChecks: checks } = await this.doCreate(model, { data: createData }, db);
+            const { postWriteChecks: checks, result } = await this.doCreate(model, { data: createData }, db);
             postWriteChecks.push(...checks);
+
+            return result;
         };
 
         const _createMany = async (
@@ -881,18 +883,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     // check pre-update guard
                     await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', db, args);
 
-                    // handles the case where id fields are updated
-                    const postUpdateIds = this.utils.clone(existing);
-                    for (const key of Object.keys(existing)) {
-                        const updateValue = (args as any).data ? (args as any).data[key] : (args as any)[key];
-                        if (
-                            typeof updateValue === 'string' ||
-                            typeof updateValue === 'number' ||
-                            typeof updateValue === 'bigint'
-                        ) {
-                            postUpdateIds[key] = updateValue;
-                        }
-                    }
+                    // handle the case where id fields are updated
+                    const _args: any = args;
+                    const updatePayload = _args.data && typeof _args.data === 'object' ? _args.data : _args;
+                    const postUpdateIds = this.calculatePostUpdateIds(model, existing, updatePayload);
 
                     // register post-update check
                     await _registerPostUpdateCheck(model, existing, postUpdateIds);
@@ -984,10 +978,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     // update case
 
                     // check pre-update guard
-                    await this.utils.checkPolicyForUnique(model, uniqueFilter, 'update', db, args);
+                    await this.utils.checkPolicyForUnique(model, existing, 'update', db, args);
+
+                    // handle the case where id fields are updated
+                    const postUpdateIds = this.calculatePostUpdateIds(model, existing, args.update);
 
                     // register post-update check
-                    await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
+                    await _registerPostUpdateCheck(model, existing, postUpdateIds);
 
                     // convert upsert to update
                     const convertedUpdate = {
@@ -1021,9 +1018,22 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 if (existing) {
                     // connect
                     await _connectDisconnect(model, args.where, context);
+                    return true;
                 } else {
                     // create
-                    await _create(model, args.create, context);
+                    const created = await _create(model, args.create, context);
+
+                    const upperContext = context.nestingPath[context.nestingPath.length - 2];
+                    if (upperContext?.where && context.field) {
+                        // check if the where clause of the upper context references the id
+                        // of the connected entity, if so, we need to update it
+                        this.overrideForeignKeyFields(upperContext.model, upperContext.where, context.field, created);
+                    }
+
+                    // remove the payload from the parent
+                    this.removeFromParent(context.parent, 'connectOrCreate', args);
+
+                    return false;
                 }
             },
 
@@ -1091,6 +1101,52 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         });
 
         return { result, postWriteChecks };
+    }
+
+    // calculate id fields used for post-update check given an update payload
+    private calculatePostUpdateIds(_model: string, currentIds: any, updatePayload: any) {
+        const result = this.utils.clone(currentIds);
+        for (const key of Object.keys(currentIds)) {
+            const updateValue = updatePayload[key];
+            if (typeof updateValue === 'string' || typeof updateValue === 'number' || typeof updateValue === 'bigint') {
+                result[key] = updateValue;
+            }
+        }
+        return result;
+    }
+
+    // updates foreign key fields inside `payload` based on relation id fields in `newIds`
+    private overrideForeignKeyFields(
+        model: string,
+        payload: any,
+        relation: FieldInfo,
+        newIds: Record<string, unknown>
+    ) {
+        if (!relation.foreignKeyMapping || Object.keys(relation.foreignKeyMapping).length === 0) {
+            return;
+        }
+
+        // override foreign key values
+        for (const [id, fk] of Object.entries(relation.foreignKeyMapping)) {
+            if (payload[fk] !== undefined && newIds[id] !== undefined) {
+                payload[fk] = newIds[id];
+            }
+        }
+
+        // deal with compound id fields
+        const uniqueConstraints = this.utils.getUniqueConstraints(model);
+        for (const [name, constraint] of Object.entries(uniqueConstraints)) {
+            if (constraint.fields.length > 1) {
+                const target = payload[name];
+                if (target) {
+                    for (const [id, fk] of Object.entries(relation.foreignKeyMapping)) {
+                        if (target[fk] !== undefined && newIds[id] !== undefined) {
+                            target[fk] = newIds[id];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Validates the given update payload against Zod schema if any
@@ -1224,11 +1280,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
         const { result, error } = await this.transaction(async (tx) => {
             const { where, create, update, ...rest } = args;
-            const existing = await this.utils.checkExistence(tx, this.model, args.where);
+            const existing = await this.utils.checkExistence(tx, this.model, where);
 
             if (existing) {
                 // update case
-                const { result, postWriteChecks } = await this.doUpdate({ where, data: update, ...rest }, tx);
+                const { result, postWriteChecks } = await this.doUpdate(
+                    {
+                        where: this.utils.composeCompoundUniqueField(this.model, existing),
+                        data: update,
+                        ...rest,
+                    },
+                    tx
+                );
                 await this.runPostWriteChecks(postWriteChecks, tx);
                 return this.utils.readBack(tx, this.model, 'update', args, result);
             } else {

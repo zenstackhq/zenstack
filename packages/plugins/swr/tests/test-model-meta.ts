@@ -43,7 +43,10 @@ export const modelMeta: ModelMeta = {
             ownerId: { ...fieldDefaults, type: 'User', name: 'owner', isForeignKey: true },
         },
     },
-    uniqueConstraints: {},
+    uniqueConstraints: {
+        user: { id: { name: 'id', fields: ['id'] } },
+        post: { id: { name: 'id', fields: ['id'] } },
+    },
     deleteCascade: {
         user: ['Post'],
     },

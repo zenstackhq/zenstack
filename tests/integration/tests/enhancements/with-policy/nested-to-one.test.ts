@@ -212,6 +212,64 @@ describe('With Policy:nested to-one', () => {
         ).toBeRejectedByPolicy();
     });
 
+    it('nested update id tests', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2?
+        
+            @@allow('all', true)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String @unique
+        
+            @@allow('read', true)
+            @@allow('create', value > 0)
+            @@allow('update', value > 1 && future().value > 2)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.m1.create({
+            data: {
+                id: '1',
+                m2: {
+                    create: { id: '1', value: 2 },
+                },
+            },
+        });
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: {
+                    m2: {
+                        update: { id: '2', value: 1 },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                data: {
+                    m2: {
+                        update: { id: '2', value: 3 },
+                    },
+                },
+                include: { m2: true },
+            })
+        ).resolves.toMatchObject({ m2: expect.objectContaining({ id: '2', value: 3 }) });
+    });
+
     it('nested create', async () => {
         const { withPolicy } = await loadSchema(
             `
