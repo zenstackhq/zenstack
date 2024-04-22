@@ -1,5 +1,6 @@
+import deepcopy from 'deepcopy';
 import safeJsonStringify from 'safe-json-stringify';
-import { FieldInfo, ModelMeta, resolveField } from '..';
+import { resolveField, type FieldInfo, type ModelMeta } from '..';
 import type { DbClientContract } from '../types';
 
 /**
@@ -41,4 +42,9 @@ export function isUnsafeMutate(model: string, args: any, modelMeta: ModelMeta) {
 
 export function isAutoIncrementIdField(field: FieldInfo) {
     return field.isId && field.isAutoIncrement;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function clone(value: unknown): any {
+    return value ? deepcopy(value) : {};
 }

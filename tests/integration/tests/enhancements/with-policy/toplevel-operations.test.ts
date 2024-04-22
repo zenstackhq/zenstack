@@ -147,6 +147,82 @@ describe('With Policy: toplevel operations', () => {
         ).toBeTruthy();
     });
 
+    it('update id tests', async () => {
+        const { withPolicy } = await loadSchema(
+            `
+        model Model {
+            id String @id @default(uuid())
+            value Int
+        
+            @@allow('read', value > 1)
+            @@allow('create', value > 0)
+            @@allow('update', value > 1 && future().value > 2)
+        }
+        `
+        );
+
+        const db = withPolicy();
+
+        await db.model.create({
+            data: {
+                id: '1',
+                value: 2,
+            },
+        });
+
+        // update denied
+        await expect(
+            db.model.update({
+                where: { id: '1' },
+                data: {
+                    id: '2',
+                    value: 1,
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        // update success
+        await expect(
+            db.model.update({
+                where: { id: '1' },
+                data: {
+                    id: '2',
+                    value: 3,
+                },
+            })
+        ).resolves.toMatchObject({ id: '2', value: 3 });
+
+        // upsert denied
+        await expect(
+            db.model.upsert({
+                where: { id: '2' },
+                update: {
+                    id: '3',
+                    value: 1,
+                },
+                create: {
+                    id: '4',
+                    value: 5,
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        // upsert success
+        await expect(
+            db.model.upsert({
+                where: { id: '2' },
+                update: {
+                    id: '3',
+                    value: 4,
+                },
+                create: {
+                    id: '4',
+                    value: 5,
+                },
+            })
+        ).resolves.toMatchObject({ id: '3', value: 4 });
+    });
+
     it('delete tests', async () => {
         const { enhance, prisma } = await loadSchema(
             `

@@ -1,5 +1,5 @@
 import { lowerCaseFirst } from 'lower-case-first';
-import { ModelInfo, ModelMeta } from '.';
+import { requireField, type ModelInfo, type ModelMeta } from '.';
 
 /**
  * Gets field names in a data model entity, filtering out internal fields.
@@ -47,19 +47,17 @@ export function zip<T1, T2>(x: Enumerable<T1>, y: Enumerable<T2>): Array<[T1, T2
 }
 
 export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
-    let fields = modelMeta.models[lowerCaseFirst(model)]?.fields;
-    if (!fields) {
+    const uniqueConstraints = modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
+
+    const entries = Object.values(uniqueConstraints);
+    if (entries.length === 0) {
         if (throwIfNotFound) {
-            throw new Error(`Unable to load fields for ${model}`);
-        } else {
-            fields = {};
+            throw new Error(`Model ${model} does not have any id field`);
         }
+        return [];
     }
-    const result = Object.values(fields).filter((f) => f.isId);
-    if (result.length === 0 && throwIfNotFound) {
-        throw new Error(`model ${model} does not have an id field`);
-    }
-    return result;
+
+    return entries[0].fields.map((f) => requireField(modelMeta, model, f));
 }
 
 export function getModelInfo<Throw extends boolean = false>(

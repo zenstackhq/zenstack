@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-    FieldInfo,
-    NestedWriteVisitorContext,
     getIdFields,
     getModelInfo,
     getUniqueConstraints,
     resolveField,
+    type FieldInfo,
+    type NestedWriteVisitorContext,
 } from '../cross';
-import { CrudContract, DbClientContract } from '../types';
+import type { CrudContract, DbClientContract } from '../types';
 import { getVersion } from '../version';
 import { InternalEnhancementOptions } from './create-enhancement';
-import { prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
+import { clone, prismaClientUnknownRequestError, prismaClientValidationError } from './utils';
 
 export class QueryUtils {
     constructor(private readonly prisma: DbClientContract, protected readonly options: InternalEnhancementOptions) {}
@@ -56,7 +56,10 @@ export class QueryUtils {
         }
     }
 
-    buildReversedQuery(context: NestedWriteVisitorContext, mutating = false, unsafeOperation = false) {
+    /**
+     * Builds a reversed query for the given nested path.
+     */
+    buildReversedQuery(context: NestedWriteVisitorContext, forMutationPayload = false, unsafeOperation = false) {
         let result, currQuery: any;
         let currField: FieldInfo | undefined;
 
@@ -87,7 +90,7 @@ export class QueryUtils {
                     throw this.unknownError(`missing backLink field ${currField.backLink} in ${currField.type}`);
                 }
 
-                if (backLinkField.isArray && !mutating) {
+                if (backLinkField.isArray && !forMutationPayload) {
                     // many-side of relationship, wrap with "some" query
                     currQuery[currField.backLink] = { some: { ...visitWhere } };
                     currQuery = currQuery[currField.backLink].some;
@@ -97,7 +100,7 @@ export class QueryUtils {
                     // calculate if we should preserve the relation condition (e.g., { user: { id: 1 } })
                     const shouldPreserveRelationCondition =
                         // doing a mutation
-                        mutating &&
+                        forMutationPayload &&
                         // and it's a safe mutate
                         !unsafeOperation &&
                         // and the current segment is the direct parent (the last one is the mutate itself),
@@ -119,6 +122,15 @@ export class QueryUtils {
                         // preserve the original structure
                         currQuery[currField.backLink] = { ...visitWhere };
                     }
+
+                    if (forMutationPayload && currQuery[currField.backLink]) {
+                        // reconstruct compound unique field
+                        currQuery[currField.backLink] = this.composeCompoundUniqueField(
+                            backLinkField.type,
+                            currQuery[currField.backLink]
+                        );
+                    }
+
                     currQuery = currQuery[currField.backLink];
                 }
                 currField = field;
@@ -127,8 +139,33 @@ export class QueryUtils {
         return result;
     }
 
+    /**
+     * Composes a compound unique field from multiple fields. E.g.:  { a: '1', b: '1' } => { a_b: { a: '1', b: '1' } }.
+     */
+    composeCompoundUniqueField(model: string, fieldData: any) {
+        const uniqueConstraints = getUniqueConstraints(this.options.modelMeta, model);
+        if (!uniqueConstraints) {
+            return fieldData;
+        }
+
+        const result: any = clone(fieldData);
+        for (const [name, constraint] of Object.entries(uniqueConstraints)) {
+            if (constraint.fields.length > 1 && constraint.fields.every((f) => fieldData[f] !== undefined)) {
+                // multi-field unique constraint, compose it
+                result[name] = constraint.fields.reduce<any>(
+                    (prev, field) => ({ ...prev, [field]: fieldData[field] }),
+                    {}
+                );
+                constraint.fields.forEach((f) => delete result[f]);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Flattens a generated unique field. E.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }.
+     */
     flattenGeneratedUniqueField(model: string, args: any) {
-        // e.g.: { a_b: { a: '1', b: '1' } } => { a: '1', b: '1' }
         const uniqueConstraints = getUniqueConstraints(this.options.modelMeta, model);
         if (uniqueConstraints && Object.keys(uniqueConstraints).length > 0) {
             for (const [field, value] of Object.entries<any>(args)) {
