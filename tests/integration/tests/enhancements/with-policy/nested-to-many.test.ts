@@ -285,7 +285,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update id field', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -307,7 +307,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {

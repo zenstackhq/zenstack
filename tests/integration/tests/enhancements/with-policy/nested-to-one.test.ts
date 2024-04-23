@@ -213,7 +213,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested update id tests', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -235,7 +235,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {

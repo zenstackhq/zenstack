@@ -148,7 +148,7 @@ describe('With Policy: toplevel operations', () => {
     });
 
     it('update id tests', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -161,7 +161,7 @@ describe('With Policy: toplevel operations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.model.create({
             data: {
