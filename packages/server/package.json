@@ -56,7 +56,7 @@
         "next": "^13.4.5",
         "nuxt": "^3.7.4",
         "reflect-metadata": "^0.2.2",
-        "supertest": "^6.3.3"
+        "supertest": "^7.0.0"
     },
     "exports": {
         "./package.json": "./package.json",
