@@ -31,7 +31,7 @@
         "lower-case-first": "^2.0.2",
         "ts-morph": "^16.0.0",
         "tslib": "^2.4.1",
-        "upper-case-first": "^2.0.2",
+        "upper-case-first": "^3.0.0",
         "zod": "^3.22.4"
     },
     "devDependencies": {
