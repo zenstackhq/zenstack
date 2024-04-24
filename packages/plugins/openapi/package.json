@@ -28,7 +28,7 @@
   "dependencies": {
     "@zenstackhq/runtime": "workspace:*",
     "@zenstackhq/sdk": "workspace:*",
-    "change-case": "^4.1.2",
+    "change-case": "^5.4.4",
     "lower-case-first": "^2.0.2",
     "openapi-types": "^12.1.0",
     "semver": "^7.5.2",
