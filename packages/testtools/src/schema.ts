@@ -101,12 +101,12 @@ generator js {
 
 plugin enhancer {
     provider = '@core/enhancer'
-    preserveTsFiles = true
+    ${options.preserveTsFiles ? 'preserveTsFiles = true' : ''}
 }
 
 plugin zod {
     provider = '@core/zod'
-    // preserveTsFiles = true
+    ${options.preserveTsFiles ? 'preserveTsFiles = true' : ''}
     modelOnly = ${!options.fullZod}
 }
 `;
@@ -130,6 +130,7 @@ export type SchemaLoadOptions = {
     enhanceOptions?: Partial<EnhancementOptions>;
     extraSourceFiles?: { name: string; content: string }[];
     projectDir?: string;
+    preserveTsFiles?: boolean;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -140,6 +141,7 @@ const defaultOptions: SchemaLoadOptions = {
     compile: false,
     logPrismaQuery: false,
     provider: 'sqlite',
+    preserveTsFiles: false,
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {

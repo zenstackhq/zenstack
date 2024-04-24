@@ -19,6 +19,6 @@ function run(cmd: string) {
 }
 
 run('npm init -y');
-run('npm i --no-audit --no-fund typescript prisma @prisma/client zod decimal.js');
+run('npm i --no-audit --no-fund typescript prisma @prisma/client zod decimal.js @types/node');
 
 console.log('Test scaffold setup complete.');
