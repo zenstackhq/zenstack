@@ -16,7 +16,7 @@
         "zenstack": "workspace: *"
     },
     "dependencies": {
-        "@types/node": "^18.0.0",
+        "@types/node": "^20.12.7",
         "@zenstackhq/sdk": "workspace:*",
         "@zenstackhq/testtools": "workspace:*",
         "decimal.js": "^10.4.2"
