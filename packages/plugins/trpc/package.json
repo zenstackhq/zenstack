@@ -38,7 +38,7 @@
         "@trpc/next": "^10.32.0",
         "@trpc/react-query": "^10.32.0",
         "@trpc/server": "^10.32.0",
-        "@types/prettier": "^2.7.2",
+        "@types/prettier": "^3.0.0",
         "@types/tmp": "^0.2.3",
         "@zenstackhq/testtools": "workspace:*",
         "next": "^13.4.7",
