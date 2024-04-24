@@ -90,7 +90,7 @@
         "superjson": "^1.11.0",
         "ts-morph": "^16.0.0",
         "ts-pattern": "^4.3.0",
-        "upper-case-first": "^2.0.2"
+        "upper-case-first": "^3.0.0"
     },
     "devDependencies": {
         "@tanstack/react-query": "^4.29.7",
