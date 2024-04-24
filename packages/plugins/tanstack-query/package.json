@@ -95,7 +95,7 @@
     "devDependencies": {
         "@tanstack/react-query": "^4.29.7",
         "@tanstack/react-query-v5": "npm:@tanstack/react-query@^5.0.0",
-        "@tanstack/svelte-query": "^4.29.7",
+        "@tanstack/svelte-query": "^5.32.0",
         "@tanstack/svelte-query-v5": "npm:@tanstack/svelte-query@^5.0.0",
         "@tanstack/vue-query": "^4.37.0",
         "@testing-library/react": "^14.0.0",
