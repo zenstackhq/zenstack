@@ -98,7 +98,7 @@
         "@tanstack/svelte-query": "^4.29.7",
         "@tanstack/svelte-query-v5": "npm:@tanstack/svelte-query@^5.0.0",
         "@tanstack/vue-query": "^4.37.0",
-        "@testing-library/react": "^14.0.0",
+        "@testing-library/react": "^15.0.4",
         "@types/react": "18.2.0",
         "@types/semver": "^7.3.13",
         "@types/tmp": "^0.2.3",
