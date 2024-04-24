@@ -40,7 +40,7 @@
     "dependencies": {
         "@zenstackhq/runtime": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
-        "change-case": "^4.1.2",
+        "change-case": "^5.4.4",
         "cross-fetch": "^4.0.0",
         "decimal.js": "^10.4.2",
         "lower-case-first": "^2.0.2",
