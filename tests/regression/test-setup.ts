@@ -1,10 +1,10 @@
 import {
-    toBeRejectedByPolicy,
     toBeNotFound,
-    toResolveTruthy,
+    toBeRejectedByPolicy,
+    toBeRejectedWithCode,
     toResolveFalsy,
     toResolveNull,
-    toBeRejectedWithCode,
+    toResolveTruthy,
 } from '@zenstackhq/testtools/jest-ext';
 
 expect.extend({
