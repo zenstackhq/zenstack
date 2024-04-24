@@ -1,0 +1,24 @@
+{
+    "name": "regression",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "lint": "eslint . --ext .ts",
+        "test": "jest"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@zenstackhq/runtime": "workspace:*",
+        "@zenstackhq/server": "workspace:*",
+        "zenstack": "workspace: *"
+    },
+    "dependencies": {
+        "@types/node": "^18.0.0",
+        "@zenstackhq/sdk": "workspace:*",
+        "@zenstackhq/testtools": "workspace:*",
+        "decimal.js": "^10.4.2"
+    }
+}

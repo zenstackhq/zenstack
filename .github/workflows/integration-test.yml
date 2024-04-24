@@ -1,0 +1,104 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Integration Tests
+
+env:
+    TELEMETRY_TRACKING_TOKEN: ${{ secrets.TELEMETRY_TRACKING_TOKEN }}
+    DO_NOT_TRACK: '1'
+
+on:
+    merge_group:
+    push:
+        branches:
+            - main
+            - dev
+            - release/*
+            - v2
+    pull_request:
+        branches:
+            - main
+            - dev
+            - release/*
+            - v2
+
+permissions:
+    contents: read
+
+jobs:
+    build-test:
+        runs-on: buildjet-8vcpu-ubuntu-2204
+
+        services:
+            postgres:
+                image: postgres
+                env:
+                    POSTGRES_PASSWORD: abc123
+                # Set health checks to wait until postgres has started
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+                ports:
+                    - 5432:5432
+
+        strategy:
+            matrix:
+                node-version: [20.x]
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v3
+
+            - name: Install pnpm
+              uses: pnpm/action-setup@v2
+              with:
+                  version: ^7.15.0
+
+            - name: Use Node.js ${{ matrix.node-version }}
+              uses: buildjet/setup-node@v3
+              with:
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'pnpm'
+
+            - name: Get pnpm store directory
+              id: pnpm-cache
+              shell: bash
+              run: |
+                  echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+            - name: Setup pnpm cache
+              uses: buildjet/cache@v3
+              with:
+                  path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Gradle Wrapper Validation
+              uses: gradle/wrapper-validation-action@v1.1.0
+
+            - name: Setup Java
+              uses: actions/setup-java@v4
+              with:
+                  distribution: zulu
+                  java-version: 17
+
+            - name: Setup Gradle
+              uses: gradle/gradle-build-action@v2.4.2
+              with:
+                  gradle-home-cache-cleanup: true
+
+            - name: Build
+              run: DEFAULT_NPM_TAG=latest pnpm run build
+
+            # install again for internal dependencies
+            - name: Install internal dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Integration Test
+              run: pnpm run test-scaffold && pnpm run test-integration
