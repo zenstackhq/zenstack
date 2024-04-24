@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
-    "version": "2.0.0-beta.15",
+    "version": "2.0.0",
     "author": {
         "name": "ZenStack Team"
     },
