@@ -32,7 +32,7 @@ export const modelMeta: ModelMeta = {
                     name: 'posts',
                 },
             },
-            uniqueConstraints: {},
+            uniqueConstraints: { id: { name: 'id', fields: ['id'] } },
         },
         post: {
             name: 'post',
@@ -48,7 +48,7 @@ export const modelMeta: ModelMeta = {
                 owner: { ...fieldDefaults, type: 'User', name: 'owner', isDataModel: true, isRelationOwner: true },
                 ownerId: { ...fieldDefaults, type: 'User', name: 'owner', isForeignKey: true },
             },
-            uniqueConstraints: {},
+            uniqueConstraints: { id: { name: 'id', fields: ['id'] } },
         },
     },
     deleteCascade: {

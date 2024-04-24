@@ -284,6 +284,101 @@ describe('With Policy:nested to-many', () => {
         expect(r.m2).toEqual(expect.arrayContaining([expect.objectContaining({ id: '2', value: 3 })]));
     });
 
+    it('update id field', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model M1 {
+            id String @id @default(uuid())
+            m2 M2[]
+        
+            @@allow('all', true)
+        }
+        
+        model M2 {
+            id String @id @default(uuid())
+            value Int
+            m1 M1 @relation(fields: [m1Id], references:[id])
+            m1Id String
+        
+            @@allow('read', true)
+            @@allow('create', true)
+            @@allow('update', value > 1 && future().value > 2)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await db.m1.create({
+            data: {
+                id: '1',
+                m2: {
+                    create: { id: '1', value: 2 },
+                },
+            },
+        });
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                include: { m2: true },
+                data: {
+                    m2: {
+                        update: {
+                            where: { id: '1' },
+                            data: { id: '2', value: 1 },
+                        },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        let r = await db.m1.update({
+            where: { id: '1' },
+            include: { m2: true },
+            data: {
+                m2: {
+                    update: {
+                        where: { id: '1' },
+                        data: { id: '2', value: 3 },
+                    },
+                },
+            },
+        });
+        expect(r.m2).toEqual(expect.arrayContaining([expect.objectContaining({ id: '2', value: 3 })]));
+
+        await expect(
+            db.m1.update({
+                where: { id: '1' },
+                include: { m2: true },
+                data: {
+                    m2: {
+                        upsert: {
+                            where: { id: '2' },
+                            create: { id: '4', value: 4 },
+                            update: { id: '3', value: 1 },
+                        },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        r = await db.m1.update({
+            where: { id: '1' },
+            include: { m2: true },
+            data: {
+                m2: {
+                    upsert: {
+                        where: { id: '2' },
+                        create: { id: '4', value: 4 },
+                        update: { id: '3', value: 4 },
+                    },
+                },
+            },
+        });
+        expect(r.m2).toEqual(expect.arrayContaining([expect.objectContaining({ id: '3', value: 4 })]));
+    });
+
     it('update with create from one to many', async () => {
         const { enhance } = await loadSchema(
             `

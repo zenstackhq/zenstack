@@ -1,6 +1,7 @@
 import {
     ArrayExpr,
     DataModel,
+    DataModelAttribute,
     DataModelField,
     isArrayExpr,
     isBooleanLiteral,
@@ -344,10 +345,7 @@ function getAttributes(target: DataModelField | DataModel): RuntimeAttribute[] {
 function getUniqueConstraints(model: DataModel) {
     const constraints: Array<{ name: string; fields: string[] }> = [];
 
-    // model-level constraints
-    for (const attr of model.attributes.filter(
-        (attr) => attr.decl.ref?.name === '@@unique' || attr.decl.ref?.name === '@@id'
-    )) {
+    const extractConstraint = (attr: DataModelAttribute) => {
         const argsMap = getAttributeArgs(attr);
         if (argsMap.fields) {
             const fieldNames = (argsMap.fields as ArrayExpr).items.map(
@@ -358,14 +356,45 @@ function getUniqueConstraints(model: DataModel) {
                 // default constraint name is fields concatenated with underscores
                 constraintName = fieldNames.join('_');
             }
-            constraints.push({ name: constraintName, fields: fieldNames });
+            return { name: constraintName, fields: fieldNames };
+        } else {
+            return undefined;
+        }
+    };
+
+    const addConstraint = (constraint: { name: string; fields: string[] }) => {
+        if (!constraints.some((c) => c.name === constraint.name)) {
+            constraints.push(constraint);
+        }
+    };
+
+    // field-level @id first
+    for (const field of model.fields) {
+        if (hasAttribute(field, '@id')) {
+            addConstraint({ name: field.name, fields: [field.name] });
         }
     }
 
-    // field-level constraints
+    // then model-level @@id
+    for (const attr of model.attributes.filter((attr) => attr.decl.ref?.name === '@@id')) {
+        const constraint = extractConstraint(attr);
+        if (constraint) {
+            addConstraint(constraint);
+        }
+    }
+
+    // then field-level @unique
     for (const field of model.fields) {
-        if (hasAttribute(field, '@id') || hasAttribute(field, '@unique')) {
-            constraints.push({ name: field.name, fields: [field.name] });
+        if (hasAttribute(field, '@unique')) {
+            addConstraint({ name: field.name, fields: [field.name] });
+        }
+    }
+
+    // then model-level @@unique
+    for (const attr of model.attributes.filter((attr) => attr.decl.ref?.name === '@@unique')) {
+        const constraint = extractConstraint(attr);
+        if (constraint) {
+            addConstraint(constraint);
         }
     }
 

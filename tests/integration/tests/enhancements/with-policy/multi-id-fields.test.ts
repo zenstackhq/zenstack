@@ -12,7 +12,7 @@ describe('With Policy: multiple id fields', () => {
         process.chdir(origDir);
     });
 
-    it('multi-id fields', async () => {
+    it('multi-id fields crud', async () => {
         const { prisma, enhance } = await loadSchema(
             `
         model A {
@@ -67,6 +67,75 @@ describe('With Policy: multiple id fields', () => {
                 data: { x: '3', y: 1, value: 1, b: { create: { b1: '2', b2: '2', value: 3 } } },
             })
         ).toResolveTruthy();
+    });
+
+    it('multi-id fields id update', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model A {
+            x String
+            y Int
+            value Int
+            b B?
+            @@id([x, y])
+
+            @@allow('read', true)
+            @@allow('create', value > 0)
+            @@allow('update', value > 0 && future().value > 1)
+        }
+
+        model B {
+            b1 String
+            b2 String
+            value Int
+            a A @relation(fields: [ax, ay], references: [x, y])
+            ax String
+            ay Int
+
+            @@allow('read', value > 2)
+            @@allow('create', value > 1)
+
+            @@unique([ax, ay])
+            @@id([b1, b2])
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await db.a.create({ data: { x: '1', y: 2, value: 1 } });
+
+        await expect(
+            db.a.update({ where: { x_y: { x: '1', y: 2 } }, data: { x: '2', y: 3, value: 0 } })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.a.update({ where: { x_y: { x: '1', y: 2 } }, data: { x: '2', y: 3, value: 2 } })
+        ).resolves.toMatchObject({
+            x: '2',
+            y: 3,
+            value: 2,
+        });
+
+        await expect(
+            db.a.upsert({
+                where: { x_y: { x: '2', y: 3 } },
+                update: { x: '3', y: 4, value: 0 },
+                create: { x: '4', y: 5, value: 5 },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.a.upsert({
+                where: { x_y: { x: '2', y: 3 } },
+                update: { x: '3', y: 4, value: 3 },
+                create: { x: '4', y: 5, value: 5 },
+            })
+        ).resolves.toMatchObject({
+            x: '3',
+            y: 4,
+            value: 3,
+        });
     });
 
     it('multi-id auth', async () => {
@@ -269,5 +338,80 @@ describe('With Policy: multiple id fields', () => {
 
         expect(await db.b.findUnique({ where: { id: 1 } })).toEqual(expect.objectContaining({ v: 5 }));
         expect(await db.c.findUnique({ where: { id: 1 } })).toEqual(expect.objectContaining({ v: 6 }));
+    });
+
+    it('multi-id fields nested id update', async () => {
+        const { enhance } = await loadSchema(
+            `
+        model A {
+            x String
+            y Int
+            value Int
+            b B @relation(fields: [bId], references: [id])
+            bId Int
+            @@id([x, y])
+
+            @@allow('read', true)
+            @@allow('create', value > 0)
+            @@allow('update', value > 0 && future().value > 1)
+        }
+
+        model B {
+            id Int @id @default(autoincrement())
+            a A[]
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await db.b.create({ data: { id: 1, a: { create: { x: '1', y: 1, value: 1 } } } });
+
+        await expect(
+            db.b.update({
+                where: { id: 1 },
+                data: { a: { update: { where: { x_y: { x: '1', y: 1 } }, data: { x: '2', y: 2, value: 0 } } } },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.b.update({
+                where: { id: 1 },
+                data: { a: { update: { where: { x_y: { x: '1', y: 1 } }, data: { x: '2', y: 2, value: 2 } } } },
+                include: { a: true },
+            })
+        ).resolves.toMatchObject({ a: expect.arrayContaining([expect.objectContaining({ x: '2', y: 2, value: 2 })]) });
+
+        await expect(
+            db.b.update({
+                where: { id: 1 },
+                data: {
+                    a: {
+                        upsert: {
+                            where: { x_y: { x: '2', y: 2 } },
+                            update: { x: '3', y: 3, value: 0 },
+                            create: { x: '4', y: '4', value: 4 },
+                        },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.b.update({
+                where: { id: 1 },
+                data: {
+                    a: {
+                        upsert: {
+                            where: { x_y: { x: '2', y: 2 } },
+                            update: { x: '3', y: 3, value: 3 },
+                            create: { x: '4', y: '4', value: 4 },
+                        },
+                    },
+                },
+                include: { a: true },
+            })
+        ).resolves.toMatchObject({ a: expect.arrayContaining([expect.objectContaining({ x: '3', y: 3, value: 3 })]) });
     });
 });
