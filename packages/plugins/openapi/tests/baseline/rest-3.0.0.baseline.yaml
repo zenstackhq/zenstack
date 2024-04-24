@@ -229,7 +229,13 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/user/{id}':
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /user/{id}:
         get:
             operationId: fetch-User
             description: Fetch a "User" resource
@@ -288,6 +294,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
             operationId: update-User-patch
             description: Update a "User" resource
@@ -319,6 +331,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         delete:
             operationId: delete-User
             description: Delete a "User" resource
@@ -341,7 +359,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/user/{id}/posts':
+    /user/{id}/posts:
         get:
             operationId: fetch-User-related-posts
             description: Fetch the related "posts" resource for "User"
@@ -544,7 +562,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/user/{id}/relationships/posts':
+    /user/{id}/relationships/posts:
         get:
             operationId: fetch-User-relationship-posts
             description: Fetch the "posts" relationships for a "User"
@@ -839,7 +857,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/user/{id}/profile':
+    /user/{id}/profile:
         get:
             operationId: fetch-User-related-profile
             description: Fetch the related "profile" resource for "User"
@@ -867,7 +885,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/user/{id}/relationships/profile':
+    /user/{id}/relationships/profile:
         get:
             operationId: fetch-User-relationship-profile
             description: Fetch the "profile" relationships for a "User"
@@ -1067,7 +1085,13 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/profile/{id}':
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /profile/{id}:
         get:
             operationId: fetch-Profile
             description: Fetch a "Profile" resource
@@ -1126,6 +1150,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
             operationId: update-Profile-patch
             description: Update a "Profile" resource
@@ -1157,6 +1187,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         delete:
             operationId: delete-Profile
             description: Delete a "Profile" resource
@@ -1179,7 +1215,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/profile/{id}/user':
+    /profile/{id}/user:
         get:
             operationId: fetch-Profile-related-user
             description: Fetch the related "user" resource for "Profile"
@@ -1207,7 +1243,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/profile/{id}/relationships/user':
+    /profile/{id}/relationships/user:
         get:
             operationId: fetch-Profile-relationship-user
             description: Fetch the "user" relationships for a "Profile"
@@ -1593,7 +1629,13 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/post_Item/{id}':
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
+    /post_Item/{id}:
         get:
             operationId: fetch-post_Item
             description: Fetch a "post_Item" resource
@@ -1652,6 +1694,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         patch:
             operationId: update-post_Item-patch
             description: Update a "post_Item" resource
@@ -1683,6 +1731,12 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
+                '422':
+                    description: Request is unprocessable due to validation errors
+                    content:
+                        application/vnd.api+json:
+                            schema:
+                                $ref: '#/components/schemas/_errorResponse'
         delete:
             operationId: delete-post_Item
             description: Delete a "post_Item" resource
@@ -1705,7 +1759,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/post_Item/{id}/author':
+    /post_Item/{id}/author:
         get:
             operationId: fetch-post_Item-related-author
             description: Fetch the related "author" resource for "post_Item"
@@ -1733,7 +1787,7 @@ paths:
                         application/vnd.api+json:
                             schema:
                                 $ref: '#/components/schemas/_errorResponse'
-    '/post_Item/{id}/relationships/author':
+    /post_Item/{id}/relationships/author:
         get:
             operationId: fetch-post_Item-relationship-author
             description: Fetch the "author" relationships for a "post_Item"

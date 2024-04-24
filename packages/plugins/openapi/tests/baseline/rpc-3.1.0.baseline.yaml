@@ -183,7 +183,7 @@ components:
                     $ref: '#/components/schemas/Post_ItemListRelationFilter'
                 profile:
                     oneOf:
-                        - $ref: '#/components/schemas/ProfileRelationFilter'
+                        - $ref: '#/components/schemas/ProfileNullableRelationFilter'
                         - $ref: '#/components/schemas/ProfileWhereInput'
                         - type: 'null'
         UserOrderByWithRelationInput:
@@ -210,6 +210,43 @@ components:
                     type: string
                 email:
                     type: string
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/UserWhereInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/UserWhereInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/UserWhereInput'
+                createdAt:
+                    oneOf:
+                        - $ref: '#/components/schemas/DateTimeFilter'
+                        - type: string
+                          format: date-time
+                updatedAt:
+                    oneOf:
+                        - $ref: '#/components/schemas/DateTimeFilter'
+                        - type: string
+                          format: date-time
+                role:
+                    oneOf:
+                        - $ref: '#/components/schemas/EnumroleFilter'
+                        - $ref: '#/components/schemas/Role'
+                posts:
+                    $ref: '#/components/schemas/Post_ItemListRelationFilter'
+                profile:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileNullableRelationFilter'
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                        - type: 'null'
         UserScalarWhereWithAggregatesInput:
             type: object
             properties:
@@ -307,6 +344,31 @@ components:
                     type: string
                 userId:
                     type: string
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileWhereInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ProfileWhereInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/ProfileWhereInput'
+                image:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableFilter'
+                        - type: string
+                        - type: 'null'
+                user:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserWhereInput'
         ProfileScalarWhereWithAggregatesInput:
             type: object
             properties:
@@ -396,7 +458,7 @@ components:
                         - type: 'null'
                 author:
                     oneOf:
-                        - $ref: '#/components/schemas/UserRelationFilter'
+                        - $ref: '#/components/schemas/UserNullableRelationFilter'
                         - $ref: '#/components/schemas/UserWhereInput'
                         - type: 'null'
         Post_ItemOrderByWithRelationInput:
@@ -429,6 +491,59 @@ components:
             properties:
                 id:
                     type: string
+                AND:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereInput'
+                OR:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Post_ItemWhereInput'
+                NOT:
+                    oneOf:
+                        - $ref: '#/components/schemas/Post_ItemWhereInput'
+                        - type: array
+                          items:
+                              $ref: '#/components/schemas/Post_ItemWhereInput'
+                createdAt:
+                    oneOf:
+                        - $ref: '#/components/schemas/DateTimeFilter'
+                        - type: string
+                          format: date-time
+                updatedAt:
+                    oneOf:
+                        - $ref: '#/components/schemas/DateTimeFilter'
+                        - type: string
+                          format: date-time
+                title:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringFilter'
+                        - type: string
+                authorId:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableFilter'
+                        - type: string
+                        - type: 'null'
+                published:
+                    oneOf:
+                        - $ref: '#/components/schemas/BoolFilter'
+                        - type: boolean
+                viewCount:
+                    oneOf:
+                        - $ref: '#/components/schemas/IntFilter'
+                        - type: integer
+                notes:
+                    oneOf:
+                        - $ref: '#/components/schemas/StringNullableFilter'
+                        - type: string
+                        - type: 'null'
+                author:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserNullableRelationFilter'
+                        - $ref: '#/components/schemas/UserWhereInput'
+                        - type: 'null'
         Post_ItemScalarWhereWithAggregatesInput:
             type: object
             properties:
@@ -758,17 +873,13 @@ components:
                 equals:
                     type: string
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 lt:
                     type: string
                 lte:
@@ -796,21 +907,15 @@ components:
                     type: string
                     format: date-time
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -834,17 +939,13 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -858,7 +959,7 @@ components:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
                 none:
                     $ref: '#/components/schemas/Post_ItemWhereInput'
-        ProfileRelationFilter:
+        ProfileNullableRelationFilter:
             type: object
             properties:
                 is:
@@ -880,17 +981,13 @@ components:
                 equals:
                     type: string
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 lt:
                     type: string
                 lte:
@@ -924,21 +1021,15 @@ components:
                     type: string
                     format: date-time
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -968,17 +1059,13 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -998,18 +1085,16 @@ components:
                         - type: string
                 in:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 notIn:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 lt:
                     type: string
                 lte:
@@ -1035,13 +1120,9 @@ components:
             type: object
             properties:
                 is:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/UserWhereInput'
+                    $ref: '#/components/schemas/UserWhereInput'
                 isNot:
-                    oneOf:
-                        - type: 'null'
-                        - $ref: '#/components/schemas/UserWhereInput'
+                    $ref: '#/components/schemas/UserWhereInput'
         SortOrderInput:
             type: object
             properties:
@@ -1060,18 +1141,16 @@ components:
                         - type: string
                 in:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 notIn:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 lt:
                     type: string
                 lte:
@@ -1114,17 +1193,13 @@ components:
                 equals:
                     type: integer
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 lt:
                     type: integer
                 lte:
@@ -1137,6 +1212,17 @@ components:
                     oneOf:
                         - type: integer
                         - $ref: '#/components/schemas/NestedIntFilter'
+        UserNullableRelationFilter:
+            type: object
+            properties:
+                is:
+                    oneOf:
+                        - type: 'null'
+                        - $ref: '#/components/schemas/UserWhereInput'
+                isNot:
+                    oneOf:
+                        - type: 'null'
+                        - $ref: '#/components/schemas/UserWhereInput'
         BoolWithAggregatesFilter:
             type: object
             properties:
@@ -1158,17 +1244,13 @@ components:
                 equals:
                     type: integer
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 lt:
                     type: integer
                 lte:
@@ -1364,13 +1446,18 @@ components:
                 upsert:
                     $ref: '#/components/schemas/ProfileUpsertWithoutUserInput'
                 disconnect:
-                    type: boolean
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileWhereInput'
                 delete:
-                    type: boolean
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileWhereInput'
                 connect:
                     $ref: '#/components/schemas/ProfileWhereUniqueInput'
                 update:
                     oneOf:
+                        - $ref: '#/components/schemas/ProfileUpdateToOneWithWhereWithoutUserInput'
                         - $ref: '#/components/schemas/ProfileUpdateWithoutUserInput'
                         - $ref: '#/components/schemas/ProfileUncheckedUpdateWithoutUserInput'
         Post_ItemUncheckedUpdateManyWithoutAuthorNestedInput:
@@ -1454,13 +1541,18 @@ components:
                 upsert:
                     $ref: '#/components/schemas/ProfileUpsertWithoutUserInput'
                 disconnect:
-                    type: boolean
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileWhereInput'
                 delete:
-                    type: boolean
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/ProfileWhereInput'
                 connect:
                     $ref: '#/components/schemas/ProfileWhereUniqueInput'
                 update:
                     oneOf:
+                        - $ref: '#/components/schemas/ProfileUpdateToOneWithWhereWithoutUserInput'
                         - $ref: '#/components/schemas/ProfileUpdateWithoutUserInput'
                         - $ref: '#/components/schemas/ProfileUncheckedUpdateWithoutUserInput'
         UserCreateNestedOneWithoutProfileInput:
@@ -1496,6 +1588,7 @@ components:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
                 update:
                     oneOf:
+                        - $ref: '#/components/schemas/UserUpdateToOneWithWhereWithoutProfileInput'
                         - $ref: '#/components/schemas/UserUpdateWithoutProfileInput'
                         - $ref: '#/components/schemas/UserUncheckedUpdateWithoutProfileInput'
         UserCreateNestedOneWithoutPostsInput:
@@ -1539,13 +1632,18 @@ components:
                 upsert:
                     $ref: '#/components/schemas/UserUpsertWithoutPostsInput'
                 disconnect:
-                    type: boolean
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/UserWhereInput'
                 delete:
-                    type: boolean
+                    oneOf:
+                        - type: boolean
+                        - $ref: '#/components/schemas/UserWhereInput'
                 connect:
                     $ref: '#/components/schemas/UserWhereUniqueInput'
                 update:
                     oneOf:
+                        - $ref: '#/components/schemas/UserUpdateToOneWithWhereWithoutPostsInput'
                         - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
                         - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
         NestedStringFilter:
@@ -1554,17 +1652,13 @@ components:
                 equals:
                     type: string
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 lt:
                     type: string
                 lte:
@@ -1590,21 +1684,15 @@ components:
                     type: string
                     format: date-time
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -1628,17 +1716,13 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -1649,17 +1733,13 @@ components:
                 equals:
                     type: string
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                        - type: string
+                    type: array
+                    items:
+                        type: string
                 lt:
                     type: string
                 lte:
@@ -1690,17 +1770,13 @@ components:
                 equals:
                     type: integer
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 lt:
                     type: integer
                 lte:
@@ -1720,21 +1796,15 @@ components:
                     type: string
                     format: date-time
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: string
-                              format: date-time
-                        - type: string
-                          format: date-time
+                    type: array
+                    items:
+                        type: string
+                        format: date-time
                 lt:
                     type: string
                     format: date-time
@@ -1764,17 +1834,13 @@ components:
                 equals:
                     $ref: '#/components/schemas/Role'
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              $ref: '#/components/schemas/Role'
-                        - $ref: '#/components/schemas/Role'
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Role'
                 not:
                     oneOf:
                         - $ref: '#/components/schemas/Role'
@@ -1794,18 +1860,16 @@ components:
                         - type: string
                 in:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 notIn:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 lt:
                     type: string
                 lte:
@@ -1834,18 +1898,16 @@ components:
                         - type: string
                 in:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 notIn:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: string
-                        - type: string
-                        - type: 'null'
                 lt:
                     type: string
                 lte:
@@ -1880,18 +1942,16 @@ components:
                         - type: integer
                 in:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: integer
-                        - type: integer
-                        - type: 'null'
                 notIn:
                     oneOf:
+                        - type: 'null'
                         - type: array
                           items:
                               type: integer
-                        - type: integer
-                        - type: 'null'
                 lt:
                     type: integer
                 lte:
@@ -1935,17 +1995,13 @@ components:
                 equals:
                     type: integer
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: integer
-                        - type: integer
+                    type: array
+                    items:
+                        type: integer
                 lt:
                     type: integer
                 lte:
@@ -1974,17 +2030,13 @@ components:
                 equals:
                     type: number
                 in:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: number
-                        - type: number
+                    type: array
+                    items:
+                        type: number
                 notIn:
-                    oneOf:
-                        - type: array
-                          items:
-                              type: number
-                        - type: number
+                    type: array
+                    items:
+                        type: number
                 lt:
                     type: number
                 lte:
@@ -2137,7 +2189,7 @@ components:
                 data:
                     oneOf:
                         - $ref: '#/components/schemas/Post_ItemUpdateManyMutationInput'
-                        - $ref: '#/components/schemas/Post_ItemUncheckedUpdateManyWithoutPostsInput'
+                        - $ref: '#/components/schemas/Post_ItemUncheckedUpdateManyWithoutAuthorInput'
             required:
                 - where
                 - data
@@ -2207,9 +2259,22 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/ProfileCreateWithoutUserInput'
                         - $ref: '#/components/schemas/ProfileUncheckedCreateWithoutUserInput'
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
             required:
                 - update
                 - create
+        ProfileUpdateToOneWithWhereWithoutUserInput:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/ProfileWhereInput'
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/ProfileUpdateWithoutUserInput'
+                        - $ref: '#/components/schemas/ProfileUncheckedUpdateWithoutUserInput'
+            required:
+                - data
         ProfileUpdateWithoutUserInput:
             type: object
             properties:
@@ -2296,9 +2361,22 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/UserCreateWithoutProfileInput'
                         - $ref: '#/components/schemas/UserUncheckedCreateWithoutProfileInput'
+                where:
+                    $ref: '#/components/schemas/UserWhereInput'
             required:
                 - update
                 - create
+        UserUpdateToOneWithWhereWithoutProfileInput:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/UserWhereInput'
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserUpdateWithoutProfileInput'
+                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutProfileInput'
+            required:
+                - data
         UserUpdateWithoutProfileInput:
             type: object
             properties:
@@ -2415,9 +2493,22 @@ components:
                     oneOf:
                         - $ref: '#/components/schemas/UserCreateWithoutPostsInput'
                         - $ref: '#/components/schemas/UserUncheckedCreateWithoutPostsInput'
+                where:
+                    $ref: '#/components/schemas/UserWhereInput'
             required:
                 - update
                 - create
+        UserUpdateToOneWithWhereWithoutPostsInput:
+            type: object
+            properties:
+                where:
+                    $ref: '#/components/schemas/UserWhereInput'
+                data:
+                    oneOf:
+                        - $ref: '#/components/schemas/UserUpdateWithoutPostsInput'
+                        - $ref: '#/components/schemas/UserUncheckedUpdateWithoutPostsInput'
+            required:
+                - data
         UserUpdateWithoutPostsInput:
             type: object
             properties:
@@ -2564,7 +2655,7 @@ components:
                         - type: string
                         - $ref: '#/components/schemas/NullableStringFieldUpdateOperationsInput'
                         - type: 'null'
-        Post_ItemUncheckedUpdateManyWithoutPostsInput:
+        Post_ItemUncheckedUpdateManyWithoutAuthorInput:
             type: object
             properties:
                 id:
@@ -3812,6 +3903,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -3851,6 +3948,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -3890,6 +3993,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -3939,6 +4048,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -3990,6 +4105,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4039,6 +4160,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4078,6 +4205,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4117,6 +4250,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4159,6 +4298,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4198,6 +4343,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4249,6 +4400,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4298,6 +4455,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4349,6 +4512,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4398,6 +4567,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4437,6 +4612,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4476,6 +4657,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4525,6 +4712,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4576,6 +4769,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4625,6 +4824,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4664,6 +4869,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4703,6 +4914,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -4742,6 +4959,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4791,6 +5014,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4842,6 +5071,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4891,6 +5126,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4942,6 +5183,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -4991,6 +5238,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5030,6 +5283,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5069,6 +5328,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5118,6 +5383,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5167,6 +5438,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5206,6 +5483,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5245,6 +5528,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             requestBody:
                 content:
                     application/json:
@@ -5284,6 +5573,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5333,6 +5628,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5384,6 +5685,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5433,6 +5740,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query
@@ -5484,6 +5797,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/_Error'
                     description: Request is forbidden
+                '422':
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/_Error'
+                    description: Request is unprocessable due to validation errors
             parameters:
                 - name: q
                   in: query

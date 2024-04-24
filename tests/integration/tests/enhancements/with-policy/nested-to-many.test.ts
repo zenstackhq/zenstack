@@ -13,7 +13,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('read filtering', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -34,7 +34,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         let read = await db.m1.create({
             include: { m2: true },
@@ -62,7 +62,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('read condition hoisting', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -108,7 +108,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             include: { m2: true },
@@ -144,7 +144,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('create simple', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -165,7 +165,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         // single create denied
         await expect(
@@ -211,7 +211,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update simple', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -233,7 +233,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -285,7 +285,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update id field', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -307,7 +307,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -380,7 +380,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with create from one to many', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -402,7 +402,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -437,7 +437,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with create from many to one', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -459,7 +459,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m2.create({ data: { id: '1' } });
 
@@ -487,7 +487,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with delete', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -510,7 +510,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -591,7 +591,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('create with nested read', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -625,7 +625,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(
             db.m1.create({
@@ -684,7 +684,7 @@ describe('With Policy:nested to-many', () => {
     });
 
     it('update with nested read', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -716,7 +716,7 @@ describe('With Policy:nested to-many', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         await db.m1.create({
             data: {
                 id: '1',

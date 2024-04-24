@@ -5,7 +5,7 @@ import {
     toResolveFalsy,
     toResolveNull,
     toBeRejectedWithCode,
-} from './utils/jest-ext';
+} from '@zenstackhq/testtools/jest-ext';
 
 expect.extend({
     toBeRejectedByPolicy,

@@ -21,7 +21,7 @@ describe('With Policy: refactor tests', () => {
     beforeEach(async () => {
         dbUrl = await createPostgresDb(DB_NAME);
 
-        const { prisma: _prisma, withPolicy } = await loadSchemaFromFile(
+        const { prisma: _prisma, enhance } = await loadSchemaFromFile(
             path.join(__dirname, '../../schema/refactor-pg.zmodel'),
             {
                 provider: 'postgresql',
@@ -29,7 +29,7 @@ describe('With Policy: refactor tests', () => {
                 logPrismaQuery: true,
             }
         );
-        getDb = withPolicy;
+        getDb = enhance;
         prisma = _prisma;
         anonDb = getDb();
         user1Db = getDb({ id: 1 });

@@ -34,7 +34,7 @@ export type NestedWriteVisitorContext = {
  * to let the visitor traverse it instead of its original children.
  */
 export type NestedWriterVisitorCallback = {
-    create?: (model: string, args: any[], context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
+    create?: (model: string, data: any, context: NestedWriteVisitorContext) => MaybePromise<boolean | object | void>;
 
     createMany?: (
         model: string,
@@ -219,8 +219,10 @@ export class NestedWriteVisitor {
 
             case 'set':
                 if (this.callback.set) {
-                    const newContext = pushNewContext(field, model, {});
-                    await this.callback.set(model, data, newContext);
+                    for (const item of this.enumerateReverse(data)) {
+                        const newContext = pushNewContext(field, model, item, true);
+                        await this.callback.set(model, item, newContext);
+                    }
                 }
                 break;
 

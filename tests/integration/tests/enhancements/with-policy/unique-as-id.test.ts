@@ -13,7 +13,7 @@ describe('With Policy: unique as id', () => {
     });
 
     it('unique fields', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model A {
             x String @unique
@@ -38,7 +38,7 @@ describe('With Policy: unique as id', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.a.create({ data: { x: '1', y: 1, value: 0 } })).toBeRejectedByPolicy();
         await expect(db.a.create({ data: { x: '1', y: 2, value: 1 } })).toResolveTruthy();
@@ -64,7 +64,7 @@ describe('With Policy: unique as id', () => {
     });
 
     it('unique fields mixed with id', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model A {
             id Int @id @default(autoincrement())
@@ -91,7 +91,7 @@ describe('With Policy: unique as id', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.a.create({ data: { x: '1', y: 1, value: 0 } })).toBeRejectedByPolicy();
         await expect(db.a.create({ data: { x: '1', y: 2, value: 1 } })).toResolveTruthy();
@@ -117,7 +117,7 @@ describe('With Policy: unique as id', () => {
     });
 
     it('model-level unique fields', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model A {
             x String
@@ -147,7 +147,7 @@ describe('With Policy: unique as id', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(db.a.create({ data: { x: '1', y: 1, value: 0 } })).toBeRejectedByPolicy();
         await expect(db.a.create({ data: { x: '1', y: 2, value: 1 } })).toResolveTruthy();

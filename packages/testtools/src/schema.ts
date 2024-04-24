@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { DMMF } from '@prisma/generator-helper';
 import type { Model } from '@zenstackhq/language/ast';
-import { enhance, withOmit, withPassword, withPolicy, type AuthUser, type DbOperations } from '@zenstackhq/runtime';
-import { getDMMF } from '@zenstackhq/sdk';
+import {
+    DEFAULT_RUNTIME_LOAD_PATH,
+    type AuthUser,
+    type CrudContract,
+    type EnhancementKind,
+    type EnhancementOptions,
+} from '@zenstackhq/runtime';
+import { getDMMF, type DMMF } from '@zenstackhq/sdk/prisma';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import json from 'json5';
@@ -26,7 +31,7 @@ export const FILE_SPLITTER = '#FILE_SPLITTER#';
 
 tmp.setGracefulCleanup();
 
-export type FullDbClientContract = Record<string, DbOperations> & {
+export type FullDbClientContract = CrudContract & {
     $on(eventType: any, callback: (event: any) => void): void;
     $use(cb: any): void;
     $disconnect: () => Promise<void>;
@@ -92,22 +97,16 @@ datasource db {
 
 generator js {
     provider = 'prisma-client-js'
-    previewFeatures = ['clientExtensions']
 }
 
-plugin meta {
-    provider = '@core/model-meta'
-    // preserveTsFiles = true
-}
-
-plugin policy {
-    provider = '@core/access-policy'
-    // preserveTsFiles = true
+plugin enhancer {
+    provider = '@core/enhancer'
+    ${options.preserveTsFiles ? 'preserveTsFiles = true' : ''}
 }
 
 plugin zod {
     provider = '@core/zod'
-    preserveTsFiles = true
+    ${options.preserveTsFiles ? 'preserveTsFiles = true' : ''}
     modelOnly = ${!options.fullZod}
 }
 `;
@@ -127,6 +126,11 @@ export type SchemaLoadOptions = {
     dbUrl?: string;
     pulseApiKey?: string;
     getPrismaOnly?: boolean;
+    enhancements?: EnhancementKind[];
+    enhanceOptions?: Partial<EnhancementOptions>;
+    extraSourceFiles?: { name: string; content: string }[];
+    projectDir?: string;
+    preserveTsFiles?: boolean;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -137,6 +141,7 @@ const defaultOptions: SchemaLoadOptions = {
     compile: false,
     logPrismaQuery: false,
     provider: 'sqlite',
+    preserveTsFiles: false,
 };
 
 export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoadOptions) {
@@ -147,7 +152,11 @@ export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoa
 export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const opt = { ...defaultOptions, ...options };
 
-    const { name: projectRoot } = tmp.dirSync({ unsafeCleanup: true });
+    let projectDir = opt.projectDir;
+    if (!projectDir) {
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        projectDir = r.name;
+    }
 
     const workspaceRoot = getWorkspaceRoot(__dirname);
 
@@ -155,11 +164,11 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         throw new Error('Could not find workspace root');
     }
 
-    console.log('Workdir:', projectRoot);
-    process.chdir(projectRoot);
+    console.log('Workdir:', projectDir);
+    process.chdir(projectDir);
 
     // copy project structure from scaffold (prepared by test-setup.ts)
-    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectRoot, { recursive: true, force: true });
+    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectDir, { recursive: true, force: true });
 
     // install local deps
     const localInstallDeps = [
@@ -172,12 +181,12 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     run(`npm i --no-audit --no-fund ${localInstallDeps.map((d) => path.join(workspaceRoot, d)).join(' ')}`);
 
-    let zmodelPath = path.join(projectRoot, 'schema.zmodel');
+    let zmodelPath = path.join(projectDir, 'schema.zmodel');
 
     const files = schema.split(FILE_SPLITTER);
 
     // Use this one to replace $projectRoot placeholder in the schema file
-    const normalizedProjectRoot = normalizePath(projectRoot);
+    const normalizedProjectRoot = normalizePath(projectDir);
 
     if (files.length > 1) {
         // multiple files
@@ -188,7 +197,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             let fileContent = file.substring(firstLine + 1);
             if (index === 0) {
                 // The first file is the main schema file
-                zmodelPath = path.join(projectRoot, fileName);
+                zmodelPath = path.join(projectDir, fileName);
                 if (opt.addPrelude) {
                     // plugin need to be added after import statement
                     fileContent = `${fileContent}\n${makePrelude(opt)}`;
@@ -196,14 +205,14 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             }
 
             fileContent = fileContent.replaceAll('$projectRoot', normalizedProjectRoot);
-            const filePath = path.join(projectRoot, fileName);
+            const filePath = path.join(projectDir, fileName);
             fs.writeFileSync(filePath, fileContent);
         });
     } else {
         schema = schema.replaceAll('$projectRoot', normalizedProjectRoot);
         const content = opt.addPrelude ? `${makePrelude(opt)}\n${schema}` : schema;
         if (opt.customSchemaFilePath) {
-            zmodelPath = path.join(projectRoot, opt.customSchemaFilePath);
+            zmodelPath = path.join(projectDir, opt.customSchemaFilePath);
             fs.mkdirSync(path.dirname(zmodelPath), { recursive: true });
             fs.writeFileSync(zmodelPath, content);
         } else {
@@ -238,90 +247,100 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
 
     opt.copyDependencies?.forEach((dep) => {
         const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
-        fs.cpSync(dep, path.join(projectRoot, 'node_modules', pkgJson.name), { recursive: true, force: true });
+        fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
     });
 
-    const PrismaClient = require(path.join(projectRoot, 'node_modules/.prisma/client')).PrismaClient;
+    const PrismaClient = require(path.join(projectDir, 'node_modules/.prisma/client')).PrismaClient;
     let prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
 
-    const Prisma = require(path.join(projectRoot, 'node_modules/@prisma/client')).Prisma;
+    const prismaModule = require(path.join(projectDir, 'node_modules/@prisma/client')).Prisma;
 
     if (opt.pulseApiKey) {
-        const withPulse = require(path.join(projectRoot, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
+        const withPulse = require(path.join(projectDir, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
+    }
+
+    opt.extraSourceFiles?.forEach(({ name, content }) => {
+        fs.writeFileSync(path.join(projectDir, name), content);
+    });
+
+    if (opt.extraSourceFiles && opt.extraSourceFiles.length > 0 && !opt.compile) {
+        console.warn('`extraSourceFiles` is true but `compile` is false.');
     }
 
     if (opt.compile) {
         console.log('Compiling...');
+
         run('npx tsc --init');
 
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
-        const tsconfig = json.parse(fs.readFileSync(path.join(projectRoot, './tsconfig.json'), 'utf-8'));
+        const tsconfig = json.parse(fs.readFileSync(path.join(projectDir, './tsconfig.json'), 'utf-8'));
         tsconfig.compilerOptions.paths = {
             '.zenstack/zod/input': ['./node_modules/.zenstack/zod/input/index.d.ts'],
+            '.zenstack/models': ['./node_modules/.zenstack/models.d.ts'],
         };
-        fs.writeFileSync(path.join(projectRoot, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
+        tsconfig.include = ['**/*.ts'];
+        tsconfig.exclude = ['node_modules'];
+        fs.writeFileSync(path.join(projectDir, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
         run('npx tsc --project tsconfig.json');
     }
 
     if (options?.getPrismaOnly) {
         return {
             prisma,
-            Prisma,
-            projectDir: projectRoot,
-            withPolicy: undefined as any,
-            withOmit: undefined as any,
-            withPassword: undefined as any,
+            prismaModule,
+            projectDir,
             enhance: undefined as any,
+            enhanceRaw: undefined as any,
+            policy: undefined as any,
+            modelMeta: undefined as any,
+            zodSchemas: undefined as any,
         };
     }
 
-    let policy: any;
-    let modelMeta: any;
+    const outputPath = opt.output
+        ? path.isAbsolute(opt.output)
+            ? opt.output
+            : path.join(projectDir, opt.output)
+        : path.join(projectDir, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
+
+    const policy = require(path.join(outputPath, 'policy')).default;
+    const modelMeta = require(path.join(outputPath, 'model-meta')).default;
+
     let zodSchemas: any;
+    try {
+        zodSchemas = require(path.join(outputPath, 'zod'));
+    } catch {
+        /* noop */
+    }
 
-    const outputPath = path.join(projectRoot, 'node_modules');
-
-    try {
-        policy = require(path.join(outputPath, '.zenstack/policy')).default;
-    } catch {
-        /* noop */
-    }
-    try {
-        modelMeta = require(path.join(outputPath, '.zenstack/model-meta')).default;
-    } catch {
-        /* noop */
-    }
-    try {
-        zodSchemas = require(path.join(outputPath, '.zenstack/zod'));
-    } catch {
-        /* noop */
-    }
+    const enhance = require(path.join(outputPath, 'enhance')).enhance;
 
     return {
-        projectDir: projectRoot,
+        projectDir: projectDir,
         prisma,
-        Prisma,
-        withPolicy: (user?: AuthUser) =>
-            withPolicy<FullDbClientContract>(
+        enhance: (user?: AuthUser, options?: EnhancementOptions): FullDbClientContract =>
+            enhance(
                 prisma,
                 { user },
-                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
+                {
+                    policy,
+                    modelMeta,
+                    zodSchemas,
+                    logPrismaQuery: opt.logPrismaQuery,
+                    transactionTimeout: 1000000,
+                    kinds: opt.enhancements,
+                    ...(options ?? opt.enhanceOptions),
+                }
             ),
-        withOmit: () => withOmit<FullDbClientContract>(prisma, { modelMeta }),
-        withPassword: () => withPassword<FullDbClientContract>(prisma, { modelMeta }),
-        enhance: (user?: AuthUser) =>
-            enhance<FullDbClientContract>(
-                prisma,
-                { user },
-                { policy, modelMeta, zodSchemas, logPrismaQuery: opt.logPrismaQuery }
-            ),
+        enhanceRaw: enhance,
         policy,
         modelMeta,
         zodSchemas,
+        prismaModule,
     };
 }
 
@@ -346,7 +365,17 @@ export async function loadZModelAndDmmf(
     const model = await loadDocument(modelFile);
 
     const { name: prismaFile } = tmp.fileSync({ postfix: '.prisma' });
-    await prismaPlugin(model, { schemaPath: modelFile, name: 'Prisma', output: prismaFile, generateClient: false });
+    await prismaPlugin(
+        model,
+        {
+            provider: '@core/plugin',
+            schemaPath: modelFile,
+            output: prismaFile,
+            generateClient: false,
+        },
+        undefined,
+        undefined
+    );
 
     const prismaContent = fs.readFileSync(prismaFile, { encoding: 'utf-8' });
 

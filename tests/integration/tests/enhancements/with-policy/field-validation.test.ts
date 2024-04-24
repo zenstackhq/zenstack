@@ -1,11 +1,11 @@
 import { CrudFailureReason, isPrismaClientKnownRequestError } from '@zenstackhq/runtime';
 import { FullDbClientContract, createPostgresDb, dropPostgresDb, loadSchema, run } from '@zenstackhq/testtools';
 
-describe('With Policy: field validation', () => {
+describe('Field validation', () => {
     let db: FullDbClientContract;
 
     beforeAll(async () => {
-        const { withPolicy, prisma: _prisma } = await loadSchema(
+        const { enhance, prisma: _prisma } = await loadSchema(
             `
             model User {
                 id String @id @default(cuid())
@@ -37,8 +37,6 @@ describe('With Policy: field validation', () => {
                 text5 String? @endsWith('xyz')
                 text6 String? @trim @lower
                 text7 String? @upper
-
-                @@allow('all', true)
             }
 
             model Task {
@@ -46,12 +44,11 @@ describe('With Policy: field validation', () => {
                 user User  @relation(fields: [userId], references: [id])
                 userId String
                 slug String @regex("^[0-9a-zA-Z]{4,16}$") @lower
-
-                @@allow('all', true)
             }
-`
+`,
+            { enhancements: ['validation'] }
         );
-        db = withPolicy();
+        db = enhance();
     });
 
     beforeEach(() => {
@@ -610,9 +607,10 @@ describe('With Policy: field validation', () => {
     });
 });
 
-describe('With Policy: model-level validation', () => {
+describe('Model-level validation', () => {
     it('create', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int
@@ -620,9 +618,10 @@ describe('With Policy: model-level validation', () => {
 
             @@validate(x > 0)
             @@validate(x >= y)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -632,16 +631,18 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('update', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int
             y Int
 
             @@validate(x >= y)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -650,15 +651,17 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('int optionality', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int?
 
             @@validate(x > 0)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -668,15 +671,17 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('boolean optionality', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Boolean?
 
             @@validate(x)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -686,16 +691,18 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('optionality with binary', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int?
             y Int?
 
             @@validate(x > y)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -706,15 +713,17 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('optionality with in operator lhs', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x String?
 
             @@validate(x in ['foo', 'bar'])
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -734,12 +743,12 @@ describe('With Policy: model-level validation', () => {
             x String[]
 
             @@validate('foo' in x)
-            @@allow('all', true)
         }
         `,
                 {
                     provider: 'postgresql',
                     dbUrl,
+                    enhancements: ['validation'],
                 }
             );
 
@@ -756,16 +765,18 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('optionality with complex expression', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int?
             y Int?
 
             @@validate(y > 1 && x > y)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -777,15 +788,17 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('optionality with negation', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Boolean?
 
             @@validate(!x)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -795,16 +808,18 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('update implied optionality', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int
             y Int
 
             @@validate(x > y)
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -814,7 +829,8 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('optionality with scalar functions', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             s String
@@ -832,10 +848,10 @@ describe('With Policy: model-level validation', () => {
             @@validate(email(e), 'invalid e')
             @@validate(url(u), 'invalid u')
             @@validate(datetime(d), 'invalid d')
-
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -887,13 +903,12 @@ describe('With Policy: model-level validation', () => {
                 hasSome(x, ['x', 'y']) &&
                 (y == null || !isEmpty(y))
             )
-
-            @@allow('all', true)
         }
         `,
                 {
                     provider: 'postgresql',
                     dbUrl,
+                    enhancements: ['validation'],
                 }
             );
 
@@ -912,7 +927,8 @@ describe('With Policy: model-level validation', () => {
     });
 
     it('null comparison', async () => {
-        const { enhance } = await loadSchema(`
+        const { enhance } = await loadSchema(
+            `
         model Model {
             id Int @id @default(autoincrement())
             x Int
@@ -920,10 +936,10 @@ describe('With Policy: model-level validation', () => {
 
             @@validate(x == null || !(x <= 0))
             @@validate(y != null && !(y > 1))
-
-            @@allow('all', true)
         }
-        `);
+        `,
+            { enhancements: ['validation'] }
+        );
 
         const db = enhance();
 
@@ -936,5 +952,50 @@ describe('With Policy: model-level validation', () => {
         await expect(db.model.update({ where: { id: 1 }, data: { y: 2 } })).toBeRejectedByPolicy();
         await expect(db.model.update({ where: { id: 1 }, data: { y: 1 } })).toResolveTruthy();
         await expect(db.model.update({ where: { id: 1 }, data: { x: 2, y: 1 } })).toResolveTruthy();
+    });
+});
+
+describe('Policy and validation interaction', () => {
+    it('test', async () => {
+        const { enhance } = await loadSchema(
+            `
+                model User {
+                    id String @id @default(cuid())
+                    email String? @email
+                    age Int
+        
+                    @@allow('all', age > 0)
+                }
+                `
+        );
+
+        const db = enhance();
+
+        await expect(
+            db.user.create({
+                data: {
+                    email: 'hello',
+                    age: 18,
+                },
+            })
+        ).toBeRejectedByPolicy(['Invalid email at "email"']);
+
+        await expect(
+            db.user.create({
+                data: {
+                    email: 'user@abc.com',
+                    age: 0,
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.user.create({
+                data: {
+                    email: 'user@abc.com',
+                    age: 18,
+                },
+            })
+        ).toResolveTruthy();
     });
 });

@@ -1,16 +1,33 @@
 /// <reference types="@types/jest" />
 
-import { getDMMF } from '@zenstackhq/sdk';
+import { getDMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
-import PrismaSchemaGenerator from '../../src/plugins/prisma/schema-generator';
+import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator';
+import { execSync } from '../../src/utils/exec-utils';
 import { loadModel } from '../utils';
 
 tmp.setGracefulCleanup();
 
 describe('Prisma generator test', () => {
+    let origDir: string;
+
+    beforeEach(() => {
+        origDir = process.cwd();
+        const r = tmp.dirSync({ unsafeCleanup: true });
+        console.log(`Project dir: ${r.name}`);
+        process.chdir(r.name);
+
+        execSync('npm init -y', { stdio: 'ignore' });
+        execSync('npm install prisma');
+    });
+
+    afterEach(() => {
+        process.chdir(origDir);
+    });
+
     it('datasource coverage', async () => {
         const model = await loadModel(`
             datasource db {
@@ -19,12 +36,16 @@ describe('Prisma generator test', () => {
                 directUrl = env("DATABASE_URL")
                 shadowDatabaseUrl = env("DATABASE_URL")
                 extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
-                schemas    = ["auth", "public"]
+                schemas = ["auth", "public"]
             }
 
             generator client {
                 provider        = "prisma-client-js"
                 previewFeatures = ["multiSchema", "postgresqlExtensions"]
+            }
+
+            plugin prisma {
+                provider = '@core/prisma'
             }
 
             model User {
@@ -34,15 +55,15 @@ describe('Prisma generator test', () => {
             }
         `);
 
-        const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
-            output: name,
+            output: 'schema.prisma',
+            format: false,
         });
 
-        const content = fs.readFileSync(name, 'utf-8');
+        const content = fs.readFileSync('schema.prisma', 'utf-8');
         expect(content).toContain('provider = "postgresql"');
         expect(content).toContain('url = env("DATABASE_URL")');
         expect(content).toContain('directUrl = env("DATABASE_URL")');
@@ -76,11 +97,12 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
+            format: false,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -109,11 +131,12 @@ describe('Prisma generator test', () => {
                 id String @id @default(nanoid(6))
                 x String @default(nanoid())
                 y String @default(dbgenerated("gen_random_uuid()"))
+                z String @default(auth().id)
             }
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -122,12 +145,12 @@ describe('Prisma generator test', () => {
         });
 
         const content = fs.readFileSync(name, 'utf-8');
-        // "nanoid()" is only available in later versions of Prisma
-        await getDMMF({ datamodel: content }, '5.0.0');
+        await getDMMF({ datamodel: content });
 
         expect(content).toContain('@default(nanoid(6))');
         expect(content).toContain('@default(nanoid())');
         expect(content).toContain('@default(dbgenerated("gen_random_uuid()"))');
+        expect(content).not.toContain('@default(auth().id)');
     });
 
     it('triple slash comments', async () => {
@@ -146,7 +169,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -178,7 +201,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -214,7 +237,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -254,7 +277,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -305,12 +328,13 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
             generateClient: false,
+            format: false,
         });
 
         const content = fs.readFileSync(name, 'utf-8');
@@ -341,13 +365,14 @@ describe('Prisma generator test', () => {
         }
     `);
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
             output: name,
             generateClient: false,
         });
+        console.log('Generated:', name);
 
         const content = fs.readFileSync(name, 'utf-8');
         const dmmf = await getDMMF({ datamodel: content });
@@ -356,16 +381,14 @@ describe('Prisma generator test', () => {
         const post = dmmf.datamodel.models[0];
         expect(post.name).toBe('Post');
         expect(post.fields.length).toBe(5);
-        expect(post.fields[0].name).toBe('id');
-        expect(post.fields[3].name).toBe('title');
-        expect(post.fields[4].name).toBe('published');
+        expect(post.fields.map((f) => f.name)).toEqual(expect.arrayContaining(['id', 'title', 'published']));
     });
 
     it('abstract multi files', async () => {
         const model = await loadDocument(path.join(__dirname, './zmodel/schema.zmodel'));
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -415,7 +438,7 @@ describe('Prisma generator test', () => {
     `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -446,7 +469,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',
@@ -481,7 +504,7 @@ describe('Prisma generator test', () => {
         `);
 
         const { name } = tmp.fileSync({ postfix: '.prisma' });
-        await new PrismaSchemaGenerator().generate(model, {
+        await new PrismaSchemaGenerator(model).generate({
             name: 'Prisma',
             provider: '@core/prisma',
             schemaPath: 'schema.zmodel',

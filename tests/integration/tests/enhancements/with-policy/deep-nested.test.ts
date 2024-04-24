@@ -71,7 +71,7 @@ describe('With Policy:deep nested', () => {
 
     beforeEach(async () => {
         const params = await loadSchema(model);
-        db = params.withPolicy();
+        db = params.enhance();
         prisma = params.prisma;
     });
 

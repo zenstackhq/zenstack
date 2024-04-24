@@ -1,16 +1,16 @@
-import type { DMMF } from '@prisma/generator-helper';
 import {
     CrudFailureReason,
     PluginError,
-    PluginOptions,
     RUNTIME_PACKAGE,
-    getPrismaClientImportSpec,
+    ensureEmptyDir,
     parseOptionAsStrings,
     requireOption,
     resolvePath,
     saveProject,
+    type PluginOptions,
 } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
@@ -27,12 +27,8 @@ import {
     resolveModelsComments,
 } from './helpers';
 import { project } from './project';
-import removeDir from './utils/removeDir';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output', name);
-    outDir = resolvePath(outDir, options);
-
     // resolve "generateModels" option
     const generateModels = parseOptionAsStrings(options, 'generateModels', name);
 
@@ -49,8 +45,9 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         throw new PluginError(name, `Option "zodSchemasImport" must be a string`);
     }
 
-    await fs.promises.mkdir(outDir, { recursive: true });
-    await removeDir(outDir, true);
+    let outDir = requireOption<string>(options, 'output', name);
+    outDir = resolvePath(outDir, options);
+    ensureEmptyDir(outDir);
 
     const prismaClientDmmf = dmmf;
 
@@ -72,7 +69,8 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
         generateModelActions,
         generateClientHelpers,
         model,
-        zodSchemasImport
+        zodSchemasImport,
+        options
     );
     createHelper(outDir);
 
@@ -85,8 +83,9 @@ function createAppRouter(
     hiddenModels: string[],
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    zmodel: Model,
-    zodSchemasImport: string
+    _zmodel: Model,
+    zodSchemasImport: string,
+    options: PluginOptions
 ) {
     const indexFile = path.resolve(outDir, 'routers', `index.ts`);
     const appRouter = project.createSourceFile(indexFile, undefined, {
@@ -95,7 +94,7 @@ function createAppRouter(
 
     appRouter.addStatements('/* eslint-disable */');
 
-    const prismaImport = getPrismaClientImportSpec(zmodel, path.dirname(indexFile));
+    const prismaImport = getPrismaClientImportSpec(path.dirname(indexFile), options);
     appRouter.addImportDeclarations([
         {
             namedImports: [
@@ -169,8 +168,8 @@ function createAppRouter(
                         outDir,
                         generateModelActions,
                         generateClientHelpers,
-                        zmodel,
-                        zodSchemasImport
+                        zodSchemasImport,
+                        options
                     );
 
                     appRouter.addImportDeclaration({
@@ -239,8 +238,8 @@ function generateModelCreateRouter(
     outputDir: string,
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    zmodel: Model,
-    zodSchemasImport: string
+    zodSchemasImport: string,
+    options: PluginOptions
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -258,7 +257,7 @@ function generateModelCreateRouter(
     generateRouterSchemaImport(modelRouter, zodSchemasImport);
     generateHelperImport(modelRouter);
     if (generateClientHelpers) {
-        generateRouterTypingImports(modelRouter, zmodel);
+        generateRouterTypingImports(modelRouter, options);
     }
 
     const createRouterFunc = modelRouter.addFunction({

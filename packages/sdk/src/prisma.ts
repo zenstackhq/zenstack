@@ -1,93 +1,78 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 import type { DMMF } from '@prisma/generator-helper';
-import { getPrismaVersion } from '@zenstackhq/runtime';
+import { getDMMF as _getDMMF, type GetDMMFOptions } from '@prisma/internals';
+import { DEFAULT_RUNTIME_LOAD_PATH } from '@zenstackhq/runtime';
 import path from 'path';
-import * as semver from 'semver';
-import { GeneratorDecl, Model, Plugin, isGeneratorDecl, isPlugin } from './ast';
-import { getLiteral } from './utils';
-
-// reexport
-export { getPrismaVersion } from '@zenstackhq/runtime';
+import { RUNTIME_PACKAGE } from './constants';
+import type { PluginOptions } from './types';
 
 /**
- * Given a ZModel and an import context directory, compute the import spec for the Prisma Client.
+ * Given an import context directory and plugin options, compute the import spec for the Prisma Client.
  */
-export function getPrismaClientImportSpec(model: Model, importingFromDir: string) {
-    const generator = model.declarations.find(
-        (d) =>
-            isGeneratorDecl(d) &&
-            d.fields.some((f) => f.name === 'provider' && getLiteral(f.value) === 'prisma-client-js')
-    ) as GeneratorDecl;
-
-    const clientOutputField = generator?.fields.find((f) => f.name === 'output');
-    const clientOutput = getLiteral(clientOutputField?.value);
-
-    if (!clientOutput) {
-        // no user-declared Prisma Client output location
+export function getPrismaClientImportSpec(importingFromDir: string, options: PluginOptions) {
+    if (!options.prismaClientPath || options.prismaClientPath === '@prisma/client') {
         return '@prisma/client';
     }
 
-    if (path.isAbsolute(clientOutput)) {
+    if (
+        options.prismaClientPath.startsWith(RUNTIME_PACKAGE) ||
+        options.prismaClientPath.startsWith(DEFAULT_RUNTIME_LOAD_PATH)
+    ) {
+        return options.prismaClientPath;
+    }
+
+    if (path.isAbsolute(options.prismaClientPath)) {
         // absolute path
-        return clientOutput;
+        return options.prismaClientPath;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const zmodelDir = path.dirname(model.$document!.uri.fsPath);
+    // resolve absolute path based on the zmodel file location
+    const resolvedPrismaClientOutput = path.resolve(path.dirname(options.schemaPath), options.prismaClientPath);
 
-    // compute prisma schema absolute output path
-    let prismaSchemaOutputDir = path.resolve(zmodelDir, './prisma');
-    const prismaPlugin = model.declarations.find(
-        (d) => isPlugin(d) && d.fields.some((f) => f.name === 'provider' && getLiteral(f.value) === '@core/prisma')
-    ) as Plugin;
-    if (prismaPlugin) {
-        const output = getLiteral(prismaPlugin.fields.find((f) => f.name === 'output')?.value);
-        if (output) {
-            if (path.isAbsolute(output)) {
-                // absolute prisma schema output path
-                prismaSchemaOutputDir = path.dirname(output);
-            } else {
-                prismaSchemaOutputDir = path.dirname(path.resolve(zmodelDir, output));
-            }
-        }
-    }
+    // translate to path relative to the importing context directory
+    let result = path.relative(importingFromDir, resolvedPrismaClientOutput);
 
-    // resolve the prisma client output path, which is relative to the prisma schema
-    const resolvedPrismaClientOutput = path.resolve(prismaSchemaOutputDir, clientOutput);
-
-    // DEBUG:
-    // console.log('PRISMA SCHEMA PATH:', prismaSchemaOutputDir);
-    // console.log('PRISMA CLIENT PATH:', resolvedPrismaClientOutput);
-    // console.log('IMPORTING PATH:', importingFromDir);
+    // remove leading `node_modules` (which may be provided by the user)
+    result = result.replace(/^([./\\]*)?node_modules\//, '');
 
     // compute prisma client absolute output dir relative to the importing file
-    return normalizePath(path.relative(importingFromDir, resolvedPrismaClientOutput));
+    return normalizePath(result);
 }
 
 function normalizePath(p: string) {
     return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
 
-export type GetDMMFOptions = {
-    datamodel?: string;
-    cwd?: string;
-    prismaPath?: string;
-    datamodelPath?: string;
-    retry?: number;
-    previewFeatures?: string[];
-};
+/**
+ * Loads Prisma DMMF
+ */
+export function getDMMF(options: GetDMMFOptions): Promise<DMMF.Document> {
+    return _getDMMF(options);
+}
 
 /**
- * Loads Prisma DMMF with appropriate version
+ * Gets the installed Prisma's version
  */
-export function getDMMF(options: GetDMMFOptions, defaultPrismaVersion?: string): Promise<DMMF.Document> {
-    const prismaVersion = getPrismaVersion() ?? defaultPrismaVersion;
-    if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-        const _getDMMF = require('@prisma/internals-v5').getDMMF;
-        return _getDMMF(options);
-    } else {
-        const _getDMMF = require('@prisma/internals').getDMMF;
-        return _getDMMF(options);
+export function getPrismaVersion(): string | undefined {
+    if (process.env.ZENSTACK_TEST === '1') {
+        // test environment
+        try {
+            return require(path.resolve('./node_modules/@prisma/client/package.json')).version;
+        } catch {
+            return undefined;
+        }
+    }
+
+    try {
+        return require('@prisma/client/package.json').version;
+    } catch {
+        try {
+            return require('prisma/package.json').version;
+        } catch {
+            return undefined;
+        }
     }
 }
+
+export type { DMMF } from '@prisma/generator-helper';

@@ -1,5 +1,5 @@
 import { DEFAULT_RUNTIME_LOAD_PATH, type PolicyOperationKind } from '@zenstackhq/runtime';
-import { PluginGlobalOptions } from '@zenstackhq/sdk';
+import { PluginGlobalOptions, ensureEmptyDir } from '@zenstackhq/sdk';
 import fs from 'fs';
 import path from 'path';
 import { PluginRunnerOptions } from '../cli/plugin-runner';
@@ -28,20 +28,16 @@ export function getNodeModulesFolder(startPath?: string): string | undefined {
  */
 export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
     const output = options.output ? path.resolve(options.output) : getDefaultOutputFolder();
-    if (output && !fs.existsSync(output)) {
-        fs.mkdirSync(output, { recursive: true });
+    if (output) {
+        ensureEmptyDir(output);
         if (!options.output) {
             const pkgJson = {
                 name: '.zenstack',
                 version: '1.0.0',
                 exports: {
-                    './model-meta': {
-                        types: './model-meta.ts',
-                        default: './model-meta.js',
-                    },
-                    './policy': {
-                        types: './policy.d.ts',
-                        default: './policy.js',
+                    './enhance': {
+                        types: './enhance.d.ts',
+                        default: './enhance.js',
                     },
                     './zod': {
                         types: './zod/index.d.ts',
@@ -59,8 +55,23 @@ export function ensureDefaultOutputFolder(options: PluginRunnerOptions) {
                         types: './zod/objects/index.d.ts',
                         default: './zod/objects/index.js',
                     },
+                    './model-meta': {
+                        types: './model-meta.d.ts',
+                        default: './model-meta.js',
+                    },
+                    './models': {
+                        types: './models.d.ts',
+                    },
                 },
             };
+
+            // create stubs for zod exports to make bundlers that statically
+            // analyze imports (like Next.js) happy
+            for (const zodFolder of ['models', 'input', 'objects']) {
+                fs.mkdirSync(path.join(output, 'zod', zodFolder), { recursive: true });
+                fs.writeFileSync(path.join(output, 'zod', zodFolder, 'index.js'), '');
+            }
+
             fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify(pkgJson, undefined, 4));
         }
     }
@@ -77,21 +88,29 @@ export function getDefaultOutputFolder(globalOptions?: PluginGlobalOptions) {
         return path.resolve(globalOptions.output);
     }
 
-    // Find the real runtime module path, it might be a symlink in pnpm
+    // for testing, use the local node_modules
+    if (process.env.ZENSTACK_TEST === '1') {
+        return path.join(process.cwd(), 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
+    }
+
+    // find the real runtime module path, it might be a symlink in pnpm
     let runtimeModulePath = require.resolve('@zenstackhq/runtime');
 
-    if (process.env.ZENSTACK_TEST === '1') {
-        // handling the case when running as tests, resolve relative to CWD
-        runtimeModulePath = path.resolve(path.join(process.cwd(), 'node_modules', '@zenstackhq', 'runtime'));
-    }
-
-    if (runtimeModulePath) {
-        // start with the parent folder of @zenstackhq, supposed to be a node_modules folder
-        while (!runtimeModulePath.endsWith('@zenstackhq') && runtimeModulePath !== '/') {
-            runtimeModulePath = path.join(runtimeModulePath, '..');
-        }
+    // start with the parent folder of @zenstackhq, supposed to be a node_modules folder
+    while (!runtimeModulePath.endsWith('@zenstackhq') && runtimeModulePath !== '/') {
         runtimeModulePath = path.join(runtimeModulePath, '..');
     }
+    runtimeModulePath = path.join(runtimeModulePath, '..');
+
     const modulesFolder = getNodeModulesFolder(runtimeModulePath);
     return modulesFolder ? path.join(modulesFolder, DEFAULT_RUNTIME_LOAD_PATH) : undefined;
+}
+
+/**
+ * Core plugin providers
+ */
+export enum CorePlugins {
+    Prisma = '@core/prisma',
+    Zod = '@core/zod',
+    Enhancer = '@core/enhancer',
 }

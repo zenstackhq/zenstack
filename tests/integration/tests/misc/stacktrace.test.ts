@@ -13,7 +13,7 @@ describe('Stack trace tests', () => {
     });
 
     it('stack trace', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -21,7 +21,7 @@ describe('Stack trace tests', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
         let error: Error | undefined = undefined;
 
         try {
@@ -31,7 +31,7 @@ describe('Stack trace tests', () => {
         }
 
         expect(error?.stack).toContain(
-            "Error calling enhanced Prisma method `create`: denied by policy: model entities failed 'create' check"
+            "Error calling enhanced Prisma method `model.create`: denied by policy: model entities failed 'create' check"
         );
         expect(error?.stack).toContain(`misc/stacktrace.test.ts`);
         expect((error as any).internalStack).toBeTruthy();

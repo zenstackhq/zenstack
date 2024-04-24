@@ -1,4 +1,3 @@
-import { enhance } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
@@ -14,7 +13,7 @@ describe('With Policy: client extensions', () => {
     });
 
     it('all model new method', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, enhanceRaw, prismaModule } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -29,13 +28,13 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { value: 1 } });
         await prisma.model.create({ data: { value: 2 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-getAll',
                 model: {
                     $allModels: {
                         async getAll<T, A>(this: T, args?: any) {
-                            const context = Prisma.getExtensionContext(this);
+                            const context = prismaModule.getExtensionContext(this);
                             const r = await (context as any).findMany(args);
                             console.log('getAll result:', r);
                             return r;
@@ -46,7 +45,7 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.getAll()).resolves.toHaveLength(2);
 
         // FIXME: extending an enhanced client doesn't work for this case
@@ -55,7 +54,7 @@ describe('With Policy: client extensions', () => {
     });
 
     it('one model new method', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, enhanceRaw, prismaModule } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -70,13 +69,13 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { value: 1 } });
         await prisma.model.create({ data: { value: 2 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-getAll',
                 model: {
                     model: {
                         async getAll<T, A>(this: T, args?: any) {
-                            const context = Prisma.getExtensionContext(this);
+                            const context = prismaModule.getExtensionContext(this);
                             const r = await (context as any).findMany(args);
                             return r;
                         },
@@ -86,12 +85,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.getAll()).resolves.toHaveLength(2);
     });
 
     it('add client method', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -104,7 +103,7 @@ describe('With Policy: client extensions', () => {
 
         let logged = false;
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-log',
                 client: {
@@ -122,7 +121,7 @@ describe('With Policy: client extensions', () => {
     });
 
     it('query override one model', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -138,7 +137,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { x: 1, y: 200 } });
         await prisma.model.create({ data: { x: 2, y: 300 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-queryOverride',
                 query: {
@@ -154,12 +153,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override all models', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -175,7 +174,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { x: 1, y: 200 } });
         await prisma.model.create({ data: { x: 2, y: 300 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-queryOverride',
                 query: {
@@ -192,12 +191,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override all operations', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -213,7 +212,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { x: 1, y: 200 } });
         await prisma.model.create({ data: { x: 2, y: 300 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-queryOverride',
                 query: {
@@ -230,12 +229,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('query override everything', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -251,7 +250,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { x: 1, y: 200 } });
         await prisma.model.create({ data: { x: 2, y: 300 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-queryOverride',
                 query: {
@@ -266,12 +265,12 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         await expect(db.model.findMany()).resolves.toHaveLength(1);
     });
 
     it('result mutation', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -285,7 +284,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { value: 0 } });
         await prisma.model.create({ data: { value: 1 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-resultMutation',
                 query: {
@@ -303,14 +302,14 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         const r = await db.model.findMany();
         expect(r).toHaveLength(1);
         expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ value: 2 })]));
     });
 
     it('result custom fields', async () => {
-        const { prisma, Prisma } = await loadSchema(
+        const { prisma, prismaModule, enhanceRaw } = await loadSchema(
             `
         model Model {
             id String @id @default(uuid())
@@ -324,7 +323,7 @@ describe('With Policy: client extensions', () => {
         await prisma.model.create({ data: { value: 0 } });
         await prisma.model.create({ data: { value: 1 } });
 
-        const ext = Prisma.defineExtension((_prisma: any) => {
+        const ext = prismaModule.defineExtension((_prisma: any) => {
             return _prisma.$extends({
                 name: 'prisma-extension-resultNewFields',
                 result: {
@@ -341,7 +340,7 @@ describe('With Policy: client extensions', () => {
         });
 
         const xprisma = prisma.$extends(ext);
-        const db = enhance(xprisma);
+        const db = enhanceRaw(xprisma);
         const r = await db.model.findMany();
         expect(r).toHaveLength(1);
         expect(r).toEqual(expect.arrayContaining([expect.objectContaining({ doubleValue: 2 })]));

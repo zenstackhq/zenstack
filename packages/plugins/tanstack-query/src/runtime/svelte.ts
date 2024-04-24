@@ -19,6 +19,8 @@ import {
     marshal,
     setupInvalidation,
     setupOptimisticUpdate,
+    type ExtraMutationOptions,
+    type ExtraQueryOptions,
     type FetchFn,
 } from './common';
 
@@ -52,20 +54,21 @@ export function getHooksContext() {
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>,
-    fetch?: FetchFn,
-    optimisticUpdate = false
+    options?: Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions,
+    fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
     return createQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, false, optimisticUpdate),
+        queryKey: getQueryKey(model, url, args, {
+            infinite: false,
+            optimisticUpdate: options?.optimisticUpdate !== false,
+        }),
         queryFn: () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false),
         ...options,
     });
@@ -89,7 +92,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     fetch?: FetchFn
 ) {
     return createInfiniteQuery<TQueryFnData, TError, TData>({
-        queryKey: getQueryKey(model, url, args, true),
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ pageParam }) =>
             fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false),
         ...options,
@@ -104,9 +107,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param modelMeta The model metadata.
  * @param url The request URL.
  * @param options The svelte-query options.
- * @param invalidateQueries Whether to invalidate queries after mutation.
  * @param checkReadBack Whether to check for read back errors and return undefined if found.
- * @param optimisticUpdate Whether to enable automatic optimistic update.
  * @returns useMutation hooks
  */
 export function useModelMutation<
@@ -120,11 +121,9 @@ export function useModelMutation<
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<MutationOptions<Result, TError, TArgs>, 'mutationFn'>,
+    options?: Omit<MutationOptions<Result, TError, TArgs>, 'mutationFn'> & ExtraMutationOptions,
     fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C,
-    optimisticUpdate = false
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -143,6 +142,9 @@ export function useModelMutation<
 
     const finalOptions = { ...options, mutationFn };
     const operation = url.split('/').pop();
+    const invalidateQueries = options?.invalidateQueries !== false;
+    const optimisticUpdate = !!options?.optimisticUpdate;
+
     if (operation) {
         const { logging } = getContext<APIContext>(SvelteQueryContextKey);
 

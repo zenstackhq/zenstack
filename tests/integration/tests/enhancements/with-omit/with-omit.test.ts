@@ -1,4 +1,3 @@
-import { withOmit } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import path from 'path';
 
@@ -33,9 +32,9 @@ describe('Omit test', () => {
     `;
 
     it('omit tests', async () => {
-        const { withOmit } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withOmit();
+        const db = enhance();
         const r = await db.user.create({
             include: { profile: true },
             data: {
@@ -79,9 +78,12 @@ describe('Omit test', () => {
     });
 
     it('customization', async () => {
-        const { prisma } = await loadSchema(model, { getPrismaOnly: true, output: './zen' });
+        const { prisma, enhance } = await loadSchema(model, {
+            output: './zen',
+            enhancements: ['omit'],
+        });
 
-        const db = withOmit(prisma, { loadPath: './zen' });
+        const db = enhance(prisma);
         const r = await db.user.create({
             include: { profile: true },
             data: {
@@ -93,7 +95,7 @@ describe('Omit test', () => {
         expect(r.password).toBeUndefined();
         expect(r.profile.image).toBeUndefined();
 
-        const db1 = withOmit(prisma, { modelMeta: require(path.resolve('./zen/model-meta')).default });
+        const db1 = enhance(prisma, { modelMeta: require(path.resolve('./zen/model-meta')).default });
         const r1 = await db1.user.create({
             include: { profile: true },
             data: {
@@ -107,7 +109,7 @@ describe('Omit test', () => {
     });
 
     it('to-many', async () => {
-        const { withOmit } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model User {
                 id String @id @default(cuid())
@@ -133,10 +135,11 @@ describe('Omit test', () => {
 
                 @@allow('all', true)
             }
-            `
+            `,
+            { enhancements: ['omit'] }
         );
 
-        const db = withOmit();
+        const db = enhance();
         const r = await db.user.create({
             include: { posts: { include: { images: true } } },
             data: {

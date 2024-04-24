@@ -1,91 +1,50 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-
-import path from 'path';
-import * as util from 'util';
+import deepcopy from 'deepcopy';
+import safeJsonStringify from 'safe-json-stringify';
+import { resolveField, type FieldInfo, type ModelMeta } from '..';
 import type { DbClientContract } from '../types';
-import type { EnhancementOptions } from './enhance';
 
 /**
  * Formats an object for pretty printing.
  */
-export function formatObject(value: unknown) {
-    return util.formatWithOptions({ depth: 20 }, value);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatObject(value: any, multiLine = true) {
+    return multiLine ? safeJsonStringify(value, undefined, 2) : safeJsonStringify(value);
 }
 
-let _PrismaClientValidationError: new (...args: unknown[]) => Error;
-let _PrismaClientKnownRequestError: new (...args: unknown[]) => Error;
-let _PrismaClientUnknownRequestError: new (...args: unknown[]) => Error;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function prismaClientValidationError(prisma: DbClientContract, prismaModule: any, message: string): Error {
+    throw new prismaModule.PrismaClientValidationError(message, { clientVersion: prisma._clientVersion });
+}
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function loadPrismaModule(prisma: any) {
-    // https://github.com/prisma/prisma/discussions/17832
-    if (prisma._engineConfig?.datamodelPath) {
-        // try engine path first
-        const loadPath = path.dirname(prisma._engineConfig.datamodelPath);
-        try {
-            const _prisma = require(loadPath).Prisma;
-            if (typeof _prisma !== 'undefined') {
-                return _prisma;
-            }
-        } catch {
-            // noop
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function prismaClientKnownRequestError(prisma: DbClientContract, prismaModule: any, ...args: unknown[]): Error {
+    return new prismaModule.PrismaClientKnownRequestError(...args);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function prismaClientUnknownRequestError(prismaModule: any, ...args: unknown[]): Error {
+    throw new prismaModule.PrismaClientUnknownRequestError(...args);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isUnsafeMutate(model: string, args: any, modelMeta: ModelMeta) {
+    if (!args) {
+        return false;
+    }
+    for (const k of Object.keys(args)) {
+        const field = resolveField(modelMeta, model, k);
+        if (field && (isAutoIncrementIdField(field) || field.isForeignKey)) {
+            return true;
         }
     }
-
-    try {
-        // Prisma v4
-        return require('@prisma/client/runtime');
-    } catch {
-        try {
-            // Prisma v5
-            return require('@prisma/client');
-        } catch (err) {
-            if (process.env.ZENSTACK_TEST === '1') {
-                // running in test, try cwd
-                try {
-                    return require(path.join(process.cwd(), 'node_modules/@prisma/client/runtime'));
-                } catch {
-                    return require(path.join(process.cwd(), 'node_modules/@prisma/client'));
-                }
-            } else {
-                throw err;
-            }
-        }
-    }
+    return false;
 }
 
-export function prismaClientValidationError(
-    prisma: DbClientContract,
-    options: EnhancementOptions | undefined,
-    message: string
-) {
-    if (!_PrismaClientValidationError) {
-        const _prisma = options?.prismaModule ?? loadPrismaModule(prisma);
-        _PrismaClientValidationError = _prisma.PrismaClientValidationError;
-    }
-    throw new _PrismaClientValidationError(message, { clientVersion: prisma._clientVersion });
+export function isAutoIncrementIdField(field: FieldInfo) {
+    return field.isId && field.isAutoIncrement;
 }
 
-export function prismaClientKnownRequestError(
-    prisma: DbClientContract,
-    options: EnhancementOptions | undefined,
-    ...args: unknown[]
-) {
-    if (!_PrismaClientKnownRequestError) {
-        const _prisma = options?.prismaModule ?? loadPrismaModule(prisma);
-        _PrismaClientKnownRequestError = _prisma.PrismaClientKnownRequestError;
-    }
-    return new _PrismaClientKnownRequestError(...args);
-}
-
-export function prismaClientUnknownRequestError(
-    prisma: DbClientContract,
-    options: EnhancementOptions | undefined,
-    ...args: unknown[]
-) {
-    if (!_PrismaClientUnknownRequestError) {
-        const _prisma = options?.prismaModule ?? loadPrismaModule(prisma);
-        _PrismaClientUnknownRequestError = _prisma.PrismaClientUnknownRequestError;
-    }
-    throw new _PrismaClientUnknownRequestError(...args);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function clone(value: unknown): any {
+    return value ? deepcopy(value) : {};
 }

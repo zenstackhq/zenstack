@@ -1,5 +1,5 @@
 import { lowerCaseFirst } from 'lower-case-first';
-import { ModelMeta, requireField } from '.';
+import { requireField, type ModelInfo, type ModelMeta } from '.';
 
 /**
  * Gets field names in a data model entity, filtering out internal fields.
@@ -47,7 +47,7 @@ export function zip<T1, T2>(x: Enumerable<T1>, y: Enumerable<T2>): Array<[T1, T2
 }
 
 export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound = false) {
-    const uniqueConstraints = modelMeta.uniqueConstraints[lowerCaseFirst(model)] ?? {};
+    const uniqueConstraints = modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints ?? {};
 
     const entries = Object.values(uniqueConstraints);
     if (entries.length === 0) {
@@ -58,4 +58,20 @@ export function getIdFields(modelMeta: ModelMeta, model: string, throwIfNotFound
     }
 
     return entries[0].fields.map((f) => requireField(modelMeta, model, f));
+}
+
+export function getModelInfo<Throw extends boolean = false>(
+    modelMeta: ModelMeta,
+    model: string,
+    throwIfNotFound: Throw = false as Throw
+): Throw extends true ? ModelInfo : ModelInfo | undefined {
+    const info = modelMeta.models[lowerCaseFirst(model)];
+    if (!info && throwIfNotFound) {
+        throw new Error(`Unable to load info for ${model}`);
+    }
+    return info;
+}
+
+export function isDelegateModel(modelMeta: ModelMeta, model: string) {
+    return !!getModelInfo(modelMeta, model)?.attributes?.some((attr) => attr.name === '@@delegate');
 }

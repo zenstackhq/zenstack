@@ -13,7 +13,7 @@ describe('With Policy: self relations', () => {
     });
 
     it('one-to-one', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model User {
                 id          Int     @id @default(autoincrement())
@@ -28,7 +28,7 @@ describe('With Policy: self relations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         // create denied
         await expect(
@@ -90,7 +90,7 @@ describe('With Policy: self relations', () => {
     });
 
     it('one-to-many', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model User {
                 id        Int     @id @default(autoincrement())
@@ -105,7 +105,7 @@ describe('With Policy: self relations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         // create denied
         await expect(
@@ -157,7 +157,7 @@ describe('With Policy: self relations', () => {
     });
 
     it('many-to-many', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
             model User {
                 id         Int     @id @default(autoincrement())
@@ -171,7 +171,7 @@ describe('With Policy: self relations', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         // create denied
         await expect(

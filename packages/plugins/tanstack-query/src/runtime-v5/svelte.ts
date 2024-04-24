@@ -22,6 +22,8 @@ import {
     marshal,
     setupInvalidation,
     setupOptimisticUpdate,
+    type ExtraMutationOptions,
+    type ExtraQueryOptions,
     type FetchFn,
 } from '../runtime/common';
 
@@ -55,19 +57,20 @@ export function getHooksContext() {
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The svelte-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args?: unknown,
-    options?: StoreOrVal<Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
-    fetch?: FetchFn,
-    optimisticUpdate = false
+    options?: StoreOrVal<Omit<CreateQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>> & ExtraQueryOptions,
+    fetch?: FetchFn
 ) {
     const reqUrl = makeUrl(url, args);
-    const queryKey = getQueryKey(model, url, args, false, optimisticUpdate);
+    const queryKey = getQueryKey(model, url, args, {
+        infinite: false,
+        optimisticUpdate: options?.optimisticUpdate !== false,
+    });
     const queryFn = () => fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
 
     let mergedOpt: any;
@@ -107,7 +110,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     options: StoreOrVal<Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey'>>,
     fetch?: FetchFn
 ) {
-    const queryKey = getQueryKey(model, url, args, true);
+    const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
     const queryFn = ({ pageParam }: { pageParam: unknown }) =>
         fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
 
@@ -144,7 +147,6 @@ function isStore<T>(opt: unknown): opt is Readable<T> {
  * @param modelMeta The model metadata.
  * @param url The request URL.
  * @param options The svelte-query options.
- * @param invalidateQueries Whether to invalidate queries after mutation.
  * @returns useMutation hooks
  */
 export function useModelMutation<
@@ -158,11 +160,9 @@ export function useModelMutation<
     method: 'POST' | 'PUT' | 'DELETE',
     url: string,
     modelMeta: ModelMeta,
-    options?: Omit<MutationOptions<Result, TError, TArgs>, 'mutationFn'>,
+    options?: Omit<MutationOptions<Result, TError, TArgs>, 'mutationFn'> & ExtraMutationOptions,
     fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C,
-    optimisticUpdate = false
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -181,6 +181,8 @@ export function useModelMutation<
 
     const finalOptions = { ...options, mutationFn };
     const operation = url.split('/').pop();
+    const invalidateQueries = options?.invalidateQueries !== false;
+    const optimisticUpdate = !!options?.optimisticUpdate;
 
     if (operation) {
         const { logging } = getContext<APIContext>(SvelteQueryContextKey);

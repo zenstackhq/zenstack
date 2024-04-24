@@ -1,0 +1,118 @@
+version: 2
+updates:
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/ide/jetbrains'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/language'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/misc/redwood'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/plugins/openapi'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/plugins/swr'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/plugins/tanstack-query'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/plugins/trpc'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/runtime'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/sdk'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/server'
+
+    - package-ecosystem: 'npm'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/packages/testtools'
+
+    - package-ecosystem: 'github-actions'
+      schedule:
+          interval: 'daily'
+          time: '02:00'
+      commit-message:
+          prefix: ':arrow_up: maint'
+          include: scope
+      directory: '/'

@@ -167,6 +167,10 @@ class RequestHandler extends APIHandlerBase {
             status: 403,
             title: 'Operation is forbidden',
         },
+        validationError: {
+            status: 422,
+            title: 'Operation is unprocessable due to validation errors',
+        },
         unknownError: {
             status: 400,
             title: 'Unknown error',
@@ -699,7 +703,7 @@ class RequestHandler extends APIHandlerBase {
                         error: this.makeError(
                             'invalidPayload',
                             fromZodError(parsed.error).message,
-                            undefined,
+                            422,
                             CrudFailureReason.DATA_VALIDATION_VIOLATION,
                             parsed.error
                         ),
@@ -956,7 +960,7 @@ class RequestHandler extends APIHandlerBase {
 
     private buildTypeMap(logger: LoggerConfig | undefined, modelMeta: ModelMeta): void {
         this.typeMap = {};
-        for (const [model, fields] of Object.entries(modelMeta.fields)) {
+        for (const [model, { fields }] of Object.entries(modelMeta.models)) {
             const idFields = getIdFields(modelMeta, model);
             if (idFields.length === 0) {
                 logWarning(logger, `Not including model ${model} in the API because it has no ID field`);
@@ -1013,7 +1017,7 @@ class RequestHandler extends APIHandlerBase {
         this.serializers = new Map();
         const linkers: Record<string, Linker<any>> = {};
 
-        for (const model of Object.keys(modelMeta.fields)) {
+        for (const model of Object.keys(modelMeta.models)) {
             const ids = getIdFields(modelMeta, model);
             if (ids.length !== 1) {
                 continue;
@@ -1027,7 +1031,7 @@ class RequestHandler extends APIHandlerBase {
             linkers[model] = linker;
 
             let projection: Record<string, 0> | null = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.fields[model])) {
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.models[model].fields)) {
                 if (fieldMeta.isDataModel) {
                     projection[field] = 0;
                 }
@@ -1049,14 +1053,14 @@ class RequestHandler extends APIHandlerBase {
         }
 
         // set relators
-        for (const model of Object.keys(modelMeta.fields)) {
+        for (const model of Object.keys(modelMeta.models)) {
             const serializer = this.serializers.get(model);
             if (!serializer) {
                 continue;
             }
 
             const relators: Record<string, Relator<any>> = {};
-            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.fields[model])) {
+            for (const [field, fieldMeta] of Object.entries<FieldInfo>(modelMeta.models[model].fields)) {
                 if (!fieldMeta.isDataModel) {
                     continue;
                 }
@@ -1117,7 +1121,7 @@ class RequestHandler extends APIHandlerBase {
             throw new Error(`serializer not found for model ${model}`);
         }
 
-        // serialize to JSON:API strcuture
+        // serialize to JSON:API structure
         const serialized = await serializer.serialize(items, options);
 
         // convert the serialization result to plain object otherwise SuperJSON won't work
@@ -1577,13 +1581,17 @@ class RequestHandler extends APIHandlerBase {
     private handlePrismaError(err: unknown) {
         if (isPrismaClientKnownRequestError(err)) {
             if (err.code === PrismaErrorCode.CONSTRAINED_FAILED) {
-                return this.makeError(
-                    'forbidden',
-                    undefined,
-                    403,
-                    err.meta?.reason as string,
-                    err.meta?.zodErrors as ZodError
-                );
+                if (err.meta?.reason === CrudFailureReason.DATA_VALIDATION_VIOLATION) {
+                    return this.makeError(
+                        'validationError',
+                        undefined,
+                        422,
+                        err.meta?.reason as string,
+                        err.meta?.zodErrors as ZodError
+                    );
+                } else {
+                    return this.makeError('forbidden', undefined, 403, err.meta?.reason as string);
+                }
             } else if (err.code === 'P2025' || err.code === 'P2018') {
                 return this.makeError('notFound');
             } else {
@@ -1656,3 +1664,5 @@ export default function makeHandler(options: Options) {
     const handler = new RequestHandler(options);
     return handler.handleRequest.bind(handler);
 }
+
+export { makeHandler as RestApiHandler };

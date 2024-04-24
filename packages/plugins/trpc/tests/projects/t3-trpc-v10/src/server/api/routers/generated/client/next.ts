@@ -10,7 +10,7 @@ export function createTRPCNext<
     TRouter extends AnyRouter,
     TPath extends string | undefined = undefined,
     TSSRContext extends NextPageContext = NextPageContext,
-    TFlags = null,
+    TFlags = null
 >(opts: Parameters<typeof _createTRPCNext>[0]) {
     const r: CreateTRPCNext<TRouter, TSSRContext, TFlags> = _createTRPCNext<TRouter, TSSRContext, TFlags>(opts);
     return r as DeepOverrideAtPath<CreateTRPCNext<TRouter, TSSRContext, TFlags>, ClientType<TRouter>, TPath>;

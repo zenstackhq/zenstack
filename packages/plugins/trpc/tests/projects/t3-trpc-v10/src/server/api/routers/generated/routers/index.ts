@@ -1,25 +1,17 @@
 /* eslint-disable */
-import {
-    unsetMarker,
-    type AnyRouter,
-    type AnyRootConfig,
-    type CreateRouterInner,
-    type Procedure,
-    type ProcedureBuilder,
-    type ProcedureParams,
-    type ProcedureRouterRecord,
-    type ProcedureType,
-} from '@trpc/server';
-import { type PrismaClient } from '@prisma/client';
-import createUserRouter from './User.router';
-import createPostRouter from './Post.router';
-import { ClientType as UserClientType } from './User.router';
-import { ClientType as PostClientType } from './Post.router';
+import { unsetMarker, type AnyRouter, type AnyRootConfig, type CreateRouterInner, type Procedure, type ProcedureBuilder, type ProcedureParams, type ProcedureRouterRecord, type ProcedureType } from "@trpc/server";
+import { type PrismaClient } from "@prisma/client";
+import createUserRouter from "./User.router";
+import createPostRouter from "./Post.router";
+import { ClientType as UserClientType } from "./User.router";
+import { ClientType as PostClientType } from "./Post.router";
 
 export type BaseConfig = AnyRootConfig;
 
-export type RouterFactory<Config extends BaseConfig> = <ProcRouterRecord extends ProcedureRouterRecord>(
-    procedures: ProcRouterRecord,
+export type RouterFactory<Config extends BaseConfig> = <
+    ProcRouterRecord extends ProcedureRouterRecord
+>(
+    procedures: ProcRouterRecord
 ) => CreateRouterInner<Config, ProcRouterRecord>;
 
 export type UnsetMarker = typeof unsetMarker;
@@ -39,7 +31,8 @@ export function createRouter<Config extends BaseConfig>(router: RouterFactory<Co
     return router({
         user: createUserRouter(router, procedure),
         post: createPostRouter(router, procedure),
-    });
+    }
+    );
 }
 
 export interface ClientType<AppRouter extends AnyRouter> {

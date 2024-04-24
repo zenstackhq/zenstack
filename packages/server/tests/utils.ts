@@ -5,11 +5,11 @@ model User {
     id String @id @default(cuid())
     createdAt DateTime @default (now())
     updatedAt DateTime @updatedAt
-    email String @unique
+    email String @unique @email
     posts Post[]
 
     @@allow('all', auth() == this)
-    @@allow('read', true)
+    @@allow('create,read', true)
 }
 
 model Post {

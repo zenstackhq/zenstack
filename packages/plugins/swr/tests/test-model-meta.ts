@@ -11,41 +11,45 @@ const fieldDefaults = {
 };
 
 export const modelMeta: ModelMeta = {
-    fields: {
+    models: {
         user: {
-            id: {
-                ...fieldDefaults,
-                type: 'String',
-                isId: true,
-                name: 'id',
-                isOptional: false,
+            name: 'user',
+            fields: {
+                id: {
+                    ...fieldDefaults,
+                    type: 'String',
+                    isId: true,
+                    name: 'id',
+                    isOptional: false,
+                },
+                name: { ...fieldDefaults, type: 'String', name: 'name' },
+                email: { ...fieldDefaults, type: 'String', name: 'name', isOptional: false },
+                posts: {
+                    ...fieldDefaults,
+                    type: 'Post',
+                    isDataModel: true,
+                    isArray: true,
+                    name: 'posts',
+                },
             },
-            name: { ...fieldDefaults, type: 'String', name: 'name' },
-            email: { ...fieldDefaults, type: 'String', name: 'name', isOptional: false },
-            posts: {
-                ...fieldDefaults,
-                type: 'Post',
-                isDataModel: true,
-                isArray: true,
-                name: 'posts',
-            },
+            uniqueConstraints: { id: { name: 'id', fields: ['id'] } },
         },
         post: {
-            id: {
-                ...fieldDefaults,
-                type: 'String',
-                isId: true,
-                name: 'id',
-                isOptional: false,
+            name: 'post',
+            fields: {
+                id: {
+                    ...fieldDefaults,
+                    type: 'String',
+                    isId: true,
+                    name: 'id',
+                    isOptional: false,
+                },
+                title: { ...fieldDefaults, type: 'String', name: 'title' },
+                owner: { ...fieldDefaults, type: 'User', name: 'owner', isDataModel: true, isRelationOwner: true },
+                ownerId: { ...fieldDefaults, type: 'User', name: 'owner', isForeignKey: true },
             },
-            title: { ...fieldDefaults, type: 'String', name: 'title' },
-            owner: { ...fieldDefaults, type: 'User', name: 'owner', isDataModel: true, isRelationOwner: true },
-            ownerId: { ...fieldDefaults, type: 'User', name: 'owner', isForeignKey: true },
+            uniqueConstraints: { id: { name: 'id', fields: ['id'] } },
         },
-    },
-    uniqueConstraints: {
-        user: { id: { name: 'id', fields: ['id'] } },
-        post: { id: { name: 'id', fields: ['id'] } },
     },
     deleteCascade: {
         user: ['Post'],

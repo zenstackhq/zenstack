@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
-import { CrudFailureReason, ModelMeta, withPolicy } from '@zenstackhq/runtime';
+import { CrudFailureReason, type ModelMeta } from '@zenstackhq/runtime';
 import { loadSchema, run } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
@@ -1014,7 +1014,7 @@ describe('REST server tests', () => {
                         query: { include: 'posts.comments' },
                         prisma,
                     });
-                    expect(r.body.included).toHaveLength(3);
+                    expect(r.body.included).toHaveLength(4);
                     expect(r.body.included[2]).toMatchObject({
                         type: 'comment',
                         attributes: { content: 'Comment1' },
@@ -1027,7 +1027,7 @@ describe('REST server tests', () => {
                         query: { include: 'posts.comments,profile' },
                         prisma,
                     });
-                    expect(r.body.included).toHaveLength(4);
+                    expect(r.body.included).toHaveLength(5);
                     const profile = r.body.included.find((item: any) => item.type === 'profile');
                     expect(profile).toMatchObject({
                         type: 'profile',
@@ -1333,7 +1333,7 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(400);
+                    expect(r.status).toBe(422);
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
@@ -1670,7 +1670,7 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(400);
+                    expect(r.status).toBe(422);
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                 });
 
@@ -1940,7 +1940,7 @@ describe('REST server tests', () => {
                         prisma,
                     });
 
-                    expect(r.status).toBe(400);
+                    expect(r.status).toBe(422);
                     expect(r.body.errors[0].code).toBe('invalid-payload');
                     expect(r.body.errors[0].reason).toBe(CrudFailureReason.DATA_VALIDATION_VIOLATION);
                     expect(r.body.errors[0].zodErrors).toBeTruthy();
@@ -1970,7 +1970,7 @@ describe('REST server tests', () => {
         beforeAll(async () => {
             const params = await loadSchema(schema);
 
-            prisma = withPolicy(params.prisma, undefined, params);
+            prisma = params.enhanceRaw(params.prisma, params);
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 
@@ -2083,7 +2083,7 @@ describe('REST server tests', () => {
         beforeAll(async () => {
             const params = await loadSchema(schema);
 
-            prisma = withPolicy(params.prisma, undefined, params);
+            prisma = params.enhanceRaw(params.prisma, params);
             zodSchemas = params.zodSchemas;
             modelMeta = params.modelMeta;
 

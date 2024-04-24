@@ -1,2 +1,2 @@
-export { default as SvelteKitHandler } from './handler';
+export { SvelteKitHandler } from './handler';
 export * from './handler';

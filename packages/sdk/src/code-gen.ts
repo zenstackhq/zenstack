@@ -1,28 +1,5 @@
-import prettier from 'prettier';
-import { CompilerOptions, DiagnosticCategory, ModuleKind, Project, ScriptTarget, SourceFile } from 'ts-morph';
+import { CompilerOptions, DiagnosticCategory, ModuleKind, Project, ScriptTarget } from 'ts-morph';
 import { PluginError } from './types';
-
-const formatOptions = {
-    trailingComma: 'all',
-    tabWidth: 4,
-    printWidth: 120,
-    bracketSpacing: true,
-    semi: true,
-    singleQuote: true,
-    useTabs: false,
-    parser: 'typescript',
-} as const;
-
-async function formatFile(sourceFile: SourceFile) {
-    try {
-        const content = sourceFile.getFullText();
-        const formatted = await prettier.format(content, formatOptions);
-        sourceFile.replaceWithText(formatted);
-        await sourceFile.save();
-    } catch {
-        /* empty */
-    }
-}
 
 /**
  * Creates a TS code generation project
@@ -46,11 +23,7 @@ export function createProject(options?: CompilerOptions) {
  * Persists a TS project to disk.
  */
 export async function saveProject(project: Project) {
-    await Promise.all(
-        project.getSourceFiles().map(async (sf) => {
-            await formatFile(sf);
-        })
-    );
+    project.getSourceFiles().forEach((sf) => sf.formatText());
     await project.save();
 }
 

@@ -1,12 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import type { DMMF, DMMF as PrismaDMMF } from '@prisma/generator-helper';
-import { Model } from '@zenstackhq/language/ast';
-import { getPrismaClientImportSpec, getPrismaVersion } from '@zenstackhq/sdk';
+import { indentString, type PluginOptions } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
-import { indentString } from '@zenstackhq/sdk/utils';
+import { getPrismaClientImportSpec, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
-import * as semver from 'semver';
-import { Project } from 'ts-morph';
+import type { Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
 import { AggregateOperationSupport, TransformerParams } from './types';
 
@@ -22,13 +19,12 @@ export default class Transformer {
 
     static enumNames: string[] = [];
     static rawOpsMap: { [name: string]: string } = {};
-    static provider: string;
     private static outputPath = './generated';
     private hasJson = false;
     private hasDecimal = false;
     private project: Project;
-    private zmodel: Model;
-    private inputObjectTypes: DMMF.InputType[];
+    private inputObjectTypes: PrismaDMMF.InputType[];
+    public sourceFiles: SourceFile[] = [];
 
     constructor(params: TransformerParams) {
         this.originalName = params.name ?? '';
@@ -39,7 +35,6 @@ export default class Transformer {
         this.aggregateOperationSupport = params.aggregateOperationSupport ?? {};
         this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
-        this.zmodel = params.zmodel;
         this.inputObjectTypes = params.inputObjectTypes;
     }
 
@@ -59,12 +54,17 @@ export default class Transformer {
                 `${name}`,
                 `z.enum(${JSON.stringify(enumType.values)})`
             )}`;
-            this.project.createSourceFile(filePath, content, { overwrite: true });
+            this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
         }
-        this.project.createSourceFile(
-            path.join(Transformer.outputPath, `enums/index.ts`),
-            this.enumTypes.map((enumType) => `export * from './${upperCaseFirst(enumType.name)}.schema';`).join('\n'),
-            { overwrite: true }
+
+        this.sourceFiles.push(
+            this.project.createSourceFile(
+                path.join(Transformer.outputPath, `enums/index.ts`),
+                this.enumTypes
+                    .map((enumType) => `export * from './${upperCaseFirst(enumType.name)}.schema';`)
+                    .join('\n'),
+                { overwrite: true }
+            )
         );
     }
 
@@ -76,13 +76,13 @@ export default class Transformer {
         return `export const ${name}Schema = ${schema}`;
     }
 
-    generateObjectSchema(generateUnchecked: boolean) {
+    generateObjectSchema(generateUnchecked: boolean, options: PluginOptions) {
         const zodObjectSchemaFields = this.generateObjectSchemaFields(generateUnchecked);
-        const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields);
+        const objectSchema = this.prepareObjectSchema(zodObjectSchemaFields, options);
 
         const filePath = path.join(Transformer.outputPath, `objects/${this.name}.schema.ts`);
         const content = '/* eslint-disable */\n' + objectSchema;
-        this.project.createSourceFile(filePath, content, { overwrite: true });
+        this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
         return `${this.name}.schema`;
     }
 
@@ -117,6 +117,8 @@ export default class Transformer {
                 return result;
             }
 
+            // TODO: unify the following with `schema-gen.ts`
+
             if (inputType.type === 'String') {
                 result.push(this.wrapWithZodValidators('z.string()', field, inputType));
             } else if (inputType.type === 'Int' || inputType.type === 'Float') {
@@ -131,7 +133,13 @@ export default class Transformer {
             } else if (inputType.type === 'DateTime') {
                 result.push(this.wrapWithZodValidators(['z.date()', 'z.string().datetime()'], field, inputType));
             } else if (inputType.type === 'Bytes') {
-                result.push(this.wrapWithZodValidators(`z.instanceof(Uint8Array)`, field, inputType));
+                result.push(
+                    this.wrapWithZodValidators(
+                        `z.custom<Buffer | Uint8Array>(data => data instanceof Uint8Array)`,
+                        field,
+                        inputType
+                    )
+                );
             } else if (inputType.type === 'Json') {
                 this.hasJson = true;
                 result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
@@ -184,7 +192,7 @@ export default class Transformer {
     wrapWithZodValidators(
         mainValidators: string | string[],
         field: PrismaDMMF.SchemaArg,
-        inputType: PrismaDMMF.SchemaArgInputType
+        inputType: PrismaDMMF.InputTypeRef
     ) {
         let line = '';
 
@@ -214,11 +222,7 @@ export default class Transformer {
         this.schemaImports.add(upperCaseFirst(name));
     }
 
-    generatePrismaStringLine(
-        field: PrismaDMMF.SchemaArg,
-        inputType: PrismaDMMF.SchemaArgInputType,
-        inputsLength: number
-    ) {
+    generatePrismaStringLine(field: PrismaDMMF.SchemaArg, inputType: PrismaDMMF.InputTypeRef, inputsLength: number) {
         const isEnum = inputType.location === 'enumTypes';
 
         const { isModelQueryType, modelName, queryName } = this.checkIsModelQueryType(inputType.type as string);
@@ -254,12 +258,12 @@ export default class Transformer {
         return zodStringWithMainType;
     }
 
-    prepareObjectSchema(zodObjectSchemaFields: string[]) {
+    prepareObjectSchema(zodObjectSchemaFields: string[], options: PluginOptions) {
         const objectSchema = `${this.generateExportObjectSchemaStatement(
             this.addFinalWrappers({ zodStringFields: zodObjectSchemaFields })
         )}\n`;
 
-        const prismaImportStatement = this.generateImportPrismaStatement();
+        const prismaImportStatement = this.generateImportPrismaStatement(options);
 
         const json = this.generateJsonSchemaImplementation();
 
@@ -285,10 +289,10 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return this.wrapWithZodObject(fields) + '.strict()';
     }
 
-    generateImportPrismaStatement() {
+    generateImportPrismaStatement(options: PluginOptions) {
         const prismaClientImportPath = getPrismaClientImportSpec(
-            this.zmodel,
-            path.resolve(Transformer.outputPath, './objects')
+            path.resolve(Transformer.outputPath, './objects'),
+            options
         );
         return `import type { Prisma } from '${prismaClientImportPath}';\n\n`;
     }
@@ -384,8 +388,11 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return wrapped;
     }
 
-    async generateInputSchemas(generateUnchecked: boolean) {
+    async generateInputSchemas(options: PluginOptions) {
         const globalExports: string[] = [];
+
+        // whether Prisma's Unchecked* series of input types should be generated
+        const generateUnchecked = options.noUncheckedInput !== true;
 
         for (const modelOperation of this.modelOperations) {
             const {
@@ -421,7 +428,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
 
             let imports = [
                 `import { z } from 'zod'`,
-                this.generateImportPrismaStatement(),
+                this.generateImportPrismaStatement(options),
                 selectImport,
                 includeImport,
             ];
@@ -563,10 +570,6 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
 
             const aggregateOperations = [];
 
-            // DMMF messed up the model name casing used in the aggregate operations,
-            // AND the casing behavior varies from version to version -_-||
-            const prismaVersion = getPrismaVersion();
-
             if (this.aggregateOperationSupport[modelName]?.count) {
                 imports.push(
                     `import { ${modelName}CountAggregateInputObjectSchema } from '../objects/${modelName}CountAggregateInput.schema'`
@@ -624,12 +627,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                     ', '
                 )} }),`;
 
-                // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
-                if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-                    operations.push(['groupBy', origModelName]);
-                } else {
-                    operations.push(['groupBy', modelName]);
-                }
+                operations.push(['groupBy', origModelName]);
             }
 
             // count
@@ -666,7 +664,7 @@ ${operations
             } as ${modelName}InputSchemaType;
                         `;
 
-            this.project.createSourceFile(filePath, content, { overwrite: true });
+            this.sourceFiles.push(this.project.createSourceFile(filePath, content, { overwrite: true }));
         }
 
         const indexFilePath = path.join(Transformer.outputPath, 'input/index.ts');
@@ -674,7 +672,7 @@ ${operations
 /* eslint-disable */
 ${globalExports.join(';\n')}
 `;
-        this.project.createSourceFile(indexFilePath, indexContent, { overwrite: true });
+        this.sourceFiles.push(this.project.createSourceFile(indexFilePath, indexContent, { overwrite: true }));
     }
 
     generateImportStatements(imports: (string | undefined)[]) {

@@ -1,4 +1,4 @@
-import type { DMMF } from '@prisma/generator-helper';
+import type { DMMF } from '../prisma';
 
 export function checkModelHasModelRelation(model: DMMF.Model) {
     const { fields: modelFields } = model;

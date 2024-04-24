@@ -1,7 +1,9 @@
 /// <reference types="@types/jest" />
 
 import { loadSchema, normalizePath } from '@zenstackhq/testtools';
+import fs from 'fs';
 import path from 'path';
+import tmp from 'tmp';
 
 describe('SWR Plugin Tests', () => {
     let origDir: string;
@@ -68,5 +70,60 @@ ${sharedModel}
                 compile: true,
             }
         );
+    });
+
+    it('clear output', async () => {
+        const { name: projectDir } = tmp.dirSync();
+        fs.mkdirSync(path.join(projectDir, 'swr'), { recursive: true });
+        fs.writeFileSync(path.join(projectDir, 'swr', 'test.txt'), 'hello');
+
+        await loadSchema(
+            `
+        plugin swr {
+            provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+            output = '$projectRoot/swr'
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique
+            password String @omit
+        }
+        `,
+            {
+                pushDb: false,
+                projectDir,
+                extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`],
+            }
+        );
+
+        expect(fs.existsSync(path.join(projectDir, 'swr', 'test.txt'))).toBeFalsy();
+    });
+
+    it('existing output as file', async () => {
+        const { name: projectDir } = tmp.dirSync();
+        fs.writeFileSync(path.join(projectDir, 'swr'), 'hello');
+
+        await expect(
+            loadSchema(
+                `
+        plugin swr {
+            provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+            output = '$projectRoot/swr'
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String
+            password String @omit
+        }        
+        `,
+                { pushDb: false, projectDir, extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`] }
+            )
+        ).rejects.toThrow('already exists and is not a directory');
     });
 });

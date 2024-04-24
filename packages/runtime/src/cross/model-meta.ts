@@ -4,9 +4,21 @@ import { lowerCaseFirst } from 'lower-case-first';
  * Runtime information of a data model or field attribute
  */
 export type RuntimeAttribute = {
+    /**
+     * Attribute name
+     */
     name: string;
+
+    /**
+     * Attribute arguments
+     */
     args: Array<{ name?: string; value: unknown }>;
 };
+
+/**
+ * Function for computing default value for a field
+ */
+export type FieldDefaultValueProvider = (userContext: unknown) => unknown;
 
 /**
  * Runtime information of a data model field
@@ -63,9 +75,26 @@ export type FieldInfo = {
     isForeignKey?: boolean;
 
     /**
-     * Mapping from foreign key field names to relation field names
+     * If the field is a foreign key field, the field name of the corresponding relation field.
+     * Only available on foreign key fields.
+     */
+    relationField?: string;
+
+    /**
+     * Mapping from foreign key field names to relation field names.
+     * Only available on relation fields.
      */
     foreignKeyMapping?: Record<string, string>;
+
+    /**
+     * Model from which the field is inherited
+     */
+    inheritedFrom?: string;
+
+    /**
+     * A function that provides a default value for the field
+     */
+    defaultValueProvider?: FieldDefaultValueProvider;
 
     /**
      * If the field is an auto-increment field
@@ -80,23 +109,53 @@ export type FieldInfo = {
 export type UniqueConstraint = { name: string; fields: string[] };
 
 /**
+ * Metadata for a data model
+ */
+export type ModelInfo = {
+    /**
+     * Model name
+     */
+    name: string;
+
+    /**
+     * Base types (not including abstract base models).
+     */
+    baseTypes?: string[];
+
+    /**
+     * Fields
+     */
+    fields: Record<string, FieldInfo>;
+
+    /**
+     * Unique constraints
+     */
+    uniqueConstraints?: Record<string, UniqueConstraint>;
+
+    /**
+     * Attributes on the model
+     */
+    attributes?: RuntimeAttribute[];
+
+    /**
+     * Discriminator field name
+     */
+    discriminator?: string;
+};
+
+/**
  * ZModel data model metadata
  */
 export type ModelMeta = {
     /**
-     * Model fields
+     * Data models
      */
-    fields: Record<string, Record<string, FieldInfo>>;
+    models: Record<string, ModelInfo>;
 
     /**
-     * Model unique constraints
+     * Mapping from model name to models that will be deleted because of it due to cascade delete
      */
-    uniqueConstraints: Record<string, Record<string, UniqueConstraint>>;
-
-    /**
-     * Information for cascading delete
-     */
-    deleteCascade: Record<string, string[]>;
+    deleteCascade?: Record<string, string[]>;
 
     /**
      * Name of model that backs the `auth()` function
@@ -107,8 +166,8 @@ export type ModelMeta = {
 /**
  * Resolves a model field to its metadata. Returns undefined if not found.
  */
-export function resolveField(modelMeta: ModelMeta, model: string, field: string) {
-    return modelMeta.fields[lowerCaseFirst(model)]?.[field];
+export function resolveField(modelMeta: ModelMeta, model: string, field: string): FieldInfo | undefined {
+    return modelMeta.models[lowerCaseFirst(model)]?.fields?.[field];
 }
 
 /**
@@ -126,5 +185,12 @@ export function requireField(modelMeta: ModelMeta, model: string, field: string)
  * Gets all fields of a model.
  */
 export function getFields(modelMeta: ModelMeta, model: string) {
-    return modelMeta.fields[lowerCaseFirst(model)];
+    return modelMeta.models[lowerCaseFirst(model)]?.fields;
+}
+
+/**
+ * Gets unique constraints of a model.
+ */
+export function getUniqueConstraints(modelMeta: ModelMeta, model: string) {
+    return modelMeta.models[lowerCaseFirst(model)]?.uniqueConstraints;
 }

@@ -1,5 +1,6 @@
 import type { DMMF } from '@prisma/generator-helper';
 import { Model } from '@zenstackhq/language/ast';
+import type { Project } from 'ts-morph';
 
 /**
  * Plugin configuration option value type
@@ -9,22 +10,27 @@ export type OptionValue = string | number | boolean;
 /**
  * Plugin configuration options
  */
-export type PluginOptions = {
+export type PluginDeclaredOptions = {
     /***
      * The provider package
      */
-    provider?: string;
+    provider: string;
+} & Record<string, OptionValue | OptionValue[]>;
 
+/**
+ * Plugin configuration options for execution
+ */
+export type PluginOptions = {
     /**
-     * The path of the ZModel schema
+     * ZModel schema absolute path
      */
     schemaPath: string;
 
     /**
-     * The name of the plugin
+     * PrismaClient import path, either relative to `schemaPath` or absolute
      */
-    name: string;
-} & Record<string, OptionValue | OptionValue[]>;
+    prismaClientPath?: string;
+} & PluginDeclaredOptions;
 
 /**
  * Global options that apply to all plugins
@@ -39,6 +45,34 @@ export type PluginGlobalOptions = {
      * Whether to compile the generated code
      */
     compile: boolean;
+
+    /**
+     * The `ts-morph` project used for code generation.
+     * @private
+     */
+    tsProject: Project;
+};
+
+/**
+ * Plugin run results.
+ */
+export type PluginResult = {
+    /**
+     * Warnings
+     */
+    warnings: string[];
+
+    /**
+     * PrismaClient path, either relative to zmodel path or absolute, if the plugin
+     * generated a PrismaClient
+     */
+    prismaClientPath?: string;
+
+    /**
+     * An optional Prisma DMMF document that a plugin can generate
+     * @private
+     */
+    dmmf?: DMMF.Document;
 };
 
 /**
@@ -47,9 +81,9 @@ export type PluginGlobalOptions = {
 export type PluginFunction = (
     model: Model,
     options: PluginOptions,
-    dmmf?: DMMF.Document,
+    dmmf: DMMF.Document | undefined,
     globalOptions?: PluginGlobalOptions
-) => Promise<string[]> | string[] | Promise<void> | void;
+) => Promise<PluginResult> | PluginResult | Promise<void> | void;
 
 /**
  * Plugin error

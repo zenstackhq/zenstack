@@ -4,6 +4,7 @@ import type { ModelMeta } from './model-meta';
 import { NestedReadVisitor } from './nested-read-visitor';
 import { NestedWriteVisitor } from './nested-write-visitor';
 import type { PrismaWriteActionType } from './types';
+import { getModelInfo } from './utils';
 
 /**
  * Gets models read (including nested ones) given a query args.
@@ -71,6 +72,11 @@ export async function getMutatedModels(
         await visitor.visit(model, operation, mutationArgs);
     }
 
+    // include delegate base models recursively
+    result.forEach((m) => {
+        getBaseRecursively(m, modelMeta, result);
+    });
+
     return [...result];
 }
 
@@ -81,7 +87,7 @@ function collectDeleteCascades(model: string, modelMeta: ModelMeta, result: Set<
     }
     visited.add(model);
 
-    const cascades = modelMeta.deleteCascade[lowerCaseFirst(model)];
+    const cascades = modelMeta.deleteCascade?.[lowerCaseFirst(model)];
 
     if (!cascades) {
         return;
@@ -91,4 +97,14 @@ function collectDeleteCascades(model: string, modelMeta: ModelMeta, result: Set<
         result.add(m);
         collectDeleteCascades(m, modelMeta, result, visited);
     });
+}
+
+function getBaseRecursively(model: string, modelMeta: ModelMeta, result: Set<string>) {
+    const bases = getModelInfo(modelMeta, model)?.baseTypes;
+    if (bases) {
+        bases.forEach((base) => {
+            result.add(base);
+            getBaseRecursively(base, modelMeta, result);
+        });
+    }
 }

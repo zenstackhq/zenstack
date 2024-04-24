@@ -45,9 +45,9 @@ describe('With Policy: relation one-to-one filter', () => {
     `;
 
     it('is filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -152,9 +152,9 @@ describe('With Policy: relation one-to-one filter', () => {
     });
 
     it('isNot filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -261,9 +261,9 @@ describe('With Policy: relation one-to-one filter', () => {
     });
 
     it('direct object filter', async () => {
-        const { withPolicy } = await loadSchema(model);
+        const { enhance } = await loadSchema(model);
 
-        const db = withPolicy();
+        const db = enhance();
 
         // m1 with m2 and m3
         await db.m1.create({

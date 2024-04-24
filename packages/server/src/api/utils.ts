@@ -39,12 +39,15 @@ export function registerCustomSerializers() {
         'Decimal'
     );
 
-    SuperJSON.registerCustom<Buffer, string>(
-        {
-            isApplicable: (v): v is Buffer => Buffer.isBuffer(v),
-            serialize: (v) => v.toString('base64'),
-            deserialize: (v) => Buffer.from(v, 'base64'),
-        },
-        'Bytes'
-    );
+    // `Buffer` is not available in edge runtime
+    if (globalThis.Buffer) {
+        SuperJSON.registerCustom<Buffer, string>(
+            {
+                isApplicable: (v): v is Buffer => Buffer.isBuffer(v),
+                serialize: (v) => v.toString('base64'),
+                deserialize: (v) => Buffer.from(v, 'base64'),
+            },
+            'Bytes'
+        );
+    }
 }
