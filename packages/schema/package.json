@@ -101,7 +101,7 @@
         "langium": "1.3.1",
         "lower-case-first": "^2.0.2",
         "mixpanel": "^0.17.0",
-        "ora": "^5.4.1",
+        "ora": "^8.0.1",
         "pluralize": "^8.0.0",
         "pretty-repl": "^4.0.0",
         "promisify": "^0.0.3",
