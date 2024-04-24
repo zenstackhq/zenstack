@@ -43,7 +43,7 @@
         "colors": "1.4.0",
         "ts-morph": "^16.0.0",
         "@redwoodjs/cli-helpers": "^6.6.0",
-        "execa": "^5.0.0",
+        "execa": "^8.0.1",
         "listr2": "^6.0.0",
         "terminal-link": "^2.0.0",
         "yargs": "^17.7.2"
