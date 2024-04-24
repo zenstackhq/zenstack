@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@readme/openapi-parser": "^2.4.0",
-    "@types/pluralize": "^0.0.29",
+    "@types/pluralize": "^0.0.33",
     "@types/semver": "^7.3.13",
     "@types/tmp": "^0.2.3",
     "@zenstackhq/testtools": "workspace:*",
