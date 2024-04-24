@@ -101,7 +101,7 @@
     "license": "MIT",
     "devDependencies": {
         "@types/bcryptjs": "^2.4.2",
-        "@types/pluralize": "^0.0.29",
+        "@types/pluralize": "^0.0.33",
         "@types/safe-json-stringify": "^1.1.5",
         "@types/semver": "^7.3.13",
         "@types/uuid": "^8.3.4"
