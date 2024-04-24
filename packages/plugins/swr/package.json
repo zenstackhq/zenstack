@@ -43,7 +43,7 @@
         "change-case": "^4.1.2",
         "cross-fetch": "^4.0.0",
         "decimal.js": "^10.4.2",
-        "lower-case-first": "^2.0.2",
+        "lower-case-first": "^3.0.0",
         "semver": "^7.5.2",
         "ts-morph": "^16.0.0",
         "upper-case-first": "^2.0.2"
