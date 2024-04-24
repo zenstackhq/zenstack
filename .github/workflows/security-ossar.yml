@@ -56,7 +56,7 @@ jobs:
                   submodules: 'recursive'
                   token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
 
-            - uses: actions/setup-dotnet@v3.2.0
+            - uses: actions/setup-dotnet@v4.0.0
               with:
                   dotnet-version: |
                       5.0.x
