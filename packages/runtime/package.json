@@ -89,7 +89,7 @@
         "upper-case-first": "^2.0.2",
         "uuid": "^9.0.0",
         "zod": "^3.22.4",
-        "zod-validation-error": "^1.5.0"
+        "zod-validation-error": "^3.2.0"
     },
     "peerDependencies": {
         "@prisma/client": "5.0.0 - 5.12.x"
