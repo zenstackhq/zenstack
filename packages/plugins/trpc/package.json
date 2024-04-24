@@ -28,7 +28,7 @@
     "dependencies": {
         "@zenstackhq/sdk": "workspace:*",
         "change-case": "^4.1.2",
-        "lower-case-first": "^2.0.2",
+        "lower-case-first": "^3.0.0",
         "ts-morph": "^16.0.0",
         "tslib": "^2.4.1",
         "upper-case-first": "^2.0.2",
