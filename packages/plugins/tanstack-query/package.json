@@ -89,7 +89,7 @@
         "semver": "^7.5.2",
         "superjson": "^1.11.0",
         "ts-morph": "^16.0.0",
-        "ts-pattern": "^4.3.0",
+        "ts-pattern": "^5.1.1",
         "upper-case-first": "^2.0.2"
     },
     "devDependencies": {
