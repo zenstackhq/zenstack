@@ -75,7 +75,7 @@
     "dependencies": {
         "bcryptjs": "^2.4.3",
         "buffer": "^6.0.3",
-        "change-case": "^4.1.2",
+        "change-case": "^5.4.4",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
         "deepmerge": "^4.3.1",
