@@ -104,6 +104,6 @@
         "@types/pluralize": "^0.0.29",
         "@types/safe-json-stringify": "^1.1.5",
         "@types/semver": "^7.3.13",
-        "@types/uuid": "^8.3.4"
+        "@types/uuid": "^9.0.8"
     }
 }
