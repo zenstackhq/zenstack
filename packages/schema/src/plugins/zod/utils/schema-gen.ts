@@ -186,7 +186,7 @@ function makeZodSchema(field: DataModelField) {
                 schema = 'z.coerce.date()';
                 break;
             case 'Bytes':
-                schema = 'z.union([z.string(), z.instanceof(Uint8Array)])';
+                schema = 'z.union([z.string(), z.custom<Buffer | Uint8Array>(data => data instanceof Uint8Array)])';
                 break;
             default:
                 schema = 'z.any()';

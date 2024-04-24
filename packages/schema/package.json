@@ -59,13 +59,13 @@
         "configuration": {
             "title": "ZenStack",
             "properties": {
-              "zmodel.format.usePrismaStyle": {
-                "type": "boolean",
-                "default": true,
-                "description": "Use Prisma style indentation."
-              }
+                "zmodel.format.usePrismaStyle": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Use Prisma style indentation."
+                }
             }
-          }
+        }
     },
     "activationEvents": [
         "onLanguage:zmodel"
@@ -90,6 +90,7 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
+        "@types/node": "^20.12.7",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",

@@ -117,6 +117,8 @@ export default class Transformer {
                 return result;
             }
 
+            // TODO: unify the following with `schema-gen.ts`
+
             if (inputType.type === 'String') {
                 result.push(this.wrapWithZodValidators('z.string()', field, inputType));
             } else if (inputType.type === 'Int' || inputType.type === 'Float') {
@@ -131,7 +133,13 @@ export default class Transformer {
             } else if (inputType.type === 'DateTime') {
                 result.push(this.wrapWithZodValidators(['z.date()', 'z.string().datetime()'], field, inputType));
             } else if (inputType.type === 'Bytes') {
-                result.push(this.wrapWithZodValidators(`z.instanceof(Uint8Array)`, field, inputType));
+                result.push(
+                    this.wrapWithZodValidators(
+                        `z.custom<Buffer | Uint8Array>(data => data instanceof Uint8Array)`,
+                        field,
+                        inputType
+                    )
+                );
             } else if (inputType.type === 'Json') {
                 this.hasJson = true;
                 result.push(this.wrapWithZodValidators('jsonSchema', field, inputType));
