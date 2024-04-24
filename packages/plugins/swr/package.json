@@ -45,7 +45,7 @@
         "decimal.js": "^10.4.2",
         "lower-case-first": "^2.0.2",
         "semver": "^7.5.2",
-        "ts-morph": "^16.0.0",
+        "ts-morph": "^22.0.0",
         "upper-case-first": "^2.0.2"
     },
     "devDependencies": {
