@@ -37,7 +37,7 @@
     "upper-case-first": "^2.0.2",
     "yaml": "^2.2.2",
     "zod": "^3.22.4",
-    "zod-validation-error": "^1.5.0"
+    "zod-validation-error": "^3.2.0"
   },
   "devDependencies": {
     "@readme/openapi-parser": "^2.4.0",
