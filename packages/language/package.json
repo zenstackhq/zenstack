@@ -19,7 +19,7 @@
     "author": "ZenStack Team",
     "license": "MIT",
     "devDependencies": {
-        "langium-cli": "1.3.1",
+        "langium-cli": "3.0.3",
         "plist2": "^1.1.3"
     },
     "dependencies": {
