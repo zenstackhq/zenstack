@@ -18,7 +18,7 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@prisma/generator-helper": "5.7.0",
+        "@prisma/generator-helper": "5.13.0",
         "@prisma/internals": "5.7.0",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/runtime": "workspace:*",
