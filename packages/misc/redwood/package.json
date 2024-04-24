@@ -45,7 +45,7 @@
         "@redwoodjs/cli-helpers": "^6.6.0",
         "execa": "^5.0.0",
         "listr2": "^6.0.0",
-        "terminal-link": "^2.0.0",
+        "terminal-link": "^3.0.0",
         "yargs": "^17.7.2"
     },
     "devDependencies": {
