@@ -89,7 +89,7 @@ jobs:
                   java-version: 17
 
             - name: Setup Gradle
-              uses: gradle/gradle-build-action@v2.4.2
+              uses: gradle/gradle-build-action@v3.3.1
               with:
                   gradle-home-cache-cleanup: true
 
