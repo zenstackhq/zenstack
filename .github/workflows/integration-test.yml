@@ -80,7 +80,7 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Gradle Wrapper Validation
-              uses: gradle/wrapper-validation-action@v1.1.0
+              uses: gradle/wrapper-validation-action@v3.3.1
 
             - name: Setup Java
               uses: actions/setup-java@v4
