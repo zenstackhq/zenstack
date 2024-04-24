@@ -1,2 +1,2 @@
-export { default as ZenStackMiddleware } from './middleware';
+export { ZenStackMiddleware } from './middleware';
 export * from './middleware';

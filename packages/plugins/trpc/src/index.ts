@@ -1,11 +1,14 @@
-import type { DMMF } from '@prisma/generator-helper';
-import { PluginOptions } from '@zenstackhq/sdk';
-import { Model } from '@zenstackhq/sdk/ast';
+import type { PluginFunction } from '@zenstackhq/sdk';
 import { generate } from './generator';
 
 export const name = 'tRPC';
 export const dependencies = ['@core/zod'];
 
-export default async function run(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
+const run: PluginFunction = async (model, options, dmmf) => {
+    if (!dmmf) {
+        throw new Error('DMMF is required');
+    }
     return generate(model, options, dmmf);
-}
+};
+
+export default run;

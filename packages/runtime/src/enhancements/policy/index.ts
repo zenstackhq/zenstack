@@ -1,77 +1,12 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import semver from 'semver';
-import { PRISMA_MINIMUM_VERSION } from '../../constants';
-import { getIdFields, type ModelMeta } from '../../cross';
-import { getDefaultModelMeta, getDefaultPolicy, getDefaultZodSchemas } from '../../loader';
-import { AuthUser, DbClientContract } from '../../types';
+import { getIdFields } from '../../cross';
+import { DbClientContract } from '../../types';
 import { hasAllFields } from '../../validation';
-import { ErrorTransformer, makeProxy } from '../proxy';
-import type { CommonEnhancementOptions, PolicyDef, ZodSchemas } from '../types';
+import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
+import { Logger } from '../logger';
+import { makeProxy } from '../proxy';
 import { PolicyProxyHandler } from './handler';
-
-/**
- * Context for evaluating access policies
- */
-export type WithPolicyContext = {
-    user?: AuthUser;
-};
-
-/**
- * Transaction isolation levels: https://www.prisma.io/docs/orm/prisma-client/queries/transactions#transaction-isolation-level
- */
-export type TransactionIsolationLevel =
-    | 'ReadUncommitted'
-    | 'ReadCommitted'
-    | 'RepeatableRead'
-    | 'Snapshot'
-    | 'Serializable';
-
-/**
- * Options for @see withPolicy
- */
-export interface WithPolicyOptions extends CommonEnhancementOptions {
-    /**
-     * Policy definition
-     */
-    policy?: PolicyDef;
-
-    /**
-     * Model metadata
-     */
-    modelMeta?: ModelMeta;
-
-    /**
-     * Zod schemas for validation
-     */
-    zodSchemas?: ZodSchemas;
-
-    /**
-     * Whether to log Prisma query
-     */
-    logPrismaQuery?: boolean;
-
-    /**
-     * Hook for transforming errors before they are thrown to the caller.
-     */
-    errorTransformer?: ErrorTransformer;
-
-    /**
-     * The `maxWait` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
-     */
-    transactionMaxWait?: number;
-
-    /**
-     * The `timeout` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
-     */
-    transactionTimeout?: number;
-
-    /**
-     * The `isolationLevel` option passed to `prisma.$transaction()` call for transactions initiated by ZenStack.
-     */
-    transactionIsolationLevel?: TransactionIsolationLevel;
-}
 
 /**
  * Gets an enhanced Prisma client with access policy check.
@@ -81,32 +16,19 @@ export interface WithPolicyOptions extends CommonEnhancementOptions {
  * @param policy The policy definition, will be loaded from default location if not provided
  * @param modelMeta The model metadata, will be loaded from default location if not provided
  *
- * @deprecated Use {@link enhance} instead
+ * @private
  */
 export function withPolicy<DbClient extends object>(
     prisma: DbClient,
-    context?: WithPolicyContext,
-    options?: WithPolicyOptions
+    options: InternalEnhancementOptions,
+    context?: EnhancementContext
 ): DbClient {
-    if (!prisma) {
-        throw new Error('Invalid prisma instance');
-    }
-
-    const prismaVer = (prisma as any)._clientVersion;
-    if (prismaVer && semver.lt(prismaVer, PRISMA_MINIMUM_VERSION)) {
-        console.warn(
-            `ZenStack requires Prisma version "${PRISMA_MINIMUM_VERSION}" or higher. Detected version is "${prismaVer}".`
-        );
-    }
-
-    const _policy = options?.policy ?? getDefaultPolicy(options?.loadPath);
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
-    const _zodSchemas = options?.zodSchemas ?? getDefaultZodSchemas(options?.loadPath);
+    const { modelMeta, policy } = options;
 
     // validate user context
     const userContext = context?.user;
-    if (userContext && _modelMeta.authModel) {
-        const idFields = getIdFields(_modelMeta, _modelMeta.authModel);
+    if (userContext && modelMeta.authModel) {
+        const idFields = getIdFields(modelMeta, modelMeta.authModel);
         if (
             !hasAllFields(
                 context.user,
@@ -119,11 +41,12 @@ export function withPolicy<DbClient extends object>(
         }
 
         // validate user context for fields used in policy expressions
-        const authSelector = _policy.authSelector;
+        const authSelector = policy.authSelector;
         if (authSelector) {
             Object.keys(authSelector).forEach((f) => {
                 if (!(f in userContext)) {
-                    console.warn(`User context does not have field "${f}" used in policy rules`);
+                    const logger = new Logger(prisma);
+                    logger.warn(`User context does not have field "${f}" used in policy rules`);
                 }
             });
         }
@@ -131,17 +54,8 @@ export function withPolicy<DbClient extends object>(
 
     return makeProxy(
         prisma,
-        _modelMeta,
-        (_prisma, model) =>
-            new PolicyProxyHandler(
-                _prisma as DbClientContract,
-                _policy,
-                _modelMeta,
-                _zodSchemas,
-                model,
-                context?.user,
-                options
-            ),
+        modelMeta,
+        (_prisma, model) => new PolicyProxyHandler(_prisma as DbClientContract, model, options, context),
         'policy',
         options?.errorTransformer
     );

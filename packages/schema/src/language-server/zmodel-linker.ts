@@ -35,7 +35,13 @@ import {
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getContainingModel, hasAttribute, isFromStdlib } from '@zenstackhq/sdk';
+import {
+    getAuthModel,
+    getContainingModel,
+    getModelFieldsWithBases,
+    isAuthInvocation,
+    isFutureExpr,
+} from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -52,12 +58,7 @@ import {
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import {
-    getAllDeclarationsFromImports,
-    getContainingDataModel,
-    isAuthInvocation,
-    isCollectionPredicate,
-} from '../utils/ast-utils';
+import { getAllDataModelsIncludingImports, getContainingDataModel } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -96,8 +97,7 @@ export class ZModelLinker extends DefaultLinker {
         container: AstNode,
         property: string,
         document: LangiumDocument,
-        extraScopes: ScopeProvider[],
-        onlyFromExtraScopes = false
+        extraScopes: ScopeProvider[]
     ) {
         if (this.resolveFromScopeProviders(container, property, document, extraScopes)) {
             return;
@@ -105,17 +105,7 @@ export class ZModelLinker extends DefaultLinker {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const reference: DefaultReference = (container as any)[property];
-
-        if (onlyFromExtraScopes) {
-            // if reference is not resolved from explicit scope providers and automatic linking is not allowed,
-            // we should explicitly create a linking error
-            reference._ref = this.createLinkingError({ reference, container, property });
-
-            // Add the reference to the document's array of references
-            document.references.push(reference);
-        } else {
-            this.doLink({ reference, container, property }, document);
-        }
+        this.doLink({ reference, container, property }, document);
     }
 
     //#endregion
@@ -261,26 +251,9 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveReference(node: ReferenceExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
-        this.linkReference(node, 'target', document, extraScopes);
-        node.args.forEach((arg) => this.resolve(arg, document, extraScopes));
+        this.resolveDefault(node, document, extraScopes);
 
         if (node.target.ref) {
-            // if the reference is inside the RHS of a collection predicate, it cannot be resolve to a field
-            // not belonging to the collection's model type
-
-            const collectionPredicateContext = this.getCollectionPredicateContextDataModel(node);
-            if (
-                // inside a collection predicate RHS
-                collectionPredicateContext &&
-                // current ref expr is resolved to a field
-                isDataModelField(node.target.ref) &&
-                // the resolved field doesn't belong to the collection predicate's operand's type
-                node.target.ref.$container !== collectionPredicateContext
-            ) {
-                this.unresolvableRefExpr(node);
-                return;
-            }
-
             // resolve type
             if (node.target.ref.$type === EnumField) {
                 this.resolveToBuiltinTypeOrDecl(node, node.target.ref.$container);
@@ -288,26 +261,6 @@ export class ZModelLinker extends DefaultLinker {
                 this.resolveToDeclaredType(node, (node.target.ref as DataModelField | FunctionParam).type);
             }
         }
-    }
-
-    private getCollectionPredicateContextDataModel(node: ReferenceExpr) {
-        let curr: AstNode | undefined = node;
-        while (curr) {
-            if (
-                curr.$container &&
-                // parent is a collection predicate
-                isCollectionPredicate(curr.$container) &&
-                // the collection predicate's LHS is resolved to a DataModel
-                isDataModel(curr.$container.left.$resolvedType?.decl) &&
-                // current node is the RHS
-                curr.$containerProperty === 'right'
-            ) {
-                // return the resolved type of LHS
-                return curr.$container.left.$resolvedType?.decl;
-            }
-            curr = curr.$container;
-        }
-        return undefined;
     }
 
     private resolveArray(node: ArrayExpr, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
@@ -329,24 +282,18 @@ export class ZModelLinker extends DefaultLinker {
         if (node.function.ref) {
             // eslint-disable-next-line @typescript-eslint/ban-types
             const funcDecl = node.function.ref as FunctionDecl;
-            if (funcDecl.name === 'auth' && isFromStdlib(funcDecl)) {
+            if (isAuthInvocation(node)) {
                 // auth() function is resolved to User model in the current document
                 const model = getContainingModel(node);
 
                 if (model) {
-                    let authModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
-                        return isDataModel(d) && hasAttribute(d, '@@auth');
-                    });
-                    if (!authModel) {
-                        authModel = getAllDeclarationsFromImports(this.langiumDocuments(), model).find((d) => {
-                            return isDataModel(d) && d.name === 'User';
-                        });
-                    }
+                    const allDataModels = getAllDataModelsIncludingImports(this.langiumDocuments(), model);
+                    const authModel = getAuthModel(allDataModels);
                     if (authModel) {
                         node.$resolvedType = { decl: authModel, nullable: true };
                     }
                 }
-            } else if (funcDecl.name === 'future' && isFromStdlib(funcDecl)) {
+            } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
                 node.$resolvedType = { decl: getContainingDataModel(node) };
             } else {
@@ -372,14 +319,11 @@ export class ZModelLinker extends DefaultLinker {
         document: LangiumDocument<AstNode>,
         extraScopes: ScopeProvider[]
     ) {
-        this.resolve(node.operand, document, extraScopes);
+        this.resolveDefault(node, document, extraScopes);
         const operandResolved = node.operand.$resolvedType;
 
         if (operandResolved && !operandResolved.array && isDataModel(operandResolved.decl)) {
-            const modelDecl = operandResolved.decl as DataModel;
-            const provider = (name: string) => modelDecl.$resolvedFields.find((f) => f.name === name);
             // member access is resolved only in the context of the operand type
-            this.linkReference(node, 'member', document, [provider], true);
             if (node.member.ref) {
                 this.resolveToDeclaredType(node, node.member.ref.type);
 
@@ -393,20 +337,10 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveCollectionPredicate(node: BinaryExpr, document: LangiumDocument, extraScopes: ScopeProvider[]) {
-        this.resolve(node.left, document, extraScopes);
+        this.resolveDefault(node, document, extraScopes);
 
         const resolvedType = node.left.$resolvedType;
         if (resolvedType && isDataModel(resolvedType.decl) && resolvedType.array) {
-            const dataModelDecl = resolvedType.decl;
-            const provider = (name: string) => {
-                if (name === 'this') {
-                    return dataModelDecl;
-                } else {
-                    return dataModelDecl.$resolvedFields.find((f) => f.name === name);
-                }
-            };
-            extraScopes = [provider, ...extraScopes];
-            this.resolve(node.right, document, extraScopes);
             this.resolveToBuiltinTypeOrDecl(node, 'Boolean');
         } else {
             // error is reported in validation pass
@@ -460,10 +394,11 @@ export class ZModelLinker extends DefaultLinker {
             //
             // In model B, the attribute argument "myId" is resolved to the field "myId" in model A
 
-            const transtiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
-            if (transtiveDataModel) {
+            const transitiveDataModel = attrAppliedOn.type.reference?.ref as DataModel;
+            if (transitiveDataModel) {
                 // resolve references in the context of the transitive data model
-                const scopeProvider = (name: string) => transtiveDataModel.$resolvedFields.find((f) => f.name === name);
+                const scopeProvider = (name: string) =>
+                    getModelFieldsWithBases(transitiveDataModel).find((f) => f.name === name);
                 if (isArrayExpr(node.value)) {
                     node.value.items.forEach((item) => {
                         if (isReferenceExpr(item)) {
@@ -518,18 +453,6 @@ export class ZModelLinker extends DefaultLinker {
     }
 
     private resolveDataModel(node: DataModel, document: LangiumDocument<AstNode>, extraScopes: ScopeProvider[]) {
-        if (node.superTypes.length > 0) {
-            const superTypeProviders: ScopeProvider[] = [];
-            // build scope providers for super types recursively with breadth-first search
-            const queue = node.superTypes.map((t) => t.ref!);
-            while (queue.length > 0) {
-                const superType = queue.shift()!;
-                const provider = (name: string) => superType.fields.find((f) => f.name === name);
-                superTypeProviders.push(provider);
-                queue.push(...superType.superTypes.map((t) => t.ref!));
-            }
-            extraScopes = [...superTypeProviders, ...extraScopes];
-        }
         return this.resolveDefault(node, document, extraScopes);
     }
 

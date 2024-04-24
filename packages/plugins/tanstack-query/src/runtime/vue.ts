@@ -21,6 +21,8 @@ import {
     marshal,
     setupInvalidation,
     setupOptimisticUpdate,
+    type ExtraMutationOptions,
+    type ExtraQueryOptions,
     type FetchFn,
 } from './common';
 
@@ -55,7 +57,6 @@ export function getHooksContext() {
  * @param args The request args object, URL-encoded and appended as "?q=" parameter
  * @param options The vue-query options object
  * @param fetch The fetch function to use for sending the HTTP request
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useQuery hook
  */
 export function useModelQuery<TQueryFnData, TData, TError>(
@@ -63,20 +64,25 @@ export function useModelQuery<TQueryFnData, TData, TError>(
     url: string,
     args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
     options?:
-        | MaybeRefOrGetter<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>
-        | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
-    fetch?: FetchFn,
-    optimisticUpdate = false
+        | MaybeRefOrGetter<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>
+        | ComputedRef<Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions>,
+    fetch?: FetchFn
 ) {
     const queryOptions = computed(() => {
+        const optionsValue = toValue<
+            (Omit<UseQueryOptions<TQueryFnData, TError, TData>, 'queryKey'> & ExtraQueryOptions) | undefined
+        >(options);
         return {
-            queryKey: getQueryKey(model, url, toValue(args), false, optimisticUpdate),
+            queryKey: getQueryKey(model, url, args, {
+                infinite: false,
+                optimisticUpdate: optionsValue?.optimisticUpdate !== false,
+            }),
             queryFn: ({ queryKey }: { queryKey: QueryKey }) => {
                 const [_prefix, _model, _op, args] = queryKey;
                 const reqUrl = makeUrl(url, toValue(args));
                 return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
             },
-            ...toValue(options),
+            ...optionsValue,
         };
     });
     return useQuery<TQueryFnData, TError, TData>(queryOptions);
@@ -103,7 +109,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
 ) {
     // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
     const queryOptions: any = computed(() => ({
-        queryKey: getQueryKey(model, url, toValue(args), true),
+        queryKey: getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false }),
         queryFn: ({ queryKey, pageParam }: { queryKey: QueryKey; pageParam?: unknown }) => {
             const [_prefix, _model, _op, args] = queryKey;
             const reqUrl = makeUrl(url, pageParam ?? toValue(args));
@@ -124,9 +130,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
  * @param url The request URL.
  * @param options The vue-query options.
  * @param fetch The fetch function to use for sending the HTTP request
- * @param invalidateQueries Whether to invalidate queries after mutation.
  * @param checkReadBack Whether to check for read back errors and return undefined if found.
- * @param optimisticUpdate Whether to enable automatic optimistic update
  * @returns useMutation hooks
  */
 export function useModelMutation<
@@ -141,12 +145,12 @@ export function useModelMutation<
     url: string,
     modelMeta: ModelMeta,
     options?:
-        | MaybeRefOrGetter<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>
-        | ComputedRef<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'>>,
+        | MaybeRefOrGetter<
+              Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'> & ExtraMutationOptions
+          >
+        | ComputedRef<Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'> & ExtraMutationOptions>,
     fetch?: FetchFn,
-    invalidateQueries = true,
-    checkReadBack?: C,
-    optimisticUpdate = false
+    checkReadBack?: C
 ) {
     const queryClient = useQueryClient();
     const mutationFn = (data: any) => {
@@ -163,9 +167,15 @@ export function useModelMutation<
         return fetcher<R, C>(reqUrl, fetchInit, fetch, checkReadBack) as Promise<Result>;
     };
 
+    const optionsValue = toValue<
+        (Omit<UseMutationOptions<Result, TError, TArgs, unknown>, 'mutationFn'> & ExtraMutationOptions) | undefined
+    >(options);
     // TODO: figure out the typing problem
-    const finalOptions: any = computed(() => ({ ...toValue(options), mutationFn }));
+    const finalOptions: any = computed(() => ({ ...optionsValue, mutationFn }));
     const operation = url.split('/').pop();
+    const invalidateQueries = optionsValue?.invalidateQueries !== false;
+    const optimisticUpdate = !!optionsValue?.optimisticUpdate;
+
     if (operation) {
         const { logging } = getHooksContext();
         if (invalidateQueries) {

@@ -22,6 +22,7 @@ import {
     isGeneratorDecl,
     isInvocationExpr,
     isLiteralExpr,
+    isMemberAccessExpr,
     isModel,
     isObjectExpr,
     isReferenceExpr,
@@ -29,12 +30,13 @@ import {
     Reference,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
+import fs from 'node:fs';
 import path from 'path';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
-import { PluginError, PluginOptions } from './types';
+import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
 
 /**
- * Gets data models that are not ignored
+ * Gets data models in the ZModel schema.
  */
 export function getDataModels(model: Model, includeIgnored = false) {
     const r = model.declarations.filter((d): d is DataModel => isDataModel(d));
@@ -174,39 +176,51 @@ export function isDataModelFieldReference(node: AstNode): node is ReferenceExpr 
 }
 
 /**
- * Gets `@@id` fields declared at the data model level
+ * Gets `@@id` fields declared at the data model level (including search in base models)
  */
 export function getModelIdFields(model: DataModel) {
-    const idAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@id');
-    if (!idAttr) {
-        return [];
-    }
-    const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
-    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
-        return [];
+    const modelsToCheck = model.$baseMerged ? [model] : [model, ...getRecursiveBases(model)];
+
+    for (const modelToCheck of modelsToCheck) {
+        const idAttr = modelToCheck.attributes.find((attr) => attr.decl.$refText === '@@id');
+        if (!idAttr) {
+            continue;
+        }
+        const fieldsArg = idAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+        if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+            continue;
+        }
+
+        return fieldsArg.value.items
+            .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+            .map((item) => resolved(item.target) as DataModelField);
     }
 
-    return fieldsArg.value.items
-        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
-        .map((item) => resolved(item.target) as DataModelField);
+    return [];
 }
 
 /**
- * Gets `@@unique` fields declared at the data model level
+ * Gets `@@unique` fields declared at the data model level (including search in base models)
  */
 export function getModelUniqueFields(model: DataModel) {
-    const uniqueAttr = model.attributes.find((attr) => attr.decl.ref?.name === '@@unique');
-    if (!uniqueAttr) {
-        return [];
-    }
-    const fieldsArg = uniqueAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
-    if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
-        return [];
+    const modelsToCheck = model.$baseMerged ? [model] : [model, ...getRecursiveBases(model)];
+
+    for (const modelToCheck of modelsToCheck) {
+        const uniqueAttr = modelToCheck.attributes.find((attr) => attr.decl.$refText === '@@unique');
+        if (!uniqueAttr) {
+            continue;
+        }
+        const fieldsArg = uniqueAttr.args.find((a) => a.$resolvedParam?.name === 'fields');
+        if (!fieldsArg || !isArrayExpr(fieldsArg.value)) {
+            continue;
+        }
+
+        return fieldsArg.value.items
+            .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+            .map((item) => resolved(item.target) as DataModelField);
     }
 
-    return fieldsArg.value.items
-        .filter((item): item is ReferenceExpr => isReferenceExpr(item))
-        .map((item) => resolved(item.target) as DataModelField);
+    return [];
 }
 
 /**
@@ -283,15 +297,54 @@ export function isForeignKeyField(field: DataModelField) {
     });
 }
 
+/**
+ * Gets the foreign key fields of the given relation field.
+ */
+export function getForeignKeyFields(relationField: DataModelField) {
+    if (!isRelationshipField(relationField)) {
+        return [];
+    }
+
+    const relAttr = relationField.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+    if (relAttr) {
+        // find "fields" arg
+        const fieldsArg = getAttributeArg(relAttr, 'fields');
+        if (fieldsArg && isArrayExpr(fieldsArg)) {
+            return fieldsArg.items
+                .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+                .map((item) => item.target.ref as DataModelField);
+        }
+    }
+
+    return [];
+}
+
+/**
+ * Gets the relation field of the given foreign key field.
+ */
+export function getRelationField(fkField: DataModelField) {
+    const model = fkField.$container as DataModel;
+    return model.fields.find((f) => {
+        const relAttr = f.attributes.find((attr) => attr.decl.ref?.name === '@relation');
+        if (relAttr) {
+            const fieldsArg = getAttributeArg(relAttr, 'fields');
+            if (fieldsArg && isArrayExpr(fieldsArg)) {
+                return fieldsArg.items.some((item) => isReferenceExpr(item) && item.target.ref === fkField);
+            }
+        }
+        return false;
+    });
+}
+
 export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaPath'>) {
     if (path.isAbsolute(_path)) {
         return _path;
     } else {
-        return path.join(path.dirname(options.schemaPath), _path);
+        return path.resolve(path.dirname(options.schemaPath), _path);
     }
 }
 
-export function requireOption<T>(options: PluginOptions, name: string, pluginName: string): T {
+export function requireOption<T>(options: PluginDeclaredOptions, name: string, pluginName: string): T {
     const value = options[name];
     if (value === undefined) {
         throw new PluginError(pluginName, `Plugin "${options.name}" is missing required option: ${name}`);
@@ -299,8 +352,8 @@ export function requireOption<T>(options: PluginOptions, name: string, pluginNam
     return value as T;
 }
 
-export function parseOptionAsStrings(options: PluginOptions, optionaName: string, pluginName: string) {
-    const value = options[optionaName];
+export function parseOptionAsStrings(options: PluginDeclaredOptions, optionName: string, pluginName: string) {
+    const value = options[optionName];
     if (value === undefined) {
         return undefined;
     } else if (typeof value === 'string') {
@@ -315,7 +368,7 @@ export function parseOptionAsStrings(options: PluginOptions, optionaName: string
     } else {
         throw new PluginError(
             pluginName,
-            `Invalid "${optionaName}" option: must be a comma-separated string or an array of strings`
+            `Invalid "${optionName}" option: must be a comma-separated string or an array of strings`
         );
     }
 }
@@ -337,7 +390,11 @@ export function getFunctionExpressionContext(funcDecl: FunctionDecl) {
 }
 
 export function isFutureExpr(node: AstNode) {
-    return !!(isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref));
+    return isInvocationExpr(node) && node.function.ref?.name === 'future' && isFromStdlib(node.function.ref);
+}
+
+export function isAuthInvocation(node: AstNode) {
+    return isInvocationExpr(node) && node.function.ref?.name === 'auth' && isFromStdlib(node.function.ref);
 }
 
 export function isFromStdlib(node: AstNode) {
@@ -375,4 +432,82 @@ export function getAuthModel(dataModels: DataModel[]) {
         authModel = dataModels.find((m) => m.name === 'User');
     }
     return authModel;
+}
+
+export function isDelegateModel(node: AstNode) {
+    return isDataModel(node) && hasAttribute(node, '@@delegate');
+}
+
+export function isDiscriminatorField(field: DataModelField) {
+    const model = field.$inheritedFrom ?? field.$container;
+    const delegateAttr = getAttribute(model, '@@delegate');
+    if (!delegateAttr) {
+        return false;
+    }
+    const arg = delegateAttr.args[0]?.value;
+    return isDataModelFieldReference(arg) && arg.target.$refText === field.name;
+}
+
+export function getIdFields(dataModel: DataModel) {
+    const fieldLevelId = getModelFieldsWithBases(dataModel).find((f) =>
+        f.attributes.some((attr) => attr.decl.$refText === '@id')
+    );
+    if (fieldLevelId) {
+        return [fieldLevelId];
+    } else {
+        // get model level @@id attribute
+        const modelIdAttr = dataModel.attributes.find((attr) => attr.decl?.ref?.name === '@@id');
+        if (modelIdAttr) {
+            // get fields referenced in the attribute: @@id([field1, field2]])
+            if (!isArrayExpr(modelIdAttr.args[0].value)) {
+                return [];
+            }
+            const argValue = modelIdAttr.args[0].value;
+            return argValue.items
+                .filter((expr): expr is ReferenceExpr => isReferenceExpr(expr) && !!getDataModelFieldReference(expr))
+                .map((expr) => expr.target.ref as DataModelField);
+        }
+    }
+    return [];
+}
+
+export function getDataModelFieldReference(expr: Expression): DataModelField | undefined {
+    if (isReferenceExpr(expr) && isDataModelField(expr.target.ref)) {
+        return expr.target.ref;
+    } else if (isMemberAccessExpr(expr) && isDataModelField(expr.member.ref)) {
+        return expr.member.ref;
+    } else {
+        return undefined;
+    }
+}
+
+export function getModelFieldsWithBases(model: DataModel) {
+    return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
+}
+
+export function getRecursiveBases(dataModel: DataModel): DataModel[] {
+    const result: DataModel[] = [];
+    dataModel.superTypes.forEach((superType) => {
+        const baseDecl = superType.ref;
+        if (baseDecl) {
+            result.push(baseDecl);
+            result.push(...getRecursiveBases(baseDecl));
+        }
+    });
+    return result;
+}
+
+export function ensureEmptyDir(dir: string) {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+        return;
+    }
+
+    const stats = fs.statSync(dir);
+    if (stats.isDirectory()) {
+        fs.rmSync(dir, { recursive: true });
+        fs.mkdirSync(dir, { recursive: true });
+    } else {
+        throw new Error(`Path "${dir}" already exists and is not a directory`);
+    }
 }

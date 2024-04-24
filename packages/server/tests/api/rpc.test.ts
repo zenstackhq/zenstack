@@ -5,7 +5,7 @@ import { CrudFailureReason, type ZodSchemas } from '@zenstackhq/runtime';
 import { loadSchema } from '@zenstackhq/testtools';
 import { Decimal } from 'decimal.js';
 import SuperJSON from 'superjson';
-import RPCAPIHandler from '../../src/api/rpc';
+import { RPCApiHandler } from '../../src/api';
 import { schema } from '../utils';
 
 describe('RPC API Handler Tests', () => {
@@ -176,7 +176,7 @@ describe('RPC API Handler Tests', () => {
             path: '/post/findUnique',
             prisma,
         });
-        expect(r.status).toBe(400);
+        expect(r.status).toBe(422);
         expect(r.error.message).toContain('Validation error');
         expect(r.error.message).toContain('where');
 
@@ -187,9 +187,20 @@ describe('RPC API Handler Tests', () => {
             prisma,
             zodSchemas,
         });
-        expect(r.status).toBe(400);
+        expect(r.status).toBe(422);
         expect(r.error.message).toContain('Validation error');
         expect(r.error.message).toContain('data');
+
+        r = await handleRequest({
+            method: 'post',
+            path: '/user/create',
+            requestBody: { data: { email: 'hello' } },
+            prisma: enhance(),
+            zodSchemas,
+        });
+        expect(r.status).toBe(422);
+        expect(r.error.message).toContain('Validation error');
+        expect(r.error.message).toContain('email');
     });
 
     it('invalid path or args', async () => {
@@ -397,7 +408,7 @@ describe('RPC API Handler Tests', () => {
     });
 
     function makeHandler(zodSchemas?: ZodSchemas) {
-        const _handler = RPCAPIHandler();
+        const _handler = RPCApiHandler();
         return async (args: any) => {
             const r = await _handler({ ...args, url: new URL(`http://localhost/${args.path}`), modelMeta, zodSchemas });
             return {

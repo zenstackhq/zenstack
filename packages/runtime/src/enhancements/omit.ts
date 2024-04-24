@@ -1,40 +1,28 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { enumerate, getModelFields, resolveField, type ModelMeta } from '../cross';
-import { getDefaultModelMeta } from '../loader';
+import { enumerate, getModelFields, resolveField } from '../cross';
 import { DbClientContract } from '../types';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, makeProxy } from './proxy';
-import { CommonEnhancementOptions } from './types';
 
 /**
- * Options for @see withOmit
- */
-export interface WithOmitOptions extends CommonEnhancementOptions {
-    /**
-     * Model metadata
-     */
-    modelMeta?: ModelMeta;
-}
-
-/**
- * Gets an enhanced Prisma client that supports "@omit" attribute.
+ * Gets an enhanced Prisma client that supports `@omit` attribute.
  *
- * @deprecated Use {@link enhance} instead
+ * @private
  */
-export function withOmit<DbClient extends object>(prisma: DbClient, options?: WithOmitOptions): DbClient {
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
+export function withOmit<DbClient extends object>(prisma: DbClient, options: InternalEnhancementOptions): DbClient {
     return makeProxy(
         prisma,
-        _modelMeta,
-        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, _modelMeta),
+        options.modelMeta,
+        (_prisma, model) => new OmitHandler(_prisma as DbClientContract, model, options),
         'omit'
     );
 }
 
 class OmitHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, private readonly modelMeta: ModelMeta) {
-        super(prisma, model);
+    constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
+        super(prisma, model, options);
     }
 
     // base override
@@ -49,7 +37,7 @@ class OmitHandler extends DefaultPrismaProxyHandler {
 
     private async doPostProcess(entityData: any, model: string) {
         for (const field of getModelFields(entityData)) {
-            const fieldInfo = await resolveField(this.modelMeta, model, field);
+            const fieldInfo = await resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo) {
                 continue;
             }

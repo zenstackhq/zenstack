@@ -3,7 +3,7 @@
 import { DbClientContract } from '@zenstackhq/runtime';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PagesRouteRequestHandlerOptions } from '.';
-import RPCAPIHandler from '../api/rpc';
+import { RPCApiHandler } from '../api';
 import { loadAssets } from '../shared';
 
 /**
@@ -17,12 +17,7 @@ export default function factory(
 ): (req: NextApiRequest, res: NextApiResponse) => Promise<void> {
     const { modelMeta, zodSchemas } = loadAssets(options);
 
-    const requestHandler = options.handler || RPCAPIHandler();
-    if (options.useSuperJson !== undefined) {
-        console.warn(
-            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
-        );
-    }
+    const requestHandler = options.handler || RPCApiHandler();
 
     return async (req: NextApiRequest, res: NextApiResponse) => {
         const prisma = (await options.getPrisma(req, res)) as DbClientContract;

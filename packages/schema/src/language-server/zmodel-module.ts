@@ -66,7 +66,7 @@ export const ZModelModule: Module<ZModelServices, PartialLangiumServices & ZMode
         ZModelValidator: (services) => new ZModelValidator(services),
     },
     lsp: {
-        Formatter: () => new ZModelFormatter(),
+        Formatter: (services) => new ZModelFormatter(services),
         CodeActionProvider: (services) => new ZModelCodeActionProvider(services),
         DefinitionProvider: (services) => new ZModelDefinitionProvider(services),
         SemanticTokenProvider: (services) => new ZModelSemanticTokenProvider(services),

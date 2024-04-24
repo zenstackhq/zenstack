@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DbClientContract } from '@zenstackhq/runtime';
 import type { Handler, Request, Response } from 'express';
-import RPCAPIHandler from '../api/rpc';
+import { RPCApiHandler } from '../api/rpc';
 import { loadAssets } from '../shared';
 import { AdapterBaseOptions } from '../types';
 
@@ -32,12 +32,7 @@ export interface MiddlewareOptions extends AdapterBaseOptions {
 const factory = (options: MiddlewareOptions): Handler => {
     const { modelMeta, zodSchemas } = loadAssets(options);
 
-    const requestHandler = options.handler || RPCAPIHandler();
-    if (options.useSuperJson !== undefined) {
-        console.warn(
-            'The option "useSuperJson" is deprecated. The server APIs automatically use superjson for serialization.'
-        );
-    }
+    const requestHandler = options.handler || RPCApiHandler();
 
     return async (request, response, next) => {
         const prisma = (await options.getPrisma(request, response)) as DbClientContract;
@@ -88,3 +83,5 @@ const factory = (options: MiddlewareOptions): Handler => {
 };
 
 export default factory;
+
+export { factory as ZenStackMiddleware };

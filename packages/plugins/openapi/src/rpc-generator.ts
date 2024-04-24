@@ -1,6 +1,5 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import type { DMMF } from '@prisma/generator-helper';
 import { analyzePolicies, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
 import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
@@ -11,6 +10,7 @@ import {
     AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
+import type { DMMF } from '@zenstackhq/sdk/prisma';
 import * as fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
@@ -89,7 +89,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
         }
 
-        return this.warnings;
+        return { warnings: this.warnings };
     }
 
     private generatePaths(components: OAPI.ComponentsObject): OAPI.PathsObject {
@@ -524,6 +524,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                         },
                         description: 'Request is forbidden',
                     },
+                    '422': {
+                        content: {
+                            'application/json': {
+                                schema: this.ref('_Error'),
+                            },
+                        },
+                        description: 'Request is unprocessable due to validation errors',
+                    },
                 },
             };
 
@@ -729,7 +737,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                 return this.wrapArray(this.wrapNullable(this.ref(def.type, false), !def.isRequired), def.isList);
 
             default:
-                throw new PluginError(this.options.name, `Unsupported field kind: ${def.kind}`);
+                throw new PluginError(name, `Unsupported field kind: ${def.kind}`);
         }
     }
 
@@ -773,10 +781,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
                     outputType = this.prismaTypeToOpenAPIType(field.outputType.type, !!field.isNullable);
                     break;
                 case 'outputObjectTypes':
-                    outputType = this.prismaTypeToOpenAPIType(
-                        typeof field.outputType.type === 'string' ? field.outputType.type : field.outputType.type.name,
-                        !!field.isNullable
-                    );
+                    outputType = this.prismaTypeToOpenAPIType(field.outputType.type, !!field.isNullable);
                     break;
             }
             field.outputType;
@@ -805,7 +810,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         }
     }
 
-    private prismaTypeToOpenAPIType(type: DMMF.ArgType, nullable: boolean): OAPI.ReferenceObject | OAPI.SchemaObject {
+    private prismaTypeToOpenAPIType(type: string, nullable: boolean): OAPI.ReferenceObject | OAPI.SchemaObject {
         const result = match(type)
             .with('String', () => ({ type: 'string' }))
             .with(P.union('Int', 'BigInt'), () => ({ type: 'integer' }))

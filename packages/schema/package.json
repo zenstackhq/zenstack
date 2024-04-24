@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
-    "version": "1.12.4",
+    "version": "2.0.0",
     "author": {
         "name": "ZenStack Team"
     },
@@ -26,7 +26,7 @@
         "linkDirectory": true
     },
     "engines": {
-        "vscode": "^1.56.0"
+        "vscode": "^1.63.0"
     },
     "categories": [
         "Programming Languages"
@@ -55,7 +55,17 @@
                 "scopeName": "source.zmodel",
                 "path": "./bundle/syntaxes/zmodel.tmLanguage.json"
             }
-        ]
+        ],
+        "configuration": {
+            "title": "ZenStack",
+            "properties": {
+                "zmodel.format.usePrismaStyle": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Use Prisma style indentation."
+                }
+            }
+        }
     },
     "activationEvents": [
         "onLanguage:zmodel"
@@ -66,6 +76,7 @@
     "main": "./bundle/extension.js",
     "scripts": {
         "vscode:publish": "vsce publish --no-dependencies",
+        "vscode:prerelease": "vsce publish --no-dependencies --pre-release",
         "vscode:prepublish": "pnpm bundle",
         "vscode:package": "pnpm bundle && vsce package --no-dependencies",
         "clean": "rimraf dist",
@@ -79,7 +90,7 @@
     },
     "dependencies": {
         "@paralleldrive/cuid2": "^2.2.0",
-        "@prisma/generator-helper": "^5.0.0",
+        "@types/node": "^20.12.7",
         "@zenstackhq/language": "workspace:*",
         "@zenstackhq/sdk": "workspace:*",
         "async-exit-hook": "^2.0.1",
@@ -110,8 +121,11 @@
         "zod": "^3.22.4",
         "zod-validation-error": "^1.5.0"
     },
+    "peerDependencies": {
+        "prisma": "5.0.0 - 5.12.x"
+    },
     "devDependencies": {
-        "@prisma/client": "^4.8.0",
+        "@prisma/client": "5.12.0",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
@@ -123,7 +137,7 @@
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",
-        "prisma": "^4.8.0",
+        "prisma": "5.12.0",
         "renamer": "^4.0.0",
         "tmp": "^0.2.1",
         "tsc-alias": "^1.7.0",

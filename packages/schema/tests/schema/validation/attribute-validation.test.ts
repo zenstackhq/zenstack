@@ -1028,6 +1028,20 @@ describe('Attribute tests', () => {
     });
 
     it('auth function check', async () => {
+        await loadModel(`
+        ${prelude}
+
+        model User {
+            id String @id
+            name String
+        }
+        model B {
+            id String @id
+            userId String @default(auth().id)
+            userName String @default(auth().name)
+        }
+    `);
+
         expect(
             await loadModelWithError(`
             ${prelude}
@@ -1067,7 +1081,7 @@ describe('Attribute tests', () => {
                 @@allow('all', auth().email != null)
             }
         `)
-        ).toContain(`expression cannot be resolved`);
+        ).toContain(`Could not resolve reference to DataModelField named 'email'.`);
     });
 
     it('collection predicate expression check', async () => {
@@ -1078,11 +1092,14 @@ describe('Attribute tests', () => {
             model A { 
                 id String @id 
                 x Int
+                b B @relation(references: [id], fields: [bId])
+                bId String @unique
             }
 
             model B {
                 id String @id
-                a A
+                a A?
+                aId String @unique
                 @@allow('all', a?[x > 0])
             }
         `)
@@ -1144,15 +1161,6 @@ describe('Attribute tests', () => {
     });
 
     it('incorrect function expression context', async () => {
-        expect(
-            await loadModelWithError(`
-            ${prelude}
-            model M {
-                id String @id @default(auth())
-            }
-        `)
-        ).toContain('function "auth" is not allowed in the current context: DefaultValue');
-
         expect(
             await loadModelWithError(`
             ${prelude}

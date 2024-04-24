@@ -13,7 +13,7 @@ describe('With Policy: query reduction', () => {
     });
 
     it('test query reduction', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -65,8 +65,8 @@ describe('With Policy: query reduction', () => {
             },
         });
 
-        const dbUser1 = withPolicy({ id: 1 });
-        const dbUser2 = withPolicy({ id: 2 });
+        const dbUser1 = enhance({ id: 1 });
+        const dbUser2 = enhance({ id: 2 });
 
         await expect(
             dbUser1.user.findMany({

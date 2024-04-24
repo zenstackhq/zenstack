@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from './exec-utils';
+import { match } from 'ts-pattern';
 
 export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
 
@@ -61,23 +62,22 @@ export function findNodeModulesFile(name: string, cwd: string = process.cwd()) {
     }
 }
 
-function getPackageManager(projectPath = '.'): PackageManagers {
-    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], projectPath);
+export function getPackageManager(searchStartPath = '.') {
+    const lockFile = findUp(['yarn.lock', 'pnpm-lock.yaml', 'package-lock.json'], searchStartPath);
 
     if (!lockFile) {
         // default use npm
-        return 'npm';
+        return { packageManager: 'npm', lockFile: undefined, projectRoot: searchStartPath };
     }
 
-    switch (path.basename(lockFile)) {
-        case 'yarn.lock':
-            return 'yarn';
-        case 'pnpm-lock.yaml':
-            return 'pnpm';
-        default:
-            return 'npm';
-    }
+    const packageManager = match(path.basename(lockFile))
+        .with('yarn.lock', () => 'yarn')
+        .with('pnpm-lock.yaml', () => 'pnpm')
+        .otherwise(() => 'npm');
+
+    return { packageManager, lockFile, projectRoot: path.dirname(lockFile) };
 }
+
 export function installPackage(
     pkg: string,
     dev: boolean,

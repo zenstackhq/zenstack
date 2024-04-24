@@ -1,6 +1,5 @@
-import type { DMMF } from '@prisma/generator-helper';
-import { PluginError, getPrismaClientImportSpec } from '@zenstackhq/sdk';
-import { Model } from '@zenstackhq/sdk/ast';
+import { PluginError, type PluginOptions } from '@zenstackhq/sdk';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { lowerCaseFirst } from 'lower-case-first';
 import { CodeBlockWriter, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
@@ -225,9 +224,9 @@ export function generateRouterTyping(writer: CodeBlockWriter, opType: string, mo
     });
 }
 
-export function generateRouterTypingImports(sourceFile: SourceFile, model: Model) {
+export function generateRouterTypingImports(sourceFile: SourceFile, options: PluginOptions) {
     const importingDir = sourceFile.getDirectoryPath();
-    const prismaImport = getPrismaClientImportSpec(model, importingDir);
+    const prismaImport = getPrismaClientImportSpec(importingDir, options);
     sourceFile.addStatements([
         `import type { Prisma } from '${prismaImport}';`,
         `import type { UseTRPCMutationOptions, UseTRPCMutationResult, UseTRPCQueryOptions, UseTRPCQueryResult, UseTRPCInfiniteQueryOptions, UseTRPCInfiniteQueryResult } from '@trpc/react-query/shared';`,

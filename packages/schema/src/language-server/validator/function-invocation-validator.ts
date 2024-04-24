@@ -11,10 +11,15 @@ import {
     isDataModelFieldAttribute,
     isLiteralExpr,
 } from '@zenstackhq/language/ast';
-import { ExpressionContext, getFunctionExpressionContext, isEnumFieldReference, isFromStdlib } from '@zenstackhq/sdk';
+import {
+    ExpressionContext,
+    getDataModelFieldReference,
+    getFunctionExpressionContext,
+    isEnumFieldReference,
+    isFromStdlib,
+} from '@zenstackhq/sdk';
 import { AstNode, ValidationAcceptor } from 'langium';
 import { P, match } from 'ts-pattern';
-import { getDataModelFieldReference } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
 

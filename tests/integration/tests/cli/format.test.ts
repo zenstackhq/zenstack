@@ -39,6 +39,32 @@ model Post {
         // set up schema
         fs.writeFileSync('schema.zmodel', model, 'utf-8');
         const program = createProgram();
+        await program.parseAsync(['format', '--no-prisma-style'], { from: 'user' });
+
+        expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(formattedModel);
+    });
+
+    it('prisma format', async () => {
+        const model = `
+        datasource db {provider="sqlite" url="file:./dev.db"}
+        generator client {provider = "prisma-client-js"}
+        model Post {id Int @id() @default(autoincrement())users User[]}`;
+
+        const formattedModel = `
+datasource db {
+    provider="sqlite"
+    url="file:./dev.db"
+}
+generator client {
+    provider = "prisma-client-js"
+}
+model Post {
+    id    Int    @id() @default(autoincrement())
+    users User[]
+}`;
+        // set up schema
+        fs.writeFileSync('schema.zmodel', model, 'utf-8');
+        const program = createProgram();
         await program.parseAsync(['format'], { from: 'user' });
 
         expect(fs.readFileSync('schema.zmodel', 'utf-8')).toEqual(formattedModel);

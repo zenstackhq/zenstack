@@ -25,7 +25,7 @@ plugin swrHooks {
     output = 'lib/hooks'
 }
 model User {
-    id String @id
+    id   String  @id
     name String?
 }
 enum Role {

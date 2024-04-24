@@ -36,7 +36,9 @@ describe('tRPC Routers Generation Tests', () => {
         process.chdir(testDir);
         run('npm install');
         run('npm install ' + deps);
-        run('npx zenstack generate --no-dependency-check --schema ./todo.zmodel', { NODE_PATH: 'node_modules' });
+        run('npx zenstack generate --no-dependency-check --schema ./todo.zmodel', {
+            NODE_PATH: 'node_modules',
+        });
         run('npm run build', { NODE_PATH: 'node_modules' });
     });
 });

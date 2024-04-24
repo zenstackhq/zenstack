@@ -1,42 +1,40 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { hash } from 'bcryptjs';
 import { DEFAULT_PASSWORD_SALT_LENGTH } from '../constants';
-import { NestedWriteVisitor, type ModelMeta, type PrismaWriteActionType } from '../cross';
-import { getDefaultModelMeta } from '../loader';
+import { NestedWriteVisitor, type PrismaWriteActionType } from '../cross';
 import { DbClientContract } from '../types';
+import { InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
-import { CommonEnhancementOptions } from './types';
 
 /**
- * Options for @see withPassword
- */
-export interface WithPasswordOptions extends CommonEnhancementOptions {
-    /**
-     * Model metadata
-     */
-    modelMeta?: ModelMeta;
-}
-
-/**
- * Gets an enhanced Prisma client that supports @password attribute.
+ * Gets an enhanced Prisma client that supports `@password` attribute.
  *
- * @deprecated Use {@link enhance} instead
+ * @private
  */
-export function withPassword<DbClient extends object = any>(prisma: DbClient, options?: WithPasswordOptions): DbClient {
-    const _modelMeta = options?.modelMeta ?? getDefaultModelMeta(options?.loadPath);
+export function withPassword<DbClient extends object = any>(
+    prisma: DbClient,
+    options: InternalEnhancementOptions
+): DbClient {
     return makeProxy(
         prisma,
-        _modelMeta,
-        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, _modelMeta),
+        options.modelMeta,
+        (_prisma, model) => new PasswordHandler(_prisma as DbClientContract, model, options),
         'password'
     );
 }
 
+// `bcryptjs.hash` is good for performance but it doesn't work in vercel edge runtime,
+// so we fall back to `bcrypt.hash` in that case.
+
+// eslint-disable-next-line no-var
+declare var EdgeRuntime: any;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const hashFunc = typeof EdgeRuntime === 'string' ? require('bcryptjs').hashSync : require('bcryptjs').hash;
+
 class PasswordHandler extends DefaultPrismaProxyHandler {
-    constructor(prisma: DbClientContract, model: string, readonly modelMeta: ModelMeta) {
-        super(prisma, model);
+    constructor(prisma: DbClientContract, model: string, options: InternalEnhancementOptions) {
+        super(prisma, model, options);
     }
 
     // base override
@@ -49,7 +47,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
     }
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
-        const visitor = new NestedWriteVisitor(this.modelMeta, {
+        const visitor = new NestedWriteVisitor(this.options.modelMeta, {
             field: async (field, _action, data, context) => {
                 const pwdAttr = field.attributes?.find((attr) => attr.name === '@password');
                 if (pwdAttr && field.type === 'String') {
@@ -62,7 +60,7 @@ class PasswordHandler extends DefaultPrismaProxyHandler {
                     if (!salt) {
                         salt = DEFAULT_PASSWORD_SALT_LENGTH;
                     }
-                    context.parent[field.name] = await hash(data, salt);
+                    context.parent[field.name] = await hashFunc(data, salt);
                 }
             },
         });

@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { loadSchema } from '@zenstackhq/testtools';
 import { createServer, RequestListener } from 'http';
 import { apiResolver } from 'next/dist/server/api-utils/node';
+import path from 'path';
 import request from 'supertest';
-import { NextRequestHandler, RequestHandlerOptions } from '../../src/next';
 import Rest from '../../src/api/rest';
+import { NextRequestHandler, RequestHandlerOptions } from '../../src/next';
 
 function makeTestClient(apiPath: string, options: RequestHandlerOptions, qArg?: unknown, otherArgs?: any) {
     const pathParts = apiPath.split('/').filter((p) => p);
@@ -170,9 +172,13 @@ model M {
 }
         `;
 
-        const { prisma } = await loadSchema(model, { output: './zen' });
+        const { prisma, projectDir } = await loadSchema(model, { output: './zen' });
 
-        await makeTestClient('/m/create', { getPrisma: () => prisma, zodSchemas: true, loadPath: './zen' })
+        await makeTestClient('/m/create', {
+            getPrisma: () => prisma,
+            modelMeta: require(path.join(projectDir, './zen/model-meta')).default,
+            zodSchemas: require(path.join(projectDir, './zen/zod')),
+        })
             .post('/')
             .send({ data: { id: '1', value: 1 } })
             .expect(201)

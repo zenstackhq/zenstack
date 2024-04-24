@@ -1,0 +1,58 @@
+on:
+    push:
+        branches: []
+        # branches:
+        #     - main # Your main branch
+        #     - dev # Your development branch
+        #     - release/* # Your releases branch
+        #     - v2 # Temp V2 integration branch
+
+permissions:
+    contents: read
+
+name: Management - Release Workflow
+
+jobs:
+    release:
+        permissions:
+            contents: write
+            pull-requests: write
+        env:
+            GITHUB_TOKEN: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
+        runs-on: ubuntu-latest
+        steps:
+            # Harden-Runner provides runtime security for GitHub-hosted and self-hosted environments.
+            - name: Harden Runner
+              uses: step-security/harden-runner@v2.6.1
+              with:
+                  egress-policy: audit
+
+            - uses: google-github-actions/release-please-action@v4
+              id: release
+              with:
+                  config-file: '.github/release/release-main-config.json'
+                  manifest-file: '.github/release/.release-manifest.json'
+                  include-component-in-tag: false
+                  target-branch: ${{ github.ref_name == 'dev' && 'main' || github.ref_name }}
+
+            - uses: actions/checkout@v4
+              if: ${{ steps.release.outputs.release_created }}
+
+            - uses: pnpm/action-setup@v2
+              if: ${{ steps.release.outputs.release_created }}
+              with:
+                  version: ^7.15.0
+
+            - uses: actions/setup-node@v4
+              if: ${{ steps.release.outputs.release_created }}
+              with:
+                  node-version: 20.x
+                  registry-url: 'https://registry.npmjs.org'
+
+            - run: pnpm i # Install using pnpm
+              if: ${{ steps.release.outputs.release_created }}
+
+            - run: pnpm publish-test # Publish using pre-defined pnpm script
+              if: ${{ steps.release.outputs.release_created }}
+              env:
+                  NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}

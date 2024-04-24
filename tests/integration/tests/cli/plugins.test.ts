@@ -26,10 +26,10 @@ describe('CLI Plugins Tests', () => {
 
     const PACKAGE_MANAGERS = ['npm' /*, 'pnpm', 'pnpm-workspace'*/] as const;
 
-    function zenstackGenerate(pm: (typeof PACKAGE_MANAGERS)[number]) {
+    function zenstackGenerate(pm: (typeof PACKAGE_MANAGERS)[number], output?: string) {
         switch (pm) {
             case 'npm':
-                run(`ZENSTACK_TEST=0 npx zenstack generate`);
+                run(`ZENSTACK_TEST=0 npx zenstack generate${output ? ' --output ' + output : ''}`);
                 break;
             // case 'pnpm':
             // case 'pnpm-workspace':
@@ -73,9 +73,9 @@ describe('CLI Plugins Tests', () => {
             'zod@3.21.1',
             'react',
             'swr',
-            '@tanstack/react-query@^4.0.0',
+            '@tanstack/react-query@^5.0.0',
             '@trpc/server',
-            '@prisma/client@^4.0.0',
+            '@prisma/client@^5.0.0',
             `${path.join(__dirname, '../../../../.build/zenstackhq-language-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-sdk-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-runtime-' + ver + '.tgz')}`,
@@ -85,7 +85,7 @@ describe('CLI Plugins Tests', () => {
         const devDepPkgs = [
             'typescript',
             '@types/react',
-            'prisma@^4.0.0',
+            'prisma@^5.0.0',
             `${path.join(__dirname, '../../../../.build/zenstack-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-tanstack-query-' + ver + '.tgz')}`,
             `${path.join(__dirname, '../../../../.build/zenstackhq-swr-' + ver + '.tgz')}`,
@@ -132,14 +132,8 @@ describe('CLI Plugins Tests', () => {
             output = 'prisma/my.prisma'
             generateClient = true
         }`,
-        `plugin meta {
-            provider = '@core/model-meta'
-            output = 'model-meta'
-        }
-        `,
-        `plugin policy {
-            provider = '@core/access-policy'
-            output = 'policy'
+        `plugin enhancer {
+            provider = '@core/enhancer'
         }`,
         `plugin tanstack {
             provider = '@zenstackhq/tanstack-query'
@@ -276,6 +270,40 @@ ${BASE_MODEL}
 
             // generate
             zenstackGenerate(pm);
+
+            // compile
+            run('npx tsc');
+        }
+    });
+
+    it('all plugins custom core output path', async () => {
+        for (const pm of PACKAGE_MANAGERS) {
+            console.log('[PACKAGE MANAGER]', pm);
+            await initProject(pm);
+
+            let schemaContent = `
+generator client {
+    provider = "prisma-client-js"
+}
+
+${BASE_MODEL}
+        `;
+            for (const plugin of plugins) {
+                if (!plugin.includes('trp')) {
+                    schemaContent += `\n${plugin}`;
+                }
+            }
+
+            schemaContent += `plugin trpc {
+                provider = '@zenstackhq/trpc'
+                output = 'lib/trpc'
+                zodSchemasImport = '../../../zen/zod'
+            }`;
+
+            fs.writeFileSync('schema.zmodel', schemaContent);
+
+            // generate
+            zenstackGenerate(pm, './zen');
 
             // compile
             run('npx tsc');

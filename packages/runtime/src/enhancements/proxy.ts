@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import deepcopy from 'deepcopy';
 import { PRISMA_PROXY_ENHANCER } from '../constants';
 import type { ModelMeta } from '../cross';
 import type { DbClientContract } from '../types';
-import { createDeferredPromise } from './policy/promise';
+import type { InternalEnhancementOptions } from './create-enhancement';
+import { createDeferredPromise, createFluentPromise } from './promise';
 
 /**
  * Prisma batch write operation result
@@ -31,7 +33,7 @@ export interface PrismaProxyHandler {
 
     create(args: any): Promise<unknown>;
 
-    createMany(args: any, skipDuplicates?: boolean): Promise<BatchResult>;
+    createMany(args: { data: any; skipDuplicates?: boolean }): Promise<BatchResult>;
 
     update(args: any): Promise<unknown>;
 
@@ -63,95 +65,97 @@ export type PrismaProxyActions = keyof PrismaProxyHandler;
  * methods to allow more easily inject custom logic.
  */
 export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
-    constructor(protected readonly prisma: DbClientContract, protected readonly model: string) {}
+    constructor(
+        protected readonly prisma: DbClientContract,
+        protected readonly model: string,
+        protected readonly options: InternalEnhancementOptions
+    ) {}
 
-    async findUnique(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('findUnique', args);
-        const r = await this.prisma[this.model].findUnique(args);
-        return this.processResultEntity(r);
+    protected withFluentCall(method: keyof PrismaProxyHandler, args: any, postProcess = true): Promise<unknown> {
+        args = args ? deepcopy(args) : {};
+        const promise = createFluentPromise(
+            async () => {
+                args = await this.preprocessArgs(method, args);
+                const r = await this.prisma[this.model][method](args);
+                return postProcess ? this.processResultEntity(r) : r;
+            },
+            args,
+            this.options.modelMeta,
+            this.model
+        );
+        return promise;
     }
 
-    async findUniqueOrThrow(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('findUniqueOrThrow', args);
-        const r = await this.prisma[this.model].findUniqueOrThrow(args);
-        return this.processResultEntity(r);
+    protected deferred<TResult = unknown>(method: keyof PrismaProxyHandler, args: any, postProcess = true) {
+        return createDeferredPromise<TResult>(async () => {
+            args = await this.preprocessArgs(method, args);
+            const r = await this.prisma[this.model][method](args);
+            return postProcess ? this.processResultEntity(r) : r;
+        });
     }
 
-    async findFirst(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('findFirst', args);
-        const r = await this.prisma[this.model].findFirst(args);
-        return this.processResultEntity(r);
+    findUnique(args: any) {
+        return this.withFluentCall('findUnique', args);
     }
 
-    async findFirstOrThrow(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('findFirstOrThrow', args);
-        const r = await this.prisma[this.model].findFirstOrThrow(args);
-        return this.processResultEntity(r);
+    findUniqueOrThrow(args: any) {
+        return this.withFluentCall('findUniqueOrThrow', args);
     }
 
-    async findMany(args: any): Promise<unknown[]> {
-        args = await this.preprocessArgs('findMany', args);
-        const r = await this.prisma[this.model].findMany(args);
-        return this.processResultEntity(r);
+    findFirst(args: any) {
+        return this.withFluentCall('findFirst', args);
     }
 
-    async create(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('create', args);
-        const r = await this.prisma[this.model].create(args);
-        return this.processResultEntity(r);
+    findFirstOrThrow(args: any) {
+        return this.withFluentCall('findFirstOrThrow', args);
     }
 
-    async createMany(args: any, skipDuplicates?: boolean | undefined): Promise<{ count: number }> {
-        args = await this.preprocessArgs('createMany', args);
-        return this.prisma[this.model].createMany(args, skipDuplicates);
+    findMany(args: any) {
+        return this.deferred<unknown[]>('findMany', args);
     }
 
-    async update(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('update', args);
-        const r = await this.prisma[this.model].update(args);
-        return this.processResultEntity(r);
+    create(args: any): Promise<unknown> {
+        return this.deferred('create', args);
     }
 
-    async updateMany(args: any): Promise<{ count: number }> {
-        args = await this.preprocessArgs('updateMany', args);
-        return this.prisma[this.model].updateMany(args);
+    createMany(args: { data: any; skipDuplicates?: boolean }) {
+        return this.deferred<{ count: number }>('createMany', args, false);
     }
 
-    async upsert(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('upsert', args);
-        const r = await this.prisma[this.model].upsert(args);
-        return this.processResultEntity(r);
+    update(args: any) {
+        return this.deferred('update', args);
     }
 
-    async delete(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('delete', args);
-        const r = await this.prisma[this.model].delete(args);
-        return this.processResultEntity(r);
+    updateMany(args: any) {
+        return this.deferred<{ count: number }>('updateMany', args, false);
     }
 
-    async deleteMany(args: any): Promise<{ count: number }> {
-        args = await this.preprocessArgs('deleteMany', args);
-        return this.prisma[this.model].deleteMany(args);
+    upsert(args: any) {
+        return this.deferred('upsert', args);
     }
 
-    async aggregate(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('aggregate', args);
-        return this.prisma[this.model].aggregate(args);
+    delete(args: any) {
+        return this.deferred('delete', args);
     }
 
-    async groupBy(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('groupBy', args);
-        return this.prisma[this.model].groupBy(args);
+    deleteMany(args: any) {
+        return this.deferred<{ count: number }>('deleteMany', args, false);
     }
 
-    async count(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('count', args);
-        return this.prisma[this.model].count(args);
+    aggregate(args: any) {
+        return this.deferred('aggregate', args, false);
     }
 
-    async subscribe(args: any): Promise<unknown> {
-        args = await this.preprocessArgs('subscribe', args);
-        return this.prisma[this.model].subscribe(args);
+    groupBy(args: any) {
+        return this.deferred('groupBy', args, false);
+    }
+
+    count(args: any): Promise<unknown> {
+        return this.deferred('count', args, false);
+    }
+
+    subscribe(args: any) {
+        return this.deferred('subscribe', args, false);
     }
 
     /**
@@ -172,6 +176,8 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
 // a marker for filtering error stack trace
 const ERROR_MARKER = '__error_marker__';
 
+const customInspect = Symbol.for('nodejs.util.inspect.custom');
+
 /**
  * Makes a Prisma client proxy.
  */
@@ -182,17 +188,13 @@ export function makeProxy<T extends PrismaProxyHandler>(
     name = 'unnamed_enhancer',
     errorTransformer?: ErrorTransformer
 ) {
-    const models = Object.keys(modelMeta.fields).map((k) => k.toLowerCase());
+    const models = Object.keys(modelMeta.models).map((k) => k.toLowerCase());
 
     const proxy = new Proxy(prisma, {
         get: (target: any, prop: string | symbol, receiver: any) => {
             // enhancer metadata
             if (prop === PRISMA_PROXY_ENHANCER) {
                 return name;
-            }
-
-            if (prop === 'toString') {
-                return () => `$zenstack_prisma_${prisma._clientVersion}`;
             }
 
             if (prop === '$transaction') {
@@ -236,9 +238,11 @@ export function makeProxy<T extends PrismaProxyHandler>(
                 return propVal;
             }
 
-            return createHandlerProxy(makeHandler(target, prop), propVal, errorTransformer);
+            return createHandlerProxy(makeHandler(target, prop), propVal, prop, errorTransformer);
         },
     });
+
+    proxy[customInspect] = `$zenstack_prisma_${prisma._clientVersion}`;
 
     return proxy;
 }
@@ -247,6 +251,7 @@ export function makeProxy<T extends PrismaProxyHandler>(
 function createHandlerProxy<T extends PrismaProxyHandler>(
     handler: T,
     origTarget: any,
+    model: string,
     errorTransformer?: ErrorTransformer
 ): T {
     return new Proxy(handler, {
@@ -277,7 +282,7 @@ function createHandlerProxy<T extends PrismaProxyHandler>(
                                 if (capture.stack && err instanceof Error) {
                                     // save the original stack and replace it with a clean one
                                     (err as any).internalStack = err.stack;
-                                    err.stack = cleanCallStack(capture.stack, propKey.toString(), err.message);
+                                    err.stack = cleanCallStack(capture.stack, model, propKey.toString(), err.message);
                                 }
 
                                 if (errorTransformer) {
@@ -303,9 +308,9 @@ function createHandlerProxy<T extends PrismaProxyHandler>(
 }
 
 // Filter out @zenstackhq/runtime stack (generated by proxy) from stack trace
-function cleanCallStack(stack: string, method: string, message: string) {
+function cleanCallStack(stack: string, model: string, method: string, message: string) {
     // message line
-    let resultStack = `Error calling enhanced Prisma method \`${method}\`: ${message}`;
+    let resultStack = `Error calling enhanced Prisma method \`${model}.${method}\`: ${message}`;
 
     const lines = stack.split('\n');
     let foundMarker = false;

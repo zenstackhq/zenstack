@@ -3,7 +3,7 @@ import path from 'path';
 
 const DB_NAME = 'field-comparison';
 
-describe('WithPolicy: field comparison tests', () => {
+describe('Policy: field comparison tests', () => {
     let origDir: string;
     let dbUrl: string;
     let prisma: any;
@@ -41,7 +41,7 @@ describe('WithPolicy: field comparison tests', () => {
         );
 
         prisma = r.prisma;
-        const db = r.withPolicy();
+        const db = r.enhance();
         await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
         await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
     });
@@ -62,7 +62,7 @@ describe('WithPolicy: field comparison tests', () => {
         );
 
         prisma = r.prisma;
-        const db = r.withPolicy();
+        const db = r.enhance();
         await expect(db.model.create({ data: { x: 1, y: 2 } })).toBeRejectedByPolicy();
         await expect(db.model.create({ data: { x: 2, y: 1 } })).toResolveTruthy();
     });
@@ -83,7 +83,7 @@ describe('WithPolicy: field comparison tests', () => {
         );
 
         prisma = r.prisma;
-        const db = r.withPolicy();
+        const db = r.enhance();
         await expect(db.model.create({ data: { x: 'a', y: ['b', 'c'] } })).toBeRejectedByPolicy();
         await expect(db.model.create({ data: { x: 'a', y: ['a', 'c'] } })).toResolveTruthy();
     });
@@ -104,7 +104,7 @@ describe('WithPolicy: field comparison tests', () => {
         );
 
         prisma = r.prisma;
-        const db = r.withPolicy();
+        const db = r.enhance();
         await expect(db.model.create({ data: { x: 'a', y: ['b', 'c'] } })).toBeRejectedByPolicy();
         await expect(db.model.create({ data: { x: 'a', y: ['a', 'c'] } })).toResolveTruthy();
     });

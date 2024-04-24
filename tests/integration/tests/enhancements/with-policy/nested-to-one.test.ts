@@ -13,7 +13,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('read filtering for optional relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -34,7 +34,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         let read = await db.m1.create({
             include: { m2: true },
@@ -60,7 +60,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('read rejection for non-optional relation', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -91,7 +91,7 @@ describe('With Policy:nested to-one', () => {
             },
         });
 
-        const db = withPolicy();
+        const db = enhance();
         await expect(db.m2.findUnique({ where: { id: '1' }, include: { m1: true } })).toResolveFalsy();
         await expect(db.m2.findMany({ include: { m1: true } })).resolves.toHaveLength(0);
 
@@ -100,7 +100,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('read condition hoisting', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -134,7 +134,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             include: { m2: true },
@@ -153,7 +153,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('create and update tests', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -175,7 +175,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         // create denied
         await expect(
@@ -213,7 +213,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested update id tests', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -235,7 +235,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -271,7 +271,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested create', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -294,7 +294,7 @@ describe('With Policy:nested to-one', () => {
             { logPrismaQuery: true }
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -327,7 +327,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested delete', async () => {
-        const { withPolicy } = await loadSchema(
+        const { enhance } = await loadSchema(
             `
         model M1 {
             id String @id @default(uuid())
@@ -350,7 +350,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        const db = withPolicy();
+        const db = enhance();
 
         await db.m1.create({
             data: {
@@ -393,7 +393,7 @@ describe('With Policy:nested to-one', () => {
     });
 
     it('nested relation delete', async () => {
-        const { withPolicy, prisma } = await loadSchema(
+        const { enhance, prisma } = await loadSchema(
             `
         model User {
             id String @id @default(uuid())
@@ -414,7 +414,7 @@ describe('With Policy:nested to-one', () => {
         `
         );
 
-        await withPolicy({ id: 'user1' }).m1.create({
+        await enhance({ id: 'user1' }).m1.create({
             data: {
                 id: 'm1',
                 value: 1,
@@ -422,7 +422,7 @@ describe('With Policy:nested to-one', () => {
         });
 
         await expect(
-            withPolicy({ id: 'user2' }).user.create({
+            enhance({ id: 'user2' }).user.create({
                 data: {
                     id: 'user2',
                     m1: {
@@ -433,7 +433,7 @@ describe('With Policy:nested to-one', () => {
         ).toResolveTruthy();
 
         await expect(
-            withPolicy({ id: 'user2' }).user.update({
+            enhance({ id: 'user2' }).user.update({
                 where: { id: 'user2' },
                 data: {
                     m1: { delete: true },
@@ -442,7 +442,7 @@ describe('With Policy:nested to-one', () => {
         ).toBeRejectedByPolicy();
 
         await expect(
-            withPolicy({ id: 'user1' }).user.create({
+            enhance({ id: 'user1' }).user.create({
                 data: {
                     id: 'user1',
                     m1: {
@@ -453,7 +453,7 @@ describe('With Policy:nested to-one', () => {
         ).toResolveTruthy();
 
         await expect(
-            withPolicy({ id: 'user1' }).user.update({
+            enhance({ id: 'user1' }).user.update({
                 where: { id: 'user1' },
                 data: {
                     m1: { delete: true },

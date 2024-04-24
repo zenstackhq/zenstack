@@ -13,7 +13,7 @@ describe('View Policy Test', () => {
     });
 
     it('view policy', async () => {
-        const { prisma, withPolicy } = await loadSchema(
+        const { prisma, enhance } = await loadSchema(
             `
             datasource db {
                 provider = "sqlite"
@@ -91,7 +91,7 @@ describe('View Policy Test', () => {
             },
         });
 
-        const db = withPolicy();
+        const db = enhance();
 
         await expect(prisma.userInfo.findMany()).resolves.toHaveLength(2);
         await expect(db.userInfo.findMany()).resolves.toHaveLength(1);

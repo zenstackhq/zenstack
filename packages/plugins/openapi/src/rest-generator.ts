@@ -1,6 +1,5 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import type { DMMF } from '@prisma/generator-helper';
 import {
     analyzePolicies,
     getDataModels,
@@ -12,6 +11,7 @@ import {
     resolvePath,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelField, DataModelFieldType, Enum, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
+import type { DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
@@ -76,7 +76,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             fs.writeFileSync(output, JSON.stringify(openapi, undefined, 2));
         }
 
-        return this.warnings;
+        return { warnings: this.warnings };
     }
 
     private generatePaths(): OAPI.PathsObject {
@@ -217,6 +217,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
             responses: {
                 '201': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
+                '422': this.validationError(),
             },
             security: resourceMeta?.security ?? policies.create === true ? [] : undefined,
         };
@@ -292,6 +293,7 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
                 '200': this.success(`${model.name}Response`),
                 '403': this.forbidden(),
                 '404': this.notFound(),
+                '422': this.validationError(),
             },
             security: resourceMeta?.security ?? policies.update === true ? [] : undefined,
         };
@@ -948,6 +950,17 @@ export class RESTfulOpenAPIGenerator extends OpenAPIGeneratorBase {
     private forbidden() {
         return {
             description: 'Request is forbidden',
+            content: {
+                'application/vnd.api+json': {
+                    schema: this.ref('_errorResponse'),
+                },
+            },
+        };
+    }
+
+    private validationError() {
+        return {
+            description: 'Request is unprocessable due to validation errors',
             content: {
                 'application/vnd.api+json': {
                     schema: this.ref('_errorResponse'),

@@ -1,17 +1,18 @@
-import type { DMMF } from '@prisma/generator-helper';
-import { PluginError, PluginOptions, getDataModels, hasAttribute } from '@zenstackhq/sdk';
+import { PluginError, getDataModels, hasAttribute, type PluginOptions, type PluginResult } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
+import type { DMMF } from '@zenstackhq/sdk/prisma';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
-import { fromZodError } from 'zod-validation-error';
-import { SecuritySchemesSchema } from './schema';
 import semver from 'semver';
+import { fromZodError } from 'zod-validation-error';
+import { name } from '.';
+import { SecuritySchemesSchema } from './schema';
 
 export abstract class OpenAPIGeneratorBase {
     protected readonly DEFAULT_SPEC_VERSION = '3.1.0';
 
     constructor(protected model: Model, protected options: PluginOptions, protected dmmf: DMMF.Document) {}
 
-    abstract generate(): string[];
+    abstract generate(): PluginResult;
 
     protected get includedModels() {
         return getDataModels(this.model).filter((d) => !hasAttribute(d, '@@openapi.ignore'));
@@ -91,10 +92,7 @@ export abstract class OpenAPIGeneratorBase {
         if (securitySchemes) {
             const parsed = SecuritySchemesSchema.safeParse(securitySchemes);
             if (!parsed.success) {
-                throw new PluginError(
-                    this.options.name,
-                    `"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`
-                );
+                throw new PluginError(name, `"securitySchemes" option is invalid: ${fromZodError(parsed.error)}`);
             }
             return parsed.data;
         }

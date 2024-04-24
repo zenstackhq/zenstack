@@ -71,11 +71,11 @@ The ZModel language's definition, including its syntax definition and parser/lin
 
 ### `schema`
 
-The `zenstack` CLI and ZModel VSCode extension implementation. The package also contains several built-in plugins: `@core/prisma`, `@core/model-meta`, `@core/access-policy`, and `core/zod`.
+The `zenstack` CLI and ZModel VSCode extension implementation. The package also contains several built-in plugins: `@core/prisma`, `@core/enhancer`, and `core/zod`.
 
 ### `runtime`
 
-Runtime enhancements to PrismaClient, including infrastructure for creating transparent proxies and concrete implementations for the `withPolicy`, `withPassword`, and `withOmit` proxies.
+Runtime enhancements to PrismaClient, including infrastructure for creating transparent proxies and concrete implementations of various proxies.
 
 ### `server`
 

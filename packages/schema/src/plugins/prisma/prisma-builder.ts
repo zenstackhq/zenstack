@@ -110,10 +110,15 @@ export class Model extends ContainerDeclaration {
         name: string,
         type: ModelFieldType | string,
         attributes: (FieldAttribute | PassThroughAttribute)[] = [],
-        documentations: string[] = []
+        documentations: string[] = [],
+        addToFront = false
     ): ModelField {
         const field = new ModelField(name, type, attributes, documentations);
-        this.fields.push(field);
+        if (addToFront) {
+            this.fields.unshift(field);
+        } else {
+            this.fields.push(field);
+        }
         return field;
     }
 

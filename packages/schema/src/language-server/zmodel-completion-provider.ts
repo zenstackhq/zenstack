@@ -159,7 +159,7 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
             acceptor(context, item);
         };
 
-        super.completionForCrossReference(context, crossRef, customAcceptor);
+        return super.completionForCrossReference(context, crossRef, customAcceptor);
     }
 
     override completionForKeyword(
@@ -174,7 +174,7 @@ export class ZModelCompletionProvider extends DefaultCompletionProvider {
             }
             acceptor(context, item);
         };
-        super.completionForKeyword(context, keyword, customAcceptor);
+        return super.completionForKeyword(context, keyword, customAcceptor);
     }
 
     private filterKeywordForContext(context: CompletionContext, keyword: string) {

@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "1.12.4",
+    "version": "2.0.0",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -18,21 +18,31 @@
     "types": "index.d.ts",
     "exports": {
         ".": {
+            "types": "./index.d.ts",
             "default": "./index.js"
         },
-        "./package.json": {
-            "default": "./package.json"
+        "./edge": {
+            "types": "./edge.d.ts",
+            "default": "./edge.js"
+        },
+        "./enhancements": {
+            "types": "./enhancements/index.d.ts",
+            "default": "./enhancements/index.js"
         },
         "./zod": {
+            "types": "./zod/index.d.ts",
             "default": "./zod/index.js"
         },
         "./zod/input": {
+            "types": "./zod/input.d.ts",
             "default": "./zod/input.js"
         },
         "./zod/models": {
+            "types": "./zod/models.d.ts",
             "default": "./zod/models.js"
         },
         "./zod/objects": {
+            "types": "./zod/objects.d.ts",
             "default": "./zod/objects.js"
         },
         "./browser": {
@@ -46,6 +56,16 @@
             "import": "./cross/index.mjs",
             "require": "./cross/index.js",
             "default": "./cross/index.js"
+        },
+        "./model-meta": {
+            "types": "./model-meta.d.ts",
+            "default": "./model-meta.js"
+        },
+        "./models": {
+            "types": "./models.d.ts"
+        },
+        "./package.json": {
+            "default": "./package.json"
         }
     },
     "publishConfig": {
@@ -53,15 +73,15 @@
         "linkDirectory": true
     },
     "dependencies": {
-        "@types/bcryptjs": "^2.4.2",
         "bcryptjs": "^2.4.3",
         "buffer": "^6.0.3",
         "change-case": "^4.1.2",
-        "colors": "1.4.0",
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
+        "deepmerge": "^4.3.1",
         "lower-case-first": "^2.0.2",
         "pluralize": "^8.0.0",
+        "safe-json-stringify": "^1.2.0",
         "semver": "^7.5.2",
         "superjson": "^1.11.0",
         "tiny-invariant": "^1.3.1",
@@ -71,6 +91,9 @@
         "zod": "^3.22.4",
         "zod-validation-error": "^1.5.0"
     },
+    "peerDependencies": {
+        "@prisma/client": "5.0.0 - 5.12.x"
+    },
     "author": {
         "name": "ZenStack Team"
     },
@@ -79,6 +102,7 @@
     "devDependencies": {
         "@types/bcryptjs": "^2.4.2",
         "@types/pluralize": "^0.0.29",
+        "@types/safe-json-stringify": "^1.1.5",
         "@types/semver": "^7.3.13",
         "@types/uuid": "^8.3.4"
     }

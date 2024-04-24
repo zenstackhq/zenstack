@@ -1,22 +1,21 @@
-import type { DMMF } from '@prisma/generator-helper';
 import {
     PluginError,
     PluginOptions,
     createProject,
+    ensureEmptyDir,
     generateModelMeta,
     getDataModels,
-    getPrismaClientImportSpec,
-    getPrismaVersion,
     requireOption,
     resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
 import { DataModel, Model } from '@zenstackhq/sdk/ast';
+import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import semver from 'semver';
 import { Project, SourceFile, VariableDeclarationKind } from 'ts-morph';
+import { match } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 
@@ -25,30 +24,26 @@ type TargetFramework = (typeof supportedTargets)[number];
 type TanStackVersion = 'v4' | 'v5';
 
 export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.Document) {
-    let outDir = requireOption<string>(options, 'output', name);
-    outDir = resolvePath(outDir, options);
-
     const project = createProject();
     const warnings: string[] = [];
     const models = getDataModels(model);
 
     const target = requireOption<string>(options, 'target', name);
     if (!supportedTargets.includes(target)) {
-        throw new PluginError(
-            options.name,
-            `Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`
-        );
+        throw new PluginError(name, `Unsupported target "${target}", supported values: ${supportedTargets.join(', ')}`);
     }
 
-    const version = typeof options.version === 'string' ? options.version : 'v4';
+    const version = typeof options.version === 'string' ? options.version : 'v5';
     if (version !== 'v4' && version !== 'v5') {
-        throw new PluginError(options.name, `Unsupported version "${version}": use "v4" or "v5"`);
+        throw new PluginError(name, `Unsupported version "${version}": use "v4" or "v5"`);
     }
+
+    let outDir = requireOption<string>(options, 'output', name);
+    outDir = resolvePath(outDir, options);
+    ensureEmptyDir(outDir);
 
     await generateModelMeta(project, models, {
         output: path.join(outDir, '__model_meta.ts'),
-        compile: false,
-        preserveTsFiles: true,
         generateAttributes: false,
     });
 
@@ -60,11 +55,11 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
             warnings.push(`Unable to find mapping for model ${dataModel.name}`);
             return;
         }
-        generateModelHooks(target, version, project, outDir, dataModel, mapping);
+        generateModelHooks(target, version, project, outDir, dataModel, mapping, options);
     });
 
     await saveProject(project);
-    return warnings;
+    return { warnings };
 }
 
 function generateQueryHook(
@@ -135,15 +130,6 @@ function generateQueryHook(
                     name: 'options?',
                     type: optionsType,
                 },
-                ...(optimistic
-                    ? [
-                          {
-                              name: 'optimisticUpdate',
-                              type: 'boolean',
-                              initializer: 'true',
-                          },
-                      ]
-                    : []),
             ],
             isExported: true,
         });
@@ -157,7 +143,7 @@ function generateQueryHook(
             makeGetContext(target),
             `return use${generateMode}ModelQuery<TQueryFnData, TData, TError>('${model}', \`\${endpoint}/${lowerCaseFirst(
                 model
-            )}/${operation}\`, args, options, fetch${optimistic ? ', optimisticUpdate' : ''});`,
+            )}/${operation}\`, args, options, fetch);`,
         ]);
     }
 }
@@ -194,16 +180,6 @@ function generateMutationHook(
                 name: 'options?',
                 type: nonGenericOptionsType,
             },
-            {
-                name: 'invalidateQueries',
-                type: 'boolean',
-                initializer: 'true',
-            },
-            {
-                name: 'optimisticUpdate',
-                type: 'boolean',
-                initializer: 'false',
-            },
         ],
     });
 
@@ -220,7 +196,7 @@ function generateMutationHook(
                     overrideReturnType ?? model
                 }, ${checkReadBack}>('${model}', '${httpVerb.toUpperCase()}', \`\${endpoint}/${lowerCaseFirst(
                     model
-                )}/${operation}\`, metadata, options, fetch, invalidateQueries, ${checkReadBack}, optimisticUpdate)
+                )}/${operation}\`, metadata, options, fetch, ${checkReadBack})
                 `,
             },
         ],
@@ -291,16 +267,16 @@ function generateModelHooks(
     project: Project,
     outDir: string,
     model: DataModel,
-    mapping: DMMF.ModelMapping
+    mapping: DMMF.ModelMapping,
+    options: PluginOptions
 ) {
     const modelNameCap = upperCaseFirst(model.name);
-    const prismaVersion = getPrismaVersion();
     const fileName = paramCase(model.name);
     const sf = project.createSourceFile(path.join(outDir, `${fileName}.ts`), undefined, { overwrite: true });
 
     sf.addStatements('/* eslint-disable */');
 
-    const prismaImport = getPrismaClientImportSpec(model.$container, outDir);
+    const prismaImport = getPrismaClientImportSpec(outDir, options);
     sf.addImportDeclaration({
         namedImports: ['Prisma', model.name],
         isTypeOnly: true,
@@ -421,11 +397,7 @@ function generateModelHooks(
 
     // groupBy
     if (mapping.groupBy) {
-        let useName = modelNameCap;
-        // prisma 4 and 5 different typing for "groupBy" and we have to deal with it separately
-        if (prismaVersion && semver.gte(prismaVersion, '5.0.0')) {
-            useName = model.name;
-        }
+        const useName = model.name;
 
         const returnType = `{} extends InputErrors ? 
         Array<PickEnumerable<Prisma.${modelNameCap}GroupByOutputType, TArgs['by']> &
@@ -565,7 +537,7 @@ function makeBaseImports(target: TargetFramework, version: TanStackVersion) {
     const runtimeImportBase = makeRuntimeImportBase(version);
     const shared = [
         `import { useModelQuery, useInfiniteModelQuery, useModelMutation } from '${runtimeImportBase}/${target}';`,
-        `import type { PickEnumerable, CheckSelect, QueryError } from '${runtimeImportBase}';`,
+        `import type { PickEnumerable, CheckSelect, QueryError, ExtraQueryOptions, ExtraMutationOptions } from '${runtimeImportBase}';`,
         `import metadata from './__model_meta';`,
         `type DefaultError = QueryError;`,
     ];
@@ -626,47 +598,58 @@ function makeQueryOptions(
     suspense: boolean,
     version: TanStackVersion
 ) {
-    switch (target) {
-        case 'react':
-            return infinite
+    let result = match(target)
+        .with('react', () =>
+            infinite
                 ? version === 'v4'
                     ? `Omit<UseInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
                     : `Omit<Use${
                           suspense ? 'Suspense' : ''
                       }InfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>`
-                : `Omit<Use${suspense ? 'Suspense' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
-        case 'vue': {
+                : `Omit<Use${suspense ? 'Suspense' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
+        )
+        .with('vue', () => {
             const baseOption = `Omit<Use${
                 infinite ? 'Infinite' : ''
             }QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
             return `MaybeRefOrGetter<${baseOption}> | ComputedRef<${baseOption}>`;
-        }
-        case 'svelte':
-            return infinite
+        })
+        .with('svelte', () =>
+            infinite
                 ? version === 'v4'
                     ? `Omit<CreateInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
                     : `StoreOrVal<Omit<CreateInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>>`
                 : version === 'v4'
                 ? `Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
-                : `StoreOrVal<Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`;
-        default:
+                : `StoreOrVal<Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`
+        )
+        .otherwise(() => {
             throw new PluginError(name, `Unsupported target: ${target}`);
+        });
+
+    if (!infinite) {
+        // non-infinite queries support extra options like optimistic updates
+        result = `(${result} & ExtraQueryOptions)`;
     }
+
+    return result;
 }
 
 function makeMutationOptions(target: string, returnType: string, argsType: string) {
-    switch (target) {
-        case 'react':
-            return `UseMutationOptions<${returnType}, DefaultError, ${argsType}>`;
-        case 'vue': {
+    let result = match(target)
+        .with('react', () => `UseMutationOptions<${returnType}, DefaultError, ${argsType}>`)
+        .with('vue', () => {
             const baseOption = `UseMutationOptions<${returnType}, DefaultError, ${argsType}, unknown>`;
             return `MaybeRefOrGetter<${baseOption}> | ComputedRef<${baseOption}>`;
-        }
-        case 'svelte':
-            return `MutationOptions<${returnType}, DefaultError, ${argsType}>`;
-        default:
+        })
+        .with('svelte', () => `MutationOptions<${returnType}, DefaultError, ${argsType}>`)
+        .otherwise(() => {
             throw new PluginError(name, `Unsupported target: ${target}`);
-    }
+        });
+
+    result = `(${result} & ExtraMutationOptions)`;
+
+    return result;
 }
 
 function makeRuntimeImportBase(version: TanStackVersion) {

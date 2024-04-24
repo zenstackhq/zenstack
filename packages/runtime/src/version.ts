@@ -1,42 +1,9 @@
-import path from 'path';
-
-/* eslint-disable @typescript-eslint/no-var-requires */
-export function getVersion() {
-    try {
-        return require('./package.json').version;
-    } catch {
-        try {
-            // dev environment
-            return require('../package.json').version;
-        } catch {
-            return 'unknown';
-        }
-    }
-}
+import * as pkgJson from './package.json';
 
 /**
- * Gets installed Prisma version by first checking "@prisma/client" and if not available,
- * "prisma".
+ * Gets this package's version.
+ * @returns
  */
-export function getPrismaVersion(): string | undefined {
-    if (process.env.ZENSTACK_TEST === '1') {
-        // test environment
-        try {
-            return require(path.resolve('./node_modules/@prisma/client/package.json')).version;
-        } catch {
-            return undefined;
-        }
-    }
-
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        return require('@prisma/client/package.json').version;
-    } catch {
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            return require('prisma/package.json').version;
-        } catch {
-            return undefined;
-        }
-    }
+export function getVersion() {
+    return pkgJson.version;
 }

@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /// <reference types="@types/jest" />
 
 import { loadSchema } from '@zenstackhq/testtools';
 import fastify from 'fastify';
+import path from 'path';
 import Rest from '../../src/api/rest';
 import RPC from '../../src/api/rpc';
 import { ZenStackFastifyPlugin } from '../../src/fastify';
@@ -113,14 +115,14 @@ describe('Fastify adapter tests - rpc handler', () => {
     });
 
     it('custom load path', async () => {
-        const { prisma } = await loadSchema(schema, { output: './zen' });
+        const { prisma, projectDir } = await loadSchema(schema, { output: './zen' });
 
         const app = fastify();
         app.register(ZenStackFastifyPlugin, {
             prefix: '/api',
             getPrisma: () => prisma,
-            loadPath: './zen',
-            zodSchemas: true,
+            modelMeta: require(path.join(projectDir, './zen/model-meta')).default,
+            zodSchemas: require(path.join(projectDir, './zen/zod')),
             handler: RPC(),
         });
 

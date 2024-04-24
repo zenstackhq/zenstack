@@ -3,6 +3,7 @@
 import { loadSchema, normalizePath } from '@zenstackhq/testtools';
 import fs from 'fs';
 import path from 'path';
+import tmp from 'tmp';
 
 describe('tRPC Plugin Tests', () => {
     let origDir: string;
@@ -56,7 +57,7 @@ model Foo {
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }
@@ -98,7 +99,7 @@ model Foo {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }
@@ -128,7 +129,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -153,7 +154,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -183,7 +184,7 @@ model Post {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
                 customSchemaFilePath: 'zenstack/schema.zmodel',
@@ -230,7 +231,7 @@ model Post {
             {
                 pushDb: false,
                 extraDependencies: [
-                    `${path.join(__dirname, '../dist')}`,
+                    path.resolve(__dirname, '../dist'),
                     '@trpc/client',
                     '@trpc/server',
                     '@trpc/react-query',
@@ -254,7 +255,7 @@ model Post {
             `,
             {
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server', '@trpc/next'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server', '@trpc/next'],
                 compile: true,
                 fullZod: true,
             }
@@ -284,7 +285,7 @@ model post_item {
         `,
             {
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
                 fullZod: true,
             }
@@ -331,7 +332,7 @@ model Foo {
             {
                 addPrelude: false,
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
             }
         );
@@ -402,7 +403,7 @@ model Foo {
             {
                 addPrelude: false,
                 pushDb: false,
-                extraDependencies: [`${path.join(__dirname, '../dist')}`, '@trpc/client', '@trpc/server'],
+                extraDependencies: [path.resolve(__dirname, '../dist'), '@trpc/client', '@trpc/server'],
                 compile: true,
             }
         );
@@ -418,5 +419,60 @@ model Foo {
         expect(
             fs.existsSync(path.join(projectDir, 'node_modules/.zenstack/zod/input/FooInput.schema.js'))
         ).toBeTruthy();
+    });
+
+    it('clear output', async () => {
+        const { name: projectDir } = tmp.dirSync();
+        fs.mkdirSync(path.join(projectDir, 'trpc'), { recursive: true });
+        fs.writeFileSync(path.join(projectDir, 'trpc', 'test.txt'), 'hello');
+
+        await loadSchema(
+            `
+        plugin trpc {
+            provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+            output = '$projectRoot/trpc'
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String @unique
+            password String @omit
+        }
+        `,
+            {
+                pushDb: false,
+                projectDir,
+                extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`],
+            }
+        );
+
+        expect(fs.existsSync(path.join(projectDir, 'trpc', 'test.txt'))).toBeFalsy();
+    });
+
+    it('existing output as file', async () => {
+        const { name: projectDir } = tmp.dirSync();
+        fs.writeFileSync(path.join(projectDir, 'trpc'), 'hello');
+
+        await expect(
+            loadSchema(
+                `
+        plugin trpc {
+            provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
+            output = '$projectRoot/trpc'
+        }
+    
+        model User {
+            id Int @id @default(autoincrement())
+            createdAt DateTime @default(now())
+            updatedAt DateTime @updatedAt
+            email String
+            password String @omit
+        }        
+        `,
+                { pushDb: false, projectDir, extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`] }
+            )
+        ).rejects.toThrow('already exists and is not a directory');
     });
 });

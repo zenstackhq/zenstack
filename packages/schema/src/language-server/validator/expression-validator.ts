@@ -1,4 +1,5 @@
 import {
+    AstNode,
     BinaryExpr,
     Expression,
     ExpressionType,
@@ -9,11 +10,12 @@ import {
     isLiteralExpr,
     isMemberAccessExpr,
     isNullExpr,
+    isReferenceExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
-import { isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
-import { AstNode, ValidationAcceptor } from 'langium';
-import { findUpAst, getContainingDataModel, isAuthInvocation, isCollectionPredicate } from '../../utils/ast-utils';
+import { isAuthInvocation, isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
+import { ValidationAcceptor, streamAst } from 'langium';
+import { findUpAst, getContainingDataModel } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
 
@@ -31,12 +33,22 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     'auth() cannot be resolved because no model marked wth "@@auth()" or named "User" is found',
                     { node: expr }
                 );
-            } else if (isCollectionPredicate(expr)) {
-                accept('error', 'collection predicate can only be used on an array of model type', { node: expr });
             } else {
-                accept('error', 'expression cannot be resolved', {
-                    node: expr,
+                const hasReferenceResolutionError = streamAst(expr).some((node) => {
+                    if (isMemberAccessExpr(node)) {
+                        return !!node.member.error;
+                    }
+                    if (isReferenceExpr(node)) {
+                        return !!node.target.error;
+                    }
+                    return false;
                 });
+                if (!hasReferenceResolutionError) {
+                    // report silent errors not involving linker errors
+                    accept('error', 'Expression cannot be resolved', {
+                        node: expr,
+                    });
+                }
             }
         }
 
@@ -220,6 +232,29 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 }
                 break;
             }
+
+            case '?':
+            case '!':
+            case '^':
+                this.validateCollectionPredicate(expr, accept);
+                break;
+        }
+    }
+
+    private validateCollectionPredicate(expr: BinaryExpr, accept: ValidationAcceptor) {
+        if (!expr.$resolvedType) {
+            accept('error', 'collection predicate can only be used on an array of model type', { node: expr });
+            return;
+        }
+
+        // TODO: revisit this when we implement lambda inside collection predicate
+        const thisExpr = streamAst(expr).find(isThisExpr);
+        if (thisExpr) {
+            accept(
+                'error',
+                'using `this` in collection predicate is not supported. To compare entity identity, use id field comparison instead.',
+                { node: thisExpr }
+            );
         }
     }
 

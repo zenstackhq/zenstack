@@ -3,7 +3,7 @@ import { getDataModels, getLiteral, hasAttribute } from '@zenstackhq/sdk';
 import colors from 'colors';
 import fs from 'fs';
 import getLatestVersion from 'get-latest-version';
-import { AstNode, getDocument, LangiumDocument, LangiumDocuments, Mutable } from 'langium';
+import { getDocument, LangiumDocument, LangiumDocuments, linkContentToContainer } from 'langium';
 import { NodeFileSystem } from 'langium/node';
 import path from 'path';
 import semver from 'semver';
@@ -56,7 +56,7 @@ export async function loadDocument(fileName: string): Promise<Model> {
 
     const importedDocuments = importedURIs.map((uri) => langiumDocuments.getOrCreateDocument(uri));
 
-    // build the document together with standard library and plugin modules
+    // build the document together with standard library, plugin modules, and imported documents
     await services.shared.workspace.DocumentBuilder.build(
         [stdLib, ...pluginDocuments, document, ...importedDocuments],
         {
@@ -64,34 +64,52 @@ export async function loadDocument(fileName: string): Promise<Model> {
         }
     );
 
-    const validationErrors = langiumDocuments.all
-        .flatMap((d) => d.diagnostics ?? [])
-        .filter((e) => e.severity === 1)
+    const diagnostics = langiumDocuments.all
+        .flatMap((doc) => (doc.diagnostics ?? []).map((diag) => ({ doc, diag })))
+        .filter(({ diag }) => diag.severity === 1 || diag.severity === 2)
         .toArray();
 
-    if (validationErrors.length > 0) {
-        console.error(colors.red('Validation errors:'));
-        for (const validationError of validationErrors) {
-            console.error(
-                colors.red(
-                    `line ${validationError.range.start.line + 1}: ${
-                        validationError.message
-                    } [${document.textDocument.getText(validationError.range)}]`
-                )
-            );
+    let hasErrors = false;
+
+    if (diagnostics.length > 0) {
+        for (const { doc, diag } of diagnostics) {
+            const message = `${path.relative(process.cwd(), doc.uri.fsPath)}:${diag.range.start.line + 1}:${
+                diag.range.start.character + 1
+            } - ${diag.message}`;
+
+            if (diag.severity === 1) {
+                console.error(colors.red(message));
+                hasErrors = true;
+            } else {
+                console.warn(colors.yellow(message));
+            }
         }
-        throw new CliError('schema validation errors');
+
+        if (hasErrors) {
+            throw new CliError('Schema contains validation errors');
+        }
     }
 
     const model = document.parseResult.value as Model;
 
-    mergeImportsDeclarations(langiumDocuments, model);
+    // merge all declarations into the main document
+    const imported = mergeImportsDeclarations(langiumDocuments, model);
+
+    // remove imported documents
+    await services.shared.workspace.DocumentBuilder.update(
+        [],
+        imported.map((m) => m.$document!.uri)
+    );
 
     validationAfterMerge(model);
 
-    mergeBaseModel(model);
+    // merge fields and attributes from base models
+    mergeBaseModel(model, services.references.Linker);
 
-    return model;
+    // finally relink all references
+    const relinkedModel = await relinkAll(model, services);
+
+    return relinkedModel;
 }
 
 // check global unique thing after merge imports
@@ -142,15 +160,15 @@ export function mergeImportsDeclarations(documents: LangiumDocuments, model: Mod
     const importedModels = resolveTransitiveImports(documents, model);
 
     const importedDeclarations = importedModels.flatMap((m) => m.declarations);
-
-    importedDeclarations.forEach((d) => {
-        const mutable = d as Mutable<AstNode>;
-        // The plugin might use $container to access the model
-        // need to make sure it is always resolved to the main model
-        mutable.$container = model;
-    });
-
     model.declarations.push(...importedDeclarations);
+
+    // remove import directives
+    model.imports = [];
+
+    // fix $containerIndex
+    linkContentToContainer(model);
+
+    return importedModels;
 }
 
 export async function getPluginDocuments(services: ZModelServices, fileName: string): Promise<LangiumDocument[]> {
@@ -255,7 +273,7 @@ export async function checkNewVersion() {
     }
 }
 
-export async function formatDocument(fileName: string) {
+export async function formatDocument(fileName: string, isPrismaStyle = true) {
     const services = createZModelServices(NodeFileSystem).ZModel;
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
@@ -267,6 +285,8 @@ export async function formatDocument(fileName: string) {
     const document = langiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
 
     const formatter = services.lsp.Formatter as ZModelFormatter;
+
+    formatter.setPrismaStyle(isPrismaStyle);
 
     const identifier = { uri: document.uri.toString() };
     const options = formatter.getFormatOptions() ?? {
@@ -294,4 +314,23 @@ export function getDefaultSchemaLocation() {
     }
 
     return path.resolve('schema.zmodel');
+}
+
+async function relinkAll(model: Model, services: ZModelServices) {
+    const doc = model.$document!;
+
+    // unlink the document
+    services.references.Linker.unlink(doc);
+
+    // remove current document
+    await services.shared.workspace.DocumentBuilder.update([], [doc.uri]);
+
+    // recreate and load the document
+    const newDoc = services.shared.workspace.LangiumDocumentFactory.fromModel(model, doc.uri);
+    services.shared.workspace.LangiumDocuments.addDocument(newDoc);
+
+    // rebuild the document
+    await services.shared.workspace.DocumentBuilder.build([newDoc], { validationChecks: 'all' });
+
+    return newDoc.parseResult.value as Model;
 }

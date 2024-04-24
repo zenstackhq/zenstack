@@ -1,6 +1,8 @@
 import {
     ExpressionContext,
     PluginError,
+    TypeScriptExpressionTransformer,
+    TypeScriptExpressionTransformerError,
     getAttributeArg,
     getAttributeArgLiteral,
     getLiteral,
@@ -19,12 +21,9 @@ import {
 } from '@zenstackhq/sdk/ast';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '..';
-import {
-    TypeScriptExpressionTransformer,
-    TypeScriptExpressionTransformerError,
-} from '../../../utils/typescript-expression-transformer';
+import { isDefaultWithAuth } from '../../enhancer/enhancer-utils';
 
-export function makeFieldSchema(field: DataModelField, respectDefault = false) {
+export function makeFieldSchema(field: DataModelField) {
     if (isDataModel(field.type.reference?.ref)) {
         if (field.type.array) {
             // array field is always optional
@@ -141,15 +140,20 @@ export function makeFieldSchema(field: DataModelField, respectDefault = false) {
         }
     }
 
-    if (respectDefault) {
+    if (field.attributes.some(isDefaultWithAuth)) {
+        // field uses `auth()` in `@default()`, this was transformed into a pseudo default
+        // value, while compiling to zod we should turn it into an optional field instead
+        // of `.default()`
+        schema += '.nullish()';
+    } else {
         const schemaDefault = getFieldSchemaDefault(field);
-        if (schemaDefault) {
+        if (schemaDefault !== undefined) {
             schema += `.default(${schemaDefault})`;
         }
-    }
 
-    if (field.type.optional) {
-        schema += '.nullish()';
+        if (field.type.optional) {
+            schema += '.nullish()';
+        }
     }
 
     return schema;
@@ -182,7 +186,7 @@ function makeZodSchema(field: DataModelField) {
                 schema = 'z.coerce.date()';
                 break;
             case 'Bytes':
-                schema = 'z.union([z.string(), z.instanceof(Uint8Array)])';
+                schema = 'z.union([z.string(), z.custom<Buffer | Uint8Array>(data => data instanceof Uint8Array)])';
                 break;
             default:
                 schema = 'z.any()';
