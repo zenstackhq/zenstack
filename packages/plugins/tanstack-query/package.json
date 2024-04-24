@@ -99,7 +99,7 @@
         "@tanstack/svelte-query-v5": "npm:@tanstack/svelte-query@^5.0.0",
         "@tanstack/vue-query": "^4.37.0",
         "@testing-library/react": "^14.0.0",
-        "@types/react": "18.2.0",
+        "@types/react": "18.2.79",
         "@types/semver": "^7.3.13",
         "@types/tmp": "^0.2.3",
         "@zenstackhq/testtools": "workspace:*",
