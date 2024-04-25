@@ -463,7 +463,15 @@ export class ExpressionWriter {
     }
 
     private isFutureMemberAccess(expr: Expression): expr is MemberAccessExpr {
-        return isMemberAccessExpr(expr) && isFutureExpr(expr.operand);
+        if (!isMemberAccessExpr(expr)) {
+            return false;
+        }
+
+        if (isFutureExpr(expr.operand)) {
+            return true;
+        }
+
+        return this.isFutureMemberAccess(expr.operand);
     }
 
     private requireIdFields(dataModel: DataModel) {

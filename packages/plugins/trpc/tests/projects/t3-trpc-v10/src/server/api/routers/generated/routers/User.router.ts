@@ -61,29 +61,6 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
         >;
 
     };
-    createMany: {
-        useMutation: <T extends Prisma.UserCreateManyArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.UserCreateManyArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.BatchPayload,
-                Context
-            >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.BatchPayload,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.UserCreateManyArgs>,
-                Context
-            >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.UserCreateManyArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>,
-            ) => Promise<Prisma.BatchPayload>;
-        };
-    };
     create: {
 
         useMutation: <T extends Prisma.UserCreateArgs>(opts?: UseTRPCMutationOptions<
