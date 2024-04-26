@@ -134,7 +134,7 @@ export class ZModelCodeActionProvider implements CodeActionProvider {
 
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 const endOffset = oppositeModel.$cstNode!.end - 1;
-                const position = document.textDocument.positionAt(endOffset);
+                const position = targetDocument.textDocument.positionAt(endOffset);
 
                 return {
                     title: `Add opposite relation fields on ${oppositeModel.name}`,

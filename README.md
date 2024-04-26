@@ -177,8 +177,8 @@ The following diagram gives a high-level architecture overview of ZenStack.
 
 -   [Custom attributes and functions](https://zenstack.dev/docs/reference/zmodel-language#custom-attributes-and-functions)
 -   [Multi-file schema and model inheritance](https://zenstack.dev/docs/guides/multiple-schema)
+-   [Polymorphic Relations](https://zenstack.dev/docs/guides/polymorphism)
 -   Strong-typed JSON field (coming soon)
--   Polymorphism (future)
 -   🙋🏻 [Request for an extension](https://discord.gg/Ykhr738dUe)
 
 ## Examples
@@ -213,6 +213,7 @@ Check out the [Multi-tenant Todo App](https://zenstack-todo.vercel.app/) for a r
 -   [Nuxt V3 + TanStack Query](https://github.com/zenstackhq/docs-tutorial-nuxt)
 -   [SvelteKit](https://github.com/zenstackhq/docs-tutorial-sveltekit)
 -   [Remix](https://github.com/zenstackhq/docs-tutorial-remix)
+-   [NestJS Backend API](https://github.com/zenstackhq/docs-tutorial-nestjs)
 -   [Express Backend API](https://github.com/zenstackhq/docs-tutorial-express)
 -   [Clerk Integration](https://github.com/zenstackhq/docs-tutorial-clerk)
 

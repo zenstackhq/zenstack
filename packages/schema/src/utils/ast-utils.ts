@@ -181,15 +181,19 @@ function resolveTransitiveImportsInternal(
     documents: LangiumDocuments,
     model: Model,
     initialModel = model,
-    visited: Set<URI> = new Set(),
+    visited: Set<string> = new Set(),
     models: Set<Model> = new Set()
 ): Model[] {
     const doc = getDocument(model);
-    if (initialModel !== model) {
+    const initialDoc = getDocument(initialModel);
+
+    if (initialDoc.uri.fsPath.toLowerCase() !== doc.uri.fsPath.toLowerCase()) {
         models.add(model);
     }
-    if (!visited.has(doc.uri)) {
-        visited.add(doc.uri);
+
+    const normalizedPath = doc.uri.fsPath.toLowerCase();
+    if (!visited.has(normalizedPath)) {
+        visited.add(normalizedPath);
         for (const imp of model.imports) {
             const importedModel = resolveImport(documents, imp);
             if (importedModel) {
