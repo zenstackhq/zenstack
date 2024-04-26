@@ -1,19 +1,11 @@
 name: Security - CodeQL
 
 on:
-    merge_group:
-    push:
-        branches:
-            - main
-            - dev
-            - release/*
-            - v2
     pull_request:
         branches:
             - main
             - dev
             - release/*
-            - v2
     schedule:
         - cron: '0 0 * * 1'
 

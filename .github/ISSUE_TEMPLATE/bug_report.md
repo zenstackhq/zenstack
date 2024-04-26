@@ -14,8 +14,8 @@ If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
 
--   ZenStack version: [e.g., 1.0.0-alpha.50]
--   Prisma version: [e.g., 4.10.0]
+-   ZenStack version: [e.g., 2.0.0]
+-   Prisma version: [e.g., 5.7.0]
 -   Database type: [e.g. Postgresql]
 
 **Additional context**
