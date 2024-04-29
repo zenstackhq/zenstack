@@ -9,7 +9,7 @@ import {
     HAS_FIELD_LEVEL_POLICY_FLAG,
     PRE_UPDATE_VALUE_SELECTOR,
 } from '../constants';
-import type { CrudContract, PolicyOperationKind, QueryContext } from '../types';
+import type { CheckerContext, CrudContract, PolicyCrudKind, PolicyOperationKind, QueryContext } from '../types';
 
 /**
  * Common options for PrismaClient enhancements
@@ -32,6 +32,24 @@ export interface CommonEnhancementOptions {
  * Function for getting policy guard with a given context
  */
 export type PolicyFunc = (context: QueryContext, db: CrudContract) => object;
+
+export type CheckerFunc = (context: CheckerContext) => CheckerConstraint;
+
+export type ConstraintVariable = { name: string; type: 'boolean' | 'number' | 'string' };
+export type ConstraintValue = { value: number | boolean | string | null; type: 'boolean' | 'number' | 'string' };
+export type ComparisonTerm = ConstraintVariable | ConstraintValue;
+
+export type CheckerConstraint =
+    | ConstraintValue
+    | ConstraintVariable
+    | { eq: { left: ComparisonTerm; right: ComparisonTerm } }
+    | { gt: { left: ComparisonTerm; right: ComparisonTerm } }
+    | { gte: { left: ComparisonTerm; right: ComparisonTerm } }
+    | { lt: { left: ComparisonTerm; right: ComparisonTerm } }
+    | { lte: { left: ComparisonTerm; right: ComparisonTerm } }
+    | { and: CheckerConstraint[] }
+    | { or: CheckerConstraint[] }
+    | { not: CheckerConstraint };
 
 /**
  * Function for getting policy guard with a given context
@@ -70,6 +88,8 @@ export type PolicyDef = {
                 [HAS_FIELD_LEVEL_POLICY_FLAG]?: boolean;
             }
     >;
+
+    checker: Record<string, Record<PolicyCrudKind, CheckerFunc | boolean>>;
 
     // tracks which models have data validation rules
     validation: Record<string, { hasValidation: boolean }>;

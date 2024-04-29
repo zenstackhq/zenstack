@@ -16,13 +16,15 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { PolicyOperationKind, type CrudContract, type DbClientContract } from '../../types';
+import { PolicyCrudKind, PolicyOperationKind, type CrudContract, type DbClientContract } from '../../types';
 import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { createDeferredPromise, createFluentPromise } from '../promise';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
+import type { CheckerConstraint } from '../types';
 import { clone, formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
+import { ConstraintSolver } from './constraint-solver';
 import { PolicyUtil } from './policy-utils';
 
 // a record for post-write policy check
@@ -1432,6 +1434,40 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
             return this.modelClient.subscribe(args);
         });
+    }
+
+    //#endregion
+
+    //#region Check
+
+    async check(
+        operation: PolicyCrudKind,
+        fieldValues?: Record<string, number | string | boolean | null>
+    ): Promise<boolean> {
+        let constraint = this.policyUtils.getCheckerConstraint(this.model, operation);
+        if (typeof constraint === 'boolean') {
+            return constraint;
+        }
+
+        if (fieldValues) {
+            const extraConstraints: CheckerConstraint[] = [];
+            for (const [field, value] of Object.entries(fieldValues)) {
+                if (value !== undefined) {
+                    const valueType = typeof value;
+                    if (valueType !== 'number' && valueType !== 'string' && valueType !== 'boolean') {
+                        throw new Error(`invalid value type for field "${field}" is not supported`);
+                    }
+                    extraConstraints.push({
+                        eq: { left: { name: field, type: valueType }, right: { value, type: valueType } },
+                    });
+                }
+            }
+            if (extraConstraints.length > 0) {
+                constraint = { and: [constraint, ...extraConstraints] };
+            }
+        }
+
+        return new ConstraintSolver().solve(constraint);
     }
 
     //#endregion

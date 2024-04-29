@@ -17,12 +17,12 @@ import {
     PrismaErrorCode,
 } from '../../constants';
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
-import { AuthUser, CrudContract, DbClientContract, PolicyOperationKind } from '../../types';
+import { AuthUser, CrudContract, DbClientContract, PolicyCrudKind, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
-import type { InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import type { CheckerFunc, InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
 
 /**
@@ -228,7 +228,7 @@ export class PolicyUtil extends QueryUtils {
 
     //#endregion
 
-    //# Auth guard
+    //#region Auth guard
 
     private readonly FULLY_OPEN_AUTH_GUARD = {
         create: true,
@@ -267,7 +267,7 @@ export class PolicyUtil extends QueryUtils {
         }
 
         if (!provider) {
-            throw this.unknownError(`zenstack: unable to load authorization guard for ${model}`);
+            throw this.unknownError(`unable to load authorization guard for ${model}`);
         }
         const r = provider({ user: this.user, preValue }, db);
         return this.reduce(r);
@@ -560,6 +560,38 @@ export class PolicyUtil extends QueryUtils {
 
         return true;
     }
+
+    //#endregion
+
+    //#region Checker
+
+    getCheckerConstraint(model: string, operation: PolicyCrudKind): ReturnType<CheckerFunc> | boolean {
+        const checker = this.getModelChecker(model);
+        if (!checker) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+
+        const provider = checker[operation];
+        if (typeof provider === 'boolean') {
+            return provider;
+        }
+
+        if (!provider) {
+            throw this.unknownError(`unable to load authorization guard for ${model}`);
+        }
+        return provider({ user: this.user });
+    }
+
+    private getModelChecker(model: string): PolicyDef['checker']['string'] {
+        if (this.options.kinds && !this.options.kinds.includes('policy')) {
+            // policy enhancement not enabled, return a constant checker
+            return { create: true, read: true, update: true, delete: true };
+        } else {
+            return this.options.policy.checker?.[lowerCaseFirst(model)];
+        }
+    }
+
+    //#endregion
 
     /**
      * Gets unique constraints for the given model.

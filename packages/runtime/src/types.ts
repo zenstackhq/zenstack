@@ -30,10 +30,12 @@ export interface DbOperations {
  */
 export type PolicyKind = 'allow' | 'deny';
 
+export type PolicyCrudKind = 'read' | 'create' | 'update' | 'delete';
+
 /**
  * Kinds of operations controlled by access policies
  */
-export type PolicyOperationKind = 'create' | 'update' | 'postUpdate' | 'read' | 'delete';
+export type PolicyOperationKind = PolicyCrudKind | 'postUpdate';
 
 /**
  * Current login user info
@@ -54,6 +56,12 @@ export type QueryContext = {
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     preValue?: any;
+};
+
+export type CheckerContext = {
+    user?: AuthUser;
+
+    fieldValues?: Record<string, string | number | boolean | null>;
 };
 
 /**

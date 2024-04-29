@@ -54,6 +54,7 @@ import { FunctionDeclaration, Project, SourceFile, VariableDeclarationKind, Writ
 import { name } from '..';
 import { isCollectionPredicate } from '../../../utils/ast-utils';
 import { ALL_OPERATION_KINDS } from '../../plugin-utils';
+import { ConstraintTransformer } from './constraint-transformer';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -70,6 +71,8 @@ export class PolicyGenerator {
                 { name: 'type CrudContract' },
                 { name: 'allFieldsEqual' },
                 { name: 'type PolicyDef' },
+                { name: 'type CheckerContext' },
+                { name: 'type CheckerConstraint' },
             ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
@@ -88,6 +91,11 @@ export class PolicyGenerator {
         const policyMap: Record<string, Record<string, string | boolean | object>> = {};
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
+        }
+
+        const checkerMap: Record<string, Record<string, string | boolean>> = {};
+        for (const model of models) {
+            checkerMap[model.name] = await this.generateCheckerForModel(model, sf);
         }
 
         const authSelector = this.generateAuthSelector(models);
@@ -114,6 +122,19 @@ export class PolicyGenerator {
                                         }
                                     });
                                     writer.write(',');
+                                }
+                            });
+                            writer.writeLine(',');
+
+                            writer.write('checker:');
+                            writer.inlineBlock(() => {
+                                for (const [model, map] of Object.entries(checkerMap)) {
+                                    writer.write(`${lowerCaseFirst(model)}:`);
+                                    writer.inlineBlock(() => {
+                                        Object.entries(map).forEach(([op, func]) => {
+                                            writer.write(`${op}: ${func},`);
+                                        });
+                                    });
                                 }
                             });
                             writer.writeLine(',');
@@ -301,7 +322,6 @@ export class PolicyGenerator {
             }
 
             const guardFunc = this.generateQueryGuardFunction(sourceFile, model, kind, allows, denies);
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             result[kind] = guardFunc.getName()!;
 
             if (kind === 'postUpdate') {
@@ -313,7 +333,6 @@ export class PolicyGenerator {
 
             if (kind === 'create' && this.canCheckCreateBasedOnInput(model, allows, denies)) {
                 const inputCheckFunc = this.generateInputCheckFunction(sourceFile, model, kind, allows, denies);
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 result[kind + '_input'] = inputCheckFunc.getName()!;
             }
         }
@@ -846,5 +865,65 @@ export class PolicyGenerator {
             // normalize user to null to avoid accidentally use undefined in filter
             statements.push(`const user: any = context.user ?? null;`);
         }
+    }
+
+    private async generateCheckerForModel(model: DataModel, sourceFile: SourceFile) {
+        const result: Record<string, string | boolean> = {};
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const policies = analyzePolicies(model);
+
+        for (const kind of ['create', 'read', 'update', 'delete'] as const) {
+            if (policies[kind] === true || policies[kind] === false) {
+                result[kind] = policies[kind] as boolean;
+                continue;
+            }
+
+            const denies = this.getPolicyExpressions(model, 'deny', kind);
+            const allows = this.getPolicyExpressions(model, 'allow', kind);
+
+            if (kind === 'update' && allows.length === 0) {
+                // no allow rule for 'update', policy is constant based on if there's
+                // post-update counterpart
+                if (this.getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
+                    result[kind] = false;
+                    continue;
+                } else {
+                    result[kind] = true;
+                    continue;
+                }
+            }
+
+            const guardFunc = this.generateCheckerFunction(sourceFile, model, kind, allows, denies);
+            result[kind] = guardFunc.getName()!;
+        }
+
+        return result;
+    }
+
+    private generateCheckerFunction(
+        sourceFile: SourceFile,
+        model: DataModel,
+        kind: string,
+        allows: Expression[],
+        denies: Expression[]
+    ) {
+        const transformed = new ConstraintTransformer({
+            authAccessor: 'context.user',
+        }).transformRules(allows, denies);
+
+        const func = sourceFile.addFunction({
+            name: `${model.name}Checker_${kind}`,
+            returnType: 'CheckerConstraint',
+            parameters: [
+                {
+                    name: 'context',
+                    type: 'CheckerContext',
+                },
+            ],
+            statements: [`return ${transformed};`],
+        });
+
+        return func;
     }
 }
