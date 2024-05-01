@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, type PluginOptions } from '@zenstackhq/sdk';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
-import { getPrismaClientImportSpec, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
+import { type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
 import type { Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
+import { computePrismaClientImport } from './generator';
 import { AggregateOperationSupport, TransformerParams } from './types';
 
 export default class Transformer {
@@ -290,7 +291,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
     }
 
     generateImportPrismaStatement(options: PluginOptions) {
-        const prismaClientImportPath = getPrismaClientImportSpec(
+        const prismaClientImportPath = computePrismaClientImport(
             path.resolve(Transformer.outputPath, './objects'),
             options
         );
