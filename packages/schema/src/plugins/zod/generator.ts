@@ -1,6 +1,7 @@
 import {
     PluginGlobalOptions,
     PluginOptions,
+    RUNTIME_PACKAGE,
     ensureEmptyDir,
     getDataModels,
     hasAttribute,
@@ -279,7 +280,7 @@ export class ZodSchemaGenerator {
                 }
             }
             if (importEnums.size > 0) {
-                const prismaImport = getPrismaClientImportSpec(path.join(output, 'models'), this.options);
+                const prismaImport = computePrismaClientImport(path.join(output, 'models'), this.options);
                 writer.writeLine(`import { ${[...importEnums].join(', ')} } from '${prismaImport}';`);
             }
 
@@ -580,4 +581,15 @@ export const ${upperCaseFirst(model.name)}UpdateSchema = ${updateSchema};
     private makePassthrough(schema: string) {
         return `${schema}.passthrough()`;
     }
+}
+
+export function computePrismaClientImport(importingFrom: string, options: PluginOptions) {
+    let importPath = getPrismaClientImportSpec(importingFrom, options);
+    if (importPath.startsWith(RUNTIME_PACKAGE) && !options.output) {
+        // default import from `@zenstackhq/runtime` and this plugin is generating
+        // into default location, we should correct the prisma client import into a
+        // importing from `.zenstack` to avoid cyclic dependencies with runtime
+        importPath = importPath.replace(RUNTIME_PACKAGE, '.zenstack');
+    }
+    return importPath;
 }

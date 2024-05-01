@@ -223,6 +223,8 @@ describe('Prisma generator test', () => {
             }
 
             enum Role {
+                /// Admin role documentation line 1
+                /// Admin role documentation line 2
                 ADMIN @map('admin')
                 CUSTOMER @map('customer')
                 @@map('_Role')
@@ -251,6 +253,9 @@ describe('Prisma generator test', () => {
         expect(content).toContain(`@@map("_Role")`);
         expect(content).toContain(`@map("admin")`);
         expect(content).toContain(`@map("customer")`);
+        expect(content).toContain('/// Admin role documentation line 1\n' +
+            '  /// Admin role documentation line 2\n' +
+            '  ADMIN');
     });
 
     it('attribute passthrough', async () => {

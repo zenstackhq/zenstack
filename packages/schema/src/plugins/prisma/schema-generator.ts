@@ -738,7 +738,7 @@ export class PrismaSchemaGenerator {
         const nonPrismaAttributes = field.attributes.filter((attr) => attr.decl.ref && !this.isPrismaAttribute(attr));
 
         const documentations = nonPrismaAttributes.map((attr) => '/// ' + this.zModelGenerator.generate(attr));
-        _enum.addField(field.name, attributes, documentations);
+        _enum.addField(field.name, attributes, documentations.concat(field.comments));
     }
 }
 
