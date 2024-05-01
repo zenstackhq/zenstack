@@ -5,6 +5,7 @@ import {
     getAttributeArg,
     getAuthModel,
     getDataModels,
+    getLiteral,
     isDelegateModel,
     type PluginOptions,
 } from '@zenstackhq/sdk';
@@ -14,12 +15,14 @@ import {
     ReferenceExpr,
     isArrayExpr,
     isDataModel,
+    isGeneratorDecl,
     isReferenceExpr,
     type Model,
 } from '@zenstackhq/sdk/ast';
-import { getDMMF, getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
+import { getDMMF, getPrismaClientImportSpec, getPrismaVersion, type DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import path from 'path';
+import semver from 'semver';
 import {
     FunctionDeclarationStructure,
     InterfaceDeclaration,
@@ -42,6 +45,8 @@ import { generateAuthType } from './auth-type-generator';
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
 
+const LOGICAL_CLIENT_GENERATION_PATH = './.logical-prisma-client';
+
 export class EnhancerGenerator {
     constructor(
         private readonly model: Model,
@@ -60,7 +65,7 @@ export class EnhancerGenerator {
             // schema contains delegate models, need to generate a logical prisma schema
             const result = await this.generateLogicalPrisma();
 
-            logicalPrismaClientDir = './.logical-prisma-client';
+            logicalPrismaClientDir = LOGICAL_CLIENT_GENERATION_PATH;
             dmmf = result.dmmf;
 
             // create a reexport of the logical prisma client
@@ -190,40 +195,76 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
     private async generateLogicalPrisma() {
         const prismaGenerator = new PrismaSchemaGenerator(this.model);
-        const prismaClientOutDir = './.logical-prisma-client';
-        const logicalPrismaFile = path.join(this.outDir, 'logical.prisma');
-        await prismaGenerator.generate({
-            provider: '@internal', // doesn't matter
-            schemaPath: this.options.schemaPath,
-            output: logicalPrismaFile,
-            overrideClientGenerationPath: prismaClientOutDir,
-            mode: 'logical',
-        });
 
-        // generate the prisma client
-        const generateCmd = `prisma generate --schema "${logicalPrismaFile}" --no-engine`;
+        // dir of the zmodel file
+        const zmodelDir = path.dirname(this.options.schemaPath);
+
+        // generate a temp logical prisma schema in zmodel's dir
+        const logicalPrismaFile = path.join(zmodelDir, `logical-${Date.now()}.prisma`);
+
+        // calculate a relative output path to output the logical prisma client into enhancer's output dir
+        const prismaClientOutDir = path.join(path.relative(zmodelDir, this.outDir), LOGICAL_CLIENT_GENERATION_PATH);
         try {
-            // run 'prisma generate'
-            await execPackage(generateCmd, { stdio: 'ignore' });
-        } catch {
-            await trackPrismaSchemaError(logicalPrismaFile);
-            try {
-                // run 'prisma generate' again with output to the console
-                await execPackage(generateCmd);
-            } catch {
-                // noop
+            await prismaGenerator.generate({
+                provider: '@internal', // doesn't matter
+                schemaPath: this.options.schemaPath,
+                output: logicalPrismaFile,
+                overrideClientGenerationPath: prismaClientOutDir,
+                mode: 'logical',
+            });
+
+            // generate the prisma client
+
+            // only run prisma client generator for the logical schema
+            const prismaClientGeneratorName = this.getPrismaClientGeneratorName(this.model);
+            let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
+
+            const prismaVersion = getPrismaVersion();
+            if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
+                // add --no-engine to reduce generation size if the prisma version supports
+                generateCmd += ' --no-engine';
             }
-            throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
+
+            try {
+                // run 'prisma generate'
+                await execPackage(generateCmd, { stdio: 'ignore' });
+            } catch {
+                await trackPrismaSchemaError(logicalPrismaFile);
+                try {
+                    // run 'prisma generate' again with output to the console
+                    await execPackage(generateCmd);
+                } catch {
+                    // noop
+                }
+                throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
+            }
+
+            // make a bunch of typing fixes to the generated prisma client
+            await this.processClientTypes(path.join(this.outDir, LOGICAL_CLIENT_GENERATION_PATH));
+
+            return {
+                prismaSchema: logicalPrismaFile,
+                // load the dmmf of the logical prisma schema
+                dmmf: await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) }),
+            };
+        } finally {
+            if (fs.existsSync(logicalPrismaFile)) {
+                fs.rmSync(logicalPrismaFile);
+            }
         }
+    }
 
-        // make a bunch of typing fixes to the generated prisma client
-        await this.processClientTypes(path.join(this.outDir, prismaClientOutDir));
-
-        return {
-            prismaSchema: logicalPrismaFile,
-            // load the dmmf of the logical prisma schema
-            dmmf: await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) }),
-        };
+    private getPrismaClientGeneratorName(model: Model) {
+        for (const generator of model.declarations.filter(isGeneratorDecl)) {
+            if (
+                generator.fields.some(
+                    (f) => f.name === 'provider' && getLiteral<string>(f.value) === 'prisma-client-js'
+                )
+            ) {
+                return generator.name;
+            }
+        }
+        throw new PluginError(name, `Cannot find prisma-client-js generator in the schema`);
     }
 
     private async processClientTypes(prismaClientDir: string) {
