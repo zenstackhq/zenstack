@@ -171,6 +171,7 @@ The following diagram gives a high-level architecture overview of ZenStack.
 -   [SvelteKit](https://zenstack.dev/docs/reference/server-adapters/sveltekit)
 -   [Fastify](https://zenstack.dev/docs/reference/server-adapters/fastify)
 -   [ExpressJS](https://zenstack.dev/docs/reference/server-adapters/express)
+-   [NestJS](https://zenstack.dev/docs/reference/server-adapters/nestjs)
 -   🙋🏻 [Request for an adapter](https://discord.gg/Ykhr738dUe)
 
 ### Prisma schema extensions
