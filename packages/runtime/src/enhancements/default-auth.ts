@@ -80,6 +80,10 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
                 processCreatePayload(model, data);
             },
 
+            upsert: (model, data) => {
+                processCreatePayload(model, data.create);
+            },
+
             createMany: (model, args) => {
                 for (const item of enumerate(args.data)) {
                     processCreatePayload(model, item);
