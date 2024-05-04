@@ -456,6 +456,15 @@ describe('auth() runtime test', () => {
         await expect(
             db.post.create({ data: { title: 'post3', author: { connect: { email: 'user2@abc.com' } } } })
         ).resolves.toMatchObject({ authorId: 'userId-2' });
+
+        // upsert
+        await expect(
+            db.post.upsert({
+                where: { id: 'post4' },
+                create: { id: 'post4', title: 'post4' },
+                update: { title: 'post4' },
+            })
+        ).resolves.toMatchObject({ authorId: 'userId-1' });
     });
 
     it('Default auth() with nested user context value', async () => {
