@@ -112,7 +112,7 @@ function autoincrement(): Int {
 /**
  * Represents default values that cannot be expressed in the Prisma schema (such as random()).
  */
-function dbgenerated(expr: String): Any {
+function dbgenerated(expr: String?): Any {
 } @@@expressionContext([DefaultValue])
 
 /**
