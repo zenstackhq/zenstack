@@ -135,6 +135,7 @@ export class PolicyGenerator {
                                             writer.write(`${op}: ${func},`);
                                         });
                                     });
+                                    writer.writeLine(',');
                                 }
                             });
                             writer.writeLine(',');
@@ -908,9 +909,15 @@ export class PolicyGenerator {
         allows: Expression[],
         denies: Expression[]
     ) {
+        const statements: string[] = [];
+
+        this.generateNormalizedAuthRef(model, allows, denies, statements);
+
         const transformed = new ConstraintTransformer({
-            authAccessor: 'context.user',
+            authAccessor: 'user',
         }).transformRules(allows, denies);
+
+        statements.push(`return ${transformed};`);
 
         const func = sourceFile.addFunction({
             name: `${model.name}Checker_${kind}`,
@@ -921,7 +928,7 @@ export class PolicyGenerator {
                     type: 'CheckerContext',
                 },
             ],
-            statements: [`return ${transformed};`],
+            statements,
         });
 
         return func;

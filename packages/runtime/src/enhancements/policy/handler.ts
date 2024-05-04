@@ -2,6 +2,7 @@
 
 import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
+import { P, match } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason } from '../../constants';
@@ -1452,18 +1453,48 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         if (fieldValues) {
             const extraConstraints: CheckerConstraint[] = [];
             for (const [field, value] of Object.entries(fieldValues)) {
-                if (value !== undefined) {
-                    const valueType = typeof value;
-                    if (valueType !== 'number' && valueType !== 'string' && valueType !== 'boolean') {
-                        throw new Error(`invalid value type for field "${field}" is not supported`);
-                    }
-                    extraConstraints.push({
-                        eq: { left: { name: field, type: valueType }, right: { value, type: valueType } },
-                    });
+                if (value === undefined) {
+                    continue;
                 }
+
+                if (value === null) {
+                    throw new Error(`Using "null" as filter value is not supported yet`);
+                }
+
+                const fieldInfo = requireField(this.modelMeta, this.model, field);
+
+                if (fieldInfo.isDataModel || fieldInfo.isArray) {
+                    throw new Error(
+                        `Providing filter for field "${field}" is not supported. Only scalar fields are allowed.`
+                    );
+                }
+
+                const fieldType = match<string, 'number' | 'string' | 'boolean'>(fieldInfo.type)
+                    .with(P.union('Int', 'BigInt', 'Float', 'Decimal'), () => 'number')
+                    .with('String', () => 'string')
+                    .with('Boolean', () => 'boolean')
+                    .otherwise(() => {
+                        throw new Error(
+                            `Providing filter for field "${field}" is not supported. Only number, string, and boolean fields are allowed.`
+                        );
+                    });
+
+                const valueType = typeof value;
+                if (valueType !== 'number' && valueType !== 'string' && valueType !== 'boolean') {
+                    throw new Error(
+                        `Invalid value for field "${field}". Only number, string, boolean, or null is allowed.`
+                    );
+                }
+
+                extraConstraints.push({
+                    kind: 'eq',
+                    left: { kind: 'variable', name: field, type: fieldType },
+                    right: { kind: 'value', value, type: fieldType },
+                });
             }
+
             if (extraConstraints.length > 0) {
-                constraint = { and: [constraint, ...extraConstraints] };
+                constraint = { kind: 'and', children: [constraint, ...extraConstraints] };
             }
         }
 

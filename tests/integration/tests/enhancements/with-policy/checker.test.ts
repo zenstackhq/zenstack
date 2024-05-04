@@ -1,13 +1,63 @@
 import { loadSchema } from '@zenstackhq/testtools';
 
 describe('Permission checker', () => {
-    it('simple', async () => {
+    it('empty rules', async () => {
         const { enhance } = await loadSchema(
             `
             model Model {
-                id String @id @default(uuid())
+                id Int @id @default(autoincrement())
+                value Int
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveFalsy();
+        await expect(db.model.check('read', { value: 1 })).toResolveFalsy();
+    });
+
+    it('unconditional allow', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('all', true)
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 0 })).toResolveTruthy();
+    });
+
+    it('deny rule', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('all', value > 0)
+                @@deny('all', value == 1)
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 0 })).toResolveFalsy();
+        await expect(db.model.check('read', { value: 1 })).toResolveFalsy();
+        await expect(db.model.check('read', { value: 2 })).toResolveTruthy();
+    });
+
+    it('int field condition', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
                 value Int
                 @@allow('read', value == 1)
+                @@allow('create', value != 1)
+                @@allow('update', value > 1)
+                @@allow('delete', value <= 1)
             }
             `
         );
@@ -16,5 +66,264 @@ describe('Permission checker', () => {
         await expect(db.model.check('read')).toResolveTruthy();
         await expect(db.model.check('read', { value: 0 })).toResolveFalsy();
         await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
+
+        await expect(db.model.check('create')).toResolveTruthy();
+        await expect(db.model.check('create', { value: 0 })).toResolveTruthy();
+        await expect(db.model.check('create', { value: 1 })).toResolveFalsy();
+
+        await expect(db.model.check('update')).toResolveTruthy();
+        await expect(db.model.check('update', { value: 1 })).toResolveFalsy();
+        await expect(db.model.check('update', { value: 2 })).toResolveTruthy();
+
+        await expect(db.model.check('delete')).toResolveTruthy();
+        await expect(db.model.check('delete', { value: 0 })).toResolveTruthy();
+        await expect(db.model.check('delete', { value: 1 })).toResolveTruthy();
+        await expect(db.model.check('delete', { value: 2 })).toResolveFalsy();
+    });
+
+    it('boolean field toplevel condition', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Boolean
+                @@allow('read', value)
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: false })).toResolveFalsy();
+        await expect(db.model.check('read', { value: true })).toResolveTruthy();
+    });
+
+    it('boolean field condition', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Boolean
+                @@allow('read', value == true)
+                @@allow('create', value == false)
+                @@allow('update', value != true)
+                @@allow('delete', value != false)
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: false })).toResolveFalsy();
+        await expect(db.model.check('read', { value: true })).toResolveTruthy();
+
+        await expect(db.model.check('create')).toResolveTruthy();
+        await expect(db.model.check('create', { value: true })).toResolveFalsy();
+        await expect(db.model.check('create', { value: false })).toResolveTruthy();
+
+        await expect(db.model.check('update')).toResolveTruthy();
+        await expect(db.model.check('update', { value: true })).toResolveFalsy();
+        await expect(db.model.check('update', { value: false })).toResolveTruthy();
+
+        await expect(db.model.check('delete')).toResolveTruthy();
+        await expect(db.model.check('delete', { value: false })).toResolveFalsy();
+        await expect(db.model.check('delete', { value: true })).toResolveTruthy();
+    });
+
+    it('string field condition', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value String
+                @@allow('read', value == 'admin')
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 'user' })).toResolveFalsy();
+        await expect(db.model.check('read', { value: 'admin' })).toResolveTruthy();
+    });
+
+    it('function noop', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value String
+                @@allow('read', startsWith(value, 'admin'))
+                @@allow('update', !startsWith(value, 'admin'))
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 'user' })).toResolveTruthy();
+        await expect(db.model.check('read', { value: 'admin' })).toResolveTruthy();
+        await expect(db.model.check('update')).toResolveTruthy();
+        await expect(db.model.check('update', { value: 'user' })).toResolveTruthy();
+        await expect(db.model.check('update', { value: 'admin' })).toResolveTruthy();
+    });
+
+    it('relation noop', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value String
+                foo Foo?
+
+                @@allow('read', foo.x > 0)
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                x Int
+                modelId Int @unique
+                model Model @relation(fields: [modelId], references: [id])
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { foo: { x: 0 } })).rejects.toThrow('Providing filter for field "foo"');
+    });
+
+    it('collection predicate noop', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value String
+                foo Foo[]
+
+                @@allow('read', foo?[x > 0])
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                x Int
+                modelId Int
+                model Model @relation(fields: [modelId], references: [id])
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { foo: [{ x: 0 }] })).rejects.toThrow('Providing filter for field "foo"');
+    });
+
+    it('field complex condition', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                x Int
+                y Int
+                @@allow('read', x > 0 && x > y)
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { x: 0 })).toResolveFalsy();
+        await expect(db.model.check('read', { x: 1 })).toResolveTruthy();
+        await expect(db.model.check('read', { x: 1, y: 0 })).toResolveTruthy();
+        await expect(db.model.check('read', { x: 1, y: 1 })).toResolveFalsy();
+    });
+
+    it('field condition unsolvable', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                x Int
+                y Int
+                @@allow('read', x > 0 && x < y && y <= 1)
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveFalsy();
+        await expect(db.model.check('read', { x: 0 })).toResolveFalsy();
+        await expect(db.model.check('read', { x: 1 })).toResolveFalsy();
+        await expect(db.model.check('read', { x: 1, y: 2 })).toResolveFalsy();
+        await expect(db.model.check('read', { x: 1, y: 1 })).toResolveFalsy();
+    });
+
+    it('simple auth condition', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                level Int
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('read', auth().level > 0)
+            }
+            `
+        );
+
+        await expect(enhance().model.check('read')).toResolveTruthy();
+        await expect(enhance({ id: 1, level: 0 }).model.check('read')).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 1 }).model.check('read')).toResolveTruthy();
+    });
+
+    it('auth with relation', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                level Int
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('read', auth().profile.level > 0)
+            }
+            `
+        );
+
+        await expect(enhance().model.check('read')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('read')).toResolveTruthy();
+        await expect(enhance({ id: 1, profile: { level: 0 } }).model.check('read')).toResolveFalsy();
+        await expect(enhance({ id: 1, profile: { level: 1 } }).model.check('read')).toResolveTruthy();
+    });
+
+    it('nullable field', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int?
+                @@allow('read', value != null)
+                @@allow('create', value == null)
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
+        await expect(db.model.check('create')).toResolveTruthy();
+        await expect(db.model.check('create', { value: 1 })).toResolveTruthy();
     });
 });

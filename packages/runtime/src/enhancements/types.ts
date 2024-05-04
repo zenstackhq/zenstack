@@ -35,21 +35,30 @@ export type PolicyFunc = (context: QueryContext, db: CrudContract) => object;
 
 export type CheckerFunc = (context: CheckerContext) => CheckerConstraint;
 
-export type ConstraintVariable = { name: string; type: 'boolean' | 'number' | 'string' };
-export type ConstraintValue = { value: number | boolean | string | null; type: 'boolean' | 'number' | 'string' };
-export type ComparisonTerm = ConstraintVariable | ConstraintValue;
+export type ConstraintValueTypes = 'boolean' | 'number' | 'string';
 
-export type CheckerConstraint =
-    | ConstraintValue
-    | ConstraintVariable
-    | { eq: { left: ComparisonTerm; right: ComparisonTerm } }
-    | { gt: { left: ComparisonTerm; right: ComparisonTerm } }
-    | { gte: { left: ComparisonTerm; right: ComparisonTerm } }
-    | { lt: { left: ComparisonTerm; right: ComparisonTerm } }
-    | { lte: { left: ComparisonTerm; right: ComparisonTerm } }
-    | { and: CheckerConstraint[] }
-    | { or: CheckerConstraint[] }
-    | { not: CheckerConstraint };
+export type VariableConstraint = { kind: 'variable'; name: string; type: ConstraintValueTypes };
+
+export type ValueConstraint = {
+    kind: 'value';
+    value: number | boolean | string;
+    type: ConstraintValueTypes;
+};
+
+export type ComparisonTerm = VariableConstraint | ValueConstraint;
+
+export type ComparisonConstraint = {
+    kind: 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
+    left: ComparisonTerm;
+    right: ComparisonTerm;
+};
+
+export type LogicalConstraint = {
+    kind: 'and' | 'or' | 'not';
+    children: CheckerConstraint[];
+};
+
+export type CheckerConstraint = ValueConstraint | VariableConstraint | ComparisonConstraint | LogicalConstraint;
 
 /**
  * Function for getting policy guard with a given context

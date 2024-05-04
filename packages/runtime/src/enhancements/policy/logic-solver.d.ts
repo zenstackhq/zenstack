@@ -1,11 +1,9 @@
 declare module 'logic-solver' {
-    type Term = string;
+    interface Formula {}
 
-    type Formula = Term;
+    const TRUE: Formula;
 
-    const TRUE: Term;
-
-    const FALSE: Term;
+    const FALSE: Formula;
 
     export function equiv(operand1: Formula, operand2: Formula): Formula;
 

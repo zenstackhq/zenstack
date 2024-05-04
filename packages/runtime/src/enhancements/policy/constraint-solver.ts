@@ -1,8 +1,13 @@
 import Logic, { Formula } from 'logic-solver';
 import { match } from 'ts-pattern';
-import type { CheckerConstraint, ComparisonTerm, ConstraintVariable } from '../types';
-
-const MAGIC_NULL = 0x7fffffff;
+import type {
+    CheckerConstraint,
+    ComparisonConstraint,
+    ComparisonTerm,
+    LogicalConstraint,
+    ValueConstraint,
+    VariableConstraint,
+} from '../types';
 
 export class ConstraintSolver {
     private stringTable: string[] = [];
@@ -26,84 +31,98 @@ export class ConstraintSolver {
     }
 
     private buildFormula(constraint: CheckerConstraint): Logic.Formula {
-        if ('value' in constraint) {
-            if (constraint.value === null) {
-                return Logic.constantBits(MAGIC_NULL);
-            }
+        return match(constraint)
+            .when(
+                (c): c is ValueConstraint => c.kind === 'value',
+                (c) => this.buildValueFormula(c)
+            )
+            .when(
+                (c): c is VariableConstraint => c.kind === 'variable',
+                (c) => this.buildVariableFormula(c)
+            )
+            .when(
+                (c): c is ComparisonConstraint => ['eq', 'gt', 'gte', 'lt', 'lte'].includes(c.kind),
+                (c) => this.buildComparisonFormula(c)
+            )
+            .when(
+                (c): c is LogicalConstraint => ['and', 'or', 'not'].includes(c.kind),
+                (c) => this.buildLogicalFormula(c)
+            )
+            .otherwise(() => {
+                throw new Error(`Unsupported constraint format: ${JSON.stringify(constraint)}`);
+            });
+    }
 
-            if (typeof constraint.value === 'boolean') {
-                return constraint.value === true ? Logic.TRUE : Logic.FALSE;
-            }
-
-            if (typeof constraint.value === 'number') {
-                return Logic.constantBits(constraint.value);
-            }
-
-            if (typeof constraint.value === 'string') {
-                const index = this.stringTable.indexOf(constraint.value);
-                if (index === -1) {
-                    this.stringTable.push(constraint.value);
-                    return Logic.constantBits(this.stringTable.length - 1);
-                } else {
-                    return Logic.constantBits(index);
+    private buildLogicalFormula(constraint: LogicalConstraint) {
+        return match(constraint.kind)
+            .with('and', () => Logic.and(...constraint.children.map((c) => this.buildFormula(c))))
+            .with('or', () => Logic.or(...constraint.children.map((c) => this.buildFormula(c))))
+            .with('not', () => {
+                if (constraint.children.length !== 1) {
+                    throw new Error('"not" constraint must have exactly one child');
                 }
-            }
-        }
-
-        if ('name' in constraint) {
-            // variable
-            return match(constraint.type)
-                .with('boolean', () => this.booleanVariable(constraint))
-                .with('number', () => this.intVariable(constraint.name))
-                .with('string', () => this.intVariable(constraint.name))
-                .exhaustive();
-        }
-
-        if ('eq' in constraint) {
-            return this.transformEquality(constraint.eq.left, constraint.eq.right);
-        }
-
-        if ('gt' in constraint) {
-            return this.transformComparison(constraint.gt.left, constraint.gt.right, (l, r) => Logic.greaterThan(l, r));
-        }
-
-        if ('gte' in constraint) {
-            return this.transformComparison(constraint.gte.left, constraint.gte.right, (l, r) =>
-                Logic.greaterThanOrEqual(l, r)
-            );
-        }
-
-        if ('lt' in constraint) {
-            return this.transformComparison(constraint.lt.left, constraint.lt.right, (l, r) => Logic.lessThan(l, r));
-        }
-
-        if ('lte' in constraint) {
-            return this.transformComparison(constraint.lte.left, constraint.lte.right, (l, r) =>
-                Logic.greaterThan(l, r)
-            );
-        }
-
-        if ('and' in constraint) {
-            return Logic.and(...constraint.and.map((c) => this.buildFormula(c)));
-        }
-
-        if ('or' in constraint) {
-            return Logic.or(...constraint.or.map((c) => this.buildFormula(c)));
-        }
-
-        if ('not' in constraint) {
-            return Logic.not(this.buildFormula(constraint.not));
-        }
-
-        throw new Error(`Unsupported constraint format: ${JSON.stringify(constraint)}`);
+                return Logic.not(this.buildFormula(constraint.children[0]));
+            })
+            .exhaustive();
     }
 
-    private booleanVariable(constraint: ConstraintVariable): string {
-        this.variables.set(constraint.name, constraint.name);
-        return constraint.name;
+    private buildComparisonFormula(constraint: ComparisonConstraint) {
+        return match(constraint.kind)
+            .with('eq', () => this.transformEquality(constraint.left, constraint.right))
+            .with('gt', () =>
+                this.transformComparison(constraint.left, constraint.right, (l, r) => Logic.greaterThan(l, r))
+            )
+            .with('gte', () =>
+                this.transformComparison(constraint.left, constraint.right, (l, r) => Logic.greaterThanOrEqual(l, r))
+            )
+            .with('lt', () =>
+                this.transformComparison(constraint.left, constraint.right, (l, r) => Logic.lessThan(l, r))
+            )
+            .with('lte', () =>
+                this.transformComparison(constraint.left, constraint.right, (l, r) => Logic.lessThanOrEqual(l, r))
+            )
+            .exhaustive();
     }
 
-    private intVariable(name: string): string {
+    buildVariableFormula(constraint: VariableConstraint) {
+        return match(constraint.type)
+            .with('boolean', () => this.booleanVariable(constraint.name))
+            .with('number', () => this.intVariable(constraint.name))
+            .with('string', () => this.intVariable(constraint.name))
+            .exhaustive();
+    }
+
+    private buildValueFormula(constraint: ValueConstraint) {
+        return match(constraint.value)
+            .when(
+                (v): v is boolean => typeof v === 'boolean',
+                (v) => (v === true ? Logic.TRUE : Logic.FALSE)
+            )
+            .when(
+                (v): v is number => typeof v === 'number',
+                (v) => Logic.constantBits(v)
+            )
+            .when(
+                (v): v is string => typeof v === 'string',
+                (v) => {
+                    const index = this.stringTable.indexOf(v);
+                    if (index === -1) {
+                        this.stringTable.push(v);
+                        return Logic.constantBits(this.stringTable.length - 1);
+                    } else {
+                        return Logic.constantBits(index);
+                    }
+                }
+            )
+            .exhaustive();
+    }
+
+    private booleanVariable(name: string) {
+        this.variables.set(name, name);
+        return name;
+    }
+
+    private intVariable(name: string) {
         const r = Logic.variableBits(name, 32);
         this.variables.set(name, r);
         return r;
@@ -132,146 +151,3 @@ export class ConstraintSolver {
         return func(leftConstraint, rightConstraint);
     }
 }
-
-// export function solve(constraint: CheckerConstraint) {
-//     const stringTable: string[] = [];
-//     const formula = buildFormula(constraint, stringTable);
-//     const solver = new Logic.Solver();
-//     solver.require(formula);
-//     const solution = solver.solve();
-//     console.log('Solution:', solution?.getMap());
-//     return !!solution;
-// }
-
-// function buildFormula(constraint: CheckerConstraint, stringTable: string[]): Logic.Formula {
-//     if ('value' in constraint) {
-//         if (constraint.value === null) {
-//             return Logic.constantBits(MAGIC_NULL);
-//         }
-
-//         if (typeof constraint.value === 'boolean') {
-//             return constraint.value === true ? Logic.TRUE : Logic.FALSE;
-//         }
-
-//         if (typeof constraint.value === 'number') {
-//             return Logic.constantBits(constraint.value);
-//         }
-
-//         if (typeof constraint.value === 'string') {
-//             const index = stringTable.indexOf(constraint.value);
-//             if (index === -1) {
-//                 stringTable.push(constraint.value);
-//                 return Logic.constantBits(stringTable.length - 1);
-//             } else {
-//                 return Logic.constantBits(index);
-//             }
-//         }
-//     }
-
-//     if ('name' in constraint) {
-//         // variable
-//         return match(constraint.type)
-//             .with('boolean', () => constraint.name)
-//             .with('number', () => Logic.variableBits(constraint.name, 32))
-//             .with('string', () => Logic.variableBits(constraint.name, 32))
-//             .exhaustive();
-//     }
-
-//     if ('eq' in constraint) {
-//         return transformEquality(constraint.eq.left, constraint.eq.right, stringTable);
-//     }
-
-//     if ('gt' in constraint) {
-//         return transformComparison(constraint.gt.left, constraint.gt.right, stringTable, (l, r) =>
-//             Logic.greaterThan(l, r)
-//         );
-//     }
-
-//     if ('gte' in constraint) {
-//         return transformComparison(constraint.gte.left, constraint.gte.right, stringTable, (l, r) =>
-//             Logic.greaterThanOrEqual(l, r)
-//         );
-//     }
-
-//     if ('lt' in constraint) {
-//         return transformComparison(constraint.lt.left, constraint.lt.right, stringTable, (l, r) =>
-//             Logic.lessThan(l, r)
-//         );
-//     }
-
-//     if ('lte' in constraint) {
-//         return transformComparison(constraint.lte.left, constraint.lte.right, stringTable, (l, r) =>
-//             Logic.greaterThan(l, r)
-//         );
-//     }
-
-//     if ('and' in constraint) {
-//         return Logic.and(...constraint.and.map((c) => buildFormula(c, stringTable)));
-//     }
-
-//     if ('or' in constraint) {
-//         return Logic.or(...constraint.or.map((c) => buildFormula(c, stringTable)));
-//     }
-
-//     if ('not' in constraint) {
-//         return Logic.not(buildFormula(constraint.not, stringTable));
-//     }
-
-//     throw new Error(`Unsupported constraint format: ${JSON.stringify(constraint)}`);
-// }
-
-// function transformEquality(left: ComparisonTerm, right: ComparisonTerm, stringTable: string[]) {
-//     if (left.type !== right.type) {
-//         throw new Error(`Type mismatch in equality constraint: ${JSON.stringify(left)}, ${JSON.stringify(right)}`);
-//     }
-//     const leftConstraint = buildFormula(left, stringTable);
-//     const rightConstraint = buildFormula(right, stringTable);
-//     if (left.type === 'boolean' && right.type === 'boolean') {
-//         return Logic.equiv(leftConstraint, rightConstraint);
-//     } else {
-//         return Logic.equalBits(leftConstraint, rightConstraint);
-//     }
-// }
-
-// function transformComparison(
-//     left: ComparisonTerm,
-//     right: ComparisonTerm,
-//     stringTable: string[],
-//     func: (left: Logic.Formula, right: Logic.Formula) => Logic.Formula
-// ): string {
-//     const leftConstraint = buildFormula(left, stringTable);
-//     const rightConstraint = buildFormula(right, stringTable);
-//     return func(leftConstraint, rightConstraint);
-// }
-
-// // export type Constraint = Logic.Formula;
-
-// // export function TRUE(): Constraint {
-// //     return Logic.TRUE;
-// // }
-
-// // export function FALSE(): Constraint {
-// //     return Logic.FALSE;
-// // }
-
-// // export function variable(name: string): Constraint {
-// //     return name;
-// // }
-
-// // export function and(...args: Constraint[]): Constraint {
-// //     return Logic.and(...args);
-// // }
-
-// // export function or(...args: Constraint[]): Constraint {
-// //     return Logic.or(...args);
-// // }
-
-// // export function not(arg: Constraint): Constraint {
-// //     return Logic.not(arg);
-// // }
-
-// // export function checkSat(constraint: Constraint): boolean {
-// //     const solver = new Logic.Solver();
-// //     solver.require(constraint);
-// //     return !!solver.solve();
-// // }

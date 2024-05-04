@@ -1,11 +1,14 @@
-import { ZModelCodeGenerator, getLiteral, isAuthInvocation } from '@zenstackhq/sdk';
+import { ZModelCodeGenerator, isAuthInvocation } from '@zenstackhq/sdk';
 import {
     BinaryExpr,
+    BooleanLiteral,
     Expression,
     ExpressionType,
     LiteralExpr,
     MemberAccessExpr,
+    NumberLiteral,
     ReferenceExpr,
+    StringLiteral,
     UnaryExpr,
     isBinaryExpr,
     isDataModelField,
@@ -29,12 +32,8 @@ export class ConstraintTransformer {
     transformRules(allows: Expression[], denies: Expression[]): string {
         this.varCounter = 0;
 
-        if (allows.length === 0 && denies.length === 0) {
-            return `{ value: true, type: 'boolean' }`;
-        }
-
         if (allows.length === 0) {
-            return `{ value: false, type: 'boolean' }`;
+            return this.value('false', 'boolean');
         }
 
         let result: string;
@@ -51,6 +50,8 @@ export class ConstraintTransformer {
             result = this.and(result, this.not(this.or(...denyConstraints)));
         }
 
+        console.log(`Constraint transformation result:\n${JSON.stringify(result, null, 2)}`);
+
         return result;
     }
 
@@ -58,18 +59,18 @@ export class ConstraintTransformer {
         if (constraints.length === 0) {
             throw new Error('No expressions to combine');
         }
-        return constraints.length === 1 ? `{ and: [ ${constraints.join(', ')} ] }` : constraints[0];
+        return constraints.length === 1 ? constraints[0] : `{ kind: 'and', children: [ ${constraints.join(', ')} ] }`;
     }
 
     private or(...constraints: string[]) {
         if (constraints.length === 0) {
             throw new Error('No expressions to combine');
         }
-        return constraints.length === 1 ? `{ or: [ ${constraints.join(', ')} ] }` : constraints[0];
+        return constraints.length === 1 ? constraints[0] : `{ kind: 'or', children: [ ${constraints.join(', ')} ] }`;
     }
 
     private not(constraint: string) {
-        return `{ not: ${constraint} }`;
+        return `{ kind: 'not', children: [${constraint}] }`;
     }
 
     private transformExpression(expression: Expression) {
@@ -88,17 +89,20 @@ export class ConstraintTransformer {
     }
 
     private transformLiteral(expr: LiteralExpr) {
-        const value = getLiteral<boolean>(expr);
-        return value ? `{ value: true, type: 'boolean' }` : `{ value: false, type: 'boolean' }`;
+        return match(expr.$type)
+            .with(NumberLiteral, () => this.value(expr.value.toString(), 'number'))
+            .with(StringLiteral, () => this.value(`'${expr.value}'`, 'string'))
+            .with(BooleanLiteral, () => this.value(expr.value.toString(), 'boolean'))
+            .exhaustive();
     }
 
     private transformReference(expr: ReferenceExpr) {
-        return `{ name: '${expr.target.$refText}', type: 'boolean' }`;
+        return this.variable(expr.target.$refText, 'boolean');
     }
 
     private transformMemberAccess(expr: MemberAccessExpr) {
         if (isThisExpr(expr.operand)) {
-            return `{ name: '${expr.member.$refText}', type: 'boolean' }`;
+            return this.variable(expr.member.$refText, 'boolean');
         }
         return this.nextVar();
     }
@@ -114,7 +118,7 @@ export class ConstraintTransformer {
     private transformUnary(expr: UnaryExpr): string {
         return match(expr.operator)
             .with('!', () => this.not(this.transformExpression(expr.operand)))
-            .otherwise(() => this.nextVar());
+            .exhaustive();
     }
 
     private transformComparison(expr: BinaryExpr) {
@@ -136,9 +140,9 @@ export class ConstraintTransformer {
                 throw new Error(`Unsupported operator: ${expr.operator}`);
             });
 
-        let result = `{ ${op}: { left: ${leftOperand}, right: ${rightOperand} } }`;
+        let result = `{ kind: '${op}', left: ${leftOperand}, right: ${rightOperand} }`;
         if (expr.operator === '!=') {
-            result = `{ not: ${result} }`;
+            result = `{ kind: 'not', children: [${result}] }`;
         }
 
         return result;
@@ -146,24 +150,14 @@ export class ConstraintTransformer {
 
     private getComparisonOperand(expr: Expression) {
         if (isLiteralExpr(expr)) {
-            const mappedType = this.mapType(expr.$resolvedType?.decl as ExpressionType);
-            if (mappedType) {
-                return `{ value: ${expr.value}, type: '${mappedType}' }`;
-            } else {
-                return undefined;
-            }
+            return this.transformLiteral(expr);
         }
 
         const fieldAccess = this.getFieldAccess(expr);
         if (fieldAccess) {
-            const fieldType = expr.$resolvedType?.decl;
-            if (!fieldType) {
-                return undefined;
-            }
-
-            const mappedType = this.mapType(fieldType as ExpressionType);
+            const mappedType = this.mapType(expr);
             if (mappedType) {
-                return `{ name: '${fieldAccess.name}', type: '${mappedType}' }`;
+                return this.variable(fieldAccess.name, mappedType);
             } else {
                 return undefined;
             }
@@ -171,14 +165,13 @@ export class ConstraintTransformer {
 
         const authAccess = this.getAuthAccess(expr);
         if (authAccess) {
-            const fieldType = expr.$resolvedType?.decl;
-            if (!fieldType) {
-                return undefined;
-            }
-
-            const mappedType = this.mapType(fieldType as ExpressionType);
+            const fieldAccess = `${this.options.authAccessor}?.${authAccess}`;
+            const mappedType = this.mapType(expr);
             if (mappedType) {
-                return `{ value: ${this.options.authAccessor}?.${authAccess.name}, type: '${mappedType}' }`;
+                return `${fieldAccess} === undefined ? ${this.expressionVariable(expr, mappedType)} : ${this.value(
+                    fieldAccess,
+                    mappedType
+                )}`;
             } else {
                 return undefined;
             }
@@ -187,68 +180,13 @@ export class ConstraintTransformer {
         return undefined;
     }
 
-    private mapType(fieldType: ExpressionType) {
-        return match(fieldType)
+    private mapType(expression: Expression) {
+        return match(expression.$resolvedType?.decl as ExpressionType)
             .with('Boolean', () => 'boolean')
             .with('Int', () => 'number')
             .with('String', () => 'string')
             .otherwise(() => undefined);
     }
-
-    // private transformEquality(left: Expression, right: Expression) {
-    //     if (this.isFieldAccess(left) || this.isFieldAccess(right)) {
-    //         const variable = this.isFieldAccess(left) ? left : right;
-    //         const value = this.isFieldAccess(left) ? right : left;
-
-    //         const value = this.getExprValue(right);
-    //         if (value !== undefined) {
-    //             if (value === true) {
-    //                 return `{ var: '${this.getFieldName(left)}' }`;
-    //             } else if (value === false) {
-    //                 return `{ not: { var: '${this.getFieldName(left)}' } }`;
-    //             } else {
-    //                 return `{ eq: { ${this.getFieldName(left)}: ${this.encodeValue(value)} } }`;
-    //             }
-    //         }
-    //     }
-
-    //     if (this.isFieldAccess(right)) {
-    //         const value = this.getExprValue(left);
-    //         if (value !== undefined) {
-    //             return `'${this.getFieldName(right)} == ${value}'`;
-    //         }
-    //     }
-
-    //     if (this.isAuthAccess(left)) {
-    //         const value = this.getExprValue(right);
-    //         if (value !== undefined) {
-    //             return `${this.options.authAccessor}?.${left.member.$refText} === ${value}`;
-    //         }
-    //     }
-
-    //     if (this.isAuthAccess(right)) {
-    //         const value = this.getExprValue(left);
-    //         if (value !== undefined) {
-    //             return `${this.options.authAccessor}?.${right.member.$refText} === ${value}`;
-    //         }
-    //     }
-
-    //     return this.nextVar();
-    // }
-
-    // private encodeValue(value: string | number | boolean) {
-    //     if (typeof value === 'number' || typeof value === 'boolean') {
-    //         return value;
-    //     } else {
-    //         const index = this.stringTable.indexOf(value);
-    //         if (index === -1) {
-    //             this.stringTable.push(value);
-    //             return this.stringTable.length - 1;
-    //         } else {
-    //             return index;
-    //         }
-    //     }
-    // }
 
     private getFieldAccess(expr: Expression) {
         if (isReferenceExpr(expr)) {
@@ -260,31 +198,33 @@ export class ConstraintTransformer {
         return undefined;
     }
 
-    // private getFieldName(expr: ReferenceExpr | MemberAccessExpr): string {
-    //     return isReferenceExpr(expr) ? expr.target.$refText : expr.member.$refText;
-    // }
+    private getAuthAccess(expr: Expression): string | undefined {
+        if (!isMemberAccessExpr(expr)) {
+            return undefined;
+        }
 
-    // private getExprValue(expr: Expression): string | boolean | number | undefined {
-    //     if (isLiteralExpr(expr)) {
-    //         return expr.value;
-    //     }
-
-    //     if (this.isAuthAccess(expr)) {
-    //         return `${this.options.authAccessor}?.${expr.member.$refText}`;
-    //     }
-
-    //     return undefined;
-    // }
-
-    private getAuthAccess(expr: Expression) {
-        return isMemberAccessExpr(expr) && isAuthInvocation(expr.operand) ? { name: expr.member.$refText } : undefined;
+        if (isAuthInvocation(expr.operand)) {
+            return expr.member.$refText;
+        } else {
+            const operand = this.getAuthAccess(expr.operand);
+            return operand ? `${operand}?.${expr.member.$refText}` : undefined;
+        }
     }
 
-    private nextVar() {
-        return `'__var${this.varCounter++}'`;
+    private nextVar(type = 'boolean') {
+        return this.variable(`__var${this.varCounter++}`, type);
     }
 
-    private expressionVariable(expr: Expression) {
-        return new ZModelCodeGenerator().generate(expr);
+    private expressionVariable(expr: Expression, type: string) {
+        const name = new ZModelCodeGenerator().generate(expr);
+        return this.variable(name, type);
+    }
+
+    private variable(name: string, type: string) {
+        return `{ kind: 'variable', name: '${name}', type: '${type}' }`;
+    }
+
+    private value(value: string, type: string) {
+        return `{ kind: 'value', value: ${value}, type: '${type}' }`;
     }
 }
