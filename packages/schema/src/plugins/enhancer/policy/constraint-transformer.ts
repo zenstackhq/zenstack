@@ -20,24 +20,37 @@ import {
 } from '@zenstackhq/sdk/ast';
 import { P, match } from 'ts-pattern';
 
+/**
+ * Options for {@link ConstraintTransformer}.
+ */
 export type ConstraintTransformerOptions = {
     authAccessor: string;
 };
 
+/**
+ * Transform a set of allow and deny rules into a single constraint expression.
+ */
 export class ConstraintTransformer {
+    // a counter for generating unique variable names
     private varCounter = 0;
 
     constructor(private readonly options: ConstraintTransformerOptions) {}
 
+    /**
+     * Transforms a set of allow and deny rules into a single constraint expression.
+     */
     transformRules(allows: Expression[], denies: Expression[]): string {
+        // reset state
         this.varCounter = 0;
 
         if (allows.length === 0) {
+            // unconditionally deny
             return this.value('false', 'boolean');
         }
 
         let result: string;
 
+        // transform allow rules
         const allowConstraints = allows.map((allow) => this.transformExpression(allow));
         if (allowConstraints.length > 1) {
             result = this.and(...allowConstraints);
@@ -45,12 +58,14 @@ export class ConstraintTransformer {
             result = allowConstraints[0];
         }
 
+        // transform deny rules and compose
         if (denies.length > 0) {
             const denyConstraints = denies.map((deny) => this.transformExpression(deny));
             result = this.and(result, this.not(this.or(...denyConstraints)));
         }
 
-        console.log(`Constraint transformation result:\n${JSON.stringify(result, null, 2)}`);
+        // DEBUG:
+        // console.log(`Constraint transformation result:\n${JSON.stringify(result, null, 2)}`);
 
         return result;
     }
@@ -105,22 +120,30 @@ export class ConstraintTransformer {
     }
 
     private transformReference(expr: ReferenceExpr) {
+        // top-level reference is transformed into a named variable
         return this.variable(expr.target.$refText, 'boolean');
     }
 
     private transformMemberAccess(expr: MemberAccessExpr) {
         if (isThisExpr(expr.operand)) {
+            // "this.x" is transformed into a named variable
             return this.variable(expr.member.$refText, 'boolean');
         }
+
+        // other member access expressions are not supported and thus
+        // transformed into a free variable
         return this.nextVar();
     }
 
     private transformBinary(expr: BinaryExpr): string {
-        return match(expr.operator)
-            .with('&&', () => this.and(this.transformExpression(expr.left), this.transformExpression(expr.right)))
-            .with('||', () => this.or(this.transformExpression(expr.left), this.transformExpression(expr.right)))
-            .with(P.union('==', '!=', '<', '<=', '>', '>='), () => this.transformComparison(expr))
-            .otherwise(() => this.nextVar());
+        return (
+            match(expr.operator)
+                .with('&&', () => this.and(this.transformExpression(expr.left), this.transformExpression(expr.right)))
+                .with('||', () => this.or(this.transformExpression(expr.left), this.transformExpression(expr.right)))
+                .with(P.union('==', '!=', '<', '<=', '>', '>='), () => this.transformComparison(expr))
+                // unsupported operators (e.g., collection predicate) are transformed into a free variable
+                .otherwise(() => this.nextVar())
+        );
     }
 
     private transformUnary(expr: UnaryExpr): string {
@@ -134,6 +157,7 @@ export class ConstraintTransformer {
         const rightOperand = this.getComparisonOperand(expr.right);
 
         if (leftOperand === undefined || rightOperand === undefined) {
+            // if either operand is not supported, transform into a free variable
             return this.nextVar();
         }
 
@@ -150,6 +174,7 @@ export class ConstraintTransformer {
 
         let result = `{ kind: '${op}', left: ${leftOperand}, right: ${rightOperand} }`;
         if (expr.operator === '!=') {
+            // transform "!=" into "not eq"
             result = `{ kind: 'not', children: [${result}] }`;
         }
 
@@ -163,6 +188,7 @@ export class ConstraintTransformer {
 
         const fieldAccess = this.getFieldAccess(expr);
         if (fieldAccess) {
+            // model field access is transformed into a named variable
             const mappedType = this.mapType(expr);
             if (mappedType) {
                 return this.variable(fieldAccess.name, mappedType);
@@ -173,6 +199,9 @@ export class ConstraintTransformer {
 
         const authAccess = this.getAuthAccess(expr);
         if (authAccess) {
+            // `auth().` access is transformed into a runtime boolean value if it
+            // doesn't evaluate to undefined (due to ?. chaining), otherwise into
+            // a named variable
             const fieldAccess = `${this.options.authAccessor}?.${authAccess}`;
             const mappedType = this.mapType(expr);
             if (mappedType) {

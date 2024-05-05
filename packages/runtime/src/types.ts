@@ -58,10 +58,19 @@ export type QueryContext = {
     preValue?: any;
 };
 
+/**
+ * Context for checking operation allowability.
+ */
 export type CheckerContext = {
+    /**
+     * Current user
+     */
     user?: AuthUser;
 
-    fieldValues?: Record<string, string | number | boolean | null>;
+    /**
+     * Extra field value filters.
+     */
+    fieldValues?: Record<string, string | number | boolean>;
 };
 
 /**

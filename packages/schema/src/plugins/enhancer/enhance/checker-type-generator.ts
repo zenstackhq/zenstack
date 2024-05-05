@@ -5,6 +5,17 @@ import { P, match } from 'ts-pattern';
 
 /**
  * Generates a `ModelCheckers` interface that contains a `check` method for each model in the schema.
+ *
+ * E.g.:
+ *
+ * ```ts
+ * type CheckerOperation = 'create' | 'read' | 'update' | 'delete';
+ *
+ * export interface ModelCheckers {
+ *    user: { check(op: CheckerOperation, args?: { email?: string; age?: number; }): Promise<boolean> },
+ *    ...
+ * }
+ * ```
  */
 export function generateCheckerType(model: Model) {
     return `

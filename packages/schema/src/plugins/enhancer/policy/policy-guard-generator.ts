@@ -88,11 +88,13 @@ export class PolicyGenerator {
 
         const models = getDataModels(model);
 
+        // policy guard functions
         const policyMap: Record<string, Record<string, string | boolean | object>> = {};
         for (const model of models) {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
 
+        // CRUD checker functions
         const checkerMap: Record<string, Record<string, string | boolean>> = {};
         for (const model of models) {
             checkerMap[model.name] = await this.generateCheckerForModel(model, sf);

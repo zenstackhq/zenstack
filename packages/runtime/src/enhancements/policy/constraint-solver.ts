@@ -10,7 +10,7 @@ import type {
 } from '../types';
 
 /**
- * A boolean constraint solver based on `logic-solver`.
+ * A boolean constraint solver based on `logic-solver`. Only boolean and integer types are supported.
  */
 export class ConstraintSolver {
     // a table for internalizing string literals

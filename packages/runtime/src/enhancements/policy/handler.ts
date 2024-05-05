@@ -1441,6 +1441,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     //#region Check
 
+    /**
+     * Checks if the given operation is possibly allowed by the policy, without querying the database.
+     * @param operation The CRUD operation.
+     * @param fieldValues Extra field value filters to be combined with the policy constraints.
+     */
     async check(
         operation: PolicyCrudKind,
         fieldValues?: Record<string, number | string | boolean | null>

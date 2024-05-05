@@ -565,6 +565,9 @@ export class PolicyUtil extends QueryUtils {
 
     //#region Checker
 
+    /**
+     * Gets checker constraints for the given model and operation.
+     */
     getCheckerConstraint(model: string, operation: PolicyCrudKind): ReturnType<CheckerFunc> | boolean {
         const checker = this.getModelChecker(model);
         if (!checker) {
@@ -576,9 +579,11 @@ export class PolicyUtil extends QueryUtils {
             return provider;
         }
 
-        if (!provider) {
-            throw this.unknownError(`unable to load authorization guard for ${model}`);
+        if (typeof provider !== 'function') {
+            throw this.unknownError(`unable to ${operation} checker for ${model}`);
         }
+
+        // call checker function
         return provider({ user: this.user });
     }
 

@@ -226,6 +226,8 @@ describe('Permission checker', () => {
                 x Int
                 y Int
                 @@allow('read', x > 0 && x > y)
+                @@allow('create', x > 1 || x > y)
+                @@allow('update', !(x >= y))
             }
             `
         );
@@ -236,6 +238,17 @@ describe('Permission checker', () => {
         await expect(db.model.check('read', { x: 1 })).toResolveTruthy();
         await expect(db.model.check('read', { x: 1, y: 0 })).toResolveTruthy();
         await expect(db.model.check('read', { x: 1, y: 1 })).toResolveFalsy();
+
+        await expect(db.model.check('create')).toResolveTruthy();
+        await expect(db.model.check('create', { x: 0 })).toResolveFalsy(); // numbers are non-negative
+        await expect(db.model.check('create', { x: 1 })).toResolveTruthy();
+        await expect(db.model.check('create', { x: 1, y: 0 })).toResolveTruthy();
+        await expect(db.model.check('create', { x: 1, y: 1 })).toResolveFalsy();
+
+        await expect(db.model.check('update')).toResolveTruthy();
+        await expect(db.model.check('update', { x: 0 })).toResolveTruthy();
+        await expect(db.model.check('update', { y: 0 })).toResolveFalsy(); // numbers are non-negative
+        await expect(db.model.check('update', { x: 1, y: 1 })).toResolveFalsy();
     });
 
     it('field condition unsolvable', async () => {
