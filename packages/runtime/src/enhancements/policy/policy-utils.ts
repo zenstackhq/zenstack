@@ -580,7 +580,7 @@ export class PolicyUtil extends QueryUtils {
         }
 
         if (typeof provider !== 'function') {
-            throw this.unknownError(`unable to ${operation} checker for ${model}`);
+            throw this.unknownError(`unable to load ${operation} checker for ${model}`);
         }
 
         // call checker function
