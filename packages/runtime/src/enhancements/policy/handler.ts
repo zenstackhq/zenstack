@@ -1450,6 +1450,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         operation: PolicyCrudKind,
         fieldValues?: Record<string, number | string | boolean | null>
     ): Promise<boolean> {
+        return createDeferredPromise(() => this.doCheck(operation, fieldValues));
+    }
+
+    private async doCheck(operation: PolicyCrudKind, fieldValues?: Record<string, number | string | boolean | null>) {
         let constraint = this.policyUtils.getCheckerConstraint(this.model, operation);
         if (typeof constraint === 'boolean') {
             return constraint;
