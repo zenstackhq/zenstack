@@ -1,4 +1,4 @@
-import Logic, { Formula } from 'logic-solver';
+import Logic from 'logic-solver';
 import { match } from 'ts-pattern';
 import type {
     CheckerConstraint,
@@ -9,25 +9,41 @@ import type {
     VariableConstraint,
 } from '../types';
 
+/**
+ * A boolean constraint solver based on `logic-solver`.
+ */
 export class ConstraintSolver {
+    // a table for internalizing string literals
     private stringTable: string[] = [];
-    private variables: Map<string, Formula> = new Map<string, Formula>();
 
-    solve(constraint: CheckerConstraint): boolean {
+    // a map for storing variable names and their corresponding formulas
+    private variables: Map<string, Logic.Formula> = new Map<string, Logic.Formula>();
+
+    /**
+     * Check the satisfiability of the given constraint.
+     */
+    checkSat(constraint: CheckerConstraint): boolean {
+        // reset state
         this.stringTable = [];
-        this.variables = new Map<string, Formula>();
+        this.variables = new Map<string, Logic.Formula>();
 
+        // convert the constraint to a "logic-solver" formula
         const formula = this.buildFormula(constraint);
+
+        // solve the formula
         const solver = new Logic.Solver();
         solver.require(formula);
-        const solution = solver.solve();
-        if (solution) {
-            console.log('Solution:');
-            this.variables.forEach((v, k) => console.log(`\t${k}=${solution?.evaluate(v)}`));
-        } else {
-            console.log('No solution');
-        }
-        return !!solution;
+
+        // DEBUG:
+        // const solution = solver.solve();
+        // if (solution) {
+        //     console.log('Solution:');
+        //     this.variables.forEach((v, k) => console.log(`\t${k}=${solution?.evaluate(v)}`));
+        // } else {
+        //     console.log('No solution');
+        // }
+
+        return !!solver.solve();
     }
 
     private buildFormula(constraint: CheckerConstraint): Logic.Formula {
@@ -84,12 +100,15 @@ export class ConstraintSolver {
             .exhaustive();
     }
 
-    buildVariableFormula(constraint: VariableConstraint) {
-        return match(constraint.type)
-            .with('boolean', () => this.booleanVariable(constraint.name))
-            .with('number', () => this.intVariable(constraint.name))
-            .with('string', () => this.intVariable(constraint.name))
-            .exhaustive();
+    private buildVariableFormula(constraint: VariableConstraint) {
+        return (
+            match(constraint.type)
+                .with('boolean', () => this.booleanVariable(constraint.name))
+                .with('number', () => this.intVariable(constraint.name))
+                // strings are internalized and represented by their indices
+                .with('string', () => this.intVariable(constraint.name))
+                .exhaustive()
+        );
     }
 
     private buildValueFormula(constraint: ValueConstraint) {
@@ -105,6 +124,7 @@ export class ConstraintSolver {
             .when(
                 (v): v is string => typeof v === 'string',
                 (v) => {
+                    // internalize the string and use its index as formula representation
                     const index = this.stringTable.indexOf(v);
                     if (index === -1) {
                         this.stringTable.push(v);
@@ -132,12 +152,15 @@ export class ConstraintSolver {
         if (left.type !== right.type) {
             throw new Error(`Type mismatch in equality constraint: ${JSON.stringify(left)}, ${JSON.stringify(right)}`);
         }
-        const leftConstraint = this.buildFormula(left);
-        const rightConstraint = this.buildFormula(right);
+
+        const leftFormula = this.buildFormula(left);
+        const rightFormula = this.buildFormula(right);
         if (left.type === 'boolean' && right.type === 'boolean') {
-            return Logic.equiv(leftConstraint, rightConstraint);
+            // logical equivalence
+            return Logic.equiv(leftFormula, rightFormula);
         } else {
-            return Logic.equalBits(leftConstraint, rightConstraint);
+            // integer equality
+            return Logic.equalBits(leftFormula, rightFormula);
         }
     }
 
@@ -146,8 +169,6 @@ export class ConstraintSolver {
         right: ComparisonTerm,
         func: (left: Logic.Formula, right: Logic.Formula) => Logic.Formula
     ) {
-        const leftConstraint = this.buildFormula(left);
-        const rightConstraint = this.buildFormula(right);
-        return func(leftConstraint, rightConstraint);
+        return func(this.buildFormula(left), this.buildFormula(right));
     }
 }

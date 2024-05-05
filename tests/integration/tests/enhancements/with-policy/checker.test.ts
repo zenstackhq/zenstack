@@ -355,4 +355,77 @@ describe('Permission checker', () => {
             }
         );
     });
+
+    it('invalid filter', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                foo Foo?
+                d DateTime
+                
+                @@allow('read', value == 1)
+            }
+
+            model Foo {
+                id Int @id @default(autoincrement())
+                x Int
+                model Model @relation(fields: [modelId], references: [id])
+                modelId Int @unique
+            }
+            `
+        );
+
+        const db = enhance();
+        await expect(db.model.check('read', { foo: { x: 1 } })).rejects.toThrow(
+            `Providing filter for field "foo" is not supported. Only scalar fields are allowed.`
+        );
+        await expect(db.model.check('read', { d: new Date() })).rejects.toThrow(
+            `Providing filter for field "d" is not supported. Only number, string, and boolean fields are allowed.`
+        );
+        await expect(db.model.check('read', { value: null })).rejects.toThrow(
+            `Using "null" as filter value is not supported yet`
+        );
+        await expect(db.model.check('read', { value: {} })).rejects.toThrow(
+            'Invalid value type for field "value". Only number, string or boolean is allowed.'
+        );
+        await expect(db.model.check('read', { value: 'abc' })).rejects.toThrow(
+            'Invalid value type for field "value". Expected "number"'
+        );
+        await expect(db.model.check('read', { value: -1 })).rejects.toThrow(
+            'Invalid value for field "value". Only non-negative integers are allowed.'
+        );
+    });
+
+    it('float field ignored', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Float
+                @@allow('read', value == 1.1)
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
+    });
+
+    it('float value ignored', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('read', value > 1.1)
+            }
+            `
+        );
+        const db = enhance();
+        // await expect(db.model.check('read')).toResolveTruthy();
+        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
+        await expect(db.model.check('read', { value: 2 })).toResolveTruthy();
+    });
 });

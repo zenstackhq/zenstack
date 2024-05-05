@@ -1451,6 +1451,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         if (fieldValues) {
+            // combine runtime filters with generated constraints
+
             const extraConstraints: CheckerConstraint[] = [];
             for (const [field, value] of Object.entries(fieldValues)) {
                 if (value === undefined) {
@@ -1463,12 +1465,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
                 const fieldInfo = requireField(this.modelMeta, this.model, field);
 
+                // relation and array fields are not supported
                 if (fieldInfo.isDataModel || fieldInfo.isArray) {
                     throw new Error(
                         `Providing filter for field "${field}" is not supported. Only scalar fields are allowed.`
                     );
                 }
 
+                // map field type to constraint type
                 const fieldType = match<string, 'number' | 'string' | 'boolean'>(fieldInfo.type)
                     .with(P.union('Int', 'BigInt', 'Float', 'Decimal'), () => 'number')
                     .with('String', () => 'string')
@@ -1479,13 +1483,24 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                         );
                     });
 
+                // check value type
                 const valueType = typeof value;
                 if (valueType !== 'number' && valueType !== 'string' && valueType !== 'boolean') {
                     throw new Error(
-                        `Invalid value for field "${field}". Only number, string, boolean, or null is allowed.`
+                        `Invalid value type for field "${field}". Only number, string or boolean is allowed.`
                     );
                 }
 
+                if (fieldType !== valueType) {
+                    throw new Error(`Invalid value type for field "${field}". Expected "${fieldType}".`);
+                }
+
+                // check number validity
+                if (typeof value === 'number' && (!Number.isInteger(value) || value < 0)) {
+                    throw new Error(`Invalid value for field "${field}". Only non-negative integers are allowed.`);
+                }
+
+                // build a constraint
                 extraConstraints.push({
                     kind: 'eq',
                     left: { kind: 'variable', name: field, type: fieldType },
@@ -1494,11 +1509,13 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
 
             if (extraConstraints.length > 0) {
+                // combine the constraints
                 constraint = { kind: 'and', children: [constraint, ...extraConstraints] };
             }
         }
 
-        return new ConstraintSolver().solve(constraint);
+        // check satisfiability
+        return new ConstraintSolver().checkSat(constraint);
     }
 
     //#endregion

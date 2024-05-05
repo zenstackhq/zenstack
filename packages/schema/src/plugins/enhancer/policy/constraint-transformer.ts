@@ -90,7 +90,15 @@ export class ConstraintTransformer {
 
     private transformLiteral(expr: LiteralExpr) {
         return match(expr.$type)
-            .with(NumberLiteral, () => this.value(expr.value.toString(), 'number'))
+            .with(NumberLiteral, () => {
+                const parsed = parseFloat(expr.value as string);
+                if (isNaN(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+                    // only non-negative integers are supported, for other cases,
+                    // transform into a free variable
+                    return this.nextVar('number');
+                }
+                return this.value(expr.value.toString(), 'number');
+            })
             .with(StringLiteral, () => this.value(`'${expr.value}'`, 'string'))
             .with(BooleanLiteral, () => this.value(expr.value.toString(), 'boolean'))
             .exhaustive();
