@@ -326,4 +326,33 @@ describe('Permission checker', () => {
         await expect(db.model.check('create')).toResolveTruthy();
         await expect(db.model.check('create', { value: 1 })).toResolveTruthy();
     });
+
+    it('compilation', async () => {
+        await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('read', value == 1)
+            }
+            `,
+            {
+                compile: true,
+                extraSourceFiles: [
+                    {
+                        name: 'main.ts',
+                        content: `
+                        import { PrismaClient } from '@prisma/client';
+                        import { enhance } from '.zenstack/enhance';
+
+                        const prisma = new PrismaClient();
+                        const db = enhance(prisma);
+                        db.model.check('read');
+                        db.model.check('read', { value: 1 });
+                        `,
+                    },
+                ],
+            }
+        );
+    });
 });
