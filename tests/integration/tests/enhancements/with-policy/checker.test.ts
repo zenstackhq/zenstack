@@ -277,19 +277,63 @@ describe('Permission checker', () => {
             model User {
                 id Int @id @default(autoincrement())
                 level Int
+                admin Boolean
             }
 
             model Model {
                 id Int @id @default(autoincrement())
                 value Int
                 @@allow('read', auth().level > 0)
+                @@allow('create', auth().admin)
+                @@allow('update', !auth().admin)
             }
             `
         );
 
-        await expect(enhance().model.check('read')).toResolveTruthy();
+        await expect(enhance().model.check('read')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('read')).toResolveFalsy();
         await expect(enhance({ id: 1, level: 0 }).model.check('read')).toResolveFalsy();
         await expect(enhance({ id: 1, level: 1 }).model.check('read')).toResolveTruthy();
+
+        await expect(enhance().model.check('create')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('create')).toResolveFalsy();
+        await expect(enhance({ id: 1, admin: false }).model.check('create')).toResolveFalsy();
+        await expect(enhance({ id: 1, admin: true }).model.check('create')).toResolveTruthy();
+
+        await expect(enhance().model.check('update')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('update')).toResolveTruthy();
+        await expect(enhance({ id: 1, admin: true }).model.check('update')).toResolveFalsy();
+        await expect(enhance({ id: 1, admin: false }).model.check('update')).toResolveTruthy();
+    });
+
+    it('auth null check', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                level Int
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('read', auth() != null)
+                @@allow('create', auth() == null)
+                @@allow('update', auth().level > 0)
+            }
+            `
+        );
+
+        await expect(enhance().model.check('read')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('read')).toResolveTruthy();
+
+        await expect(enhance().model.check('create')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('create')).toResolveFalsy();
+
+        await expect(enhance().model.check('update')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('update')).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 0 }).model.check('update')).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 1 }).model.check('update')).toResolveTruthy();
     });
 
     it('auth with relation', async () => {
@@ -315,8 +359,8 @@ describe('Permission checker', () => {
             `
         );
 
-        await expect(enhance().model.check('read')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('read')).toResolveTruthy();
+        await expect(enhance().model.check('read')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('read')).toResolveFalsy();
         await expect(enhance({ id: 1, profile: { level: 0 } }).model.check('read')).toResolveFalsy();
         await expect(enhance({ id: 1, profile: { level: 1 } }).model.check('read')).toResolveTruthy();
     });

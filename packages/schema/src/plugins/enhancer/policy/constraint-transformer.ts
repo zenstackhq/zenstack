@@ -14,6 +14,7 @@ import {
     isDataModelField,
     isLiteralExpr,
     isMemberAccessExpr,
+    isNullExpr,
     isReferenceExpr,
     isThisExpr,
     isUnaryExpr,
@@ -125,13 +126,19 @@ export class ConstraintTransformer {
     }
 
     private transformMemberAccess(expr: MemberAccessExpr) {
+        // "this.x" is transformed into a named variable
         if (isThisExpr(expr.operand)) {
-            // "this.x" is transformed into a named variable
             return this.variable(expr.member.$refText, 'boolean');
         }
 
-        // other member access expressions are not supported and thus
-        // transformed into a free variable
+        // top-level auth access
+        const authAccess = this.getAuthAccess(expr);
+        if (authAccess) {
+            return this.value(`${authAccess} ?? false`, 'boolean');
+        }
+
+        // other top-level member access expressions are not supported
+        // and thus transformed into a free variable
         return this.nextVar();
     }
 
@@ -153,13 +160,18 @@ export class ConstraintTransformer {
     }
 
     private transformComparison(expr: BinaryExpr) {
+        if (this.isAuthEqualNull(expr)) {
+            // `auth() == null` => `user === null`
+            return this.value(`${this.options.authAccessor} === null`, 'boolean');
+        }
+
+        if (this.isAuthNotEqualNull(expr)) {
+            // `auth() != null` => `user !== null`
+            return this.value(`${this.options.authAccessor} !== null`, 'boolean');
+        }
+
         const leftOperand = this.getComparisonOperand(expr.left);
         const rightOperand = this.getComparisonOperand(expr.right);
-
-        if (leftOperand === undefined || rightOperand === undefined) {
-            // if either operand is not supported, transform into a free variable
-            return this.nextVar();
-        }
 
         const op = match(expr.operator)
             .with('==', () => 'eq')
@@ -175,10 +187,50 @@ export class ConstraintTransformer {
         let result = `{ kind: '${op}', left: ${leftOperand}, right: ${rightOperand} }`;
         if (expr.operator === '!=') {
             // transform "!=" into "not eq"
-            result = `{ kind: 'not', children: [${result}] }`;
+            result = this.not(result);
+        }
+
+        // `auth()` access can be undefined, when that happens, we assume a false condition
+        // for the comparison, unless we're directly comparing `auth() != null`
+
+        const leftAuthAccess = this.getAuthAccess(expr.left);
+        const rightAuthAccess = this.getAuthAccess(expr.right);
+
+        if (leftAuthAccess) {
+            // `auth().f op x` => `auth().f !== undefined && auth().f op x`
+            return this.and(this.value(`${this.normalizeToNull(leftAuthAccess)} !== null`, 'boolean'), result);
+        } else if (rightAuthAccess) {
+            // `x op auth().f` => `auth().f !== undefined && x op auth().f`
+            return this.and(this.value(`${this.normalizeToNull(rightAuthAccess)} !== null`, 'boolean'), result);
+        }
+
+        if (leftOperand === undefined || rightOperand === undefined) {
+            // if either operand is not supported, transform into a free variable
+            return this.nextVar();
         }
 
         return result;
+    }
+
+    // normalize `auth()` access undefined value to null
+    private normalizeToNull(expr: string) {
+        return `(${expr} ?? null)`;
+    }
+
+    private isAuthEqualNull(expr: BinaryExpr) {
+        return (
+            expr.operator === '==' &&
+            ((isAuthInvocation(expr.left) && isNullExpr(expr.right)) ||
+                (isAuthInvocation(expr.right) && isNullExpr(expr.left)))
+        );
+    }
+
+    private isAuthNotEqualNull(expr: BinaryExpr) {
+        return (
+            expr.operator === '!=' &&
+            ((isAuthInvocation(expr.left) && isNullExpr(expr.right)) ||
+                (isAuthInvocation(expr.right) && isNullExpr(expr.left)))
+        );
     }
 
     private getComparisonOperand(expr: Expression) {
@@ -199,16 +251,9 @@ export class ConstraintTransformer {
 
         const authAccess = this.getAuthAccess(expr);
         if (authAccess) {
-            // `auth().` access is transformed into a runtime boolean value if it
-            // doesn't evaluate to undefined (due to ?. chaining), otherwise into
-            // a named variable
-            const fieldAccess = `${this.options.authAccessor}?.${authAccess}`;
             const mappedType = this.mapType(expr);
             if (mappedType) {
-                return `${fieldAccess} === undefined ? ${this.expressionVariable(expr, mappedType)} : ${this.value(
-                    fieldAccess,
-                    mappedType
-                )}`;
+                return `${this.value(authAccess, mappedType)}`;
             } else {
                 return undefined;
             }
@@ -241,7 +286,7 @@ export class ConstraintTransformer {
         }
 
         if (isAuthInvocation(expr.operand)) {
-            return expr.member.$refText;
+            return `${this.options.authAccessor}?.${expr.member.$refText}`;
         } else {
             const operand = this.getAuthAccess(expr.operand);
             return operand ? `${operand}?.${expr.member.$refText}` : undefined;

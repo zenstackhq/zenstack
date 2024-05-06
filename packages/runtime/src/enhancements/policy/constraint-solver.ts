@@ -83,6 +83,19 @@ export class ConstraintSolver {
     }
 
     private buildComparisonFormula(constraint: ComparisonConstraint) {
+        if (constraint.left.kind === 'value' && constraint.right.kind === 'value') {
+            // constant comparison
+            const left: ValueConstraint = constraint.left;
+            const right: ValueConstraint = constraint.right;
+            return match(constraint.kind)
+                .with('eq', () => (left.value === right.value ? Logic.TRUE : Logic.FALSE))
+                .with('gt', () => (left.value > right.value ? Logic.TRUE : Logic.FALSE))
+                .with('gte', () => (left.value >= right.value ? Logic.TRUE : Logic.FALSE))
+                .with('lt', () => (left.value < right.value ? Logic.TRUE : Logic.FALSE))
+                .with('lte', () => (left.value <= right.value ? Logic.TRUE : Logic.FALSE))
+                .exhaustive();
+        }
+
         return match(constraint.kind)
             .with('eq', () => this.transformEquality(constraint.left, constraint.right))
             .with('gt', () =>
