@@ -922,7 +922,7 @@ export class PolicyGenerator {
         statements.push(`return ${transformed};`);
 
         const func = sourceFile.addFunction({
-            name: `${model.name}Checker_${kind}`,
+            name: `${model.name}$checker$${kind}`,
             returnType: 'CheckerConstraint',
             parameters: [
                 {

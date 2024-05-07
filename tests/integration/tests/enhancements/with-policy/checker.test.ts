@@ -306,6 +306,48 @@ describe('Permission checker', () => {
         await expect(enhance({ id: 1, admin: false }).model.check('update')).toResolveTruthy();
     });
 
+    it('auth compared with relation field', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                models Model[]
+            }
+
+            model Model {
+                id Int @id @default(autoincrement())
+                owner User @relation(fields: [ownerId], references: [id])
+                ownerId Int
+                @@allow('read', auth().id == ownerId)
+                @@allow('create', auth().id != ownerId)
+                @@allow('update', auth() == owner)
+                @@allow('delete', auth() != owner)
+            }
+            `,
+            { preserveTsFiles: true }
+        );
+
+        await expect(enhance().model.check('read')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('read')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('read', { ownerId: 1 })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('read', { ownerId: 2 })).toResolveFalsy();
+
+        await expect(enhance().model.check('create')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('create')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('create', { ownerId: 1 })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('create', { ownerId: 2 })).toResolveTruthy();
+
+        await expect(enhance().model.check('update')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('update')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('update', { ownerId: 1 })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('update', { ownerId: 2 })).toResolveFalsy();
+
+        await expect(enhance().model.check('delete')).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('delete')).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check('delete', { ownerId: 1 })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check('delete', { ownerId: 2 })).toResolveTruthy();
+    });
+
     it('auth null check', async () => {
         const { enhance } = await loadSchema(
             `
@@ -336,7 +378,7 @@ describe('Permission checker', () => {
         await expect(enhance({ id: 1, level: 1 }).model.check('update')).toResolveTruthy();
     });
 
-    it('auth with relation', async () => {
+    it('auth with relation access', async () => {
         const { enhance } = await loadSchema(
             `
             model User {

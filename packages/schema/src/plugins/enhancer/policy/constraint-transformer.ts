@@ -1,7 +1,8 @@
-import { ZModelCodeGenerator, isAuthInvocation } from '@zenstackhq/sdk';
+import { ZModelCodeGenerator, getRelationKeyPairs, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
 import {
     BinaryExpr,
     BooleanLiteral,
+    DataModelField,
     Expression,
     ExpressionType,
     LiteralExpr,
@@ -160,46 +161,28 @@ export class ConstraintTransformer {
     }
 
     private transformComparison(expr: BinaryExpr) {
-        if (this.isAuthEqualNull(expr)) {
-            // `auth() == null` => `user === null`
-            return this.value(`${this.options.authAccessor} === null`, 'boolean');
-        }
-
-        if (this.isAuthNotEqualNull(expr)) {
-            // `auth() != null` => `user !== null`
-            return this.value(`${this.options.authAccessor} !== null`, 'boolean');
+        if (isAuthInvocation(expr.left) || isAuthInvocation(expr.right)) {
+            // handle the case if any operand is `auth()` invocation
+            const authComparison = this.transformAuthComparison(expr);
+            return authComparison ?? this.nextVar();
         }
 
         const leftOperand = this.getComparisonOperand(expr.left);
         const rightOperand = this.getComparisonOperand(expr.right);
 
-        const op = match(expr.operator)
-            .with('==', () => 'eq')
-            .with('!=', () => 'eq')
-            .with('<', () => 'lt')
-            .with('<=', () => 'lte')
-            .with('>', () => 'gt')
-            .with('>=', () => 'gte')
-            .otherwise(() => {
-                throw new Error(`Unsupported operator: ${expr.operator}`);
-            });
+        const op = this.mapOperatorToConstraintKind(expr.operator);
+        const result = `{ kind: '${op}', left: ${leftOperand}, right: ${rightOperand} }`;
 
-        let result = `{ kind: '${op}', left: ${leftOperand}, right: ${rightOperand} }`;
-        if (expr.operator === '!=') {
-            // transform "!=" into "not eq"
-            result = this.not(result);
-        }
-
-        // `auth()` access can be undefined, when that happens, we assume a false condition
-        // for the comparison, unless we're directly comparing `auth() != null`
+        // `auth()` member access can be undefined, when that happens, we assume a false condition
+        // for the comparison
 
         const leftAuthAccess = this.getAuthAccess(expr.left);
         const rightAuthAccess = this.getAuthAccess(expr.right);
 
-        if (leftAuthAccess) {
+        if (leftAuthAccess && rightOperand) {
             // `auth().f op x` => `auth().f !== undefined && auth().f op x`
             return this.and(this.value(`${this.normalizeToNull(leftAuthAccess)} !== null`, 'boolean'), result);
-        } else if (rightAuthAccess) {
+        } else if (rightAuthAccess && leftOperand) {
             // `x op auth().f` => `auth().f !== undefined && x op auth().f`
             return this.and(this.value(`${this.normalizeToNull(rightAuthAccess)} !== null`, 'boolean'), result);
         }
@@ -210,6 +193,64 @@ export class ConstraintTransformer {
         }
 
         return result;
+    }
+
+    private transformAuthComparison(expr: BinaryExpr) {
+        if (this.isAuthEqualNull(expr)) {
+            // `auth() == null` => `user === null`
+            return this.value(`${this.options.authAccessor} === null`, 'boolean');
+        }
+
+        if (this.isAuthNotEqualNull(expr)) {
+            // `auth() != null` => `user !== null`
+            return this.value(`${this.options.authAccessor} !== null`, 'boolean');
+        }
+
+        // auth() equality check against a relation, translate to id-fk comparison
+        const operand = isAuthInvocation(expr.left) ? expr.right : expr.left;
+        if (!isDataModelFieldReference(operand)) {
+            return undefined;
+        }
+
+        // get id-fk field pairs from the relation field
+        const relationField = operand.target.ref as DataModelField;
+        const idFkPairs = getRelationKeyPairs(relationField);
+
+        // build id-fk field comparison constraints
+        const fieldConstraints: string[] = [];
+
+        idFkPairs.forEach(({ id, foreignKey }) => {
+            const idFieldType = this.mapType(id.type.type as ExpressionType);
+            if (!idFieldType) {
+                return;
+            }
+            const fkFieldType = this.mapType(foreignKey.type.type as ExpressionType);
+            if (!fkFieldType) {
+                return;
+            }
+
+            const op = this.mapOperatorToConstraintKind(expr.operator);
+            const authIdAccess = `${this.options.authAccessor}?.${id.name}`;
+
+            fieldConstraints.push(
+                this.and(
+                    // `auth()?.id != null` guard
+                    this.value(`${this.normalizeToNull(authIdAccess)} !== null`, 'boolean'),
+                    // `auth()?.id [op] fkField`
+                    `{ kind: '${op}', left: ${this.value(authIdAccess, idFieldType)}, right: ${this.variable(
+                        foreignKey.name,
+                        fkFieldType
+                    )} }`
+                )
+            );
+        });
+
+        // combine field constraints
+        if (fieldConstraints.length > 0) {
+            return this.and(...fieldConstraints);
+        }
+
+        return undefined;
     }
 
     // normalize `auth()` access undefined value to null
@@ -241,7 +282,7 @@ export class ConstraintTransformer {
         const fieldAccess = this.getFieldAccess(expr);
         if (fieldAccess) {
             // model field access is transformed into a named variable
-            const mappedType = this.mapType(expr);
+            const mappedType = this.mapExpressionType(expr);
             if (mappedType) {
                 return this.variable(fieldAccess.name, mappedType);
             } else {
@@ -251,7 +292,7 @@ export class ConstraintTransformer {
 
         const authAccess = this.getAuthAccess(expr);
         if (authAccess) {
-            const mappedType = this.mapType(expr);
+            const mappedType = this.mapExpressionType(expr);
             if (mappedType) {
                 return `${this.value(authAccess, mappedType)}`;
             } else {
@@ -262,12 +303,29 @@ export class ConstraintTransformer {
         return undefined;
     }
 
-    private mapType(expression: Expression) {
-        return match(expression.$resolvedType?.decl as ExpressionType)
+    private mapExpressionType(expression: Expression) {
+        return this.mapType(expression.$resolvedType?.decl as ExpressionType);
+    }
+
+    private mapType(type: ExpressionType) {
+        return match(type)
             .with('Boolean', () => 'boolean')
             .with('Int', () => 'number')
             .with('String', () => 'string')
             .otherwise(() => undefined);
+    }
+
+    private mapOperatorToConstraintKind(operator: BinaryExpr['operator']) {
+        return match(operator)
+            .with('==', () => 'eq')
+            .with('!=', () => 'ne')
+            .with('<', () => 'lt')
+            .with('<=', () => 'lte')
+            .with('>', () => 'gt')
+            .with('>=', () => 'gte')
+            .otherwise(() => {
+                throw new Error(`Unsupported operator: ${operator}`);
+            });
     }
 
     private getFieldAccess(expr: Expression) {

@@ -66,7 +66,7 @@ export type ComparisonTerm = VariableConstraint | ValueConstraint;
  * Comparison constraint
  */
 export type ComparisonConstraint = {
-    kind: 'eq' | 'gt' | 'gte' | 'lt' | 'lte';
+    kind: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
     left: ComparisonTerm;
     right: ComparisonTerm;
 };

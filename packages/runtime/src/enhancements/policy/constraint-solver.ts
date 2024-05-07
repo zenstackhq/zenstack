@@ -57,7 +57,7 @@ export class ConstraintSolver {
                 (c) => this.buildVariableFormula(c)
             )
             .when(
-                (c): c is ComparisonConstraint => ['eq', 'gt', 'gte', 'lt', 'lte'].includes(c.kind),
+                (c): c is ComparisonConstraint => ['eq', 'ne', 'gt', 'gte', 'lt', 'lte'].includes(c.kind),
                 (c) => this.buildComparisonFormula(c)
             )
             .when(
@@ -71,15 +71,41 @@ export class ConstraintSolver {
 
     private buildLogicalFormula(constraint: LogicalConstraint) {
         return match(constraint.kind)
-            .with('and', () => Logic.and(...constraint.children.map((c) => this.buildFormula(c))))
-            .with('or', () => Logic.or(...constraint.children.map((c) => this.buildFormula(c))))
-            .with('not', () => {
-                if (constraint.children.length !== 1) {
-                    throw new Error('"not" constraint must have exactly one child');
-                }
-                return Logic.not(this.buildFormula(constraint.children[0]));
-            })
+            .with('and', () => this.buildAndFormula(constraint))
+            .with('or', () => this.buildOrFormula(constraint))
+            .with('not', () => this.buildNotFormula(constraint))
             .exhaustive();
+    }
+
+    private buildAndFormula(constraint: LogicalConstraint): Logic.Formula {
+        if (constraint.children.some((c) => this.isFalse(c))) {
+            // short-circuit
+            return Logic.FALSE;
+        }
+        return Logic.and(...constraint.children.map((c) => this.buildFormula(c)));
+    }
+
+    private buildOrFormula(constraint: LogicalConstraint): Logic.Formula {
+        if (constraint.children.some((c) => this.isTrue(c))) {
+            // short-circuit
+            return Logic.TRUE;
+        }
+        return Logic.or(...constraint.children.map((c) => this.buildFormula(c)));
+    }
+
+    private buildNotFormula(constraint: LogicalConstraint) {
+        if (constraint.children.length !== 1) {
+            throw new Error('"not" constraint must have exactly one child');
+        }
+        return Logic.not(this.buildFormula(constraint.children[0]));
+    }
+
+    private isTrue(constraint: CheckerConstraint): unknown {
+        return constraint.kind === 'value' && constraint.value === true;
+    }
+
+    private isFalse(constraint: CheckerConstraint): unknown {
+        return constraint.kind === 'value' && constraint.value === false;
     }
 
     private buildComparisonFormula(constraint: ComparisonConstraint) {
@@ -89,6 +115,7 @@ export class ConstraintSolver {
             const right: ValueConstraint = constraint.right;
             return match(constraint.kind)
                 .with('eq', () => (left.value === right.value ? Logic.TRUE : Logic.FALSE))
+                .with('ne', () => (left.value !== right.value ? Logic.TRUE : Logic.FALSE))
                 .with('gt', () => (left.value > right.value ? Logic.TRUE : Logic.FALSE))
                 .with('gte', () => (left.value >= right.value ? Logic.TRUE : Logic.FALSE))
                 .with('lt', () => (left.value < right.value ? Logic.TRUE : Logic.FALSE))
@@ -98,6 +125,7 @@ export class ConstraintSolver {
 
         return match(constraint.kind)
             .with('eq', () => this.transformEquality(constraint.left, constraint.right))
+            .with('ne', () => this.transformInequality(constraint.left, constraint.right))
             .with('gt', () =>
                 this.transformComparison(constraint.left, constraint.right, (l, r) => Logic.greaterThan(l, r))
             )
@@ -175,6 +203,10 @@ export class ConstraintSolver {
             // integer equality
             return Logic.equalBits(leftFormula, rightFormula);
         }
+    }
+
+    private transformInequality(left: ComparisonTerm, right: ComparisonTerm) {
+        return Logic.not(this.transformEquality(left, right));
     }
 
     private transformComparison(
