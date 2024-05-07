@@ -1457,6 +1457,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     }
 
     private async doCheck(args: PermissionCheckArgs) {
+        if (!['create', 'read', 'update', 'delete'].includes(args.operation)) {
+            throw prismaClientValidationError(this.prisma, this.prismaModule, `Invalid "operation" ${args.operation}`);
+        }
+
         let constraint = this.policyUtils.getCheckerConstraint(this.model, args.operation);
         if (typeof constraint === 'boolean') {
             return constraint;
@@ -1472,14 +1476,20 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
 
                 if (value === null) {
-                    throw new Error(`Using "null" as filter value is not supported yet`);
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Using "null" as filter value is not supported yet`
+                    );
                 }
 
                 const fieldInfo = requireField(this.modelMeta, this.model, field);
 
                 // relation and array fields are not supported
                 if (fieldInfo.isDataModel || fieldInfo.isArray) {
-                    throw new Error(
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
                         `Providing filter for field "${field}" is not supported. Only scalar fields are allowed.`
                     );
                 }
@@ -1490,7 +1500,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     .with('String', () => 'string')
                     .with('Boolean', () => 'boolean')
                     .otherwise(() => {
-                        throw new Error(
+                        throw prismaClientValidationError(
+                            this.prisma,
+                            this.prismaModule,
                             `Providing filter for field "${field}" is not supported. Only number, string, and boolean fields are allowed.`
                         );
                     });
@@ -1498,18 +1510,28 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 // check value type
                 const valueType = typeof value;
                 if (valueType !== 'number' && valueType !== 'string' && valueType !== 'boolean') {
-                    throw new Error(
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
                         `Invalid value type for field "${field}". Only number, string or boolean is allowed.`
                     );
                 }
 
                 if (fieldType !== valueType) {
-                    throw new Error(`Invalid value type for field "${field}". Expected "${fieldType}".`);
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Invalid value type for field "${field}". Expected "${fieldType}".`
+                    );
                 }
 
                 // check number validity
                 if (typeof value === 'number' && (!Number.isInteger(value) || value < 0)) {
-                    throw new Error(`Invalid value for field "${field}". Only non-negative integers are allowed.`);
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Invalid value for field "${field}". Only non-negative integers are allowed.`
+                    );
                 }
 
                 // build a constraint
