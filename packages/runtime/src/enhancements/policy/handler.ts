@@ -41,7 +41,7 @@ type FindOperations = 'findUnique' | 'findUniqueOrThrow' | 'findFirst' | 'findFi
 // input arg type for `check` API
 type PermissionCheckArgs = {
     operation: PolicyCrudKind;
-    filter?: Record<string, number | string | boolean>;
+    where?: Record<string, number | string | boolean>;
 };
 
 /**
@@ -1466,11 +1466,11 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             return constraint;
         }
 
-        if (args.filter) {
+        if (args.where) {
             // combine runtime filters with generated constraints
 
             const extraConstraints: CheckerConstraint[] = [];
-            for (const [field, value] of Object.entries(args.filter)) {
+            for (const [field, value] of Object.entries(args.where)) {
                 if (value === undefined) {
                     continue;
                 }
