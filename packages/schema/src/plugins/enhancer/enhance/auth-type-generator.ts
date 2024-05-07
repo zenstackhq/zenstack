@@ -106,7 +106,7 @@ export function generateAuthType(model: Model, authModel: DataModel) {
     // }
     // `
 
-    return `namespace auth {
+    return `export namespace auth {
     type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] };
 ${Array.from(types.entries())
     .map(([model, fields]) => {
