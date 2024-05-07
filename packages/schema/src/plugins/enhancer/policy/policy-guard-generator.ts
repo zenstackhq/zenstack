@@ -94,10 +94,14 @@ export class PolicyGenerator {
             policyMap[model.name] = await this.generateQueryGuardForModel(model, sf);
         }
 
+        const generatePermissionChecker = options.generatePermissionChecker === true;
+
         // CRUD checker functions
         const checkerMap: Record<string, Record<string, string | boolean>> = {};
-        for (const model of models) {
-            checkerMap[model.name] = await this.generateCheckerForModel(model, sf);
+        if (generatePermissionChecker) {
+            for (const model of models) {
+                checkerMap[model.name] = await this.generateCheckerForModel(model, sf);
+            }
         }
 
         const authSelector = this.generateAuthSelector(models);
@@ -128,19 +132,21 @@ export class PolicyGenerator {
                             });
                             writer.writeLine(',');
 
-                            writer.write('checker:');
-                            writer.inlineBlock(() => {
-                                for (const [model, map] of Object.entries(checkerMap)) {
-                                    writer.write(`${lowerCaseFirst(model)}:`);
-                                    writer.inlineBlock(() => {
-                                        Object.entries(map).forEach(([op, func]) => {
-                                            writer.write(`${op}: ${func},`);
+                            if (generatePermissionChecker) {
+                                writer.write('checker:');
+                                writer.inlineBlock(() => {
+                                    for (const [model, map] of Object.entries(checkerMap)) {
+                                        writer.write(`${lowerCaseFirst(model)}:`);
+                                        writer.inlineBlock(() => {
+                                            Object.entries(map).forEach(([op, func]) => {
+                                                writer.write(`${op}: ${func},`);
+                                            });
                                         });
-                                    });
-                                    writer.writeLine(',');
-                                }
-                            });
-                            writer.writeLine(',');
+                                        writer.writeLine(',');
+                                    }
+                                });
+                                writer.writeLine(',');
+                            }
 
                             writer.write('validation:');
                             writer.inlineBlock(() => {

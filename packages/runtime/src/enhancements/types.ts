@@ -122,7 +122,7 @@ export type PolicyDef = {
             }
     >;
 
-    checker: Record<string, Record<PolicyCrudKind, CheckerFunc | boolean>>;
+    checker?: Record<string, Record<PolicyCrudKind, CheckerFunc | boolean>>;
 
     // tracks which models have data validation rules
     validation: Record<string, { hasValidation: boolean }>;

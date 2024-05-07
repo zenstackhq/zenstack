@@ -90,7 +90,7 @@ export class EnhancerGenerator {
         const authTypes = authModel ? generateAuthType(this.model, authModel) : '';
         const authTypeParam = authModel ? `auth.${authModel.name}` : 'AuthUser';
 
-        const checkerTypes = generateCheckerType(this.model);
+        const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
 
         const enhanceTs = this.project.createSourceFile(
             path.join(this.outDir, 'enhance.ts'),
@@ -131,15 +131,16 @@ import type * as _P from '${prismaImport}';
     }
 
     private createSimplePrismaEnhanceFunction(authTypeParam: string) {
+        const returnType = `DbClient${this.generatePermissionChecker ? ' & ModelCheckers' : ''}`;
         return `
-export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DbClient & ModelCheckers {
+export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): ${returnType} {
     return createEnhancement(prisma, {
         modelMeta,
         policy,
         zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
         prismaModule: Prisma,
         ...options
-    }, context) as DbClient & ModelCheckers;
+    }, context) as ${returnType};
 }         
             `;
     }
@@ -162,12 +163,16 @@ import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed
 // overload for plain PrismaClient
 export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
     prisma: _PrismaClient<any, any, ExtArgs>,
-    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): PrismaClient & ModelCheckers;
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): PrismaClient${
+            this.generatePermissionChecker ? ' & ModelCheckers' : ''
+        };
     
 // overload for extended PrismaClient
 export function enhance<TypeMap extends TypeMapDef, TypeMapCb extends TypeMapCbDef, ExtArgs extends Record<string, any> & InternalArgs>(
     prisma: DynamicClientExtensionThis<TypeMap, TypeMapCb, ExtArgs>,
-    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs> & ModelCheckers;
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs>${
+            this.generatePermissionChecker ? ' & ModelCheckers' : ''
+        };
 
 export function enhance(prisma: any, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): any {
     return createEnhancement(prisma, {
@@ -626,5 +631,9 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         if (this.options.preserveTsFiles) {
             await sf.save();
         }
+    }
+
+    private get generatePermissionChecker() {
+        return this.options.generatePermissionChecker === true;
     }
 }

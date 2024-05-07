@@ -1,8 +1,44 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { SchemaLoadOptions, loadSchema } from '@zenstackhq/testtools';
 
 describe('Permission checker', () => {
-    it('empty rules', async () => {
+    const PRELUDE = `
+        datasource db {
+            provider = 'sqlite'
+            url = 'file:./dev.db'
+        }
+
+        generator js {
+            provider = 'prisma-client-js'
+        }
+
+        plugin enhancer {
+            provider = '@core/enhancer'
+            generatePermissionChecker = true
+        }
+    `;
+
+    const load = (schema: string, options?: SchemaLoadOptions) =>
+        loadSchema(`${PRELUDE}\n${schema}`, {
+            ...options,
+            addPrelude: false,
+        });
+
+    it('checker generation not enabled', async () => {
         const { enhance } = await loadSchema(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('all', true)
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check('read')).toResolveFalsy();
+    });
+
+    it('empty rules', async () => {
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -16,7 +52,7 @@ describe('Permission checker', () => {
     });
 
     it('unconditional allow', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -31,7 +67,7 @@ describe('Permission checker', () => {
     });
 
     it('deny rule', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -49,7 +85,7 @@ describe('Permission checker', () => {
     });
 
     it('int field condition', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -82,7 +118,7 @@ describe('Permission checker', () => {
     });
 
     it('boolean field toplevel condition', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -99,7 +135,7 @@ describe('Permission checker', () => {
     });
 
     it('boolean field condition', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -131,7 +167,7 @@ describe('Permission checker', () => {
     });
 
     it('string field condition', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -148,7 +184,7 @@ describe('Permission checker', () => {
     });
 
     it('function noop', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -169,7 +205,7 @@ describe('Permission checker', () => {
     });
 
     it('relation noop', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -194,7 +230,7 @@ describe('Permission checker', () => {
     });
 
     it('collection predicate noop', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -219,7 +255,7 @@ describe('Permission checker', () => {
     });
 
     it('field complex condition', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -252,7 +288,7 @@ describe('Permission checker', () => {
     });
 
     it('field condition unsolvable', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -272,7 +308,7 @@ describe('Permission checker', () => {
     });
 
     it('simple auth condition', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model User {
                 id Int @id @default(autoincrement())
@@ -307,7 +343,7 @@ describe('Permission checker', () => {
     });
 
     it('auth compared with relation field', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model User {
                 id Int @id @default(autoincrement())
@@ -349,7 +385,7 @@ describe('Permission checker', () => {
     });
 
     it('auth null check', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model User {
                 id Int @id @default(autoincrement())
@@ -379,7 +415,7 @@ describe('Permission checker', () => {
     });
 
     it('auth with relation access', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model User {
                 id Int @id @default(autoincrement())
@@ -408,7 +444,7 @@ describe('Permission checker', () => {
     });
 
     it('nullable field', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -427,7 +463,7 @@ describe('Permission checker', () => {
     });
 
     it('compilation', async () => {
-        await loadSchema(
+        await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -456,7 +492,7 @@ describe('Permission checker', () => {
     });
 
     it('invalid filter', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -498,7 +534,7 @@ describe('Permission checker', () => {
     });
 
     it('float field ignored', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())
@@ -513,7 +549,7 @@ describe('Permission checker', () => {
     });
 
     it('float value ignored', async () => {
-        const { enhance } = await loadSchema(
+        const { enhance } = await load(
             `
             model Model {
                 id Int @id @default(autoincrement())

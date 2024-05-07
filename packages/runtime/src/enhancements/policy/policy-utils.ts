@@ -587,12 +587,17 @@ export class PolicyUtil extends QueryUtils {
         return provider({ user: this.user });
     }
 
-    private getModelChecker(model: string): PolicyDef['checker']['string'] {
+    private getModelChecker(model: string) {
         if (this.options.kinds && !this.options.kinds.includes('policy')) {
-            // policy enhancement not enabled, return a constant checker
+            // policy enhancement not enabled, return a constant true checker
             return { create: true, read: true, update: true, delete: true };
         } else {
-            return this.options.policy.checker?.[lowerCaseFirst(model)];
+            let result = this.options.policy.checker?.[lowerCaseFirst(model)];
+            if (!result) {
+                // checker generation not enabled, return constant false checker
+                result = { create: false, read: false, update: false, delete: false };
+            }
+            return result;
         }
     }
 
