@@ -31,7 +31,7 @@ export interface ModelCheckers {
 
 function generateDataModelChecker(dataModel: DataModel) {
     return `{
-        check(args: { operation: PolicyCrudKind, filter?: ${generateDataModelArgs(dataModel)} }): Promise<boolean>
+        check(args: { operation: PolicyCrudKind, where?: ${generateDataModelArgs(dataModel)} }): Promise<boolean>
     }`;
 }
 
