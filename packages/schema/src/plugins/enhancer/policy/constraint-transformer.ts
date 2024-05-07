@@ -1,4 +1,9 @@
-import { ZModelCodeGenerator, getRelationKeyPairs, isAuthInvocation, isDataModelFieldReference } from '@zenstackhq/sdk';
+import {
+    getRelationKeyPairs,
+    isAuthInvocation,
+    isDataModelFieldReference,
+    isEnumFieldReference,
+} from '@zenstackhq/sdk';
 import {
     BinaryExpr,
     BooleanLiteral,
@@ -13,6 +18,7 @@ import {
     UnaryExpr,
     isBinaryExpr,
     isDataModelField,
+    isEnum,
     isLiteralExpr,
     isMemberAccessExpr,
     isNullExpr,
@@ -55,7 +61,7 @@ export class ConstraintTransformer {
         // transform allow rules
         const allowConstraints = allows.map((allow) => this.transformExpression(allow));
         if (allowConstraints.length > 1) {
-            result = this.and(...allowConstraints);
+            result = this.or(...allowConstraints);
         } else {
             result = allowConstraints[0];
         }
@@ -63,7 +69,7 @@ export class ConstraintTransformer {
         // transform deny rules and compose
         if (denies.length > 0) {
             const denyConstraints = denies.map((deny) => this.transformExpression(deny));
-            result = this.and(result, this.not(this.or(...denyConstraints)));
+            result = this.and(result, ...denyConstraints.map((c) => this.not(c)));
         }
 
         // DEBUG:
@@ -279,6 +285,10 @@ export class ConstraintTransformer {
             return this.transformLiteral(expr);
         }
 
+        if (isEnumFieldReference(expr)) {
+            return this.value(`'${expr.target.$refText}'`, 'string');
+        }
+
         const fieldAccess = this.getFieldAccess(expr);
         if (fieldAccess) {
             // model field access is transformed into a named variable
@@ -304,7 +314,11 @@ export class ConstraintTransformer {
     }
 
     private mapExpressionType(expression: Expression) {
-        return this.mapType(expression.$resolvedType?.decl as ExpressionType);
+        if (isEnum(expression.$resolvedType?.decl)) {
+            return 'string';
+        } else {
+            return this.mapType(expression.$resolvedType?.decl as ExpressionType);
+        }
     }
 
     private mapType(type: ExpressionType) {
@@ -353,11 +367,6 @@ export class ConstraintTransformer {
 
     private nextVar(type = 'boolean') {
         return this.variable(`__var${this.varCounter++}`, type);
-    }
-
-    private expressionVariable(expr: Expression, type: string) {
-        const name = new ZModelCodeGenerator().generate(expr);
-        return this.variable(name, type);
     }
 
     private variable(name: string, type: string) {

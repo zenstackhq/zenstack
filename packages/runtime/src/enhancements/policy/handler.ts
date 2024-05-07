@@ -38,6 +38,12 @@ type PostWriteCheckRecord = {
 
 type FindOperations = 'findUnique' | 'findUniqueOrThrow' | 'findFirst' | 'findFirstOrThrow' | 'findMany';
 
+// input arg type for `check` API
+type PermissionCheckArgs = {
+    operation: PolicyCrudKind;
+    filter?: Record<string, number | string | boolean>;
+};
+
 /**
  * Prisma proxy handler for injecting access policy check.
  */
@@ -1446,24 +1452,21 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
      * @param operation The CRUD operation.
      * @param fieldValues Extra field value filters to be combined with the policy constraints.
      */
-    async check(
-        operation: PolicyCrudKind,
-        fieldValues?: Record<string, number | string | boolean | null>
-    ): Promise<boolean> {
-        return createDeferredPromise(() => this.doCheck(operation, fieldValues));
+    async check(args: PermissionCheckArgs): Promise<boolean> {
+        return createDeferredPromise(() => this.doCheck(args));
     }
 
-    private async doCheck(operation: PolicyCrudKind, fieldValues?: Record<string, number | string | boolean | null>) {
-        let constraint = this.policyUtils.getCheckerConstraint(this.model, operation);
+    private async doCheck(args: PermissionCheckArgs) {
+        let constraint = this.policyUtils.getCheckerConstraint(this.model, args.operation);
         if (typeof constraint === 'boolean') {
             return constraint;
         }
 
-        if (fieldValues) {
+        if (args.filter) {
             // combine runtime filters with generated constraints
 
             const extraConstraints: CheckerConstraint[] = [];
-            for (const [field, value] of Object.entries(fieldValues)) {
+            for (const [field, value] of Object.entries(args.filter)) {
                 if (value === undefined) {
                     continue;
                 }

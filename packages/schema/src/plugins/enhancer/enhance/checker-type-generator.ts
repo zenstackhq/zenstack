@@ -19,7 +19,7 @@ import { P, match } from 'ts-pattern';
  */
 export function generateCheckerType(model: Model) {
     return `
-type CheckerOperation = 'create' | 'read' | 'update' | 'delete';
+import type { PolicyCrudKind } from '@zenstackhq/runtime';
 
 export interface ModelCheckers {
     ${getDataModels(model)
@@ -31,7 +31,7 @@ export interface ModelCheckers {
 
 function generateDataModelChecker(dataModel: DataModel) {
     return `{
-        check(op: CheckerOperation, args?: ${generateDataModelArgs(dataModel)}): Promise<boolean>
+        check(args: { operation: PolicyCrudKind, filter?: ${generateDataModelArgs(dataModel)} }): Promise<boolean>
     }`;
 }
 

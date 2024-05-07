@@ -592,10 +592,12 @@ export class PolicyUtil extends QueryUtils {
             // policy enhancement not enabled, return a constant true checker
             return { create: true, read: true, update: true, delete: true };
         } else {
-            let result = this.options.policy.checker?.[lowerCaseFirst(model)];
+            const result = this.options.policy.checker?.[lowerCaseFirst(model)];
             if (!result) {
                 // checker generation not enabled, return constant false checker
-                result = { create: false, read: false, update: false, delete: false };
+                throw new Error(
+                    `Generated permission checkers not found. Please make sure the "generatePermissionChecker" option is set to true in the "@core/enhancer" plugin.`
+                );
             }
             return result;
         }

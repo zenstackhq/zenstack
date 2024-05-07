@@ -22,6 +22,7 @@ export interface DbOperations {
     groupBy(args: unknown): Promise<any>;
     count(args?: unknown): Promise<any>;
     subscribe(args?: unknown): Promise<any>;
+    check(args: unknown): Promise<boolean>;
     fields: Record<string, any>;
 }
 
