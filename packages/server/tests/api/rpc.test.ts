@@ -146,7 +146,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/post/check',
-            query: { q: JSON.stringify({ operation: 'read', filter: { published: false } }) },
+            query: { q: JSON.stringify({ operation: 'read', where: { published: false } }) },
             prisma: enhance(),
         });
         expect(r.status).toBe(200);
@@ -155,7 +155,7 @@ describe('RPC API Handler Tests', () => {
         r = await handleRequest({
             method: 'get',
             path: '/post/check',
-            query: { q: JSON.stringify({ operation: 'read', filter: { authorId: '1', published: false } }) },
+            query: { q: JSON.stringify({ operation: 'read', where: { authorId: '1', published: false } }) },
             prisma: enhance({ id: '1' }),
         });
         expect(r.status).toBe(200);
