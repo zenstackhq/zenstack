@@ -123,10 +123,8 @@ describe('Regression: issue 961', () => {
         await expect(db.userColumn.findMany()).resolves.toHaveLength(1);
     });
 
-    // disabled because of Prisma V4 bug: https://github.com/prisma/prisma/issues/18371
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('updateMany', async () => {
-        const { prisma, enhance } = await loadSchema(schema, { logPrismaQuery: true });
+    it('updateMany', async () => {
+        const { prisma, enhance } = await loadSchema(schema);
 
         const user = await prisma.user.create({
             data: {

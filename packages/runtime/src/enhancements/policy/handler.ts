@@ -2,6 +2,7 @@
 
 import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
+import { P, match } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason } from '../../constants';
@@ -16,13 +17,15 @@ import {
     type FieldInfo,
     type ModelMeta,
 } from '../../cross';
-import { PolicyOperationKind, type CrudContract, type DbClientContract } from '../../types';
+import { PolicyCrudKind, PolicyOperationKind, type CrudContract, type DbClientContract } from '../../types';
 import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { createDeferredPromise, createFluentPromise } from '../promise';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
+import type { CheckerConstraint } from '../types';
 import { clone, formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
+import { ConstraintSolver } from './constraint-solver';
 import { PolicyUtil } from './policy-utils';
 
 // a record for post-write policy check
@@ -34,6 +37,12 @@ type PostWriteCheckRecord = {
 };
 
 type FindOperations = 'findUnique' | 'findUniqueOrThrow' | 'findFirst' | 'findFirstOrThrow' | 'findMany';
+
+// input arg type for `check` API
+type PermissionCheckArgs = {
+    operation: PolicyCrudKind;
+    filter?: Record<string, number | string | boolean>;
+};
 
 /**
  * Prisma proxy handler for injecting access policy check.
@@ -1432,6 +1441,115 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
             return this.modelClient.subscribe(args);
         });
+    }
+
+    //#endregion
+
+    //#region Check
+
+    /**
+     * Checks if the given operation is possibly allowed by the policy, without querying the database.
+     * @param operation The CRUD operation.
+     * @param fieldValues Extra field value filters to be combined with the policy constraints.
+     */
+    async check(args: PermissionCheckArgs): Promise<boolean> {
+        return createDeferredPromise(() => this.doCheck(args));
+    }
+
+    private async doCheck(args: PermissionCheckArgs) {
+        if (!['create', 'read', 'update', 'delete'].includes(args.operation)) {
+            throw prismaClientValidationError(this.prisma, this.prismaModule, `Invalid "operation" ${args.operation}`);
+        }
+
+        let constraint = this.policyUtils.getCheckerConstraint(this.model, args.operation);
+        if (typeof constraint === 'boolean') {
+            return constraint;
+        }
+
+        if (args.filter) {
+            // combine runtime filters with generated constraints
+
+            const extraConstraints: CheckerConstraint[] = [];
+            for (const [field, value] of Object.entries(args.filter)) {
+                if (value === undefined) {
+                    continue;
+                }
+
+                if (value === null) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Using "null" as filter value is not supported yet`
+                    );
+                }
+
+                const fieldInfo = requireField(this.modelMeta, this.model, field);
+
+                // relation and array fields are not supported
+                if (fieldInfo.isDataModel || fieldInfo.isArray) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Providing filter for field "${field}" is not supported. Only scalar fields are allowed.`
+                    );
+                }
+
+                // map field type to constraint type
+                const fieldType = match<string, 'number' | 'string' | 'boolean'>(fieldInfo.type)
+                    .with(P.union('Int', 'BigInt', 'Float', 'Decimal'), () => 'number')
+                    .with('String', () => 'string')
+                    .with('Boolean', () => 'boolean')
+                    .otherwise(() => {
+                        throw prismaClientValidationError(
+                            this.prisma,
+                            this.prismaModule,
+                            `Providing filter for field "${field}" is not supported. Only number, string, and boolean fields are allowed.`
+                        );
+                    });
+
+                // check value type
+                const valueType = typeof value;
+                if (valueType !== 'number' && valueType !== 'string' && valueType !== 'boolean') {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Invalid value type for field "${field}". Only number, string or boolean is allowed.`
+                    );
+                }
+
+                if (fieldType !== valueType) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Invalid value type for field "${field}". Expected "${fieldType}".`
+                    );
+                }
+
+                // check number validity
+                if (typeof value === 'number' && (!Number.isInteger(value) || value < 0)) {
+                    throw prismaClientValidationError(
+                        this.prisma,
+                        this.prismaModule,
+                        `Invalid value for field "${field}". Only non-negative integers are allowed.`
+                    );
+                }
+
+                // build a constraint
+                extraConstraints.push({
+                    kind: 'eq',
+                    left: { kind: 'variable', name: field, type: fieldType },
+                    right: { kind: 'value', value, type: fieldType },
+                });
+            }
+
+            if (extraConstraints.length > 0) {
+                // combine the constraints
+                constraint = { kind: 'and', children: [constraint, ...extraConstraints] };
+            }
+        }
+
+        // check satisfiability
+        return new ConstraintSolver().checkSat(constraint);
     }
 
     //#endregion

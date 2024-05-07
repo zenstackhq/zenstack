@@ -298,9 +298,9 @@ export function isForeignKeyField(field: DataModelField) {
 }
 
 /**
- * Gets the foreign key fields of the given relation field.
+ * Gets the foreign key-id field pairs from the given relation field.
  */
-export function getForeignKeyFields(relationField: DataModelField) {
+export function getRelationKeyPairs(relationField: DataModelField) {
     if (!isRelationshipField(relationField)) {
         return [];
     }
@@ -309,11 +309,31 @@ export function getForeignKeyFields(relationField: DataModelField) {
     if (relAttr) {
         // find "fields" arg
         const fieldsArg = getAttributeArg(relAttr, 'fields');
+        let fkFields: DataModelField[];
         if (fieldsArg && isArrayExpr(fieldsArg)) {
-            return fieldsArg.items
+            fkFields = fieldsArg.items
                 .filter((item): item is ReferenceExpr => isReferenceExpr(item))
                 .map((item) => item.target.ref as DataModelField);
+        } else {
+            return [];
         }
+
+        // find "references" arg
+        const referencesArg = getAttributeArg(relAttr, 'references');
+        let idFields: DataModelField[];
+        if (referencesArg && isArrayExpr(referencesArg)) {
+            idFields = referencesArg.items
+                .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+                .map((item) => item.target.ref as DataModelField);
+        } else {
+            return [];
+        }
+
+        if (idFields.length !== fkFields.length) {
+            throw new Error(`Relation's references arg and fields are must have equal length`);
+        }
+
+        return idFields.map((idField, i) => ({ id: idField, foreignKey: fkFields[i] }));
     }
 
     return [];
