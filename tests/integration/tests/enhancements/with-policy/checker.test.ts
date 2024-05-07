@@ -1,4 +1,4 @@
-import { SchemaLoadOptions, loadSchema } from '@zenstackhq/testtools';
+import { SchemaLoadOptions, createPostgresDb, dropPostgresDb, loadSchema } from '@zenstackhq/testtools';
 
 describe('Permission checker', () => {
     const PRELUDE = `
@@ -18,9 +18,9 @@ describe('Permission checker', () => {
     `;
 
     const load = (schema: string, options?: SchemaLoadOptions) =>
-        loadSchema(`${PRELUDE}\n${schema}`, {
+        loadSchema(schema, {
             ...options,
-            addPrelude: false,
+            generatePermissionChecker: true,
         });
 
     it('checker generation not enabled', async () => {
@@ -34,7 +34,7 @@ describe('Permission checker', () => {
             `
         );
         const db = enhance();
-        await expect(db.model.check('read')).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read' })).rejects.toThrow('Generated permission checkers not found');
     });
 
     it('empty rules', async () => {
@@ -47,8 +47,8 @@ describe('Permission checker', () => {
             `
         );
         const db = enhance();
-        await expect(db.model.check('read')).toResolveFalsy();
-        await expect(db.model.check('read', { value: 1 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveFalsy();
     });
 
     it('unconditional allow', async () => {
@@ -62,8 +62,26 @@ describe('Permission checker', () => {
             `
         );
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 0 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 0 } })).toResolveTruthy();
+    });
+
+    it('multiple allow rules', async () => {
+        const { enhance } = await load(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('all', value == 1)
+                @@allow('all', value == 2)
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 0 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 2 } })).toResolveTruthy();
     });
 
     it('deny rule', async () => {
@@ -78,10 +96,10 @@ describe('Permission checker', () => {
             `
         );
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 0 })).toResolveFalsy();
-        await expect(db.model.check('read', { value: 1 })).toResolveFalsy();
-        await expect(db.model.check('read', { value: 2 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 0 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 2 } })).toResolveTruthy();
     });
 
     it('int field condition', async () => {
@@ -99,22 +117,22 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 0 })).toResolveFalsy();
-        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 0 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveTruthy();
 
-        await expect(db.model.check('create')).toResolveTruthy();
-        await expect(db.model.check('create', { value: 0 })).toResolveTruthy();
-        await expect(db.model.check('create', { value: 1 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { value: 0 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { value: 1 } })).toResolveFalsy();
 
-        await expect(db.model.check('update')).toResolveTruthy();
-        await expect(db.model.check('update', { value: 1 })).toResolveFalsy();
-        await expect(db.model.check('update', { value: 2 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update', filter: { value: 1 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'update', filter: { value: 2 } })).toResolveTruthy();
 
-        await expect(db.model.check('delete')).toResolveTruthy();
-        await expect(db.model.check('delete', { value: 0 })).toResolveTruthy();
-        await expect(db.model.check('delete', { value: 1 })).toResolveTruthy();
-        await expect(db.model.check('delete', { value: 2 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'delete' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'delete', filter: { value: 0 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'delete', filter: { value: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'delete', filter: { value: 2 } })).toResolveFalsy();
     });
 
     it('boolean field toplevel condition', async () => {
@@ -129,9 +147,9 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: false })).toResolveFalsy();
-        await expect(db.model.check('read', { value: true })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: false } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: true } })).toResolveTruthy();
     });
 
     it('boolean field condition', async () => {
@@ -149,21 +167,21 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: false })).toResolveFalsy();
-        await expect(db.model.check('read', { value: true })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: false } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: true } })).toResolveTruthy();
 
-        await expect(db.model.check('create')).toResolveTruthy();
-        await expect(db.model.check('create', { value: true })).toResolveFalsy();
-        await expect(db.model.check('create', { value: false })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { value: true } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'create', filter: { value: false } })).toResolveTruthy();
 
-        await expect(db.model.check('update')).toResolveTruthy();
-        await expect(db.model.check('update', { value: true })).toResolveFalsy();
-        await expect(db.model.check('update', { value: false })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update', filter: { value: true } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'update', filter: { value: false } })).toResolveTruthy();
 
-        await expect(db.model.check('delete')).toResolveTruthy();
-        await expect(db.model.check('delete', { value: false })).toResolveFalsy();
-        await expect(db.model.check('delete', { value: true })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'delete' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'delete', filter: { value: false } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'delete', filter: { value: true } })).toResolveTruthy();
     });
 
     it('string field condition', async () => {
@@ -178,9 +196,57 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 'user' })).toResolveFalsy();
-        await expect(db.model.check('read', { value: 'admin' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 'user' } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 'admin' } })).toResolveTruthy();
+    });
+
+    it('enum', async () => {
+        const dbUrl = await createPostgresDb('permission-checker-enum');
+        let prisma: any;
+        try {
+            const r = await loadSchema(
+                `
+            datasource db {
+                provider = 'postgresql'
+                url = '${dbUrl}'
+            }
+    
+            generator js {
+                provider = 'prisma-client-js'
+            }
+    
+            plugin enhancer {
+                provider = '@core/enhancer'
+                generatePermissionChecker = true
+            }
+        
+            enum Role {
+                USER
+                ADMIN
+            }
+            model User {
+                id Int @id @default(autoincrement())
+                role Role
+            }
+            model Model {
+                id Int @id @default(autoincrement())
+                @@allow('read', auth().role == ADMIN)
+            }
+            `,
+                { addPrelude: false, generatePermissionChecker: true }
+            );
+
+            prisma = r.prisma;
+            const enhance = r.enhance;
+
+            await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+            await expect(enhance({ id: 1, role: 'USER' }).model.check({ operation: 'read' })).toResolveFalsy();
+            await expect(enhance({ id: 1, role: 'ADMIN' }).model.check({ operation: 'read' })).toResolveTruthy();
+        } finally {
+            await prisma.$disconnect();
+            await dropPostgresDb('permission-checker-enum');
+        }
     });
 
     it('function noop', async () => {
@@ -196,12 +262,12 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 'user' })).toResolveTruthy();
-        await expect(db.model.check('read', { value: 'admin' })).toResolveTruthy();
-        await expect(db.model.check('update')).toResolveTruthy();
-        await expect(db.model.check('update', { value: 'user' })).toResolveTruthy();
-        await expect(db.model.check('update', { value: 'admin' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 'user' } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 'admin' } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update', filter: { value: 'user' } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update', filter: { value: 'admin' } })).toResolveTruthy();
     });
 
     it('relation noop', async () => {
@@ -225,8 +291,10 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { foo: { x: 0 } })).rejects.toThrow('Providing filter for field "foo"');
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { foo: { x: 0 } } })).rejects.toThrow(
+            'Providing filter for field "foo"'
+        );
     });
 
     it('collection predicate noop', async () => {
@@ -250,8 +318,10 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { foo: [{ x: 0 }] })).rejects.toThrow('Providing filter for field "foo"');
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { foo: [{ x: 0 }] } })).rejects.toThrow(
+            'Providing filter for field "foo"'
+        );
     });
 
     it('field complex condition', async () => {
@@ -269,22 +339,22 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { x: 0 })).toResolveFalsy();
-        await expect(db.model.check('read', { x: 1 })).toResolveTruthy();
-        await expect(db.model.check('read', { x: 1, y: 0 })).toResolveTruthy();
-        await expect(db.model.check('read', { x: 1, y: 1 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 0 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 1, y: 0 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 1, y: 1 } })).toResolveFalsy();
 
-        await expect(db.model.check('create')).toResolveTruthy();
-        await expect(db.model.check('create', { x: 0 })).toResolveFalsy(); // numbers are non-negative
-        await expect(db.model.check('create', { x: 1 })).toResolveTruthy();
-        await expect(db.model.check('create', { x: 1, y: 0 })).toResolveTruthy();
-        await expect(db.model.check('create', { x: 1, y: 1 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { x: 0 } })).toResolveFalsy(); // numbers are non-negative
+        await expect(db.model.check({ operation: 'create', filter: { x: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { x: 1, y: 0 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { x: 1, y: 1 } })).toResolveFalsy();
 
-        await expect(db.model.check('update')).toResolveTruthy();
-        await expect(db.model.check('update', { x: 0 })).toResolveTruthy();
-        await expect(db.model.check('update', { y: 0 })).toResolveFalsy(); // numbers are non-negative
-        await expect(db.model.check('update', { x: 1, y: 1 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update', filter: { x: 0 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'update', filter: { y: 0 } })).toResolveFalsy(); // numbers are non-negative
+        await expect(db.model.check({ operation: 'update', filter: { x: 1, y: 1 } })).toResolveFalsy();
     });
 
     it('field condition unsolvable', async () => {
@@ -300,11 +370,11 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveFalsy();
-        await expect(db.model.check('read', { x: 0 })).toResolveFalsy();
-        await expect(db.model.check('read', { x: 1 })).toResolveFalsy();
-        await expect(db.model.check('read', { x: 1, y: 2 })).toResolveFalsy();
-        await expect(db.model.check('read', { x: 1, y: 1 })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 0 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 1 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 1, y: 2 } })).toResolveFalsy();
+        await expect(db.model.check({ operation: 'read', filter: { x: 1, y: 1 } })).toResolveFalsy();
     });
 
     it('simple auth condition', async () => {
@@ -326,20 +396,20 @@ describe('Permission checker', () => {
             `
         );
 
-        await expect(enhance().model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1, level: 0 }).model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1, level: 1 }).model.check('read')).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 0 }).model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 1 }).model.check({ operation: 'read' })).toResolveTruthy();
 
-        await expect(enhance().model.check('create')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('create')).toResolveFalsy();
-        await expect(enhance({ id: 1, admin: false }).model.check('create')).toResolveFalsy();
-        await expect(enhance({ id: 1, admin: true }).model.check('create')).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'create' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create' })).toResolveFalsy();
+        await expect(enhance({ id: 1, admin: false }).model.check({ operation: 'create' })).toResolveFalsy();
+        await expect(enhance({ id: 1, admin: true }).model.check({ operation: 'create' })).toResolveTruthy();
 
-        await expect(enhance().model.check('update')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('update')).toResolveTruthy();
-        await expect(enhance({ id: 1, admin: true }).model.check('update')).toResolveFalsy();
-        await expect(enhance({ id: 1, admin: false }).model.check('update')).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(enhance({ id: 1, admin: true }).model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1, admin: false }).model.check({ operation: 'update' })).toResolveTruthy();
     });
 
     it('auth compared with relation field', async () => {
@@ -363,25 +433,25 @@ describe('Permission checker', () => {
             { preserveTsFiles: true }
         );
 
-        await expect(enhance().model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('read')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('read', { ownerId: 1 })).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('read', { ownerId: 2 })).toResolveFalsy();
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read', filter: { ownerId: 1 } })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read', filter: { ownerId: 2 } })).toResolveFalsy();
 
-        await expect(enhance().model.check('create')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('create')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('create', { ownerId: 1 })).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('create', { ownerId: 2 })).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'create' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create', filter: { ownerId: 1 } })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create', filter: { ownerId: 2 } })).toResolveTruthy();
 
-        await expect(enhance().model.check('update')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('update')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('update', { ownerId: 1 })).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('update', { ownerId: 2 })).toResolveFalsy();
+        await expect(enhance().model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update', filter: { ownerId: 1 } })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update', filter: { ownerId: 2 } })).toResolveFalsy();
 
-        await expect(enhance().model.check('delete')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('delete')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('delete', { ownerId: 1 })).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('delete', { ownerId: 2 })).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'delete' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'delete' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'delete', filter: { ownerId: 1 } })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'delete', filter: { ownerId: 2 } })).toResolveTruthy();
     });
 
     it('auth null check', async () => {
@@ -402,16 +472,16 @@ describe('Permission checker', () => {
             `
         );
 
-        await expect(enhance().model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('read')).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read' })).toResolveTruthy();
 
-        await expect(enhance().model.check('create')).toResolveTruthy();
-        await expect(enhance({ id: 1 }).model.check('create')).toResolveFalsy();
+        await expect(enhance().model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'create' })).toResolveFalsy();
 
-        await expect(enhance().model.check('update')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('update')).toResolveFalsy();
-        await expect(enhance({ id: 1, level: 0 }).model.check('update')).toResolveFalsy();
-        await expect(enhance({ id: 1, level: 1 }).model.check('update')).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 0 }).model.check({ operation: 'update' })).toResolveFalsy();
+        await expect(enhance({ id: 1, level: 1 }).model.check({ operation: 'update' })).toResolveTruthy();
     });
 
     it('auth with relation access', async () => {
@@ -437,10 +507,10 @@ describe('Permission checker', () => {
             `
         );
 
-        await expect(enhance().model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1 }).model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1, profile: { level: 0 } }).model.check('read')).toResolveFalsy();
-        await expect(enhance({ id: 1, profile: { level: 1 } }).model.check('read')).toResolveTruthy();
+        await expect(enhance().model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1 }).model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1, profile: { level: 0 } }).model.check({ operation: 'read' })).toResolveFalsy();
+        await expect(enhance({ id: 1, profile: { level: 1 } }).model.check({ operation: 'read' })).toResolveTruthy();
     });
 
     it('nullable field', async () => {
@@ -456,10 +526,10 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
-        await expect(db.model.check('create')).toResolveTruthy();
-        await expect(db.model.check('create', { value: 1 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'create', filter: { value: 1 } })).toResolveTruthy();
     });
 
     it('compilation', async () => {
@@ -482,8 +552,8 @@ describe('Permission checker', () => {
 
                         const prisma = new PrismaClient();
                         const db = enhance(prisma);
-                        db.model.check('read');
-                        db.model.check('read', { value: 1 });
+                        db.model.check({ operation: 'read' });
+                        db.model.check({ operation: 'read', filter: { value: 1 }});
                         `,
                     },
                 ],
@@ -513,22 +583,22 @@ describe('Permission checker', () => {
         );
 
         const db = enhance();
-        await expect(db.model.check('read', { foo: { x: 1 } })).rejects.toThrow(
+        await expect(db.model.check({ operation: 'read', filter: { foo: { x: 1 } } })).rejects.toThrow(
             `Providing filter for field "foo" is not supported. Only scalar fields are allowed.`
         );
-        await expect(db.model.check('read', { d: new Date() })).rejects.toThrow(
+        await expect(db.model.check({ operation: 'read', filter: { d: new Date() } })).rejects.toThrow(
             `Providing filter for field "d" is not supported. Only number, string, and boolean fields are allowed.`
         );
-        await expect(db.model.check('read', { value: null })).rejects.toThrow(
+        await expect(db.model.check({ operation: 'read', filter: { value: null } })).rejects.toThrow(
             `Using "null" as filter value is not supported yet`
         );
-        await expect(db.model.check('read', { value: {} })).rejects.toThrow(
+        await expect(db.model.check({ operation: 'read', filter: { value: {} } })).rejects.toThrow(
             'Invalid value type for field "value". Only number, string or boolean is allowed.'
         );
-        await expect(db.model.check('read', { value: 'abc' })).rejects.toThrow(
+        await expect(db.model.check({ operation: 'read', filter: { value: 'abc' } })).rejects.toThrow(
             'Invalid value type for field "value". Expected "number"'
         );
-        await expect(db.model.check('read', { value: -1 })).rejects.toThrow(
+        await expect(db.model.check({ operation: 'read', filter: { value: -1 } })).rejects.toThrow(
             'Invalid value for field "value". Only non-negative integers are allowed.'
         );
     });
@@ -544,8 +614,8 @@ describe('Permission checker', () => {
             `
         );
         const db = enhance();
-        await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveTruthy();
     });
 
     it('float value ignored', async () => {
@@ -559,8 +629,24 @@ describe('Permission checker', () => {
             `
         );
         const db = enhance();
-        // await expect(db.model.check('read')).toResolveTruthy();
-        await expect(db.model.check('read', { value: 1 })).toResolveTruthy();
-        await expect(db.model.check('read', { value: 2 })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 2 } })).toResolveTruthy();
+    });
+
+    it('negative value ignored', async () => {
+        const { enhance } = await load(
+            `
+            model Model {
+                id Int @id @default(autoincrement())
+                value Int
+                @@allow('read', value >-1)
+            }
+            `
+        );
+        const db = enhance();
+        await expect(db.model.check({ operation: 'read' })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 1 } })).toResolveTruthy();
+        await expect(db.model.check({ operation: 'read', filter: { value: 2 } })).toResolveTruthy();
     });
 });

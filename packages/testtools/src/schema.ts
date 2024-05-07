@@ -102,6 +102,7 @@ generator js {
 plugin enhancer {
     provider = '@core/enhancer'
     ${options.preserveTsFiles ? 'preserveTsFiles = true' : ''}
+    ${options.generatePermissionChecker ? 'generatePermissionChecker = true' : ''}
 }
 
 plugin zod {
@@ -131,6 +132,7 @@ export type SchemaLoadOptions = {
     extraSourceFiles?: { name: string; content: string }[];
     projectDir?: string;
     preserveTsFiles?: boolean;
+    generatePermissionChecker?: boolean;
 };
 
 const defaultOptions: SchemaLoadOptions = {
