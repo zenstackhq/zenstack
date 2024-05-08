@@ -253,8 +253,13 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
         const dmmf = await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) });
 
-        if (fs.existsSync(logicalPrismaFile)) {
-            fs.rmSync(logicalPrismaFile);
+        try {
+            // clean up temp schema
+            if (fs.existsSync(logicalPrismaFile)) {
+                fs.rmSync(logicalPrismaFile);
+            }
+        } catch {
+            // ignore errors
         }
 
         return {
