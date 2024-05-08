@@ -374,6 +374,11 @@ export class PrismaSchemaGenerator {
         // for the given model, find relation fields of delegate model type, find all concrete models
         // of the delegate model and generate an auxiliary opposite relation field to each of them
         decl.fields.forEach((f) => {
+            // don't process fields inherited from a delegate model
+            if (f.$inheritedFrom && isDelegateModel(f.$inheritedFrom)) {
+                return;
+            }
+
             const fieldType = f.type.reference?.ref;
             if (!isDataModel(fieldType)) {
                 return;

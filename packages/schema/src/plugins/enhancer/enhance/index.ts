@@ -214,54 +214,54 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
         // calculate a relative output path to output the logical prisma client into enhancer's output dir
         const prismaClientOutDir = path.join(path.relative(zmodelDir, this.outDir), LOGICAL_CLIENT_GENERATION_PATH);
-        try {
-            await prismaGenerator.generate({
-                provider: '@internal', // doesn't matter
-                schemaPath: this.options.schemaPath,
-                output: logicalPrismaFile,
-                overrideClientGenerationPath: prismaClientOutDir,
-                mode: 'logical',
-            });
+        await prismaGenerator.generate({
+            provider: '@internal', // doesn't matter
+            schemaPath: this.options.schemaPath,
+            output: logicalPrismaFile,
+            overrideClientGenerationPath: prismaClientOutDir,
+            mode: 'logical',
+        });
 
-            // generate the prisma client
+        // generate the prisma client
 
-            // only run prisma client generator for the logical schema
-            const prismaClientGeneratorName = this.getPrismaClientGeneratorName(this.model);
-            let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
+        // only run prisma client generator for the logical schema
+        const prismaClientGeneratorName = this.getPrismaClientGeneratorName(this.model);
+        let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
 
-            const prismaVersion = getPrismaVersion();
-            if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
-                // add --no-engine to reduce generation size if the prisma version supports
-                generateCmd += ' --no-engine';
-            }
-
-            try {
-                // run 'prisma generate'
-                await execPackage(generateCmd, { stdio: 'ignore' });
-            } catch {
-                await trackPrismaSchemaError(logicalPrismaFile);
-                try {
-                    // run 'prisma generate' again with output to the console
-                    await execPackage(generateCmd);
-                } catch {
-                    // noop
-                }
-                throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
-            }
-
-            // make a bunch of typing fixes to the generated prisma client
-            await this.processClientTypes(path.join(this.outDir, LOGICAL_CLIENT_GENERATION_PATH));
-
-            return {
-                prismaSchema: logicalPrismaFile,
-                // load the dmmf of the logical prisma schema
-                dmmf: await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) }),
-            };
-        } finally {
-            if (fs.existsSync(logicalPrismaFile)) {
-                fs.rmSync(logicalPrismaFile);
-            }
+        const prismaVersion = getPrismaVersion();
+        if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
+            // add --no-engine to reduce generation size if the prisma version supports
+            generateCmd += ' --no-engine';
         }
+
+        try {
+            // run 'prisma generate'
+            await execPackage(generateCmd, { stdio: 'ignore' });
+        } catch {
+            await trackPrismaSchemaError(logicalPrismaFile);
+            try {
+                // run 'prisma generate' again with output to the console
+                await execPackage(generateCmd);
+            } catch {
+                // noop
+            }
+            throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
+        }
+
+        // make a bunch of typing fixes to the generated prisma client
+        await this.processClientTypes(path.join(this.outDir, LOGICAL_CLIENT_GENERATION_PATH));
+
+        const dmmf = await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) });
+
+        if (fs.existsSync(logicalPrismaFile)) {
+            fs.rmSync(logicalPrismaFile);
+        }
+
+        return {
+            prismaSchema: logicalPrismaFile,
+            // load the dmmf of the logical prisma schema
+            dmmf,
+        };
     }
 
     private getPrismaClientGeneratorName(model: Model) {
@@ -287,12 +287,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         this.model.declarations
             .filter((d): d is DataModel => isDelegateModel(d))
             .forEach((dm) => {
-                delegateInfo.push([
-                    dm,
-                    this.model.declarations.filter(
-                        (d): d is DataModel => isDataModel(d) && d.superTypes.some((s) => s.ref === dm)
-                    ),
-                ]);
+                const concreteModels = this.model.declarations.filter(
+                    (d): d is DataModel => isDataModel(d) && d.superTypes.some((s) => s.ref === dm)
+                );
+                if (concreteModels.length > 0) {
+                    delegateInfo.push([dm, concreteModels]);
+                }
             });
 
         // transform index.d.ts and save it into a new file (better perf than in-line editing)
