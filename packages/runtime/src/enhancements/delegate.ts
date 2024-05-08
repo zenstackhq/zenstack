@@ -99,6 +99,12 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         }
 
         Object.entries(where).forEach(([field, value]) => {
+            if (['AND', 'OR', 'NOT'].includes(field)) {
+                // recurse into logical group
+                enumerate(value).forEach((item) => this.injectWhereHierarchy(model, item));
+                return;
+            }
+
             const fieldInfo = resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo?.inheritedFrom) {
                 return;
