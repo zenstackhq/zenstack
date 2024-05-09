@@ -78,10 +78,10 @@ export function isReferenceTarget(item: unknown): item is ReferenceTarget {
     return reflection.isInstance(item, ReferenceTarget);
 }
 
-export type RegularID = 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'view' | string;
+export type RegularID = 'Any' | 'BigInt' | 'Boolean' | 'Bytes' | 'DateTime' | 'Decimal' | 'Float' | 'Int' | 'Json' | 'Null' | 'Object' | 'String' | 'Unsupported' | 'abstract' | 'attribute' | 'datasource' | 'enum' | 'import' | 'in' | 'model' | 'plugin' | 'view' | string;
 
 export function isRegularID(item: unknown): item is RegularID {
-    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'view' || item === 'import' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
+    return item === 'model' || item === 'enum' || item === 'attribute' || item === 'datasource' || item === 'plugin' || item === 'abstract' || item === 'in' || item === 'view' || item === 'import' || item === 'String' || item === 'Boolean' || item === 'Int' || item === 'BigInt' || item === 'Float' || item === 'Decimal' || item === 'DateTime' || item === 'Json' || item === 'Bytes' || item === 'Null' || item === 'Object' || item === 'Any' || item === 'Unsupported' || (typeof item === 'string' && (/[_a-zA-Z][\w_]*/.test(item)));
 }
 
 export type TypeDeclaration = DataModel | Enum;

@@ -2701,6 +2701,58 @@ export const ZModelGrammar = (): Grammar => loadedZModelGrammar ?? (loadedZModel
           {
             "$type": "Keyword",
             "value": "import"
+          },
+          {
+            "$type": "Keyword",
+            "value": "String"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Boolean"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Int"
+          },
+          {
+            "$type": "Keyword",
+            "value": "BigInt"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Float"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Decimal"
+          },
+          {
+            "$type": "Keyword",
+            "value": "DateTime"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Json"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Bytes"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Null"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Object"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Any"
+          },
+          {
+            "$type": "Keyword",
+            "value": "Unsupported"
           }
         ]
       },

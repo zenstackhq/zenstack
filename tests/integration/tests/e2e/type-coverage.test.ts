@@ -13,14 +13,14 @@ describe('Type Coverage Tests', () => {
             model Foo {
                 id String @id @default(cuid())
                 
-                string String
-                int Int
-                bigInt BigInt
-                date DateTime
-                float Float
-                decimal Decimal
-                boolean Boolean
-                bytes Bytes
+                String String
+                Int Int
+                BigInt BigInt
+                DateTime DateTime
+                Float Float
+                Decimal Decimal
+                Boolean Boolean
+                Bytes Bytes
             
                 @@allow('all', true)
             }
@@ -41,14 +41,14 @@ describe('Type Coverage Tests', () => {
         const date = new Date();
         const data = {
             id: '1',
-            string: 'string',
-            int: 100,
-            bigInt: BigInt(9007199254740991),
-            date,
-            float: 1.23,
-            decimal: new Decimal(1.2345),
-            boolean: true,
-            bytes: Buffer.from('hello'),
+            String: 'string',
+            Int: 100,
+            BigInt: BigInt(9007199254740991),
+            DateTime: date,
+            Float: 1.23,
+            Decimal: new Decimal(1.2345),
+            Boolean: true,
+            Bytes: Buffer.from('hello'),
         };
 
         await db.foo.create({

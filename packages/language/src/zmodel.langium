@@ -224,7 +224,7 @@ FunctionParamType:
 // https://github.com/langium/langium/discussions/1012
 RegularID returns string:
     // include keywords that we'd like to work as ID in most places
-    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import';
+    ID | 'model' | 'enum' | 'attribute' | 'datasource' | 'plugin' | 'abstract' | 'in' | 'view' | 'import' | 'String' | 'Boolean' | 'Int' | 'BigInt' | 'Float' | 'Decimal' | 'DateTime' | 'Json' | 'Bytes' | 'Null' | 'Object' | 'Any' | 'Unsupported';
 
 // attribute
 Attribute:
