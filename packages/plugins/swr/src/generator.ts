@@ -1,5 +1,6 @@
 import {
     PluginOptions,
+    RUNTIME_PACKAGE,
     createProject,
     ensureEmptyDir,
     generateModelMeta,
@@ -8,11 +9,12 @@ import {
     resolvePath,
     saveProject,
 } from '@zenstackhq/sdk';
-import { DataModel, Model } from '@zenstackhq/sdk/ast';
+import { DataModel, DataModelFieldType, Model, isEnum } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
 import path from 'path';
 import type { OptionalKind, ParameterDeclarationStructure, Project, SourceFile } from 'ts-morph';
+import { P, match } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
 import { name } from '.';
 
@@ -66,6 +68,7 @@ function generateModelHooks(
     });
     sf.addStatements([
         `import { type GetNextArgs, type QueryOptions, type InfiniteQueryOptions, type MutationOptions, type PickEnumerable } from '@zenstackhq/swr/runtime';`,
+        `import type { PolicyCrudKind } from '${RUNTIME_PACKAGE}'`,
         `import metadata from './__model_meta';`,
         `import * as request from '@zenstackhq/swr/runtime';`,
     ]);
@@ -239,6 +242,11 @@ function generateModelHooks(
         const returnType = `T extends { select: any; } ? T['select'] extends true ? number : Prisma.GetScalarType<T['select'], Prisma.${modelNameCap}CountAggregateOutputType> : number`;
         generateQueryHook(sf, model, 'count', argsType, inputType, returnType);
     }
+
+    // extra `check` hook for ZenStack's permission checker API
+    {
+        generateCheckHook(sf, model, prismaImport);
+    }
 }
 
 function makeOptimistic(returnType: string) {
@@ -336,4 +344,48 @@ function generateMutation(
         ]);
 
     return funcName;
+}
+
+function generateCheckHook(sf: SourceFile, model: DataModel, prismaImport: string) {
+    const mapFilterType = (type: DataModelFieldType) => {
+        return match(type.type)
+            .with(P.union('Int', 'BigInt'), () => 'number')
+            .with('String', () => 'string')
+            .with('Boolean', () => 'boolean')
+            .otherwise(() => undefined);
+    };
+
+    const filterFields: Array<{ name: string; type: string }> = [];
+    const enumsToImport = new Set<string>();
+
+    // collect filterable fields and enums to import
+    model.fields.forEach((f) => {
+        if (isEnum(f.type.reference?.ref)) {
+            enumsToImport.add(f.type.reference.$refText);
+            filterFields.push({ name: f.name, type: f.type.reference.$refText });
+        }
+
+        const mappedType = mapFilterType(f.type);
+        if (mappedType) {
+            filterFields.push({ name: f.name, type: mappedType });
+        }
+    });
+
+    if (enumsToImport.size > 0) {
+        // import enums
+        sf.addStatements(`import type { ${Array.from(enumsToImport).join(', ')} } from '${prismaImport}';`);
+    }
+
+    const whereType = `{ ${filterFields.map(({ name, type }) => `${name}?: ${type}`).join('; ')} }`;
+
+    const func = sf.addFunction({
+        name: `useCheck${model.name}`,
+        isExported: true,
+        parameters: [
+            { name: 'args', type: `{ operation: PolicyCrudKind; where?: ${whereType}; }` },
+            { name: 'options?', type: `QueryOptions<boolean>` },
+        ],
+    });
+
+    func.addStatements(`return request.useModelQuery('${model.name}', 'check', args, options);`);
 }
