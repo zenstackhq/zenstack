@@ -13,7 +13,7 @@ export type PackageManagers = 'npm' | 'yarn' | 'pnpm';
  * @export
  * @template e A type parameter that extends boolean
  */
-export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined
+export type FindUp<e extends boolean> = e extends true ? string[] | undefined : string | undefined;
 /**
  * Find and return file paths by searching parent directories based on the given names list and current working directory (cwd) path.
  * Optionally return a single path or multiple paths.
@@ -28,7 +28,12 @@ export type FindUp<e extends boolean> = e extends true ? string[] | undefined : 
  * @param [result=[]] An array of strings representing the accumulated results used in multiple results
  * @returns Path(s) to a specific file or folder within the directory or parent directories
  */
-export function findUp<e extends boolean = false>(names: string[], cwd: string = process.cwd(), multiple: e = false as e, result: string[] = []): FindUp<e> {
+export function findUp<e extends boolean = false>(
+    names: string[],
+    cwd: string = process.cwd(),
+    multiple: e = false as e,
+    result: string[] = []
+): FindUp<e> {
     if (!names.some((name) => !!name)) return undefined;
     const target = names.find((name) => fs.existsSync(path.join(cwd, name)));
     if (multiple == false && target) return path.join(cwd, target) as FindUp<e>;
@@ -37,7 +42,6 @@ export function findUp<e extends boolean = false>(names: string[], cwd: string =
     if (up === cwd) return (multiple && result.length > 0 ? result : undefined) as FindUp<e>; // it'll fail anyway
     return findUp(names, up, multiple, result);
 }
-
 
 /**
  * Find a Node module/file given its name in a specific directory, with a fallback to the current working directory.
@@ -54,11 +58,11 @@ export function findNodeModulesFile(name: string, cwd: string = process.cwd()) {
     if (!name) return undefined;
     try {
         // Use require.resolve to find the module/file. The paths option allows specifying the directory to start from.
-        const resolvedPath = require.resolve(name, { paths: [cwd] })
-        return resolvedPath
+        const resolvedPath = require.resolve(name, { paths: [cwd] });
+        return resolvedPath;
     } catch (error) {
         // If require.resolve fails to find the module/file, it will throw an error.
-        return undefined
+        return undefined;
     }
 }
 
@@ -86,7 +90,7 @@ export function installPackage(
     projectPath = '.',
     exactVersion = true
 ) {
-    const manager = pkgManager ?? getPackageManager(projectPath);
+    const manager = pkgManager ?? getPackageManager(projectPath).packageManager;
     console.log(`Installing package "${pkg}@${tag}" with ${manager}`);
     switch (manager) {
         case 'yarn':
