@@ -280,3 +280,36 @@ export function findUpAst(node: AstNode, predicate: (node: AstNode) => boolean):
     }
     return undefined;
 }
+
+/**
+ * Gets all data models from all loaded documents
+ */
+export function getAllLoadedDataModels(langiumDocuments: LangiumDocuments) {
+    return langiumDocuments.all
+        .map((doc) => doc.parseResult.value as Model)
+        .flatMap((model) => model.declarations.filter(isDataModel))
+        .toArray();
+}
+
+/**
+ * Gets all data models from loaded and reachable documents
+ */
+export function getAllLoadedAndReachableDataModels(langiumDocuments: LangiumDocuments, fromModel?: DataModel) {
+    // get all data models from loaded documents
+    const allDataModels = getAllLoadedDataModels(langiumDocuments);
+
+    if (fromModel) {
+        // merge data models transitively reached from the current model
+        const model = getContainerOfType(fromModel, isModel);
+        if (model) {
+            const transitiveDataModels = getAllDataModelsIncludingImports(langiumDocuments, model);
+            transitiveDataModels.forEach((dm) => {
+                if (!allDataModels.includes(dm)) {
+                    allDataModels.push(dm);
+                }
+            });
+        }
+    }
+
+    return allDataModels;
+}

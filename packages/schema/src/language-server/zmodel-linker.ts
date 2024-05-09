@@ -35,13 +35,7 @@ import {
     isReferenceExpr,
     isStringLiteral,
 } from '@zenstackhq/language/ast';
-import {
-    getAuthModel,
-    getContainingModel,
-    getModelFieldsWithBases,
-    isAuthInvocation,
-    isFutureExpr,
-} from '@zenstackhq/sdk';
+import { getAuthModel, getModelFieldsWithBases, isAuthInvocation, isFutureExpr } from '@zenstackhq/sdk';
 import {
     AstNode,
     AstNodeDescription,
@@ -52,13 +46,14 @@ import {
     LangiumServices,
     LinkingError,
     Reference,
+    getContainerOfType,
     interruptAndCheck,
     isReference,
     streamContents,
 } from 'langium';
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
-import { getAllDataModelsIncludingImports, getContainingDataModel } from '../utils/ast-utils';
+import { getAllLoadedAndReachableDataModels, getContainingDataModel } from '../utils/ast-utils';
 import { mapBuiltinTypeToExpressionType } from './validator/utils';
 
 interface DefaultReference extends Reference {
@@ -283,15 +278,17 @@ export class ZModelLinker extends DefaultLinker {
             // eslint-disable-next-line @typescript-eslint/ban-types
             const funcDecl = node.function.ref as FunctionDecl;
             if (isAuthInvocation(node)) {
-                // auth() function is resolved to User model in the current document
-                const model = getContainingModel(node);
+                // auth() function is resolved against all loaded and reachable documents
 
-                if (model) {
-                    const allDataModels = getAllDataModelsIncludingImports(this.langiumDocuments(), model);
-                    const authModel = getAuthModel(allDataModels);
-                    if (authModel) {
-                        node.$resolvedType = { decl: authModel, nullable: true };
-                    }
+                // get all data models from loaded and reachable documents
+                const allDataModels = getAllLoadedAndReachableDataModels(
+                    this.langiumDocuments(),
+                    getContainerOfType(node, isDataModel)
+                );
+
+                const authModel = getAuthModel(allDataModels);
+                if (authModel) {
+                    node.$resolvedType = { decl: authModel, nullable: true };
                 }
             } else if (isFutureExpr(node)) {
                 // future() function is resolved to current model
