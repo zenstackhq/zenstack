@@ -144,7 +144,7 @@ export function makeFieldSchema(field: DataModelField) {
         // field uses `auth()` in `@default()`, this was transformed into a pseudo default
         // value, while compiling to zod we should turn it into an optional field instead
         // of `.default()`
-        schema += '.nullish()';
+        schema += '.optional()';
     } else {
         const schemaDefault = getFieldSchemaDefault(field);
         if (schemaDefault !== undefined) {
@@ -152,7 +152,7 @@ export function makeFieldSchema(field: DataModelField) {
         }
 
         if (field.type.optional) {
-            schema += '.nullish()';
+            schema += '.optional()';
         }
     }
 
