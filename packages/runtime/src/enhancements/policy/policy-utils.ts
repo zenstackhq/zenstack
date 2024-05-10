@@ -653,6 +653,10 @@ export class PolicyUtil extends QueryUtils {
         const hoistedConditions: any[] = [];
 
         for (const field of getModelFields(injectTarget)) {
+            if (injectTarget[field] === false) {
+                continue;
+            }
+
             const fieldInfo = resolveField(this.modelMeta, model, field);
             if (!fieldInfo || !fieldInfo.isDataModel) {
                 // only care about relation fields
