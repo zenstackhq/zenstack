@@ -1051,7 +1051,7 @@ describe('Attribute tests', () => {
                 @@allow('all', auth() != null)
             }
         `)
-        ).toContain(`auth() cannot be resolved because no model marked wth "@@auth()" or named "User" is found`);
+        ).toContain(`auth() cannot be resolved because no model marked with "@@auth()" or named "User" is found`);
 
         await loadModel(`
             ${prelude}
