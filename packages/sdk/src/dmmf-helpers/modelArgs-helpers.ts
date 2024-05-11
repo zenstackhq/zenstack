@@ -1,14 +1,17 @@
 import type { DMMF } from '../prisma';
 import { checkModelHasModelRelation } from './model-helpers';
 
-export function addMissingInputObjectTypesForModelArgs(inputObjectTypes: DMMF.InputType[], models: DMMF.Model[]) {
+export function addMissingInputObjectTypesForModelArgs(
+    inputObjectTypes: DMMF.InputType[],
+    models: readonly DMMF.Model[]
+) {
     const modelArgsInputObjectTypes = generateModelArgsInputObjectTypes(models);
 
     for (const modelArgsInputObjectType of modelArgsInputObjectTypes) {
         inputObjectTypes.push(modelArgsInputObjectType);
     }
 }
-function generateModelArgsInputObjectTypes(models: DMMF.Model[]) {
+function generateModelArgsInputObjectTypes(models: readonly DMMF.Model[]) {
     const modelArgsInputObjectTypes: DMMF.InputType[] = [];
     for (const model of models) {
         const { name: modelName } = model;

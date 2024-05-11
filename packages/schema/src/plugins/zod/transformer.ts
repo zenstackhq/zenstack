@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { indentString, type PluginOptions } from '@zenstackhq/sdk';
+import { indentString, supportCreateMany, type PluginOptions } from '@zenstackhq/sdk';
+import type { Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
 import { type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
@@ -11,12 +12,12 @@ import { AggregateOperationSupport, TransformerParams } from './types';
 export default class Transformer {
     name: string;
     originalName: string;
-    fields: PrismaDMMF.SchemaArg[];
+    fields: readonly PrismaDMMF.SchemaArg[];
     schemaImports = new Set<string>();
-    models: PrismaDMMF.Model[];
+    models: readonly PrismaDMMF.Model[];
     modelOperations: PrismaDMMF.ModelMapping[];
     aggregateOperationSupport: AggregateOperationSupport;
-    enumTypes: PrismaDMMF.SchemaEnum[];
+    enumTypes: readonly PrismaDMMF.SchemaEnum[];
 
     static enumNames: string[] = [];
     static rawOpsMap: { [name: string]: string } = {};
@@ -389,7 +390,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return wrapped;
     }
 
-    async generateInputSchemas(options: PluginOptions) {
+    async generateInputSchemas(options: PluginOptions, zmodel: Model) {
         const globalExports: string[] = [];
 
         // whether Prisma's Unchecked* series of input types should be generated
@@ -489,7 +490,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 operations.push(['create', origModelName]);
             }
 
-            if (createMany) {
+            if (createMany && supportCreateMany(zmodel)) {
                 imports.push(
                     `import { ${modelName}CreateManyInputObjectSchema } from '../objects/${modelName}CreateManyInput.schema'`
                 );

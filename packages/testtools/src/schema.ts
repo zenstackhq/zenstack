@@ -97,6 +97,7 @@ datasource db {
 
 generator js {
     provider = 'prisma-client-js'
+    ${options.previewFeatures ? `previewFeatures = ${JSON.stringify(options.previewFeatures)}` : ''}
 }
 
 plugin enhancer {
@@ -133,6 +134,7 @@ export type SchemaLoadOptions = {
     projectDir?: string;
     preserveTsFiles?: boolean;
     generatePermissionChecker?: boolean;
+    previewFeatures?: string[];
 };
 
 const defaultOptions: SchemaLoadOptions = {

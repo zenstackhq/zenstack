@@ -56,7 +56,7 @@ export class EnhancerGenerator {
         private readonly outDir: string
     ) {}
 
-    async generate() {
+    async generate(): Promise<{ dmmf: DMMF.Document | undefined }> {
         let logicalPrismaClientDir: string | undefined;
         let dmmf: DMMF.Document | undefined;
 
