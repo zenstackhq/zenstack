@@ -504,17 +504,24 @@ export function getDataModelFieldReference(expr: Expression): DataModelField | u
     }
 }
 
-export function getModelFieldsWithBases(model: DataModel) {
-    return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
+export function getModelFieldsWithBases(model: DataModel, includeDelegate = true) {
+    if (model.$baseMerged) {
+        return model.fields;
+    } else {
+        return [...model.fields, ...getRecursiveBases(model, includeDelegate).flatMap((base) => base.fields)];
+    }
 }
 
-export function getRecursiveBases(dataModel: DataModel): DataModel[] {
+export function getRecursiveBases(dataModel: DataModel, includeDelegate = true): DataModel[] {
     const result: DataModel[] = [];
     dataModel.superTypes.forEach((superType) => {
         const baseDecl = superType.ref;
         if (baseDecl) {
+            if (!includeDelegate && isDelegateModel(baseDecl)) {
+                return;
+            }
             result.push(baseDecl);
-            result.push(...getRecursiveBases(baseDecl));
+            result.push(...getRecursiveBases(baseDecl, includeDelegate));
         }
     });
     return result;
