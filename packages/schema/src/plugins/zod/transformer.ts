@@ -27,6 +27,7 @@ export default class Transformer {
     private project: Project;
     private inputObjectTypes: PrismaDMMF.InputType[];
     public sourceFiles: SourceFile[] = [];
+    private zmodel: Model;
 
     constructor(params: TransformerParams) {
         this.originalName = params.name ?? '';
@@ -38,6 +39,7 @@ export default class Transformer {
         this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
         this.inputObjectTypes = params.inputObjectTypes;
+        this.zmodel = params.zmodel;
     }
 
     static setOutputPath(outPath: string) {
@@ -116,6 +118,10 @@ export default class Transformer {
 
         let alternatives = lines.reduce<string[]>((result, inputType) => {
             if (!generateUnchecked && typeof inputType.type === 'string' && inputType.type.includes('Unchecked')) {
+                return result;
+            }
+
+            if (inputType.type.includes('CreateMany') && !supportCreateMany(this.zmodel)) {
                 return result;
             }
 
