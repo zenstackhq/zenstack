@@ -10,6 +10,7 @@ import {
     isFromStdlib,
     parseOptionAsStrings,
     resolvePath,
+    supportCreateMany,
 } from '@zenstackhq/sdk';
 import { DataModel, EnumField, Model, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
@@ -106,6 +107,7 @@ export class ZodSchemaGenerator {
                 aggregateOperationSupport,
                 project: this.project,
                 inputObjectTypes,
+                zmodel: this.model,
             });
             await transformer.generateInputSchemas(this.options, this.model);
             this.sourceFiles.push(...transformer.sourceFiles);
@@ -200,6 +202,7 @@ export class ZodSchemaGenerator {
             enumTypes,
             project: this.project,
             inputObjectTypes: [],
+            zmodel: this.model,
         });
         await transformer.generateEnumSchemas();
         this.sourceFiles.push(...transformer.sourceFiles);
@@ -213,14 +216,21 @@ export class ZodSchemaGenerator {
         for (let i = 0; i < inputObjectTypes.length; i += 1) {
             const fields = inputObjectTypes[i]?.fields;
             const name = inputObjectTypes[i]?.name;
+
             if (!generateUnchecked && name.includes('Unchecked')) {
                 continue;
             }
+
+            if (name.includes('CreateMany') && !supportCreateMany(this.model)) {
+                continue;
+            }
+
             const transformer = new Transformer({
                 name,
                 fields,
                 project: this.project,
                 inputObjectTypes,
+                zmodel: this.model,
             });
             const moduleName = transformer.generateObjectSchema(generateUnchecked, this.options);
             moduleNames.push(moduleName);
