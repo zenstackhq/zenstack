@@ -327,7 +327,7 @@ export const getProcedureTypeByOpName = (opName: string) => {
     return procType;
 };
 
-export function resolveModelsComments(models: DMMF.Model[], hiddenModels: string[]) {
+export function resolveModelsComments(models: readonly DMMF.Model[], hiddenModels: string[]) {
     const modelAttributeRegex = /(@@Gen\.)+([A-z])+(\()+(.+)+(\))+/;
     const attributeNameRegex = /(?:\.)+([A-Za-z])+(?:\()+/;
     const attributeArgsRegex = /(?:\()+([A-Za-z])+:+(.+)+(?:\))+/;

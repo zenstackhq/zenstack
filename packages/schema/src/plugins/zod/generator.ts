@@ -107,7 +107,7 @@ export class ZodSchemaGenerator {
                 project: this.project,
                 inputObjectTypes,
             });
-            await transformer.generateInputSchemas(this.options);
+            await transformer.generateInputSchemas(this.options, this.model);
             this.sourceFiles.push(...transformer.sourceFiles);
         }
 
@@ -189,7 +189,10 @@ export class ZodSchemaGenerator {
         );
     }
 
-    private async generateEnumSchemas(prismaSchemaEnum: DMMF.SchemaEnum[], modelSchemaEnum: DMMF.SchemaEnum[]) {
+    private async generateEnumSchemas(
+        prismaSchemaEnum: readonly DMMF.SchemaEnum[],
+        modelSchemaEnum: readonly DMMF.SchemaEnum[]
+    ) {
         const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
         const enumNames = enumTypes.map((enumItem) => upperCaseFirst(enumItem.name));
         Transformer.enumNames = enumNames ?? [];

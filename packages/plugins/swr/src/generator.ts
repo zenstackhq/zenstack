@@ -8,6 +8,7 @@ import {
     requireOption,
     resolvePath,
     saveProject,
+    supportCreateMany,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelFieldType, Model, isEnum } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
@@ -85,7 +86,7 @@ function generateModelHooks(
     }
 
     // createMany
-    if (mapping.createMany) {
+    if (mapping.createMany && supportCreateMany(model.$container)) {
         const argsType = `Prisma.${model.name}CreateManyArgs`;
         mutationFuncs.push(generateMutation(sf, model, 'POST', 'createMany', argsType, true));
     }

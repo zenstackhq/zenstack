@@ -982,6 +982,11 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private doInjectReadCheckSelect(model: string, args: any, input: any) {
+        // omit should be ignored to avoid interfering with field selection
+        if (args.omit) {
+            delete args.omit;
+        }
+
         if (!input?.select) {
             return;
         }
@@ -1175,6 +1180,12 @@ export class PolicyUtil extends QueryUtils {
                 const fieldInfo = resolveField(this.modelMeta, model, field);
                 if (!fieldInfo) {
                     // could be _count, etc.
+                    continue;
+                }
+
+                if (queryArgs?.omit?.[field] === true) {
+                    // respect `{ omit: { [field]: true } }`
+                    delete entityData[field];
                     continue;
                 }
 

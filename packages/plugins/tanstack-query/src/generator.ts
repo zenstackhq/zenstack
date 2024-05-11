@@ -9,6 +9,7 @@ import {
     requireOption,
     resolvePath,
     saveProject,
+    supportCreateMany,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelFieldType, Model, isEnum } from '@zenstackhq/sdk/ast';
 import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
@@ -348,7 +349,7 @@ function generateModelHooks(
     }
 
     // createMany
-    if (mapping.createMany) {
+    if (mapping.createMany && supportCreateMany(model.$container)) {
         generateMutationHook(target, sf, model.name, 'createMany', 'post', false, 'Prisma.BatchPayload');
     }
 

@@ -4,7 +4,7 @@ import { checkIsModelRelationField, checkModelHasManyModelRelation } from './mod
 export function addMissingInputObjectTypesForSelect(
     inputObjectTypes: DMMF.InputType[],
     outputObjectTypes: DMMF.OutputType[],
-    models: DMMF.Model[]
+    models: readonly DMMF.Model[]
 ) {
     // generate input object types necessary to support ModelSelect._count
     const modelCountOutputTypes = getModelCountOutputTypes(outputObjectTypes);
@@ -89,7 +89,7 @@ function generateModelCountOutputTypeArgsInputObjectTypes(modelCountOutputTypes:
     return modelCountOutputTypeArgsInputObjectTypes;
 }
 
-function generateModelSelectInputObjectTypes(models: DMMF.Model[]) {
+function generateModelSelectInputObjectTypes(models: readonly DMMF.Model[]) {
     const modelSelectInputObjectTypes: DMMF.InputType[] = [];
     for (const model of models) {
         const { name: modelName, fields: modelFields } = model;
@@ -97,16 +97,9 @@ function generateModelSelectInputObjectTypes(models: DMMF.Model[]) {
 
         for (const modelField of modelFields) {
             const { name: modelFieldName, isList, type } = modelField;
+            const inputTypes = [{ isList: false, type: 'Boolean', location: 'scalar' }];
 
             const isRelationField = checkIsModelRelationField(modelField);
-
-            const field: DMMF.SchemaArg = {
-                name: modelFieldName,
-                isRequired: false,
-                isNullable: false,
-                inputTypes: [{ isList: false, type: 'Boolean', location: 'scalar' }],
-            };
-
             if (isRelationField) {
                 const schemaArgInputType: DMMF.InputTypeRef = {
                     isList: false,
@@ -114,9 +107,15 @@ function generateModelSelectInputObjectTypes(models: DMMF.Model[]) {
                     location: 'inputObjectTypes',
                     namespace: 'prisma',
                 };
-                field.inputTypes.push(schemaArgInputType);
+                inputTypes.push(schemaArgInputType);
             }
 
+            const field: DMMF.SchemaArg = {
+                name: modelFieldName,
+                isRequired: false,
+                isNullable: false,
+                inputTypes: inputTypes as DMMF.InputTypeRef[],
+            };
             fields.push(field);
         }
 

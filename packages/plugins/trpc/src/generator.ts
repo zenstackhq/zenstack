@@ -7,6 +7,7 @@ import {
     requireOption,
     resolvePath,
     saveProject,
+    supportCreateMany,
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
@@ -79,11 +80,11 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
 function createAppRouter(
     outDir: string,
-    modelOperations: DMMF.ModelMapping[],
+    modelOperations: readonly DMMF.ModelMapping[],
     hiddenModels: string[],
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    _zmodel: Model,
+    zmodel: Model,
     zodSchemasImport: string,
     options: PluginOptions
 ) {
@@ -171,7 +172,8 @@ function createAppRouter(
                         generateModelActions,
                         generateClientHelpers,
                         zodSchemasImport,
-                        options
+                        options,
+                        zmodel
                     );
 
                     appRouter.addImportDeclaration({
@@ -241,7 +243,8 @@ function generateModelCreateRouter(
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
     zodSchemasImport: string,
-    options: PluginOptions
+    options: PluginOptions,
+    zmodel: Model
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -298,6 +301,10 @@ function generateModelCreateRouter(
                     inputType &&
                     (!generateModelActions || generateModelActions.includes(generateOpName))
                 ) {
+                    if (generateOpName === 'createMany' && !supportCreateMany(zmodel)) {
+                        continue;
+                    }
+
                     generateProcedure(funcWriter, generateOpName, upperCaseFirst(inputType), model, baseOpType);
 
                     if (routerTypingStructure) {

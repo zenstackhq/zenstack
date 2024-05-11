@@ -1,7 +1,10 @@
 import type { DMMF } from '../prisma';
 import { checkIsModelRelationField, checkModelHasManyModelRelation, checkModelHasModelRelation } from './model-helpers';
 
-export function addMissingInputObjectTypesForInclude(inputObjectTypes: DMMF.InputType[], models: DMMF.Model[]) {
+export function addMissingInputObjectTypesForInclude(
+    inputObjectTypes: DMMF.InputType[],
+    models: readonly DMMF.Model[]
+) {
     // generate input object types necessary to support ModelInclude with relation support
     const generatedIncludeInputObjectTypes = generateModelIncludeInputObjectTypes(models);
 
@@ -9,7 +12,7 @@ export function addMissingInputObjectTypesForInclude(inputObjectTypes: DMMF.Inpu
         inputObjectTypes.push(includeInputObjectType);
     }
 }
-function generateModelIncludeInputObjectTypes(models: DMMF.Model[]) {
+function generateModelIncludeInputObjectTypes(models: readonly DMMF.Model[]) {
     const modelIncludeInputObjectTypes: DMMF.InputType[] = [];
     for (const model of models) {
         const { name: modelName, fields: modelFields } = model;

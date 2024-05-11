@@ -17,6 +17,7 @@ import {
     isConfigArrayExpr,
     isDataModel,
     isDataModelField,
+    isDataSource,
     isEnumField,
     isExpression,
     isGeneratorDecl,
@@ -32,7 +33,9 @@ import {
 } from '@zenstackhq/language/ast';
 import fs from 'node:fs';
 import path from 'path';
+import semver from 'semver';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
+import { getPrismaVersion } from './prisma';
 import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
 
 /**
@@ -367,7 +370,7 @@ export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaP
 export function requireOption<T>(options: PluginDeclaredOptions, name: string, pluginName: string): T {
     const value = options[name];
     if (value === undefined) {
-        throw new PluginError(pluginName, `Plugin "${options.name}" is missing required option: ${name}`);
+        throw new PluginError(pluginName, `required option "${name}" is not provided`);
     }
     return value as T;
 }
@@ -530,4 +533,29 @@ export function ensureEmptyDir(dir: string) {
     } else {
         throw new Error(`Path "${dir}" already exists and is not a directory`);
     }
+}
+
+/**
+ * Gets the data source provider from the given model.
+ */
+export function getDataSourceProvider(model: Model) {
+    const dataSource = model.declarations.find(isDataSource);
+    if (!dataSource) {
+        return undefined;
+    }
+    const provider = dataSource?.fields.find((f) => f.name === 'provider');
+    if (!provider) {
+        return undefined;
+    }
+    return getLiteral<string>(provider.value);
+}
+
+/**
+ * Returns if the given model supports `createMany` operation.
+ */
+export function supportCreateMany(model: Model) {
+    // `createMany` is supported for sqlite since Prisma 5.12.0
+    const prismaVersion = getPrismaVersion();
+    const dsProvider = getDataSourceProvider(model);
+    return dsProvider !== 'sqlite' || (prismaVersion && semver.gte(prismaVersion, '5.12.0'));
 }
