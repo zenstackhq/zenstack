@@ -361,6 +361,11 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             const containingModel = field.$container as DataModel;
             const uniqueFieldList = getUniqueFields(containingModel);
 
+            // field is defined in the abstract base model
+            if (containingModel !== contextModel) {
+                uniqueFieldList.push(...getUniqueFields(contextModel));
+            }
+
             thisRelation.fields?.forEach((ref) => {
                 const refField = ref.target.ref as DataModelField;
                 if (refField) {
@@ -372,7 +377,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     }
                     accept(
                         'error',
-                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
+                        `Field "${refField.name}" of Model "${containingModel.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
                         { node: refField }
                     );
                 }
