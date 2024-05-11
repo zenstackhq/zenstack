@@ -377,7 +377,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     }
                     accept(
                         'error',
-                        `Field "${refField.name}" of Model "${containingModel.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
+                        `Field "${refField.name}" on model "${containingModel.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
                         { node: refField }
                     );
                 }

@@ -521,7 +521,7 @@ describe('Data Model Validation Tests', () => {
         `)
         ).toMatchObject(
             errorLike(
-                `Field "aId" of Model "B" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
+                `Field "aId" on model "B" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
             )
         );
 
