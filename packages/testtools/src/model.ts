@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as tmp from 'tmp';
 import { URI } from 'vscode-uri';
 import { createZModelServices } from 'zenstack/language-server/zmodel-module';
-import { mergeBaseModel } from 'zenstack/utils/ast-utils';
+import { mergeBaseModels } from 'zenstack/utils/ast-utils';
 
 tmp.setGracefulCleanup();
 
@@ -53,7 +53,7 @@ export async function loadModel(content: string, validate = true, verbose = true
 
     const model = (await doc.parseResult.value) as Model;
 
-    mergeBaseModel(model, ZModel.references.Linker);
+    mergeBaseModels(model, ZModel.references.Linker);
 
     return model;
 }

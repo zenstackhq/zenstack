@@ -15,7 +15,7 @@ describe('RPC API Handler Tests', () => {
     let zodSchemas: any;
 
     beforeAll(async () => {
-        const params = await loadSchema(schema, { fullZod: true });
+        const params = await loadSchema(schema, { fullZod: true, generatePermissionChecker: true });
         prisma = params.prisma;
         enhance = params.enhance;
         modelMeta = params.modelMeta;
@@ -129,6 +129,37 @@ describe('RPC API Handler Tests', () => {
         });
         expect(r.status).toBe(200);
         expect(r.data.count).toBe(1);
+    });
+
+    it('check', async () => {
+        const handleRequest = makeHandler();
+
+        let r = await handleRequest({
+            method: 'get',
+            path: '/post/check',
+            query: { q: JSON.stringify({ operation: 'read' }) },
+            prisma: enhance(),
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toEqual(true);
+
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/check',
+            query: { q: JSON.stringify({ operation: 'read', where: { published: false } }) },
+            prisma: enhance(),
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toEqual(false);
+
+        r = await handleRequest({
+            method: 'get',
+            path: '/post/check',
+            query: { q: JSON.stringify({ operation: 'read', where: { authorId: '1', published: false } }) },
+            prisma: enhance({ id: '1' }),
+        });
+        expect(r.status).toBe(200);
+        expect(r.data).toEqual(true);
     });
 
     it('policy violation', async () => {

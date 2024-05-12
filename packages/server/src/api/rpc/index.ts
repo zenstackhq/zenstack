@@ -81,6 +81,7 @@ class RequestHandler extends APIHandlerBase {
             case 'aggregate':
             case 'groupBy':
             case 'count':
+            case 'check':
                 if (method !== 'GET') {
                     return {
                         status: 400,

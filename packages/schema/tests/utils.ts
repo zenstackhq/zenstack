@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as tmp from 'tmp';
 import { URI } from 'vscode-uri';
 import { createZModelServices } from '../src/language-server/zmodel-module';
-import { mergeBaseModel } from '../src/utils/ast-utils';
+import { mergeBaseModels } from '../src/utils/ast-utils';
 
 tmp.setGracefulCleanup();
 
@@ -68,7 +68,7 @@ export async function loadModel(content: string, validate = true, verbose = true
     const model = (await doc.parseResult.value) as Model;
 
     if (mergeBase) {
-        mergeBaseModel(model, ZModel.references.Linker);
+        mergeBaseModels(model, ZModel.references.Linker);
     }
 
     return model;
@@ -87,13 +87,13 @@ export async function loadModelWithError(content: string, verbose = false) {
 }
 
 export async function safelyLoadModel(content: string, validate = true, verbose = false) {
-    const [ result ] = await Promise.allSettled([ loadModel(content, validate, verbose) ]);
+    const [result] = await Promise.allSettled([loadModel(content, validate, verbose)]);
 
-    return result
+    return result;
 }
 
 export const errorLike = (msg: string) => ({
     reason: {
-        message: expect.stringContaining(msg)
+        message: expect.stringContaining(msg),
     },
-})
+});

@@ -32,7 +32,7 @@ import {
 import { match } from 'ts-pattern';
 import { CancellationToken } from 'vscode-jsonrpc';
 import {
-    getAllDataModelsIncludingImports,
+    getAllLoadedAndReachableDataModels,
     isCollectionPredicate,
     isFutureInvocation,
     resolveImportUri,
@@ -219,18 +219,18 @@ export class ZModelScopeProvider extends DefaultScopeProvider {
     }
 
     private createScopeForAuthModel(node: AstNode, globalScope: Scope) {
-        const model = getContainerOfType(node, isModel);
-        if (model) {
-            const allDataModels = getAllDataModelsIncludingImports(
-                this.services.shared.workspace.LangiumDocuments,
-                model
-            );
-            const authModel = getAuthModel(allDataModels);
-            if (authModel) {
-                return this.createScopeForModel(authModel, globalScope);
-            }
+        // get all data models from loaded and reachable documents
+        const allDataModels = getAllLoadedAndReachableDataModels(
+            this.services.shared.workspace.LangiumDocuments,
+            getContainerOfType(node, isDataModel)
+        );
+
+        const authModel = getAuthModel(allDataModels);
+        if (authModel) {
+            return this.createScopeForModel(authModel, globalScope);
+        } else {
+            return EMPTY_SCOPE;
         }
-        return EMPTY_SCOPE;
     }
 }
 

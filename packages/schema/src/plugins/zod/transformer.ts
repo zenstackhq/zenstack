@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { indentString, type PluginOptions } from '@zenstackhq/sdk';
+import type { Model } from '@zenstackhq/sdk/ast';
 import { checkModelHasModelRelation, findModelByName, isAggregateInputType } from '@zenstackhq/sdk/dmmf-helpers';
-import { type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
+import { supportCreateMany, type DMMF as PrismaDMMF } from '@zenstackhq/sdk/prisma';
 import path from 'path';
 import type { Project, SourceFile } from 'ts-morph';
 import { upperCaseFirst } from 'upper-case-first';
@@ -11,12 +12,12 @@ import { AggregateOperationSupport, TransformerParams } from './types';
 export default class Transformer {
     name: string;
     originalName: string;
-    fields: PrismaDMMF.SchemaArg[];
+    fields: readonly PrismaDMMF.SchemaArg[];
     schemaImports = new Set<string>();
-    models: PrismaDMMF.Model[];
+    models: readonly PrismaDMMF.Model[];
     modelOperations: PrismaDMMF.ModelMapping[];
     aggregateOperationSupport: AggregateOperationSupport;
-    enumTypes: PrismaDMMF.SchemaEnum[];
+    enumTypes: readonly PrismaDMMF.SchemaEnum[];
 
     static enumNames: string[] = [];
     static rawOpsMap: { [name: string]: string } = {};
@@ -26,6 +27,7 @@ export default class Transformer {
     private project: Project;
     private inputObjectTypes: PrismaDMMF.InputType[];
     public sourceFiles: SourceFile[] = [];
+    private zmodel: Model;
 
     constructor(params: TransformerParams) {
         this.originalName = params.name ?? '';
@@ -37,6 +39,7 @@ export default class Transformer {
         this.enumTypes = params.enumTypes ?? [];
         this.project = params.project;
         this.inputObjectTypes = params.inputObjectTypes;
+        this.zmodel = params.zmodel;
     }
 
     static setOutputPath(outPath: string) {
@@ -115,6 +118,10 @@ export default class Transformer {
 
         let alternatives = lines.reduce<string[]>((result, inputType) => {
             if (!generateUnchecked && typeof inputType.type === 'string' && inputType.type.includes('Unchecked')) {
+                return result;
+            }
+
+            if (inputType.type.includes('CreateMany') && !supportCreateMany(this.zmodel)) {
                 return result;
             }
 
@@ -389,7 +396,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
         return wrapped;
     }
 
-    async generateInputSchemas(options: PluginOptions) {
+    async generateInputSchemas(options: PluginOptions, zmodel: Model) {
         const globalExports: string[] = [];
 
         // whether Prisma's Unchecked* series of input types should be generated
@@ -489,7 +496,7 @@ export const ${this.name}ObjectSchema: SchemaType = ${schema} as SchemaType;`;
                 operations.push(['create', origModelName]);
             }
 
-            if (createMany) {
+            if (createMany && supportCreateMany(zmodel)) {
                 imports.push(
                     `import { ${modelName}CreateManyInputObjectSchema } from '../objects/${modelName}CreateManyInput.schema'`
                 );

@@ -1,6 +1,7 @@
 /* eslint-disable */
 import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from ".";
-import * as $Schema from '@zenstackhq/runtime/zod/input';
+import * as _Schema from '@zenstackhq/runtime/zod/input';
+const $Schema: typeof _Schema = (_Schema as any).default ?? _Schema;
 import { checkRead, checkMutate } from '../helper';
 import type { Prisma } from '@prisma/client';
 import type { UseTRPCMutationOptions, UseTRPCMutationResult, UseTRPCQueryOptions, UseTRPCQueryResult, UseTRPCInfiniteQueryOptions, UseTRPCInfiniteQueryResult } from '@trpc/react-query/shared';
@@ -11,6 +12,8 @@ export default function createRouter<Config extends BaseConfig>(router: RouterFa
     return router({
 
         aggregate: procedure.input($Schema.UserInputSchema.aggregate).query(({ ctx, input }) => checkRead(db(ctx).user.aggregate(input as any))),
+
+        createMany: procedure.input($Schema.UserInputSchema.createMany).mutation(async ({ ctx, input }) => checkMutate(db(ctx).user.createMany(input as any))),
 
         create: procedure.input($Schema.UserInputSchema.create).mutation(async ({ ctx, input }) => checkMutate(db(ctx).user.create(input as any))),
 
@@ -59,6 +62,20 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             Prisma.GetUserAggregateType<T>,
             TRPCClientErrorLike<AppRouter>
         >;
+
+    };
+    createMany: {
+
+        useMutation: <T extends Prisma.UserCreateManyArgs>(opts?: UseTRPCMutationOptions<
+            Prisma.UserCreateManyArgs,
+            TRPCClientErrorLike<AppRouter>,
+            Prisma.BatchPayload,
+            Context
+        >,) =>
+            Omit<UseTRPCMutationResult<Prisma.BatchPayload, TRPCClientErrorLike<AppRouter>, Prisma.SelectSubset<T, Prisma.UserCreateManyArgs>, Context>, 'mutateAsync'> & {
+                mutateAsync:
+                <T extends Prisma.UserCreateManyArgs>(variables: T, opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.BatchPayload, Context>) => Promise<Prisma.BatchPayload>
+            };
 
     };
     create: {

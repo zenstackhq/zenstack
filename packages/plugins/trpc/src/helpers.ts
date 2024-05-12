@@ -237,7 +237,12 @@ export function generateRouterTypingImports(sourceFile: SourceFile, options: Plu
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function generateRouterSchemaImport(sourceFile: SourceFile, zodSchemasImport: string) {
-    sourceFile.addStatements(`import * as $Schema from '${zodSchemasImport}/input';`);
+    sourceFile.addStatements([
+        `import * as _Schema from '${zodSchemasImport}/input';`,
+        // temporary solution for dealing with the issue that Node.js wraps named exports under a `default`
+        // key when importing from a CJS module
+        `const $Schema: typeof _Schema = (_Schema as any).default ?? _Schema;`,
+    ]);
 }
 
 export function generateHelperImport(sourceFile: SourceFile) {
@@ -327,7 +332,7 @@ export const getProcedureTypeByOpName = (opName: string) => {
     return procType;
 };
 
-export function resolveModelsComments(models: DMMF.Model[], hiddenModels: string[]) {
+export function resolveModelsComments(models: readonly DMMF.Model[], hiddenModels: string[]) {
     const modelAttributeRegex = /(@@Gen\.)+([A-z])+(\()+(.+)+(\))+/;
     const attributeNameRegex = /(?:\.)+([A-Za-z])+(?:\()+/;
     const attributeArgsRegex = /(?:\()+([A-Za-z])+:+(.+)+(?:\))+/;

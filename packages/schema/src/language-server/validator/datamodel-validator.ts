@@ -2,14 +2,19 @@ import {
     ArrayExpr,
     DataModel,
     DataModelField,
-    isDataModel,
-    isStringLiteral,
     ReferenceExpr,
+    isDataModel,
     isEnum,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getLiteral, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
-import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
-import { getModelFieldsWithBases } from '../../utils/ast-utils';
+import {
+    getLiteral,
+    getModelFieldsWithBases,
+    getModelIdFields,
+    getModelUniqueFields,
+    isDelegateModel,
+} from '@zenstackhq/sdk';
+import { AstNode, DiagnosticInfo, ValidationAcceptor, getDocument } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getUniqueFields } from '../utils';
@@ -361,6 +366,11 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             const containingModel = field.$container as DataModel;
             const uniqueFieldList = getUniqueFields(containingModel);
 
+            // field is defined in the abstract base model
+            if (containingModel !== contextModel) {
+                uniqueFieldList.push(...getUniqueFields(contextModel));
+            }
+
             thisRelation.fields?.forEach((ref) => {
                 const refField = ref.target.ref as DataModelField;
                 if (refField) {
@@ -372,7 +382,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     }
                     accept(
                         'error',
-                        `Field "${refField.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
+                        `Field "${refField.name}" on model "${containingModel.name}" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`,
                         { node: refField }
                     );
                 }

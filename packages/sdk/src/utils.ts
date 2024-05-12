@@ -17,6 +17,7 @@ import {
     isConfigArrayExpr,
     isDataModel,
     isDataModelField,
+    isDataSource,
     isEnumField,
     isExpression,
     isGeneratorDecl,
@@ -298,9 +299,9 @@ export function isForeignKeyField(field: DataModelField) {
 }
 
 /**
- * Gets the foreign key fields of the given relation field.
+ * Gets the foreign key-id field pairs from the given relation field.
  */
-export function getForeignKeyFields(relationField: DataModelField) {
+export function getRelationKeyPairs(relationField: DataModelField) {
     if (!isRelationshipField(relationField)) {
         return [];
     }
@@ -309,11 +310,31 @@ export function getForeignKeyFields(relationField: DataModelField) {
     if (relAttr) {
         // find "fields" arg
         const fieldsArg = getAttributeArg(relAttr, 'fields');
+        let fkFields: DataModelField[];
         if (fieldsArg && isArrayExpr(fieldsArg)) {
-            return fieldsArg.items
+            fkFields = fieldsArg.items
                 .filter((item): item is ReferenceExpr => isReferenceExpr(item))
                 .map((item) => item.target.ref as DataModelField);
+        } else {
+            return [];
         }
+
+        // find "references" arg
+        const referencesArg = getAttributeArg(relAttr, 'references');
+        let idFields: DataModelField[];
+        if (referencesArg && isArrayExpr(referencesArg)) {
+            idFields = referencesArg.items
+                .filter((item): item is ReferenceExpr => isReferenceExpr(item))
+                .map((item) => item.target.ref as DataModelField);
+        } else {
+            return [];
+        }
+
+        if (idFields.length !== fkFields.length) {
+            throw new Error(`Relation's references arg and fields are must have equal length`);
+        }
+
+        return idFields.map((idField, i) => ({ id: idField, foreignKey: fkFields[i] }));
     }
 
     return [];
@@ -347,7 +368,7 @@ export function resolvePath(_path: string, options: Pick<PluginOptions, 'schemaP
 export function requireOption<T>(options: PluginDeclaredOptions, name: string, pluginName: string): T {
     const value = options[name];
     if (value === undefined) {
-        throw new PluginError(pluginName, `Plugin "${options.name}" is missing required option: ${name}`);
+        throw new PluginError(pluginName, `required option "${name}" is not provided`);
     }
     return value as T;
 }
@@ -481,17 +502,24 @@ export function getDataModelFieldReference(expr: Expression): DataModelField | u
     }
 }
 
-export function getModelFieldsWithBases(model: DataModel) {
-    return [...model.fields, ...getRecursiveBases(model).flatMap((base) => base.fields)];
+export function getModelFieldsWithBases(model: DataModel, includeDelegate = true) {
+    if (model.$baseMerged) {
+        return model.fields;
+    } else {
+        return [...model.fields, ...getRecursiveBases(model, includeDelegate).flatMap((base) => base.fields)];
+    }
 }
 
-export function getRecursiveBases(dataModel: DataModel): DataModel[] {
+export function getRecursiveBases(dataModel: DataModel, includeDelegate = true): DataModel[] {
     const result: DataModel[] = [];
     dataModel.superTypes.forEach((superType) => {
         const baseDecl = superType.ref;
         if (baseDecl) {
+            if (!includeDelegate && isDelegateModel(baseDecl)) {
+                return;
+            }
             result.push(baseDecl);
-            result.push(...getRecursiveBases(baseDecl));
+            result.push(...getRecursiveBases(baseDecl, includeDelegate));
         }
     });
     return result;
@@ -510,4 +538,19 @@ export function ensureEmptyDir(dir: string) {
     } else {
         throw new Error(`Path "${dir}" already exists and is not a directory`);
     }
+}
+
+/**
+ * Gets the data source provider from the given model.
+ */
+export function getDataSourceProvider(model: Model) {
+    const dataSource = model.declarations.find(isDataSource);
+    if (!dataSource) {
+        return undefined;
+    }
+    const provider = dataSource?.fields.find((f) => f.name === 'provider');
+    if (!provider) {
+        return undefined;
+    }
+    return getLiteral<string>(provider.value);
 }

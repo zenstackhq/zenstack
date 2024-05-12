@@ -10,7 +10,7 @@ import {
     type PluginOptions,
 } from '@zenstackhq/sdk';
 import { Model } from '@zenstackhq/sdk/ast';
-import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
+import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
@@ -79,11 +79,11 @@ export async function generate(model: Model, options: PluginOptions, dmmf: DMMF.
 
 function createAppRouter(
     outDir: string,
-    modelOperations: DMMF.ModelMapping[],
+    modelOperations: readonly DMMF.ModelMapping[],
     hiddenModels: string[],
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
-    _zmodel: Model,
+    zmodel: Model,
     zodSchemasImport: string,
     options: PluginOptions
 ) {
@@ -99,19 +99,21 @@ function createAppRouter(
         {
             namedImports: [
                 'unsetMarker',
-                'type AnyRouter',
-                'type AnyRootConfig',
-                'type CreateRouterInner',
-                'type Procedure',
-                'type ProcedureBuilder',
-                'type ProcedureParams',
-                'type ProcedureRouterRecord',
-                'type ProcedureType',
+                'AnyRouter',
+                'AnyRootConfig',
+                'CreateRouterInner',
+                'Procedure',
+                'ProcedureBuilder',
+                'ProcedureParams',
+                'ProcedureRouterRecord',
+                'ProcedureType',
             ],
+            isTypeOnly: true,
             moduleSpecifier: '@trpc/server',
         },
         {
-            namedImports: ['type PrismaClient'],
+            namedImports: ['PrismaClient'],
+            isTypeOnly: true,
             moduleSpecifier: prismaImport,
         },
     ]);
@@ -169,7 +171,8 @@ function createAppRouter(
                         generateModelActions,
                         generateClientHelpers,
                         zodSchemasImport,
-                        options
+                        options,
+                        zmodel
                     );
 
                     appRouter.addImportDeclaration({
@@ -239,7 +242,8 @@ function generateModelCreateRouter(
     generateModelActions: string[] | undefined,
     generateClientHelpers: string[] | undefined,
     zodSchemasImport: string,
-    options: PluginOptions
+    options: PluginOptions,
+    zmodel: Model
 ) {
     const modelRouter = project.createSourceFile(path.resolve(outputDir, 'routers', `${model}.router.ts`), undefined, {
         overwrite: true,
@@ -296,6 +300,10 @@ function generateModelCreateRouter(
                     inputType &&
                     (!generateModelActions || generateModelActions.includes(generateOpName))
                 ) {
+                    if (generateOpName === 'createMany' && !supportCreateMany(zmodel)) {
+                        continue;
+                    }
+
                     generateProcedure(funcWriter, generateOpName, upperCaseFirst(inputType), model, baseOpType);
 
                     if (routerTypingStructure) {

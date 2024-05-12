@@ -30,7 +30,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                 // check was done at link time
                 accept(
                     'error',
-                    'auth() cannot be resolved because no model marked wth "@@auth()" or named "User" is found',
+                    'auth() cannot be resolved because no model marked with "@@auth()" or named "User" is found',
                     { node: expr }
                 );
             } else {

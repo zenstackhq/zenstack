@@ -41,6 +41,7 @@ import { trackPrismaSchemaError } from '../../prisma';
 import { PrismaSchemaGenerator } from '../../prisma/schema-generator';
 import { isDefaultWithAuth } from '../enhancer-utils';
 import { generateAuthType } from './auth-type-generator';
+import { generateCheckerType } from './checker-type-generator';
 
 // information of delegate models and their sub models
 type DelegateInfo = [DataModel, DataModel[]][];
@@ -55,7 +56,7 @@ export class EnhancerGenerator {
         private readonly outDir: string
     ) {}
 
-    async generate() {
+    async generate(): Promise<{ dmmf: DMMF.Document | undefined }> {
         let logicalPrismaClientDir: string | undefined;
         let dmmf: DMMF.Document | undefined;
 
@@ -89,6 +90,8 @@ export class EnhancerGenerator {
         const authTypes = authModel ? generateAuthType(this.model, authModel) : '';
         const authTypeParam = authModel ? `auth.${authModel.name}` : 'AuthUser';
 
+        const checkerTypes = this.generatePermissionChecker ? generateCheckerType(this.model) : '';
+
         const enhanceTs = this.project.createSourceFile(
             path.join(this.outDir, 'enhance.ts'),
             `import { type EnhancementContext, type EnhancementOptions, type ZodSchemas, type AuthUser } from '@zenstackhq/runtime';
@@ -104,6 +107,8 @@ ${
 }
 
 ${authTypes}
+
+${checkerTypes}
 
 ${
     logicalPrismaClientDir
@@ -126,15 +131,16 @@ import type * as _P from '${prismaImport}';
     }
 
     private createSimplePrismaEnhanceFunction(authTypeParam: string) {
+        const returnType = `DbClient${this.generatePermissionChecker ? ' & ModelCheckers' : ''}`;
         return `
-export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions) {
+export function enhance<DbClient extends object>(prisma: DbClient, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): ${returnType} {
     return createEnhancement(prisma, {
         modelMeta,
         policy,
         zodSchemas: zodSchemas as unknown as (ZodSchemas | undefined),
         prismaModule: Prisma,
         ...options
-    }, context);
+    }, context) as ${returnType};
 }         
             `;
     }
@@ -157,12 +163,16 @@ import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed
 // overload for plain PrismaClient
 export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
     prisma: _PrismaClient<any, any, ExtArgs>,
-    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): PrismaClient;
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): PrismaClient${
+            this.generatePermissionChecker ? ' & ModelCheckers' : ''
+        };
     
 // overload for extended PrismaClient
 export function enhance<TypeMap extends TypeMapDef, TypeMapCb extends TypeMapCbDef, ExtArgs extends Record<string, any> & InternalArgs>(
     prisma: DynamicClientExtensionThis<TypeMap, TypeMapCb, ExtArgs>,
-    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs>;
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs>${
+            this.generatePermissionChecker ? ' & ModelCheckers' : ''
+        };
 
 export function enhance(prisma: any, context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): any {
     return createEnhancement(prisma, {
@@ -204,54 +214,59 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
 
         // calculate a relative output path to output the logical prisma client into enhancer's output dir
         const prismaClientOutDir = path.join(path.relative(zmodelDir, this.outDir), LOGICAL_CLIENT_GENERATION_PATH);
+        await prismaGenerator.generate({
+            provider: '@internal', // doesn't matter
+            schemaPath: this.options.schemaPath,
+            output: logicalPrismaFile,
+            overrideClientGenerationPath: prismaClientOutDir,
+            mode: 'logical',
+        });
+
+        // generate the prisma client
+
+        // only run prisma client generator for the logical schema
+        const prismaClientGeneratorName = this.getPrismaClientGeneratorName(this.model);
+        let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
+
+        const prismaVersion = getPrismaVersion();
+        if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
+            // add --no-engine to reduce generation size if the prisma version supports
+            generateCmd += ' --no-engine';
+        }
+
         try {
-            await prismaGenerator.generate({
-                provider: '@internal', // doesn't matter
-                schemaPath: this.options.schemaPath,
-                output: logicalPrismaFile,
-                overrideClientGenerationPath: prismaClientOutDir,
-                mode: 'logical',
-            });
-
-            // generate the prisma client
-
-            // only run prisma client generator for the logical schema
-            const prismaClientGeneratorName = this.getPrismaClientGeneratorName(this.model);
-            let generateCmd = `prisma generate --schema "${logicalPrismaFile}" --generator=${prismaClientGeneratorName}`;
-
-            const prismaVersion = getPrismaVersion();
-            if (!prismaVersion || semver.gte(prismaVersion, '5.2.0')) {
-                // add --no-engine to reduce generation size if the prisma version supports
-                generateCmd += ' --no-engine';
-            }
-
+            // run 'prisma generate'
+            await execPackage(generateCmd, { stdio: 'ignore' });
+        } catch {
+            await trackPrismaSchemaError(logicalPrismaFile);
             try {
-                // run 'prisma generate'
-                await execPackage(generateCmd, { stdio: 'ignore' });
+                // run 'prisma generate' again with output to the console
+                await execPackage(generateCmd);
             } catch {
-                await trackPrismaSchemaError(logicalPrismaFile);
-                try {
-                    // run 'prisma generate' again with output to the console
-                    await execPackage(generateCmd);
-                } catch {
-                    // noop
-                }
-                throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
+                // noop
             }
+            throw new PluginError(name, `Failed to run "prisma generate" on logical schema: ${logicalPrismaFile}`);
+        }
 
-            // make a bunch of typing fixes to the generated prisma client
-            await this.processClientTypes(path.join(this.outDir, LOGICAL_CLIENT_GENERATION_PATH));
+        // make a bunch of typing fixes to the generated prisma client
+        await this.processClientTypes(path.join(this.outDir, LOGICAL_CLIENT_GENERATION_PATH));
 
-            return {
-                prismaSchema: logicalPrismaFile,
-                // load the dmmf of the logical prisma schema
-                dmmf: await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) }),
-            };
-        } finally {
+        const dmmf = await getDMMF({ datamodel: fs.readFileSync(logicalPrismaFile, { encoding: 'utf-8' }) });
+
+        try {
+            // clean up temp schema
             if (fs.existsSync(logicalPrismaFile)) {
                 fs.rmSync(logicalPrismaFile);
             }
+        } catch {
+            // ignore errors
         }
+
+        return {
+            prismaSchema: logicalPrismaFile,
+            // load the dmmf of the logical prisma schema
+            dmmf,
+        };
     }
 
     private getPrismaClientGeneratorName(model: Model) {
@@ -277,12 +292,12 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         this.model.declarations
             .filter((d): d is DataModel => isDelegateModel(d))
             .forEach((dm) => {
-                delegateInfo.push([
-                    dm,
-                    this.model.declarations.filter(
-                        (d): d is DataModel => isDataModel(d) && d.superTypes.some((s) => s.ref === dm)
-                    ),
-                ]);
+                const concreteModels = this.model.declarations.filter(
+                    (d): d is DataModel => isDataModel(d) && d.superTypes.some((s) => s.ref === dm)
+                );
+                if (concreteModels.length > 0) {
+                    delegateInfo.push([dm, concreteModels]);
+                }
             });
 
         // transform index.d.ts and save it into a new file (better perf than in-line editing)
@@ -621,5 +636,9 @@ export function enhance(prisma: any, context?: EnhancementContext<${authTypePara
         if (this.options.preserveTsFiles) {
             await sf.save();
         }
+    }
+
+    private get generatePermissionChecker() {
+        return this.options.generatePermissionChecker === true;
     }
 }

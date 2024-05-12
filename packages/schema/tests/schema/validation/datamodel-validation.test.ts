@@ -521,7 +521,7 @@ describe('Data Model Validation Tests', () => {
         `)
         ).toMatchObject(
             errorLike(
-                `Field "aId" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
+                `Field "aId" on model "B" is part of a one-to-one relation and must be marked as @unique or be part of a model-level @@unique attribute`
             )
         );
 
@@ -736,6 +736,26 @@ describe('Data Model Validation Tests', () => {
         ).toMatchObject(
             errorLike(`The relation field "user" on model "A" is missing an opposite relation field on model "User"`)
         );
+
+        // one-to-one relation field and @@unique defined in different models
+        await loadModel(`
+                    ${prelude}
+
+                    abstract model Base {
+                        id String @id
+                        a A @relation(fields: [aId], references: [id])
+                        aId String
+                    }
+
+                    model A {
+                        id String @id
+                        b B?
+                    }
+        
+                    model B extends Base{
+                        @@unique([aId])
+                    }
+                `);
     });
 
     it('delegate base type', async () => {

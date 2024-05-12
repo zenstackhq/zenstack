@@ -1,22 +1,22 @@
 // Inspired by: https://github.com/omar-dulaimi/prisma-trpc-generator
 
-import { analyzePolicies, PluginError, requireOption, resolvePath } from '@zenstackhq/sdk';
+import { PluginError, analyzePolicies, requireOption, resolvePath } from '@zenstackhq/sdk';
 import { DataModel, isDataModel } from '@zenstackhq/sdk/ast';
 import {
+    AggregateOperationSupport,
     addMissingInputObjectTypesForAggregate,
     addMissingInputObjectTypesForInclude,
     addMissingInputObjectTypesForModelArgs,
     addMissingInputObjectTypesForSelect,
-    AggregateOperationSupport,
     resolveAggregateOperationSupport,
 } from '@zenstackhq/sdk/dmmf-helpers';
-import type { DMMF } from '@zenstackhq/sdk/prisma';
+import { supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import * as fs from 'fs';
 import { lowerCaseFirst } from 'lower-case-first';
 import type { OpenAPIV3_1 as OAPI } from 'openapi-types';
 import * as path from 'path';
 import invariant from 'tiny-invariant';
-import { match, P } from 'ts-pattern';
+import { P, match } from 'ts-pattern';
 import { upperCaseFirst } from 'upper-case-first';
 import YAML from 'yaml';
 import { name } from '.';
@@ -166,7 +166,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
             });
         }
 
-        if (ops['createMany']) {
+        if (ops['createMany'] && supportCreateMany(zmodel.$container)) {
             definitions.push({
                 method: 'post',
                 operation: 'createMany',
@@ -704,7 +704,7 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
     private generateEnumComponent(_enum: DMMF.SchemaEnum): OAPI.SchemaObject {
         const schema: OAPI.SchemaObject = {
             type: 'string',
-            enum: _enum.values,
+            enum: _enum.values as string[],
         };
         return schema;
     }
@@ -793,17 +793,14 @@ export class RPCOpenAPIGenerator extends OpenAPIGeneratorBase {
         return result;
     }
 
-    private setInputRequired(fields: { name: string; isRequired: boolean }[], result: OAPI.NonArraySchemaObject) {
+    private setInputRequired(fields: readonly DMMF.SchemaArg[], result: OAPI.NonArraySchemaObject) {
         const required = fields.filter((f) => f.isRequired).map((f) => f.name);
         if (required.length > 0) {
             result.required = required;
         }
     }
 
-    private setOutputRequired(
-        fields: { name: string; isNullable?: boolean; outputType: DMMF.OutputTypeRef }[],
-        result: OAPI.NonArraySchemaObject
-    ) {
+    private setOutputRequired(fields: readonly DMMF.SchemaField[], result: OAPI.NonArraySchemaObject) {
         const required = fields.filter((f) => f.isNullable !== true).map((f) => f.name);
         if (required.length > 0) {
             result.required = required;

@@ -141,10 +141,14 @@ export function makeFieldSchema(field: DataModelField) {
     }
 
     if (field.attributes.some(isDefaultWithAuth)) {
-        // field uses `auth()` in `@default()`, this was transformed into a pseudo default
-        // value, while compiling to zod we should turn it into an optional field instead
-        // of `.default()`
-        schema += '.nullish()';
+        if (field.type.optional) {
+            schema += '.nullish()';
+        } else {
+            // field uses `auth()` in `@default()`, this was transformed into a pseudo default
+            // value, while compiling to zod we should turn it into an optional field instead
+            // of `.default()`
+            schema += '.optional()';
+        }
     } else {
         const schemaDefault = getFieldSchemaDefault(field);
         if (schemaDefault !== undefined) {

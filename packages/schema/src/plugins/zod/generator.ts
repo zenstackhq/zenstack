@@ -13,7 +13,7 @@ import {
 } from '@zenstackhq/sdk';
 import { DataModel, EnumField, Model, isDataModel, isEnum } from '@zenstackhq/sdk/ast';
 import { addMissingInputObjectTypes, resolveAggregateOperationSupport } from '@zenstackhq/sdk/dmmf-helpers';
-import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
+import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import { streamAllContents } from 'langium';
 import path from 'path';
 import type { SourceFile } from 'ts-morph';
@@ -106,8 +106,9 @@ export class ZodSchemaGenerator {
                 aggregateOperationSupport,
                 project: this.project,
                 inputObjectTypes,
+                zmodel: this.model,
             });
-            await transformer.generateInputSchemas(this.options);
+            await transformer.generateInputSchemas(this.options, this.model);
             this.sourceFiles.push(...transformer.sourceFiles);
         }
 
@@ -189,7 +190,10 @@ export class ZodSchemaGenerator {
         );
     }
 
-    private async generateEnumSchemas(prismaSchemaEnum: DMMF.SchemaEnum[], modelSchemaEnum: DMMF.SchemaEnum[]) {
+    private async generateEnumSchemas(
+        prismaSchemaEnum: readonly DMMF.SchemaEnum[],
+        modelSchemaEnum: readonly DMMF.SchemaEnum[]
+    ) {
         const enumTypes = [...prismaSchemaEnum, ...modelSchemaEnum];
         const enumNames = enumTypes.map((enumItem) => upperCaseFirst(enumItem.name));
         Transformer.enumNames = enumNames ?? [];
@@ -197,6 +201,7 @@ export class ZodSchemaGenerator {
             enumTypes,
             project: this.project,
             inputObjectTypes: [],
+            zmodel: this.model,
         });
         await transformer.generateEnumSchemas();
         this.sourceFiles.push(...transformer.sourceFiles);
@@ -210,14 +215,21 @@ export class ZodSchemaGenerator {
         for (let i = 0; i < inputObjectTypes.length; i += 1) {
             const fields = inputObjectTypes[i]?.fields;
             const name = inputObjectTypes[i]?.name;
+
             if (!generateUnchecked && name.includes('Unchecked')) {
                 continue;
             }
+
+            if (name.includes('CreateMany') && !supportCreateMany(this.model)) {
+                continue;
+            }
+
             const transformer = new Transformer({
                 name,
                 fields,
                 project: this.project,
                 inputObjectTypes,
+                zmodel: this.model,
             });
             const moduleName = transformer.generateObjectSchema(generateUnchecked, this.options);
             moduleNames.push(moduleName);

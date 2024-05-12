@@ -1,4 +1,10 @@
-import { DataModel, DataModelField, isArrayExpr, isReferenceExpr, ReferenceExpr } from '@zenstackhq/language/ast';
+import {
+    isArrayExpr,
+    isReferenceExpr,
+    type DataModel,
+    type DataModelField,
+    type ReferenceExpr,
+} from '@zenstackhq/language/ast';
 import { resolved } from '@zenstackhq/sdk';
 
 /**

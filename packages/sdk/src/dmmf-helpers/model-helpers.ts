@@ -31,6 +31,6 @@ export function checkIsManyModelRelationField(modelField: DMMF.Field) {
     return checkIsModelRelationField(modelField) && modelField.isList;
 }
 
-export function findModelByName(models: DMMF.Model[], modelName: string) {
+export function findModelByName(models: readonly DMMF.Model[], modelName: string) {
     return models.find(({ name }) => name === modelName);
 }
