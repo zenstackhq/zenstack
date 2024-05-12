@@ -8,5 +8,5 @@
         "skipLibCheck": true,
         "experimentalDecorators": true
     },
-    "include": ["tests/**/*.ts"]
+    "include": ["**/*.ts", "**/*.d.ts"]
 }
