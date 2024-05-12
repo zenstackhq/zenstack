@@ -9,10 +9,9 @@ import {
     requireOption,
     resolvePath,
     saveProject,
-    supportCreateMany,
 } from '@zenstackhq/sdk';
 import { DataModel, DataModelFieldType, Model, isEnum } from '@zenstackhq/sdk/ast';
-import { getPrismaClientImportSpec, type DMMF } from '@zenstackhq/sdk/prisma';
+import { getPrismaClientImportSpec, supportCreateMany, type DMMF } from '@zenstackhq/sdk/prisma';
 import { paramCase } from 'change-case';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';

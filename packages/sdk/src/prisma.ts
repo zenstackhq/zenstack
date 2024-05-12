@@ -4,8 +4,11 @@ import type { DMMF } from '@prisma/generator-helper';
 import { getDMMF as _getDMMF, type GetDMMFOptions } from '@prisma/internals';
 import { DEFAULT_RUNTIME_LOAD_PATH } from '@zenstackhq/runtime';
 import path from 'path';
+import semver from 'semver';
+import { Model } from './ast';
 import { RUNTIME_PACKAGE } from './constants';
 import type { PluginOptions } from './types';
+import { getDataSourceProvider } from './utils';
 
 /**
  * Given an import context directory and plugin options, compute the import spec for the Prisma Client.
@@ -73,6 +76,16 @@ export function getPrismaVersion(): string | undefined {
             return undefined;
         }
     }
+}
+
+/**
+ * Returns if the given model supports `createMany` operation.
+ */
+export function supportCreateMany(model: Model) {
+    // `createMany` is supported for sqlite since Prisma 5.12.0
+    const prismaVersion = getPrismaVersion();
+    const dsProvider = getDataSourceProvider(model);
+    return dsProvider !== 'sqlite' || (prismaVersion && semver.gte(prismaVersion, '5.12.0'));
 }
 
 export type { DMMF } from '@prisma/generator-helper';

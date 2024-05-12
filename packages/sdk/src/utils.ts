@@ -33,9 +33,7 @@ import {
 } from '@zenstackhq/language/ast';
 import fs from 'node:fs';
 import path from 'path';
-import semver from 'semver';
 import { ExpressionContext, STD_LIB_MODULE_NAME } from './constants';
-import { getPrismaVersion } from './prisma';
 import { PluginError, type PluginDeclaredOptions, type PluginOptions } from './types';
 
 /**
@@ -555,14 +553,4 @@ export function getDataSourceProvider(model: Model) {
         return undefined;
     }
     return getLiteral<string>(provider.value);
-}
-
-/**
- * Returns if the given model supports `createMany` operation.
- */
-export function supportCreateMany(model: Model) {
-    // `createMany` is supported for sqlite since Prisma 5.12.0
-    const prismaVersion = getPrismaVersion();
-    const dsProvider = getDataSourceProvider(model);
-    return dsProvider !== 'sqlite' || (prismaVersion && semver.gte(prismaVersion, '5.12.0'));
 }
