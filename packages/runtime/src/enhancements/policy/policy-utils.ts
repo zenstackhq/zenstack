@@ -570,17 +570,13 @@ export class PolicyUtil extends QueryUtils {
      */
     getCheckerConstraint(model: string, operation: PolicyCrudKind): ReturnType<CheckerFunc> | boolean {
         const checker = this.getModelChecker(model);
-        if (!checker) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
-        }
-
         const provider = checker[operation];
         if (typeof provider === 'boolean') {
             return provider;
         }
 
         if (typeof provider !== 'function') {
-            throw this.unknownError(`unable to load ${operation} checker for ${model}`);
+            throw this.unknownError(`invalid ${operation} checker function for ${model}`);
         }
 
         // call checker function
