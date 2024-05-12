@@ -2,14 +2,19 @@ import {
     ArrayExpr,
     DataModel,
     DataModelField,
-    isDataModel,
-    isStringLiteral,
     ReferenceExpr,
+    isDataModel,
     isEnum,
+    isStringLiteral,
 } from '@zenstackhq/language/ast';
-import { getLiteral, getModelIdFields, getModelUniqueFields, isDelegateModel } from '@zenstackhq/sdk';
-import { AstNode, DiagnosticInfo, getDocument, ValidationAcceptor } from 'langium';
-import { getModelFieldsWithBases } from '../../utils/ast-utils';
+import {
+    getLiteral,
+    getModelFieldsWithBases,
+    getModelIdFields,
+    getModelUniqueFields,
+    isDelegateModel,
+} from '@zenstackhq/sdk';
+import { AstNode, DiagnosticInfo, ValidationAcceptor, getDocument } from 'langium';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getUniqueFields } from '../utils';

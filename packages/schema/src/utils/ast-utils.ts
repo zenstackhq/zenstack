@@ -17,7 +17,7 @@ import {
     ModelImport,
     ReferenceExpr,
 } from '@zenstackhq/language/ast';
-import { isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
+import { getModelFieldsWithBases, getRecursiveBases, isDelegateModel, isFromStdlib } from '@zenstackhq/sdk';
 import {
     AstNode,
     copyAstNode,
@@ -47,16 +47,13 @@ type BuildReference = (
     refText: string
 ) => Reference<AstNode>;
 
-export function mergeBaseModel(model: Model, linker: Linker) {
+export function mergeBaseModels(model: Model, linker: Linker) {
     const buildReference = linker.buildReference.bind(linker);
 
-    model.declarations.filter(isDataModel).forEach((decl) => {
-        const dataModel = decl as DataModel;
-
+    model.declarations.filter(isDataModel).forEach((dataModel) => {
         const bases = getRecursiveBases(dataModel).reverse();
         if (bases.length > 0) {
             dataModel.fields = bases
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .flatMap((base) => base.fields)
                 // don't inherit skip-level fields
                 .filter((f) => !f.$inheritedFrom)
@@ -67,16 +64,25 @@ export function mergeBaseModel(model: Model, linker: Linker) {
                 .flatMap((base) => base.attributes.filter((attr) => filterBaseAttribute(base, attr)))
                 .map((attr) => cloneAst(attr, dataModel, buildReference))
                 .concat(dataModel.attributes);
-
-            // fix $containerIndex
-            linkContentToContainer(dataModel);
         }
 
+        // mark base merged
         dataModel.$baseMerged = true;
     });
 
     // remove abstract models
     model.declarations = model.declarations.filter((x) => !(isDataModel(x) && x.isAbstract));
+
+    model.declarations.filter(isDataModel).forEach((dm) => {
+        // remove abstract super types
+        dm.superTypes = dm.superTypes.filter((t) => t.ref && isDelegateModel(t.ref));
+
+        // fix $containerIndex
+        linkContentToContainer(dm);
+    });
+
+    // fix $containerIndex after deleting abstract models
+    linkContentToContainer(model);
 }
 
 function filterBaseAttribute(base: DataModel, attr: DataModelAttribute) {
@@ -242,29 +248,6 @@ export function getContainingDataModel(node: Expression): DataModel | undefined 
         curr = curr.$container;
     }
     return undefined;
-}
-
-export function getModelFieldsWithBases(model: DataModel, includeDelegate = true) {
-    if (model.$baseMerged) {
-        return model.fields;
-    } else {
-        return [...model.fields, ...getRecursiveBases(model, includeDelegate).flatMap((base) => base.fields)];
-    }
-}
-
-export function getRecursiveBases(dataModel: DataModel, includeDelegate = true): DataModel[] {
-    const result: DataModel[] = [];
-    dataModel.superTypes.forEach((superType) => {
-        const baseDecl = superType.ref;
-        if (baseDecl) {
-            if (!includeDelegate && isDelegateModel(baseDecl)) {
-                return;
-            }
-            result.push(baseDecl);
-            result.push(...getRecursiveBases(baseDecl));
-        }
-    });
-    return result;
 }
 
 /**

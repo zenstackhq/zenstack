@@ -12,7 +12,7 @@ import { URI } from 'vscode-uri';
 import { PLUGIN_MODULE_NAME, STD_LIB_MODULE_NAME } from '../language-server/constants';
 import { ZModelFormatter } from '../language-server/zmodel-formatter';
 import { createZModelServices, ZModelServices } from '../language-server/zmodel-module';
-import { mergeBaseModel, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
+import { mergeBaseModels, resolveImport, resolveTransitiveImports } from '../utils/ast-utils';
 import { findUp } from '../utils/pkg-utils';
 import { getVersion } from '../utils/version-utils';
 import { CliError } from './cli-error';
@@ -101,10 +101,10 @@ export async function loadDocument(fileName: string): Promise<Model> {
         imported.map((m) => m.$document!.uri)
     );
 
-    validationAfterMerge(model);
+    validationAfterImportMerge(model);
 
     // merge fields and attributes from base models
-    mergeBaseModel(model, services.references.Linker);
+    mergeBaseModels(model, services.references.Linker);
 
     // finally relink all references
     const relinkedModel = await relinkAll(model, services);
@@ -113,7 +113,7 @@ export async function loadDocument(fileName: string): Promise<Model> {
 }
 
 // check global unique thing after merge imports
-function validationAfterMerge(model: Model) {
+function validationAfterImportMerge(model: Model) {
     const dataSources = model.declarations.filter((d) => isDataSource(d));
     if (dataSources.length == 0) {
         console.error(colors.red('Validation error: Model must define a datasource'));
