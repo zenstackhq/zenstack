@@ -16,10 +16,10 @@ generator client {
  * User model
  */
 model User {
-    id String @id @default(cuid())
-    email String @unique @email
-    password String @password @omit @length(8, 16)
-    posts Post[]
+    id       String @id @default(cuid())
+    email    String @unique @email @length(6, 32)
+    password String @password @omit
+    posts    Post[]
 
     // everybody can signup
     @@allow('create', true)
@@ -32,14 +32,14 @@ model User {
  * Post model
  */
 model Post {
-    id String @id @default(cuid())
+    id        String   @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
-    title String @length(1, 256)
-    content String
-    published Boolean @default(false)
-    author User @relation(fields: [authorId], references: [id])
-    authorId String
+    title     String   @length(1, 256)
+    content   String
+    published Boolean  @default(false)
+    author    User     @relation(fields: [authorId], references: [id])
+    authorId  String
 
     // allow read for all signin users
     @@allow('read', auth() != null && published)
