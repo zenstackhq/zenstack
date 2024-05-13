@@ -38,14 +38,6 @@ jobs:
               with:
                   egress-policy: audit
 
-            - name: Workflow Telemetry
-              uses: catchpoint/workflow-telemetry-action@v1.8.7
-              with:
-                  github_token: ${{ secrets.BOT_TOKEN || github.token }} # Bot Token is a PAT for a automation account.
-                  comment_on_pr: false
-                  theme: dark
-                  proc_trace_sys_enable: true
-
             # checks out the repository
             - uses: actions/checkout@v4
               with:
