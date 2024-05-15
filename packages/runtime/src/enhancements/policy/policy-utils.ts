@@ -960,19 +960,23 @@ export class PolicyUtil extends QueryUtils {
      * @returns
      */
     injectReadCheckSelect(model: string, args: any) {
-        if (this.hasFieldLevelPolicy(model)) {
-            // recursively inject selection for fields needed for field-level read checks
-            const readFieldSelect = this.getReadFieldSelect(model);
-            if (readFieldSelect) {
-                this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
-            }
-        }
+        // we need to recurse into relation fields before injecting the current level, because
+        // injection into current level can result in relation being selected/included, which
+        // can then cause infinite recursion when we visit relation later
 
         // recurse into relation fields
         for (const [k, v] of Object.entries<any>(args.select ?? args.include ?? {})) {
             const field = resolveField(this.modelMeta, model, k);
             if (field?.isDataModel && v && typeof v === 'object') {
                 this.injectReadCheckSelect(field.type, v);
+            }
+        }
+
+        if (this.hasFieldLevelPolicy(model)) {
+            // recursively inject selection for fields needed for field-level read checks
+            const readFieldSelect = this.getReadFieldSelect(model);
+            if (readFieldSelect) {
+                this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
             }
         }
     }
