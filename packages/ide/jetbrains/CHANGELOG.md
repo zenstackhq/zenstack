@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 ### Added
+- Support using ZModel type names (e.g., `DateTime`) as model field names.
+- `auth()` is resolved from all reachable schema files.
+
+## 2.0.0
+### Added
 - ZenStack V2 release!
 
 ## 1.11.0
