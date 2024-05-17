@@ -10,7 +10,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE 'res/**/*' dist && pnpm pack dist --pack-destination ../../../../.build",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE \"res/**/*\" dist && pnpm pack dist --pack-destination ../../../../.build",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "test": "jest",

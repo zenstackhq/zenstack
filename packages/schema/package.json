@@ -80,7 +80,7 @@
         "vscode:prepublish": "pnpm bundle",
         "vscode:package": "pnpm bundle && vsce package --no-dependencies",
         "clean": "rimraf dist",
-        "build": "pnpm clean && pnpm lint --max-warnings=0 && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm clean && pnpm lint --max-warnings=0 && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination ../../../.build",
         "bundle": "rimraf bundle && pnpm lint --max-warnings=0 && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
