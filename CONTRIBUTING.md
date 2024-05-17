@@ -5,9 +5,15 @@ I want to think you first for considering contributing to ZenStack 🙏🏻. It'
 ## Prerequisites
 
 -   [Node.js](https://nodejs.org/): v18 or above
--   [pnpm](https://pnpm.io/): latest version
+-   [pnpm](https://pnpm.io/): v8.x
 
 ## Get started
+
+1. (Windows only) Your environment should support symlinks, by enabling "Developer mode" in `Settings => System => For developers` (Windows 10/11 only) and setting the `core.symlinks` setting in git to `true`. For more info [refer to this StackOverflow answer](https://stackoverflow.com/questions/5917249/git-symbolic-links-in-windows/59761201#59761201).
+
+    ```pwsh
+    git config --global core.symlinks true
+    ```
 
 1. Make a fork of the repository
 
