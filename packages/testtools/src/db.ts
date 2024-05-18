@@ -20,10 +20,12 @@ export async function createPostgresDb(db: string) {
     const pool = connect();
     await pool.query(`DROP DATABASE IF EXISTS "${db}";`);
     await pool.query(`CREATE DATABASE "${db}";`);
+    await pool.end();
     return `postgresql://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${db}`;
 }
 
 export async function dropPostgresDb(db: string) {
     const pool = connect();
     await pool.query(`DROP DATABASE IF EXISTS "${db}";`);
+    await pool.end();
 }
