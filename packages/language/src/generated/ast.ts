@@ -366,7 +366,7 @@ export interface EnumField extends AstNode {
     readonly $type: 'EnumField';
     attributes: Array<DataModelFieldAttribute>
     comments: Array<string>
-    name: RegularID
+    name: RegularIDWithTypeNames
 }
 
 export const EnumField = 'EnumField';

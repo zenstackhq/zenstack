@@ -209,7 +209,7 @@ Enum:
 
 EnumField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularID (attributes+=DataModelFieldAttribute)*;
+    name=RegularIDWithTypeNames (attributes+=DataModelFieldAttribute)*;
 
 // function
 FunctionDecl:
