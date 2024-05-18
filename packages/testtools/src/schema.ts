@@ -62,7 +62,7 @@ export function installPackage(pkg: string, dev = false) {
 }
 
 export function normalizePath(p: string) {
-    return p ? p.split(path.sep).join(path.posix.sep) : p;
+    return path.normalize(p);
 }
 
 export function getWorkspaceRoot(start: string) {
@@ -172,7 +172,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     process.chdir(projectDir);
 
     // copy project structure from scaffold (prepared by test-setup.ts)
-    fs.cpSync(path.normalize(path.join(workspaceRoot, '.test/scaffold')), path.normalize(projectDir), { recursive: true, force: true });
+    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectDir, { recursive: true, force: true });
 
     // install local deps
     const localInstallDeps = [
