@@ -74,7 +74,7 @@ NullExpr:
     value='null';
 
 ReferenceExpr:
-    target=[ReferenceTarget:RegularID] ('(' ReferenceArgList ')')?;
+    target=[ReferenceTarget:RegularIDWithTypeNames] ('(' ReferenceArgList ')')?;
 
 fragment ReferenceArgList:
     args+=ReferenceArg (',' args+=ReferenceArg)*;

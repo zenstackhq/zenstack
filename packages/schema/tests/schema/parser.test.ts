@@ -87,6 +87,24 @@ describe('Parsing Tests', () => {
         expect((attrVal.value as ReferenceExpr).target.ref?.name).toBe('USER');
     });
 
+    it('enum fields named with type name', async () => {
+        const content = `
+            enum MyEnum {
+                DateTime
+                Int
+                String
+            }
+
+            model User {
+                id String @id
+                role MyEnum @default(DateTime)
+
+                @@allow('all', role == String)
+            }
+        `;
+        await loadModel(content);
+    });
+
     it('enum dup name resolve', async () => {
         const content = `
             datasource db {
