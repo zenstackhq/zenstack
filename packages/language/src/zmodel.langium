@@ -74,7 +74,7 @@ NullExpr:
     value='null';
 
 ReferenceExpr:
-    target=[ReferenceTarget:RegularID] ('(' ReferenceArgList ')')?;
+    target=[ReferenceTarget:RegularIDWithTypeNames] ('(' ReferenceArgList ')')?;
 
 fragment ReferenceArgList:
     args+=ReferenceArg (',' args+=ReferenceArg)*;
@@ -209,7 +209,7 @@ Enum:
 
 EnumField:
     (comments+=TRIPLE_SLASH_COMMENT)*
-    name=RegularID (attributes+=DataModelFieldAttribute)*;
+    name=RegularIDWithTypeNames (attributes+=DataModelFieldAttribute)*;
 
 // function
 FunctionDecl:
