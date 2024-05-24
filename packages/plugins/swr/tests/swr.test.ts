@@ -106,13 +106,11 @@ ${sharedModel}
         const { name: projectDir } = tmp.dirSync();
         fs.writeFileSync(path.join(projectDir, 'swr'), 'hello');
 
-        const swrPath = normalizePath(path.join(__dirname, '..', 'dist'));
-
         await expect(
             loadSchema(
                 `
         plugin swr {
-            provider = '${swrPath}'
+            provider = '${normalizePath(path.resolve(__dirname, '../dist'))}'
             output = '$projectRoot/swr'
         }
     
@@ -124,7 +122,7 @@ ${sharedModel}
             password String @omit
         }        
         `,
-                { pushDb: false, projectDir, extraDependencies: [`${swrPath}`] }
+                { pushDb: false, projectDir, extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`] }
             )
         ).rejects.toThrow('already exists and is not a directory');
     });
