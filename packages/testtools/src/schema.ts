@@ -61,8 +61,14 @@ export function installPackage(pkg: string, dev = false) {
     run(`npm install ${dev ? '-D' : ''} --no-audit --no-fund ${pkg}`);
 }
 
+/**
+ * Normalizes a path for use within zenstack model files, that is: replaces the default path separators for the OS with POSIX path separators.
+ * 
+ * @param p A filesystem path
+ * @returns The filesystem path adjusted to posix path separators (`/`)
+ */
 export function normalizePath(p: string) {
-    return path.normalize(p);
+    return p ? p.split(path.sep).join(path.posix.sep) : p;
 }
 
 export function getWorkspaceRoot(start: string) {
@@ -163,7 +169,6 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     const workspaceRoot = getWorkspaceRoot(__dirname);
-
     if (!workspaceRoot) {
         throw new Error('Could not find workspace root');
     }
