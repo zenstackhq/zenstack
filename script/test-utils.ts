@@ -43,7 +43,7 @@ function execCmdSync(cmd: string, path: string) {
   }
 }
 
-export function initProjectDir(projectDir: string, packageJsonContents: string, offline: boolean = true) {
+export function initProjectDir(projectDir: string, packageJsonContents: string, offline = true) {
   if (!fs.existsSync(projectDir)) {
     fs.mkdirSync(projectDir, { recursive: true });
   }

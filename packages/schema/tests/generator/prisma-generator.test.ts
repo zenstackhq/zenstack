@@ -18,7 +18,7 @@ describe('Prisma generator test', () => {
 
     beforeAll(async () => {
         packageJsonContents = preparePackageJson({
-            "prisma": "^5.0.0"
+            'prisma': '^5.0.0'
         });
     })
 
