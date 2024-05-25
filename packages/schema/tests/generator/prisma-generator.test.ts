@@ -6,13 +6,22 @@ import path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator';
-import { execSync } from '../../src/utils/exec-utils';
 import { loadModel } from '../utils';
+import { preparePackageJson, initProjectDir } from '../../../../script/test-utils';
 
 tmp.setGracefulCleanup();
 
 describe('Prisma generator test', () => {
     let origDir: string;
+
+    let packageJsonContents: string;
+
+    beforeAll(async () => {
+        packageJsonContents = preparePackageJson({
+            "prisma": "^5.0.0"
+        });
+        console.log(`Got my packageJsonContents`);
+    })
 
     beforeEach(() => {
         origDir = process.cwd();
@@ -20,8 +29,7 @@ describe('Prisma generator test', () => {
         console.log(`Project dir: ${r.name}`);
         process.chdir(r.name);
 
-        execSync('npm init -y', { stdio: 'ignore' });
-        execSync('npm install prisma');
+        initProjectDir(r.name, packageJsonContents);
     });
 
     afterEach(() => {

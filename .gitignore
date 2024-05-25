@@ -8,3 +8,6 @@ dist
 coverage
 .build
 .test
+
+
+/.pnpm-test-store
