@@ -20,7 +20,6 @@ describe('Prisma generator test', () => {
         packageJsonContents = preparePackageJson({
             "prisma": "^5.0.0"
         });
-        console.log(`Got my packageJsonContents`);
     })
 
     beforeEach(() => {
