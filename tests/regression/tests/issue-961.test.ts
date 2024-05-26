@@ -35,7 +35,7 @@ describe('Regression: issue 961', () => {
     `;
 
     it('deleteMany', async () => {
-        const { prisma, enhance } = await loadSchema(schema, { logPrismaQuery: true });
+        const { prisma, enhance } = await loadSchema(schema);
 
         const user = await prisma.user.create({
             data: {

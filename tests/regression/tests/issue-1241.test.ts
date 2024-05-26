@@ -38,8 +38,7 @@ describe('issue 1241', () => {
                 
                     @@allow('all', true)
                 }
-                `,
-            { logPrismaQuery: true }
+                `
         );
 
         const user = await prisma.user.create({

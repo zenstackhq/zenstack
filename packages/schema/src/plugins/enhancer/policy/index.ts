@@ -4,5 +4,5 @@ import type { Project } from 'ts-morph';
 import { PolicyGenerator } from './policy-guard-generator';
 
 export async function generate(model: Model, options: PluginOptions, project: Project, outDir: string) {
-    return new PolicyGenerator().generate(project, model, options, outDir);
+    return new PolicyGenerator(options).generate(project, model, outDir);
 }

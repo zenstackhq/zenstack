@@ -19,8 +19,7 @@ describe('issue 1080', () => {
             
                 @@allow('all', true)
             }
-            `,
-            { logPrismaQuery: true }
+            `
         );
 
         const db = enhance();

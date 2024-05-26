@@ -531,8 +531,7 @@ model tenant {
 model Equipment extends BaseEntityWithTenant {
     a String
 }
-`,
-            { logPrismaQuery: true }
+`
         );
 
         await prisma.tenant.create({

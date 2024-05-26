@@ -21,7 +21,7 @@ describe('prisma omit', () => {
               @@allow('all', level > 1)
             }
             `,
-            { previewFeatures: ['omitApi'], logPrismaQuery: true }
+            { previewFeatures: ['omitApi'] }
         );
 
         await prisma.user.create({

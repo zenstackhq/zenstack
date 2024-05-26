@@ -36,18 +36,20 @@ model M {
 
         const { policy } = await loadSchema(model);
 
-        expect(policy.guard.m.read({ user: undefined })).toEqual(FALSE);
-        expect(policy.guard.m.read({ user: { id: '1' } })).toEqual(TRUE);
+        const m = policy.policy.m.modelLevel;
 
-        expect(policy.guard.m.create({ user: undefined })).toEqual(FALSE);
-        expect(policy.guard.m.create({ user: { id: '1' } })).toEqual(FALSE);
-        expect(policy.guard.m.create({ user: { id: '1', value: 0 } })).toEqual(FALSE);
-        expect(policy.guard.m.create({ user: { id: '1', value: 1 } })).toEqual(TRUE);
+        expect((m.read.guard as Function)({ user: undefined })).toEqual(FALSE);
+        expect((m.read.guard as Function)({ user: { id: '1' } })).toEqual(TRUE);
 
-        expect(policy.guard.m.update({ user: undefined })).toEqual(FALSE);
-        expect(policy.guard.m.update({ user: { id: '1' } })).toEqual(FALSE);
-        expect(policy.guard.m.update({ user: { id: '1', value: 0 } })).toEqual(FALSE);
-        expect(policy.guard.m.update({ user: { id: '1', value: 1 } })).toEqual(TRUE);
+        expect((m.create.guard as Function)({ user: undefined })).toEqual(FALSE);
+        expect((m.create.guard as Function)({ user: { id: '1' } })).toEqual(FALSE);
+        expect((m.create.guard as Function)({ user: { id: '1', value: 0 } })).toEqual(FALSE);
+        expect((m.create.guard as Function)({ user: { id: '1', value: 1 } })).toEqual(TRUE);
+
+        expect((m.update.guard as Function)({ user: undefined })).toEqual(FALSE);
+        expect((m.update.guard as Function)({ user: { id: '1' } })).toEqual(FALSE);
+        expect((m.update.guard as Function)({ user: { id: '1', value: 0 } })).toEqual(FALSE);
+        expect((m.update.guard as Function)({ user: { id: '1', value: 1 } })).toEqual(TRUE);
     });
 
     it('no short-circuit', async () => {
@@ -66,13 +68,14 @@ model M {
 
         const { policy } = await loadSchema(model);
 
-        expect(policy.guard.m.read({ user: undefined })).toEqual(
+        expect((policy.policy.m.modelLevel.read.guard as Function)({ user: undefined })).toEqual(
             expect.objectContaining({ AND: [{ OR: [] }, { value: { gt: 0 } }] })
         );
-        expect(policy.guard.m.read({ user: { id: '1' } })).toEqual(
+        expect((policy.policy.m.modelLevel.read.guard as Function)({ user: { id: '1' } })).toEqual(
             expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 0 } }] })
         );
     });
+
     it('auth() multiple level member access', async () => {
         const model = `
          model User {
@@ -97,12 +100,12 @@ model M {
                 `;
 
         const { policy } = await loadSchema(model);
-        expect(policy.guard.task.read({ user: { cart: { tasks: [{ id: 1 }] } } })).toEqual(
-            expect.objectContaining({ AND: [{ OR: [] }, { value: { gt: 10 } }] })
-        );
+        expect(
+            (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 1 }] } } })
+        ).toEqual(expect.objectContaining({ AND: [{ OR: [] }, { value: { gt: 10 } }] }));
 
-        expect(policy.guard.task.read({ user: { cart: { tasks: [{ id: 123 }] } } })).toEqual(
-            expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 10 } }] })
-        );
+        expect(
+            (policy.policy.task.modelLevel.read.guard as Function)({ user: { cart: { tasks: [{ id: 123 }] } } })
+        ).toEqual(expect.objectContaining({ AND: [{ AND: [] }, { value: { gt: 10 } }] }));
     });
 });

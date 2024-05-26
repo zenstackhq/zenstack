@@ -5,24 +5,14 @@ import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
-import {
-    CrudFailureReason,
-    FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
-    FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX,
-    FIELD_LEVEL_READ_CHECKER_PREFIX,
-    FIELD_LEVEL_READ_CHECKER_SELECTOR,
-    FIELD_LEVEL_UPDATE_GUARD_PREFIX,
-    HAS_FIELD_LEVEL_POLICY_FLAG,
-    PRE_UPDATE_VALUE_SELECTOR,
-    PrismaErrorCode,
-} from '../../constants';
+import { CrudFailureReason, PrismaErrorCode } from '../../constants';
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
 import { AuthUser, CrudContract, DbClientContract, PolicyCrudKind, PolicyOperationKind } from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
-import type { CheckerFunc, InputCheckFunc, PolicyDef, ReadFieldCheckFunc, ZodSchemas } from '../types';
+import type { CheckerFunc, ModelPolicyDef, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
 
 /**
@@ -230,23 +220,32 @@ export class PolicyUtil extends QueryUtils {
 
     //#region Auth guard
 
-    private readonly FULLY_OPEN_AUTH_GUARD = {
-        create: true,
-        read: true,
-        update: true,
-        delete: true,
-        postUpdate: true,
-        create_input: true,
-        update_input: true,
+    private readonly FULL_OPEN_MODEL_POLICY: ModelPolicyDef = {
+        modelLevel: {
+            read: { guard: true },
+            create: { guard: true, inputChecker: true },
+            update: { guard: true },
+            delete: { guard: true },
+            postUpdate: { guard: true },
+        },
     };
 
-    private getModelAuthGuard(model: string): PolicyDef['guard']['string'] {
+    private getModelPolicyDef(model: string): ModelPolicyDef {
         if (this.options.kinds && !this.options.kinds.includes('policy')) {
             // policy enhancement not enabled, return an fully open guard
-            return this.FULLY_OPEN_AUTH_GUARD;
-        } else {
-            return this.policy.guard[lowerCaseFirst(model)];
+            return this.FULL_OPEN_MODEL_POLICY;
         }
+
+        const def = this.policy.policy[lowerCaseFirst(model)];
+        if (!def) {
+            throw this.unknownError(`unable to load policy guard for ${model}`);
+        }
+        return def;
+    }
+
+    private getModelGuardForOperation(model: string, operation: PolicyOperationKind): PolicyFunc | boolean {
+        const def = this.getModelPolicyDef(model);
+        return def.modelLevel[operation].guard ?? true;
     }
 
     /**
@@ -256,20 +255,15 @@ export class PolicyUtil extends QueryUtils {
      * otherwise returns a guard object
      */
     getAuthGuard(db: CrudContract, model: string, operation: PolicyOperationKind, preValue?: any) {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
+        const guard = this.getModelGuardForOperation(model, operation);
+
+        // constant guard
+        if (typeof guard === 'boolean') {
+            return this.reduce(guard);
         }
 
-        const provider = guard[operation];
-        if (typeof provider === 'boolean') {
-            return this.reduce(provider);
-        }
-
-        if (!provider) {
-            throw this.unknownError(`unable to load authorization guard for ${model}`);
-        }
-        const r = provider({ user: this.user, preValue }, db);
+        // invoke guard function
+        const r = guard({ user: this.user, preValue }, db);
         return this.reduce(r);
     }
 
@@ -277,19 +271,19 @@ export class PolicyUtil extends QueryUtils {
      * Get field-level read auth guard that overrides the model-level
      */
     getFieldOverrideReadAuthGuard(db: CrudContract, model: string, field: string) {
-        const guard = this.requireGuard(model);
+        const def = this.getModelPolicyDef(model);
+        const guard = def.fieldLevel?.read?.overrideGuard?.[field];
 
-        const provider = guard[`${FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${field}`];
-        if (provider === undefined) {
+        if (guard === undefined) {
             // field access is denied by default in override mode
             return this.makeFalse();
         }
 
-        if (typeof provider === 'boolean') {
-            return this.reduce(provider);
+        if (typeof guard === 'boolean') {
+            return this.reduce(guard);
         }
 
-        const r = provider({ user: this.user }, db);
+        const r = guard({ user: this.user }, db);
         return this.reduce(r);
     }
 
@@ -297,19 +291,19 @@ export class PolicyUtil extends QueryUtils {
      * Get field-level update auth guard
      */
     getFieldUpdateAuthGuard(db: CrudContract, model: string, field: string) {
-        const guard = this.requireGuard(model);
+        const def = this.getModelPolicyDef(model);
+        const guard = def.fieldLevel?.update?.guard?.[field];
 
-        const provider = guard[`${FIELD_LEVEL_UPDATE_GUARD_PREFIX}${field}`];
-        if (provider === undefined) {
+        if (guard === undefined) {
             // field access is allowed by default
             return this.makeTrue();
         }
 
-        if (typeof provider === 'boolean') {
-            return this.reduce(provider);
+        if (typeof guard === 'boolean') {
+            return this.reduce(guard);
         }
 
-        const r = provider({ user: this.user }, db);
+        const r = guard({ user: this.user }, db);
         return this.reduce(r);
     }
 
@@ -317,19 +311,19 @@ export class PolicyUtil extends QueryUtils {
      * Get field-level update auth guard that overrides the model-level
      */
     getFieldOverrideUpdateAuthGuard(db: CrudContract, model: string, field: string) {
-        const guard = this.requireGuard(model);
+        const def = this.getModelPolicyDef(model);
+        const guard = def.fieldLevel?.update?.overrideGuard?.[field];
 
-        const provider = guard[`${FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${field}`];
-        if (provider === undefined) {
+        if (guard === undefined) {
             // field access is denied by default in override mode
             return this.makeFalse();
         }
 
-        if (typeof provider === 'boolean') {
-            return this.reduce(provider);
+        if (typeof guard === 'boolean') {
+            return this.reduce(guard);
         }
 
-        const r = provider({ user: this.user }, db);
+        const r = guard({ user: this.user }, db);
         return this.reduce(r);
     }
 
@@ -337,27 +331,20 @@ export class PolicyUtil extends QueryUtils {
      * Checks if the given model has a policy guard for the given operation.
      */
     hasAuthGuard(model: string, operation: PolicyOperationKind) {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            return false;
-        }
-        const provider = guard[operation];
-        return typeof provider !== 'boolean' || provider !== true;
+        const guard = this.getModelGuardForOperation(model, operation);
+        return typeof guard !== 'boolean' || guard !== true;
     }
 
     /**
      * Checks if the given model has any field-level override policy guard for the given operation.
      */
     hasOverrideAuthGuard(model: string, operation: PolicyOperationKind) {
-        const guard = this.requireGuard(model);
-        switch (operation) {
-            case 'read':
-                return Object.keys(guard).some((k) => k.startsWith(FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX));
-            case 'update':
-                return Object.keys(guard).some((k) => k.startsWith(FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX));
-            default:
-                return false;
+        if (operation !== 'read' && operation !== 'update') {
+            return false;
         }
+        const def = this.getModelPolicyDef(model);
+        const guard = def.fieldLevel?.[operation]?.overrideGuard;
+        return guard && Object.keys(guard).length > 0;
     }
 
     /**
@@ -366,22 +353,18 @@ export class PolicyUtil extends QueryUtils {
      * @returns boolean if static analysis is enough to determine the result, undefined if not
      */
     checkInputGuard(model: string, args: any, operation: 'create'): boolean | undefined {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
+        const def = this.getModelPolicyDef(model);
+
+        const guard = def.modelLevel[operation].inputChecker;
+        if (guard === undefined) {
             return undefined;
         }
 
-        const provider: InputCheckFunc | boolean | undefined = guard[`${operation}_input` as const];
-
-        if (typeof provider === 'boolean') {
-            return provider;
+        if (typeof guard === 'boolean') {
+            return guard;
         }
 
-        if (!provider) {
-            return undefined;
-        }
-
-        return provider(args, { user: this.user });
+        return guard(args, { user: this.user });
     }
 
     /**
@@ -569,34 +552,29 @@ export class PolicyUtil extends QueryUtils {
      * Gets checker constraints for the given model and operation.
      */
     getCheckerConstraint(model: string, operation: PolicyCrudKind): ReturnType<CheckerFunc> | boolean {
-        const checker = this.getModelChecker(model);
-        const provider = checker[operation];
-        if (typeof provider === 'boolean') {
-            return provider;
+        if (this.options.kinds && !this.options.kinds.includes('policy')) {
+            // policy enhancement not enabled, return a constant true checker result
+            return true;
         }
 
-        if (typeof provider !== 'function') {
+        const def = this.getModelPolicyDef(model);
+        const checker = def.modelLevel[operation].permissionChecker;
+        if (checker === undefined) {
+            throw new Error(
+                `Generated permission checkers not found. Please make sure the "generatePermissionChecker" option is set to true in the "@core/enhancer" plugin.`
+            );
+        }
+
+        if (typeof checker === 'boolean') {
+            return checker;
+        }
+
+        if (typeof checker !== 'function') {
             throw this.unknownError(`invalid ${operation} checker function for ${model}`);
         }
 
         // call checker function
-        return provider({ user: this.user });
-    }
-
-    private getModelChecker(model: string) {
-        if (this.options.kinds && !this.options.kinds.includes('policy')) {
-            // policy enhancement not enabled, return a constant true checker
-            return { create: true, read: true, update: true, delete: true };
-        } else {
-            const result = this.options.policy.checker?.[lowerCaseFirst(model)];
-            if (!result) {
-                // checker generation not enabled, return constant false checker
-                throw new Error(
-                    `Generated permission checkers not found. Please make sure the "generatePermissionChecker" option is set to true in the "@core/enhancer" plugin.`
-                );
-            }
-            return result;
-        }
+        return checker({ user: this.user });
     }
 
     //#endregion
@@ -974,7 +952,7 @@ export class PolicyUtil extends QueryUtils {
 
         if (this.hasFieldLevelPolicy(model)) {
             // recursively inject selection for fields needed for field-level read checks
-            const readFieldSelect = this.getReadFieldSelect(model);
+            const readFieldSelect = this.getFieldReadCheckSelector(model);
             if (readFieldSelect) {
                 this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
             }
@@ -1091,32 +1069,24 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Gets field selection for fetching pre-update entity values for the given model.
      */
-    getPreValueSelect(model: string): object | undefined {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
-        }
-        return guard[PRE_UPDATE_VALUE_SELECTOR];
+    getPreValueSelect(model: string) {
+        const def = this.getModelPolicyDef(model);
+        return def.modelLevel.postUpdate.preUpdateSelector;
     }
 
-    private getReadFieldSelect(model: string): object | undefined {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
-        }
-        return guard[FIELD_LEVEL_READ_CHECKER_SELECTOR];
+    private getFieldReadCheckSelector(model: string) {
+        const def = this.getModelPolicyDef(model);
+        return def.fieldLevel?.read?.selector;
     }
 
     private checkReadField(model: string, field: string, entity: any) {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
-        }
-        const func = guard[`${FIELD_LEVEL_READ_CHECKER_PREFIX}${field}`] as ReadFieldCheckFunc | undefined;
-        if (!func) {
+        const def = this.getModelPolicyDef(model);
+        const guard = def.fieldLevel?.read?.checker?.[field];
+
+        if (guard === undefined) {
             return true;
         } else {
-            return func(entity, { user: this.user });
+            return guard(entity, { user: this.user });
         }
     }
 
@@ -1125,11 +1095,8 @@ export class PolicyUtil extends QueryUtils {
     }
 
     private hasFieldLevelPolicy(model: string) {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
-        }
-        return !!guard[HAS_FIELD_LEVEL_POLICY_FLAG];
+        const def = this.getModelPolicyDef(model);
+        return !!def.fieldLevel?.read?.checker;
     }
 
     /**
@@ -1303,14 +1270,6 @@ export class PolicyUtil extends QueryUtils {
             // insert an AND clause
             where.AND = [extra];
         }
-    }
-
-    private requireGuard(model: string) {
-        const guard = this.getModelAuthGuard(model);
-        if (!guard) {
-            throw this.unknownError(`unable to load policy guard for ${model}`);
-        }
-        return guard;
     }
 
     /**

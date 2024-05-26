@@ -83,7 +83,7 @@ describe('issue 1435', () => {
               reference String @id
             }
             `,
-                { provider: 'postgresql', dbUrl, logPrismaQuery: true }
+                { provider: 'postgresql', dbUrl }
             );
 
             prisma = r.prisma;

@@ -37,8 +37,7 @@ describe('issue 1014', () => {
                 title String @allow('read', true, true)
                 content String
             }
-            `,
-            { logPrismaQuery: true }
+            `
         );
 
         const db = enhance();

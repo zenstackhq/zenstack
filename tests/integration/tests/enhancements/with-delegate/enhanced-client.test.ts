@@ -6,7 +6,7 @@ describe('Polymorphism Test', () => {
     const schema = POLYMORPHIC_SCHEMA;
 
     async function setup() {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
         const db = enhance();
 
         const user = await db.user.create({ data: { id: 1 } });
@@ -21,7 +21,7 @@ describe('Polymorphism Test', () => {
     }
 
     it('create hierarchy', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
         const db = enhance();
 
         const user = await db.user.create({ data: { id: 1 } });
@@ -100,7 +100,7 @@ describe('Polymorphism Test', () => {
                 name String
             }
             `,
-            { logPrismaQuery: true, enhancements: ['delegate'] }
+            { enhancements: ['delegate'] }
         );
 
         const db = enhance();
@@ -109,7 +109,7 @@ describe('Polymorphism Test', () => {
     });
 
     it('create with nesting', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
         const db = enhance();
 
         // nested create a relation from base
@@ -122,7 +122,7 @@ describe('Polymorphism Test', () => {
     });
 
     it('create many polymorphic model', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
         const db = enhance();
 
         await expect(
@@ -140,7 +140,7 @@ describe('Polymorphism Test', () => {
     });
 
     it('create many polymorphic relation', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
         const db = enhance();
 
         const video1 = await db.ratedVideo.create({
@@ -898,7 +898,7 @@ describe('Polymorphism Test', () => {
     });
 
     it('deleteMany', async () => {
-        const { enhance } = await loadSchema(schema, { logPrismaQuery: true, enhancements: ['delegate'] });
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
         const db = enhance();
 
         const user = await db.user.create({ data: { id: 1 } });

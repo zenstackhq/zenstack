@@ -110,8 +110,7 @@ describe('With Policy: post update', () => {
             @@allow('create,read', true)
             @@allow('update', x > 0 && startsWith(future().value, 'hello'))
         }
-        `,
-            { logPrismaQuery: true }
+        `
         );
 
         const db = enhance();
