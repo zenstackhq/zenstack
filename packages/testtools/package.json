@@ -11,7 +11,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "lint": "eslint src --ext ts",
-    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist && pnpm pack dist --pack-destination '../../../.build'",
+    "build": "pnpm lint && pnpm clean && tsc && copyfiles ./package.json ./LICENSE ./README.md dist && pnpm pack dist --pack-destination ../../../.build",
     "watch": "tsc --watch",
     "prepublishOnly": "pnpm build"
   },
