@@ -3,6 +3,7 @@
 import type { Model } from '@zenstackhq/language/ast';
 import {
     DEFAULT_RUNTIME_LOAD_PATH,
+    PolicyDef,
     type AuthUser,
     type CrudContract,
     type EnhancementKind,
@@ -43,14 +44,12 @@ export type FullDbClientContract = CrudContract & {
 
 export function run(cmd: string, env?: Record<string, string>, cwd?: string) {
     try {
-        const start = Date.now();
         execSync(cmd, {
             stdio: 'pipe',
             encoding: 'utf-8',
             env: { ...process.env, DO_NOT_TRACK: '1', ...env },
             cwd,
         });
-        console.log('Execution took', Date.now() - start, 'ms', '-', cmd);
     } catch (err) {
         console.error('Command failed:', cmd, err);
         throw err;
@@ -299,7 +298,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             projectDir,
             enhance: undefined as any,
             enhanceRaw: undefined as any,
-            policy: undefined as any,
+            policy: undefined as unknown as PolicyDef,
             modelMeta: undefined as any,
             zodSchemas: undefined as any,
         };
@@ -311,7 +310,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
             : path.join(projectDir, opt.output)
         : path.join(projectDir, 'node_modules', DEFAULT_RUNTIME_LOAD_PATH);
 
-    const policy = require(path.join(outputPath, 'policy')).default;
+    const policy: PolicyDef = require(path.join(outputPath, 'policy')).default;
     const modelMeta = require(path.join(outputPath, 'model-meta')).default;
 
     let zodSchemas: any;

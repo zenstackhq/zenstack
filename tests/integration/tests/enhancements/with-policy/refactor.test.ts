@@ -26,7 +26,6 @@ describe('With Policy: refactor tests', () => {
             {
                 provider: 'postgresql',
                 dbUrl,
-                logPrismaQuery: true,
             }
         );
         getDb = enhance;
