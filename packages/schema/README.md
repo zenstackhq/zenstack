@@ -12,7 +12,6 @@ This VS Code extension provides code editing helpers for authoring ZenStack's sc
 
     ```json
     "files.associations": {
-        ...
         "*.zmodel": "zmodel"
     },
     ```
