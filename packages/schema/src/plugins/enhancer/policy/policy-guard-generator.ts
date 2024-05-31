@@ -34,6 +34,7 @@ import {
     generateNormalizedAuthRef,
     generateQueryGuardFunction,
     generateSelectForRules,
+    generateTypeScriptCheckerFunction,
     getPolicyExpressions,
     isEnumReferenced,
 } from './utils';
@@ -171,15 +172,16 @@ export class PolicyGenerator {
 
     // writes `inputChecker: [funcName]` for a given model
     private writeCreateInputChecker(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
-        const allows = getPolicyExpressions(model, 'allow', 'create');
-        const denies = getPolicyExpressions(model, 'deny', 'create');
-        if (this.canCheckCreateBasedOnInput(model, allows, denies)) {
-            const inputCheckFunc = this.generateCreateInputCheckerFunction(model, allows, denies, sourceFile);
+        if (this.canCheckCreateBasedOnInput(model)) {
+            const inputCheckFunc = this.generateCreateInputCheckerFunction(model, sourceFile);
             writer.write(`inputChecker: ${inputCheckFunc.getName()!},`);
         }
     }
 
-    private canCheckCreateBasedOnInput(model: DataModel, allows: Expression[], denies: Expression[]) {
+    private canCheckCreateBasedOnInput(model: DataModel) {
+        const allows = getPolicyExpressions(model, 'allow', 'create', false, 'all');
+        const denies = getPolicyExpressions(model, 'deny', 'create', false, 'all');
+
         return [...allows, ...denies].every((rule) => {
             return streamAst(rule).every((expr) => {
                 if (isThisExpr(expr)) {
@@ -216,13 +218,10 @@ export class PolicyGenerator {
     }
 
     // generates a function for checking "create" input
-    private generateCreateInputCheckerFunction(
-        model: DataModel,
-        allows: Expression[],
-        denies: Expression[],
-        sourceFile: SourceFile
-    ) {
+    private generateCreateInputCheckerFunction(model: DataModel, sourceFile: SourceFile) {
         const statements: (string | WriterFunction)[] = [];
+        const allows = getPolicyExpressions(model, 'allow', 'create');
+        const denies = getPolicyExpressions(model, 'deny', 'create');
 
         generateNormalizedAuthRef(model, allows, denies, statements);
 
@@ -348,6 +347,30 @@ export class PolicyGenerator {
         if (kind !== 'postUpdate') {
             this.writePermissionChecker(model, kind, policies, allows, denies, writer, sourceFile);
         }
+
+        this.writeAdditionalChecker(model, kind, writer, sourceFile);
+    }
+
+    private writeAdditionalChecker(
+        model: DataModel,
+        kind: PolicyOperationKind,
+        writer: CodeBlockWriter,
+        sourceFile: SourceFile
+    ) {
+        const allows = getPolicyExpressions(model, 'allow', kind, false, 'onlyCrossModelComparison');
+        const denies = getPolicyExpressions(model, 'deny', kind, false, 'onlyCrossModelComparison');
+
+        if (allows.length === 0 && denies.length === 0) {
+            return;
+        }
+
+        const additionalFunc = generateTypeScriptCheckerFunction(sourceFile, model, kind, allows, denies);
+        writer.write(`additionalChecker: ${additionalFunc.getName()!},`);
+
+        const additionalSelector = generateSelectForRules([...allows, ...denies], false, kind !== 'postUpdate');
+        if (additionalSelector) {
+            writer.write(`additionalCheckerSelector: ${JSON.stringify(additionalSelector)},`);
+        }
     }
 
     // writes `guard: ...` for a given policy operation kind
@@ -413,11 +436,10 @@ export class PolicyGenerator {
             // post-update counterpart
             if (getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
                 writer.write(`permissionChecker: false,`);
-                return;
             } else {
                 writer.write(`permissionChecker: true,`);
-                return;
             }
+            return;
         }
 
         const guardFunc = this.generatePermissionCheckerFunction(model, kind, allows, denies, sourceFile);

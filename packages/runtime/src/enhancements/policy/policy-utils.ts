@@ -726,16 +726,26 @@ export class PolicyUtil extends QueryUtils {
         // Zod schema is to be checked for "create" and "postUpdate"
         const schema = ['create', 'postUpdate'].includes(operation) ? this.getZodSchema(model) : undefined;
 
-        if (this.isTrue(guard) && !schema) {
+        const additionalChecker = this.getAdditionalChecker(model, operation);
+
+        if (this.isTrue(guard) && !schema && !additionalChecker) {
             // unconditionally allowed
             return;
         }
 
-        const select = schema
+        const additionalCheckerSelector = this.getAdditionalCheckerSelector(model, operation);
+        let select = schema
             ? // need to validate against schema, need to fetch all fields
               undefined
             : // only fetch id fields
               this.makeIdSelection(model);
+
+        if (additionalCheckerSelector) {
+            if (!select) {
+                select = this.makeAllScalarFieldSelect(model);
+            }
+            select = { ...select, ...additionalCheckerSelector };
+        }
 
         let where = this.clone(uniqueFilter);
         // query args may have be of combined-id form, need to flatten it to call findFirst
@@ -758,6 +768,20 @@ export class PolicyUtil extends QueryUtils {
             );
         }
 
+        if (additionalChecker) {
+            if (this.logger.enabled('info')) {
+                this.logger.info(`[policy] running additional checker on ${model} for ${operation}`);
+            }
+            if (!additionalChecker({ user: this.user, preValue }, result)) {
+                throw this.deniedByPolicy(
+                    model,
+                    operation,
+                    `entity ${formatObject(uniqueFilter, false)} failed policy check`,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
+                );
+            }
+        }
+
         if (schema) {
             // TODO: push down schema check to the database
             const parseResult = schema.safeParse(result);
@@ -775,6 +799,16 @@ export class PolicyUtil extends QueryUtils {
                 );
             }
         }
+    }
+
+    getAdditionalCheckerSelector(model: string, operation: PolicyOperationKind) {
+        const def = this.getModelPolicyDef(model);
+        return def.modelLevel[operation].additionalCheckerSelector;
+    }
+
+    getAdditionalChecker(model: string, operation: PolicyOperationKind) {
+        const def = this.getModelPolicyDef(model);
+        return def.modelLevel[operation].additionalChecker;
     }
 
     private getFieldReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
@@ -934,8 +968,8 @@ export class PolicyUtil extends QueryUtils {
     }
 
     /**
-     * Injects field selection needed for checking field-level read policy into query args.
-     * @returns
+     * Injects field selection needed for checking field-level read policy check and evaluating
+     * additional checker into query args.
      */
     injectReadCheckSelect(model: string, args: any) {
         // we need to recurse into relation fields before injecting the current level, because
@@ -956,6 +990,11 @@ export class PolicyUtil extends QueryUtils {
             if (readFieldSelect) {
                 this.doInjectReadCheckSelect(model, args, { select: readFieldSelect });
             }
+        }
+
+        const additionalCheckerSelector = this.getAdditionalCheckerSelector(model, 'read');
+        if (additionalCheckerSelector) {
+            this.doInjectReadCheckSelect(model, args, { select: additionalCheckerSelector });
         }
     }
 
@@ -1119,7 +1158,7 @@ export class PolicyUtil extends QueryUtils {
         // preserve the original data as it may be needed for checking field-level readability,
         // while the "data" will be manipulated during traversal (deleting unreadable fields)
         const origData = this.clone(data);
-        this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
+        return this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
     }
 
     private doPostProcessForRead(
@@ -1131,12 +1170,46 @@ export class PolicyUtil extends QueryUtils {
         path = ''
     ) {
         if (data === null || data === undefined) {
-            return;
+            return data;
         }
 
-        for (const [entityData, entityFullData] of zip(data, fullData)) {
+        let filteredData = data;
+        let filteredFullData = fullData;
+
+        const additionalChecker = this.getAdditionalChecker(model, 'read');
+        if (additionalChecker) {
+            if (Array.isArray(data)) {
+                filteredData = [];
+                filteredFullData = [];
+                for (const [entityData, entityFullData] of zip(data, fullData)) {
+                    if (!additionalChecker({ user: this.user }, entityData)) {
+                        if (this.shouldLogQuery) {
+                            this.logger.info(
+                                `[policy] dropping ${model} entity${
+                                    path ? ' at ' + path : ''
+                                } due to additional checker`
+                            );
+                        }
+                    } else {
+                        filteredData.push(entityData);
+                        filteredFullData.push(entityFullData);
+                    }
+                }
+            } else {
+                if (!additionalChecker({ user: this.user }, data)) {
+                    if (this.shouldLogQuery) {
+                        this.logger.info(
+                            `[policy] dropping ${model} entity${path ? ' at ' + path : ''} due to additional checker`
+                        );
+                    }
+                    return null;
+                }
+            }
+        }
+
+        for (const [entityData, entityFullData] of zip(filteredData, filteredFullData)) {
             if (typeof entityData !== 'object' || !entityData) {
-                return;
+                continue;
             }
 
             for (const [field, fieldData] of Object.entries(entityData)) {
@@ -1192,7 +1265,7 @@ export class PolicyUtil extends QueryUtils {
                 if (fieldInfo.isDataModel) {
                     // recurse into nested fields
                     const nextArgs = (queryArgs?.select ?? queryArgs?.include)?.[field];
-                    this.doPostProcessForRead(
+                    const nestedResult = this.doPostProcessForRead(
                         fieldData,
                         fieldInfo.type,
                         entityFullData[field],
@@ -1200,9 +1273,16 @@ export class PolicyUtil extends QueryUtils {
                         this.hasFieldLevelPolicy(fieldInfo.type),
                         path ? path + '.' + field : field
                     );
+                    if (nestedResult === undefined) {
+                        delete entityData[field];
+                    } else {
+                        entityData[field] = nestedResult;
+                    }
                 }
             }
         }
+
+        return filteredData;
     }
 
     /**

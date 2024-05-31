@@ -915,6 +915,10 @@ describe('Policy: field-level policy', () => {
                 data: { models: { connect: { id: 1 } } },
             })
         ).toBeRejectedByPolicy();
+        await prisma.user.update({
+            where: { id: 1 },
+            data: { models: { connect: { id: 1 } } },
+        });
         await expect(
             db.user.update({
                 where: { id: 1 },
@@ -1015,6 +1019,10 @@ describe('Policy: field-level policy', () => {
                 data: { model: { connect: { id: 1 } } },
             })
         ).toBeRejectedByPolicy();
+        await prisma.user.update({
+            where: { id: 1 },
+            data: { model: { connect: { id: 1 } } },
+        });
         await expect(
             db.user.update({
                 where: { id: 1 },

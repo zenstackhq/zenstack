@@ -86,6 +86,11 @@ export type InputCheckFunc = (args: any, context: QueryContext) => boolean;
 export type ReadFieldCheckFunc = (input: any, context: QueryContext) => boolean;
 
 /**
+ * Additional checker function for checking polices outside of Prisma
+ */
+export type AdditionalCheckerFunc = (input: any, context: QueryContext) => boolean;
+
+/**
  * Policy definition
  */
 export type PolicyDef = {
@@ -138,6 +143,16 @@ type ModelCrudCommon = {
     guard: PolicyFunc | boolean;
 
     /**
+     * Additional checker function for checking policies outside of Prisma
+     */
+    additionalChecker?: AdditionalCheckerFunc;
+
+    /**
+     * Field selections for evaluating `additionalChecker`
+     */
+    additionalCheckerSelector?: object;
+
+    /**
      * Permission checker function or a constant condition
      */
     permissionChecker?: CheckerFunc | boolean;
@@ -172,8 +187,7 @@ type ModelDeleteDef = ModelCrudCommon;
 /**
  * Policy definition for post-update checking a model
  */
-type ModelPostUpdateDef = {
-    guard: PolicyFunc | boolean;
+type ModelPostUpdateDef = Exclude<ModelCrudCommon, 'permissionChecker'> & {
     preUpdateSelector?: object;
 };
 
