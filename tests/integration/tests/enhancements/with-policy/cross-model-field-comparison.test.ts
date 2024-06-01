@@ -768,4 +768,56 @@ describe('Cross-model field comparison', () => {
         await prisma.user.update({ where: { id: 1 }, data: { age: 21 } });
         await expect(db.user.update({ where: { id: 1 }, data: { age: 25 } })).toResolveTruthy();
     });
+
+    it('with auth', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            permissions Permission[]
+            @@allow('all', true)
+        }
+
+        model Permission {
+            id Int @id @default(autoincrement())
+            user User @relation(fields: [userId], references: [id])
+            userId Int
+            model String
+            level Int
+            @@allow('all', true)
+        }
+        
+        model Post {
+            id Int @id @default(autoincrement())
+            title String
+            permission PostPermission?
+
+            @@allow('read', true)
+            @@allow("create", auth().permissions?[model == 'Post' && level == this.permission.level])
+        }
+
+        model PostPermission {
+            id Int @id @default(autoincrement())
+            post Post @relation(fields: [postId], references: [id])
+            postId Int @unique
+            level Int
+            @@allow('all', true)
+        }
+        `,
+            { preserveTsFiles: true }
+        );
+
+        await expect(enhance().post.create({ data: { title: 'P1' } })).toBeRejectedByPolicy();
+        await expect(
+            enhance({ id: 1, permissions: [{ model: 'Foo', level: 1 }] }).post.create({ data: { title: 'P1' } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            enhance({ id: 1, permissions: [{ model: 'Post', level: 1 }] }).post.create({ data: { title: 'P1' } })
+        ).toBeRejectedByPolicy();
+        await expect(
+            enhance({ id: 1, permissions: [{ model: 'Post', level: 1 }] }).post.create({
+                data: { title: 'P1', permission: { create: { level: 1 } } },
+            })
+        ).toResolveTruthy();
+    });
 });

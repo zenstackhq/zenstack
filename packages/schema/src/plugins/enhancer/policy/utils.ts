@@ -199,13 +199,15 @@ export function generateSelectForRules(rules: Expression[], forAuthContext = fal
             }
         } else if (isCollectionPredicate(expr)) {
             const path = visit(expr.left);
+            // recurse into RHS
+            const rhs = collectReferencePaths(expr.right);
             if (path) {
-                // recurse into RHS
-                const rhs = collectReferencePaths(expr.right);
                 // combine path of LHS and RHS
                 return rhs.map((r) => [...path, ...r]);
             } else {
-                return [];
+                // LHS is not rooted from the current model,
+                // only keep RHS items that contains '$this'
+                return rhs.filter((r) => r.includes('$this'));
             }
         } else if (isInvocationExpr(expr)) {
             // recurse into function arguments
