@@ -2,13 +2,11 @@ import {
     AstNode,
     BinaryExpr,
     DataModelAttribute,
-    DataModelFieldAttribute,
     Expression,
     ExpressionType,
     isDataModel,
     isDataModelAttribute,
     isDataModelField,
-    isDataModelFieldAttribute,
     isEnum,
     isLiteralExpr,
     isMemberAccessExpr,
@@ -180,17 +178,15 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     if (!(this.isNotModelFieldExpr(expr.left) || this.isNotModelFieldExpr(expr.right))) {
                         const containingPolicyAttr = findUpAst(
                             expr,
-                            (node) =>
-                                (isDataModelAttribute(node) && ['@@allow', '@@deny'].includes(node.decl.$refText)) ||
-                                (isDataModelFieldAttribute(node) && ['@allow', '@deny'].includes(node.decl.$refText))
-                        ) as DataModelAttribute | DataModelFieldAttribute | undefined;
+                            (node) => isDataModelAttribute(node) && ['@@allow', '@@deny'].includes(node.decl.$refText)
+                        ) as DataModelAttribute | undefined;
 
                         if (containingPolicyAttr) {
                             const operation = getAttributeArgLiteral<string>(containingPolicyAttr, 'operation');
                             if (operation?.split(',').includes('all') || operation?.split(',').includes('read')) {
                                 accept(
                                     'error',
-                                    'comparison between fields of different models is not supported in "read" rules',
+                                    'comparison between fields of different models is not supported in model-level "read" rules',
                                     {
                                         node: expr,
                                     }

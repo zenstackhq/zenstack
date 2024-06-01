@@ -24,7 +24,7 @@ import { Logger } from '../logger';
 import { createDeferredPromise, createFluentPromise } from '../promise';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
-import type { AdditionalCheckerFunc, CheckerConstraint } from '../types';
+import type { EntityCheckerFunc, PermissionCheckerConstraint } from '../types';
 import { clone, formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
 import { ConstraintSolver } from './constraint-solver';
 import { PolicyUtil } from './policy-utils';
@@ -1182,15 +1182,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             args.data = this.validateUpdateInputSchema(this.model, args.data);
 
-            const additionalChecker = this.policyUtils.getAdditionalChecker(this.model, 'update');
+            const entityChecker = this.policyUtils.getEntityChecker(this.model, 'update');
 
             const canProceedWithoutTransaction =
                 // no post-update rules
                 !this.policyUtils.hasAuthGuard(this.model, 'postUpdate') &&
                 // no Zod schema
                 !this.policyUtils.getZodSchema(this.model) &&
-                // no additional checker
-                !additionalChecker;
+                // no entity checker
+                !entityChecker;
 
             if (canProceedWithoutTransaction) {
                 // proceed without a transaction
@@ -1212,9 +1212,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
 
                 // merge selection required for running additional checker
-                const additionalCheckerSelector = this.policyUtils.getAdditionalCheckerSelector(this.model, 'update');
-                if (additionalCheckerSelector) {
-                    select = deepmerge(select, additionalCheckerSelector);
+                const entityChecker = this.policyUtils.getEntityChecker(this.model, 'update');
+                if (entityChecker?.selector) {
+                    select = deepmerge(select, entityChecker.selector);
                 }
 
                 const currentSetQuery = { select, where: args.where };
@@ -1225,9 +1225,9 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
                 let candidates = await tx[this.model].findMany(currentSetQuery);
 
-                if (additionalChecker) {
+                if (entityChecker) {
                     // filter candidates with additional checker and build an id filter
-                    const r = this.buildIdFilterWithAdditionalChecker(candidates, additionalChecker);
+                    const r = this.buildIdFilterWithEntityChecker(candidates, entityChecker.func);
                     candidates = r.filteredCandidates;
 
                     // merge id filter into update's where clause
@@ -1383,19 +1383,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             args = clone(args);
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'delete');
 
-            const additionalChecker = this.policyUtils.getAdditionalChecker(this.model, 'delete');
-            if (additionalChecker) {
+            const entityChecker = this.policyUtils.getEntityChecker(this.model, 'delete');
+            if (entityChecker) {
                 // additional checker exists, need to run deletion inside a transaction
                 return this.queryUtils.transaction(this.prisma, async (tx) => {
                     // find the delete candidates, selecting id fields and fields needed for
                     // running the additional checker
                     let candidateSelect = this.policyUtils.makeIdSelection(this.model);
-                    const additionalCheckerSelector = this.policyUtils.getAdditionalCheckerSelector(
-                        this.model,
-                        'delete'
-                    );
-                    if (additionalCheckerSelector) {
-                        candidateSelect = deepmerge(candidateSelect, additionalCheckerSelector);
+                    if (entityChecker.selector) {
+                        candidateSelect = deepmerge(candidateSelect, entityChecker.selector);
                     }
 
                     if (this.shouldLogQuery) {
@@ -1409,7 +1405,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     const candidates = await tx[this.model].findMany({ where: args.where, select: candidateSelect });
 
                     // build a ID filter based on id values filtered by the additional checker
-                    const { idFilter } = this.buildIdFilterWithAdditionalChecker(candidates, additionalChecker);
+                    const { idFilter } = this.buildIdFilterWithEntityChecker(candidates, entityChecker.func);
 
                     // merge the ID filter into the where clause
                     args.where = args.where ? { AND: [args.where, idFilter] } : idFilter;
@@ -1560,7 +1556,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         if (args.where) {
             // combine runtime filters with generated constraints
 
-            const extraConstraints: CheckerConstraint[] = [];
+            const extraConstraints: PermissionCheckerConstraint[] = [];
             for (const [field, value] of Object.entries(args.where)) {
                 if (value === undefined) {
                     continue;
@@ -1690,8 +1686,8 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
     }
 
-    private buildIdFilterWithAdditionalChecker(candidates: any[], additionalChecker: AdditionalCheckerFunc) {
-        const filteredCandidates = candidates.filter((value) => additionalChecker({ user: this.context?.user }, value));
+    private buildIdFilterWithEntityChecker(candidates: any[], entityChecker: EntityCheckerFunc) {
+        const filteredCandidates = candidates.filter((value) => entityChecker(value, { user: this.context?.user }));
         const idFields = this.policyUtils.getIdFields(this.model);
         let idFilter: any;
         if (idFields.length === 1) {

@@ -62,7 +62,7 @@ export type QueryContext = {
 /**
  * Context for checking operation allowability.
  */
-export type CheckerContext = {
+export type PermissionCheckerContext = {
     /**
      * Current user
      */

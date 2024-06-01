@@ -16,7 +16,7 @@ describe('Cross-model field comparison', () => {
         }
         
         model Profile {
-            id Int @id @default(autoincrement())
+            id Int @id
             age Int
             user User?
         
@@ -85,7 +85,7 @@ describe('Cross-model field comparison', () => {
         await expect(
             db.user.upsert({
                 where: { id: 2 },
-                create: { id: 2, age: 18, profile: { create: { age: 25 } } },
+                create: { id: 2, age: 18, profile: { create: { id: 2, age: 25 } } },
                 update: { age: 25 },
             })
         ).toBeRejectedByPolicy();
@@ -97,7 +97,7 @@ describe('Cross-model field comparison', () => {
         await expect(
             db.user.upsert({
                 where: { id: 2 },
-                create: { id: 2, age: 25, profile: { create: { age: 25 } } },
+                create: { id: 2, age: 25, profile: { create: { id: 2, age: 25 } } },
                 update: { age: 25 },
             })
         ).toResolveTruthy();
@@ -202,7 +202,7 @@ describe('Cross-model field comparison', () => {
         await expect(
             db.user.update({ where: { id: 1 }, data: { profile: { update: { age: 20 } } } })
         ).toResolveTruthy();
-        let r = await prisma.user.findUnique({ where: { id: 1 }, include: { profile: true } });
+        const r = await prisma.user.findUnique({ where: { id: 1 }, include: { profile: true } });
         expect(r.profile).toMatchObject({ age: 20 });
         await expect(
             db.user.update({ where: { id: 1 }, data: { profile: { update: { age: 18 } } } })
@@ -668,5 +668,104 @@ describe('Cross-model field comparison', () => {
         await reset();
     });
 
-    it('field-level', async () => {});
+    it('field-level simple', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model User {
+            id Int @id
+            profile Profile @relation(fields: [profileId], references: [id])
+            profileId Int @unique
+            age Int @allow('read', age == profile.age) @allow('update', age > profile.age)
+            level Int
+                  
+            @@allow('all', true)
+        }
+        
+        model Profile {
+            id Int @id
+            age Int
+            user User?
+        
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        // read
+        await prisma.user.create({ data: { id: 1, age: 18, level: 1, profile: { create: { id: 1, age: 20 } } } });
+        let r = await db.user.findUnique({ where: { id: 1 } });
+        expect(r.age).toBeUndefined();
+        r = await db.user.findUnique({ where: { id: 1 }, select: { age: true } });
+        expect(r.age).toBeUndefined();
+
+        // update
+        await expect(db.user.update({ where: { id: 1 }, data: { age: 21 } })).toBeRejectedByPolicy();
+        await expect(db.user.update({ where: { id: 1 }, data: { level: 2 } })).toResolveTruthy();
+        await prisma.user.update({ where: { id: 1 }, data: { age: 21 } });
+        await expect(db.user.update({ where: { id: 1 }, data: { age: 25 } })).toResolveTruthy();
+    });
+
+    it('field-level read override', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model User {
+            id Int @id
+            profile Profile @relation(fields: [profileId], references: [id])
+            profileId Int @unique
+            age Int @allow('read', age == profile.age, true)
+            level Int
+        }
+        
+        model Profile {
+            id Int @id
+            age Int
+            user User?
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await prisma.user.create({ data: { id: 1, age: 18, level: 1, profile: { create: { id: 1, age: 20 } } } });
+        let r = await db.user.findUnique({ where: { id: 1 } });
+        expect(r).toBeNull();
+        r = await db.user.findUnique({ where: { id: 1 }, select: { age: true } });
+        expect(Object.keys(r).length).toBe(0);
+        await prisma.user.update({ where: { id: 1 }, data: { age: 20 } });
+        r = await db.user.findUnique({ where: { id: 1 }, select: { age: true } });
+        expect(r).toMatchObject({ age: 20 });
+    });
+
+    it('field-level update override', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model User {
+            id Int @id
+            profile Profile @relation(fields: [profileId], references: [id])
+            profileId Int @unique
+            age Int @allow('update', age > profile.age, true)
+            level Int
+            @@allow('read', true)
+        }
+        
+        model Profile {
+            id Int @id
+            age Int
+            user User?
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const db = enhance();
+
+        await prisma.user.create({ data: { id: 1, age: 18, level: 1, profile: { create: { id: 1, age: 20 } } } });
+        await expect(db.user.update({ where: { id: 1 }, data: { age: 21 } })).toBeRejectedByPolicy();
+        await expect(db.user.update({ where: { id: 1 }, data: { level: 2 } })).toBeRejectedByPolicy();
+        await prisma.user.update({ where: { id: 1 }, data: { age: 21 } });
+        await expect(db.user.update({ where: { id: 1 }, data: { age: 25 } })).toResolveTruthy();
+    });
 });

@@ -1,10 +1,10 @@
 import Logic from 'logic-solver';
 import { match } from 'ts-pattern';
 import type {
-    CheckerConstraint,
     ComparisonConstraint,
     ComparisonTerm,
     LogicalConstraint,
+    PermissionCheckerConstraint,
     ValueConstraint,
     VariableConstraint,
 } from '../types';
@@ -22,7 +22,7 @@ export class ConstraintSolver {
     /**
      * Check the satisfiability of the given constraint.
      */
-    checkSat(constraint: CheckerConstraint): boolean {
+    checkSat(constraint: PermissionCheckerConstraint): boolean {
         // reset state
         this.stringTable = [];
         this.variables = new Map<string, Logic.Formula>();
@@ -46,7 +46,7 @@ export class ConstraintSolver {
         return !!solver.solve();
     }
 
-    private buildFormula(constraint: CheckerConstraint): Logic.Formula {
+    private buildFormula(constraint: PermissionCheckerConstraint): Logic.Formula {
         return match(constraint)
             .when(
                 (c): c is ValueConstraint => c.kind === 'value',
@@ -100,11 +100,11 @@ export class ConstraintSolver {
         return Logic.not(this.buildFormula(constraint.children[0]));
     }
 
-    private isTrue(constraint: CheckerConstraint): unknown {
+    private isTrue(constraint: PermissionCheckerConstraint): unknown {
         return constraint.kind === 'value' && constraint.value === true;
     }
 
-    private isFalse(constraint: CheckerConstraint): unknown {
+    private isFalse(constraint: PermissionCheckerConstraint): unknown {
         return constraint.kind === 'value' && constraint.value === false;
     }
 

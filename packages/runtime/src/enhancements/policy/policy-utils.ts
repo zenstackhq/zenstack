@@ -1,18 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import deepcopy from 'deepcopy';
+import deepmerge from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
 import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../constants';
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
-import { AuthUser, CrudContract, DbClientContract, PolicyCrudKind, PolicyOperationKind } from '../../types';
+import {
+    AuthUser,
+    CrudContract,
+    DbClientContract,
+    PolicyCrudKind,
+    PolicyOperationKind,
+    QueryContext,
+} from '../../types';
 import { getVersion } from '../../version';
 import type { EnhancementContext, InternalEnhancementOptions } from '../create-enhancement';
 import { Logger } from '../logger';
 import { QueryUtils } from '../query-utils';
-import type { CheckerFunc, ModelPolicyDef, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
+import type { EntityChecker, ModelPolicyDef, PermissionCheckerFunc, PolicyDef, PolicyFunc, ZodSchemas } from '../types';
 import { formatObject, prismaClientKnownRequestError } from '../utils';
 
 /**
@@ -272,7 +280,7 @@ export class PolicyUtil extends QueryUtils {
      */
     getFieldOverrideReadAuthGuard(db: CrudContract, model: string, field: string) {
         const def = this.getModelPolicyDef(model);
-        const guard = def.fieldLevel?.read?.overrideGuard?.[field];
+        const guard = def.fieldLevel?.read?.[field]?.overrideGuard;
 
         if (guard === undefined) {
             // field access is denied by default in override mode
@@ -292,7 +300,7 @@ export class PolicyUtil extends QueryUtils {
      */
     getFieldUpdateAuthGuard(db: CrudContract, model: string, field: string) {
         const def = this.getModelPolicyDef(model);
-        const guard = def.fieldLevel?.update?.guard?.[field];
+        const guard = def.fieldLevel?.update?.[field]?.guard;
 
         if (guard === undefined) {
             // field access is allowed by default
@@ -312,7 +320,7 @@ export class PolicyUtil extends QueryUtils {
      */
     getFieldOverrideUpdateAuthGuard(db: CrudContract, model: string, field: string) {
         const def = this.getModelPolicyDef(model);
-        const guard = def.fieldLevel?.update?.overrideGuard?.[field];
+        const guard = def.fieldLevel?.update?.[field]?.overrideGuard;
 
         if (guard === undefined) {
             // field access is denied by default in override mode
@@ -343,8 +351,13 @@ export class PolicyUtil extends QueryUtils {
             return false;
         }
         const def = this.getModelPolicyDef(model);
-        const guard = def.fieldLevel?.[operation]?.overrideGuard;
-        return guard && Object.keys(guard).length > 0;
+        if (def.fieldLevel?.[operation]) {
+            return Object.values(def.fieldLevel[operation]).some(
+                (f) => f.overrideGuard !== undefined || f.overrideEntityChecker !== undefined
+            );
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -551,7 +564,7 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Gets checker constraints for the given model and operation.
      */
-    getCheckerConstraint(model: string, operation: PolicyCrudKind): ReturnType<CheckerFunc> | boolean {
+    getCheckerConstraint(model: string, operation: PolicyCrudKind): ReturnType<PermissionCheckerFunc> | boolean {
         if (this.options.kinds && !this.options.kinds.includes('policy')) {
             // policy enhancement not enabled, return a constant true checker result
             return true;
@@ -697,6 +710,8 @@ export class PolicyUtil extends QueryUtils {
             );
         }
 
+        let entityChecker: EntityChecker | undefined;
+
         if (operation === 'update' && args) {
             // merge field-level policy guards
             const fieldUpdateGuard = this.getFieldUpdateGuards(db, model, args);
@@ -710,41 +725,45 @@ export class PolicyUtil extends QueryUtils {
                     }"`,
                     CrudFailureReason.ACCESS_POLICY_VIOLATION
                 );
-            } else {
-                if (fieldUpdateGuard.guard) {
-                    // merge field-level guard
-                    guard = this.and(guard, fieldUpdateGuard.guard);
-                }
-
-                if (fieldUpdateGuard.overrideGuard) {
-                    // merge field-level override guard
-                    guard = this.or(guard, fieldUpdateGuard.overrideGuard);
-                }
             }
+
+            if (fieldUpdateGuard.guard) {
+                // merge field-level guard with AND
+                guard = this.and(guard, fieldUpdateGuard.guard);
+            }
+
+            if (fieldUpdateGuard.overrideGuard) {
+                // merge field-level override guard with OR
+                guard = this.or(guard, fieldUpdateGuard.overrideGuard);
+            }
+
+            // field-level entity checker
+            entityChecker = fieldUpdateGuard.entityChecker;
         }
 
         // Zod schema is to be checked for "create" and "postUpdate"
         const schema = ['create', 'postUpdate'].includes(operation) ? this.getZodSchema(model) : undefined;
 
-        const additionalChecker = this.getAdditionalChecker(model, operation);
+        // combine field-level entity checker with model-level
+        const modelEntityChecker = this.getEntityChecker(model, operation);
+        entityChecker = this.combineEntityChecker(entityChecker, modelEntityChecker, 'and');
 
-        if (this.isTrue(guard) && !schema && !additionalChecker) {
+        if (this.isTrue(guard) && !schema && !entityChecker) {
             // unconditionally allowed
             return;
         }
 
-        const additionalCheckerSelector = this.getAdditionalCheckerSelector(model, operation);
         let select = schema
             ? // need to validate against schema, need to fetch all fields
               undefined
             : // only fetch id fields
               this.makeIdSelection(model);
 
-        if (additionalCheckerSelector) {
+        if (entityChecker?.selector) {
             if (!select) {
                 select = this.makeAllScalarFieldSelect(model);
             }
-            select = { ...select, ...additionalCheckerSelector };
+            select = { ...select, ...entityChecker.selector };
         }
 
         let where = this.clone(uniqueFilter);
@@ -768,11 +787,11 @@ export class PolicyUtil extends QueryUtils {
             );
         }
 
-        if (additionalChecker) {
+        if (entityChecker) {
             if (this.logger.enabled('info')) {
-                this.logger.info(`[policy] running additional checker on ${model} for ${operation}`);
+                this.logger.info(`[policy] running entity checker on ${model} for ${operation}`);
             }
-            if (!additionalChecker({ user: this.user, preValue }, result)) {
+            if (!entityChecker.func(result, { user: this.user, preValue })) {
                 throw this.deniedByPolicy(
                     model,
                     operation,
@@ -801,14 +820,18 @@ export class PolicyUtil extends QueryUtils {
         }
     }
 
-    getAdditionalCheckerSelector(model: string, operation: PolicyOperationKind) {
+    getEntityChecker(model: string, operation: PolicyOperationKind, field?: string) {
         const def = this.getModelPolicyDef(model);
-        return def.modelLevel[operation].additionalCheckerSelector;
+        if (field) {
+            return def.fieldLevel?.[operation as 'read' | 'update']?.[field]?.entityChecker;
+        } else {
+            return def.modelLevel[operation].entityChecker;
+        }
     }
 
-    getAdditionalChecker(model: string, operation: PolicyOperationKind) {
+    getUpdateOverrideEntityCheckerForField(model: string, field: string) {
         const def = this.getModelPolicyDef(model);
-        return def.modelLevel[operation].additionalChecker;
+        return def.fieldLevel?.update?.[field]?.overrideEntityChecker;
     }
 
     private getFieldReadGuards(db: CrudContract, model: string, args: { select?: any; include?: any }) {
@@ -837,19 +860,20 @@ export class PolicyUtil extends QueryUtils {
     private getFieldUpdateGuards(db: CrudContract, model: string, args: any) {
         const allFieldGuards = [];
         const allOverrideFieldGuards = [];
+        let entityChecker: EntityChecker | undefined;
 
-        for (const [k, v] of Object.entries<any>(args.data ?? args)) {
-            if (typeof v === 'undefined') {
+        for (const [field, value] of Object.entries<any>(args.data ?? args)) {
+            if (typeof value === 'undefined') {
                 continue;
             }
 
-            const field = resolveField(this.modelMeta, model, k);
+            const fieldInfo = resolveField(this.modelMeta, model, field);
 
-            if (field?.isDataModel) {
+            if (fieldInfo?.isDataModel) {
                 // relation field update should be treated as foreign key update,
                 // fetch and merge all foreign key guards
-                if (field.isRelationOwner && field.foreignKeyMapping) {
-                    const foreignKeys = Object.values<string>(field.foreignKeyMapping);
+                if (fieldInfo.isRelationOwner && fieldInfo.foreignKeyMapping) {
+                    const foreignKeys = Object.values<string>(fieldInfo.foreignKeyMapping);
                     for (const fk of foreignKeys) {
                         const fieldGuard = this.getFieldUpdateAuthGuard(db, model, fk);
                         if (this.isFalse(fieldGuard)) {
@@ -865,18 +889,26 @@ export class PolicyUtil extends QueryUtils {
                     }
                 }
             } else {
-                const fieldGuard = this.getFieldUpdateAuthGuard(db, model, k);
+                const fieldGuard = this.getFieldUpdateAuthGuard(db, model, field);
                 if (this.isFalse(fieldGuard)) {
-                    return { guard: fieldGuard, rejectedByField: k };
+                    return { guard: fieldGuard, rejectedByField: field };
                 }
 
                 // add field guard
                 allFieldGuards.push(fieldGuard);
 
                 // add field override guard
-                const overrideFieldGuard = this.getFieldOverrideUpdateAuthGuard(db, model, k);
+                const overrideFieldGuard = this.getFieldOverrideUpdateAuthGuard(db, model, field);
                 allOverrideFieldGuards.push(overrideFieldGuard);
             }
+
+            // merge regular and override entity checkers with OR
+            let checker = this.getEntityChecker(model, 'update', field);
+            const overrideChecker = this.getUpdateOverrideEntityCheckerForField(model, field);
+            checker = this.combineEntityChecker(checker, overrideChecker, 'or');
+
+            // accumulate entity checker across fields
+            entityChecker = this.combineEntityChecker(entityChecker, checker, 'and');
         }
 
         const allFieldsCombined = this.and(...allFieldGuards);
@@ -887,6 +919,31 @@ export class PolicyUtil extends QueryUtils {
             guard: allFieldsCombined,
             overrideGuard: allOverrideFieldsCombined,
             rejectedByField: undefined,
+            entityChecker,
+        };
+    }
+
+    private combineEntityChecker(
+        left: EntityChecker | undefined,
+        right: EntityChecker | undefined,
+        combiner: 'and' | 'or'
+    ): EntityChecker | undefined {
+        if (!left) {
+            return right;
+        }
+
+        if (!right) {
+            return left;
+        }
+
+        const func =
+            combiner === 'and'
+                ? (entity: any, context: QueryContext) => left.func(entity, context) && right.func(entity, context)
+                : (entity: any, context: QueryContext) => left.func(entity, context) || right.func(entity, context);
+
+        return {
+            func,
+            selector: deepmerge(left.selector ?? {}, right.selector ?? {}),
         };
     }
 
@@ -969,7 +1026,7 @@ export class PolicyUtil extends QueryUtils {
 
     /**
      * Injects field selection needed for checking field-level read policy check and evaluating
-     * additional checker into query args.
+     * entity checker into query args.
      */
     injectReadCheckSelect(model: string, args: any) {
         // we need to recurse into relation fields before injecting the current level, because
@@ -992,9 +1049,9 @@ export class PolicyUtil extends QueryUtils {
             }
         }
 
-        const additionalCheckerSelector = this.getAdditionalCheckerSelector(model, 'read');
-        if (additionalCheckerSelector) {
-            this.doInjectReadCheckSelect(model, args, { select: additionalCheckerSelector });
+        const entityChecker = this.getEntityChecker(model, 'read');
+        if (entityChecker?.selector) {
+            this.doInjectReadCheckSelect(model, args, { select: entityChecker.selector });
         }
     }
 
@@ -1113,19 +1170,36 @@ export class PolicyUtil extends QueryUtils {
         return def.modelLevel.postUpdate.preUpdateSelector;
     }
 
+    // get a merged selector object for all field-level read policies
     private getFieldReadCheckSelector(model: string) {
         const def = this.getModelPolicyDef(model);
-        return def.fieldLevel?.read?.selector;
+        let result: any = {};
+        const fieldLevel = def.fieldLevel?.read;
+        if (fieldLevel) {
+            for (const def of Object.values(fieldLevel)) {
+                if (def.entityChecker?.selector) {
+                    result = deepmerge(result, def.entityChecker.selector);
+                }
+                if (def.overrideEntityChecker?.selector) {
+                    result = deepmerge(result, def.overrideEntityChecker.selector);
+                }
+            }
+        }
+        return Object.keys(result).length > 0 ? result : undefined;
     }
 
     private checkReadField(model: string, field: string, entity: any) {
         const def = this.getModelPolicyDef(model);
-        const guard = def.fieldLevel?.read?.checker?.[field];
 
-        if (guard === undefined) {
+        // combine regular and override field-level entity checkers with OR
+        const checker = def.fieldLevel?.read?.[field]?.entityChecker;
+        const overrideChecker = def.fieldLevel?.read?.[field]?.overrideEntityChecker;
+        const combinedChecker = this.combineEntityChecker(checker, overrideChecker, 'or');
+
+        if (combinedChecker === undefined) {
             return true;
         } else {
-            return guard(entity, { user: this.user });
+            return combinedChecker.func(entity, { user: this.user });
         }
     }
 
@@ -1135,7 +1209,7 @@ export class PolicyUtil extends QueryUtils {
 
     private hasFieldLevelPolicy(model: string) {
         const def = this.getModelPolicyDef(model);
-        return !!def.fieldLevel?.read?.checker;
+        return Object.keys(def.fieldLevel?.read ?? {}).length > 0;
     }
 
     /**
@@ -1176,18 +1250,16 @@ export class PolicyUtil extends QueryUtils {
         let filteredData = data;
         let filteredFullData = fullData;
 
-        const additionalChecker = this.getAdditionalChecker(model, 'read');
-        if (additionalChecker) {
+        const entityChecker = this.getEntityChecker(model, 'read');
+        if (entityChecker) {
             if (Array.isArray(data)) {
                 filteredData = [];
                 filteredFullData = [];
                 for (const [entityData, entityFullData] of zip(data, fullData)) {
-                    if (!additionalChecker({ user: this.user }, entityData)) {
+                    if (!entityChecker.func(entityData, { user: this.user })) {
                         if (this.shouldLogQuery) {
                             this.logger.info(
-                                `[policy] dropping ${model} entity${
-                                    path ? ' at ' + path : ''
-                                } due to additional checker`
+                                `[policy] dropping ${model} entity${path ? ' at ' + path : ''} due to entity checker`
                             );
                         }
                     } else {
@@ -1196,10 +1268,10 @@ export class PolicyUtil extends QueryUtils {
                     }
                 }
             } else {
-                if (!additionalChecker({ user: this.user }, data)) {
+                if (!entityChecker.func(data, { user: this.user })) {
                     if (this.shouldLogQuery) {
                         this.logger.info(
-                            `[policy] dropping ${model} entity${path ? ' at ' + path : ''} due to additional checker`
+                            `[policy] dropping ${model} entity${path ? ' at ' + path : ''} due to entity checker`
                         );
                     }
                     return null;

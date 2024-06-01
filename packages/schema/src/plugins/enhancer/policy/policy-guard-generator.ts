@@ -31,10 +31,10 @@ import path from 'path';
 import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
 import { ConstraintTransformer } from './constraint-transformer';
 import {
+    generateEntityCheckerFunction,
     generateNormalizedAuthRef,
     generateQueryGuardFunction,
     generateSelectForRules,
-    generateTypeScriptCheckerFunction,
     getPolicyExpressions,
     isEnumReferenced,
 } from './utils';
@@ -86,8 +86,8 @@ export class PolicyGenerator {
                 { name: 'type CrudContract' },
                 { name: 'allFieldsEqual' },
                 { name: 'type PolicyDef' },
-                { name: 'type CheckerContext' },
-                { name: 'type CheckerConstraint' },
+                { name: 'type PermissionCheckerContext' },
+                { name: 'type PermissionCheckerConstraint' },
             ],
             moduleSpecifier: `${RUNTIME_PACKAGE}`,
         });
@@ -348,29 +348,51 @@ export class PolicyGenerator {
             this.writePermissionChecker(model, kind, policies, allows, denies, writer, sourceFile);
         }
 
-        this.writeAdditionalChecker(model, kind, writer, sourceFile);
+        // write cross-model comparison rules as entity checker functions
+        // because they cannot be checked inside Prisma
+        this.writeEntityChecker(model, kind, writer, sourceFile, true);
     }
 
-    private writeAdditionalChecker(
-        model: DataModel,
+    private writeEntityChecker(
+        target: DataModel | DataModelField,
         kind: PolicyOperationKind,
         writer: CodeBlockWriter,
-        sourceFile: SourceFile
+        sourceFile: SourceFile,
+        onlyCrossModelComparison = false,
+        forOverride = false
     ) {
-        const allows = getPolicyExpressions(model, 'allow', kind, false, 'onlyCrossModelComparison');
-        const denies = getPolicyExpressions(model, 'deny', kind, false, 'onlyCrossModelComparison');
+        const allows = getPolicyExpressions(
+            target,
+            'allow',
+            kind,
+            forOverride,
+            onlyCrossModelComparison ? 'onlyCrossModelComparison' : 'all'
+        );
+        const denies = getPolicyExpressions(
+            target,
+            'deny',
+            kind,
+            forOverride,
+            onlyCrossModelComparison ? 'onlyCrossModelComparison' : 'all'
+        );
 
         if (allows.length === 0 && denies.length === 0) {
             return;
         }
 
-        const additionalFunc = generateTypeScriptCheckerFunction(sourceFile, model, kind, allows, denies);
-        writer.write(`additionalChecker: ${additionalFunc.getName()!},`);
-
-        const additionalSelector = generateSelectForRules([...allows, ...denies], false, kind !== 'postUpdate');
-        if (additionalSelector) {
-            writer.write(`additionalCheckerSelector: ${JSON.stringify(additionalSelector)},`);
-        }
+        const model = isDataModel(target) ? target : (target.$container as DataModel);
+        const func = generateEntityCheckerFunction(
+            sourceFile,
+            model,
+            kind,
+            allows,
+            denies,
+            isDataModelField(target) ? target : undefined,
+            forOverride
+        );
+        const selector = generateSelectForRules([...allows, ...denies], false, kind !== 'postUpdate') ?? {};
+        const key = forOverride ? 'overrideEntityChecker' : 'entityChecker';
+        writer.write(`${key}: { func: ${func.getName()!}, selector: ${JSON.stringify(selector)} },`);
     }
 
     // writes `guard: ...` for a given policy operation kind
@@ -465,11 +487,11 @@ export class PolicyGenerator {
 
         const func = sourceFile.addFunction({
             name: `${model.name}$checker$${kind}`,
-            returnType: 'CheckerConstraint',
+            returnType: 'PermissionCheckerConstraint',
             parameters: [
                 {
                     name: 'context',
-                    type: 'CheckerContext',
+                    type: 'PermissionCheckerContext',
                 },
             ],
             statements,
@@ -492,132 +514,93 @@ export class PolicyGenerator {
     }
 
     private writeFieldReadDef(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
-        const fieldCheckers: Record<string, string> = {};
-        const overrideGuards: Record<string, string> = {};
-        const allFieldsAllows: Expression[] = [];
-        const allFieldsDenies: Expression[] = [];
+        writer.writeLine('read:');
+        writer.block(() => {
+            for (const field of model.fields) {
+                const policyAttrs = field.attributes.filter((attr) => ['@allow', '@deny'].includes(attr.decl.$refText));
 
-        // generate field read checkers
-        for (const field of model.fields) {
-            const allows = getPolicyExpressions(field, 'allow', 'read');
-            const denies = getPolicyExpressions(field, 'deny', 'read');
-            if (denies.length === 0 && allows.length === 0) {
-                continue;
-            }
+                if (policyAttrs.length === 0) {
+                    continue;
+                }
 
-            allFieldsAllows.push(...allows);
-            allFieldsDenies.push(...denies);
+                writer.write(`${field.name}:`);
 
-            const guardFunc = this.generateFieldReadCheckerFunction(sourceFile, field, allows, denies);
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            fieldCheckers[field.name] = guardFunc.getName()!;
+                writer.block(() => {
+                    // checker function
+                    // write all field-level rules as entity checker function
+                    this.writeEntityChecker(field, 'read', writer, sourceFile, false, false);
 
-            const overrideAllows = getPolicyExpressions(field, 'allow', 'read', true);
-            if (overrideAllows.length > 0) {
-                const denies = getPolicyExpressions(field, 'deny', 'read');
-                const overrideGuardFunc = generateQueryGuardFunction(
-                    sourceFile,
-                    model,
-                    'read',
-                    overrideAllows,
-                    denies,
-                    field,
-                    true
-                );
-                overrideGuards[field.name] = overrideGuardFunc.getName()!;
-            }
-        }
+                    const overrideAllows = getPolicyExpressions(field, 'allow', 'read', true);
+                    if (overrideAllows.length > 0) {
+                        // override guard function
+                        const denies = getPolicyExpressions(field, 'deny', 'read');
+                        const overrideGuardFunc = generateQueryGuardFunction(
+                            sourceFile,
+                            model,
+                            'read',
+                            overrideAllows,
+                            denies,
+                            field,
+                            true
+                        );
+                        writer.write(`overrideGuard: ${overrideGuardFunc.getName()},`);
 
-        if (Object.keys(fieldCheckers).length > 0 || Object.keys(overrideGuards).length > 0) {
-            writer.write('read:');
-            writer.block(() => {
-                if (Object.keys(fieldCheckers).length > 0) {
-                    writer.write('checker:');
-
-                    // write checkers
-                    writer.inlineBlock(() => {
-                        Object.entries(fieldCheckers).forEach(([fieldName, funcName]) => {
-                            writer.write(`${fieldName}: ${funcName},`);
-                        });
-                    });
-                    writer.writeLine(',');
-
-                    // write field selector
-                    const readFieldCheckSelect = generateSelectForRules([...allFieldsAllows, ...allFieldsDenies]);
-                    if (readFieldCheckSelect) {
-                        writer.write(`selector: ${JSON.stringify(readFieldCheckSelect)},`);
+                        // additional entity checker for override
+                        this.writeEntityChecker(field, 'read', writer, sourceFile, false, true);
                     }
-                }
-
-                if (Object.keys(overrideGuards).length > 0) {
-                    // write override guards
-                    writer.write('overrideGuard:');
-                    writer.inlineBlock(() => {
-                        Object.entries(overrideGuards).forEach(([fieldName, funcName]) => {
-                            writer.write(`${fieldName}: ${funcName},`);
-                        });
-                    });
-                    writer.writeLine(',');
-                }
-            });
-            writer.writeLine(',');
-        }
+                });
+                writer.writeLine(',');
+            }
+        });
+        writer.writeLine(',');
     }
 
     private writeFieldUpdateDef(model: DataModel, writer: CodeBlockWriter, sourceFile: SourceFile) {
-        const guards: Record<string, string> = {};
-        const overrideGuards: Record<string, string> = {};
+        writer.writeLine('update:');
+        writer.block(() => {
+            for (const field of model.fields) {
+                const allows = getPolicyExpressions(field, 'allow', 'update');
+                const denies = getPolicyExpressions(field, 'deny', 'update');
+                const overrideAllows = getPolicyExpressions(field, 'allow', 'update', true);
 
-        for (const field of model.fields) {
-            const allows = getPolicyExpressions(field, 'allow', 'update');
-            const denies = getPolicyExpressions(field, 'deny', 'update');
-
-            if (denies.length === 0 && allows.length === 0) {
-                continue;
-            }
-
-            const guardFunc = generateQueryGuardFunction(sourceFile, model, 'update', allows, denies, field);
-            guards[field.name] = guardFunc.getName()!;
-
-            const overrideAllows = getPolicyExpressions(field, 'allow', 'update', true);
-            if (overrideAllows.length > 0) {
-                const overrideGuardFunc = generateQueryGuardFunction(
-                    sourceFile,
-                    model,
-                    'update',
-                    overrideAllows,
-                    denies,
-                    field,
-                    true
-                );
-                overrideGuards[field.name] = overrideGuardFunc.getName()!;
-            }
-        }
-
-        if (Object.keys(guards).length > 0 || Object.keys(overrideGuards).length > 0) {
-            writer.write('update:');
-            writer.block(() => {
-                if (Object.keys(guards).length > 0) {
-                    writer.write('guard:');
-                    writer.inlineBlock(() => {
-                        Object.entries(guards).forEach(([fieldName, funcName]) => {
-                            writer.write(`${fieldName}: ${funcName},`);
-                        });
-                    });
-                    writer.writeLine(',');
+                if (allows.length === 0 && denies.length === 0 && overrideAllows.length === 0) {
+                    continue;
                 }
 
-                if (Object.keys(overrideGuards).length > 0) {
-                    writer.write('overrideGuard:');
-                    writer.inlineBlock(() => {
-                        Object.entries(overrideGuards).forEach(([fieldName, funcName]) => {
-                            writer.write(`${fieldName}: ${funcName},`);
-                        });
-                    });
-                    writer.writeLine(',');
-                }
-            });
-        }
+                writer.write(`${field.name}:`);
+
+                writer.block(() => {
+                    // guard
+                    const guardFunc = generateQueryGuardFunction(sourceFile, model, 'update', allows, denies, field);
+                    writer.write(`guard: ${guardFunc.getName()},`);
+
+                    // write cross-model comparison rules as entity checker functions
+                    // because they cannot be checked inside Prisma
+                    this.writeEntityChecker(field, 'update', writer, sourceFile, true, false);
+
+                    const overrideAllows = getPolicyExpressions(field, 'allow', 'update', true);
+                    if (overrideAllows.length > 0) {
+                        // override guard
+                        const overrideGuardFunc = generateQueryGuardFunction(
+                            sourceFile,
+                            model,
+                            'update',
+                            overrideAllows,
+                            denies,
+                            field,
+                            true
+                        );
+                        writer.write(`overrideGuard: ${overrideGuardFunc.getName()},`);
+
+                        // write cross-model comparison override rules as entity checker functions
+                        // because they cannot be checked inside Prisma
+                        this.writeEntityChecker(field, 'update', writer, sourceFile, true, true);
+                    }
+                });
+                writer.writeLine(',');
+            }
+        });
+        writer.writeLine(',');
     }
 
     private generateFieldReadCheckerFunction(

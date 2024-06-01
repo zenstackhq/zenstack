@@ -699,7 +699,7 @@ describe('Attribute tests', () => {
             }
             
         `)
-        ).toContain('comparison between fields of different models is not supported in "read" rules');
+        ).toContain('comparison between fields of different models is not supported in model-level "read" rules');
 
         expect(
             await loadModel(`

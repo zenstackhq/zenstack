@@ -45,7 +45,7 @@ export function getPolicyExpressions(
     target: DataModel | DataModelField,
     kind: PolicyKind,
     operation: PolicyOperationKind,
-    override = false,
+    forOverride = false,
     filter: 'all' | 'withoutCrossModelComparison' | 'onlyCrossModelComparison' = 'all'
 ) {
     const attributes = target.attributes;
@@ -55,12 +55,10 @@ export function getPolicyExpressions(
             return false;
         }
 
-        if (override) {
-            const overrideArg = getAttributeArg(attr, 'override');
-            return overrideArg && getLiteral<boolean>(overrideArg) === true;
-        } else {
-            return true;
-        }
+        const overrideArg = getAttributeArg(attr, 'override');
+        const isOverride = !!overrideArg && getLiteral<boolean>(overrideArg) === true;
+
+        return (forOverride && isOverride) || (!forOverride && !isOverride);
     });
 
     const checkOperation = operation === 'postUpdate' ? 'update' : operation;
@@ -117,11 +115,7 @@ function processUpdatePolicies(expressions: Expression[], postUpdate: boolean) {
  * Generates a "select" object that contains (recursively) fields referenced by the
  * given policy rules
  */
-export function generateSelectForRules(
-    rules: Expression[],
-    forAuthContext = false,
-    ignoreFutureReference = true
-): object {
+export function generateSelectForRules(rules: Expression[], forAuthContext = false, ignoreFutureReference = true) {
     const result: any = {};
     const addPath = (path: string[]) => {
         const thisIndex = path.lastIndexOf('$this');
@@ -247,12 +241,12 @@ export function generateQueryGuardFunction(
 ) {
     const statements: (string | WriterFunction)[] = [];
 
-    const filteredAllows = allows.filter((rule) => !hasCrossModelComparison(rule));
-    const filteredDenies = denies.filter((rule) => !hasCrossModelComparison(rule));
+    const allowRules = allows.filter((rule) => !hasCrossModelComparison(rule));
+    const denyRules = denies.filter((rule) => !hasCrossModelComparison(rule));
 
-    generateNormalizedAuthRef(model, filteredAllows, filteredDenies, statements);
+    generateNormalizedAuthRef(model, allowRules, denyRules, statements);
 
-    const hasFieldAccess = [...filteredDenies, ...filteredAllows].some((rule) =>
+    const hasFieldAccess = [...denyRules, ...allowRules].some((rule) =>
         streamAst(rule).some(
             (child) =>
                 // this.???
@@ -273,10 +267,10 @@ export function generateQueryGuardFunction(
                 isPostGuard: kind === 'postUpdate',
             });
             try {
-                filteredDenies.forEach((rule) => {
+                denyRules.forEach((rule) => {
                     writer.write(`if (${transformer.transform(rule, false)}) { return ${FALSE}; }`);
                 });
-                filteredAllows.forEach((rule) => {
+                allowRules.forEach((rule) => {
                     writer.write(`if (${transformer.transform(rule, false)}) { return ${TRUE}; }`);
                 });
             } catch (err) {
@@ -292,7 +286,7 @@ export function generateQueryGuardFunction(
                     // if there's no allow rule, for field-level rules, by default we allow
                     writer.write(`return ${TRUE};`);
                 } else {
-                    if (filteredAllows.length < allows.length) {
+                    if (allowRules.length < allows.length) {
                         writer.write(`return ${TRUE};`);
                     } else {
                         // if there's any allow rule, we deny unless any allow rule evaluates to true
@@ -300,7 +294,7 @@ export function generateQueryGuardFunction(
                     }
                 }
             } else {
-                if (filteredAllows.length < allows.length) {
+                if (allowRules.length < allows.length) {
                     // some rules are filtered out here and will be generated as additional
                     // checker functions, so we allow here to avoid a premature denial
                     writer.write(`return ${TRUE};`);
@@ -315,37 +309,37 @@ export function generateQueryGuardFunction(
             writer.write('return ');
             const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
             const writeDenies = () => {
-                writer.conditionalWrite(filteredDenies.length > 1, '{ AND: [');
-                filteredDenies.forEach((expr, i) => {
+                writer.conditionalWrite(denyRules.length > 1, '{ AND: [');
+                denyRules.forEach((expr, i) => {
                     writer.inlineBlock(() => {
                         writer.write('NOT: ');
                         exprWriter.write(expr);
                     });
-                    writer.conditionalWrite(i !== filteredDenies.length - 1, ',');
+                    writer.conditionalWrite(i !== denyRules.length - 1, ',');
                 });
-                writer.conditionalWrite(filteredDenies.length > 1, ']}');
+                writer.conditionalWrite(denyRules.length > 1, ']}');
             };
 
             const writeAllows = () => {
-                writer.conditionalWrite(filteredAllows.length > 1, '{ OR: [');
-                filteredAllows.forEach((expr, i) => {
+                writer.conditionalWrite(allowRules.length > 1, '{ OR: [');
+                allowRules.forEach((expr, i) => {
                     exprWriter.write(expr);
-                    writer.conditionalWrite(i !== filteredAllows.length - 1, ',');
+                    writer.conditionalWrite(i !== allowRules.length - 1, ',');
                 });
-                writer.conditionalWrite(filteredAllows.length > 1, ']}');
+                writer.conditionalWrite(allowRules.length > 1, ']}');
             };
 
-            if (filteredAllows.length > 0 && filteredDenies.length > 0) {
+            if (allowRules.length > 0 && denyRules.length > 0) {
                 // include both allow and deny rules
                 writer.write('{ AND: [');
                 writeDenies();
                 writer.write(',');
                 writeAllows();
                 writer.write(']}');
-            } else if (filteredDenies.length > 0) {
+            } else if (denyRules.length > 0) {
                 // only deny rules
                 writeDenies();
-            } else if (filteredAllows.length > 0) {
+            } else if (allowRules.length > 0) {
                 // only allow rules
                 writeAllows();
             } else {
@@ -376,7 +370,7 @@ export function generateQueryGuardFunction(
     return func;
 }
 
-export function generateTypeScriptCheckerFunction(
+export function generateEntityCheckerFunction(
     sourceFile: SourceFile,
     model: DataModel,
     kind: PolicyOperationKind,
@@ -415,12 +409,12 @@ export function generateTypeScriptCheckerFunction(
         returnType: 'any',
         parameters: [
             {
-                name: 'context',
-                type: 'QueryContext',
-            },
-            {
                 name: 'input',
                 type: 'any',
+            },
+            {
+                name: 'context',
+                type: 'QueryContext',
             },
         ],
         statements,
