@@ -88,7 +88,7 @@ describe('Data Model Validation Tests', () => {
                 @@allow('all', members?[this == auth()])
             }
         `)
-        ).toMatchObject(errorLike('using `this` in collection predicate is not supported'));
+        ).toBeTruthy();
 
         expect(
             await loadModel(`

@@ -187,7 +187,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
 
                         if (containingPolicyAttr) {
                             const operation = getAttributeArgLiteral<string>(containingPolicyAttr, 'operation');
-                            if (operation?.split(',').includes('all') || operation?.split(',').includes('all')) {
+                            if (operation?.split(',').includes('all') || operation?.split(',').includes('read')) {
                                 accept(
                                     'error',
                                     'comparison between fields of different models is not supported in "read" rules',
