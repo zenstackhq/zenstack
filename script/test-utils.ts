@@ -10,7 +10,9 @@ export const PACKAGE_JSON_FILE = 'package.json';
 export const PACKAGE_JSON_CONTENTS = '{"name":"test-project","version":"1.0.0"}';
 
 export function preparePackageJson(dependencies: {[key: string]: string} = {}, devDependencies: {[key: string]: string} = {}): string {
+  // Given that this is a loose file included from elsewhere, I couldn't rely on the tmp package here and had to go with built-in node functions. I saw no significant downsides in this case, versus the upside in developer experience of not needing to do a build step when changing these utils.
   const tmpDir = fs.mkdtempSync(path.join(tmpdir(), 'zenstack-test-'));
+  console.log(`Loading dependencies into store via temp dir ${tmpDir}`);
   try {
   const packageJsonContents = 
 `{
@@ -24,30 +26,31 @@ export function preparePackageJson(dependencies: {[key: string]: string} = {}, d
   }
 }`;
 
+  // I considered doing a `pnpm store add` here instead of a plain install. While that worked, I decided against it in the end because it's a secondary way of processing the dependencies and I didn't see a significant downside to just installing and throwing the local project away right after.
   initProjectDir(tmpDir, packageJsonContents, false);
 
   return packageJsonContents;
   } finally {
     fs.rmSync(tmpDir, {recursive: true, force: true});
-    console.log(`Loaded dependencies into store via temp dir ${tmpDir}`);
-  }
-}
-
-function execCmdSync(cmd: string, path: string) {
-  console.log(`Running: ${cmd}, in ${path}`);
-  try {
-      execSync(cmd, { cwd: path, stdio: 'ignore' });
-  } catch (err) {
-      console.error(`Test project scaffolding cmd error: ${err}`);
-      throw err;
   }
 }
 
 export function initProjectDir(projectDir: string, packageJsonContents: string, offline = true) {
-  if (!fs.existsSync(projectDir)) {
-    fs.mkdirSync(projectDir, { recursive: true });
+  try {
+    if (!fs.existsSync(projectDir)) {
+      fs.mkdirSync(projectDir, { recursive: true });
+    }
+    fs.writeFileSync(path.join(projectDir, PACKAGE_JSON_FILE), packageJsonContents, { flag: 'w+' });
+    fs.writeFileSync(path.join(projectDir, NPM_RC_FILE), NPM_RC_CONTENTS, { flag: 'w+' });
+  } catch (e) {
+    console.error(`Failed to set up project dir in ${projectDir}`);
+    throw e;
   }
-  fs.writeFileSync(path.join(projectDir, PACKAGE_JSON_FILE), packageJsonContents, { flag: 'w+' });
-  fs.writeFileSync(path.join(projectDir, NPM_RC_FILE), NPM_RC_CONTENTS, { flag: 'w+' });
-  execCmdSync(`pnpm install ${offline ? '--offline ' : ''}--ignore-workspace`, projectDir);
+
+  try {
+    execSync(`pnpm install ${offline ? '--offline ' : ''}--ignore-workspace`, {cwd: projectDir, stdio: 'ignore'});
+  } catch (e) {
+    console.error(`Failed to initialize project dependencies in ${projectDir}${offline ? '(offline mode)' : '(online mode)'}`);
+    throw e;
+  }
 }

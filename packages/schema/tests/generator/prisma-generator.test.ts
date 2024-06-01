@@ -25,7 +25,7 @@ describe('Prisma generator test', () => {
     beforeEach(() => {
         origDir = process.cwd();
         const r = tmp.dirSync({ unsafeCleanup: true });
-        console.log(`Project dir: ${r.name}`);
+        console.log('Project dir: ', r.name);
         process.chdir(r.name);
 
         initProjectDir(r.name, packageJsonContents);
