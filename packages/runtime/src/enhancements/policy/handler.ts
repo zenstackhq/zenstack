@@ -447,31 +447,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             // go through create items, statically check input to determine if post-create
             // check is needed, and also validate zod schema
-            let needPostCreateCheck = false;
-            for (const item of enumerate(args.data)) {
-                const validationResult = this.validateCreateInputSchema(this.model, item);
-                if (validationResult !== item) {
-                    this.policyUtils.replace(item, validationResult);
-                }
-
-                const inputCheck = this.policyUtils.checkInputGuard(this.model, item, 'create');
-                if (inputCheck === false) {
-                    // unconditionally deny
-                    throw this.policyUtils.deniedByPolicy(
-                        this.model,
-                        'create',
-                        undefined,
-                        CrudFailureReason.ACCESS_POLICY_VIOLATION
-                    );
-                } else if (inputCheck === true) {
-                    // unconditionally allow
-                } else if (inputCheck === undefined) {
-                    // static policy check is not possible, need to do post-create check
-                    needPostCreateCheck = true;
-                }
-            }
+            const needPostCreateCheck = this.validateCreateInput(args);
 
             if (!needPostCreateCheck) {
+                // direct create
                 return this.modelClient.createMany(args);
             } else {
                 // create entities in a transaction with post-create checks
@@ -479,10 +458,93 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     const { result, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
                     // post-create check
                     await this.runPostWriteChecks(postWriteChecks, tx);
-                    return result;
+                    return { count: result.length };
                 });
             }
         });
+    }
+
+    createManyAndReturn(args: { select: any; include: any; data: any; skipDuplicates?: boolean }) {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
+        }
+        if (!args.data) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'data field is required in query argument'
+            );
+        }
+
+        return createDeferredPromise(async () => {
+            this.policyUtils.tryReject(this.prisma, this.model, 'create');
+
+            const origArgs = args;
+            args = clone(args);
+
+            // go through create items, statically check input to determine if post-create
+            // check is needed, and also validate zod schema
+            const needPostCreateCheck = this.validateCreateInput(args);
+
+            let result: { result: unknown; error?: Error }[];
+
+            if (!needPostCreateCheck) {
+                // direct create
+                const created = await this.modelClient.createManyAndReturn(args);
+
+                // process read-back
+                result = await Promise.all(
+                    created.map((item) => this.policyUtils.readBack(this.prisma, this.model, 'create', origArgs, item))
+                );
+            } else {
+                // create entities in a transaction with post-create checks
+                result = await this.queryUtils.transaction(this.prisma, async (tx) => {
+                    const { result: created, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
+                    // post-create check
+                    await this.runPostWriteChecks(postWriteChecks, tx);
+
+                    // process read-back
+                    return Promise.all(
+                        created.map((item) => this.policyUtils.readBack(tx, this.model, 'create', origArgs, item))
+                    );
+                });
+            }
+
+            // throw read-back error if any of create result read-back fails
+            const error = result.find((r) => !!r.error)?.error;
+            if (error) {
+                throw error;
+            } else {
+                return result.map((r) => r.result);
+            }
+        });
+    }
+
+    private validateCreateInput(args: { data: any; skipDuplicates?: boolean | undefined }) {
+        let needPostCreateCheck = false;
+        for (const item of enumerate(args.data)) {
+            const validationResult = this.validateCreateInputSchema(this.model, item);
+            if (validationResult !== item) {
+                this.policyUtils.replace(item, validationResult);
+            }
+
+            const inputCheck = this.policyUtils.checkInputGuard(this.model, item, 'create');
+            if (inputCheck === false) {
+                // unconditionally deny
+                throw this.policyUtils.deniedByPolicy(
+                    this.model,
+                    'create',
+                    undefined,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
+                );
+            } else if (inputCheck === true) {
+                // unconditionally allow
+            } else if (inputCheck === undefined) {
+                // static policy check is not possible, need to do post-create check
+                needPostCreateCheck = true;
+            }
+        }
+        return needPostCreateCheck;
     }
 
     private async doCreateMany(model: string, args: { data: any; skipDuplicates?: boolean }, db: CrudContract) {
@@ -511,7 +573,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         createResult = createResult.filter((p) => !!p);
 
         return {
-            result: { count: createResult.length },
+            result: createResult,
             postWriteChecks: createResult.map((item) => ({
                 model,
                 operation: 'create' as PolicyOperationKind,
