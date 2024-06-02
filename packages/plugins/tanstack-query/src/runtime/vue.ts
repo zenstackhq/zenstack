@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { InfiniteData } from '@tanstack/react-query-v5';
 import {
     useInfiniteQuery,
     useMutation,
@@ -103,8 +104,12 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     url: string,
     args?: MaybeRefOrGetter<unknown> | ComputedRef<unknown>,
     options?:
-        | MaybeRefOrGetter<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>
-        | ComputedRef<Omit<UseInfiniteQueryOptions<TQueryFnData, TError, TData>, 'queryKey'>>,
+        | MaybeRefOrGetter<
+              Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+          >
+        | ComputedRef<
+              Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+          >,
     fetch?: FetchFn
 ) {
     // CHECKME: vue-query's `useInfiniteQuery`'s input typing seems wrong
@@ -115,10 +120,11 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
             const reqUrl = makeUrl(url, pageParam ?? toValue(args));
             return fetcher<TQueryFnData, false>(reqUrl, undefined, fetch, false);
         },
+        initialPageParam: toValue(args),
         ...toValue(options),
     }));
 
-    return useInfiniteQuery<TQueryFnData, TError, TData>(queryOptions);
+    return useInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(queryOptions);
 }
 
 /**

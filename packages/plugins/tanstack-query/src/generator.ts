@@ -136,8 +136,8 @@ function generateQueryHook(
         });
 
         if (version === 'v5' && infinite && ['react', 'svelte'].includes(target)) {
-            // initialPageParam and getNextPageParam options are required in v5
-            func.addStatements([`options = options ?? { initialPageParam: undefined, getNextPageParam: () => null };`]);
+            // getNextPageParam option is required in v5
+            func.addStatements([`options = options ?? { getNextPageParam: () => null };`]);
         }
 
         func.addStatements([
@@ -668,20 +668,20 @@ function makeQueryOptions(
                     ? `Omit<UseInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
                     : `Omit<Use${
                           suspense ? 'Suspense' : ''
-                      }InfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>`
+                      }InfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey' | 'initialPageParam'>`
                 : `Omit<Use${suspense ? 'Suspense' : ''}QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
         )
         .with('vue', () => {
-            const baseOption = `Omit<Use${
-                infinite ? 'Infinite' : ''
-            }QueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
+            const baseOption = infinite
+                ? `Omit<UseInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey' | 'initialPageParam'>`
+                : `Omit<UseQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`;
             return `MaybeRefOrGetter<${baseOption}> | ComputedRef<${baseOption}>`;
         })
         .with('svelte', () =>
             infinite
                 ? version === 'v4'
                     ? `Omit<CreateInfiniteQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
-                    : `StoreOrVal<Omit<CreateInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey'>>`
+                    : `StoreOrVal<Omit<CreateInfiniteQueryOptions<${returnType}, TError, InfiniteData<${dataType}>>, 'queryKey' | 'initialPageParam'>>`
                 : version === 'v4'
                 ? `Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>`
                 : `StoreOrVal<Omit<CreateQueryOptions<${returnType}, TError, ${dataType}>, 'queryKey'>>`

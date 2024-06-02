@@ -48,6 +48,19 @@ model Foo {
 }
     `;
 
+    const reactAppSource = {
+        name: 'main.ts',
+        content: `
+        import { useInfiniteFindManypost_Item } from './hooks';
+
+        const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+        useInfiniteFindManypost_Item({ where: { published: true } });
+        useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+        console.log(data?.pages[0][0].published);
+        console.log(data?.pageParams[0]);
+        `,
+    };
+
     it('react-query run plugin v4', async () => {
         await loadSchema(
             `
@@ -66,6 +79,7 @@ ${sharedModel}
                 extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@4.29.7'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [reactAppSource],
             }
         );
     });
@@ -87,9 +101,37 @@ ${sharedModel}
                 extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@^5.0.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [
+                    reactAppSource,
+                    {
+                        name: 'suspense.ts',
+                        content: `
+                        import { useSuspenseInfiniteFindManypost_Item } from './hooks';
+
+                        const { data, fetchNextPage, hasNextPage } = useSuspenseInfiniteFindManypost_Item();
+                        useSuspenseInfiniteFindManypost_Item({ where: { published: true } });
+                        useSuspenseInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+                        console.log(data?.pages[0][0].published);
+                        console.log(data?.pageParams[0]);
+                        `,
+                    },
+                ],
             }
         );
     });
+
+    const vueAppSource = {
+        name: 'main.ts',
+        content: `
+        import { useInfiniteFindManypost_Item } from './hooks';
+
+        const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+        useInfiniteFindManypost_Item({ where: { published: true } });
+        useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+        console.log(data.value?.pages[0][0].published);
+        console.log(data.value?.pageParams[0]);
+        `,
+    };
 
     it('vue-query run plugin v4', async () => {
         await loadSchema(
@@ -109,6 +151,7 @@ ${sharedModel}
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@4.37.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [vueAppSource],
             }
         );
     });
@@ -130,9 +173,24 @@ ${sharedModel}
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@latest'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [vueAppSource],
             }
         );
     });
+
+    const svelteAppSource = {
+        name: 'main.ts',
+        content: `
+        import { get } from 'svelte/store';
+        import { useInfiniteFindManypost_Item } from './hooks';
+
+        const { data, fetchNextPage, hasNextPage } = get(useInfiniteFindManypost_Item());
+        useInfiniteFindManypost_Item({ where: { published: true } });
+        useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+        console.log(data?.pages[0][0].published);
+        console.log(data?.pageParams[0]);
+        `,
+    };
 
     it('svelte-query run plugin v4', async () => {
         await loadSchema(
@@ -152,6 +210,7 @@ ${sharedModel}
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [svelteAppSource],
             }
         );
     });
@@ -173,6 +232,7 @@ ${sharedModel}
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@^5.0.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [svelteAppSource],
             }
         );
     });
