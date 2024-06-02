@@ -11,6 +11,7 @@ import {
     getIdFields,
     getLiteral,
     isAuthInvocation,
+    isDataModelFieldReference,
     isEnumFieldReference,
     isFromStdlib,
     isFutureExpr,
@@ -19,6 +20,7 @@ import {
 import {
     Enum,
     Model,
+    isBinaryExpr,
     isDataModel,
     isDataModelField,
     isExpression,
@@ -30,10 +32,10 @@ import {
     type DataModelField,
     type Expression,
 } from '@zenstackhq/sdk/ast';
-import { streamAllContents, streamAst, streamContents } from 'langium';
+import { getContainerOfType, streamAllContents, streamAst, streamContents } from 'langium';
 import { SourceFile, WriterFunction } from 'ts-morph';
 import { name } from '..';
-import { isCollectionPredicate } from '../../../utils/ast-utils';
+import { isCollectionPredicate, isFutureInvocation } from '../../../utils/ast-utils';
 import { ExpressionWriter, FALSE, TRUE } from './expression-writer';
 
 /**
@@ -43,7 +45,8 @@ export function getPolicyExpressions(
     target: DataModel | DataModelField,
     kind: PolicyKind,
     operation: PolicyOperationKind,
-    override = false
+    forOverride = false,
+    filter: 'all' | 'withoutCrossModelComparison' | 'onlyCrossModelComparison' = 'all'
 ) {
     const attributes = target.attributes;
     const attrName = isDataModel(target) ? `@@${kind}` : `@${kind}`;
@@ -52,12 +55,10 @@ export function getPolicyExpressions(
             return false;
         }
 
-        if (override) {
-            const overrideArg = getAttributeArg(attr, 'override');
-            return overrideArg && getLiteral<boolean>(overrideArg) === true;
-        } else {
-            return true;
-        }
+        const overrideArg = getAttributeArg(attr, 'override');
+        const isOverride = !!overrideArg && getLiteral<boolean>(overrideArg) === true;
+
+        return (forOverride && isOverride) || (!forOverride && !isOverride);
     });
 
     const checkOperation = operation === 'postUpdate' ? 'update' : operation;
@@ -72,6 +73,12 @@ export function getPolicyExpressions(
             return ops.includes(checkOperation) || ops.includes('all');
         })
         .map((attr) => attr.args[1].value);
+
+    if (filter === 'onlyCrossModelComparison') {
+        result = result.filter((expr) => hasCrossModelComparison(expr));
+    } else if (filter === 'withoutCrossModelComparison') {
+        result = result.filter((expr) => !hasCrossModelComparison(expr));
+    }
 
     if (operation === 'update') {
         result = processUpdatePolicies(result, false);
@@ -108,9 +115,14 @@ function processUpdatePolicies(expressions: Expression[], postUpdate: boolean) {
  * Generates a "select" object that contains (recursively) fields referenced by the
  * given policy rules
  */
-export function generateSelectForRules(rules: Expression[], forAuthContext = false): object {
+export function generateSelectForRules(rules: Expression[], forAuthContext = false, ignoreFutureReference = true) {
     const result: any = {};
     const addPath = (path: string[]) => {
+        const thisIndex = path.lastIndexOf('$this');
+        if (thisIndex >= 0) {
+            // drop everything before $this
+            path = path.slice(thisIndex + 1);
+        }
         let curr = result;
         path.forEach((seg, i) => {
             if (i === path.length - 1) {
@@ -128,6 +140,10 @@ export function generateSelectForRules(rules: Expression[], forAuthContext = fal
     // selection path
     const visit = (node: Expression): string[] | undefined => {
         if (isThisExpr(node)) {
+            return ['$this'];
+        }
+
+        if (isFutureExpr(node)) {
             return [];
         }
 
@@ -144,7 +160,7 @@ export function generateSelectForRules(rules: Expression[], forAuthContext = fal
                 return [node.member.$refText];
             }
 
-            if (isFutureExpr(node.operand)) {
+            if (isFutureExpr(node.operand) && ignoreFutureReference) {
                 // future().field is not subject to pre-update select
                 return undefined;
             }
@@ -183,13 +199,15 @@ export function generateSelectForRules(rules: Expression[], forAuthContext = fal
             }
         } else if (isCollectionPredicate(expr)) {
             const path = visit(expr.left);
+            // recurse into RHS
+            const rhs = collectReferencePaths(expr.right);
             if (path) {
-                // recurse into RHS
-                const rhs = collectReferencePaths(expr.right);
                 // combine path of LHS and RHS
                 return rhs.map((r) => [...path, ...r]);
             } else {
-                return [];
+                // LHS is not rooted from the current model,
+                // only keep RHS items that contains '$this'
+                return rhs.filter((r) => r.includes('$this'));
             }
         } else if (isInvocationExpr(expr)) {
             // recurse into function arguments
@@ -225,9 +243,12 @@ export function generateQueryGuardFunction(
 ) {
     const statements: (string | WriterFunction)[] = [];
 
-    generateNormalizedAuthRef(model, allows, denies, statements);
+    const allowRules = allows.filter((rule) => !hasCrossModelComparison(rule));
+    const denyRules = denies.filter((rule) => !hasCrossModelComparison(rule));
 
-    const hasFieldAccess = [...denies, ...allows].some((rule) =>
+    generateNormalizedAuthRef(model, allowRules, denyRules, statements);
+
+    const hasFieldAccess = [...denyRules, ...allowRules].some((rule) =>
         streamAst(rule).some(
             (child) =>
                 // this.???
@@ -248,10 +269,10 @@ export function generateQueryGuardFunction(
                 isPostGuard: kind === 'postUpdate',
             });
             try {
-                denies.forEach((rule) => {
+                denyRules.forEach((rule) => {
                     writer.write(`if (${transformer.transform(rule, false)}) { return ${FALSE}; }`);
                 });
-                allows.forEach((rule) => {
+                allowRules.forEach((rule) => {
                     writer.write(`if (${transformer.transform(rule, false)}) { return ${TRUE}; }`);
                 });
             } catch (err) {
@@ -267,12 +288,22 @@ export function generateQueryGuardFunction(
                     // if there's no allow rule, for field-level rules, by default we allow
                     writer.write(`return ${TRUE};`);
                 } else {
-                    // if there's any allow rule, we deny unless any allow rule evaluates to true
-                    writer.write(`return ${FALSE};`);
+                    if (allowRules.length < allows.length) {
+                        writer.write(`return ${TRUE};`);
+                    } else {
+                        // if there's any allow rule, we deny unless any allow rule evaluates to true
+                        writer.write(`return ${FALSE};`);
+                    }
                 }
             } else {
-                // for model-level rules, the default is always deny
-                writer.write(`return ${FALSE};`);
+                if (allowRules.length < allows.length) {
+                    // some rules are filtered out here and will be generated as additional
+                    // checker functions, so we allow here to avoid a premature denial
+                    writer.write(`return ${TRUE};`);
+                } else {
+                    // for model-level rules, the default is always deny unless for 'postUpdate'
+                    writer.write(`return ${kind === 'postUpdate' ? TRUE : FALSE};`);
+                }
             }
         });
     } else {
@@ -280,42 +311,42 @@ export function generateQueryGuardFunction(
             writer.write('return ');
             const exprWriter = new ExpressionWriter(writer, kind === 'postUpdate');
             const writeDenies = () => {
-                writer.conditionalWrite(denies.length > 1, '{ AND: [');
-                denies.forEach((expr, i) => {
+                writer.conditionalWrite(denyRules.length > 1, '{ AND: [');
+                denyRules.forEach((expr, i) => {
                     writer.inlineBlock(() => {
                         writer.write('NOT: ');
                         exprWriter.write(expr);
                     });
-                    writer.conditionalWrite(i !== denies.length - 1, ',');
+                    writer.conditionalWrite(i !== denyRules.length - 1, ',');
                 });
-                writer.conditionalWrite(denies.length > 1, ']}');
+                writer.conditionalWrite(denyRules.length > 1, ']}');
             };
 
             const writeAllows = () => {
-                writer.conditionalWrite(allows.length > 1, '{ OR: [');
-                allows.forEach((expr, i) => {
+                writer.conditionalWrite(allowRules.length > 1, '{ OR: [');
+                allowRules.forEach((expr, i) => {
                     exprWriter.write(expr);
-                    writer.conditionalWrite(i !== allows.length - 1, ',');
+                    writer.conditionalWrite(i !== allowRules.length - 1, ',');
                 });
-                writer.conditionalWrite(allows.length > 1, ']}');
+                writer.conditionalWrite(allowRules.length > 1, ']}');
             };
 
-            if (allows.length > 0 && denies.length > 0) {
+            if (allowRules.length > 0 && denyRules.length > 0) {
                 // include both allow and deny rules
                 writer.write('{ AND: [');
                 writeDenies();
                 writer.write(',');
                 writeAllows();
                 writer.write(']}');
-            } else if (denies.length > 0) {
+            } else if (denyRules.length > 0) {
                 // only deny rules
                 writeDenies();
-            } else if (allows.length > 0) {
+            } else if (allowRules.length > 0) {
                 // only allow rules
                 writeAllows();
             } else {
-                // disallow any operation
-                writer.write(`{ OR: [] }`);
+                // disallow any operation unless for 'postUpdate'
+                writer.write(`return ${kind === 'postUpdate' ? TRUE : FALSE};`);
             }
             writer.write(';');
         });
@@ -333,6 +364,59 @@ export function generateQueryGuardFunction(
                 // for generating field references used by field comparison in the same model
                 name: 'db',
                 type: 'CrudContract',
+            },
+        ],
+        statements,
+    });
+
+    return func;
+}
+
+export function generateEntityCheckerFunction(
+    sourceFile: SourceFile,
+    model: DataModel,
+    kind: PolicyOperationKind,
+    allows: Expression[],
+    denies: Expression[],
+    forField?: DataModelField,
+    fieldOverride = false
+) {
+    const statements: (string | WriterFunction)[] = [];
+
+    generateNormalizedAuthRef(model, allows, denies, statements);
+
+    const transformer = new TypeScriptExpressionTransformer({
+        context: ExpressionContext.AccessPolicy,
+        thisExprContext: 'input',
+        fieldReferenceContext: 'input',
+        isPostGuard: kind === 'postUpdate',
+        futureRefContext: 'input',
+    });
+
+    denies.forEach((rule) => {
+        const compiled = transformer.transform(rule);
+        statements.push(`if (${compiled}) { return false; }`);
+    });
+
+    allows.forEach((rule) => {
+        const compiled = transformer.transform(rule);
+        statements.push(`if (${compiled}) { return true; }`);
+    });
+
+    // default: deny unless for 'postUpdate'
+    statements.push(kind === 'postUpdate' ? 'return true;' : 'return false;');
+
+    const func = sourceFile.addFunction({
+        name: `$check_${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
+        returnType: 'any',
+        parameters: [
+            {
+                name: 'input',
+                type: 'any',
+            },
+            {
+                name: 'context',
+                type: 'QueryContext',
             },
         ],
         statements,
@@ -383,4 +467,45 @@ export function isEnumReferenced(model: Model, decl: Enum): unknown {
         }
         return false;
     });
+}
+
+function hasCrossModelComparison(expr: Expression) {
+    return streamAst(expr).some((node) => {
+        if (isBinaryExpr(node) && ['==', '!=', '>', '<', '>=', '<=', 'in'].includes(node.operator)) {
+            const leftRoot = getSourceModelOfFieldAccess(node.left);
+            const rightRoot = getSourceModelOfFieldAccess(node.right);
+            if (leftRoot && rightRoot && leftRoot !== rightRoot) {
+                return true;
+            }
+        }
+        return false;
+    });
+}
+
+function getSourceModelOfFieldAccess(expr: Expression) {
+    if (isDataModel(expr.$resolvedType?.decl)) {
+        return expr.$resolvedType?.decl;
+    }
+
+    // `this` reference
+    if (isThisExpr(expr)) {
+        return getContainerOfType(expr, isDataModel);
+    }
+
+    // `future()`
+    if (isFutureInvocation(expr)) {
+        return getContainerOfType(expr, isDataModel);
+    }
+
+    // direct field reference
+    if (isDataModelFieldReference(expr)) {
+        return (expr.target.ref as DataModelField).$container;
+    }
+
+    // member access
+    if (isMemberAccessExpr(expr)) {
+        return getSourceModelOfFieldAccess(expr.operand);
+    }
+
+    return undefined;
 }
