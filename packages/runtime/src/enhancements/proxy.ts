@@ -35,6 +35,8 @@ export interface PrismaProxyHandler {
 
     createMany(args: { data: any; skipDuplicates?: boolean }): Promise<BatchResult>;
 
+    createManyAndReturn(args: { data: any; select: any; include: any; skipDuplicates?: boolean }): Promise<unknown[]>;
+
     update(args: any): Promise<unknown>;
 
     updateMany(args: any): Promise<BatchResult>;
@@ -120,6 +122,10 @@ export class DefaultPrismaProxyHandler implements PrismaProxyHandler {
 
     createMany(args: { data: any; skipDuplicates?: boolean }) {
         return this.deferred<{ count: number }>('createMany', args, false);
+    }
+
+    createManyAndReturn(args: { data: any; select: any; include: any; skipDuplicates?: boolean }) {
+        return this.deferred<unknown[]>('createManyAndReturn', args);
     }
 
     update(args: any) {
