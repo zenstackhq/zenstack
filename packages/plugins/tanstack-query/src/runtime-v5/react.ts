@@ -120,7 +120,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args: unknown,
-    options: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey'>,
+    options: Omit<UseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>,
     fetch?: FetchFn
 ) {
     return useInfiniteQuery({
@@ -128,6 +128,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
+        initialPageParam: args,
         ...options,
     });
 }
@@ -146,7 +147,10 @@ export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args: unknown,
-    options: Omit<UseSuspenseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey'>,
+    options: Omit<
+        UseSuspenseInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>,
+        'queryKey' | 'initialPageParam'
+    >,
     fetch?: FetchFn
 ) {
     return useSuspenseInfiniteQuery({
@@ -154,6 +158,7 @@ export function useSuspenseInfiniteModelQuery<TQueryFnData, TData, TError>(
         queryFn: ({ pageParam }) => {
             return fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
         },
+        initialPageParam: args,
         ...options,
     });
 }

@@ -11,7 +11,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import nock from 'nock';
 import React from 'react';
 import { getQueryKey } from '../src/runtime/common';
-import { RequestHandlerContext, useModelMutation, useModelQuery } from '../src/runtime/react';
+import { RequestHandlerContext, useInfiniteModelQuery, useModelMutation, useModelQuery } from '../src/runtime/react';
 import { modelMeta } from './test-model-meta';
 
 describe('Tanstack Query React Hooks V4 Test', () => {
@@ -57,6 +57,45 @@ describe('Tanstack Query React Hooks V4 Test', () => {
             expect(result.current.data).toMatchObject(data);
             const cacheData = queryClient.getQueryData(getQueryKey('User', 'findUnique', queryArgs));
             expect(cacheData).toMatchObject(data);
+        });
+    });
+
+    it('infinite query', async () => {
+        const { queryClient, wrapper } = createWrapper();
+
+        const queryArgs = { where: { id: '1' } };
+        const data = [{ id: '1', name: 'foo' }];
+
+        nock(makeUrl('User', 'findMany', queryArgs))
+            .get(/.*/)
+            .reply(200, () => {
+                console.log('Query findMany:', queryArgs);
+                return {
+                    data: data,
+                };
+            });
+
+        const { result } = renderHook(
+            () =>
+                useInfiniteModelQuery('User', makeUrl('User', 'findMany'), queryArgs, {
+                    getNextPageParam: () => null,
+                }),
+            {
+                wrapper,
+            }
+        );
+        await waitFor(() => {
+            expect(result.current.isSuccess).toBe(true);
+            const resultData = result.current.data!;
+            expect(resultData.pages).toHaveLength(1);
+            expect(resultData.pages[0]).toMatchObject(data);
+            expect(resultData?.pageParams).toHaveLength(1);
+            expect(resultData?.pageParams[0]).toBeUndefined();
+            expect(result.current.hasNextPage).toBe(false);
+            const cacheData: any = queryClient.getQueryData(
+                getQueryKey('User', 'findMany', queryArgs, { infinite: true, optimisticUpdate: false })
+            );
+            expect(cacheData.pages[0]).toMatchObject(data);
         });
     });
 
