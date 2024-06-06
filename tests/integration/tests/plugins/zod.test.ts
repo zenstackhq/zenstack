@@ -61,6 +61,7 @@ describe('Zod plugin tests', () => {
             authorId Int?
             published Boolean @default(false)
             viewCount Int @default(0)
+            viewMilliseconds BigInt @default(0)
         }
         `,
             { addPrelude: false, pushDb: false }
@@ -188,11 +189,13 @@ describe('Zod plugin tests', () => {
         expect(schemas.PostPrismaCreateSchema.safeParse({ title: 'a' }).success).toBeFalsy();
         expect(schemas.PostPrismaCreateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
         expect(schemas.PostPrismaCreateSchema.safeParse({ viewCount: 1 }).success).toBeTruthy();
+        expect(schemas.PostPrismaCreateSchema.safeParse({ viewMilliseconds: 1n }).success).toBeTruthy();
 
         expect(schemas.PostPrismaUpdateSchema.safeParse({ title: 'a' }).success).toBeFalsy();
         expect(schemas.PostPrismaUpdateSchema.safeParse({ title: 'abcde' }).success).toBeTruthy();
         expect(schemas.PostPrismaUpdateSchema.safeParse({ viewCount: 1 }).success).toBeTruthy();
         expect(schemas.PostPrismaUpdateSchema.safeParse({ viewCount: { increment: 1 } }).success).toBeTruthy();
+        expect(schemas.PostPrismaUpdateSchema.safeParse({ viewMilliseconds: 1n }).success).toBeTruthy();
     });
 
     it('mixed casing', async () => {
