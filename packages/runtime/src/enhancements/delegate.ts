@@ -1101,6 +1101,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private assembleUp(model: string, entity: any) {
+        if (!entity) {
+            return entity;
+        }
+
         const result: any = {};
         const base = this.getBaseModel(model);
 
@@ -1148,6 +1152,10 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private assembleDown(model: string, entity: any) {
+        if (!entity) {
+            return entity;
+        }
+
         const result: any = {};
         const modelInfo = getModelInfo(this.options.modelMeta, model, true);
 
