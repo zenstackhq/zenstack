@@ -1095,7 +1095,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         const result = deepmerge(upMerged, downMerged, {
             arrayMerge: combineMerge,
-            isMergeableObject: isPlainObject, // avoid messing with Decimal, Date, etc.
+            isMergeableObject: (v) => isPlainObject(v) || Array.isArray(v), // avoid messing with Decimal, Date, etc.
         });
         return result;
     }
