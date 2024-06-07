@@ -83,6 +83,7 @@
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
         "deepmerge": "^4.3.1",
+        "is-plain-object": "^5.0.0",
         "logic-solver": "^2.0.1",
         "lower-case-first": "^2.0.2",
         "pluralize": "^8.0.0",
