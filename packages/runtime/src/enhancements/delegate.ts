@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import deepcopy from 'deepcopy';
 import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
+import { isPlainObject } from 'is-plain-object';
 import { lowerCaseFirst } from 'lower-case-first';
 import { DELEGATE_AUX_RELATION_PREFIX } from '../constants';
 import {
@@ -1094,6 +1095,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
         const result = deepmerge(upMerged, downMerged, {
             arrayMerge: combineMerge,
+            isMergeableObject: (v) => isPlainObject(v) || Array.isArray(v), // avoid messing with Decimal, Date, etc.
         });
         return result;
     }

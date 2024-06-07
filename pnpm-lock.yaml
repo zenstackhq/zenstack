@@ -418,6 +418,9 @@ importers:
       deepmerge:
         specifier: ^4.3.1
         version: 4.3.1
+      is-plain-object:
+        specifier: ^5.0.0
+        version: 5.0.0
       logic-solver:
         specifier: ^2.0.1
         version: 2.0.1
