@@ -15,6 +15,7 @@ import {
     isDelegateModel,
 } from '@zenstackhq/sdk';
 import { AstNode, DiagnosticInfo, ValidationAcceptor, getDocument } from 'langium';
+import { findUpInheritance } from '../../utils/ast-utils';
 import { IssueCodes, SCALAR_TYPES } from '../constants';
 import { AstValidator } from '../types';
 import { getUniqueFields } from '../utils';
@@ -238,7 +239,7 @@ export default class DataModelValidator implements AstValidator<DataModel> {
             return;
         }
 
-        if (field.$container !== contextModel && isDelegateModel(field.$container as DataModel)) {
+        if (this.isFieldInheritedFromDelegateModel(field, contextModel)) {
             // relation fields inherited from delegate model don't need opposite relation
             return;
         }
@@ -387,6 +388,16 @@ export default class DataModelValidator implements AstValidator<DataModel> {
                     );
                 }
             });
+        }
+    }
+
+    // checks if the given field is inherited directly or indirectly from a delegate model
+    private isFieldInheritedFromDelegateModel(field: DataModelField, contextModel: DataModel) {
+        const basePath = findUpInheritance(contextModel, field.$container as DataModel);
+        if (basePath && basePath.some(isDelegateModel)) {
+            return true;
+        } else {
+            return false;
         }
     }
 

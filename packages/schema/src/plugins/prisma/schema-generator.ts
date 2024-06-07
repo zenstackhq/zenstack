@@ -579,18 +579,30 @@ export class PrismaSchemaGenerator {
         // the logical schema needs to name relations inherited from delegate base models for disambiguation
 
         decl.fields.forEach((f) => {
-            if (!f.$inheritedFrom || !isDelegateModel(f.$inheritedFrom) || !isDataModel(f.type.reference?.ref)) {
+            if (!isDataModel(f.type.reference?.ref)) {
+                // only process relation fields
+                return;
+            }
+
+            if (!f.$inheritedFrom) {
+                // only process inherited fields
+                return;
+            }
+
+            // Walk up the inheritance chain to find a field with matching name
+            // which is where this field is inherited from.
+            //
+            // Note that we can't walk all the way up to the $inheritedFrom model
+            // because it may have been eliminated because of being abstract.
+
+            const baseField = this.findUpMatchingFieldFromDelegate(decl, f);
+            if (!baseField) {
+                // only process fields inherited from delegate models
                 return;
             }
 
             const prismaField = model.fields.find((field) => field.name === f.name);
             if (!prismaField) {
-                return;
-            }
-
-            // find the base field that this field is inherited from
-            const baseField = f.$inheritedFrom.fields.find((field) => field.name === f.name);
-            if (!baseField) {
                 return;
             }
 
@@ -627,6 +639,28 @@ export class PrismaSchemaGenerator {
                 );
             }
         });
+    }
+
+    private findUpMatchingFieldFromDelegate(start: DataModel, target: DataModelField): DataModelField | undefined {
+        for (const base of start.superTypes) {
+            if (isDataModel(base.ref)) {
+                if (isDelegateModel(base.ref)) {
+                    const field = base.ref.fields.find((f) => f.name === target.name);
+                    if (field) {
+                        if (!field.$inheritedFrom || !isDelegateModel(field.$inheritedFrom)) {
+                            // if this field is not inherited from an upper delegate, we're done
+                            return field;
+                        }
+                    }
+                }
+
+                const upper = this.findUpMatchingFieldFromDelegate(base.ref, target);
+                if (upper) {
+                    return upper;
+                }
+            }
+        }
+        return undefined;
     }
 
     private getOppositeRelationField(oppositeModel: DataModel, relationField: DataModelField) {
