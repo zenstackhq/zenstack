@@ -152,7 +152,13 @@ export function makeFieldSchema(field: DataModelField) {
     } else {
         const schemaDefault = getFieldSchemaDefault(field);
         if (schemaDefault !== undefined) {
-            schema += `.default(${schemaDefault})`;
+            if (field.type.type === 'BigInt') {
+                // we can't use the `n` BigInt literal notation, since it needs
+                // ES2020 or later, which TypeScript doesn't use by default
+                schema += `.default(BigInt("${schemaDefault}"))`;
+            } else {
+                schema += `.default(${schemaDefault})`;
+            }
         }
 
         if (field.type.optional) {
