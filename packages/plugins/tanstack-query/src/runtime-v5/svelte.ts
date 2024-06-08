@@ -91,7 +91,7 @@ export function useModelQuery<TQueryFnData, TData, TError>(
             ...options,
         };
     }
-    return createQuery(mergedOpt);
+    return createQuery<TQueryFnData, TError, TData>(mergedOpt);
 }
 
 /**
