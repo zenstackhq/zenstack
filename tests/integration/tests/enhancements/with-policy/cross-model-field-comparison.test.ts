@@ -870,8 +870,7 @@ describe('Cross-model field comparison', () => {
             roleId Int
             @@allow('all', true)
         }
-        `,
-            { preserveTsFiles: true, logPrismaQuery: true }
+        `
         );
 
         const team1 = await prisma.team.create({ data: {} });
@@ -899,13 +898,15 @@ describe('Cross-model field comparison', () => {
             id: user.id,
             teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team1.id }] } }],
         });
-        expect(dbTeam1.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toResolveTruthy();
+        await expect(dbTeam1.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toResolveTruthy();
 
         const dbTeam2 = enhance({
             id: user.id,
             teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team2.id }] } }],
         });
-        expect(dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toBeRejectedByPolicy();
+        await expect(
+            dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })
+        ).toBeRejectedByPolicy();
     });
 
     it('with auth case 3', async () => {
@@ -958,8 +959,7 @@ describe('Cross-model field comparison', () => {
             roleId Int
             @@allow('all', true)
         }
-        `,
-            { preserveTsFiles: true, logPrismaQuery: true }
+        `
         );
 
         const team1 = await prisma.team.create({ data: {} });
@@ -985,14 +985,16 @@ describe('Cross-model field comparison', () => {
 
         const dbTeam1 = enhance({
             id: user.id,
-            teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team1.id }] } }],
+            teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', team: { id: team1.id } }] } }],
         });
-        expect(dbTeam1.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toResolveTruthy();
+        await expect(dbTeam1.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toResolveTruthy();
 
         const dbTeam2 = enhance({
             id: user.id,
             teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team2.id }] } }],
         });
-        expect(dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toBeRejectedByPolicy();
+        await expect(
+            dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })
+        ).toBeRejectedByPolicy();
     });
 });
