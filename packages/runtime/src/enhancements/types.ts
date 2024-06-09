@@ -215,6 +215,11 @@ type FieldCrudDef = {
 
 type FieldReadDef = {
     /**
+     * Field-level Prisma query guard
+     */
+    guard?: PolicyFunc;
+
+    /**
      * Entity checker
      */
     entityChecker?: EntityChecker;
