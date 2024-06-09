@@ -466,18 +466,16 @@ export class PolicyUtil extends QueryUtils {
                 continue;
             }
 
-            const fieldInfo = resolveField(this.modelMeta, model, field);
-            if (!fieldInfo || !fieldInfo.isDataModel) {
-                continue;
-            }
-
             allFieldGuards.push(this.getFieldReadAuthGuard(db, model, field));
             allFieldOverrideGuards.push(this.getFieldOverrideReadAuthGuard(db, model, field));
 
-            if (fieldInfo.isArray) {
-                this.injectReadGuardForToManyField(db, fieldInfo, subPayload);
-            } else {
-                this.injectReadGuardForToOneField(db, fieldInfo, subPayload);
+            const fieldInfo = resolveField(this.modelMeta, model, field);
+            if (fieldInfo?.isDataModel) {
+                if (fieldInfo.isArray) {
+                    this.injectReadGuardForToManyField(db, fieldInfo, subPayload);
+                } else {
+                    this.injectReadGuardForToOneField(db, fieldInfo, subPayload);
+                }
             }
         }
 
