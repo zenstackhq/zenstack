@@ -276,6 +276,26 @@ export class PolicyUtil extends QueryUtils {
     }
 
     /**
+     * Get field-level read auth guard
+     */
+    getFieldReadAuthGuard(db: CrudContract, model: string, field: string) {
+        const def = this.getModelPolicyDef(model);
+        const guard = def.fieldLevel?.read?.[field]?.guard;
+
+        if (guard === undefined) {
+            // field access is allowed by default
+            return this.makeTrue();
+        }
+
+        if (typeof guard === 'boolean') {
+            return this.reduce(guard);
+        }
+
+        const r = guard({ user: this.user }, db);
+        return this.reduce(r);
+    }
+
+    /**
      * Get field-level read auth guard that overrides the model-level
      */
     getFieldOverrideReadAuthGuard(db: CrudContract, model: string, field: string) {
@@ -419,23 +439,28 @@ export class PolicyUtil extends QueryUtils {
             return false;
         }
 
+        let mergedGuard = guard;
         if (args.where) {
             // inject into relation fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            this.injectGuardForRelationFields(db, model, args.where, operation);
+            mergedGuard = this.injectReadGuardForRelationFields(db, model, args.where, guard);
         }
 
-        args.where = this.and(args.where, guard);
+        args.where = this.and(args.where, mergedGuard);
         return true;
     }
 
-    private injectGuardForRelationFields(
-        db: CrudContract,
-        model: string,
-        payload: any,
-        operation: PolicyOperationKind
-    ) {
+    // Injects guard for relation fields nested in `payload`. The `modelGuard` parameter represents the model-level guard for `model`.
+    // The function returns a modified copy of `modelGuard` with field-level policies combined.
+    private injectReadGuardForRelationFields(db: CrudContract, model: string, payload: any, modelGuard: any) {
+        if (!payload || typeof payload !== 'object' || Object.keys(payload).length === 0) {
+            return modelGuard;
+        }
+
+        const allFieldGuards: object[] = [];
+        const allFieldOverrideGuards: object[] = [];
+
         for (const [field, subPayload] of Object.entries<any>(payload)) {
             if (!subPayload) {
                 continue;
@@ -446,30 +471,43 @@ export class PolicyUtil extends QueryUtils {
                 continue;
             }
 
+            allFieldGuards.push(this.getFieldReadAuthGuard(db, model, field));
+            allFieldOverrideGuards.push(this.getFieldOverrideReadAuthGuard(db, model, field));
+
             if (fieldInfo.isArray) {
-                this.injectGuardForToManyField(db, fieldInfo, subPayload, operation);
+                this.injectReadGuardForToManyField(db, fieldInfo, subPayload);
             } else {
-                this.injectGuardForToOneField(db, fieldInfo, subPayload, operation);
+                this.injectReadGuardForToOneField(db, fieldInfo, subPayload);
             }
         }
+
+        // all existing field-level guards must be true
+        const mergedGuard: object = this.and(...allFieldGuards);
+
+        // all existing field-level override guards must be true for override to take effect; override is disabled by default
+        const mergedOverrideGuard: object =
+            allFieldOverrideGuards.length === 0 ? this.makeFalse() : this.and(...allFieldOverrideGuards);
+
+        // (original-guard && field-level-guard) || field-level-override-guard
+        const updatedGuard = this.or(this.and(modelGuard, mergedGuard), mergedOverrideGuard);
+        return updatedGuard;
     }
 
-    private injectGuardForToManyField(
+    private injectReadGuardForToManyField(
         db: CrudContract,
         fieldInfo: FieldInfo,
-        payload: { some?: any; every?: any; none?: any },
-        operation: PolicyOperationKind
+        payload: { some?: any; every?: any; none?: any }
     ) {
-        const guard = this.getAuthGuard(db, fieldInfo.type, operation);
+        const guard = this.getAuthGuard(db, fieldInfo.type, 'read');
         if (payload.some) {
-            this.injectGuardForRelationFields(db, fieldInfo.type, payload.some, operation);
+            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.some, guard);
             // turn "some" into: { some: { AND: [guard, payload.some] } }
-            payload.some = this.and(payload.some, guard);
+            payload.some = this.and(payload.some, mergedGuard);
         }
         if (payload.none) {
-            this.injectGuardForRelationFields(db, fieldInfo.type, payload.none, operation);
+            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.none, guard);
             // turn none into: { none: { AND: [guard, payload.none] } }
-            payload.none = this.and(payload.none, guard);
+            payload.none = this.and(payload.none, mergedGuard);
         }
         if (
             payload.every &&
@@ -477,40 +515,44 @@ export class PolicyUtil extends QueryUtils {
             // ignore empty every clause
             Object.keys(payload.every).length > 0
         ) {
-            this.injectGuardForRelationFields(db, fieldInfo.type, payload.every, operation);
+            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.every, guard);
 
             // turn "every" into: { none: { AND: [guard, { NOT: payload.every }] } }
             if (!payload.none) {
                 payload.none = {};
             }
-            payload.none = this.and(payload.none, guard, this.not(payload.every));
+            payload.none = this.and(payload.none, mergedGuard, this.not(payload.every));
             delete payload.every;
         }
     }
 
-    private injectGuardForToOneField(
+    private injectReadGuardForToOneField(
         db: CrudContract,
         fieldInfo: FieldInfo,
-        payload: { is?: any; isNot?: any } & Record<string, any>,
-        operation: PolicyOperationKind
+        payload: { is?: any; isNot?: any } & Record<string, any>
     ) {
-        const guard = this.getAuthGuard(db, fieldInfo.type, operation);
+        const guard = this.getAuthGuard(db, fieldInfo.type, 'read');
 
         // is|isNot and flat fields conditions are mutually exclusive
 
-        if (payload.is || payload.isNot) {
+        // is and isNot can be null value
+
+        if (payload.is !== undefined || payload.isNot !== undefined) {
             if (payload.is) {
-                this.injectGuardForRelationFields(db, fieldInfo.type, payload.is, operation);
+                const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.is, guard);
+                // merge guard with existing "is": { is: { AND: [originalIs, guard] } }
+                payload.is = this.and(payload.is, mergedGuard);
             }
+
             if (payload.isNot) {
-                this.injectGuardForRelationFields(db, fieldInfo.type, payload.isNot, operation);
+                const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload.isNot, guard);
+                // merge guard with existing "isNot":  { isNot: { AND: [originalIsNot, guard] } }
+                payload.isNot = this.and(payload.isNot, mergedGuard);
             }
-            // merge guard with existing "is": { is: [originalIs, guard] }
-            payload.is = this.and(payload.is, guard);
         } else {
-            this.injectGuardForRelationFields(db, fieldInfo.type, payload, operation);
+            const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload, guard);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
-            const combined = this.and(deepcopy(payload), guard);
+            const combined = this.and(deepcopy(payload), mergedGuard);
             Object.keys(payload).forEach((key) => delete payload[key]);
             payload.is = combined;
         }
@@ -530,7 +572,7 @@ export class PolicyUtil extends QueryUtils {
             // inject into relation fields:
             //   to-many: some/none/every
             //   to-one: direct-conditions/is/isNot
-            this.injectGuardForRelationFields(db, model, args.where, 'read');
+            this.injectReadGuardForRelationFields(db, model, args.where, {});
         }
 
         if (injected.where && Object.keys(injected.where).length > 0 && !this.isTrue(injected.where)) {

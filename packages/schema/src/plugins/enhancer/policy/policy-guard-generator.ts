@@ -517,20 +517,25 @@ export class PolicyGenerator {
         writer.writeLine('read:');
         writer.block(() => {
             for (const field of model.fields) {
-                const policyAttrs = field.attributes.filter((attr) => ['@allow', '@deny'].includes(attr.decl.$refText));
+                const allows = getPolicyExpressions(field, 'allow', 'read');
+                const denies = getPolicyExpressions(field, 'deny', 'read');
+                const overrideAllows = getPolicyExpressions(field, 'allow', 'read', true);
 
-                if (policyAttrs.length === 0) {
+                if (allows.length === 0 && denies.length === 0 && overrideAllows.length === 0) {
                     continue;
                 }
 
                 writer.write(`${field.name}:`);
 
                 writer.block(() => {
+                    // guard
+                    const guardFunc = generateQueryGuardFunction(sourceFile, model, 'read', allows, denies, field);
+                    writer.write(`guard: ${guardFunc.getName()},`);
+
                     // checker function
                     // write all field-level rules as entity checker function
                     this.writeEntityChecker(field, 'read', writer, sourceFile, false, false);
 
-                    const overrideAllows = getPolicyExpressions(field, 'allow', 'read', true);
                     if (overrideAllows.length > 0) {
                         // override guard function
                         const denies = getPolicyExpressions(field, 'deny', 'read');
@@ -578,7 +583,6 @@ export class PolicyGenerator {
                     // because they cannot be checked inside Prisma
                     this.writeEntityChecker(field, 'update', writer, sourceFile, true, false);
 
-                    const overrideAllows = getPolicyExpressions(field, 'allow', 'update', true);
                     if (overrideAllows.length > 0) {
                         // override guard
                         const overrideGuardFunc = generateQueryGuardFunction(

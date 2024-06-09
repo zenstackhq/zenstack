@@ -184,6 +184,17 @@ describe('With Policy: relation one-to-one filter', () => {
             })
         ).toResolveTruthy();
 
+        await expect(
+            db.m1.findFirst({
+                where: {
+                    id: '1',
+                    m2: {
+                        isNot: { value: 1 },
+                    },
+                },
+            })
+        ).toResolveFalsy();
+
         // m1 with m2
         await db.m1.create({
             data: {
@@ -206,7 +217,18 @@ describe('With Policy: relation one-to-one filter', () => {
                     },
                 },
             })
-        ).toResolveFalsy();
+        ).toResolveTruthy();
+
+        await expect(
+            db.m1.findFirst({
+                where: {
+                    id: '2',
+                    m2: {
+                        isNot: { value: 1 },
+                    },
+                },
+            })
+        ).toResolveTruthy();
 
         // m1 with m2 and m3
         await db.m1.create({
@@ -239,7 +261,22 @@ describe('With Policy: relation one-to-one filter', () => {
                     },
                 },
             })
-        ).toResolveTruthy();
+        ).toResolveFalsy();
+
+        await expect(
+            db.m1.findFirst({
+                where: {
+                    id: '3',
+                    m2: {
+                        isNot: {
+                            m3: {
+                                isNot: { value: 1 },
+                            },
+                        },
+                    },
+                },
+            })
+        ).toResolveFalsy();
 
         // m1 with null m2
         await db.m1.create({
@@ -257,7 +294,7 @@ describe('With Policy: relation one-to-one filter', () => {
                     },
                 },
             })
-        ).toResolveFalsy();
+        ).toResolveTruthy();
     });
 
     it('direct object filter', async () => {
