@@ -13,9 +13,9 @@ describe('Datasource Validation Tests', () => {
                 cause: [
                     { message: 'datasource must include a "provider" field' },
                     { message: 'datasource must include a "url" field' },
-                ]
-            }
-        })
+                ],
+            },
+        });
     });
 
     it('dup fields', async () => {
@@ -63,14 +63,6 @@ describe('Datasource Validation Tests', () => {
                 }
         `)
         ).toContain('"url" must be set to a string literal or an invocation of "env" function');
-
-        expect(
-            await loadModelWithError(`
-                datasource db {
-                    shadowDatabaseUrl = 123
-                }
-        `)
-        ).toContain('"shadowDatabaseUrl" must be set to a string literal or an invocation of "env" function');
     });
 
     it('invalid relationMode value', async () => {
@@ -96,7 +88,6 @@ describe('Datasource Validation Tests', () => {
             datasource db {
                 provider = "postgresql"
                 url = "url"
-                shadowDatabaseUrl = "shadow"
                 relationMode = "prisma"
             }
         `);
@@ -105,7 +96,6 @@ describe('Datasource Validation Tests', () => {
             datasource db {
                 provider = "postgresql"
                 url = env("url")
-                shadowDatabaseUrl = env("shadowUrl")
                 relationMode = "foreignKeys"
             }
         `);

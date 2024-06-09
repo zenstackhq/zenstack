@@ -34,7 +34,6 @@ describe('Prisma generator test', () => {
                 provider = 'postgresql'
                 url = env("DATABASE_URL")
                 directUrl = env("DATABASE_URL")
-                shadowDatabaseUrl = env("DATABASE_URL")
                 extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]
                 schemas = ["auth", "public"]
             }
@@ -67,7 +66,6 @@ describe('Prisma generator test', () => {
         expect(content).toContain('provider = "postgresql"');
         expect(content).toContain('url = env("DATABASE_URL")');
         expect(content).toContain('directUrl = env("DATABASE_URL")');
-        expect(content).toContain('shadowDatabaseUrl = env("DATABASE_URL")');
         expect(content).toContain(
             'extensions = [pg_trgm, postgis(version: "3.3.2"), uuid_ossp(map: "uuid-ossp", schema: "extensions")]'
         );
@@ -253,9 +251,9 @@ describe('Prisma generator test', () => {
         expect(content).toContain(`@@map("_Role")`);
         expect(content).toContain(`@map("admin")`);
         expect(content).toContain(`@map("customer")`);
-        expect(content).toContain('/// Admin role documentation line 1\n' +
-            '  /// Admin role documentation line 2\n' +
-            '  ADMIN');
+        expect(content).toContain(
+            '/// Admin role documentation line 1\n' + '  /// Admin role documentation line 2\n' + '  ADMIN'
+        );
     });
 
     it('attribute passthrough', async () => {

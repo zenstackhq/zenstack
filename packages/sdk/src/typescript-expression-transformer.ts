@@ -34,6 +34,7 @@ type Options = {
     isPostGuard?: boolean;
     fieldReferenceContext?: string;
     thisExprContext?: string;
+    futureRefContext?: string;
     context: ExpressionContext;
 };
 
@@ -116,7 +117,9 @@ export class TypeScriptExpressionTransformer {
             if (this.options?.isPostGuard !== true) {
                 throw new TypeScriptExpressionTransformerError(`future() is only supported in postUpdate rules`);
             }
-            return expr.member.ref.name;
+            return this.options.futureRefContext
+                ? `${this.options.futureRefContext}.${expr.member.ref.name}`
+                : expr.member.ref.name;
         } else {
             if (normalizeUndefined) {
                 // normalize field access to null instead of undefined to avoid accidentally use undefined in filter
@@ -449,7 +452,6 @@ export class TypeScriptExpressionTransformer {
             ...this.options,
             isPostGuard: false,
             fieldReferenceContext: '_item',
-            thisExprContext: '_item',
         });
         const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
 

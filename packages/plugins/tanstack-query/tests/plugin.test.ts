@@ -18,7 +18,7 @@ describe('Tanstack Query Plugin Tests', () => {
 
     const sharedModel = `
 model User {
-    id String @id
+    id String @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     email String @unique
@@ -32,7 +32,7 @@ enum role {
 }
 
 model post_Item {
-    id String @id
+    id String @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
     title String
@@ -47,6 +47,34 @@ model Foo {
     @@ignore
 }
     `;
+
+    const reactAppSource = {
+        name: 'main.ts',
+        content: `
+        import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
+
+        function query() {
+            const { data } = useFindFirstpost_Item({include: { author: true }});
+            console.log(data?.viewCount);
+            console.log(data?.author?.email);
+        }
+
+        function infiniteQuery() {
+            const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+            useInfiniteFindManypost_Item({ where: { published: true } });
+            useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+            console.log(data?.pages[0][0].published);
+            console.log(data?.pageParams[0]);
+        }
+
+        async function mutation() {
+            const { mutateAsync } = useCreatepost_Item();
+            const data = await mutateAsync({ data: { title: 'hello' }, include: { author: true } });
+            console.log(data?.viewCount);
+            console.log(data?.author?.email);
+        }
+        `,
+    };
 
     it('react-query run plugin v4', async () => {
         await loadSchema(
@@ -66,6 +94,7 @@ ${sharedModel}
                 extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@4.29.7'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [reactAppSource],
             }
         );
     });
@@ -87,9 +116,54 @@ ${sharedModel}
                 extraDependencies: ['react@18.2.0', '@types/react@18.2.0', '@tanstack/react-query@^5.0.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [
+                    reactAppSource,
+                    {
+                        name: 'suspense.ts',
+                        content: `
+                        import { useSuspenseInfiniteFindManypost_Item } from './hooks';
+
+                        function suspenseInfiniteQuery() {
+                            const { data, fetchNextPage, hasNextPage } = useSuspenseInfiniteFindManypost_Item();
+                            useSuspenseInfiniteFindManypost_Item({ where: { published: true } });
+                            useSuspenseInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+                            console.log(data?.pages[0][0].published);
+                            console.log(data?.pageParams[0]);
+                        }
+                        `,
+                    },
+                ],
             }
         );
     });
+
+    const vueAppSource = {
+        name: 'main.ts',
+        content: `
+        import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
+
+        function query() {
+            const { data } = useFindFirstpost_Item({include: { author: true }});
+            console.log(data.value?.viewCount);
+            console.log(data.value?.author?.email);
+        }
+
+        function infiniteQuery() {
+            const { data, fetchNextPage, hasNextPage } = useInfiniteFindManypost_Item();
+            useInfiniteFindManypost_Item({ where: { published: true } });
+            useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+            console.log(data.value?.pages[0][0].published);
+            console.log(data.value?.pageParams[0]);
+        }
+
+        async function mutation() {
+            const { mutateAsync } = useCreatepost_Item();
+            const data = await mutateAsync({ data: { title: 'hello' }, include: { author: true } });
+            console.log(data?.viewCount);
+            console.log(data?.author?.email);
+        }
+        `,
+    };
 
     it('vue-query run plugin v4', async () => {
         await loadSchema(
@@ -109,6 +183,7 @@ ${sharedModel}
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@4.37.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [vueAppSource],
             }
         );
     });
@@ -130,9 +205,39 @@ ${sharedModel}
                 extraDependencies: ['vue@^3.3.4', '@tanstack/vue-query@latest'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [vueAppSource],
             }
         );
     });
+
+    const svelteAppSource = {
+        name: 'main.ts',
+        content: `
+        import { get } from 'svelte/store';
+        import { useFindFirstpost_Item, useInfiniteFindManypost_Item, useCreatepost_Item } from './hooks';
+
+        function query() {
+            const { data } = get(useFindFirstpost_Item({include: { author: true }}));
+            console.log(data?.viewCount);
+            console.log(data?.author?.email);
+        }
+
+        function infiniteQuery() {
+            const { data, fetchNextPage, hasNextPage } = get(useInfiniteFindManypost_Item());
+            useInfiniteFindManypost_Item({ where: { published: true } });
+            useInfiniteFindManypost_Item(undefined, { getNextPageParam: () => null });
+            console.log(data?.pages[0][0].published);
+            console.log(data?.pageParams[0]);
+        }
+
+        async function mutation() {
+            const { mutateAsync } = get(useCreatepost_Item());
+            const data = await mutateAsync({ data: { title: 'hello' }, include: { author: true } });
+            console.log(data?.viewCount);
+            console.log(data?.author?.email);
+        }
+        `,
+    };
 
     it('svelte-query run plugin v4', async () => {
         await loadSchema(
@@ -152,6 +257,7 @@ ${sharedModel}
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@4.29.7'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [svelteAppSource],
             }
         );
     });
@@ -173,6 +279,7 @@ ${sharedModel}
                 extraDependencies: ['svelte@^3.0.0', '@tanstack/svelte-query@^5.0.0'],
                 copyDependencies: [path.resolve(__dirname, '../dist')],
                 compile: true,
+                extraSourceFiles: [svelteAppSource],
             }
         );
     });

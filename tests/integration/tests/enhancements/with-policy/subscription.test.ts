@@ -34,7 +34,6 @@ describe.skip('With Policy: subscription test', () => {
                 provider: 'postgresql',
                 dbUrl: DB_URL,
                 pulseApiKey: PULSE_API_KEY,
-                logPrismaQuery: true,
             }
         );
 
@@ -88,7 +87,6 @@ describe.skip('With Policy: subscription test', () => {
                 provider: 'postgresql',
                 dbUrl: DB_URL,
                 pulseApiKey: PULSE_API_KEY,
-                logPrismaQuery: true,
             }
         );
 
@@ -143,7 +141,6 @@ describe.skip('With Policy: subscription test', () => {
                 provider: 'postgresql',
                 dbUrl: DB_URL,
                 pulseApiKey: PULSE_API_KEY,
-                logPrismaQuery: true,
             }
         );
 
@@ -198,7 +195,6 @@ describe.skip('With Policy: subscription test', () => {
                 provider: 'postgresql',
                 dbUrl: DB_URL,
                 pulseApiKey: PULSE_API_KEY,
-                logPrismaQuery: true,
             }
         );
 

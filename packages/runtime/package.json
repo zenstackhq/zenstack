@@ -1,7 +1,7 @@
 {
     "name": "@zenstackhq/runtime",
     "displayName": "ZenStack Runtime Library",
-    "version": "2.1.2",
+    "version": "2.2.0",
     "description": "Runtime of ZenStack for both client-side and server-side environments.",
     "repository": {
         "type": "git",
@@ -9,7 +9,7 @@
     },
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup-browser.config.ts && tsup-node --config ./tsup-cross.config.ts && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 'res/**/*' dist && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && tsup-node --config ./tsup-browser.config.ts && tsup-node --config ./tsup-cross.config.ts && copyfiles ./package.json ./README.md ../../LICENSE dist && copyfiles -u1 \"res/**/*\" dist && pnpm pack dist --pack-destination ../../../.build",
         "watch": "concurrently \"tsc --watch\" \"tsup-node --config ./tsup-browser.config.ts --watch\" \"tsup-node --config ./tsup-cross.config.ts --watch\"",
         "lint": "eslint src --ext ts",
         "prepublishOnly": "pnpm build"
@@ -83,6 +83,7 @@
         "decimal.js": "^10.4.2",
         "deepcopy": "^2.1.0",
         "deepmerge": "^4.3.1",
+        "is-plain-object": "^5.0.0",
         "logic-solver": "^2.0.1",
         "lower-case-first": "^2.0.2",
         "pluralize": "^8.0.0",
@@ -98,7 +99,7 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "@prisma/client": "5.0.0 - 5.13.x"
+        "@prisma/client": "5.0.0 - 5.15.x"
     },
     "author": {
         "name": "ZenStack Team"

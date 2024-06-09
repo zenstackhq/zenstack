@@ -3,7 +3,7 @@
     "publisher": "zenstack",
     "displayName": "ZenStack Language Tools",
     "description": "Build scalable web apps with minimum code by defining authorization and validation rules inside the data schema that closer to the database",
-    "version": "2.1.2",
+    "version": "2.2.0",
     "author": {
         "name": "ZenStack Team"
     },
@@ -80,7 +80,7 @@
         "vscode:prepublish": "pnpm bundle",
         "vscode:package": "pnpm bundle && vsce package --no-dependencies",
         "clean": "rimraf dist",
-        "build": "pnpm clean && pnpm lint --max-warnings=0 && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm clean && pnpm lint --max-warnings=0 && tsc && copyfiles -F \"bin/*\" dist && copyfiles ./README-global.md ./LICENSE ./package.json dist && renamer --replace \"README.md\" dist/README-global.md && copyfiles -u 1 \"src/res/*\" dist && node build/post-build.js && pnpm pack dist --pack-destination ../../../.build",
         "bundle": "rimraf bundle && pnpm lint --max-warnings=0 && node build/bundle.js --minify",
         "watch": "tsc --watch",
         "lint": "eslint src tests --ext ts",
@@ -122,10 +122,10 @@
         "zod-validation-error": "^1.5.0"
     },
     "peerDependencies": {
-        "prisma": "5.0.0 - 5.13.x"
+        "prisma": "5.0.0 - 5.15.x"
     },
     "devDependencies": {
-        "@prisma/client": "^5.13.0",
+        "@prisma/client": "^5.15.0",
         "@types/async-exit-hook": "^2.0.0",
         "@types/pluralize": "^0.0.29",
         "@types/semver": "^7.3.13",
@@ -137,7 +137,7 @@
         "@zenstackhq/runtime": "workspace:*",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",
-        "prisma": "^5.13.0",
+        "prisma": "^5.15.0",
         "renamer": "^4.0.0",
         "tmp": "^0.2.1",
         "tsc-alias": "^1.7.0",

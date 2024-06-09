@@ -2,6 +2,8 @@ import type { DataModel, DataModelAttribute } from './ast';
 import { getLiteral } from './utils';
 import { hasValidationAttributes } from './validation';
 
+export type PolicyAnalysisResult = ReturnType<typeof analyzePolicies>;
+
 export function analyzePolicies(dataModel: DataModel) {
     const allows = dataModel.attributes.filter((attr) => attr.decl.ref?.name === '@@allow');
     const denies = dataModel.attributes.filter((attr) => attr.decl.ref?.name === '@@deny');

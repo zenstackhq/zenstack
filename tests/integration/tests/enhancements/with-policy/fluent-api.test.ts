@@ -41,8 +41,7 @@ model Post {
     secret String @default("secret") @allow('read', published == false, true)
 
     @@allow('read', published)
-}`,
-            { logPrismaQuery: true }
+}`
         );
 
         await prisma.user.create({

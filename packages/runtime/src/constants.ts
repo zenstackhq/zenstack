@@ -64,41 +64,6 @@ export const PRISMA_PROXY_ENHANCER = '$__zenstack_enhancer';
 export const PRISMA_MINIMUM_VERSION = '5.0.0';
 
 /**
- * Selector function name for fetching pre-update entity values.
- */
-export const PRE_UPDATE_VALUE_SELECTOR = 'preValueSelect';
-
-/**
- * Prefix for field-level read checker function name
- */
-export const FIELD_LEVEL_READ_CHECKER_PREFIX = 'readFieldCheck$';
-
-/**
- * Field-level access control evaluation selector function name
- */
-export const FIELD_LEVEL_READ_CHECKER_SELECTOR = 'readFieldSelect';
-
-/**
- * Prefix for field-level override read guard function name
- */
-export const FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX = 'readFieldGuardOverride$';
-
-/**
- * Prefix for field-level update guard function name
- */
-export const FIELD_LEVEL_UPDATE_GUARD_PREFIX = 'updateFieldGuard$';
-
-/**
- * Prefix for field-level override update guard function name
- */
-export const FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX = 'updateFieldGuardOverride$';
-
-/**
- * Flag that indicates if the model has field-level access control
- */
-export const HAS_FIELD_LEVEL_POLICY_FLAG = 'hasFieldLevelPolicy';
-
-/**
  * Prefix for auxiliary relation field generated for delegated models
  */
 export const DELEGATE_AUX_RELATION_PREFIX = 'delegate_aux';

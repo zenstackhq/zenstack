@@ -296,3 +296,19 @@ export function getAllLoadedAndReachableDataModels(langiumDocuments: LangiumDocu
 
     return allDataModels;
 }
+
+/**
+ * Walk up the inheritance chain to find the path from the start model to the target model
+ */
+export function findUpInheritance(start: DataModel, target: DataModel): DataModel[] | undefined {
+    for (const base of start.superTypes) {
+        if (base.ref === target) {
+            return [base.ref];
+        }
+        const path = findUpInheritance(base.ref as DataModel, target);
+        if (path) {
+            return [base.ref as DataModel, ...path];
+        }
+    }
+    return undefined;
+}

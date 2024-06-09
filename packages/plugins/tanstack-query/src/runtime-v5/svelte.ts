@@ -91,7 +91,7 @@ export function useModelQuery<TQueryFnData, TData, TError>(
             ...options,
         };
     }
-    return createQuery(mergedOpt);
+    return createQuery<TQueryFnData, TError, TData>(mergedOpt);
 }
 
 /**
@@ -107,7 +107,9 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
     model: string,
     url: string,
     args: unknown,
-    options: StoreOrVal<Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey'>>,
+    options: StoreOrVal<
+        Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+    >,
     fetch?: FetchFn
 ) {
     const queryKey = getQueryKey(model, url, args, { infinite: true, optimisticUpdate: false });
@@ -115,12 +117,17 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
         fetcher<TQueryFnData, false>(makeUrl(url, pageParam ?? args), undefined, fetch, false);
 
     let mergedOpt: StoreOrVal<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>>;
-    if (isStore<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>>(options)) {
+    if (
+        isStore<
+            Omit<CreateInfiniteQueryOptions<TQueryFnData, TError, InfiniteData<TData>>, 'queryKey' | 'initialPageParam'>
+        >(options)
+    ) {
         // options is store
         mergedOpt = derived([options], ([$opt]) => {
             return {
                 queryKey,
                 queryFn,
+                initialPageParam: args,
                 ...$opt,
             };
         });
@@ -129,6 +136,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
         mergedOpt = {
             queryKey,
             queryFn,
+            initialPageParam: args,
             ...options,
         };
     }

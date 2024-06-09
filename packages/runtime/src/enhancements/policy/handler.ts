@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import deepmerge from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
 import { P, match } from 'ts-pattern';
@@ -23,7 +24,7 @@ import { Logger } from '../logger';
 import { createDeferredPromise, createFluentPromise } from '../promise';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
-import type { CheckerConstraint } from '../types';
+import type { EntityCheckerFunc, PermissionCheckerConstraint } from '../types';
 import { clone, formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
 import { ConstraintSolver } from './constraint-solver';
 import { PolicyUtil } from './policy-utils';
@@ -152,8 +153,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         const result = await this.modelClient[actionName](_args);
-        this.policyUtils.postProcessForRead(result, this.model, origArgs);
-        return result;
+        return this.policyUtils.postProcessForRead(result, this.model, origArgs);
     }
 
     //#endregion
@@ -447,31 +447,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             // go through create items, statically check input to determine if post-create
             // check is needed, and also validate zod schema
-            let needPostCreateCheck = false;
-            for (const item of enumerate(args.data)) {
-                const validationResult = this.validateCreateInputSchema(this.model, item);
-                if (validationResult !== item) {
-                    this.policyUtils.replace(item, validationResult);
-                }
-
-                const inputCheck = this.policyUtils.checkInputGuard(this.model, item, 'create');
-                if (inputCheck === false) {
-                    // unconditionally deny
-                    throw this.policyUtils.deniedByPolicy(
-                        this.model,
-                        'create',
-                        undefined,
-                        CrudFailureReason.ACCESS_POLICY_VIOLATION
-                    );
-                } else if (inputCheck === true) {
-                    // unconditionally allow
-                } else if (inputCheck === undefined) {
-                    // static policy check is not possible, need to do post-create check
-                    needPostCreateCheck = true;
-                }
-            }
+            const needPostCreateCheck = this.validateCreateInput(args);
 
             if (!needPostCreateCheck) {
+                // direct create
                 return this.modelClient.createMany(args);
             } else {
                 // create entities in a transaction with post-create checks
@@ -479,10 +458,93 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     const { result, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
                     // post-create check
                     await this.runPostWriteChecks(postWriteChecks, tx);
-                    return result;
+                    return { count: result.length };
                 });
             }
         });
+    }
+
+    createManyAndReturn(args: { select: any; include: any; data: any; skipDuplicates?: boolean }) {
+        if (!args) {
+            throw prismaClientValidationError(this.prisma, this.prismaModule, 'query argument is required');
+        }
+        if (!args.data) {
+            throw prismaClientValidationError(
+                this.prisma,
+                this.prismaModule,
+                'data field is required in query argument'
+            );
+        }
+
+        return createDeferredPromise(async () => {
+            this.policyUtils.tryReject(this.prisma, this.model, 'create');
+
+            const origArgs = args;
+            args = clone(args);
+
+            // go through create items, statically check input to determine if post-create
+            // check is needed, and also validate zod schema
+            const needPostCreateCheck = this.validateCreateInput(args);
+
+            let result: { result: unknown; error?: Error }[];
+
+            if (!needPostCreateCheck) {
+                // direct create
+                const created = await this.modelClient.createManyAndReturn(args);
+
+                // process read-back
+                result = await Promise.all(
+                    created.map((item) => this.policyUtils.readBack(this.prisma, this.model, 'create', origArgs, item))
+                );
+            } else {
+                // create entities in a transaction with post-create checks
+                result = await this.queryUtils.transaction(this.prisma, async (tx) => {
+                    const { result: created, postWriteChecks } = await this.doCreateMany(this.model, args, tx);
+                    // post-create check
+                    await this.runPostWriteChecks(postWriteChecks, tx);
+
+                    // process read-back
+                    return Promise.all(
+                        created.map((item) => this.policyUtils.readBack(tx, this.model, 'create', origArgs, item))
+                    );
+                });
+            }
+
+            // throw read-back error if any of create result read-back fails
+            const error = result.find((r) => !!r.error)?.error;
+            if (error) {
+                throw error;
+            } else {
+                return result.map((r) => r.result);
+            }
+        });
+    }
+
+    private validateCreateInput(args: { data: any; skipDuplicates?: boolean | undefined }) {
+        let needPostCreateCheck = false;
+        for (const item of enumerate(args.data)) {
+            const validationResult = this.validateCreateInputSchema(this.model, item);
+            if (validationResult !== item) {
+                this.policyUtils.replace(item, validationResult);
+            }
+
+            const inputCheck = this.policyUtils.checkInputGuard(this.model, item, 'create');
+            if (inputCheck === false) {
+                // unconditionally deny
+                throw this.policyUtils.deniedByPolicy(
+                    this.model,
+                    'create',
+                    undefined,
+                    CrudFailureReason.ACCESS_POLICY_VIOLATION
+                );
+            } else if (inputCheck === true) {
+                // unconditionally allow
+            } else if (inputCheck === undefined) {
+                // static policy check is not possible, need to do post-create check
+                needPostCreateCheck = true;
+            }
+        }
+        return needPostCreateCheck;
     }
 
     private async doCreateMany(model: string, args: { data: any; skipDuplicates?: boolean }, db: CrudContract) {
@@ -511,7 +573,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         createResult = createResult.filter((p) => !!p);
 
         return {
-            result: { count: createResult.length },
+            result: createResult,
             postWriteChecks: createResult.map((item) => ({
                 model,
                 operation: 'create' as PolicyOperationKind,
@@ -779,10 +841,27 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             }
         };
 
-        const _connectDisconnect = async (model: string, args: any, context: NestedWriteVisitorContext) => {
+        const _connectDisconnect = async (
+            model: string,
+            args: any,
+            context: NestedWriteVisitorContext,
+            operation: 'connect' | 'disconnect'
+        ) => {
             if (context.field?.backLink) {
                 const backLinkField = this.policyUtils.getModelField(model, context.field.backLink);
                 if (backLinkField?.isRelationOwner) {
+                    let uniqueFilter = args;
+                    if (operation === 'disconnect') {
+                        // disconnect filter is not unique, need to build a reversed query to
+                        // locate the entity and use its id fields as unique filter
+                        const reversedQuery = this.policyUtils.buildReversedQuery(context);
+                        const found = await db[model].findUnique({
+                            where: reversedQuery,
+                            select: this.policyUtils.makeIdSelection(model),
+                        });
+                        uniqueFilter = found && this.policyUtils.getIdFieldValues(model, found);
+                    }
+
                     // update happens on the related model, require updatable,
                     // translate args to foreign keys so field-level policies can be checked
                     const checkArgs: any = {};
@@ -794,10 +873,15 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                             }
                         }
                     }
-                    await this.policyUtils.checkPolicyForUnique(model, args, 'update', db, checkArgs);
 
-                    // register post-update check
-                    await _registerPostUpdateCheck(model, args, args);
+                    // `uniqueFilter` can be undefined if the entity to be disconnected doesn't exist
+                    if (uniqueFilter) {
+                        // check for update
+                        await this.policyUtils.checkPolicyForUnique(model, uniqueFilter, 'update', db, checkArgs);
+
+                        // register post-update check
+                        await _registerPostUpdateCheck(model, uniqueFilter, uniqueFilter);
+                    }
                 }
             }
         };
@@ -970,14 +1054,14 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
             },
 
-            connect: async (model, args, context) => _connectDisconnect(model, args, context),
+            connect: async (model, args, context) => _connectDisconnect(model, args, context, 'connect'),
 
             connectOrCreate: async (model, args, context) => {
                 // the where condition is already unique, so we can use it to check if the target exists
                 const existing = await this.policyUtils.checkExistence(db, model, args.where);
                 if (existing) {
                     // connect
-                    await _connectDisconnect(model, args.where, context);
+                    await _connectDisconnect(model, args.where, context, 'connect');
                     return true;
                 } else {
                     // create
@@ -997,7 +1081,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
             },
 
-            disconnect: async (model, args, context) => _connectDisconnect(model, args, context),
+            disconnect: async (model, args, context) => _connectDisconnect(model, args, context, 'disconnect'),
 
             set: async (model, args, context) => {
                 // find the set of items to be replaced
@@ -1012,10 +1096,10 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 const currentSet = await db[model].findMany(findCurrSetArgs);
 
                 // register current set for update (foreign key)
-                await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context)));
+                await Promise.all(currentSet.map((item) => _connectDisconnect(model, item, context, 'disconnect')));
 
                 // proceed with connecting the new set
-                await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context)));
+                await Promise.all(enumerate(args).map((item) => _connectDisconnect(model, item, context, 'connect')));
             },
 
             delete: async (model, args, context) => {
@@ -1160,48 +1244,78 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
             args.data = this.validateUpdateInputSchema(this.model, args.data);
 
-            if (this.policyUtils.hasAuthGuard(this.model, 'postUpdate') || this.policyUtils.getZodSchema(this.model)) {
-                // use a transaction to do post-update checks
-                const postWriteChecks: PostWriteCheckRecord[] = [];
-                return this.queryUtils.transaction(this.prisma, async (tx) => {
-                    // collect pre-update values
-                    let select = this.policyUtils.makeIdSelection(this.model);
-                    const preValueSelect = this.policyUtils.getPreValueSelect(this.model);
-                    if (preValueSelect) {
-                        select = { ...select, ...preValueSelect };
-                    }
-                    const currentSetQuery = { select, where: args.where };
-                    this.policyUtils.injectAuthGuardAsWhere(tx, currentSetQuery, this.model, 'read');
+            const entityChecker = this.policyUtils.getEntityChecker(this.model, 'update');
 
-                    if (this.shouldLogQuery) {
-                        this.logger.info(`[policy] \`findMany\` ${this.model}: ${formatObject(currentSetQuery)}`);
-                    }
-                    const currentSet = await tx[this.model].findMany(currentSetQuery);
+            const canProceedWithoutTransaction =
+                // no post-update rules
+                !this.policyUtils.hasAuthGuard(this.model, 'postUpdate') &&
+                // no Zod schema
+                !this.policyUtils.getZodSchema(this.model) &&
+                // no entity checker
+                !entityChecker;
 
-                    postWriteChecks.push(
-                        ...currentSet.map((preValue) => ({
-                            model: this.model,
-                            operation: 'postUpdate' as PolicyOperationKind,
-                            uniqueFilter: this.policyUtils.getEntityIds(this.model, preValue),
-                            preValue: preValueSelect ? preValue : undefined,
-                        }))
-                    );
-
-                    // proceed with the update
-                    const result = await tx[this.model].updateMany(args);
-
-                    // run post-write checks
-                    await this.runPostWriteChecks(postWriteChecks, tx);
-
-                    return result;
-                });
-            } else {
+            if (canProceedWithoutTransaction) {
                 // proceed without a transaction
                 if (this.shouldLogQuery) {
                     this.logger.info(`[policy] \`updateMany\` ${this.model}: ${formatObject(args)}`);
                 }
                 return this.modelClient.updateMany(args);
             }
+
+            // collect post-update checks
+            const postWriteChecks: PostWriteCheckRecord[] = [];
+
+            return this.queryUtils.transaction(this.prisma, async (tx) => {
+                // collect pre-update values
+                let select = this.policyUtils.makeIdSelection(this.model);
+                const preValueSelect = this.policyUtils.getPreValueSelect(this.model);
+                if (preValueSelect) {
+                    select = { ...select, ...preValueSelect };
+                }
+
+                // merge selection required for running additional checker
+                const entityChecker = this.policyUtils.getEntityChecker(this.model, 'update');
+                if (entityChecker?.selector) {
+                    select = deepmerge(select, entityChecker.selector);
+                }
+
+                const currentSetQuery = { select, where: args.where };
+                this.policyUtils.injectAuthGuardAsWhere(tx, currentSetQuery, this.model, 'update');
+
+                if (this.shouldLogQuery) {
+                    this.logger.info(`[policy] \`findMany\` ${this.model}: ${formatObject(currentSetQuery)}`);
+                }
+                let candidates = await tx[this.model].findMany(currentSetQuery);
+
+                if (entityChecker) {
+                    // filter candidates with additional checker and build an id filter
+                    const r = this.buildIdFilterWithEntityChecker(candidates, entityChecker.func);
+                    candidates = r.filteredCandidates;
+
+                    // merge id filter into update's where clause
+                    args.where = args.where ? { AND: [args.where, r.idFilter] } : r.idFilter;
+                }
+
+                postWriteChecks.push(
+                    ...candidates.map((preValue) => ({
+                        model: this.model,
+                        operation: 'postUpdate' as PolicyOperationKind,
+                        uniqueFilter: this.policyUtils.getEntityIds(this.model, preValue),
+                        preValue: preValueSelect ? preValue : undefined,
+                    }))
+                );
+
+                // proceed with the update
+                if (this.shouldLogQuery) {
+                    this.logger.info(`[policy] \`updateMany\` in tx for ${this.model}: ${formatObject(args)}`);
+                }
+                const result = await tx[this.model].updateMany(args);
+
+                // run post-write checks
+                await this.runPostWriteChecks(postWriteChecks, tx);
+
+                return result;
+            });
         });
     }
 
@@ -1328,14 +1442,49 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.policyUtils.tryReject(this.prisma, this.model, 'delete');
 
             // inject policy conditions
-            args = args ?? {};
+            args = clone(args);
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'delete');
 
-            // conduct the deletion
-            if (this.shouldLogQuery) {
-                this.logger.info(`[policy] \`deleteMany\` ${this.model}:\n${formatObject(args)}`);
+            const entityChecker = this.policyUtils.getEntityChecker(this.model, 'delete');
+            if (entityChecker) {
+                // additional checker exists, need to run deletion inside a transaction
+                return this.queryUtils.transaction(this.prisma, async (tx) => {
+                    // find the delete candidates, selecting id fields and fields needed for
+                    // running the additional checker
+                    let candidateSelect = this.policyUtils.makeIdSelection(this.model);
+                    if (entityChecker.selector) {
+                        candidateSelect = deepmerge(candidateSelect, entityChecker.selector);
+                    }
+
+                    if (this.shouldLogQuery) {
+                        this.logger.info(
+                            `[policy] \`findMany\` ${this.model}: ${formatObject({
+                                where: args.where,
+                                select: candidateSelect,
+                            })}`
+                        );
+                    }
+                    const candidates = await tx[this.model].findMany({ where: args.where, select: candidateSelect });
+
+                    // build a ID filter based on id values filtered by the additional checker
+                    const { idFilter } = this.buildIdFilterWithEntityChecker(candidates, entityChecker.func);
+
+                    // merge the ID filter into the where clause
+                    args.where = args.where ? { AND: [args.where, idFilter] } : idFilter;
+
+                    // finally, conduct the deletion with the combined where clause
+                    if (this.shouldLogQuery) {
+                        this.logger.info(`[policy] \`deleteMany\` in tx for ${this.model}:\n${formatObject(args)}`);
+                    }
+                    return tx[this.model].deleteMany(args);
+                });
+            } else {
+                // conduct the deletion directly
+                if (this.shouldLogQuery) {
+                    this.logger.info(`[policy] \`deleteMany\` ${this.model}:\n${formatObject(args)}`);
+                }
+                return this.modelClient.deleteMany(args);
             }
-            return this.modelClient.deleteMany(args);
         });
     }
 
@@ -1469,7 +1618,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         if (args.where) {
             // combine runtime filters with generated constraints
 
-            const extraConstraints: CheckerConstraint[] = [];
+            const extraConstraints: PermissionCheckerConstraint[] = [];
             for (const [field, value] of Object.entries(args.where)) {
                 if (value === undefined) {
                     continue;
@@ -1597,6 +1746,18 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                 }
             }
         }
+    }
+
+    private buildIdFilterWithEntityChecker(candidates: any[], entityChecker: EntityCheckerFunc) {
+        const filteredCandidates = candidates.filter((value) => entityChecker(value, { user: this.context?.user }));
+        const idFields = this.policyUtils.getIdFields(this.model);
+        let idFilter: any;
+        if (idFields.length === 1) {
+            idFilter = { [idFields[0].name]: { in: filteredCandidates.map((x) => x[idFields[0].name]) } };
+        } else {
+            idFilter = { AND: filteredCandidates.map((x) => this.policyUtils.getIdFieldValues(this.model, x)) };
+        }
+        return { filteredCandidates, idFilter };
     }
 
     //#endregion

@@ -39,8 +39,7 @@ describe('issue 1271', () => {
               
                 @@allow("all", true)
             }              
-            `,
-            { logPrismaQuery: true }
+            `
         );
 
         const db = enhance();

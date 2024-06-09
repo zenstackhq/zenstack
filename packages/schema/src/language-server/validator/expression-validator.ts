@@ -1,6 +1,7 @@
 import {
     AstNode,
     BinaryExpr,
+    DataModelAttribute,
     Expression,
     ExpressionType,
     isDataModel,
@@ -13,7 +14,12 @@ import {
     isReferenceExpr,
     isThisExpr,
 } from '@zenstackhq/language/ast';
-import { isAuthInvocation, isDataModelFieldReference, isEnumFieldReference } from '@zenstackhq/sdk';
+import {
+    getAttributeArgLiteral,
+    isAuthInvocation,
+    isDataModelFieldReference,
+    isEnumFieldReference,
+} from '@zenstackhq/sdk';
 import { ValidationAcceptor, streamAst } from 'langium';
 import { findUpAst, getContainingDataModel } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
@@ -151,6 +157,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     accept('error', 'incompatible operand types', { node: expr });
                     break;
                 }
+
                 // not supported:
                 //   - foo.a == bar
                 //   - foo.user.id == userId
@@ -169,10 +176,24 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     // foo.user.id == null
                     // foo.user.id == EnumValue
                     if (!(this.isNotModelFieldExpr(expr.left) || this.isNotModelFieldExpr(expr.right))) {
-                        accept('error', 'comparison between fields of different models are not supported', {
-                            node: expr,
-                        });
-                        break;
+                        const containingPolicyAttr = findUpAst(
+                            expr,
+                            (node) => isDataModelAttribute(node) && ['@@allow', '@@deny'].includes(node.decl.$refText)
+                        ) as DataModelAttribute | undefined;
+
+                        if (containingPolicyAttr) {
+                            const operation = getAttributeArgLiteral<string>(containingPolicyAttr, 'operation');
+                            if (operation?.split(',').includes('all') || operation?.split(',').includes('read')) {
+                                accept(
+                                    'error',
+                                    'comparison between fields of different models is not supported in model-level "read" rules',
+                                    {
+                                        node: expr,
+                                    }
+                                );
+                                break;
+                            }
+                        }
                     }
                 }
 
@@ -245,16 +266,6 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         if (!expr.$resolvedType) {
             accept('error', 'collection predicate can only be used on an array of model type', { node: expr });
             return;
-        }
-
-        // TODO: revisit this when we implement lambda inside collection predicate
-        const thisExpr = streamAst(expr).find(isThisExpr);
-        if (thisExpr) {
-            accept(
-                'error',
-                'using `this` in collection predicate is not supported. To compare entity identity, use id field comparison instead.',
-                { node: thisExpr }
-            );
         }
     }
 

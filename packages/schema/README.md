@@ -6,8 +6,31 @@ This VS Code extension provides code editing helpers for authoring ZenStack's sc
 
 ## Features
 
--   Syntax highlighting
+-   Syntax highlighting of `*.zmodel` files
+
+    -   In case the schema file is not recognized automatically, add the following to your settings.json file:
+
+    ```json
+    "files.associations": {
+        "*.zmodel": "zmodel"
+    },
+    ```
+
 -   Auto formatting
+
+    -   To automatically format on save, add the following to your settings.json file:
+
+        ```json
+        "editor.formatOnSave": true
+        ```
+
+    -   To enable formatting in combination with prettier, add the following to your settings.json file:
+        ```json
+        "[zmodel]": {
+        "editor.defaultFormatter": "zenstack.zenstack"
+        },
+        ```
+
 -   Inline error reporting
 -   Go-to definition
 -   Hover documentation

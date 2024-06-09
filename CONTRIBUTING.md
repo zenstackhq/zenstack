@@ -5,9 +5,23 @@ I want to think you first for considering contributing to ZenStack 🙏🏻. It'
 ## Prerequisites
 
 -   [Node.js](https://nodejs.org/): v18 or above
--   [pnpm](https://pnpm.io/): latest version
+-   [pnpm](https://pnpm.io/): v8.x
+
+If you want to run the tests, you should be aware that some of the integration tests run against postgres. These tests will attempt to set up and subsequently their own database, so you'll need to provide a connection details for a postgres user with at least those permissions. To provide connection details, you can configure the following environment variables or provide them when executing `pnpm test` commands.
+
+- `ZENSTACK_TEST_DB_USER`: The postgres username, for a user with permission to create/drop databases. Default: `postgres`.
+- `ZENSTACK_TEST_DB_PASS`: Password for said user. Default: `abc123`.
+- `ZENSTACK_TEST_DB_NAME`: Default database to connect onto. This database isn't used any further, so it's recommended to just use the default `postgres` database. Default: `postgres`.
+- `ZENSTACK_TEST_DB_HOST`: Hostname or IP to connect onto. Default: `localhost`.
+- `ZENSTACK_TEST_DB_PORT`: Port number to connect onto. Default: `5432`.
 
 ## Get started
+
+1. (Windows only) Your environment should support symlinks, by enabling "Developer mode" in `Settings => System => For developers` (Windows 10/11 only) and setting the `core.symlinks` setting in git to `true`. For more info [refer to this StackOverflow answer](https://stackoverflow.com/questions/5917249/git-symbolic-links-in-windows/59761201#59761201).
+
+    ```pwsh
+    git config --global core.symlinks true
+    ```
 
 1. Make a fork of the repository
 

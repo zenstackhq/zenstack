@@ -29,8 +29,7 @@ describe('issue 1452', () => {
                 @@id([userId, spaceId])
                 @@allow('all', true)
             }            
-            `,
-            { logPrismaQuery: true }
+            `
         );
 
         await prisma.user.create({

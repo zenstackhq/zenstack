@@ -1,15 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { z } from 'zod';
-import {
-    FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX,
-    FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX,
-    FIELD_LEVEL_READ_CHECKER_PREFIX,
-    FIELD_LEVEL_READ_CHECKER_SELECTOR,
-    FIELD_LEVEL_UPDATE_GUARD_PREFIX,
-    HAS_FIELD_LEVEL_POLICY_FLAG,
-    PRE_UPDATE_VALUE_SELECTOR,
-} from '../constants';
-import type { CheckerContext, CrudContract, PolicyCrudKind, PolicyOperationKind, QueryContext } from '../types';
+import type { CrudContract, PermissionCheckerContext, QueryContext } from '../types';
 
 /**
  * Common options for PrismaClient enhancements
@@ -34,9 +25,14 @@ export interface CommonEnhancementOptions {
 export type PolicyFunc = (context: QueryContext, db: CrudContract) => object;
 
 /**
+ * Function for checking an entity's data for permission
+ */
+export type EntityCheckerFunc = (input: any, context: QueryContext) => boolean;
+
+/**
  * Function for checking if an operation is possibly allowed.
  */
-export type CheckerFunc = (context: CheckerContext) => CheckerConstraint;
+export type PermissionCheckerFunc = (context: PermissionCheckerContext) => PermissionCheckerConstraint;
 
 /**
  * Supported checker constraint checking value types.
@@ -76,53 +72,24 @@ export type ComparisonConstraint = {
  */
 export type LogicalConstraint = {
     kind: 'and' | 'or' | 'not';
-    children: CheckerConstraint[];
+    children: PermissionCheckerConstraint[];
 };
 
 /**
  * Operation allowability checking constraint
  */
-export type CheckerConstraint = ValueConstraint | VariableConstraint | ComparisonConstraint | LogicalConstraint;
-
-/**
- * Function for getting policy guard with a given context
- */
-export type InputCheckFunc = (args: any, context: QueryContext) => boolean;
-
-/**
- * Function for getting policy guard with a given context
- */
-export type ReadFieldCheckFunc = (input: any, context: QueryContext) => boolean;
+export type PermissionCheckerConstraint =
+    | ValueConstraint
+    | VariableConstraint
+    | ComparisonConstraint
+    | LogicalConstraint;
 
 /**
  * Policy definition
  */
 export type PolicyDef = {
-    // Prisma query guards
-    guard: Record<
-        string,
-        // policy operation guard functions
-        Partial<Record<PolicyOperationKind, PolicyFunc | boolean>> &
-            // 'create_input' checker function
-            Partial<Record<`${PolicyOperationKind}_input`, InputCheckFunc | boolean>> &
-            // field-level read checker functions or update guard functions
-            Record<`${typeof FIELD_LEVEL_READ_CHECKER_PREFIX}${string}`, ReadFieldCheckFunc> &
-            Record<
-                | `${typeof FIELD_LEVEL_OVERRIDE_READ_GUARD_PREFIX}${string}`
-                | `${typeof FIELD_LEVEL_UPDATE_GUARD_PREFIX}${string}`
-                | `${typeof FIELD_LEVEL_OVERRIDE_UPDATE_GUARD_PREFIX}${string}`,
-                PolicyFunc
-            > & {
-                // pre-update value selector
-                [PRE_UPDATE_VALUE_SELECTOR]?: object;
-                // field-level read checker selector
-                [FIELD_LEVEL_READ_CHECKER_SELECTOR]?: object;
-                // flag that indicates if the model has field-level access control
-                [HAS_FIELD_LEVEL_POLICY_FLAG]?: boolean;
-            }
-    >;
-
-    checker?: Record<string, Record<PolicyCrudKind, CheckerFunc | boolean>>;
+    // policy definitions for each model
+    policy: Record<ModelName, ModelPolicyDef>;
 
     // tracks which models have data validation rules
     validation: Record<string, { hasValidation: boolean }>;
@@ -131,10 +98,176 @@ export type PolicyDef = {
     authSelector?: object;
 };
 
+type ModelName = string;
+type FieldName = string;
+
+/**
+ * Policy definition for a model
+ */
+export type ModelPolicyDef = {
+    /**
+     * Model-level CRUD policies
+     */
+    modelLevel: ModelCrudDef;
+
+    /**
+     * Field-level CRUD policies
+     */
+    fieldLevel?: FieldCrudDef;
+};
+
+/**
+ * CRUD policy definitions for a model
+ */
+export type ModelCrudDef = {
+    read: ModelReadDef;
+    create: ModelCreateDef;
+    update: ModelUpdateDef;
+    delete: ModelDeleteDef;
+    postUpdate: ModelPostUpdateDef;
+};
+
+/**
+ * Information for checking entity data outside of Prisma
+ */
+export type EntityChecker = {
+    /**
+     * Checker function
+     */
+    func: EntityCheckerFunc;
+
+    /**
+     * Selector for fetching entity data
+     */
+    selector?: object;
+};
+
+/**
+ * Common policy definition for a CRUD operation
+ */
+type ModelCrudCommon = {
+    /**
+     * Prisma query guard or a constant condition
+     */
+    guard: PolicyFunc | boolean;
+
+    /**
+     * Additional checker function for checking policies outside of Prisma
+     */
+    /**
+     * Additional checker function for checking policies outside of Prisma
+     */
+    entityChecker?: EntityChecker;
+
+    /**
+     * Permission checker function or a constant condition
+     */
+    permissionChecker?: PermissionCheckerFunc | boolean;
+};
+
+/**
+ * Policy definition for reading a model
+ */
+type ModelReadDef = ModelCrudCommon;
+
+/**
+ * Policy definition for creating a model
+ */
+type ModelCreateDef = ModelCrudCommon & {
+    /**
+     * Create input validation function. Only generated when a create
+     * can be approved or denied based on input values.
+     */
+    inputChecker?: EntityCheckerFunc | boolean;
+};
+
+/**
+ * Policy definition for updating a model
+ */
+type ModelUpdateDef = ModelCrudCommon;
+
+/**
+ * Policy definition for deleting a model
+ */
+type ModelDeleteDef = ModelCrudCommon;
+
+/**
+ * Policy definition for post-update checking a model
+ */
+type ModelPostUpdateDef = Exclude<ModelCrudCommon, 'permissionChecker'> & {
+    preUpdateSelector?: object;
+};
+
+/**
+ * CRUD policy definitions for a field
+ */
+type FieldCrudDef = {
+    /**
+     * Field-level read policy
+     */
+    read: Record<FieldName, FieldReadDef>;
+
+    /**
+     * Field-level update policy
+     */
+    update: Record<FieldName, FieldUpdateDef>;
+};
+
+type FieldReadDef = {
+    /**
+     * Field-level Prisma query guard
+     */
+    guard?: PolicyFunc;
+
+    /**
+     * Entity checker
+     */
+    entityChecker?: EntityChecker;
+
+    /**
+     * Field-level read override Prisma query guard
+     */
+    overrideGuard?: PolicyFunc;
+
+    /**
+     * Entity checker for override policies
+     */
+    overrideEntityChecker?: EntityChecker;
+};
+
+type FieldUpdateDef = {
+    /**
+     * Field-level update Prisma query guard
+     */
+    guard?: PolicyFunc;
+
+    /**
+     * Additional entity checker
+     */
+    entityChecker?: EntityChecker;
+
+    /**
+     * Field-level update override Prisma query guard
+     */
+    overrideGuard?: PolicyFunc;
+
+    /**
+     * Additional entity checker for override policies
+     */
+    overrideEntityChecker?: EntityChecker;
+};
+
 /**
  * Zod schemas for validation
  */
 export type ZodSchemas = {
+    /**
+     * Zod schema for each model
+     */
     models: Record<string, z.ZodSchema>;
+
+    /**
+     * Zod schema for Prisma input types for each model
+     */
     input?: Record<string, Record<string, z.ZodSchema>>;
 };

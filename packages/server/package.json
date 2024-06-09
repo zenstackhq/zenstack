@@ -1,12 +1,12 @@
 {
     "name": "@zenstackhq/server",
-    "version": "2.1.2",
+    "version": "2.2.0",
     "displayName": "ZenStack Server-side Adapters",
     "description": "ZenStack server-side adapters",
     "homepage": "https://zenstack.dev",
     "scripts": {
         "clean": "rimraf dist",
-        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination '../../../.build'",
+        "build": "pnpm lint --max-warnings=0 && pnpm clean && tsc && copyfiles ./package.json ./README.md ./LICENSE dist && pnpm pack dist --pack-destination ../../../.build",
         "watch": "tsc --watch",
         "lint": "eslint src --ext ts",
         "test": "jest",

@@ -12,7 +12,8 @@ export interface DbOperations {
     findUnique(args: unknown): PrismaPromise<any>;
     findUniqueOrThrow(args: unknown): PrismaPromise<any>;
     create(args: unknown): Promise<any>;
-    createMany(args: unknown, skipDuplicates?: boolean): Promise<{ count: number }>;
+    createMany(args: unknown): Promise<{ count: number }>;
+    createManyAndReturn(args: unknown): Promise<unknown[]>;
     update(args: unknown): Promise<any>;
     updateMany(args: unknown): Promise<{ count: number }>;
     upsert(args: unknown): Promise<any>;
@@ -62,7 +63,7 @@ export type QueryContext = {
 /**
  * Context for checking operation allowability.
  */
-export type CheckerContext = {
+export type PermissionCheckerContext = {
     /**
      * Current user
      */
