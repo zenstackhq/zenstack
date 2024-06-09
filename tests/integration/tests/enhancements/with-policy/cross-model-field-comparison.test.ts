@@ -769,8 +769,8 @@ describe('Cross-model field comparison', () => {
         await expect(db.user.update({ where: { id: 1 }, data: { age: 25 } })).toResolveTruthy();
     });
 
-    it('with auth', async () => {
-        const { prisma, enhance } = await loadSchema(
+    it('with auth case 1', async () => {
+        const { enhance } = await loadSchema(
             `
         model User {
             id Int @id @default(autoincrement())
@@ -803,8 +803,7 @@ describe('Cross-model field comparison', () => {
             level Int
             @@allow('all', true)
         }
-        `,
-            { preserveTsFiles: true }
+        `
         );
 
         await expect(enhance().post.create({ data: { title: 'P1' } })).toBeRejectedByPolicy();
@@ -819,5 +818,183 @@ describe('Cross-model field comparison', () => {
                 data: { title: 'P1', permission: { create: { level: 1 } } },
             })
         ).toResolveTruthy();
+    });
+
+    it('with auth case 2', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            teamMembership TeamMembership[]
+            @@allow('all', true)
+        }
+
+        model Team {
+            id Int @id @default(autoincrement())
+            permissions Permission[]
+            assets Asset[]
+            @@allow('all', true)
+        }
+
+        model Asset {
+            id Int @id @default(autoincrement())
+            name String
+            team Team @relation(fields: [teamId], references: [id])
+            teamId Int
+            @@allow('all', auth().teamMembership?[role.permissions?[name == 'ManageTeam' && teamId == this.teamId]])
+            @@allow('read', true)
+        }
+
+        model TeamMembership {
+            id Int @id @default(autoincrement())
+            role TeamRole?
+            user User @relation(fields: [userId], references: [id])
+            userId Int
+            @@allow('all', true)
+        }
+
+        model TeamRole {
+            id Int @id @default(autoincrement())
+            permissions Permission[]
+            membership TeamMembership @relation(fields: [membershipId], references: [id])
+            membershipId Int @unique
+            @@allow('all', true)
+        }
+
+        model Permission {
+            id Int @id @default(autoincrement())
+            name String
+            team Team @relation(fields: [teamId], references: [id])
+            teamId Int
+            role TeamRole @relation(fields: [roleId], references: [id])
+            roleId Int
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const team1 = await prisma.team.create({ data: {} });
+        const team2 = await prisma.team.create({ data: {} });
+
+        const user = await prisma.user.create({
+            data: {
+                teamMembership: {
+                    create: {
+                        role: {
+                            create: {
+                                permissions: { create: [{ name: 'ManageTeam', team: { connect: { id: team1.id } } }] },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const asset = await prisma.asset.create({
+            data: { name: 'Asset1', team: { connect: { id: team1.id } } },
+        });
+
+        const dbTeam1 = enhance({
+            id: user.id,
+            teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team1.id }] } }],
+        });
+        await expect(dbTeam1.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toResolveTruthy();
+
+        const dbTeam2 = enhance({
+            id: user.id,
+            teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team2.id }] } }],
+        });
+        await expect(
+            dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })
+        ).toBeRejectedByPolicy();
+    });
+
+    it('with auth case 3', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+        model User {
+            id Int @id @default(autoincrement())
+            teamMembership TeamMembership[]
+            @@allow('all', true)
+        }
+
+        model Team {
+            id Int @id @default(autoincrement())
+            permissions Permission[]
+            assets Asset[]
+            @@allow('all', true)
+        }
+
+        model Asset {
+            id Int @id @default(autoincrement())
+            name String
+            team Team @relation(fields: [teamId], references: [id])
+            teamId Int
+            @@allow('all', auth().teamMembership?[role.permissions?[name == 'ManageTeam' && team == this.team]])
+            @@allow('read', true)
+        }
+
+        model TeamMembership {
+            id Int @id @default(autoincrement())
+            role TeamRole?
+            user User @relation(fields: [userId], references: [id])
+            userId Int
+            @@allow('all', true)
+        }
+
+        model TeamRole {
+            id Int @id @default(autoincrement())
+            permissions Permission[]
+            membership TeamMembership @relation(fields: [membershipId], references: [id])
+            membershipId Int @unique
+            @@allow('all', true)
+        }
+
+        model Permission {
+            id Int @id @default(autoincrement())
+            name String
+            team Team @relation(fields: [teamId], references: [id])
+            teamId Int
+            role TeamRole @relation(fields: [roleId], references: [id])
+            roleId Int
+            @@allow('all', true)
+        }
+        `
+        );
+
+        const team1 = await prisma.team.create({ data: {} });
+        const team2 = await prisma.team.create({ data: {} });
+
+        const user = await prisma.user.create({
+            data: {
+                teamMembership: {
+                    create: {
+                        role: {
+                            create: {
+                                permissions: { create: [{ name: 'ManageTeam', team: { connect: { id: team1.id } } }] },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const asset = await prisma.asset.create({
+            data: { name: 'Asset1', team: { connect: { id: team1.id } } },
+        });
+
+        const dbTeam1 = enhance({
+            id: user.id,
+            teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', team: { id: team1.id } }] } }],
+        });
+        await expect(dbTeam1.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })).toResolveTruthy();
+
+        const dbTeam2 = enhance({
+            id: user.id,
+            teamMembership: [{ role: { permissions: [{ name: 'ManageTeam', teamId: team2.id }] } }],
+        });
+        await expect(
+            dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })
+        ).toBeRejectedByPolicy();
     });
 });

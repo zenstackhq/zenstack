@@ -483,7 +483,9 @@ function hasCrossModelComparison(expr: Expression) {
 }
 
 function getSourceModelOfFieldAccess(expr: Expression) {
-    if (isDataModel(expr.$resolvedType?.decl)) {
+    // an expression that resolves to a data model and is part of a member access, return the model
+    // e.g.: profile.age => Profile
+    if (isDataModel(expr.$resolvedType?.decl) && isMemberAccessExpr(expr.$container)) {
         return expr.$resolvedType?.decl;
     }
 
@@ -497,7 +499,7 @@ function getSourceModelOfFieldAccess(expr: Expression) {
         return getContainerOfType(expr, isDataModel);
     }
 
-    // direct field reference
+    // direct field reference, return the model
     if (isDataModelFieldReference(expr)) {
         return (expr.target.ref as DataModelField).$container;
     }
