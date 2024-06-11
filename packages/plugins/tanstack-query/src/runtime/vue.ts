@@ -124,7 +124,7 @@ export function useInfiniteModelQuery<TQueryFnData, TData, TError>(
         ...toValue(options),
     }));
 
-    return useInfiniteQuery<TQueryFnData, TError, InfiniteData<TData>>(queryOptions);
+    return useInfiniteQuery<TQueryFnData, TError, TData>(queryOptions);
 }
 
 /**
