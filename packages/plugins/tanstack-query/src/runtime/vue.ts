@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/ban-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { InfiniteData } from '@tanstack/react-query-v5';
 import {
     useInfiniteQuery,
     useMutation,
     useQuery,
     useQueryClient,
+    type InfiniteData,
     type QueryKey,
     type UseInfiniteQueryOptions,
     type UseMutationOptions,
