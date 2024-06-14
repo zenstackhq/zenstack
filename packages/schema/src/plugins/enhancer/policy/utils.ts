@@ -403,8 +403,23 @@ export function generateEntityCheckerFunction(
         statements.push(`if (${compiled}) { return true; }`);
     });
 
-    // default: deny unless for 'postUpdate'
-    statements.push(kind === 'postUpdate' ? 'return true;' : 'return false;');
+    if (kind === 'postUpdate') {
+        // 'postUpdate' rule defaults to allow
+        statements.push('return true;');
+    } else {
+        if (forField) {
+            // if there's no allow rule, for field-level rules, by default we allow
+            if (allows.length === 0) {
+                statements.push('return true;');
+            } else {
+                // if there's any allow rule, we deny unless any allow rule evaluates to true
+                statements.push(`return false;`);
+            }
+        } else {
+            // for other cases, defaults to deny
+            statements.push(`return false;`);
+        }
+    }
 
     const func = sourceFile.addFunction({
         name: `$check_${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
