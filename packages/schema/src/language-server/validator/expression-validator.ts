@@ -4,6 +4,7 @@ import {
     DataModelAttribute,
     Expression,
     ExpressionType,
+    isArrayExpr,
     isDataModel,
     isDataModelAttribute,
     isDataModelField,
@@ -82,6 +83,8 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                         node: expr.right,
                     });
                 }
+
+                this.validateCrossModelFieldComparison(expr, accept);
                 break;
             }
 
@@ -137,6 +140,7 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     accept('error', 'incompatible operand types', { node: expr });
                 }
 
+                this.validateCrossModelFieldComparison(expr, accept);
                 break;
             }
 
@@ -158,43 +162,8 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     break;
                 }
 
-                // not supported:
-                //   - foo.a == bar
-                //   - foo.user.id == userId
-                // except:
-                //   - future().userId == userId
-                if (
-                    (isMemberAccessExpr(expr.left) &&
-                        isDataModelField(expr.left.member.ref) &&
-                        expr.left.member.ref.$container != getContainingDataModel(expr)) ||
-                    (isMemberAccessExpr(expr.right) &&
-                        isDataModelField(expr.right.member.ref) &&
-                        expr.right.member.ref.$container != getContainingDataModel(expr))
-                ) {
-                    // foo.user.id == auth().id
-                    // foo.user.id == "123"
-                    // foo.user.id == null
-                    // foo.user.id == EnumValue
-                    if (!(this.isNotModelFieldExpr(expr.left) || this.isNotModelFieldExpr(expr.right))) {
-                        const containingPolicyAttr = findUpAst(
-                            expr,
-                            (node) => isDataModelAttribute(node) && ['@@allow', '@@deny'].includes(node.decl.$refText)
-                        ) as DataModelAttribute | undefined;
-
-                        if (containingPolicyAttr) {
-                            const operation = getAttributeArgLiteral<string>(containingPolicyAttr, 'operation');
-                            if (operation?.split(',').includes('all') || operation?.split(',').includes('read')) {
-                                accept(
-                                    'error',
-                                    'comparison between fields of different models is not supported in model-level "read" rules',
-                                    {
-                                        node: expr,
-                                    }
-                                );
-                                break;
-                            }
-                        }
-                    }
+                if (!this.validateCrossModelFieldComparison(expr, accept)) {
+                    break;
                 }
 
                 if (
@@ -262,6 +231,49 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         }
     }
 
+    private validateCrossModelFieldComparison(expr: BinaryExpr, accept: ValidationAcceptor) {
+        // not supported in "read" rules:
+        //   - foo.a == bar
+        //   - foo.user.id == userId
+        // except:
+        //   - future().userId == userId
+        if (
+            (isMemberAccessExpr(expr.left) &&
+                isDataModelField(expr.left.member.ref) &&
+                expr.left.member.ref.$container != getContainingDataModel(expr)) ||
+            (isMemberAccessExpr(expr.right) &&
+                isDataModelField(expr.right.member.ref) &&
+                expr.right.member.ref.$container != getContainingDataModel(expr))
+        ) {
+            // foo.user.id == auth().id
+            // foo.user.id == "123"
+            // foo.user.id == null
+            // foo.user.id == EnumValue
+            if (!(this.isNotModelFieldExpr(expr.left) || this.isNotModelFieldExpr(expr.right))) {
+                const containingPolicyAttr = findUpAst(
+                    expr,
+                    (node) => isDataModelAttribute(node) && ['@@allow', '@@deny'].includes(node.decl.$refText)
+                ) as DataModelAttribute | undefined;
+
+                if (containingPolicyAttr) {
+                    const operation = getAttributeArgLiteral<string>(containingPolicyAttr, 'operation');
+                    if (operation?.split(',').includes('all') || operation?.split(',').includes('read')) {
+                        accept(
+                            'error',
+                            'comparison between fields of different models is not supported in model-level "read" rules',
+                            {
+                                node: expr,
+                            }
+                        );
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     private validateCollectionPredicate(expr: BinaryExpr, accept: ValidationAcceptor) {
         if (!expr.$resolvedType) {
             accept('error', 'collection predicate can only be used on an array of model type', { node: expr });
@@ -273,9 +285,18 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         return findUpAst(node, (n) => isDataModelAttribute(n) && n.decl.$refText === '@@validate');
     }
 
-    private isNotModelFieldExpr(expr: Expression) {
+    private isNotModelFieldExpr(expr: Expression): boolean {
         return (
-            isLiteralExpr(expr) || isEnumFieldReference(expr) || isNullExpr(expr) || this.isAuthOrAuthMemberAccess(expr)
+            // literal
+            isLiteralExpr(expr) ||
+            // enum field
+            isEnumFieldReference(expr) ||
+            // null
+            isNullExpr(expr) ||
+            // `auth()` access
+            this.isAuthOrAuthMemberAccess(expr) ||
+            // array
+            (isArrayExpr(expr) && expr.items.every((item) => this.isNotModelFieldExpr(item)))
         );
     }
 

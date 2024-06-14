@@ -1,8 +1,9 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadModelWithError } from '@zenstackhq/testtools';
 describe('issue 1506', () => {
     it('regression', async () => {
-        const { prisma, enhance } = await loadSchema(
-            `
+        await expect(
+            loadModelWithError(
+                `
             model A {
                 id Int @id @default(autoincrement())
                 value Int
@@ -29,29 +30,10 @@ describe('issue 1506', () => {
 
                 @@allow('read', true)
             }
-            `,
-            { preserveTsFiles: true, logPrismaQuery: true }
+            `
+            )
+        ).resolves.toContain(
+            'comparison between fields of different models is not supported in model-level "read" rules'
         );
-
-        await prisma.a.create({
-            data: {
-                value: 3,
-                b: {
-                    create: {
-                        value: 2,
-                        c: {
-                            create: {
-                                value: 1,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-
-        const db = enhance();
-        const read = await db.a.findMany({ include: { b: true } });
-        expect(read).toHaveLength(1);
-        expect(read[0].b).toBeTruthy();
     });
 });

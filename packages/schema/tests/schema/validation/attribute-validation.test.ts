@@ -702,6 +702,37 @@ describe('Attribute tests', () => {
         ).toContain('comparison between fields of different models is not supported in model-level "read" rules');
 
         expect(
+            await loadModelWithError(`
+            ${prelude}
+            model User {
+                id Int @id
+                lists List[]
+                todos Todo[]
+                value Int
+            }
+              
+            model List {
+                id Int @id
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                todos Todo[]
+            }
+              
+            model Todo {
+                id Int @id
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                list List @relation(fields: [listId], references: [id])
+                listId Int
+                value Int
+              
+                @@allow('all', list.user.value > value)
+            }
+            
+        `)
+        ).toContain('comparison between fields of different models is not supported in model-level "read" rules');
+
+        expect(
             await loadModel(`
             ${prelude}
             model User {
