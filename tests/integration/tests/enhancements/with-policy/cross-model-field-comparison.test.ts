@@ -1,4 +1,4 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadModel, loadSchema } from '@zenstackhq/testtools';
 
 describe('Cross-model field comparison', () => {
     it('to-one relation', async () => {
@@ -996,5 +996,34 @@ describe('Cross-model field comparison', () => {
         await expect(
             dbTeam2.asset.update({ where: { id: asset.id }, data: { name: 'Asset2' } })
         ).toBeRejectedByPolicy();
+    });
+
+    it('with auth case 4', async () => {
+        await loadModel(`
+        model User {
+            id Int @id @default(autoincrement())
+            foos Foo[]
+            bars Bar[]
+            @@allow('all', true)
+        }    
+
+        model Foo {
+            id Int @id @default(autoincrement())
+            user User @relation(fields: [userId], references: [id])
+            userId Int
+            bar Bar @relation(fields: [barId], references: [id])
+            barId Int @unique
+            @@allow('all', bar.private && bar.user == auth())
+        }
+
+        model Bar {
+            id Int @id @default(autoincrement())
+            user User @relation(fields: [userId], references: [id])
+            userId Int
+            foo Foo?
+            private Boolean
+            @@allow('all', true)
+        }
+        `);
     });
 });
