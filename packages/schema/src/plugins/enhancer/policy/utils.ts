@@ -394,17 +394,32 @@ export function generateEntityCheckerFunction(
     });
 
     denies.forEach((rule) => {
-        const compiled = transformer.transform(rule);
+        const compiled = transformer.transform(rule, false);
         statements.push(`if (${compiled}) { return false; }`);
     });
 
     allows.forEach((rule) => {
-        const compiled = transformer.transform(rule);
+        const compiled = transformer.transform(rule, false);
         statements.push(`if (${compiled}) { return true; }`);
     });
 
-    // default: deny unless for 'postUpdate'
-    statements.push(kind === 'postUpdate' ? 'return true;' : 'return false;');
+    if (kind === 'postUpdate') {
+        // 'postUpdate' rule defaults to allow
+        statements.push('return true;');
+    } else {
+        if (forField) {
+            // if there's no allow rule, for field-level rules, by default we allow
+            if (allows.length === 0) {
+                statements.push('return true;');
+            } else {
+                // if there's any allow rule, we deny unless any allow rule evaluates to true
+                statements.push(`return false;`);
+            }
+        } else {
+            // for other cases, defaults to deny
+            statements.push(`return false;`);
+        }
+    }
 
     const func = sourceFile.addFunction({
         name: `$check_${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
@@ -483,6 +498,11 @@ function hasCrossModelComparison(expr: Expression) {
 }
 
 function getSourceModelOfFieldAccess(expr: Expression) {
+    // `auth()` access doesn't involve db field look up so doesn't count as cross-model comparison
+    if (isAuthInvocation(expr)) {
+        return undefined;
+    }
+
     // an expression that resolves to a data model and is part of a member access, return the model
     // e.g.: profile.age => Profile
     if (isDataModel(expr.$resolvedType?.decl) && isMemberAccessExpr(expr.$container)) {

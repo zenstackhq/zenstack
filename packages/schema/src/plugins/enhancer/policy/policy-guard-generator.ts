@@ -241,7 +241,7 @@ export class PolicyGenerator {
                     ? '!(' +
                       denies
                           .map((deny) => {
-                              return transformer.transform(deny);
+                              return transformer.transform(deny, false);
                           })
                           .join(' || ') +
                       ')'
@@ -249,7 +249,7 @@ export class PolicyGenerator {
 
             const allowStmt = allows
                 .map((allow) => {
-                    return transformer.transform(allow);
+                    return transformer.transform(allow, false);
                 })
                 .join(' || ');
 
@@ -605,79 +605,6 @@ export class PolicyGenerator {
             }
         });
         writer.writeLine(',');
-    }
-
-    private generateFieldReadCheckerFunction(
-        sourceFile: SourceFile,
-        field: DataModelField,
-        allows: Expression[],
-        denies: Expression[]
-    ) {
-        const statements: (string | WriterFunction)[] = [];
-
-        generateNormalizedAuthRef(field.$container as DataModel, allows, denies, statements);
-
-        // compile rules down to typescript expressions
-        statements.push((writer) => {
-            const transformer = new TypeScriptExpressionTransformer({
-                context: ExpressionContext.AccessPolicy,
-                fieldReferenceContext: 'input',
-            });
-
-            const denyStmt =
-                denies.length > 0
-                    ? '!(' +
-                      denies
-                          .map((deny) => {
-                              return transformer.transform(deny);
-                          })
-                          .join(' || ') +
-                      ')'
-                    : undefined;
-
-            const allowStmt =
-                allows.length > 0
-                    ? '(' +
-                      allows
-                          .map((allow) => {
-                              return transformer.transform(allow);
-                          })
-                          .join(' || ') +
-                      ')'
-                    : undefined;
-
-            let expr: string | undefined;
-
-            if (denyStmt && allowStmt) {
-                expr = `${denyStmt} && ${allowStmt}`;
-            } else if (denyStmt) {
-                expr = denyStmt;
-            } else if (allowStmt) {
-                expr = allowStmt;
-            } else {
-                throw new Error('should not happen');
-            }
-
-            writer.write('return ' + expr);
-        });
-
-        const func = sourceFile.addFunction({
-            name: `${field.$container.name}$${field.name}_read`,
-            returnType: 'boolean',
-            parameters: [
-                {
-                    name: 'input',
-                    type: 'any',
-                },
-                {
-                    name: 'context',
-                    type: 'QueryContext',
-                },
-            ],
-            statements,
-        });
-
-        return func;
     }
 
     // #endregion
