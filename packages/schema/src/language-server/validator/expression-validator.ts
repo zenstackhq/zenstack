@@ -140,7 +140,9 @@ export default class ExpressionValidator implements AstValidator<Expression> {
                     accept('error', 'incompatible operand types', { node: expr });
                 }
 
-                this.validateCrossModelFieldComparison(expr, accept);
+                if (expr.operator !== '&&' && expr.operator !== '||') {
+                    this.validateCrossModelFieldComparison(expr, accept);
+                }
                 break;
             }
 
