@@ -27,6 +27,7 @@ describe('Policy: field-level policy', () => {
             id Int @id @default(autoincrement())
             x Int
             y Int @allow('read', x > 0)
+            z Int @deny('read', x <= 0)
             owner User @relation(fields: [ownerId], references: [id])
             ownerId Int
 
@@ -40,71 +41,82 @@ describe('Policy: field-level policy', () => {
         const db = enhance();
         let r;
 
-        // y is unreadable
+        // y and x are unreadable
 
         r = await db.model.create({
-            data: { id: 1, x: 0, y: 0, ownerId: 1 },
+            data: { id: 1, x: 0, y: 0, z: 0, ownerId: 1 },
         });
         expect(r.x).toEqual(0);
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.model.findUnique({ where: { id: 1 } });
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.user.findUnique({ where: { id: 1 }, select: { models: true } });
         expect(r.models[0].y).toBeUndefined();
+        expect(r.models[0].z).toBeUndefined();
 
         r = await db.user.findUnique({ where: { id: 1 }, select: { models: { select: { y: true } } } });
         expect(r.models[0].y).toBeUndefined();
+        expect(r.models[0].z).toBeUndefined();
 
         r = await db.user.findUnique({ where: { id: 1 } }).models();
         expect(r[0].y).toBeUndefined();
+        expect(r[0].z).toBeUndefined();
 
         r = await db.user.findUnique({ where: { id: 1 } }).models({ select: { y: true } });
         expect(r[0].y).toBeUndefined();
+        expect(r[0].z).toBeUndefined();
 
         r = await db.model.findUnique({ select: { x: true }, where: { id: 1 } });
         expect(r.x).toEqual(0);
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.model.findUnique({ select: { y: true }, where: { id: 1 } });
         expect(r.x).toBeUndefined();
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.model.findUnique({ select: { x: false, y: true }, where: { id: 1 } });
         expect(r.x).toBeUndefined();
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.model.findUnique({ select: { x: true, y: true }, where: { id: 1 } });
         expect(r.x).toEqual(0);
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.model.findUnique({ include: { owner: true }, where: { id: 1 } });
         expect(r.x).toEqual(0);
         expect(r.owner).toBeTruthy();
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         // y is readable
 
         r = await db.model.create({
-            data: { id: 2, x: 1, y: 0, ownerId: 1 },
+            data: { id: 2, x: 1, y: 0, z: 0, ownerId: 1 },
         });
-        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0, z: 0 }));
 
         r = await db.model.findUnique({ where: { id: 2 } });
-        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0, z: 0 }));
 
         r = await db.user.findUnique({ where: { id: 1 }, select: { models: { where: { id: 2 } } } });
-        expect(r.models[0]).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+        expect(r.models[0]).toEqual(expect.objectContaining({ x: 1, y: 0, z: 0 }));
 
         r = await db.user.findUnique({
             where: { id: 1 },
-            select: { models: { where: { id: 2 }, select: { y: true } } },
+            select: { models: { where: { id: 2 }, select: { y: true, z: true } } },
         });
-        expect(r.models[0]).toEqual(expect.objectContaining({ y: 0 }));
+        expect(r.models[0]).toEqual(expect.objectContaining({ y: 0, z: 0 }));
 
         r = await db.user.findUnique({ where: { id: 1 } }).models({ where: { id: 2 } });
-        expect(r[0]).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+        expect(r[0]).toEqual(expect.objectContaining({ x: 1, y: 0, z: 0 }));
 
         r = await db.user.findUnique({ where: { id: 1 } }).models({ where: { id: 2 }, select: { y: true } });
         expect(r[0]).toEqual(expect.objectContaining({ y: 0 }));
@@ -112,20 +124,23 @@ describe('Policy: field-level policy', () => {
         r = await db.model.findUnique({ select: { x: true }, where: { id: 2 } });
         expect(r.x).toEqual(1);
         expect(r.y).toBeUndefined();
+        expect(r.z).toBeUndefined();
 
         r = await db.model.findUnique({ select: { y: true }, where: { id: 2 } });
         expect(r.x).toBeUndefined();
         expect(r.y).toEqual(0);
+        expect(r.z).toBeUndefined();
 
-        r = await db.model.findUnique({ select: { x: false, y: true }, where: { id: 2 } });
+        r = await db.model.findUnique({ select: { x: false, y: true, z: true }, where: { id: 2 } });
         expect(r.x).toBeUndefined();
         expect(r.y).toEqual(0);
+        expect(r.z).toEqual(0);
 
-        r = await db.model.findUnique({ select: { x: true, y: true }, where: { id: 2 } });
-        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+        r = await db.model.findUnique({ select: { x: true, y: true, z: true }, where: { id: 2 } });
+        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0, z: 0 }));
 
         r = await db.model.findUnique({ include: { owner: true }, where: { id: 2 } });
-        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0 }));
+        expect(r).toEqual(expect.objectContaining({ x: 1, y: 0, z: 0 }));
         expect(r.owner).toBeTruthy();
     });
 
