@@ -4,6 +4,7 @@ import {
     DataModelAttribute,
     Expression,
     ExpressionType,
+    isArrayExpr,
     isDataModel,
     isDataModelAttribute,
     isDataModelField,
@@ -284,9 +285,18 @@ export default class ExpressionValidator implements AstValidator<Expression> {
         return findUpAst(node, (n) => isDataModelAttribute(n) && n.decl.$refText === '@@validate');
     }
 
-    private isNotModelFieldExpr(expr: Expression) {
+    private isNotModelFieldExpr(expr: Expression): boolean {
         return (
-            isLiteralExpr(expr) || isEnumFieldReference(expr) || isNullExpr(expr) || this.isAuthOrAuthMemberAccess(expr)
+            // literal
+            isLiteralExpr(expr) ||
+            // enum field
+            isEnumFieldReference(expr) ||
+            // null
+            isNullExpr(expr) ||
+            // `auth()` access
+            this.isAuthOrAuthMemberAccess(expr) ||
+            // array
+            (isArrayExpr(expr) && expr.items.every((item) => this.isNotModelFieldExpr(item)))
         );
     }
 
