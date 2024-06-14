@@ -1074,10 +1074,17 @@ export class PolicyUtil extends QueryUtils {
         // can then cause infinite recursion when we visit relation later
 
         // recurse into relation fields
-        for (const [k, v] of Object.entries<any>(args.select ?? args.include ?? {})) {
-            const field = resolveField(this.modelMeta, model, k);
-            if (field?.isDataModel && v && typeof v === 'object') {
-                this.injectReadCheckSelect(field.type, v);
+        const visitTarget = args.select ?? args.include;
+        if (visitTarget) {
+            for (const key of Object.keys(visitTarget)) {
+                const field = resolveField(this.modelMeta, model, key);
+                if (field?.isDataModel && visitTarget[key]) {
+                    if (typeof visitTarget[key] !== 'object') {
+                        // v is "true", ensure it's an object
+                        visitTarget[key] = {};
+                    }
+                    this.injectReadCheckSelect(field.type, visitTarget[key]);
+                }
             }
         }
 
