@@ -394,12 +394,12 @@ export function generateEntityCheckerFunction(
     });
 
     denies.forEach((rule) => {
-        const compiled = transformer.transform(rule);
+        const compiled = transformer.transform(rule, false);
         statements.push(`if (${compiled}) { return false; }`);
     });
 
     allows.forEach((rule) => {
-        const compiled = transformer.transform(rule);
+        const compiled = transformer.transform(rule, false);
         statements.push(`if (${compiled}) { return true; }`);
     });
 
@@ -483,6 +483,11 @@ function hasCrossModelComparison(expr: Expression) {
 }
 
 function getSourceModelOfFieldAccess(expr: Expression) {
+    // `auth()` access doesn't involve db field look up so doesn't count as cross-model comparison
+    if (isAuthInvocation(expr)) {
+        return undefined;
+    }
+
     // an expression that resolves to a data model and is part of a member access, return the model
     // e.g.: profile.age => Profile
     if (isDataModel(expr.$resolvedType?.decl) && isMemberAccessExpr(expr.$container)) {
