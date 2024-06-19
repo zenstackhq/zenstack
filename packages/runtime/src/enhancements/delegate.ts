@@ -460,8 +460,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     // ensure the full nested "create" structure is created for base types
-    private ensureBaseCreateHierarchy(model: string, result: any) {
-        let curr = result;
+    private ensureBaseCreateHierarchy(model: string, args: any) {
+        let curr = args;
         let base = this.getBaseModel(model);
         let sub = this.getModelInfo(model);
 
@@ -478,6 +478,16 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     curr[baseRelationName].create[base.discriminator] = sub.name;
                 }
             }
+
+            // Look for base id field assignments in the current level, and push
+            // them down to the base level
+            for (const idField of getIdFields(this.options.modelMeta, base.name)) {
+                if (curr[idField.name] !== undefined) {
+                    curr[baseRelationName].create[idField.name] = curr[idField.name];
+                    delete curr[idField.name];
+                }
+            }
+
             curr = curr[baseRelationName].create;
             sub = base;
             base = this.getBaseModel(base.name);
