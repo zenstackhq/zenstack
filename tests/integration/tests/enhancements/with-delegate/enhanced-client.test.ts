@@ -158,6 +158,22 @@ describe('Polymorphism Test', () => {
         ).resolves.toMatchObject({ count: 2 });
     });
 
+    it('create concrete with explicit id', async () => {
+        const { enhance } = await loadSchema(schema, { enhancements: ['delegate'] });
+        const db = enhance();
+
+        await expect(
+            db.ratedVideo.create({ data: { id: 1, duration: 100, url: 'xyz', rating: 5 } })
+        ).resolves.toMatchObject({
+            id: 1,
+            duration: 100,
+            url: 'xyz',
+            rating: 5,
+            assetType: 'Video',
+            videoType: 'RatedVideo',
+        });
+    });
+
     it('read with concrete', async () => {
         const { db, user, video } = await setup();
 
