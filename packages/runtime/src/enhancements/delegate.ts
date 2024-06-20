@@ -194,15 +194,13 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
                         if (this.injectBaseFieldSelect(model, field, value, args, kind)) {
                             delete args[kind][field];
-                        } else {
-                            if (fieldInfo && this.isDelegateOrDescendantOfDelegate(fieldInfo.type)) {
-                                let nextValue = value;
-                                if (nextValue === true) {
-                                    // make sure the payload is an object
-                                    args[kind][field] = nextValue = {};
-                                }
-                                this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
+                        } else if (fieldInfo.isDataModel) {
+                            let nextValue = value;
+                            if (nextValue === true) {
+                                // make sure the payload is an object
+                                args[kind][field] = nextValue = {};
                             }
+                            this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
                         }
                     }
                 }
@@ -392,8 +390,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
-        // note that we can't call `createMany` directly because it doesn't support
-        // nested created, which is needed for creating base entities
+        // `createMany` doesn't support nested create, which is needed for creating entities
+        // inheriting a delegate base, so we need to convert it to a regular `create` here.
+        // Note that the main difference is `create` doesn't support `skipDuplicates` as
+        // `createMany` does.
+
         return this.queryUtils.transaction(this.prisma, async (tx) => {
             const r = await Promise.all(
                 enumerate(args.data).map(async (item) => {
@@ -425,17 +426,33 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 this.doProcessCreatePayload(model, args);
             },
 
-            createMany: (model, args, _context) => {
-                if (args.skipDuplicates) {
-                    throw prismaClientValidationError(
-                        this.prisma,
-                        this.options.prismaModule,
-                        '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
-                    );
-                }
+            createMany: (model, args, context) => {
+                // `createMany` doesn't support nested create, which is needed for creating entities
+                // inheriting a delegate base, so we need to convert it to a regular `create` here.
+                // Note that the main difference is `create` doesn't support `skipDuplicates` as
+                // `createMany` does.
 
-                for (const item of enumerate(args?.data)) {
-                    this.doProcessCreatePayload(model, item);
+                if (this.isDelegateOrDescendantOfDelegate(model)) {
+                    if (args.skipDuplicates) {
+                        throw prismaClientValidationError(
+                            this.prisma,
+                            this.options.prismaModule,
+                            '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
+                        );
+                    }
+
+                    // convert to regular `create`
+                    let createPayload = context.parent.create ?? [];
+                    if (!Array.isArray(createPayload)) {
+                        createPayload = [createPayload];
+                    }
+
+                    for (const item of enumerate(args.data)) {
+                        this.doProcessCreatePayload(model, item);
+                        createPayload.push(item);
+                    }
+                    context.parent.create = createPayload;
+                    delete context.parent['createMany'];
                 }
             },
         });
@@ -460,8 +477,8 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     // ensure the full nested "create" structure is created for base types
-    private ensureBaseCreateHierarchy(model: string, result: any) {
-        let curr = result;
+    private ensureBaseCreateHierarchy(model: string, args: any) {
+        let curr = args;
         let base = this.getBaseModel(model);
         let sub = this.getModelInfo(model);
 
@@ -478,6 +495,16 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                     curr[baseRelationName].create[base.discriminator] = sub.name;
                 }
             }
+
+            // Look for base id field assignments in the current level, and push
+            // them down to the base level
+            for (const idField of getIdFields(this.options.modelMeta, base.name)) {
+                if (curr[idField.name] !== undefined) {
+                    curr[baseRelationName].create[idField.name] = curr[idField.name];
+                    delete curr[idField.name];
+                }
+            }
+
             curr = curr[baseRelationName].create;
             sub = base;
             base = this.getBaseModel(base.name);
