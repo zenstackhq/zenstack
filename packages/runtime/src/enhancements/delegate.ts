@@ -390,8 +390,11 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             );
         }
 
-        // note that we can't call `createMany` directly because it doesn't support
-        // nested created, which is needed for creating base entities
+        // `createMany` doesn't support nested create, which is needed for creating entities
+        // inheriting a delegate base, so we need to convert it to a regular `create` here.
+        // Note that the main difference is `create` doesn't support `skipDuplicates` as
+        // `createMany` does.
+
         return this.queryUtils.transaction(this.prisma, async (tx) => {
             const r = await Promise.all(
                 enumerate(args.data).map(async (item) => {
@@ -423,17 +426,33 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 this.doProcessCreatePayload(model, args);
             },
 
-            createMany: (model, args, _context) => {
-                if (args.skipDuplicates) {
-                    throw prismaClientValidationError(
-                        this.prisma,
-                        this.options.prismaModule,
-                        '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
-                    );
-                }
+            createMany: (model, args, context) => {
+                // `createMany` doesn't support nested create, which is needed for creating entities
+                // inheriting a delegate base, so we need to convert it to a regular `create` here.
+                // Note that the main difference is `create` doesn't support `skipDuplicates` as
+                // `createMany` does.
 
-                for (const item of enumerate(args?.data)) {
-                    this.doProcessCreatePayload(model, item);
+                if (this.isDelegateOrDescendantOfDelegate(model)) {
+                    if (args.skipDuplicates) {
+                        throw prismaClientValidationError(
+                            this.prisma,
+                            this.options.prismaModule,
+                            '`createMany` with `skipDuplicates` set to true is not supported for delegated models'
+                        );
+                    }
+
+                    // convert to regular `create`
+                    let createPayload = context.parent.create ?? [];
+                    if (!Array.isArray(createPayload)) {
+                        createPayload = [createPayload];
+                    }
+
+                    for (const item of enumerate(args.data)) {
+                        this.doProcessCreatePayload(model, item);
+                        createPayload.push(item);
+                    }
+                    context.parent.create = createPayload;
+                    delete context.parent['createMany'];
                 }
             },
         });
