@@ -194,15 +194,13 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
 
                         if (this.injectBaseFieldSelect(model, field, value, args, kind)) {
                             delete args[kind][field];
-                        } else {
-                            if (fieldInfo && this.isDelegateOrDescendantOfDelegate(fieldInfo.type)) {
-                                let nextValue = value;
-                                if (nextValue === true) {
-                                    // make sure the payload is an object
-                                    args[kind][field] = nextValue = {};
-                                }
-                                this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
+                        } else if (fieldInfo.isDataModel) {
+                            let nextValue = value;
+                            if (nextValue === true) {
+                                // make sure the payload is an object
+                                args[kind][field] = nextValue = {};
                             }
+                            this.injectSelectIncludeHierarchy(fieldInfo.type, nextValue);
                         }
                     }
                 }
