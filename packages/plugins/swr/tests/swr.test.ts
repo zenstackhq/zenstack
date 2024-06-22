@@ -61,12 +61,13 @@ ${sharedModel}
             {
                 provider: 'postgresql',
                 pushDb: false,
-                extraDependencies: [
-                    `${normalizePath(path.join(__dirname, '../dist'))}`,
-                    'react@18.2.0',
-                    '@types/react@18.2.0',
-                    'swr@^2',
-                ],
+                extraDependencies: {
+                    "react": "^18.2.0",
+                    'swr': '^2.0.0'
+                },
+                extraDevDependencies: {
+                    '@types/react': '^18.2.0'
+                },
                 compile: true,
             }
         );
@@ -94,8 +95,7 @@ ${sharedModel}
         `,
             {
                 pushDb: false,
-                projectDir,
-                extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`],
+                projectDir
             }
         );
 
@@ -122,7 +122,7 @@ ${sharedModel}
             password String @omit
         }        
         `,
-                { pushDb: false, projectDir, extraDependencies: [`${normalizePath(path.join(__dirname, '../dist'))}`] }
+                { pushDb: false, projectDir }
             )
         ).rejects.toThrow('already exists and is not a directory');
     });
