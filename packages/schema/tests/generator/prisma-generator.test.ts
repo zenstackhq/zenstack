@@ -7,7 +7,7 @@ import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';
-import { preparePackageJson, initProjectDir } from '../../../../script/test-utils';
+import { buildPackageJsonContents, initProjectDir } from '@zenstackhq/testtools';
 
 tmp.setGracefulCleanup();
 
@@ -17,10 +17,10 @@ describe('Prisma generator test', () => {
     let packageJsonContents: string;
 
     beforeAll(async () => {
-        packageJsonContents = preparePackageJson({
+        packageJsonContents = buildPackageJsonContents({
             'prisma': '^5.0.0'
-        });
-    })
+        }, {}, false);
+    });
 
     beforeEach(() => {
         origDir = process.cwd();

@@ -135,6 +135,7 @@
         "@types/vscode": "^1.56.0",
         "@vscode/vsce": "^2.19.0",
         "@zenstackhq/runtime": "workspace:*",
+        "@zenstackhq/testtools": "workspace:*",
         "dotenv": "^16.0.3",
         "esbuild": "^0.15.12",
         "prisma": "^5.15.0",
