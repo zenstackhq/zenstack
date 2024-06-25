@@ -104,7 +104,6 @@
         "ora": "^5.4.1",
         "pluralize": "^8.0.0",
         "pretty-repl": "^4.0.0",
-        "promisify": "^0.0.3",
         "semver": "^7.5.2",
         "sleep-promise": "^9.1.0",
         "strip-color": "^0.1.0",
