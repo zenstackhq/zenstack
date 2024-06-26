@@ -7,7 +7,7 @@ import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator';
 import { loadModel } from '../utils';
-import { buildPackageJsonContents, initProjectDir } from '@zenstackhq/testtools';
+import { buildPackageJsonContents, initProjectDir } from '../utils';
 
 tmp.setGracefulCleanup();
 
