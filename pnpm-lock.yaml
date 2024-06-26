@@ -605,7 +605,7 @@ importers:
         specifier: workspace:*
         version: link:../runtime/dist
       '@zenstackhq/testtools':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../testtools/dist
       dotenv:
         specifier: ^16.0.3
