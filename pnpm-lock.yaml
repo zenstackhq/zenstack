@@ -608,7 +608,7 @@ importers:
         specifier: ^0.15.12
         version: 0.15.12
       prisma:
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0
       renamer:
         specifier: ^4.0.0
