@@ -572,7 +572,7 @@ importers:
         version: 1.5.0(zod@3.22.4)
     devDependencies:
       '@prisma/client':
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0(prisma@5.15.0)
       '@types/async-exit-hook':
         specifier: ^2.0.0
@@ -627,10 +627,10 @@ importers:
   packages/sdk:
     dependencies:
       '@prisma/generator-helper':
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0
       '@prisma/internals':
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0
       '@zenstackhq/language':
         specifier: workspace:*
