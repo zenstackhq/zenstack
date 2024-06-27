@@ -6,22 +6,29 @@ import path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from '../../src/cli/cli-util';
 import { PrismaSchemaGenerator } from '../../src/plugins/prisma/schema-generator';
-import { execSync } from '../../src/utils/exec-utils';
 import { loadModel } from '../utils';
+import { buildPackageJsonContents, initProjectDir } from '../utils';
 
 tmp.setGracefulCleanup();
 
 describe('Prisma generator test', () => {
     let origDir: string;
 
+    let packageJsonContents: string;
+
+    beforeAll(async () => {
+        packageJsonContents = buildPackageJsonContents({
+            'prisma': '^5.0.0'
+        }, {}, false);
+    });
+
     beforeEach(() => {
         origDir = process.cwd();
         const r = tmp.dirSync({ unsafeCleanup: true });
-        console.log(`Project dir: ${r.name}`);
+        console.log('Project dir: ', r.name);
         process.chdir(r.name);
 
-        execSync('npm init -y', { stdio: 'ignore' });
-        execSync('npm install prisma');
+        initProjectDir(r.name, packageJsonContents);
     });
 
     afterEach(() => {

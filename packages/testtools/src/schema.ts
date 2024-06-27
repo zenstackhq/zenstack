@@ -17,6 +17,7 @@ import * as path from 'path';
 import tmp from 'tmp';
 import { loadDocument } from 'zenstack/cli/cli-util';
 import prismaPlugin from 'zenstack/plugins/prisma';
+import { buildPackageJsonContents, initProjectDir } from './pnpm-project';
 
 /** 
  * Use it to represent multiple files in a single string like this
@@ -117,7 +118,8 @@ export type SchemaLoadOptions = {
     addPrelude?: boolean;
     pushDb?: boolean;
     fullZod?: boolean;
-    extraDependencies?: string[];
+    extraDependencies?: {[key: string]: string};
+    extraDevDependencies?: {[key: string]: string};
     copyDependencies?: string[];
     compile?: boolean;
     customSchemaFilePath?: string;
@@ -140,7 +142,8 @@ const defaultOptions: SchemaLoadOptions = {
     addPrelude: true,
     pushDb: true,
     fullZod: false,
-    extraDependencies: [],
+    extraDependencies: {},
+    extraDevDependencies: {},
     compile: false,
     logPrismaQuery: false,
     provider: 'sqlite',
@@ -155,35 +158,44 @@ export async function loadSchemaFromFile(schemaFile: string, options?: SchemaLoa
 export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     const opt = { ...defaultOptions, ...options };
 
+    console.time('Create temp dir');
     let projectDir = opt.projectDir;
     if (!projectDir) {
         const r = tmp.dirSync({ unsafeCleanup: true });
         projectDir = r.name;
     }
+    console.timeEnd('Create temp dir');
 
+    console.time('Get workspace root');
     const workspaceRoot = getWorkspaceRoot(__dirname);
 
     if (!workspaceRoot) {
         throw new Error('Could not find workspace root');
     }
+    console.timeEnd('Get workspace root');
 
     console.log('Workdir:', projectDir);
     process.chdir(projectDir);
 
-    // copy project structure from scaffold (prepared by test-setup.ts)
-    fs.cpSync(path.join(workspaceRoot, '.test/scaffold'), projectDir, { recursive: true, force: true });
+    console.time('Init pnpm project');
+    const toFilePath = (distPath: string) => 'file:' + normalizePath(path.join(workspaceRoot, distPath));
+    
+    const packageJsonContents = buildPackageJsonContents({ // TODO: Local dependencies param?
+        "@zenstackhq/runtime": toFilePath('packages/runtime/dist'),
+        "@zenstackhq/swr": toFilePath('packages/plugins/swr/dist'),
+        "@zenstackhq/trpc": toFilePath('packages/plugins/trpc/dist'),
+        "@zenstackhq/openapi": toFilePath('packages/plugins/openapi/dist'),
+        ...(opt.pulseApiKey ? {"@prisma/extension-pulse": "^5.14.0"} : {}),
+        ...opt.extraDependencies
+    }, {
+        "zenstack": toFilePath('packages/schema/dist'),
+        ...opt.extraDevDependencies
+    });
 
-    // install local deps
-    const localInstallDeps = [
-        'packages/schema/dist',
-        'packages/runtime/dist',
-        'packages/plugins/swr/dist',
-        'packages/plugins/trpc/dist',
-        'packages/plugins/openapi/dist',
-    ];
+    initProjectDir(projectDir, packageJsonContents, true);
+    console.timeEnd('Init pnpm project');
 
-    run(`npm i --no-audit --no-fund ${localInstallDeps.map((d) => path.join(workspaceRoot, d)).join(' ')}`);
-
+    console.time('Prepwork');
     let zmodelPath = path.join(projectDir, 'schema.zmodel');
 
     const files = schema.split(FILE_SPLITTER);
@@ -224,47 +236,46 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     const outputArg = opt.output ? ` --output ${opt.output}` : '';
+    console.timeEnd('Prepwork');
 
+    console.time('Zenstack generate');
     if (opt.customSchemaFilePath) {
-        run(`npx zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
-            NODE_PATH: './node_modules',
+        run(`pnpm exec zenstack generate --no-version-check --schema ${zmodelPath} --no-dependency-check${outputArg}`, {
+            // NODE_PATH: './node_modules',
         });
     } else {
-        run(`npx zenstack generate --no-version-check --no-dependency-check${outputArg}`, {
-            NODE_PATH: './node_modules',
+        run(`pnpm exec zenstack generate --no-version-check --no-dependency-check${outputArg}`, {
+            // NODE_PATH: './node_modules',
         });
     }
+    console.timeEnd('Zenstack generate');
 
     if (opt.pushDb) {
-        run('npx prisma db push');
+        run('pnpm exec prisma db push');
     }
 
-    if (opt.pulseApiKey) {
-        opt.extraDependencies?.push('@prisma/extension-pulse');
+    if (opt.copyDependencies) {
+        throw new Error('Copy dependencies support to be re-implemented');
     }
 
-    if (opt.extraDependencies) {
-        console.log(`Installing dependency ${opt.extraDependencies.join(' ')}`);
-        installPackage(opt.extraDependencies.join(' '));
-    }
+    // opt.copyDependencies?.forEach((dep) => { // TODO Solve for this
+    //     const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
+    //     fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
+    // });
 
-    opt.copyDependencies?.forEach((dep) => {
-        const pkgJson = JSON.parse(fs.readFileSync(path.join(dep, 'package.json'), { encoding: 'utf-8' }));
-        fs.cpSync(dep, path.join(projectDir, 'node_modules', pkgJson.name), { recursive: true, force: true });
-    });
-
-    const PrismaClient = require(path.join(projectDir, 'node_modules/.prisma/client')).PrismaClient;
+    console.time('Prisma prep');
+    const { PrismaClient, Prisma: prismaModule } = require(path.join(projectDir, 'node_modules/@prisma/client'));
     let prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
-
-    const prismaModule = require(path.join(projectDir, 'node_modules/@prisma/client')).Prisma;
 
     if (opt.pulseApiKey) {
         const withPulse = require(path.join(projectDir, 'node_modules/@prisma/extension-pulse/dist/cjs')).withPulse;
         prisma = prisma.$extends(withPulse({ apiKey: opt.pulseApiKey }));
     }
+    console.timeEnd('Prisma prep');
 
+    console.time('Project source files');
     opt.extraSourceFiles?.forEach(({ name, content }) => {
         fs.writeFileSync(path.join(projectDir, name), content);
     });
@@ -272,11 +283,13 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     if (opt.extraSourceFiles && opt.extraSourceFiles.length > 0 && !opt.compile) {
         console.warn('`extraSourceFiles` is true but `compile` is false.');
     }
+    console.timeEnd('Project source files');
 
     if (opt.compile) {
         console.log('Compiling...');
 
-        run('npx tsc --init');
+        console.time('Compilation');
+        run('pnpm exec tsc --init');
 
         // add generated '.zenstack/zod' folder to typescript's search path,
         // so that it can be resolved from symbolic-linked files
@@ -288,7 +301,8 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         tsconfig.include = ['**/*.ts'];
         tsconfig.exclude = ['node_modules'];
         fs.writeFileSync(path.join(projectDir, './tsconfig.json'), JSON.stringify(tsconfig, null, 2));
-        run('npx tsc --project tsconfig.json');
+        run('pnpm exec tsc --project tsconfig.json');
+        console.timeEnd('Compilation');
     }
 
     if (options?.getPrismaOnly) {
@@ -304,6 +318,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
         };
     }
 
+    console.time('Prepping output');
     const outputPath = opt.output
         ? path.isAbsolute(opt.output)
             ? opt.output
@@ -321,6 +336,7 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     }
 
     const enhance = require(path.join(outputPath, 'enhance')).enhance;
+    console.timeEnd('Prepping output');
 
     return {
         projectDir: projectDir,
