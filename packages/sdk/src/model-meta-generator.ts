@@ -295,6 +295,10 @@ function getBackLink(field: DataModelField) {
     const targetModel = field.type.reference.ref as DataModel;
 
     for (const otherField of targetModel.fields) {
+        if (otherField === field) {
+            // backlink field is never self
+            continue;
+        }
         if (otherField.type.reference?.ref === sourceModel) {
             if (relName) {
                 const otherRelName = getRelationName(otherField);
