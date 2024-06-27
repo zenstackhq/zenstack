@@ -525,9 +525,6 @@ importers:
       pretty-repl:
         specifier: ^4.0.0
         version: 4.0.0
-      promisify:
-        specifier: ^0.0.3
-        version: 0.0.3
       semver:
         specifier: ^7.5.2
         version: 7.5.4
@@ -575,7 +572,7 @@ importers:
         version: 1.5.0(zod@3.22.4)
     devDependencies:
       '@prisma/client':
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0(prisma@5.15.0)
       '@types/async-exit-hook':
         specifier: ^2.0.0
@@ -611,7 +608,7 @@ importers:
         specifier: ^0.15.12
         version: 0.15.12
       prisma:
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0
       renamer:
         specifier: ^4.0.0
@@ -630,10 +627,10 @@ importers:
   packages/sdk:
     dependencies:
       '@prisma/generator-helper':
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0
       '@prisma/internals':
-        specifier: ^5.15.0
+        specifier: 5.15.x
         version: 5.15.0
       '@zenstackhq/language':
         specifier: workspace:*
@@ -12513,12 +12510,6 @@ packages:
     resolution: {integrity: sha512-H5oELycFml5yto/atYqmjyigJoAo3+OXwolYiH7OfQuYlAqhxNvTfiNMbV9hsC6Yp83yE5r2KTVmtrG6R9i6Pg==}
     dev: true
 
-  /promisify@0.0.3:
-    resolution: {integrity: sha512-CcBGsRhhq466fsZVyHfptuKqon6eih0CqMsJE0kWIIjbpVNEyDoaKLELm2WVs//W/WXRBHip+6xhTExTkHUwtA==}
-    dependencies:
-      when: 3.7.8
-    dev: false
-
   /prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
     engines: {node: '>= 6'}
@@ -15173,10 +15164,6 @@ packages:
       tr46: 1.0.1
       webidl-conversions: 4.0.2
     dev: true
-
-  /when@3.7.8:
-    resolution: {integrity: sha512-5cZ7mecD3eYcMiCH4wtRPA5iFJZ50BJYDfckI5RRpQiktMiYTcn0ccLTZOvcbBume+1304fQztxeNzNS9Gvrnw==}
-    dev: false
 
   /which-boxed-primitive@1.0.2:
     resolution: {integrity: sha512-bwZdv0AKLpplFY2KZRX6TvyuN7ojjr7lwkg6ml0roIy9YeuSr7JS372qlNW18UQYzgYK9ziGcerWqZOmEn9VNg==}
