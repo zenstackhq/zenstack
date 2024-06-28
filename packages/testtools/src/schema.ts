@@ -134,6 +134,7 @@ export type SchemaLoadOptions = {
     preserveTsFiles?: boolean;
     generatePermissionChecker?: boolean;
     previewFeatures?: string[];
+    prismaClientOptions?: object;
 };
 
 const defaultOptions: SchemaLoadOptions = {
@@ -254,7 +255,12 @@ export async function loadSchema(schema: string, options?: SchemaLoadOptions) {
     });
 
     const PrismaClient = require(path.join(projectDir, 'node_modules/.prisma/client')).PrismaClient;
-    let prisma = new PrismaClient({ log: ['info', 'warn', 'error'] });
+
+    let clientOptions: object = { log: ['info', 'warn', 'error'] };
+    if (options?.prismaClientOptions) {
+        clientOptions = { ...clientOptions, ...options.prismaClientOptions };
+    }
+    let prisma = new PrismaClient(clientOptions);
     // https://github.com/prisma/prisma/issues/18292
     prisma[Symbol.for('nodejs.util.inspect.custom')] = 'PrismaClient';
 
