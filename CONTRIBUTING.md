@@ -4,16 +4,16 @@ I want to think you first for considering contributing to ZenStack 🙏🏻. It'
 
 ## Prerequisites
 
--   [Node.js](https://nodejs.org/): v18 or above
--   [pnpm](https://pnpm.io/): v8.x
+-   [Node.js](https://nodejs.org/): v20 or above
+-   [pnpm](https://pnpm.io/): v9.4.0
 
 If you want to run the tests, you should be aware that some of the integration tests run against postgres. These tests will attempt to set up and subsequently their own database, so you'll need to provide a connection details for a postgres user with at least those permissions. To provide connection details, you can configure the following environment variables or provide them when executing `pnpm test` commands.
 
-- `ZENSTACK_TEST_DB_USER`: The postgres username, for a user with permission to create/drop databases. Default: `postgres`.
-- `ZENSTACK_TEST_DB_PASS`: Password for said user. Default: `abc123`.
-- `ZENSTACK_TEST_DB_NAME`: Default database to connect onto. This database isn't used any further, so it's recommended to just use the default `postgres` database. Default: `postgres`.
-- `ZENSTACK_TEST_DB_HOST`: Hostname or IP to connect onto. Default: `localhost`.
-- `ZENSTACK_TEST_DB_PORT`: Port number to connect onto. Default: `5432`.
+-   `ZENSTACK_TEST_DB_USER`: The postgres username, for a user with permission to create/drop databases. Default: `postgres`.
+-   `ZENSTACK_TEST_DB_PASS`: Password for said user. Default: `abc123`.
+-   `ZENSTACK_TEST_DB_NAME`: Default database to connect onto. This database isn't used any further, so it's recommended to just use the default `postgres` database. Default: `postgres`.
+-   `ZENSTACK_TEST_DB_HOST`: Hostname or IP to connect onto. Default: `localhost`.
+-   `ZENSTACK_TEST_DB_PORT`: Port number to connect onto. Default: `5432`.
 
 ## Get started
 
