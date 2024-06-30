@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import deepcopy from 'deepcopy';
 import deepmerge, { type ArrayMergeOptions } from 'deepmerge';
 import { isPlainObject } from 'is-plain-object';
 import { lowerCaseFirst } from 'lower-case-first';
@@ -14,6 +13,7 @@ import {
     isDelegateModel,
     resolveField,
 } from '../cross';
+import { clone } from '../cross';
 import type { CrudContract, DbClientContract } from '../types';
 import type { InternalEnhancementOptions } from './create-enhancement';
 import { Logger } from './logger';
@@ -72,7 +72,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return super[method](args);
         }
 
-        args = args ? deepcopy(args) : {};
+        args = args ? clone(args) : {};
 
         this.injectWhereHierarchy(model, args?.where);
         this.injectSelectIncludeHierarchy(model, args);
@@ -142,7 +142,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return undefined;
         }
 
-        where = deepcopy(where);
+        where = clone(where);
         Object.entries(where).forEach(([field, value]) => {
             const fieldInfo = resolveField(this.options.modelMeta, model, field);
             if (!fieldInfo?.inheritedFrom) {
@@ -217,7 +217,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private buildSelectIncludeHierarchy(model: string, args: any) {
-        args = deepcopy(args);
+        args = clone(args);
         const selectInclude: any = this.extractSelectInclude(args) || {};
 
         if (selectInclude.select && typeof selectInclude.select === 'object') {
@@ -408,7 +408,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private async doCreate(db: CrudContract, model: string, args: any) {
-        args = deepcopy(args);
+        args = clone(args);
 
         await this.injectCreateHierarchy(model, args);
         this.injectSelectIncludeHierarchy(model, args);
@@ -624,7 +624,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             return super.upsert(args);
         }
 
-        args = deepcopy(args);
+        args = clone(args);
         this.injectWhereHierarchy(this.model, (args as any)?.where);
         this.injectSelectIncludeHierarchy(this.model, args);
         if (args.create) {
@@ -642,7 +642,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     }
 
     private async doUpdate(db: CrudContract, model: string, args: any): Promise<unknown> {
-        args = deepcopy(args);
+        args = clone(args);
 
         await this.injectUpdateHierarchy(db, model, args);
         this.injectSelectIncludeHierarchy(model, args);
@@ -662,7 +662,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     ): Promise<{ count: number }> {
         if (simpleUpdateMany) {
             // do a direct `updateMany`
-            args = deepcopy(args);
+            args = clone(args);
             await this.injectUpdateHierarchy(db, model, args);
 
             if (this.options.logPrismaQuery) {
@@ -672,7 +672,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         } else {
             // translate to plain `update` for nested write into base fields
             const findArgs = {
-                where: deepcopy(args.where),
+                where: clone(args.where),
                 select: this.queryUtils.makeIdSelection(model),
             };
             await this.injectUpdateHierarchy(db, model, findArgs);
@@ -683,7 +683,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
             const entities = await db[model].findMany(findArgs);
 
-            const updatePayload = { data: deepcopy(args.data), select: this.queryUtils.makeIdSelection(model) };
+            const updatePayload = { data: clone(args.data), select: this.queryUtils.makeIdSelection(model) };
             await this.injectUpdateHierarchy(db, model, updatePayload);
             const result = await Promise.all(
                 entities.map((entity) => {
@@ -849,7 +849,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
                 }
             }
 
-            const deleteArgs = { ...deepcopy(args), ...selectInclude };
+            const deleteArgs = { ...clone(args), ...selectInclude };
             return this.doDelete(tx, this.model, deleteArgs);
         });
     }
@@ -865,7 +865,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
     private async doDeleteMany(db: CrudContract, model: string, where: any): Promise<{ count: number }> {
         // query existing entities with id
         const idSelection = this.queryUtils.makeIdSelection(model);
-        const findArgs = { where: deepcopy(where), select: idSelection };
+        const findArgs = { where: clone(where), select: idSelection };
         this.injectWhereHierarchy(model, findArgs.where);
 
         if (this.options.logPrismaQuery) {
@@ -918,7 +918,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         // check if any aggregation operator is using fields from base
         this.checkAggregationArgs('aggregate', args);
 
-        args = deepcopy(args);
+        args = clone(args);
 
         if (args.cursor) {
             args.cursor = this.buildWhereHierarchy(this.model, args.cursor);
@@ -946,7 +946,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         // check if count select is using fields from base
         this.checkAggregationArgs('count', args);
 
-        args = deepcopy(args);
+        args = clone(args);
 
         if (args?.cursor) {
             args.cursor = this.buildWhereHierarchy(this.model, args.cursor);
@@ -986,7 +986,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
             }
         }
 
-        args = deepcopy(args);
+        args = clone(args);
 
         if (args.where) {
             args.where = this.buildWhereHierarchy(this.model, args.where);
@@ -1027,7 +1027,7 @@ export class DelegateProxyHandler extends DefaultPrismaProxyHandler {
         if (!args) {
             return undefined;
         }
-        args = deepcopy(args);
+        args = clone(args);
         return 'select' in args
             ? { select: args['select'] }
             : 'include' in args

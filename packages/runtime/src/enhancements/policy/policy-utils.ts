@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import deepcopy from 'deepcopy';
 import deepmerge from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
@@ -8,6 +7,7 @@ import { ZodError } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../constants';
 import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
+import { clone } from '../../cross';
 import {
     AuthUser,
     CrudContract,
@@ -550,7 +550,7 @@ export class PolicyUtil extends QueryUtils {
         } else {
             const mergedGuard = this.injectReadGuardForRelationFields(db, fieldInfo.type, payload, guard);
             // turn direct conditions into: { is: { AND: [ originalConditions, guard ] } }
-            const combined = this.and(deepcopy(payload), mergedGuard);
+            const combined = this.and(clone(payload), mergedGuard);
             Object.keys(payload).forEach((key) => delete payload[key]);
             payload.is = combined;
         }
@@ -806,7 +806,7 @@ export class PolicyUtil extends QueryUtils {
             select = { ...select, ...entityChecker.selector };
         }
 
-        let where = this.clone(uniqueFilter);
+        let where = this.safeClone(uniqueFilter);
         // query args may have be of combined-id form, need to flatten it to call findFirst
         this.flattenGeneratedUniqueField(model, where);
 
@@ -1001,7 +1001,7 @@ export class PolicyUtil extends QueryUtils {
      * Checks if a model exists given a unique filter.
      */
     async checkExistence(db: CrudContract, model: string, uniqueFilter: any, throwIfNotFound = false): Promise<any> {
-        uniqueFilter = this.clone(uniqueFilter);
+        uniqueFilter = this.safeClone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
         if (this.shouldLogQuery) {
@@ -1027,13 +1027,13 @@ export class PolicyUtil extends QueryUtils {
         selectInclude: { select?: any; include?: any },
         uniqueFilter: any
     ): Promise<{ result: unknown; error?: Error }> {
-        uniqueFilter = this.clone(uniqueFilter);
+        uniqueFilter = this.safeClone(uniqueFilter);
         this.flattenGeneratedUniqueField(model, uniqueFilter);
 
         // make sure only select and include are picked
         const selectIncludeClean = this.pick(selectInclude, 'select', 'include');
         const readArgs = {
-            ...this.clone(selectIncludeClean),
+            ...this.safeClone(selectIncludeClean),
             where: uniqueFilter,
         };
 
@@ -1278,7 +1278,7 @@ export class PolicyUtil extends QueryUtils {
     postProcessForRead(data: any, model: string, queryArgs: any) {
         // preserve the original data as it may be needed for checking field-level readability,
         // while the "data" will be manipulated during traversal (deleting unreadable fields)
-        const origData = this.clone(data);
+        const origData = this.safeClone(data);
         return this.doPostProcessForRead(data, model, origData, queryArgs, this.hasFieldLevelPolicy(model));
     }
 
@@ -1402,13 +1402,6 @@ export class PolicyUtil extends QueryUtils {
         }
 
         return filteredData;
-    }
-
-    /**
-     * Clones an object and makes sure it's not empty.
-     */
-    clone(value: unknown): any {
-        return value ? deepcopy(value) : {};
     }
 
     /**
