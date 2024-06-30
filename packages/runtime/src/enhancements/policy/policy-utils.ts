@@ -3,11 +3,19 @@
 import deepmerge from 'deepmerge';
 import { lowerCaseFirst } from 'lower-case-first';
 import { upperCaseFirst } from 'upper-case-first';
-import { ZodError } from 'zod';
+import { z, type ZodError, type ZodObject, type ZodSchema } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { CrudFailureReason, PrismaErrorCode } from '../../constants';
-import { enumerate, getFields, getModelFields, resolveField, zip, type FieldInfo, type ModelMeta } from '../../cross';
-import { clone } from '../../cross';
+import {
+    clone,
+    enumerate,
+    getFields,
+    getModelFields,
+    resolveField,
+    zip,
+    type FieldInfo,
+    type ModelMeta,
+} from '../../cross';
 import {
     AuthUser,
     CrudContract,
@@ -843,20 +851,15 @@ export class PolicyUtil extends QueryUtils {
 
         if (schema) {
             // TODO: push down schema check to the database
-            const parseResult = schema.safeParse(result);
-            if (!parseResult.success) {
-                const error = fromZodError(parseResult.error);
-                if (this.logger.enabled('info')) {
-                    this.logger.info(`entity ${model} failed validation for operation ${operation}: ${error}`);
-                }
+            this.validateZodSchema(model, undefined, result, true, (err) => {
                 throw this.deniedByPolicy(
                     model,
                     operation,
-                    `entities ${formatObject(uniqueFilter, false)} failed validation: [${error}]`,
+                    `entity ${formatObject(uniqueFilter, false)} failed validation: [${fromZodError(err)}]`,
                     CrudFailureReason.DATA_VALIDATION_VIOLATION,
-                    parseResult.error
+                    err
                 );
-            }
+            });
         }
     }
 
@@ -1262,14 +1265,75 @@ export class PolicyUtil extends QueryUtils {
     /**
      * Gets Zod schema for the given model and access kind.
      *
-     * @param kind If undefined, returns the full schema.
+     * @param kind kind of Zod schema to get for. If undefined, returns the full schema.
      */
-    getZodSchema(model: string, kind: 'create' | 'update' | undefined = undefined) {
+    getZodSchema(
+        model: string,
+        excludePasswordFields: boolean = true,
+        kind: 'create' | 'update' | undefined = undefined
+    ) {
         if (!this.hasFieldValidation(model)) {
             return undefined;
         }
         const schemaKey = `${upperCaseFirst(model)}${kind ? 'Prisma' + upperCaseFirst(kind) : ''}Schema`;
-        return this.zodSchemas?.models?.[schemaKey];
+        let result = this.zodSchemas?.models?.[schemaKey] as ZodObject<any> | undefined;
+
+        if (result && excludePasswordFields) {
+            // fields with `@password` attribute changes at runtime, so we cannot directly use the generated
+            // zod schema to validate it, instead, the validation happens when checking the input of "create"
+            // and "update" operations
+            const modelFields = this.modelMeta.models[lowerCaseFirst(model)]?.fields;
+            if (modelFields) {
+                for (const [key, field] of Object.entries(modelFields)) {
+                    if (field.attributes?.some((attr) => attr.name === '@password')) {
+                        // override `@password` field schema with a string schema
+                        let pwFieldSchema: ZodSchema = z.string();
+                        if (field.isOptional) {
+                            pwFieldSchema = pwFieldSchema.nullish();
+                        }
+                        result = result?.merge(z.object({ [key]: pwFieldSchema }));
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Validates the given data against the Zod schema for the given model and kind.
+     *
+     * @param model model
+     * @param kind validation kind. Pass undefined to validate against the full schema.
+     * @param data input data
+     * @param excludePasswordFields whether exclude schema validation for `@password` fields
+     * @param onError error callback
+     * @returns Zod-validated data
+     */
+    validateZodSchema(
+        model: string,
+        kind: 'create' | 'update' | undefined,
+        data: object,
+        excludePasswordFields: boolean,
+        onError: (error: ZodError) => void
+    ) {
+        const schema = this.getZodSchema(model, excludePasswordFields, kind);
+        if (!schema) {
+            return data;
+        }
+
+        const parseResult = schema.safeParse(data);
+        if (!parseResult.success) {
+            if (this.logger.enabled('info')) {
+                this.logger.info(
+                    `entity ${model} failed validation for operation ${kind}: ${fromZodError(parseResult.error)}`
+                );
+            }
+            onError(parseResult.error);
+            return undefined;
+        }
+
+        return parseResult.data;
     }
 
     /**
