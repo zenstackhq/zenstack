@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import deepcopy from 'deepcopy';
 import { FieldInfo, NestedWriteVisitor, PrismaWriteActionType, enumerate, getFields, requireField } from '../cross';
+import { clone } from '../cross';
 import { DbClientContract } from '../types';
 import { EnhancementContext, InternalEnhancementOptions } from './create-enhancement';
 import { DefaultPrismaProxyHandler, PrismaProxyActions, makeProxy } from './proxy';
@@ -51,7 +51,7 @@ class DefaultAuthHandler extends DefaultPrismaProxyHandler {
     }
 
     private async preprocessWritePayload(model: string, action: PrismaWriteActionType, args: any) {
-        const newArgs = deepcopy(args);
+        const newArgs = clone(args);
 
         const processCreatePayload = (model: string, data: any) => {
             const fields = getFields(this.options.modelMeta, model);

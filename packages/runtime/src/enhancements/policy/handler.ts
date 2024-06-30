@@ -25,7 +25,7 @@ import { createDeferredPromise, createFluentPromise } from '../promise';
 import { PrismaProxyHandler } from '../proxy';
 import { QueryUtils } from '../query-utils';
 import type { EntityCheckerFunc, PermissionCheckerConstraint } from '../types';
-import { clone, formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
+import { formatObject, isUnsafeMutate, prismaClientValidationError } from '../utils';
 import { ConstraintSolver } from './constraint-solver';
 import { PolicyUtil } from './policy-utils';
 
@@ -127,7 +127,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     // make a find query promise with fluent API call stubs installed
     private findWithFluent(method: FindOperations, args: any, handleRejection: () => any) {
-        args = clone(args);
+        args = this.policyUtils.safeClone(args);
         return createFluentPromise(
             () => this.doFind(args, method, handleRejection),
             args,
@@ -138,7 +138,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     private async doFind(args: any, actionName: FindOperations, handleRejection: () => any) {
         const origArgs = args;
-        const _args = clone(args);
+        const _args = this.policyUtils.safeClone(args);
         if (!this.policyUtils.injectForRead(this.prisma, this.model, _args)) {
             if (this.shouldLogQuery) {
                 this.logger.info(`[policy] \`${actionName}\` ${this.model}: unconditionally denied`);
@@ -176,7 +176,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.policyUtils.tryReject(this.prisma, this.model, 'create');
 
             const origArgs = args;
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             // static input policy check for top-level create data
             const inputCheck = this.policyUtils.checkInputGuard(this.model, args.data, 'create');
@@ -443,7 +443,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return createDeferredPromise(async () => {
             this.policyUtils.tryReject(this.prisma, this.model, 'create');
 
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             // go through create items, statically check input to determine if post-create
             // check is needed, and also validate zod schema
@@ -480,7 +480,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.policyUtils.tryReject(this.prisma, this.model, 'create');
 
             const origArgs = args;
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             // go through create items, statically check input to determine if post-create
             // check is needed, and also validate zod schema
@@ -686,7 +686,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         return createDeferredPromise(async () => {
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             const { result, error } = await this.queryUtils.transaction(this.prisma, async (tx) => {
                 // proceed with nested writes and collect post-write checks
@@ -1149,7 +1149,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     // calculate id fields used for post-update check given an update payload
     private calculatePostUpdateIds(_model: string, currentIds: any, updatePayload: any) {
-        const result = clone(currentIds);
+        const result = this.policyUtils.safeClone(currentIds);
         for (const key of Object.keys(currentIds)) {
             const updateValue = updatePayload[key];
             if (typeof updateValue === 'string' || typeof updateValue === 'number' || typeof updateValue === 'bigint') {
@@ -1239,7 +1239,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         return createDeferredPromise(() => {
             this.policyUtils.tryReject(this.prisma, this.model, 'update');
 
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'update');
 
             args.data = this.validateUpdateInputSchema(this.model, args.data);
@@ -1349,7 +1349,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.policyUtils.tryReject(this.prisma, this.model, 'create');
             this.policyUtils.tryReject(this.prisma, this.model, 'update');
 
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             // We can call the native "upsert" because we can't tell if an entity was created or updated
             // for doing post-write check accordingly. Instead, decompose it into create or update.
@@ -1442,7 +1442,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
             this.policyUtils.tryReject(this.prisma, this.model, 'delete');
 
             // inject policy conditions
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'delete');
 
             const entityChecker = this.policyUtils.getEntityChecker(this.model, 'delete');
@@ -1498,7 +1498,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         return createDeferredPromise(() => {
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             // inject policy conditions
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
@@ -1516,7 +1516,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
         }
 
         return createDeferredPromise(() => {
-            args = clone(args);
+            args = this.policyUtils.safeClone(args);
 
             // inject policy conditions
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
@@ -1531,7 +1531,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
     count(args: any) {
         return createDeferredPromise(() => {
             // inject policy conditions
-            args = args ? clone(args) : {};
+            args = args ? this.policyUtils.safeClone(args) : {};
             this.policyUtils.injectAuthGuardAsWhere(this.prisma, args, this.model, 'read');
 
             if (this.shouldLogQuery) {
@@ -1567,7 +1567,7 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
                     // include all
                     args = { create: {}, update: {}, delete: {} };
                 } else {
-                    args = clone(args);
+                    args = this.policyUtils.safeClone(args);
                 }
             }
 
