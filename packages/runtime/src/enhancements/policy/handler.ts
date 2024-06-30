@@ -410,22 +410,19 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     // Validates the given create payload against Zod schema if any
     private validateCreateInputSchema(model: string, data: any) {
-        const schema = this.policyUtils.getZodSchema(model, 'create');
-        if (schema && data) {
-            const parseResult = schema.safeParse(data);
-            if (!parseResult.success) {
-                throw this.policyUtils.deniedByPolicy(
-                    model,
-                    'create',
-                    `input failed validation: ${fromZodError(parseResult.error)}`,
-                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
-                    parseResult.error
-                );
-            }
-            return parseResult.data;
-        } else {
+        if (!data) {
             return data;
         }
+
+        return this.policyUtils.validateZodSchema(model, 'create', data, false, (err) => {
+            throw this.policyUtils.deniedByPolicy(
+                model,
+                'create',
+                `input failed validation: ${fromZodError(err)}`,
+                CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                err
+            );
+        });
     }
 
     createMany(args: { data: any; skipDuplicates?: boolean }) {
@@ -1195,33 +1192,30 @@ export class PolicyProxyHandler<DbClient extends DbClientContract> implements Pr
 
     // Validates the given update payload against Zod schema if any
     private validateUpdateInputSchema(model: string, data: any) {
-        const schema = this.policyUtils.getZodSchema(model, 'update');
-        if (schema && data) {
-            // update payload can contain non-literal fields, like:
-            //   { x: { increment: 1 } }
-            // we should only validate literal fields
-
-            const literalData = Object.entries(data).reduce<any>(
-                (acc, [k, v]) => ({ ...acc, ...(typeof v !== 'object' ? { [k]: v } : {}) }),
-                {}
-            );
-
-            const parseResult = schema.safeParse(literalData);
-            if (!parseResult.success) {
-                throw this.policyUtils.deniedByPolicy(
-                    model,
-                    'update',
-                    `input failed validation: ${fromZodError(parseResult.error)}`,
-                    CrudFailureReason.DATA_VALIDATION_VIOLATION,
-                    parseResult.error
-                );
-            }
-
-            // schema may have transformed field values, use it to overwrite the original data
-            return { ...data, ...parseResult.data };
-        } else {
+        if (!data) {
             return data;
         }
+
+        // update payload can contain non-literal fields, like:
+        //   { x: { increment: 1 } }
+        // we should only validate literal fields
+        const literalData = Object.entries(data).reduce<any>(
+            (acc, [k, v]) => ({ ...acc, ...(typeof v !== 'object' ? { [k]: v } : {}) }),
+            {}
+        );
+
+        const validatedData = this.policyUtils.validateZodSchema(model, 'update', literalData, false, (err) => {
+            throw this.policyUtils.deniedByPolicy(
+                model,
+                'update',
+                `input failed validation: ${fromZodError(err)}`,
+                CrudFailureReason.DATA_VALIDATION_VIOLATION,
+                err
+            );
+        });
+
+        // schema may have transformed field values, use it to overwrite the original data
+        return { ...data, ...validatedData };
     }
 
     updateMany(args: any) {

@@ -148,6 +148,13 @@ export function createEnhancement<DbClient extends object>(
         }
     }
 
+    // password enhancement must be applied prior to policy because it changes then length of the field
+    // and can break validation rules like `@length`
+    if (hasPassword && kinds.includes('password')) {
+        // @password proxy
+        result = withPassword(result, options);
+    }
+
     // 'policy' and 'validation' enhancements are both enabled by `withPolicy`
     if (kinds.includes('policy') || kinds.includes('validation')) {
         result = withPolicy(result, options, context);
@@ -155,11 +162,6 @@ export function createEnhancement<DbClient extends object>(
             // @default(auth()) proxy
             result = withDefaultAuth(result, options, context);
         }
-    }
-
-    if (hasPassword && kinds.includes('password')) {
-        // @password proxy
-        result = withPassword(result, options);
     }
 
     if (hasOmit && kinds.includes('omit')) {

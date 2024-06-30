@@ -9,7 +9,7 @@ describe('Field validation', () => {
             `
             model User {
                 id String @id @default(cuid())
-                password String @length(8, 16)
+                password String @password @length(8, 16)
                 email String? @email @endsWith("@myorg.com")
                 profileImage String? @url
                 handle String? @regex("^[0-9a-zA-Z]{4,16}$")
