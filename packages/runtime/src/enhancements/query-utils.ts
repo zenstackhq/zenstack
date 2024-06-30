@@ -212,6 +212,6 @@ export class QueryUtils {
      * Clones an object and makes sure it's not empty.
      */
     safeClone(value: unknown): any {
-        return value ? clone(value) : typeof value === 'object' ? {} : value;
+        return value ? clone(value) : value === undefined || value === null ? {} : value;
     }
 }
