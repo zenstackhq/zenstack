@@ -22,6 +22,7 @@ import {
 } from '@zenstackhq/language/ast';
 import { P, match } from 'ts-pattern';
 import { ExpressionContext } from './constants';
+import { getEntityCheckerFunctionName } from './names';
 import { getIdFields, getLiteral, isDataModelFieldReference, isFromStdlib, isFutureExpr } from './utils';
 
 export class TypeScriptExpressionTransformerError extends Error {
@@ -272,6 +273,30 @@ export class TypeScriptExpressionTransformer {
     private _isEmpty(args: Expression[]) {
         const field = this.transform(args[0], false);
         return `(!${field} || ${field}?.length === 0)`;
+    }
+
+    @func('check')
+    private _check(args: Expression[], normalizeUndefined: boolean) {
+        if (!isDataModelFieldReference(args[0])) {
+            throw new TypeScriptExpressionTransformerError(`First argument of check() must be a field`);
+        }
+        if (!isDataModel(args[0].$resolvedType?.decl)) {
+            throw new TypeScriptExpressionTransformerError(`First argument of check() must be a relation field`);
+        }
+
+        const fieldRef = args[0] as ReferenceExpr;
+        const targetModel = fieldRef.$resolvedType?.decl as DataModel;
+
+        const operation = getLiteral<string>(args[1]);
+        if (!operation) {
+            throw new TypeScriptExpressionTransformerError(`Second argument of check() must be a string literal`);
+        }
+        if (!['read', 'create', 'update', 'delete'].includes(operation)) {
+            throw new TypeScriptExpressionTransformerError(`Invalid check() operation "${operation}"`);
+        }
+
+        const entityCheckerFunc = getEntityCheckerFunctionName(targetModel, undefined, false, operation);
+        return `${entityCheckerFunc}(input.${fieldRef.target.$refText}, context)`;
     }
 
     private ensureBoolean(expr: string) {

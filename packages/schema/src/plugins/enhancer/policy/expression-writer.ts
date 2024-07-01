@@ -25,9 +25,11 @@ import {
     getFunctionExpressionContext,
     getIdFields,
     getLiteral,
+    getQueryGuardFunctionName,
     isAuthInvocation,
     isDataModelFieldReference,
     isDelegateModel,
+    isFromStdlib,
     isFutureExpr,
     PluginError,
     TypeScriptExpressionTransformer,
@@ -735,6 +737,11 @@ export class ExpressionWriter {
             functionAllowedContext.includes(ExpressionContext.AccessPolicy) ||
             functionAllowedContext.includes(ExpressionContext.ValidationRule)
         ) {
+            if (isFromStdlib(funcDecl) && funcDecl.name === 'check') {
+                this.writeRelationCheck(expr);
+                return;
+            }
+
             if (!expr.args.some((arg) => this.isFieldAccess(arg.value))) {
                 // filter functions without referencing fields
                 this.guard(() => this.plain(expr));
@@ -744,13 +751,13 @@ export class ExpressionWriter {
             let valueArg = expr.args[1]?.value;
 
             // isEmpty function is zero arity, it's mapped to a boolean literal
-            if (funcDecl.name === 'isEmpty') {
+            if (isFromStdlib(funcDecl) && funcDecl.name === 'isEmpty') {
                 valueArg = { $type: BooleanLiteral, value: true } as LiteralExpr;
             }
 
             // contains function has a 3rd argument that indicates whether the comparison should be case-insensitive
             let extraArgs: Record<string, Expression> | undefined = undefined;
-            if (funcDecl.name === 'contains') {
+            if (isFromStdlib(funcDecl) && funcDecl.name === 'contains') {
                 if (getLiteral<boolean>(expr.args[2]?.value) === true) {
                     extraArgs = { mode: { $type: StringLiteral, value: 'insensitive' } as LiteralExpr };
                 }
@@ -769,5 +776,30 @@ export class ExpressionWriter {
         } else {
             throw new PluginError(name, `Unsupported function ${funcDecl.name}`);
         }
+    }
+
+    private writeRelationCheck(expr: InvocationExpr) {
+        if (!isDataModelFieldReference(expr.args[0].value)) {
+            throw new PluginError(name, `First argument of check() must be a field`);
+        }
+        if (!isDataModel(expr.args[0].value.$resolvedType?.decl)) {
+            throw new PluginError(name, `First argument of check() must be a relation field`);
+        }
+
+        const fieldRef = expr.args[0].value;
+        const targetModel = fieldRef.$resolvedType?.decl as DataModel;
+
+        const operation = getLiteral<string>(expr.args[1].value);
+        if (!operation) {
+            throw new PluginError(name, `Second argument of check() must be a string literal`);
+        }
+        if (!['read', 'create', 'update', 'delete'].includes(operation)) {
+            throw new PluginError(name, `Invalid check() operation "${operation}"`);
+        }
+
+        this.block(() => {
+            const targetGuardFunc = getQueryGuardFunctionName(targetModel, undefined, false, operation);
+            this.writer.write(`${fieldRef.target.$refText}: ${targetGuardFunc}(context, db)`);
+        });
     }
 }

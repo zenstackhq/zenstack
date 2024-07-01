@@ -666,6 +666,12 @@ function datetime(field: String): Boolean {
 function url(field: String): Boolean {
 } @@@expressionContext([ValidationRule])
 
+/**
+ * Checks if the current user can perform the given operation on the given field.
+ */
+function check(field: Any, operation: String): Boolean {
+} @@@expressionContext([AccessPolicy])
+
 //////////////////////////////////////////////
 // End validation attributes and functions
 //////////////////////////////////////////////

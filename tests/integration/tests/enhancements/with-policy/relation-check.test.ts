@@ -1,0 +1,325 @@
+import { loadSchema } from '@zenstackhq/testtools';
+
+describe('Relation checker', () => {
+    it('should work for read', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('read', public)
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int
+                @@allow('read', check(user, 'read'))
+            }
+            `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                public: true,
+                profile: {
+                    create: { age: 18 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                public: false,
+                profile: {
+                    create: { age: 20 },
+                },
+            },
+        });
+
+        const db = enhance();
+        await expect(db.profile.findMany()).resolves.toHaveLength(1);
+    });
+
+    it('should work for simple create', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('create', true)
+                @@allow('read', public)
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int
+                @@allow('read', true)
+                @@allow('create', check(user, 'read'))
+            }
+            `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                public: true,
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                public: false,
+            },
+        });
+
+        const db = enhance();
+        await expect(db.profile.create({ data: { user: { connect: { id: 1 } }, age: 18 } })).toResolveTruthy();
+        await expect(db.profile.create({ data: { user: { connect: { id: 2 } }, age: 18 } })).toBeRejectedByPolicy();
+    });
+
+    it('should work for nested create', async () => {
+        const { enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('create', true)
+                @@allow('read', public)
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int
+                @@allow('read', true)
+                @@allow('create', age < 30 && check(user, 'read'))
+            }
+            `
+        );
+
+        const db = enhance();
+
+        await expect(
+            db.user.create({
+                data: {
+                    id: 1,
+                    public: true,
+                    profile: {
+                        create: { age: 18 },
+                    },
+                },
+            })
+        ).toResolveTruthy();
+
+        await expect(
+            db.user.create({
+                data: {
+                    id: 2,
+                    public: false,
+                    profile: {
+                        create: { age: 18 },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+
+        await expect(
+            db.user.create({
+                data: {
+                    id: 3,
+                    public: true,
+                    profile: {
+                        create: { age: 30 },
+                    },
+                },
+            })
+        ).toBeRejectedByPolicy();
+    });
+
+    it('should work for update', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('create', true)
+                @@allow('read', public)
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int
+                @@allow('read', true)
+                @@allow('update', check(user, 'read') && age < 30)
+            }
+            `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                public: true,
+                profile: {
+                    create: { id: 1, age: 18 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                public: false,
+                profile: {
+                    create: { id: 2, age: 20 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 3,
+                public: true,
+                profile: {
+                    create: { id: 3, age: 30 },
+                },
+            },
+        });
+
+        const db = enhance();
+        await expect(db.profile.update({ where: { id: 1 }, data: { age: 21 } })).toResolveTruthy();
+        await expect(db.profile.update({ where: { id: 2 }, data: { age: 21 } })).toBeRejectedByPolicy();
+        await expect(db.profile.update({ where: { id: 3 }, data: { age: 21 } })).toBeRejectedByPolicy();
+    });
+
+    it('should work for delete', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('create', true)
+                @@allow('read', public)
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int
+                @@allow('read', true)
+                @@allow('delete', check(user, 'read') && age < 30)
+            }
+            `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                public: true,
+                profile: {
+                    create: { id: 1, age: 18 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                public: false,
+                profile: {
+                    create: { id: 2, age: 20 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 3,
+                public: true,
+                profile: {
+                    create: { id: 3, age: 30 },
+                },
+            },
+        });
+
+        const db = enhance();
+        await expect(db.profile.delete({ where: { id: 1 } })).toResolveTruthy();
+        await expect(db.profile.delete({ where: { id: 2 } })).toBeRejectedByPolicy();
+        await expect(db.profile.delete({ where: { id: 3 } })).toBeRejectedByPolicy();
+    });
+
+    it('should work for field-level', async () => {
+        const { prisma, enhance } = await loadSchema(
+            `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('read', public)
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int @allow('read', age < 30 && check(user, 'read'))
+                @@allow('all', true)
+            }
+            `
+        );
+
+        await prisma.user.create({
+            data: {
+                id: 1,
+                public: true,
+                profile: {
+                    create: { age: 18 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 2,
+                public: false,
+                profile: {
+                    create: { age: 20 },
+                },
+            },
+        });
+
+        await prisma.user.create({
+            data: {
+                id: 3,
+                public: true,
+                profile: {
+                    create: { age: 30 },
+                },
+            },
+        });
+
+        const db = enhance();
+
+        const p1 = await db.profile.findUnique({ where: { id: 1 } });
+        expect(p1.age).toBe(18);
+        const p2 = await db.profile.findUnique({ where: { id: 2 } });
+        expect(p2.age).toBeUndefined();
+        const p3 = await db.profile.findUnique({ where: { id: 3 } });
+        expect(p3.age).toBeUndefined();
+    });
+});

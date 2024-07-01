@@ -353,7 +353,7 @@ export function generateQueryGuardFunction(
     }
 
     const func = sourceFile.addFunction({
-        name: `${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
+        name: getQueryGuardFunctionName(model, forField, fieldOverride, kind),
         returnType: 'any',
         parameters: [
             {
@@ -422,7 +422,7 @@ export function generateEntityCheckerFunction(
     }
 
     const func = sourceFile.addFunction({
-        name: `$check_${model.name}${forField ? '$' + forField.name : ''}${fieldOverride ? '$override' : ''}_${kind}`,
+        name: getEntityCheckerFunctionName(model, forField, fieldOverride, kind),
         returnType: 'any',
         parameters: [
             {
