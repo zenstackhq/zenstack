@@ -26,7 +26,7 @@
 
 ## What it is
 
-ZenStack is a Node.js/TypeScript toolkit that simplifies the development of a web app's backend. It enhances [Prisma ORM](https://prisma.io) with a flexible Authorization layer and auto-generated, type-safe APIs/hooks, simplifying full-stack development.
+ZenStack is a Node.js/TypeScript toolkit that simplifies the development of a web app's backend. It enhances [Prisma ORM](https://prisma.io) with a flexible Authorization layer and auto-generated, type-safe APIs/hooks, unlocking its full potential for full-stack development.
 
 Our goal is to let you save time writing boilerplate code and focus on building real features!
 
