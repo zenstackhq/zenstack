@@ -19,7 +19,7 @@ import {
     StringLiteral,
     UnaryExpr,
 } from '@zenstackhq/language/ast';
-import { DELEGATE_AUX_RELATION_PREFIX } from '@zenstackhq/runtime';
+import { DELEGATE_AUX_RELATION_PREFIX, PolicyOperationKind } from '@zenstackhq/runtime';
 import {
     ExpressionContext,
     getFunctionExpressionContext,
@@ -39,6 +39,7 @@ import { lowerCaseFirst } from 'lower-case-first';
 import invariant from 'tiny-invariant';
 import { CodeBlockWriter } from 'ts-morph';
 import { name } from '..';
+import { isCheckInvocation } from '../../../utils/ast-utils';
 
 type ComparisonOperator = '==' | '!=' | '>' | '>=' | '<' | '<=';
 
@@ -62,6 +63,11 @@ type FilterOperators =
 export const TRUE = '{ AND: [] }';
 export const FALSE = '{ OR: [] }';
 
+export type ExpressionWriterOptions = {
+    isPostGuard?: boolean;
+    operationContext: PolicyOperationKind;
+};
+
 /**
  * Utility for writing ZModel expression as Prisma query argument objects into a ts-morph writer
  */
@@ -70,15 +76,14 @@ export class ExpressionWriter {
 
     /**
      * Constructs a new ExpressionWriter
-     *
-     * @param isPostGuard indicates if we're writing for post-update conditions
      */
-    constructor(private readonly writer: CodeBlockWriter, private readonly isPostGuard = false) {
+    constructor(private readonly writer: CodeBlockWriter, private readonly options: ExpressionWriterOptions) {
         this.plainExprBuilder = new TypeScriptExpressionTransformer({
             context: ExpressionContext.AccessPolicy,
-            isPostGuard: this.isPostGuard,
+            isPostGuard: this.options.isPostGuard,
             // in post-guard context, `this` references pre-update value
-            thisExprContext: this.isPostGuard ? 'context.preValue' : undefined,
+            thisExprContext: this.options.isPostGuard ? 'context.preValue' : undefined,
+            operationContext: this.options.operationContext,
         });
     }
 
@@ -271,9 +276,9 @@ export class ExpressionWriter {
             // expression rooted to `auth()` is always compiled to plain expression
             !this.isAuthOrAuthMemberAccess(expr.left) &&
             // `future()` in post-update context
-            ((this.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
+            ((this.options.isPostGuard && this.isFutureMemberAccess(expr.left)) ||
                 // non-`future()` in pre-update context
-                (!this.isPostGuard && !this.isFutureMemberAccess(expr.left)));
+                (!this.options.isPostGuard && !this.isFutureMemberAccess(expr.left)));
 
         if (compileToRelationQuery) {
             this.block(() => {
@@ -281,7 +286,10 @@ export class ExpressionWriter {
                     expr.left,
                     () => {
                         // inner scope of collection expression is always compiled as non-post-guard
-                        const innerWriter = new ExpressionWriter(this.writer, false);
+                        const innerWriter = new ExpressionWriter(this.writer, {
+                            isPostGuard: false,
+                            operationContext: this.options.operationContext,
+                        });
                         innerWriter.write(expr.right);
                     },
                     operator === '?' ? 'some' : operator === '!' ? 'every' : 'none'
@@ -299,14 +307,14 @@ export class ExpressionWriter {
         }
 
         if (isMemberAccessExpr(expr)) {
-            if (isFutureExpr(expr.operand) && this.isPostGuard) {
+            if (isFutureExpr(expr.operand) && this.options.isPostGuard) {
                 // when writing for post-update, future().field.x is a field access
                 return true;
             } else {
                 return this.isFieldAccess(expr.operand);
             }
         }
-        if (isDataModelFieldReference(expr) && !this.isPostGuard) {
+        if (isDataModelFieldReference(expr) && !this.options.isPostGuard) {
             return true;
         }
         return false;
@@ -439,7 +447,7 @@ export class ExpressionWriter {
                                 this.writer.write(operator === '!=' ? TRUE : FALSE);
                             } else {
                                 this.writeOperator(operator, fieldAccess, () => {
-                                    if (isDataModelFieldReference(operand) && !this.isPostGuard) {
+                                    if (isDataModelFieldReference(operand) && !this.options.isPostGuard) {
                                         // if operand is a field reference and we're not generating for post-update guard,
                                         // we should generate a field reference (comparing fields in the same model)
                                         this.writeFieldReference(operand);
@@ -737,7 +745,7 @@ export class ExpressionWriter {
             functionAllowedContext.includes(ExpressionContext.AccessPolicy) ||
             functionAllowedContext.includes(ExpressionContext.ValidationRule)
         ) {
-            if (isFromStdlib(funcDecl) && funcDecl.name === 'check') {
+            if (isCheckInvocation(expr)) {
                 this.writeRelationCheck(expr);
                 return;
             }
@@ -789,12 +797,21 @@ export class ExpressionWriter {
         const fieldRef = expr.args[0].value;
         const targetModel = fieldRef.$resolvedType?.decl as DataModel;
 
-        const operation = getLiteral<string>(expr.args[1].value);
-        if (!operation) {
-            throw new PluginError(name, `Second argument of check() must be a string literal`);
-        }
-        if (!['read', 'create', 'update', 'delete'].includes(operation)) {
-            throw new PluginError(name, `Invalid check() operation "${operation}"`);
+        let operation: string;
+        if (expr.args[1]) {
+            const literal = getLiteral<string>(expr.args[1].value);
+            if (!literal) {
+                throw new TypeScriptExpressionTransformerError(`Second argument of check() must be a string literal`);
+            }
+            if (!['read', 'create', 'update', 'delete'].includes(literal)) {
+                throw new TypeScriptExpressionTransformerError(`Invalid check() operation "${literal}"`);
+            }
+            operation = literal;
+        } else {
+            if (!this.options.operationContext) {
+                throw new TypeScriptExpressionTransformerError('Unable to determine CRUD operation from context');
+            }
+            operation = this.options.operationContext;
         }
 
         this.block(() => {

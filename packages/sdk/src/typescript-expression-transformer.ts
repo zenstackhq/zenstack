@@ -37,6 +37,7 @@ type Options = {
     thisExprContext?: string;
     futureRefContext?: string;
     context: ExpressionContext;
+    operationContext?: 'read' | 'create' | 'update' | 'delete';
 };
 
 // a registry of function handlers marked with @func
@@ -276,7 +277,7 @@ export class TypeScriptExpressionTransformer {
     }
 
     @func('check')
-    private _check(args: Expression[], normalizeUndefined: boolean) {
+    private _check(args: Expression[]) {
         if (!isDataModelFieldReference(args[0])) {
             throw new TypeScriptExpressionTransformerError(`First argument of check() must be a field`);
         }
@@ -287,12 +288,21 @@ export class TypeScriptExpressionTransformer {
         const fieldRef = args[0] as ReferenceExpr;
         const targetModel = fieldRef.$resolvedType?.decl as DataModel;
 
-        const operation = getLiteral<string>(args[1]);
-        if (!operation) {
-            throw new TypeScriptExpressionTransformerError(`Second argument of check() must be a string literal`);
-        }
-        if (!['read', 'create', 'update', 'delete'].includes(operation)) {
-            throw new TypeScriptExpressionTransformerError(`Invalid check() operation "${operation}"`);
+        let operation: string;
+        if (args[1]) {
+            const literal = getLiteral<string>(args[1]);
+            if (!literal) {
+                throw new TypeScriptExpressionTransformerError(`Second argument of check() must be a string literal`);
+            }
+            if (!['read', 'create', 'update', 'delete'].includes(literal)) {
+                throw new TypeScriptExpressionTransformerError(`Invalid check() operation "${literal}"`);
+            }
+            operation = literal;
+        } else {
+            if (!this.options.operationContext) {
+                throw new TypeScriptExpressionTransformerError('Unable to determine CRUD operation from context');
+            }
+            operation = this.options.operationContext;
         }
 
         const entityCheckerFunc = getEntityCheckerFunctionName(targetModel, undefined, false, operation);
@@ -477,6 +487,7 @@ export class TypeScriptExpressionTransformer {
             ...this.options,
             isPostGuard: false,
             fieldReferenceContext: '_item',
+            operationContext: this.options.operationContext,
         });
         const predicate = innerTransformer.transform(expr.right, normalizeUndefined);
 
