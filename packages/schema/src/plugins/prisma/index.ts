@@ -8,6 +8,7 @@ import telemetry from '../../telemetry';
 import { execPackage } from '../../utils/exec-utils';
 import { findUp } from '../../utils/pkg-utils';
 import { PrismaSchemaGenerator } from './schema-generator';
+import colors from 'colors';
 
 export const name = 'Prisma';
 export const description = 'Generating Prisma schema';
@@ -60,6 +61,12 @@ const run: PluginFunction = async (model, options, _dmmf, _globalOptions) => {
                 prismaClientPath = path.relative(path.dirname(options.schemaPath), absPath);
             }
         }
+    } else {
+        console.warn(
+            colors.yellow(
+                'Skipping prisma client generation because "generateClient" is set to false. This may break plugins that depend on the prisma client.'
+            )
+        );
     }
 
     // load the result DMMF
