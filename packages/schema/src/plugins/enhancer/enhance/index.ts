@@ -173,11 +173,11 @@ export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
         };
     
 // overload for extended PrismaClient
-export function enhance<TypeMap extends TypeMapDef, TypeMapCb extends TypeMapCbDef, ExtArgs extends Record<string, any> & InternalArgs${
-            hasClientOptions ? ', ClientOptions' : ''
-        }>(
-    prisma: DynamicClientExtensionThis<TypeMap, TypeMapCb, ExtArgs${hasClientOptions ? ', ClientOptions' : ''}>,
-    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap, Prisma.TypeMapCb, ExtArgs${
+export function enhance<ExtArgs extends Record<string, any> & InternalArgs${hasClientOptions ? ', ClientOptions' : ''}>(
+    prisma: DynamicClientExtensionThis<Prisma.TypeMap<ExtArgs>, Prisma.TypeMapCb, ExtArgs${
+        hasClientOptions ? ', ClientOptions' : ''
+    }>,
+    context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap<ExtArgs>, Prisma.TypeMapCb, ExtArgs${
             hasClientOptions ? ', ClientOptions' : ''
         }>${this.generatePermissionChecker ? ' & ModelCheckers' : ''};
 
