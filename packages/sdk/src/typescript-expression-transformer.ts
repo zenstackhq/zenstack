@@ -37,7 +37,7 @@ type Options = {
     thisExprContext?: string;
     futureRefContext?: string;
     context: ExpressionContext;
-    operationContext?: 'read' | 'create' | 'update' | 'delete';
+    operationContext?: 'read' | 'create' | 'update' | 'postUpdate' | 'delete';
 };
 
 // a registry of function handlers marked with @func

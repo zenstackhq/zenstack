@@ -1,4 +1,4 @@
-import { loadSchema } from '@zenstackhq/testtools';
+import { loadModelWithError, loadSchema } from '@zenstackhq/testtools';
 
 describe('Relation checker', () => {
     it('should work for read', async () => {
@@ -562,5 +562,142 @@ describe('Relation checker', () => {
         await expect(db.profile.create({ data: { user: { connect: { id: 4 } }, age: 18 } })).toBeRejectedByPolicy();
     });
 
-    it('should report error for cyclic relation check', async () => {});
+    it('should report error for invalid args', async () => {
+        await expect(
+            loadModelWithError(
+                `
+            model User {
+                id Int @id @default(autoincrement())
+                public Boolean
+                @@allow('read', check(public))
+            }
+            `
+            )
+        ).resolves.toContain('argument must be a relation field');
+
+        await expect(
+            loadModelWithError(
+                `
+            model User {
+                id Int @id @default(autoincrement())
+                posts Post[]
+                @@allow('read', check(posts))
+            }
+            model Post {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+            }
+            `
+            )
+        ).resolves.toContain('argument cannot be an array field');
+
+        await expect(
+            loadModelWithError(
+                `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                @@allow('read', check(profile.details))
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+                details ProfileDetails?
+            }
+
+            model ProfileDetails {
+                id Int @id @default(autoincrement())
+                profile Profile @relation(fields: [profileId], references: [id])
+                profileId Int
+                age Int
+            }
+            `
+            )
+        ).resolves.toContain('argument must be a relation field');
+
+        await expect(
+            loadModelWithError(
+                `
+            model User {
+                id Int @id @default(autoincrement())
+                posts Post[]
+                @@allow('read', check(posts, 'all'))
+            }
+            model Post {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int
+            }
+            `
+            )
+        ).resolves.toContain('argument must be a "read", "create", "update", or "delete"');
+    });
+
+    it('should report error for cyclic relation check', async () => {
+        await expect(
+            loadModelWithError(
+                `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                profileDetails ProfileDetails?
+                public Boolean
+                @@allow('all', check(profile))
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                details ProfileDetails?
+                @@allow('all', check(details))
+            }
+
+            model ProfileDetails {
+                id Int @id @default(autoincrement())
+                profile Profile @relation(fields: [profileId], references: [id])
+                profileId Int @unique
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                age Int
+                @@allow('all', check(user))    
+            }
+            `
+            )
+        ).resolves.toContain('cyclic dependency detected when following the `check()` call');
+    });
+
+    it('should report error for cyclic relation check indirect', async () => {
+        await expect(
+            loadModelWithError(
+                `
+            model User {
+                id Int @id @default(autoincrement())
+                profile Profile?
+                public Boolean
+                @@allow('all', check(profile))
+            }
+
+            model Profile {
+                id Int @id @default(autoincrement())
+                user User @relation(fields: [userId], references: [id])
+                userId Int @unique
+                details ProfileDetails?
+                @@allow('all', check(details))
+            }
+
+            model ProfileDetails {
+                id Int @id @default(autoincrement())
+                profile Profile @relation(fields: [profileId], references: [id])
+                profileId Int @unique
+                age Int
+                @@allow('all', check(profile))    
+            }
+            `
+            )
+        ).resolves.toContain('cyclic dependency detected when following the `check()` call');
+    });
 });

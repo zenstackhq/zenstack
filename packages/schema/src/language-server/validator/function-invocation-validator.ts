@@ -1,5 +1,6 @@
 import {
     Argument,
+    DataModel,
     DataModelAttribute,
     DataModelFieldAttribute,
     Expression,
@@ -7,6 +8,7 @@ import {
     FunctionParam,
     InvocationExpr,
     isArrayExpr,
+    isDataModel,
     isDataModelAttribute,
     isDataModelFieldAttribute,
     isLiteralExpr,
@@ -15,14 +17,29 @@ import {
     ExpressionContext,
     getDataModelFieldReference,
     getFunctionExpressionContext,
+    getLiteral,
+    isDataModelFieldReference,
     isEnumFieldReference,
     isFromStdlib,
 } from '@zenstackhq/sdk';
-import { AstNode, ValidationAcceptor } from 'langium';
-import { P, match } from 'ts-pattern';
+import { AstNode, streamAst, ValidationAcceptor } from 'langium';
+import { match, P } from 'ts-pattern';
+import { isCheckInvocation } from '../../utils/ast-utils';
 import { AstValidator } from '../types';
 import { typeAssignable } from './utils';
 
+// a registry of function handlers marked with @func
+const invocationCheckers = new Map<string, PropertyDescriptor>();
+
+// function handler decorator
+function func(name: string) {
+    return function (_target: unknown, _propertyKey: string, descriptor: PropertyDescriptor) {
+        if (!invocationCheckers.get(name)) {
+            invocationCheckers.set(name, descriptor);
+        }
+        return descriptor;
+    };
+}
 /**
  * InvocationExpr validation
  */
@@ -104,6 +121,12 @@ export default class FunctionInvocationValidator implements AstValidator<Express
                 }
             }
         }
+
+        // run checkers for specific functions
+        const checker = invocationCheckers.get(expr.function.$refText);
+        if (checker) {
+            checker.value.call(this, expr, accept);
+        }
     }
 
     private validateArgs(funcDecl: FunctionDecl, args: Argument[], accept: ValidationAcceptor) {
@@ -166,5 +189,77 @@ export default class FunctionInvocationValidator implements AstValidator<Express
         }
 
         return true;
+    }
+
+    @func('check')
+    private _checkCheck(expr: InvocationExpr, accept: ValidationAcceptor) {
+        let valid = true;
+
+        const fieldArg = expr.args[0].value;
+        if (!isDataModelFieldReference(fieldArg) || !isDataModel(fieldArg.$resolvedType?.decl)) {
+            accept('error', 'argument must be a relation field', { node: expr.args[0] });
+            valid = false;
+        }
+
+        if (fieldArg.$resolvedType?.array) {
+            accept('error', 'argument cannot be an array field', { node: expr.args[0] });
+            valid = false;
+        }
+
+        const opArg = expr.args[1]?.value;
+        if (opArg) {
+            const operation = getLiteral<string>(opArg);
+            if (!operation || !['read', 'create', 'update', 'delete'].includes(operation)) {
+                accept('error', 'argument must be a "read", "create", "update", or "delete"', { node: expr.args[1] });
+                valid = false;
+            }
+        }
+
+        if (!valid) {
+            return;
+        }
+
+        // check for cyclic relation checking
+        const start = fieldArg.$resolvedType?.decl as DataModel;
+        const tasks = [expr];
+        const seen = new Set<DataModel>();
+
+        while (tasks.length > 0) {
+            const currExpr = tasks.pop()!;
+            const arg = currExpr.args[0]?.value;
+
+            if (!isDataModel(arg?.$resolvedType?.decl)) {
+                continue;
+            }
+
+            const currModel = arg.$resolvedType.decl;
+
+            if (seen.has(currModel)) {
+                if (currModel === start) {
+                    accept('error', 'cyclic dependency detected when following the `check()` call', { node: expr });
+                } else {
+                    // a cycle is detected but it doesn't start from the invocation expression we're checking,
+                    // just break here and the cycle will be reported when we validate the start of it
+                }
+                break;
+            } else {
+                seen.add(currModel);
+            }
+
+            const policyAttrs = currModel.attributes.filter(
+                (attr) => attr.decl.$refText === '@@allow' || attr.decl.$refText === '@@deny'
+            );
+            for (const attr of policyAttrs) {
+                const rule = attr.args[1];
+                if (!rule) {
+                    continue;
+                }
+                streamAst(rule).forEach((node) => {
+                    if (isCheckInvocation(node)) {
+                        tasks.push(node as InvocationExpr);
+                    }
+                });
+            }
+        }
     }
 }
