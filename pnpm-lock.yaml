@@ -501,6 +501,9 @@ importers:
       commander:
         specifier: ^8.3.0
         version: 8.3.0
+      deepmerge:
+        specifier: ^4.3.1
+        version: 4.3.1
       get-latest-version:
         specifier: ^5.0.1
         version: 5.1.0

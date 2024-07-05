@@ -2,7 +2,9 @@ import {
     DataModel,
     DataModelField,
     Expression,
+    InvocationExpr,
     Model,
+    ReferenceExpr,
     isDataModel,
     isDataModelField,
     isEnum,
@@ -28,9 +30,18 @@ import { getPrismaClientImportSpec } from '@zenstackhq/sdk/prisma';
 import { streamAst } from 'langium';
 import { lowerCaseFirst } from 'lower-case-first';
 import path from 'path';
-import { CodeBlockWriter, Project, SourceFile, VariableDeclarationKind, WriterFunction } from 'ts-morph';
+import {
+    CodeBlockWriter,
+    FunctionDeclaration,
+    Project,
+    SourceFile,
+    VariableDeclarationKind,
+    WriterFunction,
+} from 'ts-morph';
+import { isCheckInvocation } from '../../../utils/ast-utils';
 import { ConstraintTransformer } from './constraint-transformer';
 import {
+    generateConstantQueryGuardFunction,
     generateEntityCheckerFunction,
     generateNormalizedAuthRef,
     generateQueryGuardFunction,
@@ -234,6 +245,7 @@ export class PolicyGenerator {
             const transformer = new TypeScriptExpressionTransformer({
                 context: ExpressionContext.AccessPolicy,
                 fieldReferenceContext: 'input',
+                operationContext: 'create',
             });
 
             let expr =
@@ -310,7 +322,7 @@ export class PolicyGenerator {
     private writePostUpdatePreValueSelector(model: DataModel, writer: CodeBlockWriter) {
         const allows = getPolicyExpressions(model, 'allow', 'postUpdate');
         const denies = getPolicyExpressions(model, 'deny', 'postUpdate');
-        const preValueSelect = generateSelectForRules([...allows, ...denies]);
+        const preValueSelect = generateSelectForRules([...allows, ...denies], 'postUpdate');
         if (preValueSelect) {
             writer.writeLine(`preUpdateSelector: ${JSON.stringify(preValueSelect)},`);
         }
@@ -350,17 +362,19 @@ export class PolicyGenerator {
 
         // write cross-model comparison rules as entity checker functions
         // because they cannot be checked inside Prisma
-        this.writeEntityChecker(model, kind, writer, sourceFile, true);
+        const { functionName, selector } = this.writeEntityChecker(model, kind, sourceFile, false);
+
+        if (this.shouldUseEntityChecker(model, kind, true, false)) {
+            writer.write(`entityChecker: { func: ${functionName}, selector: ${JSON.stringify(selector)} },`);
+        }
     }
 
-    private writeEntityChecker(
+    private shouldUseEntityChecker(
         target: DataModel | DataModelField,
         kind: PolicyOperationKind,
-        writer: CodeBlockWriter,
-        sourceFile: SourceFile,
-        onlyCrossModelComparison = false,
-        forOverride = false
-    ) {
+        onlyCrossModelComparison: boolean,
+        forOverride: boolean
+    ): boolean {
         const allows = getPolicyExpressions(
             target,
             'allow',
@@ -376,9 +390,36 @@ export class PolicyGenerator {
             onlyCrossModelComparison ? 'onlyCrossModelComparison' : 'all'
         );
 
-        if (allows.length === 0 && denies.length === 0) {
-            return;
+        if (allows.length > 0 || denies.length > 0) {
+            return true;
         }
+
+        const allRules = [
+            ...getPolicyExpressions(target, 'allow', kind, forOverride, 'all'),
+            ...getPolicyExpressions(target, 'deny', kind, forOverride, 'all'),
+        ];
+
+        return allRules.some((rule) => {
+            return streamAst(rule).some((node) => {
+                if (isCheckInvocation(node)) {
+                    const expr = node as InvocationExpr;
+                    const fieldRef = expr.args[0].value as ReferenceExpr;
+                    const targetModel = fieldRef.$resolvedType?.decl as DataModel;
+                    return this.shouldUseEntityChecker(targetModel, kind, onlyCrossModelComparison, forOverride);
+                }
+                return false;
+            });
+        });
+    }
+
+    private writeEntityChecker(
+        target: DataModel | DataModelField,
+        kind: PolicyOperationKind,
+        sourceFile: SourceFile,
+        forOverride: boolean
+    ) {
+        const allows = getPolicyExpressions(target, 'allow', kind, forOverride, 'all');
+        const denies = getPolicyExpressions(target, 'deny', kind, forOverride, 'all');
 
         const model = isDataModel(target) ? target : (target.$container as DataModel);
         const func = generateEntityCheckerFunction(
@@ -390,9 +431,9 @@ export class PolicyGenerator {
             isDataModelField(target) ? target : undefined,
             forOverride
         );
-        const selector = generateSelectForRules([...allows, ...denies], false, kind !== 'postUpdate') ?? {};
-        const key = forOverride ? 'overrideEntityChecker' : 'entityChecker';
-        writer.write(`${key}: { func: ${func.getName()!}, selector: ${JSON.stringify(selector)} },`);
+        const selector = generateSelectForRules([...allows, ...denies], kind, false, kind !== 'postUpdate') ?? {};
+
+        return { functionName: func.getName()!, selector };
     }
 
     // writes `guard: ...` for a given policy operation kind
@@ -408,23 +449,32 @@ export class PolicyGenerator {
         if (kind === 'update' && allows.length === 0) {
             // no allow rule for 'update', policy is constant based on if there's
             // post-update counterpart
+            let func: FunctionDeclaration;
             if (getPolicyExpressions(model, 'allow', 'postUpdate').length === 0) {
-                writer.write(`guard: false,`);
+                func = generateConstantQueryGuardFunction(sourceFile, model, kind, false);
             } else {
-                writer.write(`guard: true,`);
+                func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
             }
+            writer.write(`guard: ${func.getName()!},`);
             return;
         }
 
         if (kind === 'postUpdate' && allows.length === 0 && denies.length === 0) {
             // no 'postUpdate' rule, always allow
-            writer.write(`guard: true,`);
+            const func = generateConstantQueryGuardFunction(sourceFile, model, kind, true);
+            writer.write(`guard: ${func.getName()},`);
             return;
         }
 
         if (kind in policies && typeof policies[kind as keyof typeof policies] === 'boolean') {
             // constant policy
-            writer.write(`guard: ${policies[kind as keyof typeof policies]},`);
+            const func = generateConstantQueryGuardFunction(
+                sourceFile,
+                model,
+                kind,
+                policies[kind as keyof typeof policies] as boolean
+            );
+            writer.write(`guard: ${func.getName()!},`);
             return;
         }
 
@@ -534,7 +584,13 @@ export class PolicyGenerator {
 
                     // checker function
                     // write all field-level rules as entity checker function
-                    this.writeEntityChecker(field, 'read', writer, sourceFile, false, false);
+                    const { functionName, selector } = this.writeEntityChecker(field, 'read', sourceFile, false);
+
+                    if (this.shouldUseEntityChecker(field, 'read', false, false)) {
+                        writer.write(
+                            `entityChecker: { func: ${functionName}, selector: ${JSON.stringify(selector)} },`
+                        );
+                    }
 
                     if (overrideAllows.length > 0) {
                         // override guard function
@@ -551,7 +607,14 @@ export class PolicyGenerator {
                         writer.write(`overrideGuard: ${overrideGuardFunc.getName()},`);
 
                         // additional entity checker for override
-                        this.writeEntityChecker(field, 'read', writer, sourceFile, false, true);
+                        const { functionName, selector } = this.writeEntityChecker(field, 'read', sourceFile, true);
+                        if (this.shouldUseEntityChecker(field, 'read', false, true)) {
+                            writer.write(
+                                `overrideEntityChecker: { func: ${functionName}, selector: ${JSON.stringify(
+                                    selector
+                                )} },`
+                            );
+                        }
                     }
                 });
                 writer.writeLine(',');
@@ -581,7 +644,12 @@ export class PolicyGenerator {
 
                     // write cross-model comparison rules as entity checker functions
                     // because they cannot be checked inside Prisma
-                    this.writeEntityChecker(field, 'update', writer, sourceFile, true, false);
+                    const { functionName, selector } = this.writeEntityChecker(field, 'update', sourceFile, false);
+                    if (this.shouldUseEntityChecker(field, 'update', true, false)) {
+                        writer.write(
+                            `entityChecker: { func: ${functionName}, selector: ${JSON.stringify(selector)} },`
+                        );
+                    }
 
                     if (overrideAllows.length > 0) {
                         // override guard
@@ -598,7 +666,14 @@ export class PolicyGenerator {
 
                         // write cross-model comparison override rules as entity checker functions
                         // because they cannot be checked inside Prisma
-                        this.writeEntityChecker(field, 'update', writer, sourceFile, true, true);
+                        const { functionName, selector } = this.writeEntityChecker(field, 'update', sourceFile, true);
+                        if (this.shouldUseEntityChecker(field, 'update', true, true)) {
+                            writer.write(
+                                `overrideEntityChecker: { func: ${functionName}, selector: ${JSON.stringify(
+                                    selector
+                                )} },`
+                            );
+                        }
                     }
                 });
                 writer.writeLine(',');
@@ -649,7 +724,7 @@ export class PolicyGenerator {
         });
 
         if (authRules.length > 0) {
-            return generateSelectForRules(authRules, true);
+            return generateSelectForRules(authRules, undefined, true);
         } else {
             return undefined;
         }

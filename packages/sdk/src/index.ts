@@ -1,6 +1,7 @@
 export * from './code-gen';
 export * from './constants';
 export { generate as generateModelMeta } from './model-meta-generator';
+export * from './names';
 export * from './policy';
 export * from './types';
 export * from './typescript-expression-transformer';

@@ -1369,7 +1369,7 @@ async function check(schema: string, getExpr: (model: DataModel) => Expression, 
         declarations: [
             {
                 name: 'expr',
-                initializer: (writer) => new ExpressionWriter(writer).write(expr),
+                initializer: (writer) => new ExpressionWriter(writer, { operationContext: 'read' }).write(expr),
             },
         ],
     });

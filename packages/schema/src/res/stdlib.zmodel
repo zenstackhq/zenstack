@@ -666,6 +666,16 @@ function datetime(field: String): Boolean {
 function url(field: String): Boolean {
 } @@@expressionContext([ValidationRule])
 
+/**
+ * Checks if the current user can perform the given operation on the given field.
+ * 
+ * @param field: The field to check access for
+ * @param operation: The operation to check access for. Can be "read", "create", "update", or "delete". If the operation is not provided, 
+ * it defaults the operation of the containing policy rule.
+ */
+function check(field: Any, operation: String?): Boolean {
+} @@@expressionContext([AccessPolicy])
+
 //////////////////////////////////////////////
 // End validation attributes and functions
 //////////////////////////////////////////////
