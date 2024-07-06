@@ -43,13 +43,13 @@ export async function generate(projectPath: string, options: Options) {
         }
     }
 
-    const tasks = [runPlugins(options)];
+    await runPlugins(options);
 
     if (options.versionCheck) {
-        tasks.push(checkNewVersion());
+        // note that we can't run plugins and do version check concurrently because
+        // plugins are CPU-bound and can cause version check to false timeout
+        await checkNewVersion();
     }
-
-    await Promise.all(tasks);
 }
 
 async function runPlugins(options: Options) {
