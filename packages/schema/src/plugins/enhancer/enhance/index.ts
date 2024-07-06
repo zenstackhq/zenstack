@@ -147,12 +147,7 @@ export function enhance<DbClient extends object>(prisma: DbClient, context?: Enh
 
     private createLogicalPrismaImports(prismaImport: string, logicalPrismaClientDir: string) {
         return `import { Prisma as _Prisma, PrismaClient as _PrismaClient } from '${prismaImport}';
-import type {
-    InternalArgs,
-    TypeMapDef,
-    TypeMapCbDef,
-    DynamicClientExtensionThis,
-} from '${prismaImport}/runtime/library';
+import type { InternalArgs, DynamicClientExtensionThis } from '${prismaImport}/runtime/library';
 import type * as _P from '${logicalPrismaClientDir}/index-fixed';
 import type { Prisma, PrismaClient } from '${logicalPrismaClientDir}/index-fixed';
 `;
@@ -174,7 +169,7 @@ export function enhance<ExtArgs extends Record<string, any> & InternalArgs>(
     
 // overload for extended PrismaClient
 export function enhance<ExtArgs extends Record<string, any> & InternalArgs${hasClientOptions ? ', ClientOptions' : ''}>(
-    prisma: DynamicClientExtensionThis<Prisma.TypeMap<ExtArgs>, Prisma.TypeMapCb, ExtArgs${
+    prisma: DynamicClientExtensionThis<_Prisma.TypeMap<ExtArgs>, _Prisma.TypeMapCb, ExtArgs${
         hasClientOptions ? ', ClientOptions' : ''
     }>,
     context?: EnhancementContext<${authTypeParam}>, options?: EnhancementOptions): DynamicClientExtensionThis<Prisma.TypeMap<ExtArgs>, Prisma.TypeMapCb, ExtArgs${
